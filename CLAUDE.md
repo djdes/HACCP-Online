@@ -205,7 +205,7 @@ Five seeded templates: `temp_control`, `incoming_control`, `finished_product`, `
 
 Equipment with `tuyaDeviceId` can fetch live temperature. Two modes:
 - **Manual**: Button "С датчика" in journal form calls `GET /api/tuya/device?equipmentId=X`
-- **Auto**: Cron hits `POST /api/tuya/collect?secret=X` at 8:00/14:00/20:00 MSK, creates journal entries with `source: "tuya_auto"`
+- **Auto**: Cron hits `POST /api/tuya/collect?secret=X` every hour (:00), creates journal entries with `source: "tuya_auto"`
 
 ### Database (Prisma)
 
