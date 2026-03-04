@@ -3,6 +3,10 @@ import {
   ClipboardList,
   Users,
   ThermometerSun,
+  Activity,
+  Wifi,
+  User as UserIcon,
+  Clock,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -13,6 +17,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+function formatDateTime(date: Date): string {
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatRelativeTime(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "только что";
+  if (minutes < 60) return `${minutes} мин назад`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ч назад`;
+  return `${Math.floor(hours / 24)} д назад`;
+}
+
+type EntryData = Record<string, unknown>;
+
+function getEntryData(data: unknown): EntryData {
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    return data as EntryData;
+  }
+  return {};
+}
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -21,7 +63,9 @@ export default async function DashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [totalEntries, todayEntries, activeTemplates, activeUsers] =
+  const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+  const [totalEntries, todayEntries, activeTemplates, activeUsers, recentEntries] =
     await Promise.all([
       db.journalEntry.count({
         where: { organizationId },
@@ -37,6 +81,20 @@ export default async function DashboardPage() {
       }),
       db.user.count({
         where: { organizationId, isActive: true },
+      }),
+      db.journalEntry.findMany({
+        where: {
+          organizationId,
+          createdAt: { gte: cutoff48h },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: {
+          template: { select: { name: true, code: true } },
+          filledBy: { select: { name: true } },
+          area: { select: { name: true } },
+          equipment: { select: { name: true } },
+        },
       }),
     ]);
 
@@ -87,6 +145,126 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Last 48 hours activity */}
+      <div>
+        <div className="mb-4 flex items-center gap-2">
+          <Activity className="size-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Активность за 48 часов</h2>
+          <Badge variant="secondary" className="ml-1">
+            {recentEntries.length}
+          </Badge>
+        </div>
+
+        {recentEntries.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <Clock className="size-10 text-muted-foreground" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                За последние 48 часов записей не было
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">Когда</TableHead>
+                    <TableHead>Журнал</TableHead>
+                    <TableHead>Детали</TableHead>
+                    <TableHead>Участок</TableHead>
+                    <TableHead>Кто</TableHead>
+                    <TableHead>Источник</TableHead>
+                    <TableHead>Статус</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentEntries.map((entry) => {
+                    const data = getEntryData(entry.data);
+                    const source = data.source as string | undefined;
+                    const isIoT = source === "tuya_auto" || source === "tuya_sensor";
+                    const temp = data.temperature as number | undefined;
+                    const isTempControl = entry.template.code === "temp_control";
+
+                    return (
+                      <TableRow key={entry.id}>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="text-sm font-medium">
+                            {formatDateTime(entry.createdAt)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatRelativeTime(entry.createdAt)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            href={`/journals/${entry.template.code}`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {entry.template.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          {isTempControl && temp != null ? (
+                            <div className="space-y-0.5">
+                              {entry.equipment && (
+                                <div className="text-xs text-muted-foreground">
+                                  {entry.equipment.name}
+                                </div>
+                              )}
+                              <span className="font-mono font-semibold">
+                                {temp}°C
+                              </span>
+                            </div>
+                          ) : entry.equipment ? (
+                            <span className="text-sm">{entry.equipment.name}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {entry.area?.name ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <UserIcon className="size-3 text-muted-foreground" />
+                            <span className="text-sm">{entry.filledBy.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {isIoT ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                              <Wifi className="size-3" />
+                              {source === "tuya_auto" ? "Авто" : "Датчик"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              Вручную
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {entry.status === "draft" && (
+                            <Badge variant="outline">Черновик</Badge>
+                          )}
+                          {entry.status === "submitted" && (
+                            <Badge variant="secondary">Отправлено</Badge>
+                          )}
+                          {entry.status === "approved" && (
+                            <Badge variant="default">Утверждено</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Journal template cards */}
