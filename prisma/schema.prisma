@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id               String         @id @default(cuid())
+  name             String
+  type             String
+  inn              String?
+  address          String?
+  phone            String?
+  subscriptionPlan String         @default("trial")
+  subscriptionEnd  DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  users            User[]
+  areas            Area[]
+  journalEntries   JournalEntry[]
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  name            String
+  phone           String?
+  passwordHash    String
+  role            String         @default("operator")
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  telegramChatId  String?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  journalEntries  JournalEntry[]
+}
+
+model Area {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment       Equipment[]
+  journalEntries  JournalEntry[]
+}
+
+model Equipment {
+  id              String         @id @default(cuid())
+  name            String
+  type            String
+  serialNumber    String?
+  tempMin         Float?
+  tempMax         Float?
+  areaId          String
+  area            Area           @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  journalEntries  JournalEntry[]
+}
+
+model JournalTemplate {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  description String?
+  fields      Json
+  isActive    Boolean        @default(true)
+  sortOrder   Int            @default(0)
+  entries     JournalEntry[]
+}
+
+model JournalEntry {
+  id              String          @id @default(cuid())
+  templateId      String
+  template        JournalTemplate @relation(fields: [templateId], references: [id])
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  areaId          String?
+  area            Area?           @relation(fields: [areaId], references: [id])
+  equipmentId     String?
+  equipment       Equipment?      @relation(fields: [equipmentId], references: [id])
+  filledById      String
+  filledBy        User            @relation(fields: [filledById], references: [id])
+  data            Json
+  status          String          @default("submitted")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, templateId, createdAt])
+  @@index([filledById])
+}
