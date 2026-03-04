@@ -94,34 +94,33 @@ python _deploy.py
 
 **Important**: The server has no sudo access. SFTP is chrooted to home — use relative paths (e.g. `www/haccp.magday.ru/app`, not `/home/magday/...`). Use `prisma db push` not `migrate dev` (no CREATEDB permission). Build on the server (61GB RAM) — local Windows may OOM.
 
-## Git Workflow (CRITICAL — read before any work)
+## Git Workflow (MANDATORY — follow every time, no exceptions)
 
 **NEVER commit or push directly to `master`.** All work goes through feature branches + Pull Requests.
 
-### Before starting any task
+### Step 1: ALWAYS pull master first (do this automatically, don't ask)
 
 ```bash
-# 1. Make sure you're on master and it's up to date
 git checkout master
 git pull origin master
-
-# 2. Create a new branch for your task
-#    Naming: feature/short-name, fix/short-name, or docs/short-name
-git checkout -b feature/my-feature
 ```
 
-### While working
+### Step 2: Create a feature branch
 
 ```bash
-# Commit often with clear messages
-git add src/app/api/my-route/route.ts src/lib/my-lib.ts
-git commit -m "feat: add my new feature"
-
-# Push your branch to GitHub
-git push -u origin feature/my-feature
+git checkout -b feature/short-task-name
+# Naming: feature/, fix/, docs/ + short description
 ```
 
-### When done — create a Pull Request
+### Step 3: Write code and commit
+
+```bash
+git add src/app/api/my-route/route.ts src/lib/my-lib.ts   # specific files, never "git add ."
+git commit -m "feat: add my new feature"
+git push -u origin feature/short-task-name
+```
+
+### Step 4: Create a Pull Request
 
 ```bash
 gh pr create --title "feat: my feature" --body "$(cat <<'EOF'
@@ -134,35 +133,40 @@ EOF
 )"
 ```
 
-The other developer reviews the PR on GitHub → Approve → Merge into master.
+### Step 5: ALWAYS review the PR before merging (do this automatically, don't ask)
 
-### After PR is merged — deploy
-
+After creating the PR, immediately review your own changes:
 ```bash
+# Check the diff against master
+gh pr diff
+
+# If everything looks good — merge
+gh pr merge --merge
+
+# Switch back to master
 git checkout master
 git pull origin master
-# Then deploy (see Deployment section above)
 ```
+
+If something looks wrong in the diff — fix it on the branch, push again, then merge.
 
 ### If you need to sync with master while working on a branch
 
 ```bash
-git checkout master
-git pull origin master
-git checkout feature/my-feature
-git merge master
-# Resolve conflicts if any, then continue working
+git checkout master && git pull origin master
+git checkout feature/my-feature && git merge master
 ```
 
 ### Rules summary
 
-| Do | Don't |
-|----|-------|
-| Create a branch for every task | Push directly to master |
-| Name branches `feature/`, `fix/`, `docs/` | Work on master |
-| Write clear commit messages | Use `git add .` (stage specific files) |
+| Always do | Never do |
+|-----------|----------|
+| `git pull origin master` before starting | Push directly to master |
+| Create a branch for every task | Work on master branch |
+| Stage specific files by name | Use `git add .` or `git add -A` |
 | Create PR when done | Deploy from a feature branch |
-| Pull master before creating a branch | Force push to any shared branch |
+| Review PR diff before merging | Merge without checking changes |
+| Pull master after merge | Force push to any shared branch |
 
 If you change `prisma/schema.prisma`, run `npx prisma db push` on the server after deploy.
 
