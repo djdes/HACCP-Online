@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const navItems = [
   { label: "Дашборд", href: "/dashboard", icon: LayoutDashboard },
   { label: "Журналы", href: "/journals", icon: ClipboardList },
   { label: "Отчёты", href: "/reports", icon: FileText },
+  { label: "СанПиН", href: "/sanpin", icon: BookOpen },
   { label: "Настройки", href: "/settings", icon: Settings },
 ];
 

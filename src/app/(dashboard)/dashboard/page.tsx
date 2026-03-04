@@ -10,6 +10,10 @@ import {
   CheckCircle2,
   XCircle,
   ShieldCheck,
+  AlertCircle,
+  Plus,
+  BookOpen,
+  FileDown,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -22,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -69,7 +74,7 @@ export default async function DashboardPage() {
 
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
-  const [totalEntries, todayEntries, activeTemplates, activeUsers, recentEntries] =
+  const [totalEntries, todayEntries, activeTemplates, activeUsers, pendingApproval, recentEntries] =
     await Promise.all([
       db.journalEntry.count({
         where: { organizationId },
@@ -85,6 +90,9 @@ export default async function DashboardPage() {
       }),
       db.user.count({
         where: { organizationId, isActive: true },
+      }),
+      db.journalEntry.count({
+        where: { organizationId, status: "submitted" },
       }),
       db.journalEntry.findMany({
         where: {
@@ -155,9 +163,10 @@ export default async function DashboardPage() {
       icon: ClipboardList,
     },
     {
-      title: "Всего записей",
-      value: totalEntries,
-      icon: ClipboardList,
+      title: "На проверке",
+      value: pendingApproval,
+      icon: AlertCircle,
+      highlight: pendingApproval > 0,
     },
     {
       title: "Сотрудников",
@@ -178,18 +187,40 @@ export default async function DashboardPage() {
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
+          <Card key={stat.title} className={stat.highlight ? "border-orange-300 bg-orange-50" : ""}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <stat.icon className="size-4 text-muted-foreground" />
+              <stat.icon className={`size-4 ${stat.highlight ? "text-orange-500" : "text-muted-foreground"}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className={`text-2xl font-bold ${stat.highlight ? "text-orange-600" : ""}`}>{stat.value}</div>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" asChild>
+          <Link href="/journals">
+            <Plus className="size-4" />
+            Новая запись
+          </Link>
+        </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link href="/reports">
+            <FileDown className="size-4" />
+            Отчёт
+          </Link>
+        </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link href="/sanpin">
+            <BookOpen className="size-4" />
+            Справочник СанПиН
+          </Link>
+        </Button>
       </div>
 
       {/* Compliance traffic light */}

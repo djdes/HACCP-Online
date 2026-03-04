@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { FieldHint, FieldWarning } from "./field-hint";
 import {
   Select,
   SelectContent,
@@ -291,15 +292,19 @@ export function DynamicForm({
                 }
               />
               <Label htmlFor={field.key}>{field.label}</Label>
+              <FieldHint templateCode={templateCode} fieldKey={field.key} />
             </div>
           ) : (
             <>
-              <Label htmlFor={field.key}>
-                {field.label}
-                {field.required && (
-                  <span className="text-destructive"> *</span>
-                )}
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor={field.key}>
+                  {field.label}
+                  {field.required && (
+                    <span className="text-destructive"> *</span>
+                  )}
+                </Label>
+                <FieldHint templateCode={templateCode} fieldKey={field.key} />
+              </div>
 
               {field.type === "text" && (
                 <Textarea
@@ -343,6 +348,11 @@ export function DynamicForm({
                       </Button>
                     )}
                   </div>
+                  <FieldWarning
+                    templateCode={templateCode}
+                    fieldKey={field.key}
+                    value={formData[field.key] as number | undefined}
+                  />
                   {sensorInfo && field.key === "temperature" && (
                     <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm">
                       <div className="flex items-center gap-2 font-medium text-green-800">

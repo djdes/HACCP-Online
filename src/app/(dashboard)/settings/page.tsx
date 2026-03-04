@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Wrench, Users, Bell, Package, CreditCard, ScrollText } from "lucide-react";
+import { Building2, Wrench, Users, Bell, Package, CreditCard, ScrollText, BookOpen } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import {
   Card,
@@ -50,6 +50,12 @@ const settingsCards = [
     description: "Аудит всех действий в системе",
     href: "/settings/audit",
     icon: ScrollText,
+  },
+  {
+    title: "Справочник СанПиН",
+    description: "Нормативы температуры, сроков, гигиены",
+    href: "/sanpin",
+    icon: BookOpen,
   },
 ];
 

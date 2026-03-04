@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,11 @@ const navItems = [
     label: "Отчёты",
     href: "/reports",
     icon: FileText,
+  },
+  {
+    label: "СанПиН",
+    href: "/sanpin",
+    icon: BookOpen,
   },
   {
     label: "Настройки",
