@@ -34,15 +34,33 @@ cp .env.shared .env && npm install && npx prisma generate && npx prisma db push 
 - `src/lib/` — auth.ts, db.ts, validators.ts, email.ts, telegram.ts, tuya.ts, pdf.ts
 - `prisma/schema.prisma` — 6 models: Organization, User, Area, Equipment, JournalTemplate, JournalEntry
 
-## Git Workflow
-Never push to master directly. Use feature branches + PR:
+## Git Workflow (CRITICAL)
+
+**NEVER commit or push to `master` directly. ALWAYS create a feature branch first.**
+
+Before ANY code changes:
 ```bash
-git checkout -b feature/name
-# code...
-git push -u origin feature/name
-gh pr create
+git checkout master && git pull origin master
+git checkout -b feature/short-task-name
+```
+
+When done:
+```bash
+git add <specific files>
+git commit -m "feat: what was done"
+git push -u origin feature/short-task-name
+gh pr create --title "feat: what was done" --body "Summary of changes"
+```
+
+Branch naming: `feature/`, `fix/`, `docs/` + short description.
+Never use `git add .` — always stage specific files.
+Never deploy from a feature branch — only from master after PR merge.
+
+To sync with latest master while on a branch:
+```bash
+git checkout master && git pull && git checkout feature/my-branch && git merge master
 ```
 
 ## Deployment
 See CLAUDE.md for full deploy script. Server: 192.168.33.3, PM2 on port 3001.
-Secrets in `.env.shared`. Deploy helpers (`_deploy.py`, `_run.py`) are in .gitignore.
+Secrets in `.env.shared`. Deploy helpers (`_deploy.py`, `_run.py`) are in .gitignore — recreate from CLAUDE.md.

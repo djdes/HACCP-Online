@@ -94,21 +94,75 @@ python _deploy.py
 
 **Important**: The server has no sudo access. SFTP is chrooted to home — use relative paths (e.g. `www/haccp.magday.ru/app`, not `/home/magday/...`). Use `prisma db push` not `migrate dev` (no CREATEDB permission). Build on the server (61GB RAM) — local Windows may OOM.
 
-## Collaboration Workflow
+## Git Workflow (CRITICAL — read before any work)
 
-**Rule: never push directly to `master`. Always use feature branches + Pull Requests.**
+**NEVER commit or push directly to `master`.** All work goes through feature branches + Pull Requests.
+
+### Before starting any task
 
 ```bash
-git checkout master && git pull
-git checkout -b feature/my-feature    # create feature branch
-# ... write code ...
-git add <files> && git commit -m "feat: description"
-git push -u origin feature/my-feature
-gh pr create --title "Description" --body "What was done"
-# Second developer reviews → Approve → Merge
+# 1. Make sure you're on master and it's up to date
+git checkout master
+git pull origin master
+
+# 2. Create a new branch for your task
+#    Naming: feature/short-name, fix/short-name, or docs/short-name
+git checkout -b feature/my-feature
 ```
 
-After merge to master — one person deploys (tar + _deploy.py).
+### While working
+
+```bash
+# Commit often with clear messages
+git add src/app/api/my-route/route.ts src/lib/my-lib.ts
+git commit -m "feat: add my new feature"
+
+# Push your branch to GitHub
+git push -u origin feature/my-feature
+```
+
+### When done — create a Pull Request
+
+```bash
+gh pr create --title "feat: my feature" --body "$(cat <<'EOF'
+## Summary
+- What was done and why
+
+## Test plan
+- How to verify it works
+EOF
+)"
+```
+
+The other developer reviews the PR on GitHub → Approve → Merge into master.
+
+### After PR is merged — deploy
+
+```bash
+git checkout master
+git pull origin master
+# Then deploy (see Deployment section above)
+```
+
+### If you need to sync with master while working on a branch
+
+```bash
+git checkout master
+git pull origin master
+git checkout feature/my-feature
+git merge master
+# Resolve conflicts if any, then continue working
+```
+
+### Rules summary
+
+| Do | Don't |
+|----|-------|
+| Create a branch for every task | Push directly to master |
+| Name branches `feature/`, `fix/`, `docs/` | Work on master |
+| Write clear commit messages | Use `git add .` (stage specific files) |
+| Create PR when done | Deploy from a feature branch |
+| Pull master before creating a branch | Force push to any shared branch |
 
 If you change `prisma/schema.prisma`, run `npx prisma db push` on the server after deploy.
 
