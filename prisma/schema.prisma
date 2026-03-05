@@ -26,6 +26,12 @@ model Organization {
   journalEntries   JournalEntry[]
   products         Product[]
   auditLogs        AuditLog[]
+  batches          Batch[]
+  capaTickets      CapaTicket[]
+  lossRecords      LossRecord[]
+  productionPlans  ProductionPlan[]
+  changeRequests   ChangeRequest[]
+  staffCompetencies StaffCompetency[]
 }
 
 model User {
@@ -135,4 +141,129 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([entity, entityId])
+}
+
+model Batch {
+  id              String       @id @default(cuid())
+  code            String
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  productName     String
+  supplier        String?
+  quantity        Float
+  unit            String       @default("kg")
+  receivedAt      DateTime     @default(now())
+  expiryDate      DateTime?
+  status          String       @default("received")
+  sourceEntryId   String?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+  @@index([organizationId, expiryDate])
+}
+
+model CapaTicket {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  priority        String       @default("medium")
+  status          String       @default("open")
+  category        String       @default("other")
+  sourceType      String?
+  sourceEntryId   String?
+  assignedToId    String?
+  dueDate         DateTime?
+  slaHours        Int          @default(24)
+  rootCause       String?
+  correctiveAction String?
+  preventiveAction String?
+  verificationResult String?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+}
+
+model LossRecord {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  date            DateTime     @default(now())
+  category        String
+  productName     String
+  quantity        Float
+  unit            String       @default("kg")
+  costRub         Float?
+  cause           String?
+  areaId          String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+
+  @@index([organizationId, date])
+  @@index([organizationId, category])
+}
+
+model ProductionPlan {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  date            DateTime
+  shift           String       @default("morning")
+  items           Json
+  status          String       @default("draft")
+  notes           String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, date, shift])
+  @@index([organizationId, date])
+}
+
+model ChangeRequest {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title           String
+  changeType      String
+  description     String?
+  riskAssessment  String?
+  testBatchResult String?
+  status          String       @default("requested")
+  version         Int          @default(1)
+  requestedById   String?
+  approvedById    String?
+  implementedAt   DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model StaffCompetency {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String
+  skill           String
+  level           Int          @default(0)
+  certifiedAt     DateTime?
+  expiresAt       DateTime?
+  certifiedById   String?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, userId, skill])
+  @@index([organizationId, userId])
 }

@@ -14,6 +14,9 @@ import {
   Plus,
   BookOpen,
   FileDown,
+  Package,
+  AlertTriangle,
+  TrendingDown,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -114,6 +117,23 @@ export default async function DashboardPage() {
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
   });
+
+  // New module stats
+  const [openCapaCount, weekLossCount, expiringBatches] = await Promise.all([
+    db.capaTicket.count({
+      where: { organizationId, status: { not: "closed" } },
+    }),
+    db.lossRecord.count({
+      where: { organizationId, date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+    }),
+    db.batch.count({
+      where: {
+        organizationId,
+        expiryDate: { lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+        status: { notIn: ["expired", "written_off", "shipped"] },
+      },
+    }),
+  ]);
 
   // Equipment with IoT for temperature chart
   const iotEquipment = await db.equipment.findMany({
@@ -222,6 +242,51 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Operations alerts */}
+      {(openCapaCount > 0 || expiringBatches > 0 || weekLossCount > 0) && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {openCapaCount > 0 && (
+            <Link href="/capa">
+              <Card className="border-red-200 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <AlertTriangle className="size-8 text-red-500" />
+                  <div>
+                    <p className="text-2xl font-bold text-red-600">{openCapaCount}</p>
+                    <p className="text-xs text-red-700">Открытых CAPA</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {expiringBatches > 0 && (
+            <Link href="/batches?status=received">
+              <Card className="border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-colors cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Package className="size-8 text-yellow-600" />
+                  <div>
+                    <p className="text-2xl font-bold text-yellow-700">{expiringBatches}</p>
+                    <p className="text-xs text-yellow-700">Партий истекает</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {weekLossCount > 0 && (
+            <Link href="/losses">
+              <Card className="border-orange-200 bg-orange-50 hover:bg-orange-100 transition-colors cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <TrendingDown className="size-8 text-orange-500" />
+                  <div>
+                    <p className="text-2xl font-bold text-orange-600">{weekLossCount}</p>
+                    <p className="text-xs text-orange-700">Потерь за неделю</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Compliance traffic light */}
       {mandatoryTemplates.length > 0 && (

@@ -11,6 +11,8 @@ import {
   LogOut,
   Menu,
   BookOpen,
+  Package,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,8 +35,9 @@ import {
 const navItems = [
   { label: "Дашборд", href: "/dashboard", icon: LayoutDashboard },
   { label: "Журналы", href: "/journals", icon: ClipboardList },
+  { label: "Партии", href: "/batches", icon: Package },
+  { label: "CAPA", href: "/capa", icon: AlertTriangle },
   { label: "Отчёты", href: "/reports", icon: FileText },
-  { label: "СанПиН", href: "/sanpin", icon: BookOpen },
   { label: "Настройки", href: "/settings", icon: Settings },
 ];
 

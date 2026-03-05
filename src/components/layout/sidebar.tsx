@@ -8,6 +8,12 @@ import {
   FileText,
   Settings,
   BookOpen,
+  Package,
+  AlertTriangle,
+  TrendingDown,
+  Calendar,
+  GitBranch,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +27,36 @@ const navItems = [
     label: "Журналы",
     href: "/journals",
     icon: ClipboardList,
+  },
+  {
+    label: "Партии",
+    href: "/batches",
+    icon: Package,
+  },
+  {
+    label: "CAPA",
+    href: "/capa",
+    icon: AlertTriangle,
+  },
+  {
+    label: "Потери",
+    href: "/losses",
+    icon: TrendingDown,
+  },
+  {
+    label: "План",
+    href: "/plans",
+    icon: Calendar,
+  },
+  {
+    label: "Изменения",
+    href: "/changes",
+    icon: GitBranch,
+  },
+  {
+    label: "Компетенции",
+    href: "/competencies",
+    icon: GraduationCap,
   },
   {
     label: "Отчёты",
