@@ -1,0 +1,352 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getHygieneResponsibleTitleOptions,
+  HYGIENE_PERIODICITY_TEXT,
+} from "@/lib/hygiene-document";
+
+type HygieneListDocument = {
+  id: string;
+  title: string;
+  status: "active" | "closed";
+  responsibleTitle: string | null;
+  periodLabel: string;
+};
+
+type Props = {
+  activeTab: "active" | "closed";
+  templateCode: string;
+  templateName: string;
+  users: { id: string; name: string; role: string }[];
+  documents: HygieneListDocument[];
+};
+
+function EditDocumentDialog({
+  open,
+  onOpenChange,
+  document,
+  responsibleOptions,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  document: HygieneListDocument | null;
+  responsibleOptions: string[];
+}) {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [responsibleTitle, setResponsibleTitle] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!document || !open) return;
+    setTitle(document.title);
+    setResponsibleTitle(document.responsibleTitle || responsibleOptions[0] || "");
+    setError("");
+  }, [document, open, responsibleOptions]);
+
+  async function handleSave() {
+    if (!document) return;
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/journal-documents/${document.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          responsibleTitle,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Ошибка сохранения");
+      }
+
+      onOpenChange(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[765px] rounded-[32px] border-0 p-0">
+        <DialogHeader className="border-b px-14 py-12">
+          <DialogTitle className="text-[32px] font-medium text-black">Настройки документа</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-8 px-14 py-12">
+          {error && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Label htmlFor="edit-doc-title" className="sr-only">
+              Название документа
+            </Label>
+            <Input
+              id="edit-doc-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Введите название документа"
+              className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
+            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+              <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {responsibleOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
+            <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+            <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
+          </div>
+
+          <div className="flex justify-end pt-6">
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSave}
+              className="h-20 rounded-3xl bg-[#5b66ff] px-10 text-[24px] text-white hover:bg-[#4b57ff]"
+            >
+              {isSubmitting ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DocumentRow({
+  document,
+  canManage,
+  onEdit,
+  onDelete,
+}: {
+  document: HygieneListDocument;
+  canManage: boolean;
+  onEdit: (document: HygieneListDocument) => void;
+  onDelete: (document: HygieneListDocument) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1.8fr_320px_290px_48px] items-center rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <Link
+        href={`/journals/hygiene/documents/${document.id}`}
+        className="text-[20px] font-semibold tracking-[-0.02em] text-black"
+      >
+        {document.title}
+      </Link>
+      <Link
+        href={`/journals/hygiene/documents/${document.id}`}
+        className="border-l border-[#e6e6f0] px-10"
+      >
+        <div className="text-[14px] text-[#84849a]">Должность ответственного</div>
+        <div className="mt-2 text-[18px] font-semibold text-black">{document.responsibleTitle || ""}</div>
+      </Link>
+      <Link
+        href={`/journals/hygiene/documents/${document.id}`}
+        className="border-l border-[#e6e6f0] px-10"
+      >
+        <div className="text-[14px] text-[#84849a]">Период</div>
+        <div className="mt-2 text-[18px] font-semibold text-black">{document.periodLabel}</div>
+      </Link>
+      <div className="flex items-center justify-center text-[#5b66ff]">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]">
+              <Ellipsis className="size-8" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-6 shadow-xl">
+            {canManage && (
+              <DropdownMenuItem
+                className="mb-3 h-16 rounded-2xl px-4 text-[20px]"
+                onSelect={() => onEdit(document)}
+              >
+                <Pencil className="mr-4 size-7 text-[#6f7282]" />
+                Настройки
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              className="mb-3 h-16 rounded-2xl px-4 text-[20px]"
+              onSelect={() => window.open(`/journals/hygiene/documents/${document.id}`, "_blank")}
+            >
+              <Printer className="mr-4 size-7 text-[#6f7282]" />
+              Печать
+            </DropdownMenuItem>
+            {canManage && (
+              <DropdownMenuItem
+                className="h-16 rounded-2xl px-4 text-[20px] text-[#ff3b30] focus:text-[#ff3b30]"
+                onSelect={() => onDelete(document)}
+              >
+                <Trash2 className="mr-4 size-7 text-[#ff3b30]" />
+                Удалить
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+export function HygieneDocumentsClient({
+  activeTab,
+  templateCode,
+  templateName,
+  users,
+  documents,
+}: Props) {
+  const router = useRouter();
+  const [editingDocument, setEditingDocument] = useState<HygieneListDocument | null>(null);
+  const responsibleOptions = getHygieneResponsibleTitleOptions(users);
+
+  async function handleDelete(document: HygieneListDocument) {
+    const confirmed = window.confirm(`Удалить документ "${document.title}"?`);
+    if (!confirmed) return;
+
+    const response = await fetch(`/api/journal-documents/${document.id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      window.alert(data?.error || "Ошибка удаления документа");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  const heading =
+    activeTab === "closed"
+      ? "Гигиенический журнал (Закрытые!!!)"
+      : "Гигиенический журнал";
+
+  return (
+    <>
+      <div className="space-y-14">
+        <div className="flex items-center justify-between">
+          <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">{heading}</h1>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              className="h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              asChild
+            >
+              <Link href="/sanpin">
+                <BookOpenText className="size-6" />
+                Инструкция
+              </Link>
+            </Button>
+            {activeTab === "active" && (
+              <CreateDocumentDialog
+                templateCode={templateCode}
+                templateName={templateName}
+                users={users}
+                triggerClassName="h-16 rounded-2xl bg-[#5b66ff] px-8 text-[18px] font-medium text-white hover:bg-[#4c58ff]"
+                triggerLabel="Создать документ"
+                triggerIcon={<Plus className="size-7" />}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="border-b border-[#d9d9e4]">
+          <div className="flex gap-12 text-[18px]">
+            <Link
+              href={`/journals/${templateCode}`}
+              className={`relative pb-5 ${
+                activeTab === "active"
+                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5b66ff]"
+                  : "text-[#7c7c93]"
+              }`}
+            >
+              Активные
+            </Link>
+            <Link
+              href={`/journals/${templateCode}?tab=closed`}
+              className={`relative pb-5 ${
+                activeTab === "closed"
+                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5b66ff]"
+                  : "text-[#7c7c93]"
+              }`}
+            >
+              Закрытые
+            </Link>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {documents.map((document) => (
+            <DocumentRow
+              key={document.id}
+              document={document}
+              canManage={document.status === "active"}
+              onEdit={setEditingDocument}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      </div>
+
+      <EditDocumentDialog
+        open={!!editingDocument}
+        onOpenChange={(value) => {
+          if (!value) setEditingDocument(null);
+        }}
+        document={editingDocument}
+        responsibleOptions={responsibleOptions}
+      />
+    </>
+  );
+}

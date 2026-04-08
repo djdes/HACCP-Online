@@ -2,14 +2,13 @@
 
 import { Fragment } from "react";
 import {
-  HYGIENE_EXAMPLE_MONTH,
-  HYGIENE_EXAMPLE_TITLE,
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
   HYGIENE_REGISTER_PERIODICITY,
+  buildDateKeys,
   buildExampleHygieneEntryMap,
-  buildFixedHygieneExampleDateKeys,
   buildHygieneExampleEmployees,
+  formatMonthLabel,
   getDayNumber,
   getHygieneDefaultResponsibleTitle,
   getStatusMeta,
@@ -80,19 +79,25 @@ function makeCellKey(employeeId: string, dateKey: string) {
 }
 
 export function HygieneDocumentClient({
+  title,
   organizationName,
+  dateFrom,
+  dateTo,
   responsibleTitle,
   employees,
   initialEntries,
 }: Props) {
-  const dateKeys = buildFixedHygieneExampleDateKeys();
+  const dateKeys = buildDateKeys(dateFrom, dateTo);
   const printableEmployees = buildHygieneExampleEmployees(employees);
   const entryMap = buildExampleHygieneEntryMap(
-    printableEmployees.map((employee) => employee.id)
+    printableEmployees.map((employee) => employee.id),
+    dateKeys
   );
   const organizationLabel = organizationName || 'ООО "Тест"';
   const responsibleLabel =
     responsibleTitle || getHygieneDefaultResponsibleTitle(employees);
+  const documentTitle = title || "Гигиенический журнал";
+  const monthLabel = formatMonthLabel(dateFrom, dateTo);
   const firstNote = HYGIENE_REGISTER_NOTES[0];
   const continuedNotes = HYGIENE_REGISTER_NOTES.slice(1);
 
@@ -189,7 +194,7 @@ export function HygieneDocumentClient({
             </div>
 
             <div className="mb-6 text-center text-[34px] font-bold uppercase">
-              {HYGIENE_EXAMPLE_TITLE}
+              {documentTitle}
             </div>
 
             <table className="hygiene-grid w-full border-collapse text-[15px]">
@@ -215,9 +220,9 @@ export function HygieneDocumentClient({
                   </th>
                   <th
                     className="border border-black p-2 text-center text-[16px] font-semibold"
-                    colSpan={15}
+                    colSpan={dateKeys.length}
                   >
-                    Месяц {HYGIENE_EXAMPLE_MONTH}
+                    Месяц {monthLabel}
                   </th>
                 </tr>
                 <tr className="bg-[#f2f2f2]">

@@ -42,7 +42,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { templateCode, dateFrom, dateTo, responsibleUserId, responsibleTitle } = body;
+  const {
+    templateCode,
+    title,
+    dateFrom,
+    dateTo,
+    responsibleUserId,
+    responsibleTitle,
+  } = body;
 
   if (!templateCode || !dateFrom || !dateTo) {
     return NextResponse.json({ error: "templateCode, dateFrom, dateTo обязательны" }, { status: 400 });
@@ -55,7 +62,7 @@ export async function POST(request: Request) {
     data: {
       templateId: template.id,
       organizationId: session.user.organizationId,
-      title: template.name,
+      title: title || template.name,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId: responsibleUserId || null,

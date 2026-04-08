@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  getHygieneCreatePeriodBounds,
+  getHygieneDocumentTitle,
+  getHygienePositionLabel,
+  getHygieneResponsibleTitleOptions,
+  HYGIENE_PERIODICITY_TEXT,
+} from "@/lib/hygiene-document";
 
 interface Props {
   templateCode: string;
@@ -50,36 +57,24 @@ export function CreateDocumentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const now = new Date();
-  const day = now.getDate();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const defaultPeriod = useMemo(() => getHygieneCreatePeriodBounds(), []);
+  const responsibleTitleOptions = useMemo(
+    () =>
+      templateCode === "hygiene"
+        ? getHygieneResponsibleTitleOptions(users)
+        : [],
+    [templateCode, users]
+  );
 
-  let defaultFrom: string;
-  let defaultTo: string;
-
-  if (templateCode === "hygiene") {
-    if (day <= 15) {
-      defaultFrom = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-      defaultTo = `${year}-${String(month + 1).padStart(2, "0")}-15`;
-    } else {
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      defaultFrom = `${year}-${String(month + 1).padStart(2, "0")}-16`;
-      defaultTo = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-    }
-  } else if (day <= 15) {
-    defaultFrom = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-    defaultTo = `${year}-${String(month + 1).padStart(2, "0")}-15`;
-  } else {
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    defaultFrom = `${year}-${String(month + 1).padStart(2, "0")}-16`;
-    defaultTo = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  }
-
-  const [dateFrom, setDateFrom] = useState(defaultFrom);
-  const [dateTo, setDateTo] = useState(defaultTo);
+  const [title, setTitle] = useState(
+    templateCode === "hygiene" ? getHygieneDocumentTitle() : templateName
+  );
+  const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
+  const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
   const [responsibleUserId, setResponsibleUserId] = useState("");
-  const [responsibleTitle, setResponsibleTitle] = useState("");
+  const [responsibleTitle, setResponsibleTitle] = useState(
+    templateCode === "hygiene" ? responsibleTitleOptions[0] || "" : ""
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,14 +82,23 @@ export function CreateDocumentDialog({
     setError("");
 
     try {
+      const selectedResponsibleUser =
+        responsibleUserId ||
+        users.find((user) =>
+          templateCode === "hygiene"
+            ? getHygienePositionLabel(user.role) === responsibleTitle
+            : false
+        )?.id;
+
       const res = await fetch("/api/journal-documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateCode,
+          title: title.trim(),
           dateFrom,
           dateTo,
-          responsibleUserId: responsibleUserId || undefined,
+          responsibleUserId: selectedResponsibleUser || undefined,
           responsibleTitle: responsibleTitle || undefined,
         }),
       });
@@ -115,6 +119,8 @@ export function CreateDocumentDialog({
     }
   }
 
+  const isHygiene = templateCode === "hygiene";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -123,88 +129,147 @@ export function CreateDocumentDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Создать документ: {templateName}</DialogTitle>
+      <DialogContent className={cn(isHygiene && "max-w-[765px] rounded-[32px] border-0 p-0")}>
+        <DialogHeader className={cn(isHygiene && "border-b px-14 py-12")}>
+          <DialogTitle className={cn(isHygiene && "text-[32px] font-medium text-black")}>
+            {isHygiene ? "Создание документа" : `Создать документ: ${templateName}`}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className={cn("space-y-4", isHygiene && "px-14 py-12")}>
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="doc-from">Дата начала</Label>
-              <Input
-                id="doc-from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="doc-to">Дата окончания</Label>
-              <Input
-                id="doc-to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          {isHygiene ? (
+            <>
+              <div className="space-y-3">
+                <Label htmlFor="doc-title" className="sr-only">
+                  Название документа
+                </Label>
+                <Input
+                  id="doc-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Введите название документа"
+                  className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>Ответственный</Label>
-            <Select
-              value={responsibleUserId}
-              onValueChange={(value) => {
-                setResponsibleUserId(value);
-                const user = users.find((item) => item.id === value);
-                if (user) {
-                  setResponsibleTitle(ROLE_LABELS[user.role] || user.role);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите ответственного..." />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} ({ROLE_LABELS[user.role] || user.role})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-3">
+                <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
+                <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+                  <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+                    <SelectValue placeholder="- Выберите значение -" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {responsibleTitleOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="doc-title">Должность ответственного</Label>
-            <Input
-              id="doc-title"
-              value={responsibleTitle}
-              onChange={(e) => setResponsibleTitle(e.target.value)}
-              placeholder="Например: Управляющий"
-            />
-          </div>
+              <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
+                <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+                <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
+              </div>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isSubmitting}
-            >
-              Отмена
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Создание..." : "Создать"}
-            </Button>
-          </div>
+              <div className="hidden">
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+
+              <div className="flex justify-end pt-6">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-20 rounded-3xl bg-[#5b66ff] px-10 text-[24px] text-white hover:bg-[#4b57ff]"
+                >
+                  {isSubmitting ? "Создание..." : "Создать"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="doc-from">Дата начала</Label>
+                  <Input
+                    id="doc-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doc-to">Дата окончания</Label>
+                  <Input
+                    id="doc-to"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ответственный</Label>
+                <Select
+                  value={responsibleUserId}
+                  onValueChange={(value) => {
+                    setResponsibleUserId(value);
+                    const user = users.find((item) => item.id === value);
+                    if (user) {
+                      setResponsibleTitle(ROLE_LABELS[user.role] || user.role);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите ответственного..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} ({ROLE_LABELS[user.role] || user.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="doc-title-fallback">Должность ответственного</Label>
+                <Input
+                  id="doc-title-fallback"
+                  value={responsibleTitle}
+                  onChange={(e) => setResponsibleTitle(e.target.value)}
+                  placeholder="Например: Управляющий"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Отмена
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Создание..." : "Создать"}
+                </Button>
+              </div>
+            </>
+          )}
         </form>
       </DialogContent>
     </Dialog>

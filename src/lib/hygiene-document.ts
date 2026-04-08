@@ -88,6 +88,15 @@ export type HygieneSampleDocument = {
   periodLabel: string;
 };
 
+export type HygieneDocumentStatus = "active" | "closed";
+
+export type HygieneSeedDocumentConfig = {
+  title: string;
+  status: HygieneDocumentStatus;
+  dateFrom: string;
+  dateTo: string;
+};
+
 export const HYGIENE_SAMPLE_DOCUMENTS: HygieneSampleDocument[] = [
   {
     id: "sample-active-1",
@@ -161,6 +170,12 @@ export const HYGIENE_SAMPLE_DOCUMENTS: HygieneSampleDocument[] = [
   },
 ];
 
+export const HYGIENE_PERIODICITY_TEXT = HYGIENE_REGISTER_PERIODICITY.join(" ");
+
+export function getHygieneDocumentTitle() {
+  return "Гигиенический журнал";
+}
+
 function getRoleOrder(role: string): number {
   switch (role) {
     case "owner":
@@ -202,6 +217,103 @@ export function getHygieneDefaultResponsibleTitle(
   return firstEmployee
     ? getHygienePositionLabel(firstEmployee.role)
     : "Управляющий";
+}
+
+export function getHygieneResponsibleTitleOptions(
+  employees: HygieneRosterUser[]
+): string[] {
+  const titles = employees.map((employee) => getHygienePositionLabel(employee.role));
+  return [...new Set(titles)];
+}
+
+export function getHygienePeriodLabel(dateFrom: Date | string, dateTo: Date | string) {
+  const start = coerceUtcDate(dateFrom);
+  const end = coerceUtcDate(dateTo);
+  return `${MONTH_NAMES[start.getUTCMonth()]} с ${start.getUTCDate()} по ${end.getUTCDate()}`;
+}
+
+export function getHygieneCreatePeriodBounds(referenceDate = new Date()) {
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
+  const day = referenceDate.getDate();
+
+  if (day <= 15) {
+    return {
+      dateFrom: `${year}-${String(month + 1).padStart(2, "0")}-01`,
+      dateTo: `${year}-${String(month + 1).padStart(2, "0")}-15`,
+    };
+  }
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return {
+    dateFrom: `${year}-${String(month + 1).padStart(2, "0")}-16`,
+    dateTo: `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+export function getHygieneSeedDocumentConfigs(): HygieneSeedDocumentConfig[] {
+  return [
+    {
+      title: getHygieneDocumentTitle(),
+      status: "active",
+      dateFrom: "2026-04-01",
+      dateTo: "2026-04-15",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-04-16",
+      dateTo: "2026-04-30",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-05-01",
+      dateTo: "2026-05-15",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-05-16",
+      dateTo: "2026-05-31",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-15",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-06-16",
+      dateTo: "2026-06-30",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-15",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-07-16",
+      dateTo: "2026-07-31",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-15",
+    },
+    {
+      title: getHygieneDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-08-16",
+      dateTo: "2026-08-31",
+    },
+  ];
 }
 
 export function buildHygieneExampleEmployees(
@@ -396,9 +508,9 @@ const HYGIENE_EXAMPLE_PATTERNS: HygieneRowPattern[] = [
 ];
 
 export function buildExampleHygieneEntryMap(
-  employeeIds: string[] = HYGIENE_EXAMPLE_EMPLOYEES.map((employee) => employee.id)
+  employeeIds: string[] = HYGIENE_EXAMPLE_EMPLOYEES.map((employee) => employee.id),
+  dateKeys = buildFixedHygieneExampleDateKeys()
 ): Record<string, HygieneEntryData> {
-  const dateKeys = buildFixedHygieneExampleDateKeys();
   const map: Record<string, HygieneEntryData> = {};
 
   function setEntry(
@@ -429,6 +541,13 @@ export function buildExampleHygieneEntryMap(
     pattern.forEach((segment) => {
       fillRange(employeeId, segment.from, segment.to, segment.data);
     });
+
+    if (dateKeys.length > 15) {
+      fillRange(employeeId, 16, dateKeys.length, {
+        status: "healthy",
+        temperatureAbove37: false,
+      });
+    }
   });
 
   return map;
