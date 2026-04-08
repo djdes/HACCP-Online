@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   ALL_SESSION_COOKIES,
   CUSTOM_SESSION_COOKIE,
+  LEGACY_SESSION_COOKIES,
   LEGACY_AUX_COOKIES,
 } from "@/lib/auth-cookies";
 
@@ -86,6 +87,15 @@ export async function POST(request: Request) {
       maxAge: MAX_AGE,
       secure: process.env.NODE_ENV === "production",
     });
+    for (const cookieName of LEGACY_SESSION_COOKIES) {
+      response.cookies.set(cookieName, token, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: MAX_AGE,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
 
     return response;
   } catch (error) {
