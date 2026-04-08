@@ -64,9 +64,12 @@ export function Header() {
         {/* Logo */}
         <Link
           href="/dashboard"
-          className="text-lg font-bold text-primary shrink-0"
+          className="shrink-0 flex items-baseline gap-1.5"
         >
-          HACCP-Online
+          <span className="text-lg font-bold text-primary">HACCP-Online</span>
+          <span className="text-[10px] text-muted-foreground/60 font-mono" title={`Build: ${process.env.NEXT_PUBLIC_BUILD_TIME ?? ""}`}>
+            {process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}
+          </span>
         </Link>
 
         {/* Desktop nav */}
