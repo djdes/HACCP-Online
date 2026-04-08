@@ -3,6 +3,16 @@ import { jsPDF } from "jspdf";
 import autoTable, { type CellDef, type RowInput } from "jspdf-autotable";
 import { db } from "@/lib/db";
 import {
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  getClimateDateLabel,
+  getClimateDocumentTitle,
+  getClimateFilePrefix,
+  getClimatePeriodicityText,
+  normalizeClimateDocumentConfig,
+  normalizeClimateEntryData,
+  type ClimateDocumentConfig,
+} from "@/lib/climate-document";
+import {
   buildHygieneExampleEmployees,
   buildDateKeys,
   formatMonthLabel,
@@ -464,6 +474,251 @@ function drawHealthPdf(doc: jsPDF, params: {
   doc.text(HEALTH_REGISTER_REMINDER, 14, cursorY);
 }
 
+function drawClimateMetaTable(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+}) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const x = 36;
+  const y = 28;
+  const width = pageWidth - 72;
+  const leftWidth = 40;
+  const rightWidth = 38;
+  const middleWidth = width - leftWidth - rightWidth;
+  const rowHeight = 11;
+
+  doc.setLineWidth(0.25);
+  doc.rect(x, y, width, rowHeight * 3);
+  doc.line(x + leftWidth, y, x + leftWidth, y + rowHeight * 3);
+  doc.line(x + leftWidth + middleWidth, y, x + leftWidth + middleWidth, y + rowHeight * 3);
+  doc.line(x + leftWidth, y + rowHeight, x + leftWidth + middleWidth, y + rowHeight);
+  doc.line(x, y + rowHeight * 2, x + width, y + rowHeight * 2);
+  doc.line(x + leftWidth + middleWidth, y + rowHeight, x + width, y + rowHeight);
+
+  doc.setFont("JournalUnicode", "bold");
+  drawCenteredText(doc, params.organizationName, x, y, leftWidth, rowHeight * 2, leftWidth - 4);
+
+  doc.setFont("JournalUnicode", "normal");
+  drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, rowHeight, middleWidth - 8);
+
+  doc.setFont("JournalUnicode", "italic");
+  drawCenteredText(
+    doc,
+    params.title.toUpperCase(),
+    x + leftWidth,
+    y + rowHeight,
+    middleWidth,
+    rowHeight,
+    middleWidth - 8
+  );
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.text(`Начат  ${getClimateDateLabel(params.dateFrom)}`, x + leftWidth + middleWidth + 3, y + 6.5);
+  doc.text(`Окончен  ${getClimateDateLabel(params.dateTo)}`, x + leftWidth + middleWidth + 3, y + 17.5);
+  doc.text("СТР. 1 ИЗ 1", x + leftWidth + middleWidth + 3, y + 28.5);
+}
+
+function buildClimateNormsBody(config: ClimateDocumentConfig): RowInput[] {
+  const rooms = config.rooms.filter(
+    (room) => room.temperature.enabled || room.humidity.enabled
+  );
+
+  const rows: RowInput[] = rooms.map((room) => [
+    {
+      content: room.name,
+      styles: { halign: "left" as const, valign: "middle" as const },
+    },
+    room.temperature.enabled
+      ? `от ${room.temperature.min ?? "—"}°C до ${room.temperature.max ?? "—"}°C`
+      : "—",
+    room.humidity.enabled
+      ? `от ${room.humidity.min ?? "—"}% до ${room.humidity.max ?? "—"}%`
+      : "—",
+  ]);
+
+  rows.push([
+    {
+      content: "Частота контроля",
+      colSpan: 2,
+      styles: { halign: "left" as const, valign: "middle" as const, fontStyle: "bold" as const },
+    },
+    getClimatePeriodicityText(config),
+  ]);
+
+  return rows;
+}
+
+function buildClimateHead(config: ClimateDocumentConfig): RowInput[] {
+  const rooms = config.rooms.filter(
+    (room) => room.temperature.enabled || room.humidity.enabled
+  );
+  const totalColumns = rooms.reduce((total, room) => {
+    const metricCount = Number(room.temperature.enabled) + Number(room.humidity.enabled);
+    return total + config.controlTimes.length * metricCount;
+  }, 0);
+
+  return [
+    [
+      { content: "Дата", rowSpan: 3, styles: { halign: "center", valign: "middle" } },
+      {
+        content: "Точки контроля",
+        colSpan: totalColumns,
+        styles: { halign: "center", valign: "middle" },
+      },
+      { content: "Ответственный", rowSpan: 3, styles: { halign: "center", valign: "middle" } },
+    ],
+    rooms.flatMap((room) => {
+      const metricCount = Number(room.temperature.enabled) + Number(room.humidity.enabled);
+      return [
+        {
+          content: room.name,
+          colSpan: config.controlTimes.length * metricCount,
+          styles: { halign: "center", valign: "middle" },
+        },
+      ];
+    }),
+    rooms.flatMap((room) =>
+      config.controlTimes.flatMap((time) => {
+        const cells: CellDef[] = [];
+        if (room.temperature.enabled) {
+          cells.push({
+            content: `${time}\nT, °C`,
+            styles: { halign: "center", valign: "middle" },
+          });
+        }
+        if (room.humidity.enabled) {
+          cells.push({
+            content: `${time}\nВВ, %`,
+            styles: { halign: "center", valign: "middle" },
+          });
+        }
+        return cells;
+      })
+    ),
+  ];
+}
+
+function buildClimateBody(params: {
+  config: ClimateDocumentConfig;
+  entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
+  users: { id: string; name: string; role: string }[];
+}): RowInput[] {
+  const rooms = params.config.rooms.filter(
+    (room) => room.temperature.enabled || room.humidity.enabled
+  );
+  const userMap = Object.fromEntries(params.users.map((user) => [user.id, user]));
+
+  return params.entries.map((entry) => {
+    const normalized = normalizeClimateEntryData(entry.data);
+    const user = userMap[entry.employeeId];
+
+    return [
+      centerCell(getClimateDateLabel(entry.date)),
+      ...rooms.flatMap((room) =>
+        params.config.controlTimes.flatMap((time) => {
+          const measurement = normalized.measurements[room.id]?.[time];
+          const cells: CellDef[] = [];
+
+          if (room.temperature.enabled) {
+            cells.push(
+              centerCell(
+                measurement?.temperature != null ? String(measurement.temperature) : ""
+              )
+            );
+          }
+          if (room.humidity.enabled) {
+            cells.push(
+              centerCell(
+                measurement?.humidity != null ? String(measurement.humidity) : ""
+              )
+            );
+          }
+
+          return cells;
+        })
+      ),
+      {
+        content: user
+          ? `${user.name}${normalized.responsibleTitle ? `\n${normalized.responsibleTitle}` : ""}`
+          : normalized.responsibleTitle || "",
+        styles: { halign: "center" as const, valign: "middle" as const },
+      },
+    ];
+  });
+}
+
+function drawClimatePdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ClimateDocumentConfig;
+  entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
+  users: { id: string; name: string; role: string }[];
+}) {
+  drawTitle(doc, getClimateDocumentTitle());
+  drawClimateMetaTable(doc, params);
+
+  autoTable(doc, {
+    startY: 66,
+    head: [[
+      { content: "Нормы условий", styles: { halign: "center", valign: "middle" } },
+      { content: "Температура (T)", styles: { halign: "center", valign: "middle" } },
+      { content: "Влажность воздуха (ВВ)", styles: { halign: "center", valign: "middle" } },
+    ]],
+    body: buildClimateNormsBody(params.config),
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 8,
+      cellPadding: 1.8,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 36, right: 36 },
+  });
+
+  const normsEndY =
+    (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 96;
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(14);
+  doc.text(params.title.toUpperCase(), doc.internal.pageSize.getWidth() / 2, normsEndY + 12, {
+    align: "center",
+  });
+
+  autoTable(doc, {
+    startY: normsEndY + 18,
+    head: buildClimateHead(params.config),
+    body: buildClimateBody(params),
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7.3,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 14, right: 14 },
+  });
+}
+
 function renderWrappedTextBlock(
   doc: jsPDF,
   lines: string[],
@@ -529,6 +784,7 @@ export async function generateJournalDocumentPdf(params: {
   const monthLabel = formatMonthLabel(document.dateFrom, document.dateTo);
   const employeeIds = document.entries.map((entry) => entry.employeeId);
   const entryMap: Record<string, Record<string, unknown>> = {};
+  const climateConfig = normalizeClimateDocumentConfig(document.config);
 
   document.entries.forEach((entry) => {
     entryMap[makeCellKey(entry.employeeId, toDateKey(entry.date))] =
@@ -545,6 +801,20 @@ export async function generateJournalDocumentPdf(params: {
       employeeIds,
       entryMap,
     });
+  } else if (templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
+    drawClimatePdf(doc, {
+      organizationName,
+      title: document.title || getClimateDocumentTitle(),
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: climateConfig,
+      entries: document.entries.map((entry) => ({
+        employeeId: entry.employeeId,
+        date: entry.date,
+        data: (entry.data as Record<string, unknown>) || {},
+      })),
+      users,
+    });
   } else {
     drawHygienePdf(doc, {
       organizationName,
@@ -559,7 +829,12 @@ export async function generateJournalDocumentPdf(params: {
   }
 
   const buffer = Buffer.from(doc.output("arraybuffer"));
-  const prefix = templateCode === "health_check" ? "health-journal" : "hygiene-journal";
+  const prefix =
+    templateCode === "health_check"
+      ? "health-journal"
+      : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+        ? getClimateFilePrefix()
+        : "hygiene-journal";
 
   return {
     buffer,
