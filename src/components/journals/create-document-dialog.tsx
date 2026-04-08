@@ -32,6 +32,11 @@ import {
   getClimateDocumentTitle,
 } from "@/lib/climate-document";
 import {
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+  getCleaningCreatePeriodBounds,
+  getCleaningDocumentTitle,
+} from "@/lib/cleaning-document";
+import {
   getHealthDocumentTitle,
   getHygieneCreatePeriodBounds,
   getHygieneDocumentTitle,
@@ -75,10 +80,13 @@ export function CreateDocumentDialog({
         ? getColdEquipmentCreatePeriodBounds()
         : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
         ? getClimateCreatePeriodBounds()
+        : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+        ? getCleaningCreatePeriodBounds()
         : getHygieneCreatePeriodBounds(),
     [templateCode]
   );
   const isStaffJournal = isStaffDocumentTemplate(templateCode);
+  const isCleaningJournal = templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE;
   const responsibleTitleOptions = useMemo(
     () =>
       isStaffJournal
@@ -93,10 +101,12 @@ export function CreateDocumentDialog({
         : templateCode === "health_check"
         ? getHealthDocumentTitle()
         : templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
-          ? getColdEquipmentDocumentTitle()
+        ? getColdEquipmentDocumentTitle()
         : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-          ? getClimateDocumentTitle()
-          : templateName
+        ? getClimateDocumentTitle()
+        : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+        ? getCleaningDocumentTitle()
+        : templateName
   );
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
@@ -128,7 +138,7 @@ export function CreateDocumentDialog({
           dateFrom,
           dateTo,
           responsibleUserId: selectedResponsibleUser || undefined,
-          responsibleTitle: responsibleTitle || undefined,
+          responsibleTitle: isCleaningJournal ? undefined : responsibleTitle || undefined,
         }),
       });
 
@@ -249,40 +259,50 @@ export function CreateDocumentDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Ответственный</Label>
-                <Select
-                  value={responsibleUserId}
-                  onValueChange={(value) => {
-                    setResponsibleUserId(value);
-                    const user = users.find((item) => item.id === value);
-                    if (user) {
-                      setResponsibleTitle(ROLE_LABELS[user.role] || user.role);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите ответственного..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({ROLE_LABELS[user.role] || user.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isCleaningJournal && (
+                <div className="space-y-2">
+                  <Label>Ответственный</Label>
+                  <Select
+                    value={responsibleUserId}
+                    onValueChange={(value) => {
+                      setResponsibleUserId(value);
+                      const user = users.find((item) => item.id === value);
+                      if (user) {
+                        setResponsibleTitle(ROLE_LABELS[user.role] || user.role);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите ответственного..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({ROLE_LABELS[user.role] || user.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="doc-title-fallback">Должность ответственного</Label>
-                <Input
-                  id="doc-title-fallback"
-                  value={responsibleTitle}
-                  onChange={(e) => setResponsibleTitle(e.target.value)}
-                  placeholder="Например: Управляющий"
-                />
-              </div>
+              {!isCleaningJournal && (
+                <div className="space-y-2">
+                  <Label htmlFor="doc-title-fallback">Должность ответственного</Label>
+                  <Input
+                    id="doc-title-fallback"
+                    value={responsibleTitle}
+                    onChange={(e) => setResponsibleTitle(e.target.value)}
+                    placeholder="Например: Управляющий"
+                  />
+                </div>
+              )}
+
+              {isCleaningJournal && (
+                <div className="rounded-xl border border-[#dfe1ec] px-4 py-3 text-sm text-muted-foreground">
+                  Ответственных за уборку и контроль можно настроить внутри документа.
+                </div>
+              )}
 
               <div className="flex justify-end gap-2">
                 <Button

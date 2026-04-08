@@ -330,8 +330,8 @@ const journalTemplates = [
     name: "Журнал контроля температурного режима холодильного и морозильного оборудования",
     description: "Документный журнал контроля температурного режима холодильного и морозильного оборудования по дням месяца",
     sortOrder: 20,
-    isMandatorySanpin: false,
-    isMandatoryHaccp: false,
+    isMandatorySanpin: true,
+    isMandatoryHaccp: true,
     fields: [],
   },
 
