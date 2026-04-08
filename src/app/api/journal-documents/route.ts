@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -15,6 +15,10 @@ import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   getDefaultCleaningResponsibleIds,
 } from "@/lib/cleaning-document";
+import {
+  FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
+  buildFinishedProductConfigFromUsers,
+} from "@/lib/finished-product-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 
 export async function GET(request: Request) {
@@ -104,6 +108,19 @@ export async function POST(request: Request) {
         })
       : [];
 
+  const allUsers = await db.user.findMany({
+    where: {
+      organizationId: session.user.organizationId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+    },
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+  });
+
   const cleaningAreas =
     templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.area.findMany({
@@ -130,6 +147,8 @@ export async function POST(request: Request) {
       ? getDefaultClimateDocumentConfig()
       : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? buildCleaningConfigFromAreas(cleaningAreas, cleaningDefaults || undefined)
+      : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
+      ? buildFinishedProductConfigFromUsers(allUsers)
       : undefined;
 
   const cleaningControlRole =

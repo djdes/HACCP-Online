@@ -1,19 +1,11 @@
-import realDefault, * as real from "../../node_modules/next-auth";
-import type {
-  NextAuthOptions as RealNextAuthOptions,
-  Session as RealSession,
-} from "../../node_modules/next-auth";
+import type { NextAuthOptions, Session } from "next-auth";
 import { decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { CUSTOM_SESSION_COOKIE, LEGACY_SESSION_COOKIES } from "@/lib/auth-cookies";
 
-export * from "../../node_modules/next-auth";
-export default realDefault;
-
 export async function getServerSession(
-  ...args: unknown[]
-): Promise<RealSession | null> {
-  const options = args[args.length - 1] as RealNextAuthOptions | undefined;
+  options?: NextAuthOptions
+): Promise<Session | null> {
   const cookieStore = await cookies();
   const rawToken =
     cookieStore.get(CUSTOM_SESSION_COOKIE)?.value ??
@@ -37,7 +29,7 @@ export async function getServerSession(
     return null;
   }
 
-  const session: RealSession = {
+  const session: Session = {
     user: {
       id: typeof token.id === "string" ? token.id : String(token.sub ?? ""),
       role: typeof token.role === "string" ? token.role : "",
@@ -61,10 +53,8 @@ export async function getServerSession(
     return (options.callbacks.session as (...args: unknown[]) => unknown)({
       session,
       token,
-    }) as Promise<RealSession> | RealSession;
+    }) as Promise<Session> | Session;
   }
 
   return session;
 }
-
-export const unstable_getServerSession = getServerSession;
