@@ -1,0 +1,89 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deploy tarball
+        run: |
+          tar cf deploy.tar \
+            --exclude=node_modules \
+            --exclude=.next \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=.claude \
+            --exclude=.vscode \
+            --exclude=_run.py \
+            --exclude=_deploy.py \
+            --exclude=_seed_remote.py \
+            --exclude=haccp-deploy.tar \
+            --exclude='*.tar' \
+            --exclude='*.tar.gz' \
+            --exclude=test.txt \
+            .
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          script_stop: true
+          timeout: 600s
+          script: |
+            echo "=== Connected to server ==="
+            pwd
+            ls -la
+
+      - name: Upload tarball via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          source: deploy.tar
+          target: ./
+
+      - name: Run deploy commands
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          script_stop: true
+          timeout: 600s
+          command_timeout: 10m
+          script: |
+            set -e
+            echo "=== Extracting tarball ==="
+            tar xf deploy.tar && rm deploy.tar
+
+            echo "=== Installing dependencies ==="
+            source ~/.nvm/nvm.sh 2>/dev/null || true
+            npm install 2>&1 | tail -5
+
+            echo "=== Generating Prisma client ==="
+            npx prisma generate 2>&1 | tail -5
+
+            echo "=== Pushing schema to DB ==="
+            npx prisma db push 2>&1 | tail -5
+
+            echo "=== Building ==="
+            npm run build 2>&1 | tail -10
+
+            echo "=== Restarting PM2 ==="
+            npx pm2 restart haccp-online 2>&1 | tail -5 || npx pm2 start npm --name haccp-online -- start 2>&1 | tail -5
+
+            echo "=== Deploy complete ==="
