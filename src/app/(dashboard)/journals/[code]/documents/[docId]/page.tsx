@@ -11,9 +11,12 @@ import {
   HYGIENE_EXAMPLE_DATE_TO,
   HYGIENE_EXAMPLE_ORGANIZATION,
   HYGIENE_EXAMPLE_TITLE,
+  getHygieneDefaultResponsibleTitle,
   normalizeHygieneEntryData,
   toDateKey,
 } from "@/lib/hygiene-document";
+
+export const dynamic = "force-dynamic";
 
 export default async function JournalDocumentPage({
   params,
@@ -66,7 +69,7 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || HYGIENE_EXAMPLE_ORGANIZATION}
         dateFrom={HYGIENE_EXAMPLE_DATE_FROM}
         dateTo={HYGIENE_EXAMPLE_DATE_TO}
-        responsibleTitle="Управляющий"
+        responsibleTitle={getHygieneDefaultResponsibleTitle(employees)}
         responsibleName={null}
         status="active"
         employees={employees}

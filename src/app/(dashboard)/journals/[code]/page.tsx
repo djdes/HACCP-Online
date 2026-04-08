@@ -5,7 +5,12 @@ import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
-import { HYGIENE_SAMPLE_DOCUMENTS } from "@/lib/hygiene-document";
+import {
+  getHygieneDefaultResponsibleTitle,
+  HYGIENE_SAMPLE_DOCUMENTS,
+} from "@/lib/hygiene-document";
+
+export const dynamic = "force-dynamic";
 
 function DemoDocumentRow({
   href,
@@ -70,7 +75,15 @@ export default async function JournalDocumentsPage({
   });
 
   if (code === "hygiene") {
-    const visibleDocs = HYGIENE_SAMPLE_DOCUMENTS.filter((doc) => doc.status === activeTab);
+    const resolvedDocs = HYGIENE_SAMPLE_DOCUMENTS.map((doc) =>
+      doc.status === "active"
+        ? {
+            ...doc,
+            responsibleTitle: getHygieneDefaultResponsibleTitle(orgUsers),
+          }
+        : doc
+    );
+    const visibleDocs = resolvedDocs.filter((doc) => doc.status === activeTab);
     const heading =
       activeTab === "closed"
         ? "Гигиенический журнал (Закрытые!!!)"

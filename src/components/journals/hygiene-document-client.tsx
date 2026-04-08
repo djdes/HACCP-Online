@@ -2,16 +2,16 @@
 
 import { Fragment } from "react";
 import {
-  HYGIENE_EXAMPLE_EMPLOYEES,
   HYGIENE_EXAMPLE_MONTH,
-  HYGIENE_EXAMPLE_ORGANIZATION,
   HYGIENE_EXAMPLE_TITLE,
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
   HYGIENE_REGISTER_PERIODICITY,
   buildExampleHygieneEntryMap,
   buildFixedHygieneExampleDateKeys,
+  buildHygieneExampleEmployees,
   getDayNumber,
+  getHygieneDefaultResponsibleTitle,
   getStatusMeta,
   type HygieneEntryData,
 } from "@/lib/hygiene-document";
@@ -29,7 +29,13 @@ type Props = {
   initialEntries: { employeeId: string; date: string; data: HygieneEntryData }[];
 };
 
-function HygieneHeader({ pageLabel }: { pageLabel: string }) {
+function HygieneHeader({
+  pageLabel,
+  organizationLabel,
+}: {
+  pageLabel: string;
+  organizationLabel: string;
+}) {
   return (
     <table className="hygiene-header w-full border-collapse">
       <tbody>
@@ -38,7 +44,7 @@ function HygieneHeader({ pageLabel }: { pageLabel: string }) {
             rowSpan={2}
             className="w-[270px] border border-black px-8 py-8 text-center text-[22px] font-semibold"
           >
-            {HYGIENE_EXAMPLE_ORGANIZATION}
+            {organizationLabel}
           </td>
           <td className="border border-black px-8 py-4 text-center text-[18px] uppercase">
             СИСТЕМА ХАССП
@@ -73,11 +79,26 @@ function makeCellKey(employeeId: string, dateKey: string) {
   return `${employeeId}:${dateKey}`;
 }
 
-export function HygieneDocumentClient({}: Props) {
+export function HygieneDocumentClient({
+  organizationName,
+  responsibleTitle,
+  employees,
+  initialEntries,
+}: Props) {
   const dateKeys = buildFixedHygieneExampleDateKeys();
-  const entryMap = buildExampleHygieneEntryMap();
+  const printableEmployees = buildHygieneExampleEmployees(employees);
+  const entryMap = buildExampleHygieneEntryMap(
+    printableEmployees.map((employee) => employee.id)
+  );
+  const organizationLabel = organizationName || 'ООО "Тест"';
+  const responsibleLabel =
+    responsibleTitle || getHygieneDefaultResponsibleTitle(employees);
   const firstNote = HYGIENE_REGISTER_NOTES[0];
   const continuedNotes = HYGIENE_REGISTER_NOTES.slice(1);
+
+  initialEntries.forEach((entry) => {
+    entryMap[makeCellKey(entry.employeeId, entry.date)] = entry.data;
+  });
 
   return (
     <div className="bg-white text-black">
@@ -161,7 +182,10 @@ export function HygieneDocumentClient({}: Props) {
 
           <div className="mx-auto max-w-[1380px]">
             <div className="mb-10">
-              <HygieneHeader pageLabel="СТР. 1 ИЗ 2" />
+              <HygieneHeader
+                pageLabel="СТР. 1 ИЗ 2"
+                organizationLabel={organizationLabel}
+              />
             </div>
 
             <div className="mb-6 text-center text-[34px] font-bold uppercase">
@@ -209,7 +233,7 @@ export function HygieneDocumentClient({}: Props) {
               </thead>
 
               <tbody>
-                {HYGIENE_EXAMPLE_EMPLOYEES.map((employee) => (
+                {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
                       <td
@@ -272,7 +296,7 @@ export function HygieneDocumentClient({}: Props) {
                   <td colSpan={2} className="border border-black p-2 text-center">
                     Должность ответственного за контроль
                   </td>
-                  <td className="border border-black p-2 text-center">Управляющий</td>
+                  <td className="border border-black p-2 text-center">{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
                     <td key={`blank:${dateKey}`} className="border border-black p-2" />
                   ))}
@@ -289,7 +313,10 @@ export function HygieneDocumentClient({}: Props) {
 
         <div className="hygiene-page">
           <div className="mx-auto max-w-[1380px]">
-            <HygieneHeader pageLabel="СТР. 2 ИЗ 2" />
+            <HygieneHeader
+              pageLabel="СТР. 2 ИЗ 2"
+              organizationLabel={organizationLabel}
+            />
 
             <div className="hygiene-second-page-content">
               <div className="hygiene-notes text-[16px] leading-7">

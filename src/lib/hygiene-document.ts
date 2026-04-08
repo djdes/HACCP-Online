@@ -55,6 +55,13 @@ export const HYGIENE_EXAMPLE_TITLE = "ГИГИЕНИЧЕСКИЙ ЖУРНАЛ";
 export const HYGIENE_EXAMPLE_MONTH = "Апрель 2025 г.";
 export const HYGIENE_EXAMPLE_DATE_FROM = "2025-04-01";
 export const HYGIENE_EXAMPLE_DATE_TO = "2025-04-15";
+export const HYGIENE_EXAMPLE_ROW_COUNT = 7;
+
+export type HygieneRosterUser = {
+  id: string;
+  name: string;
+  role: string;
+};
 
 export type HygieneExampleEmployee = {
   id: string;
@@ -63,15 +70,15 @@ export type HygieneExampleEmployee = {
   position: string | null;
 };
 
-export const HYGIENE_EXAMPLE_EMPLOYEES: HygieneExampleEmployee[] = [
-  { id: "sample-1", number: 1, name: "Иванов И.И.", position: "Управляющий" },
-  { id: "sample-2", number: 2, name: null, position: null },
-  { id: "sample-3", number: 3, name: null, position: null },
-  { id: "sample-4", number: 4, name: null, position: null },
-  { id: "sample-5", number: 5, name: null, position: null },
-  { id: "sample-6", number: 6, name: null, position: null },
-  { id: "sample-7", number: 7, name: null, position: null },
-];
+export const HYGIENE_EXAMPLE_EMPLOYEES: HygieneExampleEmployee[] = Array.from(
+  { length: HYGIENE_EXAMPLE_ROW_COUNT },
+  (_, index) => ({
+    id: `sample-${index + 1}`,
+    number: index + 1,
+    name: index === 0 ? "Иванов И.И." : null,
+    position: index === 0 ? "Управляющий" : null,
+  })
+);
 
 export type HygieneSampleDocument = {
   id: string;
@@ -153,6 +160,79 @@ export const HYGIENE_SAMPLE_DOCUMENTS: HygieneSampleDocument[] = [
     periodLabel: "Август с 16 по 31",
   },
 ];
+
+function getRoleOrder(role: string): number {
+  switch (role) {
+    case "owner":
+      return 0;
+    case "technologist":
+      return 1;
+    case "operator":
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+export function getHygienePositionLabel(role: string): string {
+  switch (role) {
+    case "owner":
+      return "Управляющий";
+    case "technologist":
+      return "Шеф-повар";
+    case "operator":
+      return "Повар";
+    default:
+      return "Сотрудник";
+  }
+}
+
+export function getHygieneDefaultResponsibleTitle(
+  employees: HygieneRosterUser[]
+): string {
+  const owner = employees.find((employee) => employee.role === "owner");
+  if (owner) return getHygienePositionLabel(owner.role);
+
+  const technologist = employees.find(
+    (employee) => employee.role === "technologist"
+  );
+  if (technologist) return getHygienePositionLabel(technologist.role);
+
+  const firstEmployee = employees[0];
+  return firstEmployee
+    ? getHygienePositionLabel(firstEmployee.role)
+    : "Управляющий";
+}
+
+export function buildHygieneExampleEmployees(
+  employees: HygieneRosterUser[]
+): HygieneExampleEmployee[] {
+  const sortedEmployees = [...employees].sort((left, right) => {
+    const roleDiff = getRoleOrder(left.role) - getRoleOrder(right.role);
+    if (roleDiff !== 0) return roleDiff;
+    return left.name.localeCompare(right.name, "ru");
+  });
+
+  const rows: HygieneExampleEmployee[] = sortedEmployees
+    .slice(0, HYGIENE_EXAMPLE_ROW_COUNT)
+    .map((employee, index) => ({
+      id: employee.id,
+      number: index + 1,
+      name: employee.name,
+      position: getHygienePositionLabel(employee.role),
+    }));
+
+  while (rows.length < HYGIENE_EXAMPLE_ROW_COUNT) {
+    rows.push({
+      id: `blank-${rows.length + 1}`,
+      number: rows.length + 1,
+      name: null,
+      position: null,
+    });
+  }
+
+  return rows;
+}
 
 export function coerceUtcDate(value: Date | string): Date {
   if (value instanceof Date) {
@@ -269,7 +349,55 @@ export function normalizeHygieneEntryData(data: unknown): HygieneEntryData {
   };
 }
 
-export function buildExampleHygieneEntryMap(): Record<string, HygieneEntryData> {
+type HygieneRowPattern = Array<{
+  from: number;
+  to: number;
+  data: HygieneEntryData;
+}>;
+
+const HYGIENE_EXAMPLE_PATTERNS: HygieneRowPattern[] = [
+  [
+    { from: 1, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 10, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 11, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 6, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 7, to: 8, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 9, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 10, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 11, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+  [
+    { from: 1, to: 9, data: { status: "healthy", temperatureAbove37: false } },
+    { from: 10, to: 11, data: { status: "day_off", temperatureAbove37: null } },
+    { from: 12, to: 15, data: { status: "healthy", temperatureAbove37: false } },
+  ],
+];
+
+export function buildExampleHygieneEntryMap(
+  employeeIds: string[] = HYGIENE_EXAMPLE_EMPLOYEES.map((employee) => employee.id)
+): Record<string, HygieneEntryData> {
   const dateKeys = buildFixedHygieneExampleDateKeys();
   const map: Record<string, HygieneEntryData> = {};
 
@@ -294,35 +422,14 @@ export function buildExampleHygieneEntryMap(): Record<string, HygieneEntryData> 
     }
   }
 
-  fillRange("sample-1", 1, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-1", 10, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-1", 12, 15, { status: "healthy", temperatureAbove37: false });
+  employeeIds.slice(0, HYGIENE_EXAMPLE_PATTERNS.length).forEach((employeeId, index) => {
+    const pattern = HYGIENE_EXAMPLE_PATTERNS[index];
+    if (!pattern) return;
 
-  fillRange("sample-2", 1, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-2", 10, 10, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-2", 11, 15, { status: "healthy", temperatureAbove37: false });
-
-  fillRange("sample-3", 1, 6, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-3", 7, 8, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-3", 9, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-3", 10, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-3", 12, 15, { status: "healthy", temperatureAbove37: false });
-
-  fillRange("sample-4", 1, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-4", 10, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-4", 12, 15, { status: "healthy", temperatureAbove37: false });
-
-  fillRange("sample-5", 1, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-5", 10, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-5", 12, 15, { status: "healthy", temperatureAbove37: false });
-
-  fillRange("sample-6", 1, 10, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-6", 11, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-6", 12, 15, { status: "healthy", temperatureAbove37: false });
-
-  fillRange("sample-7", 1, 9, { status: "healthy", temperatureAbove37: false });
-  fillRange("sample-7", 10, 11, { status: "day_off", temperatureAbove37: null });
-  fillRange("sample-7", 12, 15, { status: "healthy", temperatureAbove37: false });
+    pattern.forEach((segment) => {
+      fillRange(employeeId, segment.from, segment.to, segment.data);
+    });
+  });
 
   return map;
 }
