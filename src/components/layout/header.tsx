@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -10,7 +11,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  BookOpen,
   Package,
   AlertTriangle,
 } from "lucide-react";
@@ -41,6 +41,15 @@ const navItems = [
   { label: "Настройки", href: "/settings", icon: Settings },
 ];
 
+const CLIENT_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
+const CLIENT_BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
+
+type BuildInfo = {
+  buildId: string;
+  buildTime: string;
+  fullBuildId: string;
+};
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -50,34 +59,80 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+async function clearLegacyCaches() {
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  }
+
+  if ("caches" in window) {
+    const cacheKeys = await caches.keys();
+    await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+  }
+}
+
 export function Header() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [buildInfo, setBuildInfo] = useState<BuildInfo>({
+    buildId: CLIENT_BUILD_ID,
+    buildTime: CLIENT_BUILD_TIME,
+    fullBuildId: CLIENT_BUILD_ID,
+  });
 
   const userName = session?.user?.name ?? "Пользователь";
   const userEmail = session?.user?.email ?? "";
   const organizationName = session?.user?.organizationName ?? "";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncBuildInfo() {
+      try {
+        const response = await fetch(`/api/build-info?ts=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "cache-control": "no-store" },
+        });
+        if (!response.ok) return;
+
+        const serverBuild = (await response.json()) as BuildInfo;
+        if (cancelled) return;
+
+        setBuildInfo(serverBuild);
+
+        if (serverBuild.buildId && serverBuild.buildId !== CLIENT_BUILD_ID) {
+          await clearLegacyCaches();
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Failed to sync build info:", error);
+      }
+    }
+
+    syncBuildInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
       <div className="flex h-14 items-center gap-4 px-4 md:px-6">
-        {/* Logo */}
-        <Link
-          href="/dashboard"
-          className="shrink-0 flex items-baseline gap-1.5"
-        >
+        <Link href="/dashboard" className="shrink-0 flex items-baseline gap-1.5">
           <span className="text-lg font-bold text-primary">HACCP-Online</span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono" title={`Build: ${process.env.NEXT_PUBLIC_BUILD_TIME ?? ""}`}>
-            {process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}
+          <span
+            className="text-[10px] text-muted-foreground/60 font-mono"
+            title={`Build: ${buildInfo.buildTime}`}
+          >
+            {buildInfo.buildId}
           </span>
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href ||
-              pathname.startsWith(item.href + "/");
+              pathname === item.href || pathname.startsWith(item.href + "/");
 
             return (
               <Link
@@ -97,7 +152,6 @@ export function Header() {
           })}
         </nav>
 
-        {/* Mobile menu */}
         <div className="flex-1 md:hidden" />
         <Sheet>
           <SheetTrigger asChild>
@@ -111,8 +165,7 @@ export function Header() {
             <nav className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(item.href + "/");
+                  pathname === item.href || pathname.startsWith(item.href + "/");
 
                 return (
                   <Link
@@ -134,12 +187,10 @@ export function Header() {
           </SheetContent>
         </Sheet>
 
-        {/* Org name */}
         <span className="hidden lg:inline text-sm text-muted-foreground">
           {organizationName}
         </span>
 
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -158,9 +209,7 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => signOut({ callbackUrl: "/login" })}
-            >
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
               <LogOut className="mr-2 size-4" />
               Выйти
             </DropdownMenuItem>

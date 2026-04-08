@@ -2,18 +2,23 @@
 
 import { useEffect } from "react";
 
+async function disableLegacyServiceWorkers() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ("caches" in window) {
+    const cacheKeys = await caches.keys();
+    await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+  }
+}
+
 export function ServiceWorkerRegister() {
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          console.log("SW registered:", reg.scope);
-        })
-        .catch((err) => {
-          console.error("SW registration failed:", err);
-        });
-    }
+    disableLegacyServiceWorkers().catch((error) => {
+      console.error("Failed to disable legacy service workers:", error);
+    });
   }, []);
 
   return null;
