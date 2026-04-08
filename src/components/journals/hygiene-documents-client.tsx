@@ -28,11 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getHygieneResponsibleTitleOptions,
+  getJournalHeading,
+  getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 
-type HygieneListDocument = {
+type JournalListDocument = {
   id: string;
   title: string;
   status: "active" | "closed";
@@ -45,7 +46,7 @@ type Props = {
   templateCode: string;
   templateName: string;
   users: { id: string; name: string; role: string }[];
-  documents: HygieneListDocument[];
+  documents: JournalListDocument[];
 };
 
 function EditDocumentDialog({
@@ -56,30 +57,26 @@ function EditDocumentDialog({
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  document: HygieneListDocument | null;
+  document: JournalListDocument | null;
   responsibleOptions: string[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!document || !open) return;
     setTitle(document.title);
     setResponsibleTitle(document.responsibleTitle || responsibleOptions[0] || "");
-    setError("");
   }, [document, open, responsibleOptions]);
 
   async function handleSave() {
     if (!document) return;
 
     setIsSubmitting(true);
-    setError("");
-
     try {
-      const response = await fetch(`/api/journal-documents/${document.id}`, {
+      await fetch(`/api/journal-documents/${document.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,15 +85,8 @@ function EditDocumentDialog({
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Ошибка сохранения");
-      }
-
       onOpenChange(false);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
       setIsSubmitting(false);
     }
@@ -110,12 +100,6 @@ function EditDocumentDialog({
         </DialogHeader>
 
         <div className="space-y-8 px-14 py-12">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-3">
             <Label htmlFor="edit-doc-title" className="sr-only">
               Название документа
@@ -167,42 +151,40 @@ function EditDocumentDialog({
 }
 
 function DocumentRow({
+  templateCode,
   document,
   canManage,
   onEdit,
   onDelete,
 }: {
-  document: HygieneListDocument;
+  templateCode: string;
+  document: JournalListDocument;
   canManage: boolean;
-  onEdit: (document: HygieneListDocument) => void;
-  onDelete: (document: HygieneListDocument) => void;
+  onEdit: (document: JournalListDocument) => void;
+  onDelete: (document: JournalListDocument) => void;
 }) {
+  const href = `/journals/${templateCode}/documents/${document.id}`;
+
   return (
     <div className="grid grid-cols-[1.8fr_320px_290px_48px] items-center rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-      <Link
-        href={`/journals/hygiene/documents/${document.id}`}
-        className="text-[20px] font-semibold tracking-[-0.02em] text-black"
-      >
+      <Link href={href} className="text-[20px] font-semibold tracking-[-0.02em] text-black">
         {document.title}
       </Link>
-      <Link
-        href={`/journals/hygiene/documents/${document.id}`}
-        className="border-l border-[#e6e6f0] px-10"
-      >
+      <Link href={href} className="border-l border-[#e6e6f0] px-10">
         <div className="text-[14px] text-[#84849a]">Должность ответственного</div>
         <div className="mt-2 text-[18px] font-semibold text-black">{document.responsibleTitle || ""}</div>
       </Link>
-      <Link
-        href={`/journals/hygiene/documents/${document.id}`}
-        className="border-l border-[#e6e6f0] px-10"
-      >
+      <Link href={href} className="border-l border-[#e6e6f0] px-10">
         <div className="text-[14px] text-[#84849a]">Период</div>
         <div className="mt-2 text-[18px] font-semibold text-black">{document.periodLabel}</div>
       </Link>
       <div className="flex items-center justify-center text-[#5b66ff]">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]">
+            <button
+              type="button"
+              className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
+            >
               <Ellipsis className="size-8" />
             </button>
           </DropdownMenuTrigger>
@@ -218,7 +200,7 @@ function DocumentRow({
             )}
             <DropdownMenuItem
               className="mb-3 h-16 rounded-2xl px-4 text-[20px]"
-              onSelect={() => window.open(`/journals/hygiene/documents/${document.id}`, "_blank")}
+              onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
             >
               <Printer className="mr-4 size-7 text-[#6f7282]" />
               Печать
@@ -247,10 +229,10 @@ export function HygieneDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
-  const [editingDocument, setEditingDocument] = useState<HygieneListDocument | null>(null);
-  const responsibleOptions = getHygieneResponsibleTitleOptions(users);
+  const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
+  const responsibleOptions = getStaffJournalResponsibleTitleOptions(users);
 
-  async function handleDelete(document: HygieneListDocument) {
+  async function handleDelete(document: JournalListDocument) {
     const confirmed = window.confirm(`Удалить документ "${document.title}"?`);
     if (!confirmed) return;
 
@@ -267,16 +249,13 @@ export function HygieneDocumentsClient({
     router.refresh();
   }
 
-  const heading =
-    activeTab === "closed"
-      ? "Гигиенический журнал (Закрытые!!!)"
-      : "Гигиенический журнал";
-
   return (
     <>
       <div className="space-y-14">
         <div className="flex items-center justify-between">
-          <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">{heading}</h1>
+          <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">
+            {getJournalHeading(templateCode, activeTab === "closed")}
+          </h1>
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -330,6 +309,7 @@ export function HygieneDocumentsClient({
           {documents.map((document) => (
             <DocumentRow
               key={document.id}
+              templateCode={templateCode}
               document={document}
               canManage={document.status === "active"}
               onEdit={setEditingDocument}

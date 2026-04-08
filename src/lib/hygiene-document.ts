@@ -13,6 +13,11 @@ export type HygieneEntryData = {
   temperatureAbove37?: boolean | null;
 };
 
+export type HealthEntryData = {
+  signed?: boolean | null;
+  measures?: string | null;
+};
+
 export const HYGIENE_REGISTER_PERIODICITY = [
   "Ежесменно перед началом смены – всех для сотрудников производства;",
   "для других сотрудников компании – при визите на производственный участок (однократно перед проходом на участок)",
@@ -172,6 +177,18 @@ export const HYGIENE_SAMPLE_DOCUMENTS: HygieneSampleDocument[] = [
 
 export const HYGIENE_PERIODICITY_TEXT = HYGIENE_REGISTER_PERIODICITY.join(" ");
 
+export const HEALTH_REGISTER_NOTES = [
+  "Ежедневно каждый сотрудник, работающий в контакте с пищевыми продуктами, обязан поставить подпись об отсутствии у него диареи, рвоты, желтухи, боли в горле с лихорадкой, и также же случаев у членов семьи, а также поражений, содержащих гной, таких, как фурункулы и инфицированные раны на руках и предплечьях, на шее или любой другой открытой части тела, какие бы то ни было небольшие повреждения, например, гнойные и инфицированные раны на запястьях, предплечьях и открытых частях тела.",
+  "С целью профилактики коронавируса сотрудник обязан сообщать о контакте с больными и людьми, приехавшими из другого региона РФ, другой страны последние 14 дней. Все контактные должны быть отстранены от работы.",
+];
+
+export const HEALTH_REGISTER_REMINDER =
+  "Данный журнал заполняется в бумажном виде, подписи сотрудников о состоянии здоровья ставятся лично. Ежедневно!";
+
+export function getHealthDocumentTitle() {
+  return "Журнал здоровья";
+}
+
 export function getHygieneDocumentTitle() {
   return "Гигиенический журнал";
 }
@@ -224,6 +241,12 @@ export function getHygieneResponsibleTitleOptions(
 ): string[] {
   const titles = employees.map((employee) => getHygienePositionLabel(employee.role));
   return [...new Set(titles)];
+}
+
+export function getStaffJournalResponsibleTitleOptions(
+  employees: HygieneRosterUser[]
+): string[] {
+  return getHygieneResponsibleTitleOptions(employees);
 }
 
 export function getHygienePeriodLabel(dateFrom: Date | string, dateTo: Date | string) {
@@ -316,8 +339,74 @@ export function getHygieneSeedDocumentConfigs(): HygieneSeedDocumentConfig[] {
   ];
 }
 
+export function getHealthSeedDocumentConfigs(): HygieneSeedDocumentConfig[] {
+  return [
+    {
+      title: getHealthDocumentTitle(),
+      status: "active",
+      dateFrom: "2026-04-01",
+      dateTo: "2026-04-15",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-04-16",
+      dateTo: "2026-04-30",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-05-01",
+      dateTo: "2026-05-15",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-05-16",
+      dateTo: "2026-05-31",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-15",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-06-16",
+      dateTo: "2026-06-30",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-15",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-07-16",
+      dateTo: "2026-07-31",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-15",
+    },
+    {
+      title: getHealthDocumentTitle(),
+      status: "closed",
+      dateFrom: "2026-08-16",
+      dateTo: "2026-08-31",
+    },
+  ];
+}
+
 export function buildHygieneExampleEmployees(
-  employees: HygieneRosterUser[]
+  employees: HygieneRosterUser[],
+  rowCount = HYGIENE_EXAMPLE_ROW_COUNT
 ): HygieneExampleEmployee[] {
   const sortedEmployees = [...employees].sort((left, right) => {
     const roleDiff = getRoleOrder(left.role) - getRoleOrder(right.role);
@@ -326,7 +415,7 @@ export function buildHygieneExampleEmployees(
   });
 
   const rows: HygieneExampleEmployee[] = sortedEmployees
-    .slice(0, HYGIENE_EXAMPLE_ROW_COUNT)
+    .slice(0, rowCount)
     .map((employee, index) => ({
       id: employee.id,
       number: index + 1,
@@ -334,7 +423,7 @@ export function buildHygieneExampleEmployees(
       position: getHygienePositionLabel(employee.role),
     }));
 
-  while (rows.length < HYGIENE_EXAMPLE_ROW_COUNT) {
+  while (rows.length < rowCount) {
     rows.push({
       id: `blank-${rows.length + 1}`,
       number: rows.length + 1,
@@ -551,4 +640,44 @@ export function buildExampleHygieneEntryMap(
   });
 
   return map;
+}
+
+export function normalizeHealthEntryData(data: unknown): HealthEntryData {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return {};
+  }
+
+  const record = data as Record<string, unknown>;
+
+  return {
+    signed: typeof record.signed === "boolean" ? record.signed : null,
+    measures: typeof record.measures === "string" ? record.measures : null,
+  };
+}
+
+export function getDefaultEntryDataForTemplate(
+  templateCode: string
+): HygieneEntryData | HealthEntryData {
+  if (templateCode === "health_check") {
+    return { signed: true, measures: null };
+  }
+
+  return {
+    status: "healthy",
+    temperatureAbove37: false,
+  };
+}
+
+export function isEntryDataEmpty(data: unknown): boolean {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return true;
+  }
+
+  return Object.keys(data as Record<string, unknown>).length === 0;
+}
+
+export function getJournalHeading(templateCode: string, closed = false): string {
+  const base =
+    templateCode === "health_check" ? getHealthDocumentTitle() : getHygieneDocumentTitle();
+  return closed ? `${base} (Закрытые!!!)` : base;
 }

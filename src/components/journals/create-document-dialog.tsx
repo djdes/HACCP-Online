@@ -22,10 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  getHealthDocumentTitle,
   getHygieneCreatePeriodBounds,
   getHygieneDocumentTitle,
   getHygienePositionLabel,
-  getHygieneResponsibleTitleOptions,
+  getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 
@@ -58,22 +59,27 @@ export function CreateDocumentDialog({
   const [error, setError] = useState("");
 
   const defaultPeriod = useMemo(() => getHygieneCreatePeriodBounds(), []);
+  const isStaffJournal = templateCode === "hygiene" || templateCode === "health_check";
   const responsibleTitleOptions = useMemo(
     () =>
-      templateCode === "hygiene"
-        ? getHygieneResponsibleTitleOptions(users)
+      isStaffJournal
+        ? getStaffJournalResponsibleTitleOptions(users)
         : [],
-    [templateCode, users]
+    [isStaffJournal, users]
   );
 
   const [title, setTitle] = useState(
-    templateCode === "hygiene" ? getHygieneDocumentTitle() : templateName
+    templateCode === "hygiene"
+      ? getHygieneDocumentTitle()
+      : templateCode === "health_check"
+        ? getHealthDocumentTitle()
+        : templateName
   );
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
   const [responsibleUserId, setResponsibleUserId] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState(
-    templateCode === "hygiene" ? responsibleTitleOptions[0] || "" : ""
+    isStaffJournal ? responsibleTitleOptions[0] || "" : ""
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -85,7 +91,7 @@ export function CreateDocumentDialog({
       const selectedResponsibleUser =
         responsibleUserId ||
         users.find((user) =>
-          templateCode === "hygiene"
+          isStaffJournal
             ? getHygienePositionLabel(user.role) === responsibleTitle
             : false
         )?.id;
@@ -119,7 +125,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isHygiene = templateCode === "hygiene";
+  const isHygiene = isStaffJournal;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

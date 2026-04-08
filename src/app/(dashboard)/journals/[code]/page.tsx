@@ -6,6 +6,8 @@ import {
   buildDateKeys,
   buildExampleHygieneEntryMap,
   buildHygieneExampleEmployees,
+  getHealthDocumentTitle,
+  getHealthSeedDocumentConfigs,
   getHygieneDefaultResponsibleTitle,
   getHygieneDocumentTitle,
   getHygienePeriodLabel,
@@ -14,17 +16,24 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function ensureHygieneSampleDocuments({
+async function ensureStaffJournalSampleDocuments({
+  templateCode,
   organizationId,
   templateId,
   users,
   createdById,
 }: {
+  templateCode: string;
   organizationId: string;
   templateId: string;
   users: { id: string; name: string; role: string }[];
   createdById: string;
 }) {
+  const configs =
+    templateCode === "health_check"
+      ? getHealthSeedDocumentConfigs()
+      : getHygieneSeedDocumentConfigs();
+
   const existingDocuments = await db.journalDocument.findMany({
     where: {
       organizationId,
@@ -51,11 +60,11 @@ async function ensureHygieneSampleDocuments({
     users[0] ||
     null;
 
-  const employeeIds = buildHygieneExampleEmployees(users)
+  const employeeIds = buildHygieneExampleEmployees(users, templateCode === "health_check" ? 5 : 7)
     .filter((employee) => !employee.id.startsWith("blank-"))
     .map((employee) => employee.id);
 
-  for (const config of getHygieneSeedDocumentConfigs()) {
+  for (const config of configs) {
     const key = `${config.status}:${config.dateFrom}:${config.dateTo}`;
     if (existingKeys.has(key)) continue;
 
@@ -76,23 +85,39 @@ async function ensureHygieneSampleDocuments({
     if (employeeIds.length === 0) continue;
 
     const dateKeys = buildDateKeys(config.dateFrom, config.dateTo);
-    const entryMap = buildExampleHygieneEntryMap(employeeIds, dateKeys);
-    const entries = Object.entries(entryMap).map(([compoundKey, data]) => {
-      const separatorIndex = compoundKey.lastIndexOf(":");
-      const employeeId = compoundKey.slice(0, separatorIndex);
-      const dateKey = compoundKey.slice(separatorIndex + 1);
 
-      return {
-        documentId: document.id,
-        employeeId,
-        date: new Date(dateKey),
-        data,
-      };
-    });
+    if (templateCode === "hygiene") {
+      const entryMap = buildExampleHygieneEntryMap(employeeIds, dateKeys);
+      const entries = Object.entries(entryMap).map(([compoundKey, data]) => {
+        const separatorIndex = compoundKey.lastIndexOf(":");
+        const employeeId = compoundKey.slice(0, separatorIndex);
+        const dateKey = compoundKey.slice(separatorIndex + 1);
 
-    if (entries.length > 0) {
-      await db.journalDocumentEntry.createMany({ data: entries });
+        return {
+          documentId: document.id,
+          employeeId,
+          date: new Date(dateKey),
+          data,
+        };
+      });
+
+      if (entries.length > 0) {
+        await db.journalDocumentEntry.createMany({ data: entries });
+      }
+      continue;
     }
+
+    await db.journalDocumentEntry.createMany({
+      data: employeeIds.flatMap((employeeId) =>
+        dateKeys.map((dateKey) => ({
+          documentId: document.id,
+          employeeId,
+          date: new Date(dateKey),
+          data: {},
+        }))
+      ),
+      skipDuplicates: true,
+    });
   }
 }
 
@@ -126,8 +151,9 @@ export default async function JournalDocumentsPage({
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
 
-  if (code === "hygiene") {
-    await ensureHygieneSampleDocuments({
+  if (code === "hygiene" || code === "health_check") {
+    await ensureStaffJournalSampleDocuments({
+      templateCode: code,
       organizationId: session.user.organizationId,
       templateId: template.id,
       users: orgUsers,
@@ -151,7 +177,9 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((document) => ({
           id: document.id,
-          title: document.title || getHygieneDocumentTitle(),
+          title:
+            document.title ||
+            (code === "health_check" ? getHealthDocumentTitle() : getHygieneDocumentTitle()),
           status: document.status as "active" | "closed",
           responsibleTitle: document.responsibleTitle,
           periodLabel: getHygienePeriodLabel(document.dateFrom, document.dateTo),

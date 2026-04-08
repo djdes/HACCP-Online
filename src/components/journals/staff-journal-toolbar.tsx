@@ -1,0 +1,481 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Plus, UserPlus, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  getHygienePositionLabel,
+  getStaffJournalResponsibleTitleOptions,
+} from "@/lib/hygiene-document";
+
+type UserItem = {
+  id: string;
+  name: string;
+  role: string;
+};
+
+type Props = {
+  documentId: string;
+  heading: string;
+  title: string;
+  status: string;
+  autoFill: boolean;
+  responsibleTitle: string | null;
+  users: UserItem[];
+  includedEmployeeIds: string[];
+};
+
+function AddEmployeeDialog({
+  open,
+  onOpenChange,
+  users,
+  includedEmployeeIds,
+  documentId,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  users: UserItem[];
+  includedEmployeeIds: string[];
+  documentId: string;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const availableUsers = useMemo(
+    () => users.filter((user) => !includedEmployeeIds.includes(user.id)),
+    [includedEmployeeIds, users]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setValue(availableUsers[0]?.id || "");
+  }, [availableUsers, open]);
+
+  async function handleSubmit() {
+    if (!value) return;
+
+    setIsSubmitting(true);
+    try {
+      await fetch(`/api/journal-documents/${documentId}/staff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_employee",
+          employeeId: value,
+        }),
+      });
+
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[670px] rounded-[28px] border-0 p-0">
+        <DialogHeader className="border-b px-10 py-8">
+          <DialogTitle className="text-[30px] font-medium text-black">
+            Добавление новой строки
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 px-10 py-8">
+          <p className="text-[18px] text-black">
+            Выберите соответствующую должность и сотрудника.
+          </p>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность</Label>
+            <Select value={value} onValueChange={setValue} disabled={availableUsers.length === 0}>
+              <SelectTrigger className="h-18 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {getHygienePositionLabel(user.role)} — {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !value}
+              className="h-16 rounded-3xl bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+            >
+              {isSubmitting ? "Добавление..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FillFromStaffDialog({
+  open,
+  onOpenChange,
+  documentId,
+  documentTitle,
+  users,
+  includedEmployeeIds,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  documentId: string;
+  documentTitle: string;
+  users: UserItem[];
+  includedEmployeeIds: string[];
+}) {
+  const router = useRouter();
+  const [category, setCategory] = useState("all");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const roleOptions = useMemo(() => {
+    const roles = [...new Set(users.map((user) => user.role))];
+    const items = [{ value: "all", label: "Добавить всех" }];
+
+    roles.forEach((role) => {
+      const prefix = role === "owner" ? "Руководство" : "Сотрудники";
+      items.push({
+        value: `role:${role}`,
+        label: `${prefix} — ${getHygienePositionLabel(role)}`,
+      });
+    });
+
+    return items;
+  }, [users]);
+
+  const remainingCount = useMemo(() => {
+    if (category === "all") {
+      return users.filter((user) => !includedEmployeeIds.includes(user.id)).length;
+    }
+
+    const role = category.replace("role:", "");
+    return users.filter(
+      (user) => user.role === role && !includedEmployeeIds.includes(user.id)
+    ).length;
+  }, [category, includedEmployeeIds, users]);
+
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    try {
+      await fetch(`/api/journal-documents/${documentId}/staff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "fill_from_list",
+          category,
+        }),
+      });
+
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[690px] rounded-[28px] border-0 p-0">
+        <DialogHeader className="border-b px-10 py-8">
+          <DialogTitle className="text-[28px] font-medium leading-[1.2] text-black">
+            Заполнение документа:
+            <br />
+            &quot;{documentTitle}&quot;
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 px-10 py-8">
+          <div className="text-[18px] text-black">Добавить из категории:</div>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-18 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {remainingCount === 0 && (
+            <div className="text-[16px] text-[#ff3b30]">Все сотрудники внесены в список.</div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || remainingCount === 0}
+              className="h-16 rounded-3xl bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+            >
+              {isSubmitting ? "Добавление..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function JournalSettingsDialog({
+  open,
+  onOpenChange,
+  documentId,
+  title,
+  responsibleTitle,
+  users,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  documentId: string;
+  title: string;
+  responsibleTitle: string | null;
+  users: UserItem[];
+}) {
+  const router = useRouter();
+  const [name, setName] = useState(title);
+  const [responsible, setResponsible] = useState(responsibleTitle || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const options = useMemo(() => getStaffJournalResponsibleTitleOptions(users), [users]);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(title);
+    setResponsible(responsibleTitle || options[0] || "");
+  }, [open, options, responsibleTitle, title]);
+
+  async function handleSave() {
+    setIsSubmitting(true);
+    try {
+      await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: name.trim(),
+          responsibleTitle: responsible,
+        }),
+      });
+
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[765px] rounded-[32px] border-0 p-0">
+        <DialogHeader className="border-b px-14 py-12">
+          <DialogTitle className="text-[32px] font-medium text-black">
+            Настройки журнала
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-8 px-14 py-12">
+          <div className="space-y-3">
+            <Label htmlFor="journal-title" className="sr-only">
+              Название документа
+            </Label>
+            <Input
+              id="journal-title"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Введите название документа"
+              className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+            />
+          </div>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
+            <Select value={responsible} onValueChange={setResponsible}>
+              <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={isSubmitting}
+              className="h-18 rounded-3xl bg-[#5b66ff] px-10 text-[20px] text-white hover:bg-[#4b57ff]"
+            >
+              {isSubmitting ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function StaffJournalToolbar({
+  documentId,
+  heading,
+  title,
+  status,
+  autoFill,
+  responsibleTitle,
+  users,
+  includedEmployeeIds,
+}: Props) {
+  const router = useRouter();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [fillOpen, setFillOpen] = useState(false);
+  const [checked, setChecked] = useState(autoFill);
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  useEffect(() => {
+    setChecked(autoFill);
+  }, [autoFill]);
+
+  async function handleAutoFill(value: boolean) {
+    setChecked(value);
+    setIsSwitching(true);
+
+    try {
+      await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoFill: value }),
+      });
+
+      if (value) {
+        await fetch(`/api/journal-documents/${documentId}/staff`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "apply_auto_fill" }),
+        });
+      }
+
+      router.refresh();
+    } finally {
+      setIsSwitching(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="space-y-8">
+        <div className="flex items-start justify-between gap-6">
+          <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">{heading}</h1>
+          {status === "active" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+              className="h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+            >
+              Настройки журнала
+            </Button>
+          )}
+        </div>
+
+        {status === "active" && (
+          <>
+            <div className="rounded-[22px] bg-[#f3f4fe] px-6 py-5">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={checked}
+                  onCheckedChange={handleAutoFill}
+                  disabled={isSwitching}
+                  className="h-10 w-16 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
+                />
+                <span className="text-[20px] font-medium text-black">
+                  Автоматически заполнять журнал
+                </span>
+              </div>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-[58px] w-fit rounded-2xl bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]">
+                  <Plus className="size-7" />
+                  Добавить
+                  <ChevronDown className="size-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[360px] rounded-[24px] border-0 p-4 shadow-xl">
+                <DropdownMenuItem
+                  className="h-16 rounded-2xl px-4 text-[18px] text-[#5464ff]"
+                  onSelect={() => setAddOpen(true)}
+                >
+                  <UserPlus className="mr-4 size-6 text-[#5464ff]" />
+                  Добавить сотрудника
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="h-16 rounded-2xl px-4 text-[18px] text-[#5464ff]"
+                  onSelect={() => setFillOpen(true)}
+                >
+                  <Users className="mr-4 size-6 text-[#5464ff]" />
+                  Заполнить из списка сотрудников
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+      </div>
+
+      <JournalSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        documentId={documentId}
+        title={title}
+        responsibleTitle={responsibleTitle}
+        users={users}
+      />
+
+      <AddEmployeeDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        users={users}
+        includedEmployeeIds={includedEmployeeIds}
+        documentId={documentId}
+      />
+
+      <FillFromStaffDialog
+        open={fillOpen}
+        onOpenChange={setFillOpen}
+        documentId={documentId}
+        documentTitle={title}
+        users={users}
+        includedEmployeeIds={includedEmployeeIds}
+      />
+    </>
+  );
+}
