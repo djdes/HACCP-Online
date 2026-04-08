@@ -63,6 +63,7 @@ export async function PATCH(
   if (body.autoFill !== undefined) data.autoFill = body.autoFill;
   if (body.responsibleTitle !== undefined) data.responsibleTitle = body.responsibleTitle;
   if (body.responsibleUserId !== undefined) data.responsibleUserId = body.responsibleUserId;
+  if (body.config !== undefined) data.config = body.config;
   if (body.dateFrom !== undefined) data.dateFrom = new Date(body.dateFrom);
   if (body.dateTo !== undefined) data.dateTo = new Date(body.dateTo);
 

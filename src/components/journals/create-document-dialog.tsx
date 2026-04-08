@@ -22,6 +22,16 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
+  getColdEquipmentCreatePeriodBounds,
+  getColdEquipmentDocumentTitle,
+} from "@/lib/cold-equipment-document";
+import {
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  getClimateCreatePeriodBounds,
+  getClimateDocumentTitle,
+} from "@/lib/climate-document";
+import {
   getHealthDocumentTitle,
   getHygieneCreatePeriodBounds,
   getHygieneDocumentTitle,
@@ -29,6 +39,7 @@ import {
   getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
+import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
 
 interface Props {
   templateCode: string;
@@ -58,8 +69,16 @@ export function CreateDocumentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const defaultPeriod = useMemo(() => getHygieneCreatePeriodBounds(), []);
-  const isStaffJournal = templateCode === "hygiene" || templateCode === "health_check";
+  const defaultPeriod = useMemo(
+    () =>
+      templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+        ? getColdEquipmentCreatePeriodBounds()
+        : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+        ? getClimateCreatePeriodBounds()
+        : getHygieneCreatePeriodBounds(),
+    [templateCode]
+  );
+  const isStaffJournal = isStaffDocumentTemplate(templateCode);
   const responsibleTitleOptions = useMemo(
     () =>
       isStaffJournal
@@ -71,9 +90,13 @@ export function CreateDocumentDialog({
   const [title, setTitle] = useState(
     templateCode === "hygiene"
       ? getHygieneDocumentTitle()
-      : templateCode === "health_check"
+        : templateCode === "health_check"
         ? getHealthDocumentTitle()
-        : templateName
+        : templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+          ? getColdEquipmentDocumentTitle()
+        : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+          ? getClimateDocumentTitle()
+          : templateName
   );
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);

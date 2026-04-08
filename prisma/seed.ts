@@ -316,6 +316,24 @@ const journalTemplates = [
       { key: "suspensionReason", label: "Причина отстранения", type: "text", required: false, showIf: { field: "admittedToWork", equals: "suspended" } },
     ],
   },
+  {
+    code: "climate_control",
+    name: "Бланк контроля температуры и влажности",
+    description: "Документный журнал контроля температуры и влажности воздуха по помещениям",
+    sortOrder: 19,
+    isMandatorySanpin: false,
+    isMandatoryHaccp: false,
+    fields: [],
+  },
+  {
+    code: "cold_equipment_control",
+    name: "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    description: "Документный журнал контроля температурного режима холодильного и морозильного оборудования по дням месяца",
+    sortOrder: 20,
+    isMandatorySanpin: false,
+    isMandatoryHaccp: false,
+    fields: [],
+  },
 
   // === Контроль бактерицидной УФ-установки (СанПиН 3.3686-21) ===
   // Часы наработки лампы, замена по ресурсу (обычно 8000 ч).

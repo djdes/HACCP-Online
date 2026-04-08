@@ -1,0 +1,71 @@
+import {
+  getHealthDocumentTitle,
+  getHygieneDocumentTitle,
+  getHygienePeriodLabel,
+} from "@/lib/hygiene-document";
+import {
+  COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
+  getColdEquipmentDocumentTitle,
+  getColdEquipmentPeriodLabel,
+} from "@/lib/cold-equipment-document";
+import {
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  getClimateDocumentTitle,
+  getClimatePeriodLabel,
+} from "@/lib/climate-document";
+import {
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+  getCleaningDocumentTitle,
+  getCleaningPeriodLabel,
+} from "@/lib/cleaning-document";
+
+export function isDocumentTemplate(templateCode: string) {
+  return (
+    templateCode === "hygiene" ||
+    templateCode === "health_check" ||
+    templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE ||
+    templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+    templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+  );
+}
+
+export function isStaffDocumentTemplate(templateCode: string) {
+  return templateCode === "hygiene" || templateCode === "health_check";
+}
+
+export function getJournalDocumentDefaultTitle(templateCode: string) {
+  if (templateCode === "health_check") return getHealthDocumentTitle();
+  if (templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
+    return getColdEquipmentDocumentTitle();
+  }
+  if (templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    return getCleaningDocumentTitle();
+  }
+  if (templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE) return getClimateDocumentTitle();
+  return getHygieneDocumentTitle();
+}
+
+export function getJournalDocumentHeading(templateCode: string, closed = false) {
+  const base = getJournalDocumentDefaultTitle(templateCode);
+  return closed ? `${base} (закрытые)` : base;
+}
+
+export function getJournalDocumentPeriodLabel(
+  templateCode: string,
+  dateFrom: Date | string,
+  dateTo: Date | string
+) {
+  if (templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
+    return getColdEquipmentPeriodLabel(dateFrom, dateTo);
+  }
+
+  if (templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
+    return getClimatePeriodLabel(dateFrom, dateTo);
+  }
+
+  if (templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    return getCleaningPeriodLabel(dateFrom, dateTo);
+  }
+
+  return getHygienePeriodLabel(dateFrom, dateTo);
+}

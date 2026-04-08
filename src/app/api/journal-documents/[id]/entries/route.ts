@@ -62,3 +62,62 @@ export async function PUT(
 
   return NextResponse.json({ entry });
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: documentId } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
+  if (!["owner", "technologist"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
+
+  const doc = await db.journalDocument.findUnique({ where: { id: documentId } });
+  if (!doc || doc.organizationId !== session.user.organizationId) {
+    return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+  }
+
+  if (doc.status === "closed") {
+    return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as {
+    ids?: string[];
+    employeeId?: string;
+    date?: string;
+  };
+
+  if (Array.isArray(body.ids) && body.ids.length > 0) {
+    const result = await db.journalDocumentEntry.deleteMany({
+      where: {
+        documentId,
+        id: { in: body.ids },
+      },
+    });
+
+    return NextResponse.json({ deleted: result.count });
+  }
+
+  if (body.employeeId && body.date) {
+    const dateObj = new Date(body.date);
+    dateObj.setUTCHours(0, 0, 0, 0);
+
+    const result = await db.journalDocumentEntry.deleteMany({
+      where: {
+        documentId,
+        employeeId: body.employeeId,
+        date: dateObj,
+      },
+    });
+
+    return NextResponse.json({ deleted: result.count });
+  }
+
+  return NextResponse.json(
+    { error: "Нужно передать ids либо employeeId и date" },
+    { status: 400 }
+  );
+}

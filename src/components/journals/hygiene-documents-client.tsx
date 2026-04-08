@@ -28,10 +28,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getJournalHeading,
   getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
+import {
+  getJournalDocumentHeading,
+  isStaffDocumentTemplate,
+} from "@/lib/journal-document-helpers";
 
 type JournalListDocument = {
   id: string;
@@ -54,11 +57,13 @@ function EditDocumentDialog({
   onOpenChange,
   document,
   responsibleOptions,
+  templateCode,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   document: JournalListDocument | null;
   responsibleOptions: string[];
+  templateCode: string;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -129,10 +134,12 @@ function EditDocumentDialog({
             </Select>
           </div>
 
-          <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
-            <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
-            <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
-          </div>
+          {isStaffDocumentTemplate(templateCode) && (
+            <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
+              <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+              <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
+            </div>
+          )}
 
           <div className="flex justify-end pt-6">
             <Button
@@ -254,7 +261,7 @@ export function HygieneDocumentsClient({
       <div className="space-y-14">
         <div className="flex items-center justify-between">
           <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">
-            {getJournalHeading(templateCode, activeTab === "closed")}
+            {getJournalDocumentHeading(templateCode, activeTab === "closed")}
           </h1>
           <div className="flex items-center gap-4">
             <Button
@@ -326,6 +333,7 @@ export function HygieneDocumentsClient({
         }}
         document={editingDocument}
         responsibleOptions={responsibleOptions}
+        templateCode={templateCode}
       />
     </>
   );

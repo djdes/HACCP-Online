@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
+import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 
 export default async function NewJournalEntryPage({
   params,
@@ -16,6 +17,10 @@ export default async function NewJournalEntryPage({
   });
 
   if (!template) {
+    notFound();
+  }
+
+  if (isDocumentTemplate(code)) {
     notFound();
   }
 
