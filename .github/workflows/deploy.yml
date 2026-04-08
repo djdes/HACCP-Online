@@ -93,6 +93,7 @@ jobs:
             npm run build 2>&1 | tail -10
 
             echo "=== Restarting PM2 ==="
-            npx pm2 restart haccp-online 2>&1 | tail -5 || npx pm2 start npm --name haccp-online -- start 2>&1 | tail -5
+            npx pm2 restart haccp-online --update-env 2>&1 | tail -5 || npx pm2 start npm --name haccp-online -- start 2>&1 | tail -5
+            npx pm2 status haccp-online --no-color
 
             echo "=== Deploy complete ==="
