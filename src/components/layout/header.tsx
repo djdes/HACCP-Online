@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -52,13 +52,14 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function Header() {
-  const { data: session } = useSession();
-  const pathname = usePathname();
+type HeaderProps = {
+  userName: string;
+  userEmail: string;
+  organizationName: string;
+};
 
-  const userName = session?.user?.name ?? "Пользователь";
-  const userEmail = session?.user?.email ?? "";
-  const organizationName = session?.user?.organizationName ?? "";
+export function Header({ userName, userEmail, organizationName }: HeaderProps) {
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white">

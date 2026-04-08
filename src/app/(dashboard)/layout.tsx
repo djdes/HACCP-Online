@@ -8,12 +8,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth();
+  const session = await requireAuth();
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <Header
+          userName={session.user.name ?? "Пользователь"}
+          userEmail={session.user.email ?? ""}
+          organizationName={session.user.organizationName ?? ""}
+        />
         <main className="p-4 md:p-6">{children}</main>
       </div>
       <Toaster />
