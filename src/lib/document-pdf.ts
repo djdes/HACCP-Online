@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable, { type CellDef, type RowInput } from "jspdf-autotable";
 import { db } from "@/lib/db";
 import {
+  buildHygieneExampleEmployees,
   buildDateKeys,
   formatMonthLabel,
   getDayNumber,
@@ -189,7 +190,7 @@ function buildHygieneHead(dateKeys: string[], monthLabel: string): RowInput[] {
 function buildHealthHead(dateKeys: string[], monthLabel: string): RowInput[] {
   return [
     [
-      { content: "", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "☐", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
       { content: "№\nп/п", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
       { content: "Ф.И.О. работника", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
       { content: "Должность", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
@@ -205,6 +206,24 @@ function buildHealthHead(dateKeys: string[], monthLabel: string): RowInput[] {
       styles: { halign: "center" },
     })),
   ];
+}
+
+function getHealthMeasuresText(
+  employeeId: string,
+  dateKeys: string[],
+  entryMap: Record<string, Record<string, unknown>>
+) {
+  return dateKeys
+    .flatMap((dateKey) => {
+      const measures = normalizeHealthEntryData(
+        entryMap[makeCellKey(employeeId, dateKey)]
+      ).measures?.trim();
+
+      if (!measures) return [];
+
+      return [`${getDayNumber(dateKey)} ${getWeekdayShort(dateKey)}. - ${measures}`];
+    })
+    .join("\n");
 }
 
 function buildHygieneBody(params: {
@@ -264,25 +283,35 @@ function buildHealthBody(params: {
   dateKeys: string[];
   entryMap: Record<string, Record<string, unknown>>;
 }): RowInput[] {
-  const printableUsers = getPrintableUsers(params.users, params.employeeIds);
+  const uniqueIds = [...new Set(params.employeeIds)];
+  const rosterUsers = params.users.filter((user) => uniqueIds.includes(user.id));
+  const printableUsers = buildHygieneExampleEmployees(rosterUsers, 5);
 
-  return printableUsers.map((employee) => [
+  const rows = printableUsers.map((employee) => [
     centerCell("☐"),
-    centerCell(String(employee.number)),
-    centerCell(employee.name),
-    centerCell(employee.position),
+    centerCell(employee.name ? String(employee.number) : ""),
+    centerCell(employee.name || ""),
+    centerCell(employee.position || ""),
     ...params.dateKeys.map((dateKey) => {
       const entry = normalizeHealthEntryData(params.entryMap[makeCellKey(employee.id, dateKey)]);
       return centerCell(entry.signed ? "+" : "");
     }),
     {
-      content: params.dateKeys
-        .map((dateKey) => normalizeHealthEntryData(params.entryMap[makeCellKey(employee.id, dateKey)]).measures)
-        .filter(Boolean)
-        .join(", "),
-      styles: { halign: "center" as const, valign: "middle" as const },
+      content: getHealthMeasuresText(employee.id, params.dateKeys, params.entryMap),
+      styles: { halign: "left" as const, valign: "middle" as const },
     },
   ]);
+
+  rows.push([
+    centerCell("☐"),
+    centerCell(""),
+    centerCell(""),
+    centerCell(""),
+    ...params.dateKeys.map(() => centerCell("")),
+    centerCell(""),
+  ]);
+
+  return rows;
 }
 
 function drawHygienePdf(doc: jsPDF, params: {
@@ -424,7 +453,7 @@ function drawHealthPdf(doc: jsPDF, params: {
       1: { cellWidth: 12 },
       2: { cellWidth: 32 },
       3: { cellWidth: 28 },
-      [params.dateKeys.length + 4]: { cellWidth: 23 },
+      [params.dateKeys.length + 4]: { cellWidth: 32 },
     },
   });
 

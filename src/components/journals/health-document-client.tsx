@@ -27,6 +27,15 @@ type Props = {
   initialEntries: { employeeId: string; date: string; data: HealthEntryData }[];
 };
 
+function HealthCheckbox() {
+  return (
+    <div
+      aria-hidden="true"
+      className="health-checkbox mx-auto h-6 w-6 rounded-[5px] border border-[#c8ccda] bg-white"
+    />
+  );
+}
+
 function HealthHeader({
   organizationLabel,
   pageLabel,
@@ -68,18 +77,32 @@ function makeCellKey(employeeId: string, dateKey: string) {
   return `${employeeId}:${dateKey}`;
 }
 
-export function HealthDocumentClient({
-  documentId,
-  title,
-  organizationName,
-  dateFrom,
-  dateTo,
-  responsibleTitle,
-  status,
-  autoFill = false,
-  employees,
-  initialEntries,
-}: Props) {
+function getHealthMeasures(
+  employeeId: string,
+  dateKeys: string[],
+  entryMap: Record<string, HealthEntryData>
+) {
+  return dateKeys.flatMap((dateKey) => {
+    const measures = entryMap[makeCellKey(employeeId, dateKey)]?.measures?.trim();
+    if (!measures) return [];
+
+    return [`${getDayNumber(dateKey)} ${getWeekdayShort(dateKey)}. - ${measures}`];
+  });
+}
+
+export function HealthDocumentClient(props: Props) {
+  const {
+    documentId,
+    title,
+    organizationName,
+    dateFrom,
+    dateTo,
+    status,
+    autoFill = false,
+    employees,
+    initialEntries,
+  } = props;
+
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
   const rosterUsers = employees.filter((employee) => includedEmployeeIds.includes(employee.id));
@@ -142,6 +165,23 @@ export function HealthDocumentClient({
             line-height: 1.15 !important;
             padding: 8px 10px !important;
           }
+
+          .health-title {
+            font-size: 24px !important;
+            margin-bottom: 24px !important;
+          }
+
+          .health-notes {
+            font-size: 10px !important;
+            line-height: 1.25 !important;
+            margin-top: 24px !important;
+          }
+
+          .health-checkbox {
+            width: 10px !important;
+            height: 10px !important;
+            border-radius: 2px !important;
+          }
         }
       `}</style>
 
@@ -153,18 +193,18 @@ export function HealthDocumentClient({
             title={documentTitle}
             status={status}
             autoFill={autoFill}
-            responsibleTitle={responsibleTitle}
+            responsibleTitle={props.responsibleTitle}
             users={employees}
             includedEmployeeIds={includedEmployeeIds}
           />
         </div>
 
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto max-w-[1860px]">
           <div className="mb-10">
             <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
           </div>
 
-          <div className="mb-8 text-center text-[34px] font-bold uppercase">
+          <div className="health-title mb-8 text-center text-[34px] font-bold uppercase">
             {documentTitle}
           </div>
 
@@ -172,11 +212,13 @@ export function HealthDocumentClient({
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th
-                  className="w-[38px] border border-black p-2 text-center font-semibold"
+                  className="w-[42px] border border-black p-2 text-center font-semibold"
                   rowSpan={2}
-                />
+                >
+                  <HealthCheckbox />
+                </th>
                 <th
-                  className="w-[68px] border border-black p-2 text-center font-semibold"
+                  className="w-[72px] border border-black p-2 text-center font-semibold"
                   rowSpan={2}
                 >
                   №
@@ -190,7 +232,7 @@ export function HealthDocumentClient({
                   Ф.И.О. работника
                 </th>
                 <th
-                  className="w-[260px] border border-black p-2 text-center font-semibold"
+                  className="w-[270px] border border-black p-2 text-center font-semibold"
                   rowSpan={2}
                 >
                   Должность
@@ -202,7 +244,7 @@ export function HealthDocumentClient({
                   Месяц {monthLabel}
                 </th>
                 <th
-                  className="w-[170px] border border-black p-2 text-center font-semibold"
+                  className="w-[200px] border border-black p-2 text-center font-semibold"
                   rowSpan={2}
                 >
                   Принятые меры
@@ -222,44 +264,52 @@ export function HealthDocumentClient({
             </thead>
 
             <tbody>
-              {printableEmployees.map((employee) => (
-                <tr key={employee.id}>
-                  <td className="border border-black p-2 text-center align-middle" />
-                  <td className="border border-black p-2 text-center align-middle">
-                    {employee.name ? employee.number : ""}
-                  </td>
-                  <td className="border border-black p-2 text-center align-middle">
-                    {employee.name || ""}
-                  </td>
-                  <td className="border border-black p-2 text-center align-middle">
-                    {employee.name ? employee.position || getHygienePositionLabel("operator") : ""}
-                  </td>
-                  {dateKeys.map((dateKey) => {
-                    const data = entryMap[makeCellKey(employee.id, dateKey)];
-                    return (
-                      <td
-                        key={`${employee.id}:${dateKey}`}
-                        className="border border-black p-2 text-center"
-                      >
-                        {data?.signed ? "+" : ""}
-                      </td>
-                    );
-                  })}
-                  <td className="border border-black p-2 text-center align-middle">
-                    {dateKeys.some(
-                      (dateKey) => entryMap[makeCellKey(employee.id, dateKey)]?.measures
-                    )
-                      ? dateKeys
-                          .map((dateKey) => entryMap[makeCellKey(employee.id, dateKey)]?.measures)
-                          .filter(Boolean)
-                          .join(", ")
-                      : ""}
-                  </td>
-                </tr>
-              ))}
+              {printableEmployees.map((employee) => {
+                const measures = getHealthMeasures(employee.id, dateKeys, entryMap);
+
+                return (
+                  <tr key={employee.id}>
+                    <td className="border border-black p-2 text-center align-middle">
+                      <HealthCheckbox />
+                    </td>
+                    <td className="border border-black p-2 text-center align-middle">
+                      {employee.name ? employee.number : ""}
+                    </td>
+                    <td className="border border-black p-2 text-center align-middle">
+                      {employee.name || ""}
+                    </td>
+                    <td className="border border-black p-2 text-center align-middle">
+                      {employee.name
+                        ? employee.position || getHygienePositionLabel("operator")
+                        : ""}
+                    </td>
+                    {dateKeys.map((dateKey) => {
+                      const data = entryMap[makeCellKey(employee.id, dateKey)];
+
+                      return (
+                        <td
+                          key={`${employee.id}:${dateKey}`}
+                          className="border border-black p-2 text-center align-middle"
+                        >
+                          {data?.signed ? "+" : ""}
+                        </td>
+                      );
+                    })}
+                    <td className="border border-black px-3 py-2 align-middle">
+                      <div className="space-y-1 text-left text-[14px] leading-5">
+                        {measures.map((item) => (
+                          <div key={`${employee.id}:${item}`}>{item}</div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               <tr>
-                <td className="border border-black p-2 text-center" />
+                <td className="border border-black p-2 text-center align-middle">
+                  <HealthCheckbox />
+                </td>
                 <td className="border border-black p-2 text-center" />
                 <td className="border border-black p-2 text-center" />
                 <td className="border border-black p-2 text-center" />
@@ -271,7 +321,7 @@ export function HealthDocumentClient({
             </tbody>
           </table>
 
-          <div className="mt-12 space-y-7 text-[16px] leading-7">
+          <div className="health-notes mt-12 space-y-7 text-[16px] leading-7">
             {HEALTH_REGISTER_NOTES.map((note) => (
               <p key={note}>{note}</p>
             ))}
