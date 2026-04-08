@@ -2,17 +2,22 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
+import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
+import { CLIMATE_DOCUMENT_TEMPLATE_CODE } from "@/lib/climate-document";
 import {
   buildDateKeys,
   buildExampleHygieneEntryMap,
   buildHygieneExampleEmployees,
-  getHealthDocumentTitle,
+  getHygieneDemoTeamUsers,
   getHealthSeedDocumentConfigs,
   getHygieneDefaultResponsibleTitle,
-  getHygieneDocumentTitle,
-  getHygienePeriodLabel,
   getHygieneSeedDocumentConfigs,
 } from "@/lib/hygiene-document";
+import {
+  getJournalDocumentDefaultTitle,
+  getJournalDocumentPeriodLabel,
+  isDocumentTemplate,
+} from "@/lib/journal-document-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +31,7 @@ async function ensureStaffJournalSampleDocuments({
   templateCode: string;
   organizationId: string;
   templateId: string;
-  users: { id: string; name: string; role: string }[];
+  users: { id: string; name: string; role: string; email?: string | null }[];
   createdById: string;
 }) {
   const configs =
@@ -60,10 +65,6 @@ async function ensureStaffJournalSampleDocuments({
     users[0] ||
     null;
 
-  const employeeIds = buildHygieneExampleEmployees(users, templateCode === "health_check" ? 5 : 7)
-    .filter((employee) => !employee.id.startsWith("blank-"))
-    .map((employee) => employee.id);
-
   for (const config of configs) {
     const key = `${config.status}:${config.dateFrom}:${config.dateTo}`;
     if (existingKeys.has(key)) continue;
@@ -81,6 +82,18 @@ async function ensureStaffJournalSampleDocuments({
         createdById,
       },
     });
+
+    const sourceUsers =
+      templateCode === "hygiene" && config.variant === "demo_team"
+        ? getHygieneDemoTeamUsers(users)
+        : users;
+
+    const employeeIds = buildHygieneExampleEmployees(
+      sourceUsers,
+      templateCode === "health_check" ? 5 : 7
+    )
+      .filter((employee) => !employee.id.startsWith("blank-"))
+      .map((employee) => employee.id);
 
     if (employeeIds.length === 0) continue;
 
@@ -147,7 +160,7 @@ export default async function JournalDocumentsPage({
       organizationId: session.user.organizationId,
       isActive: true,
     },
-    select: { id: true, name: true, role: true },
+    select: { id: true, name: true, role: true, email: true },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
 
@@ -177,12 +190,41 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((document) => ({
           id: document.id,
-          title:
-            document.title ||
-            (code === "health_check" ? getHealthDocumentTitle() : getHygieneDocumentTitle()),
+          title: document.title || getJournalDocumentDefaultTitle(code),
           status: document.status as "active" | "closed",
           responsibleTitle: document.responsibleTitle,
-          periodLabel: getHygienePeriodLabel(document.dateFrom, document.dateTo),
+          periodLabel: getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
+        }))}
+      />
+    );
+  }
+
+  if (isDocumentTemplate(code)) {
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy:
+        code === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+        code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+          ? { dateFrom: "desc" }
+          : { dateFrom: "asc" },
+    });
+
+    return (
+      <HygieneDocumentsClient
+        activeTab={activeTab}
+        templateCode={code}
+        templateName={template.name}
+        users={orgUsers}
+        documents={documents.map((document) => ({
+          id: document.id,
+          title: document.title || getJournalDocumentDefaultTitle(code),
+          status: document.status as "active" | "closed",
+          responsibleTitle: document.responsibleTitle,
+          periodLabel: getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
         }))}
       />
     );

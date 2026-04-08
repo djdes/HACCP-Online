@@ -1,9 +1,22 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { ColdEquipmentDocumentClient } from "@/components/journals/cold-equipment-document-client";
+import {
+  COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
+  normalizeColdEquipmentDocumentConfig,
+  normalizeColdEquipmentEntryData,
+} from "@/lib/cold-equipment-document";
+import { ClimateDocumentClient } from "@/components/journals/climate-document-client";
+import {
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  normalizeClimateDocumentConfig,
+  normalizeClimateEntryData,
+} from "@/lib/climate-document";
 import { HealthDocumentClient } from "@/components/journals/health-document-client";
 import { HygieneDocumentClient } from "@/components/journals/hygiene-document-client";
 import {
+  getHygieneDemoTeamUsers,
   normalizeHealthEntryData,
   normalizeHygieneEntryData,
   toDateKey,
@@ -38,10 +51,19 @@ export default async function JournalDocumentPage({
         organizationId: session.user.organizationId,
         isActive: true,
       },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, email: true },
       orderBy: [{ role: "asc" }, { name: "asc" }],
     }),
   ]);
+
+  const demoEmployees = getHygieneDemoTeamUsers(employees);
+  const enrichedEmployees =
+    demoEmployees.length > 0
+      ? employees.map((employee) => {
+          const demo = demoEmployees.find((item) => item.id === employee.id);
+          return demo || employee;
+        })
+      : employees;
 
   if (
     !document ||
@@ -63,7 +85,7 @@ export default async function JournalDocumentPage({
         responsibleName={null}
         status={document.status}
         autoFill={document.autoFill}
-        employees={employees}
+        employees={enrichedEmployees}
         initialEntries={document.entries.map((entry) => ({
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
@@ -84,11 +106,59 @@ export default async function JournalDocumentPage({
         responsibleTitle={document.responsibleTitle}
         status={document.status}
         autoFill={document.autoFill}
-        employees={employees}
+        employees={enrichedEmployees}
         initialEntries={document.entries.map((entry) => ({
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
           data: normalizeHealthEntryData(entry.data),
+        }))}
+      />
+    );
+  }
+
+  if (document.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
+    return (
+      <ColdEquipmentDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        dateTo={toDateKey(document.dateTo)}
+        responsibleTitle={document.responsibleTitle}
+        responsibleUserId={document.responsibleUserId}
+        status={document.status}
+        autoFill={document.autoFill}
+        employees={enrichedEmployees}
+        config={normalizeColdEquipmentDocumentConfig(document.config)}
+        initialEntries={document.entries.map((entry) => ({
+          id: entry.id,
+          employeeId: entry.employeeId,
+          date: toDateKey(entry.date),
+          data: normalizeColdEquipmentEntryData(entry.data),
+        }))}
+      />
+    );
+  }
+
+  if (document.template.code === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
+    return (
+      <ClimateDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        dateTo={toDateKey(document.dateTo)}
+        responsibleTitle={document.responsibleTitle}
+        responsibleUserId={document.responsibleUserId}
+        status={document.status}
+        autoFill={document.autoFill}
+        employees={enrichedEmployees}
+        config={normalizeClimateDocumentConfig(document.config)}
+        initialEntries={document.entries.map((entry) => ({
+          id: entry.id,
+          employeeId: entry.employeeId,
+          date: toDateKey(entry.date),
+          data: normalizeClimateEntryData(entry.data),
         }))}
       />
     );

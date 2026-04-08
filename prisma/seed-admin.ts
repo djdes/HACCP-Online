@@ -28,6 +28,16 @@ const DEFAULT_ORG_NAME = "Тестовая организация (админ)";
 const DEFAULT_ORG_TYPE = "meat"; // must match registerSchema enum
 const DEFAULT_NAME = "Администратор";
 
+const DEMO_TEAM = [
+  { email: "admin@haccp.local", name: "\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440", role: "owner" },
+  { email: "chef@haccp.local", name: "\u041f\u0435\u0442\u0440\u043e\u0432 \u041f.\u041f.", role: "technologist" },
+  { email: "souschef@haccp.local", name: "\u0421\u0438\u0434\u043e\u0440\u043e\u0432 \u0421.\u0421.", role: "operator" },
+  { email: "hotcook@haccp.local", name: "\u0410\u043d\u0442\u043e\u043d\u043e\u0432\u0430 \u0410.\u0410.", role: "operator" },
+  { email: "coldcook@haccp.local", name: "\u0411\u043e\u0440\u0438\u0441\u043e\u0432 \u0411.\u0411.", role: "operator" },
+  { email: "pastry@haccp.local", name: "\u041a\u0443\u0437\u043d\u0435\u0446\u043e\u0432\u0430 \u041a.\u041a.", role: "operator" },
+  { email: "waiter@haccp.local", name: "\u0421\u043c\u0438\u0440\u043d\u043e\u0432\u0430 \u041c.\u041c.", role: "operator" },
+] as const;
+
 async function main() {
   const connectionString =
     process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL;
@@ -117,6 +127,43 @@ async function main() {
       orgId = result.org.id;
       console.log(`  Created organization: ${result.org.name} (${orgId})`);
       console.log(`  Created admin user:   ${result.user.email}`);
+    }
+
+    for (const member of DEMO_TEAM) {
+      const memberEmail = member.email.trim().toLowerCase();
+      const memberPasswordHash =
+        memberEmail === email ? passwordHash : await bcrypt.hash(DEFAULT_PASSWORD, 12);
+
+      const existingDemoUser = await prisma.user.findUnique({
+        where: { email: memberEmail },
+        select: { id: true },
+      });
+
+      if (existingDemoUser) {
+        await prisma.user.update({
+          where: { id: existingDemoUser.id },
+          data: {
+            name: member.name,
+            role: member.role,
+            passwordHash: memberPasswordHash,
+            organizationId: orgId,
+            isActive: true,
+          },
+        });
+        console.log(`  Updated demo user:    ${memberEmail}`);
+      } else {
+        await prisma.user.create({
+          data: {
+            email: memberEmail,
+            name: member.name,
+            role: member.role,
+            passwordHash: memberPasswordHash,
+            organizationId: orgId,
+            isActive: true,
+          },
+        });
+        console.log(`  Created demo user:    ${memberEmail}`);
+      }
     }
 
     console.log("");

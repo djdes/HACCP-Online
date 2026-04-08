@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  buildColdEquipmentConfigFromEquipment,
+  COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
+} from "@/lib/cold-equipment-document";
+import {
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  getDefaultClimateDocumentConfig,
+} from "@/lib/climate-document";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -58,11 +66,40 @@ export async function POST(request: Request) {
   const template = await db.journalTemplate.findUnique({ where: { code: templateCode } });
   if (!template) return NextResponse.json({ error: "Шаблон не найден" }, { status: 404 });
 
+  const coldEquipmentConfig =
+    templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+      ? buildColdEquipmentConfigFromEquipment(
+          await db.equipment.findMany({
+            where: {
+              area: {
+                organizationId: session.user.organizationId,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              tempMin: true,
+              tempMax: true,
+            },
+            orderBy: { name: "asc" },
+          })
+        )
+      : undefined;
+
+  const initialConfig =
+    templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+      ? coldEquipmentConfig
+      : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+      ? getDefaultClimateDocumentConfig()
+      : undefined;
+
   const doc = await db.journalDocument.create({
     data: {
       templateId: template.id,
       organizationId: session.user.organizationId,
       title: title || template.name,
+      config: initialConfig ?? undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId: responsibleUserId || null,

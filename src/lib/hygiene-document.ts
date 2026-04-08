@@ -66,6 +66,8 @@ export type HygieneRosterUser = {
   id: string;
   name: string;
   role: string;
+  email?: string | null;
+  positionTitle?: string | null;
 };
 
 export type HygieneExampleEmployee = {
@@ -100,7 +102,53 @@ export type HygieneSeedDocumentConfig = {
   status: HygieneDocumentStatus;
   dateFrom: string;
   dateTo: string;
+  variant?: "default" | "demo_team";
 };
+
+export const HYGIENE_DEMO_TEAM = [
+  {
+    email: "admin@haccp.local",
+    name: "Администратор",
+    role: "owner",
+    positionTitle: "Управляющий",
+  },
+  {
+    email: "chef@haccp.local",
+    name: "Петров П.П.",
+    role: "technologist",
+    positionTitle: "Шеф-повар",
+  },
+  {
+    email: "souschef@haccp.local",
+    name: "Сидоров С.С.",
+    role: "operator",
+    positionTitle: "Су-шеф",
+  },
+  {
+    email: "hotcook@haccp.local",
+    name: "Антонова А.А.",
+    role: "operator",
+    positionTitle: "Повар горячего цеха",
+  },
+  {
+    email: "coldcook@haccp.local",
+    name: "Борисов Б.Б.",
+    role: "operator",
+    positionTitle: "Повар холодного цеха",
+  },
+  {
+    email: "pastry@haccp.local",
+    name: "Кузнецова К.К.",
+    role: "operator",
+    positionTitle: "Кондитер",
+  },
+  {
+    email: "waiter@haccp.local",
+    name: "Смирнова М.М.",
+    role: "operator",
+    positionTitle: "Официант",
+  },
+] as const;
 
 export const HYGIENE_SAMPLE_DOCUMENTS: HygieneSampleDocument[] = [
   {
@@ -219,6 +267,39 @@ export function getHygienePositionLabel(role: string): string {
   }
 }
 
+export function getHygieneUserPositionLabel(employee: HygieneRosterUser): string {
+  const byEmail = HYGIENE_DEMO_TEAM.find(
+    (member) => employee.email && member.email === employee.email
+  );
+  if (byEmail) return byEmail.positionTitle;
+
+  const byName = HYGIENE_DEMO_TEAM.find((member) => member.name === employee.name);
+  if (byName) return byName.positionTitle;
+
+  if (employee.positionTitle) return employee.positionTitle;
+
+  return getHygienePositionLabel(employee.role);
+}
+
+export function getHygieneDemoTeamUsers(
+  employees: HygieneRosterUser[]
+): HygieneRosterUser[] {
+  const demoUsers: HygieneRosterUser[] = [];
+
+  HYGIENE_DEMO_TEAM.forEach((member) => {
+    const user =
+      employees.find((employee) => employee.email === member.email) ||
+      employees.find((employee) => employee.name === member.name);
+    if (!user) return;
+    demoUsers.push({
+      ...user,
+      positionTitle: member.positionTitle,
+    });
+  });
+
+  return demoUsers;
+}
+
 export function getHygieneDefaultResponsibleTitle(
   employees: HygieneRosterUser[]
 ): string {
@@ -281,6 +362,13 @@ export function getHygieneSeedDocumentConfigs(): HygieneSeedDocumentConfig[] {
       status: "active",
       dateFrom: "2026-04-01",
       dateTo: "2026-04-15",
+    },
+    {
+      title: "Гигиенический журнал — пример на 7 сотрудников",
+      status: "active",
+      dateFrom: "2026-09-01",
+      dateTo: "2026-09-15",
+      variant: "demo_team",
     },
     {
       title: getHygieneDocumentTitle(),
@@ -420,7 +508,7 @@ export function buildHygieneExampleEmployees(
       id: employee.id,
       number: index + 1,
       name: employee.name,
-      position: getHygienePositionLabel(employee.role),
+      position: getHygieneUserPositionLabel(employee),
     }));
 
   while (rows.length < rowCount) {
