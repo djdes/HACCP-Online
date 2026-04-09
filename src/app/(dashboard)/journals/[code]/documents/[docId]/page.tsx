@@ -55,6 +55,12 @@ import {
   normalizeUvRuntimeDocumentConfig,
   toIsoDate,
 } from "@/lib/uv-lamp-runtime-document";
+import { MedBookDocumentClient } from "@/components/journals/med-book-document-client";
+import {
+  MED_BOOK_TEMPLATE_CODE,
+  normalizeMedBookConfig,
+  normalizeMedBookEntryData,
+} from "@/lib/med-book-document";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +193,48 @@ export default async function JournalDocumentPage({
     );
   }
 
+  if (document.template.code === MED_BOOK_TEMPLATE_CODE) {
+    const medConfig = normalizeMedBookConfig(document.config);
+
+    // Group entries by employeeId (one entry per employee)
+    const rowMap = new Map<
+      string,
+      { id: string; employeeId: string; data: ReturnType<typeof normalizeMedBookEntryData> }
+    >();
+    for (const entry of document.entries) {
+      if (!rowMap.has(entry.employeeId)) {
+        rowMap.set(entry.employeeId, {
+          id: entry.id,
+          employeeId: entry.employeeId,
+          data: normalizeMedBookEntryData(entry.data),
+        });
+      }
+    }
+
+    const medRows = Array.from(rowMap.values()).map((entry) => {
+      const emp = enrichedEmployees.find((e) => e.id === entry.employeeId);
+      return {
+        id: entry.id,
+        employeeId: entry.employeeId,
+        name: emp?.name || "Сотрудник",
+        data: entry.data,
+      };
+    });
+
+    return (
+      <MedBookDocumentClient
+        documentId={document.id}
+        title={document.title}
+        templateCode={code}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        status={document.status}
+        config={medConfig}
+        employees={enrichedEmployees}
+        initialRows={medRows}
+      />
+    );
+  }
+
   if (document.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
     return (
       <ColdEquipmentDocumentClient
@@ -249,6 +297,7 @@ export default async function JournalDocumentPage({
         <UvLampRuntimeDocumentClient
           documentId={document.id}
           title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}
+          organizationName={organization?.name || 'ООО "Тест"'}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           dateTo={toIsoDate(document.dateTo)}
