@@ -61,6 +61,12 @@ import {
   normalizeMedBookConfig,
   normalizeMedBookEntryData,
 } from "@/lib/med-book-document";
+import { FryerOilDocumentClient } from "@/components/journals/fryer-oil-document-client";
+import {
+  FRYER_OIL_TEMPLATE_CODE,
+  normalizeFryerOilDocumentConfig,
+  normalizeFryerOilEntryData,
+} from "@/lib/fryer-oil-document";
 
 export const dynamic = "force-dynamic";
 
@@ -291,6 +297,27 @@ export default async function JournalDocumentPage({
     isTrackedDocumentTemplate(document.template.code) &&
     !isRegisterDocumentTemplate(document.template.code)
   ) {
+    if (document.template.code === FRYER_OIL_TEMPLATE_CODE) {
+      const fryerConfig = normalizeFryerOilDocumentConfig(document.config);
+      return (
+        <FryerOilDocumentClient
+          documentId={document.id}
+          title={document.title || "Журнал учета использования фритюрных жиров"}
+          organizationName={organization?.name || 'ООО "Тест"'}
+          status={document.status}
+          dateFrom={toIsoDate(document.dateFrom)}
+          config={fryerConfig}
+          users={enrichedEmployees}
+          initialEntries={document.entries.map((entry) => ({
+            id: entry.id,
+            date: toIsoDate(entry.date),
+            data: normalizeFryerOilEntryData(entry.data),
+          }))}
+          routeCode={code}
+        />
+      );
+    }
+
     if (document.template.code === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
       const uvConfig = normalizeUvRuntimeDocumentConfig(document.config);
       return (
