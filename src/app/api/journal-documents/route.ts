@@ -20,6 +20,10 @@ import {
   buildFinishedProductConfigFromUsers,
 } from "@/lib/finished-product-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import {
+  buildRegisterDocumentConfigFromUsers,
+  isRegisterDocumentTemplate,
+} from "@/lib/register-document";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { templateCode, title, dateFrom, dateTo, responsibleUserId, responsibleTitle } = body;
+  const { templateCode, title, dateFrom, dateTo, responsibleUserId, responsibleTitle, config } = body;
 
   if (!templateCode || !dateFrom || !dateTo) {
     return NextResponse.json(
@@ -149,6 +153,8 @@ export async function POST(request: Request) {
       ? buildCleaningConfigFromAreas(cleaningAreas, cleaningDefaults || undefined)
       : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
       ? buildFinishedProductConfigFromUsers(allUsers)
+      : isRegisterDocumentTemplate(templateCode)
+      ? buildRegisterDocumentConfigFromUsers(allUsers)
       : undefined;
 
   const cleaningControlRole =
@@ -163,7 +169,7 @@ export async function POST(request: Request) {
       templateId: template.id,
       organizationId: session.user.organizationId,
       title: title || template.name,
-      config: initialConfig ?? undefined,
+      config: config ?? initialConfig ?? undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId:

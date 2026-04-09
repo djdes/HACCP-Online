@@ -289,6 +289,12 @@ export default async function JournalDocumentsPage({
               code === CLIMATE_DOCUMENT_TEMPLATE_CODE
                 ? document.dateFrom.toLocaleDateString("ru-RU")
                 : getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            dateTo: document.dateTo.toISOString().slice(0, 10),
+            config:
+              document.config && typeof document.config === "object" && !Array.isArray(document.config)
+                ? (document.config as Record<string, unknown>)
+                : null,
           }))}
         />
       );

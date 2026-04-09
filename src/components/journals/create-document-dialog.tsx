@@ -42,6 +42,11 @@ import {
   getFinishedProductDocumentTitle,
 } from "@/lib/finished-product-document";
 import {
+  getRegisterDocumentCreatePeriodBounds,
+  getRegisterDocumentTitle,
+  isRegisterDocumentTemplate,
+} from "@/lib/register-document";
+import {
   getHealthDocumentTitle,
   getHygieneCreatePeriodBounds,
   getHygieneDocumentTitle,
@@ -50,6 +55,11 @@ import {
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
+import {
+  getTrackedDocumentCreateMode,
+  getTrackedDocumentTitle,
+  isSourceStyleTrackedTemplate,
+} from "@/lib/tracked-document";
 
 interface Props {
   templateCode: string;
@@ -84,23 +94,32 @@ export function CreateDocumentDialog({
       templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
         ? getColdEquipmentCreatePeriodBounds()
         : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-        ? getClimateCreatePeriodBounds()
-        : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-        ? getCleaningCreatePeriodBounds()
-        : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
-        ? getFinishedProductCreatePeriodBounds()
-        : getHygieneCreatePeriodBounds(),
+          ? getClimateCreatePeriodBounds()
+          : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+            ? getCleaningCreatePeriodBounds()
+            : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
+              ? getFinishedProductCreatePeriodBounds()
+              : isRegisterDocumentTemplate(templateCode)
+                ? getRegisterDocumentCreatePeriodBounds()
+                : getHygieneCreatePeriodBounds(),
     [templateCode]
   );
+
   const isStaffJournal = isStaffDocumentTemplate(templateCode);
   const isCleaningJournal = templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE;
   const isClimateJournal = templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE;
   const isColdEquipmentJournal = templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE;
+  const isSourceStyleTrackedJournal = isSourceStyleTrackedTemplate(templateCode);
+  const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
+
   const responsibleTitleOptions = useMemo(
-    () => (isStaffJournal ? getStaffJournalResponsibleTitleOptions(users) : []),
-    [isStaffJournal, users]
+    () =>
+      isStaffJournal || isSourceStyleTrackedJournal
+        ? getStaffJournalResponsibleTitleOptions(users)
+        : [],
+    [isStaffJournal, isSourceStyleTrackedJournal, users]
   );
 
   const [title, setTitle] = useState(
@@ -109,21 +128,26 @@ export function CreateDocumentDialog({
       : templateCode === "health_check"
         ? getHealthDocumentTitle()
         : templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
-        ? getColdEquipmentDocumentTitle()
-        : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-        ? getClimateDocumentTitle()
-        : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-        ? getCleaningDocumentTitle()
-        : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
-        ? getFinishedProductDocumentTitle()
-        : templateName
+          ? getColdEquipmentDocumentTitle()
+          : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+            ? getClimateDocumentTitle()
+            : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+              ? getCleaningDocumentTitle()
+              : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
+                ? getFinishedProductDocumentTitle()
+                : isSourceStyleTrackedJournal
+                  ? getTrackedDocumentTitle(templateCode)
+                  : isRegisterDocumentTemplate(templateCode)
+                    ? getRegisterDocumentTitle(templateCode)
+                    : templateName
   );
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
   const [responsibleUserId, setResponsibleUserId] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState(
-    isStaffJournal ? responsibleTitleOptions[0] || "" : ""
+    isStaffJournal || isSourceStyleTrackedJournal ? responsibleTitleOptions[0] || "" : ""
   );
+  const [trackedAreaName, setTrackedAreaName] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,7 +158,9 @@ export function CreateDocumentDialog({
       const selectedResponsibleUser =
         responsibleUserId ||
         users.find((user) =>
-          isStaffJournal ? getHygienePositionLabel(user.role) === responsibleTitle : false
+          isStaffJournal || isSourceStyleTrackedJournal
+            ? getHygienePositionLabel(user.role) === responsibleTitle
+            : false
         )?.id;
 
       const res = await fetch("/api/journal-documents", {
@@ -147,6 +173,10 @@ export function CreateDocumentDialog({
           dateTo,
           responsibleUserId: selectedResponsibleUser || undefined,
           responsibleTitle: isCleaningJournal ? undefined : responsibleTitle || undefined,
+          config:
+            isSourceStyleTrackedJournal && trackedAreaName.trim()
+              ? { areaName: trackedAreaName.trim() }
+              : undefined,
         }),
       });
 
@@ -166,7 +196,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isHygiene = isStaffJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -177,21 +207,29 @@ export function CreateDocumentDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0", isHygiene && "max-w-[620px] rounded-[28px]")}>
-        <DialogHeader className={cn("border-b px-6 py-5", isHygiene && "px-8 py-6")}>
-          <DialogTitle className={cn("text-[20px] font-medium text-black", isHygiene && "text-[24px]")}>
-            {isHygiene ? "Создание документа" : `Создать документ: ${templateName}`}
+      <DialogContent
+        className={cn(
+          "w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0",
+          isCompactSourceModal && "max-w-[620px] rounded-[28px]"
+        )}
+      >
+        <DialogHeader className={cn("border-b px-6 py-5", isCompactSourceModal && "px-8 py-6")}>
+          <DialogTitle className={cn("text-[20px] font-medium text-black", isCompactSourceModal && "text-[24px]")}>
+            {isCompactSourceModal ? "Создание документа" : `Создать документ: ${templateName}`}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className={cn("space-y-4 px-6 py-5", isHygiene && "space-y-5 px-8 py-6")}>
+        <form
+          onSubmit={handleSubmit}
+          className={cn("space-y-4 px-6 py-5", isCompactSourceModal && "space-y-5 px-8 py-6")}
+        >
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          {isHygiene ? (
+          {isCompactSourceModal ? (
             <>
               <div className="space-y-3">
                 <Label htmlFor="doc-title" className="sr-only">
@@ -206,6 +244,21 @@ export function CreateDocumentDialog({
                   required
                 />
               </div>
+
+              {trackedCreateMode === "uv" && (
+                <div className="space-y-3">
+                  <Label htmlFor="tracked-area-name" className="sr-only">
+                    Наименование цеха или участка
+                  </Label>
+                  <Input
+                    id="tracked-area-name"
+                    value={trackedAreaName}
+                    onChange={(e) => setTrackedAreaName(e.target.value)}
+                    placeholder="Введите наименование цеха/участка применения"
+                    className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                  />
+                </div>
+              )}
 
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
@@ -223,15 +276,33 @@ export function CreateDocumentDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
-                <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
-                <div className="text-[22px] leading-[1.35] text-black">
-                  {HYGIENE_PERIODICITY_TEXT}
+              {trackedCreateMode === "staff" ? (
+                <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
+                  <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+                  <div className="text-[22px] leading-[1.35] text-black">
+                    {HYGIENE_PERIODICITY_TEXT}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <Label htmlFor="tracked-date-from" className="text-[18px] text-[#73738a]">
+                    {trackedCreateMode === "uv" ? "Дата начала" : "Дата документа"}
+                  </Label>
+                  <Input
+                    id="tracked-date-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="hidden">
-                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                {trackedCreateMode === "staff" && (
+                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                )}
                 <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
               </div>
 
@@ -271,16 +342,18 @@ export function CreateDocumentDialog({
                       required
                     />
                   </div>
-                  {showDateTo && <div className="space-y-2">
-                    <Label htmlFor="doc-to">Дата окончания</Label>
-                    <Input
-                      id="doc-to"
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      required
-                    />
-                  </div>}
+                  {showDateTo && (
+                    <div className="space-y-2">
+                      <Label htmlFor="doc-to">Дата окончания</Label>
+                      <Input
+                        id="doc-to"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-xl border border-[#dfe1ec] px-4 py-3 text-sm text-muted-foreground">
