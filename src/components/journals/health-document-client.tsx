@@ -192,6 +192,7 @@ export function HealthDocumentClient(props: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          title: settingsDocTitle.trim() || "Журнал здоровья",
           config: {
             printEmptyRows: Math.max(0, Number(emptyRows) || 0),
           },
@@ -314,7 +315,12 @@ export function HealthDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => status === "active" && setSettingsOpen(true)}
+              onClick={() => {
+                if (status !== "active") return;
+                setSettingsDocTitle(documentTitle);
+                setEmptyRows(String(printEmptyRows));
+                setSettingsOpen(true);
+              }}
               disabled={status !== "active"}
               className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
             >
