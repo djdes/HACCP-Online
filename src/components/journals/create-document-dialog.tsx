@@ -74,6 +74,10 @@ import {
   MED_BOOK_TEMPLATE_CODE,
   MED_BOOK_DOCUMENT_TITLE,
 } from "@/lib/med-book-document";
+import {
+  FRYER_OIL_TEMPLATE_CODE,
+  defaultFryerOilDocumentConfig,
+} from "@/lib/fryer-oil-document";
 
 interface Props {
   templateCode: string;
@@ -231,6 +235,8 @@ export function CreateDocumentDialog({
                   showCourierTime: fpShowCourierTime,
                   footerNote: fpFooterNote.trim(),
                 }
+              : templateCode === FRYER_OIL_TEMPLATE_CODE
+              ? defaultFryerOilDocumentConfig()
               : isSourceStyleTrackedJournal && (trackedAreaName.trim() || isUvRuntimeJournal)
                 ? isUvRuntimeJournal
                   ? {
