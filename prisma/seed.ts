@@ -533,10 +533,30 @@ const journalTemplates = [
   },
 ];
 
+const additionalJournalTemplates = [
+  { code: "disinfectant_usage", name: "Учёт дезинфицирующих средств", description: "Контроль расхода и концентрации дезсредств", sortOrder: 21, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "productName", label: "Средство", type: "text", required: true }, { key: "amount", label: "Расход", type: "number", required: true, step: 0.01 }, { key: "concentration", label: "Концентрация (%)", type: "number", required: false, step: 0.1 }] },
+  { code: "general_cleaning", name: "График генеральных уборок", description: "План и факт генеральных уборок", sortOrder: 22, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "areaName", label: "Помещение", type: "text", required: true }, { key: "plannedDate", label: "Плановая дата", type: "date", required: true }, { key: "actualDate", label: "Фактическая дата", type: "date", required: false }] },
+  { code: "fryer_oil", name: "Журнал фритюрных жиров", description: "Контроль состояния фритюрных жиров", sortOrder: 23, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "equipmentName", label: "Оборудование", type: "text", required: true }, { key: "temperature", label: "Температура (°C)", type: "number", required: true, step: 0.1 }, { key: "quality", label: "Качество", type: "select", required: true, options: [{ value: "ok", label: "Норма" }, { value: "replace", label: "Требуется замена" }] }] },
+  { code: "uv_lamp_runtime", name: "Учёт наработки УФ-ламп", description: "Часы работы и замена УФ-ламп", sortOrder: 24, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "lampName", label: "Установка/лампа", type: "text", required: true }, { key: "hoursBefore", label: "Часы до смены", type: "number", required: true, step: 1 }, { key: "hoursAfter", label: "Часы после смены", type: "number", required: true, step: 1 }] },
+  { code: "daily_rejection", name: "Ежедневный бракераж блюд", description: "Оценка качества блюд перед выдачей", sortOrder: 25, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "dish", label: "Блюдо", type: "text", required: true }, { key: "rating", label: "Оценка", type: "select", required: true, options: [{ value: "ok", label: "Годно" }, { value: "reject", label: "Брак" }] }] },
+  { code: "raw_storage_control", name: "Контроль хранения сырья", description: "Проверка условий хранения сырья", sortOrder: 26, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Продукт", type: "text", required: true }, { key: "storageArea", label: "Зона хранения", type: "text", required: true }, { key: "temperature", label: "Температура (°C)", type: "number", required: false, step: 0.1 }] },
+  { code: "defrosting_control", name: "Контроль размораживания", description: "Учёт процесса размораживания сырья", sortOrder: 27, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Сырьё", type: "text", required: true }, { key: "method", label: "Способ", type: "text", required: true }, { key: "startAt", label: "Начало", type: "date", required: true }] },
+  { code: "water_temperature_control", name: "Контроль температуры воды", description: "Контроль горячей/холодной воды", sortOrder: 28, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "pointName", label: "Точка контроля", type: "text", required: true }, { key: "hotWaterTemp", label: "Горячая вода (°C)", type: "number", required: false, step: 0.1 }, { key: "coldWaterTemp", label: "Холодная вода (°C)", type: "number", required: false, step: 0.1 }] },
+  { code: "dishwashing_control", name: "Контроль мойки посуды", description: "Параметры мойки и дезинфекции посуды", sortOrder: 29, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "zone", label: "Участок", type: "text", required: true }, { key: "detergent", label: "Средство", type: "text", required: true }, { key: "waterTemp", label: "Температура воды (°C)", type: "number", required: false, step: 0.1 }] },
+  { code: "inventory_sanitation", name: "Санобработка инвентаря", description: "Учёт мойки и дезинфекции инвентаря", sortOrder: 30, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "inventoryName", label: "Инвентарь", type: "text", required: true }, { key: "method", label: "Метод обработки", type: "text", required: true }, { key: "agent", label: "Средство", type: "text", required: false }] },
+  { code: "receiving_temperature_control", name: "Температура при приёмке", description: "Контроль температуры сырья при приёмке", sortOrder: 31, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Продукт", type: "text", required: true }, { key: "supplier", label: "Поставщик", type: "text", required: true }, { key: "temperature", label: "Температура (°C)", type: "number", required: true, step: 0.1 }] },
+  { code: "allergen_control", name: "Контроль аллергенов", description: "Маркировка и предотвращение перекрёстного контакта", sortOrder: 32, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Продукт", type: "text", required: true }, { key: "allergen", label: "Аллерген", type: "text", required: true }, { key: "isolated", label: "Изолирован", type: "boolean", required: true }] },
+  { code: "critical_limit_check", name: "Проверка критических пределов", description: "Проверки критических пределов ККТ", sortOrder: 33, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "ccpName", label: "ККТ", type: "text", required: true }, { key: "limitValue", label: "Критический предел", type: "text", required: true }, { key: "actualValue", label: "Факт", type: "text", required: true }] },
+  { code: "supplier_audit", name: "Оценка поставщиков", description: "Результаты оценки и переоценки поставщиков", sortOrder: 34, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "supplier", label: "Поставщик", type: "text", required: true }, { key: "criterion", label: "Критерий", type: "text", required: true }, { key: "score", label: "Оценка", type: "number", required: true, step: 1 }] },
+  { code: "traceability_test", name: "Тест прослеживаемости", description: "Проверка прослеживаемости продукции по партиям", sortOrder: 35, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "batchNumber", label: "Партия", type: "text", required: true }, { key: "productName", label: "Продукт", type: "text", required: true }, { key: "status", label: "Статус", type: "select", required: true, options: [{ value: "ok", label: "Пройдено" }, { value: "fail", label: "Не пройдено" }] }] },
+];
+
 async function main() {
   console.log("Seeding journal templates...");
+  const allTemplates = [...journalTemplates, ...additionalJournalTemplates];
+  const allowedCodes = new Set(allTemplates.map((template) => template.code));
 
-  for (const template of journalTemplates) {
+  for (const template of allTemplates) {
     await prisma.journalTemplate.upsert({
       where: { code: template.code },
       update: { name: template.name, description: template.description, fields: template.fields, sortOrder: template.sortOrder, isMandatorySanpin: template.isMandatorySanpin, isMandatoryHaccp: template.isMandatoryHaccp },
@@ -544,6 +564,11 @@ async function main() {
     });
     console.log(`  Done: ${template.code}: ${template.name}`);
   }
+
+  await prisma.journalTemplate.updateMany({
+    where: { code: { notIn: [...allowedCodes] } },
+    data: { isActive: false },
+  });
 
   console.log("Seeding example areas and equipment...");
   const organizations = await prisma.organization.findMany({ select: { id: true } });
@@ -589,6 +614,26 @@ async function main() {
           },
         });
       }
+    }
+
+    const productSeeds = [
+      { name: "Куриное филе", unit: "kg", supplier: "ООО АгроПоставка", shelfLifeDays: 5, storageTemp: 4 },
+      { name: "Молоко пастеризованное", unit: "l", supplier: "АО МолТорг", shelfLifeDays: 7, storageTemp: 6 },
+      { name: "Салат Айсберг", unit: "kg", supplier: "Ферма Грин", shelfLifeDays: 4, storageTemp: 5 },
+      { name: "Лосось охлажденный", unit: "kg", supplier: "РыбСнаб", shelfLifeDays: 3, storageTemp: 2 },
+      { name: "Масло подсолнечное", unit: "l", supplier: "ТД Маслоторг", shelfLifeDays: 180, storageTemp: 20 },
+    ];
+
+    for (const product of productSeeds) {
+      await prisma.product.upsert({
+        where: { id: `${organization.id}-${product.name}` },
+        update: product,
+        create: {
+          id: `${organization.id}-${product.name}`,
+          organizationId: organization.id,
+          ...product,
+        },
+      });
     }
   }
 
