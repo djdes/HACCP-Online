@@ -99,12 +99,12 @@ function EditDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(92vw,620px)] rounded-[24px] border-0 p-0">
-        <DialogHeader className="border-b px-8 py-6">
-          <DialogTitle className="text-[32px] font-medium text-black">Настройки документа</DialogTitle>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
+        <DialogHeader className="border-b px-6 py-5">
+          <DialogTitle className="text-[24px] font-medium text-black">Настройки документа</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-3">
             <Label htmlFor="edit-doc-title" className="sr-only">
               Название документа

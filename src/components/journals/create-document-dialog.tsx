@@ -176,14 +176,14 @@ export function CreateDocumentDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("w-[min(92vw,620px)] rounded-[24px] border-0 p-0", isHygiene && "w-[min(92vw,680px)] rounded-[28px]")}>
-        <DialogHeader className={cn("border-b px-8 py-6", isHygiene && "px-10 py-8")}>
-          <DialogTitle className={cn("text-[22px] font-medium text-black", isHygiene && "text-[28px]")}>
+      <DialogContent className={cn("w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0", isHygiene && "max-w-[620px] rounded-[28px]")}>
+        <DialogHeader className={cn("border-b px-6 py-5", isHygiene && "px-8 py-6")}>
+          <DialogTitle className={cn("text-[20px] font-medium text-black", isHygiene && "text-[24px]")}>
             {isHygiene ? "Создание документа" : `Создать документ: ${templateName}`}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className={cn("space-y-4 px-8 py-6", isHygiene && "space-y-5 px-10 py-8")}>
+        <form onSubmit={handleSubmit} className={cn("space-y-4 px-6 py-5", isHygiene && "space-y-5 px-8 py-6")}>
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
