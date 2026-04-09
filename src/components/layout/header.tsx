@@ -64,21 +64,42 @@ export function Header({ userName, userEmail, organizationName }: HeaderProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
 
-    fetch("/api/build-info", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.buildId) {
-          setBuildInfo({
-            buildId: data.buildId,
-            buildTime: data.buildTime || "",
-          });
-        }
-      })
-      .catch(() => {});
+    async function syncBuildInfo() {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch(`/api/build-info?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!response.ok || cancelled) return;
+        const data = await response.json();
+        if (!data?.buildId || cancelled) return;
+
+        setBuildInfo({
+          buildId: data.buildId,
+          buildTime: data.buildTime || "",
+        });
+      } catch {
+        // silent
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    void syncBuildInfo();
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void syncBuildInfo();
+      }
+    };
+    window.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
