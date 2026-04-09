@@ -39,10 +39,26 @@ import {
 } from "@/lib/tracked-document";
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
+  calculateDurationMinutes,
   formatRuDateDash,
+  getDisinfectionConditionLabel,
+  getDisinfectionObjectLabel,
+  getRadiationModeLabel,
   normalizeUvRuntimeDocumentConfig,
   normalizeUvRuntimeEntryData,
 } from "@/lib/uv-lamp-runtime-document";
+import {
+  FRYER_OIL_TEMPLATE_CODE,
+  normalizeFryerOilDocumentConfig,
+  normalizeFryerOilEntryData,
+  getFryerOilDocumentTitle,
+  getFryerOilFilePrefix,
+  formatTime as formatFryerTime,
+  formatDateRu as formatFryerDateRu,
+  QUALITY_ASSESSMENT_TABLE,
+  QUALITY_LABELS,
+  type FryerOilDocumentConfig,
+} from "@/lib/fryer-oil-document";
 import {
   SANITATION_DAY_TEMPLATE_CODE,
   SANITATION_DAY_DOCUMENT_TITLE,
@@ -1262,26 +1278,84 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
     dateTo: params.dateTo,
   });
 
+  // Specification table
+  const spec = params.config.spec;
+  const specHead: RowInput[] = [[{
+    content: "Спецификация ультрафиолетовой бактерицидной установки",
+    colSpan: 4,
+    styles: { halign: "center", fontStyle: "bold" },
+  }]];
+  const specBody: RowInput[] = [
+    [
+      { content: "Объект обеззараживания", styles: { fontStyle: "bold" } },
+      centerCell(getDisinfectionObjectLabel(spec)),
+      { content: "Ресурс рабочего времени, часов", styles: { fontStyle: "bold" } },
+      centerCell(String(spec.lampLifetimeHours)),
+    ],
+    [
+      { content: "Вид микроорганизма", styles: { fontStyle: "bold" } },
+      centerCell(spec.microorganismType),
+      { content: "Дата ввода в эксплуатацию", styles: { fontStyle: "bold" } },
+      centerCell(spec.commissioningDate ? formatRuDateDash(spec.commissioningDate) : "—"),
+    ],
+    [
+      { content: "Режим облучения", styles: { fontStyle: "bold" } },
+      centerCell(getRadiationModeLabel(spec.radiationMode)),
+      { content: "Мин. интервал между сеансами", styles: { fontStyle: "bold" } },
+      centerCell(spec.minIntervalBetweenSessions || "—"),
+    ],
+    [
+      { content: "Условия обеззараживания", styles: { fontStyle: "bold" } },
+      centerCell(getDisinfectionConditionLabel(spec.disinfectionCondition)),
+      { content: "Частота контроля", styles: { fontStyle: "bold" } },
+      centerCell(spec.controlFrequency),
+    ],
+  ];
+
+  autoTable(doc, {
+    startY: 66,
+    head: specHead,
+    body: specBody,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.5,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  const specEndY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+
   const userMap = Object.fromEntries(params.users.map((user) => [user.id, user.name]));
   const rows = [...params.entries].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const head: RowInput[] = [[
     centerCell("№"),
     centerCell("Дата"),
-    centerCell("Время включения"),
-    centerCell("Время выключения"),
-    centerCell("Показание счетчика, ч"),
-    centerCell("Ответственный"),
+    centerCell("Время ВКЛ"),
+    centerCell("Время ВЫКЛ"),
+    centerCell("Итого продолжительность работы, минут"),
+    centerCell("ФИО ответственного лица"),
   ]];
 
   const body: RowInput[] = rows.map((entry, index) => {
     const data = normalizeUvRuntimeEntryData(entry.data);
+    const duration = calculateDurationMinutes(data.startTime, data.endTime);
     return [
       centerCell(String(index + 1)),
       centerCell(formatRuDateDash(entry.date)),
       centerCell(data.startTime || ""),
       centerCell(data.endTime || ""),
-      centerCell(data.counterValue || ""),
+      centerCell(duration !== null ? String(duration) : ""),
       centerCell(userMap[entry.employeeId] || ""),
     ];
   });
@@ -1295,7 +1369,7 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
   ]);
 
   autoTable(doc, {
-    startY: 66,
+    startY: specEndY,
     head,
     body,
     theme: "grid",
@@ -1407,6 +1481,242 @@ function renderWrappedTextBlock(
   });
 
   return cursorY;
+}
+
+function drawFryerOilPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: FryerOilDocumentConfig;
+  entries: { employeeId: string; date: Date | string; data: Record<string, unknown> }[];
+}) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  drawTitle(doc, getFryerOilDocumentTitle());
+
+  // Header table
+  const x = 24;
+  const y = 28;
+  const width = pageWidth - 48;
+  const leftWidth = 56;
+  const rightWidth = 32;
+  const middleWidth = width - leftWidth - rightWidth;
+  const topHeight = 10;
+  const secondHeight = 10;
+  const totalHeight = topHeight + secondHeight;
+
+  doc.setLineWidth(0.25);
+  doc.rect(x, y, width, totalHeight);
+  doc.line(x + leftWidth, y, x + leftWidth, y + totalHeight);
+  doc.line(x + leftWidth + middleWidth, y, x + leftWidth + middleWidth, y + totalHeight);
+  doc.line(x + leftWidth, y + topHeight, x + leftWidth + middleWidth, y + topHeight);
+
+  doc.setFontSize(10);
+  doc.setFont("JournalUnicode", "bold");
+  drawCenteredText(doc, params.organizationName, x + 3, y, leftWidth - 6, totalHeight, leftWidth - 10);
+
+  doc.setFont("JournalUnicode", "normal");
+  drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, topHeight, middleWidth - 10);
+
+  doc.setFont("JournalUnicode", "italic");
+  drawCenteredText(doc, params.title.toUpperCase(), x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
+
+  const dateFromStr = params.dateFrom instanceof Date
+    ? formatFryerDateRu(params.dateFrom.toISOString().slice(0, 10))
+    : formatFryerDateRu(String(params.dateFrom).slice(0, 10));
+  const dateToStr = params.dateTo instanceof Date
+    ? formatFryerDateRu(params.dateTo.toISOString().slice(0, 10))
+    : formatFryerDateRu(String(params.dateTo).slice(0, 10));
+
+  doc.setFont("JournalUnicode", "normal");
+  drawCenteredText(
+    doc,
+    `${dateFromStr} –\n${dateToStr}\nСтр. 1`,
+    x + leftWidth + middleWidth,
+    y,
+    rightWidth,
+    totalHeight,
+    rightWidth - 4
+  );
+
+  // Centered title below header
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(12);
+  doc.text(params.title.toUpperCase(), pageWidth / 2, y + totalHeight + 10, { align: "center" });
+
+  // Main data table
+  // Head: row 1 has all columns, but columns 8-9 span under a merged "Использование оставшегося жира" header
+  const head: RowInput[] = [
+    [
+      { content: "Дата, время начала использования фритюрного жира", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Вид фритюрного жира", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Органолептическая оценка качества жира на начало жарки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Тип жарочного оборудования", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Вид продукции", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Время окончания фритюрной жарки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Органолептическая оценка качества жира по окончании жарки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Использование оставшегося жира", colSpan: 2, styles: { halign: "center", valign: "middle" } },
+      { content: "Должность, ФИО контролера", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    ],
+    [
+      { content: "Переходящий остаток, кг", styles: { halign: "center", valign: "middle" } },
+      { content: "Утилизированный, кг", styles: { halign: "center", valign: "middle" } },
+    ],
+  ];
+
+  const body: RowInput[] = params.entries.map((entry) => {
+    const data = normalizeFryerOilEntryData(entry.data);
+    const startDateStr = data.startDate
+      ? formatFryerDateRu(data.startDate)
+      : (entry.date instanceof Date
+          ? formatFryerDateRu(entry.date.toISOString().slice(0, 10))
+          : formatFryerDateRu(String(entry.date).slice(0, 10)));
+    const startTimeStr = formatFryerTime(data.startHour, data.startMinute);
+    const endTimeStr = formatFryerTime(data.endHour, data.endMinute);
+    const qualityStartLabel = QUALITY_LABELS[data.qualityStart] || String(data.qualityStart);
+    const qualityEndLabel = QUALITY_LABELS[data.qualityEnd] || String(data.qualityEnd);
+
+    return [
+      centerCell(`${startDateStr}\n${startTimeStr}`),
+      centerCell(data.fatType),
+      centerCell(qualityStartLabel),
+      centerCell(data.equipmentType),
+      centerCell(data.productType),
+      centerCell(endTimeStr),
+      centerCell(qualityEndLabel),
+      centerCell(data.carryoverKg > 0 ? String(data.carryoverKg) : ""),
+      centerCell(data.disposedKg > 0 ? String(data.disposedKg) : ""),
+      centerCell(data.controllerName),
+    ];
+  });
+
+  // Add empty rows if no entries
+  if (body.length === 0) {
+    for (let i = 0; i < 5; i++) {
+      body.push(Array(10).fill(centerCell("")));
+    }
+  }
+
+  autoTable(doc, {
+    startY: y + totalHeight + 16,
+    head,
+    body,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  const dataTableEndY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+
+  // Appendix — quality assessment methodology
+  const appendixStartY = dataTableEndY + 10;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Check if we need a new page for the appendix
+  const appendixY = appendixStartY + 8 > pageHeight - 20 ? (() => { doc.addPage(); return 20; })() : appendixStartY;
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(10);
+  doc.text("Приложение. Методика определения качества фритюрного жира.", 10, appendixY);
+
+  // Quality indicators table
+  const indicatorHead: RowInput[] = [[
+    { content: "Показатель качества", styles: { halign: "center", valign: "middle" } },
+    { content: "Оценка 5", styles: { halign: "center", valign: "middle" } },
+    { content: "Оценка 4", styles: { halign: "center", valign: "middle" } },
+    { content: "Оценка 3", styles: { halign: "center", valign: "middle" } },
+    { content: "Оценка 2 и 1", styles: { halign: "center", valign: "middle" } },
+    { content: "Коэффициент значимости", styles: { halign: "center", valign: "middle" } },
+  ]];
+
+  const indicatorBody: RowInput[] = QUALITY_ASSESSMENT_TABLE.indicators.map((ind) => [
+    { content: ind.name, styles: { halign: "left", valign: "middle" } },
+    centerCell(ind.scores[5]),
+    centerCell(ind.scores[4]),
+    centerCell(ind.scores[3]),
+    centerCell(ind.scores[2]),
+    centerCell(String(ind.coefficient)),
+  ]);
+
+  autoTable(doc, {
+    startY: appendixY + 5,
+    head: indicatorHead,
+    body: indicatorBody,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  const indicatorsEndY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+
+  // Grading table
+  const gradingHead: RowInput[] = [[
+    { content: "Итоговая оценка качества", styles: { halign: "center", valign: "middle" } },
+    { content: "Балл", styles: { halign: "center", valign: "middle" } },
+  ]];
+  const gradingBody: RowInput[] = QUALITY_ASSESSMENT_TABLE.gradingTable.map((row) => [
+    centerCell(row.label),
+    centerCell(String(row.score)),
+  ]);
+
+  autoTable(doc, {
+    startY: indicatorsEndY + 5,
+    head: gradingHead,
+    body: gradingBody,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 200 },
+  });
+
+  const gradingEndY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+
+  // Formula example
+  doc.setFont("JournalUnicode", "normal");
+  doc.setFontSize(9);
+  doc.text(
+    `Пример расчёта средневзвешенной оценки: ${QUALITY_ASSESSMENT_TABLE.formulaExample}`,
+    10,
+    gradingEndY + 7
+  );
 }
 
 export async function generateJournalDocumentPdf(params: {
@@ -1557,6 +1867,19 @@ export async function generateJournalDocumentPdf(params: {
       users,
       equipment,
     });
+  } else if (templateCode === FRYER_OIL_TEMPLATE_CODE) {
+    drawFryerOilPdf(doc, {
+      organizationName,
+      title: document.title || getFryerOilDocumentTitle(),
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: normalizeFryerOilDocumentConfig(document.config),
+      entries: document.entries.map((entry) => ({
+        employeeId: entry.employeeId,
+        date: entry.date,
+        data: (entry.data as Record<string, unknown>) || {},
+      })),
+    });
   } else if (templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
     drawUvRuntimePdf(doc, {
       organizationName,
@@ -1614,6 +1937,8 @@ export async function generateJournalDocumentPdf(params: {
             ? getFinishedProductFilePrefix()
             : templateCode === SANITATION_DAY_TEMPLATE_CODE
               ? "general-cleaning-schedule"
+            : templateCode === FRYER_OIL_TEMPLATE_CODE
+              ? getFryerOilFilePrefix()
             : isRegisterDocumentTemplate(templateCode)
                 ? getRegisterDocumentFilePrefix(templateCode)
               : isTrackedDocumentTemplate(templateCode)
