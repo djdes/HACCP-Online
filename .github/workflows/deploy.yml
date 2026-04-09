@@ -98,7 +98,7 @@ jobs:
 
             echo "=== Restarting PM2 ==="
             npx pm2 delete haccp-online 2>/dev/null || true
-            npx pm2 start npm --name haccp-online --cwd ${{ env.APP_DIR }} -- start 2>&1 | tail -5
+            npx pm2 start npm --name haccp-online --cwd "$(pwd)" -- start 2>&1 | tail -5
             npx pm2 status haccp-online --no-color
 
             echo "=== Deploy complete ==="
