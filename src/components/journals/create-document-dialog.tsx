@@ -94,6 +94,9 @@ export function CreateDocumentDialog({
   );
   const isStaffJournal = isStaffDocumentTemplate(templateCode);
   const isCleaningJournal = templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE;
+  const isClimateJournal = templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE;
+  const isColdEquipmentJournal = templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE;
+  const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const responsibleTitleOptions = useMemo(
     () => (isStaffJournal ? getStaffJournalResponsibleTitleOptions(users) : []),
     [isStaffJournal, users]
@@ -163,6 +166,7 @@ export function CreateDocumentDialog({
   }
 
   const isHygiene = isStaffJournal;
+  const showDateTo = !isClimateJournal;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -172,14 +176,14 @@ export function CreateDocumentDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn(isHygiene && "max-w-[765px] rounded-[32px] border-0 p-0")}>
-        <DialogHeader className={cn(isHygiene && "border-b px-14 py-12")}>
-          <DialogTitle className={cn(isHygiene && "text-[32px] font-medium text-black")}>
+      <DialogContent className={cn("w-[min(92vw,620px)] rounded-[24px] border-0 p-0", isHygiene && "w-[min(92vw,680px)] rounded-[28px]")}>
+        <DialogHeader className={cn("border-b px-8 py-6", isHygiene && "px-10 py-8")}>
+          <DialogTitle className={cn("text-[22px] font-medium text-black", isHygiene && "text-[28px]")}>
             {isHygiene ? "Создание документа" : `Создать документ: ${templateName}`}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className={cn("space-y-4", isHygiene && "px-14 py-12")}>
+        <form onSubmit={handleSubmit} className={cn("space-y-4 px-8 py-6", isHygiene && "space-y-5 px-10 py-8")}>
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
@@ -197,7 +201,7 @@ export function CreateDocumentDialog({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Введите название документа"
-                  className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+                  className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
                   required
                 />
               </div>
@@ -205,7 +209,7 @@ export function CreateDocumentDialog({
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-                  <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+                  <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
@@ -218,7 +222,7 @@ export function CreateDocumentDialog({
                 </Select>
               </div>
 
-              <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
+              <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                 <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                 <div className="text-[22px] leading-[1.35] text-black">
                   {HYGIENE_PERIODICITY_TEXT}
@@ -230,11 +234,11 @@ export function CreateDocumentDialog({
                 <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
               </div>
 
-              <div className="flex justify-end pt-6">
+              <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="h-20 rounded-3xl bg-[#5b66ff] px-10 text-[24px] text-white hover:bg-[#4b57ff]"
+                  className="h-11 rounded-2xl bg-[#5b66ff] px-6 text-[15px] text-white hover:bg-[#4b57ff]"
                 >
                   {isSubmitting ? "Создание..." : "Создать"}
                 </Button>
@@ -242,7 +246,19 @@ export function CreateDocumentDialog({
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              {!usesFixedDocumentTitle && (
+                <div className="space-y-2">
+                  <Label htmlFor="doc-title-main">Название документа</Label>
+                  <Input
+                    id="doc-title-main"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Введите название документа"
+                  />
+                </div>
+              )}
+
+              <div className={cn("grid gap-4", showDateTo ? "grid-cols-2" : "grid-cols-1")}>
                 <div className="space-y-2">
                   <Label htmlFor="doc-from">Дата начала</Label>
                   <Input
@@ -253,7 +269,7 @@ export function CreateDocumentDialog({
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                {showDateTo && <div className="space-y-2">
                   <Label htmlFor="doc-to">Дата окончания</Label>
                   <Input
                     id="doc-to"
@@ -262,7 +278,7 @@ export function CreateDocumentDialog({
                     onChange={(e) => setDateTo(e.target.value)}
                     required
                   />
-                </div>
+                </div>}
               </div>
 
               {!isCleaningJournal && (
@@ -310,16 +326,17 @@ export function CreateDocumentDialog({
                 </div>
               )}
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
                   disabled={isSubmitting}
+                  className="h-10 rounded-xl px-4"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="h-10 rounded-xl px-4">
                   {isSubmitting ? "Создание..." : "Создать"}
                 </Button>
               </div>

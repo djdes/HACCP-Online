@@ -99,12 +99,12 @@ function EditDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[765px] rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-14 py-12">
+      <DialogContent className="w-[min(92vw,620px)] rounded-[24px] border-0 p-0">
+        <DialogHeader className="border-b px-8 py-6">
           <DialogTitle className="text-[32px] font-medium text-black">Настройки документа</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-14 py-12">
+        <div className="space-y-5 px-8 py-6">
           <div className="space-y-3">
             <Label htmlFor="edit-doc-title" className="sr-only">
               Название документа
@@ -114,14 +114,14 @@ function EditDocumentDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Введите название документа"
-              className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
             />
           </div>
 
           <div className="space-y-3">
             <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
             <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-              <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -135,18 +135,18 @@ function EditDocumentDialog({
           </div>
 
           {isStaffDocumentTemplate(templateCode) && (
-            <div className="space-y-3 rounded-3xl border border-[#dfe1ec] px-8 py-6">
+            <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
               <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
               <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
             </div>
           )}
 
-          <div className="flex justify-end pt-6">
+          <div className="flex justify-end pt-2">
             <Button
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-20 rounded-3xl bg-[#5b66ff] px-10 text-[24px] text-white hover:bg-[#4b57ff]"
+              className="h-11 rounded-2xl bg-[#5b66ff] px-6 text-[15px] text-white hover:bg-[#4b57ff]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>

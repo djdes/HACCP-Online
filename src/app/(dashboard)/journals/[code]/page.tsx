@@ -18,6 +18,9 @@ import {
 } from "@/lib/journal-document-helpers";
 import { FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE } from "@/lib/finished-product-document";
 import { FinishedProductDocumentsClient } from "@/components/journals/finished-product-documents-client";
+import { CLIMATE_DOCUMENT_TEMPLATE_CODE } from "@/lib/climate-document";
+import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
+import { TrackedDocumentsClient } from "@/components/journals/tracked-documents-client";
 
 export const dynamic = "force-dynamic";
 
@@ -253,6 +256,33 @@ export default async function JournalDocumentsPage({
             responsibleTitle: document.responsibleTitle,
             periodLabel: getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
             startedAtLabel: document.dateFrom.toLocaleDateString("ru-RU"),
+          }))}
+        />
+      );
+    }
+
+    if (
+      code === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+      code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+    ) {
+      return (
+        <TrackedDocumentsClient
+          activeTab={activeTab}
+          templateCode={code}
+          templateName={template.name}
+          heading={template.name}
+          users={orgUsers}
+          documents={documents.map((document) => ({
+            id: document.id,
+            title: document.title || getJournalDocumentDefaultTitle(code),
+            status: document.status as "active" | "closed",
+            responsibleTitle: document.responsibleTitle,
+            periodLabel: getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
+            metaLabel: code === CLIMATE_DOCUMENT_TEMPLATE_CODE ? "Дата начала" : "Период",
+            metaValue:
+              code === CLIMATE_DOCUMENT_TEMPLATE_CODE
+                ? document.dateFrom.toLocaleDateString("ru-RU")
+                : getJournalDocumentPeriodLabel(code, document.dateFrom, document.dateTo),
           }))}
         />
       );
