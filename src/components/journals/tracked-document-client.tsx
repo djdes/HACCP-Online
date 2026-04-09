@@ -28,7 +28,7 @@ type FieldItem = {
   key: string;
   label: string;
   type: string;
-  options?: FieldOption[];
+  options: FieldOption[];
 };
 
 type EntryItem = {
@@ -59,6 +59,14 @@ function fieldValueToString(value: unknown) {
   if (value == null) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
   return String(value);
+}
+
+function isSelectLikeField(field: FieldItem) {
+  return (
+    field.type === "select" ||
+    field.type === "employee" ||
+    field.type === "equipment"
+  );
 }
 
 export function TrackedDocumentClient({
@@ -282,7 +290,7 @@ export function TrackedDocumentClient({
                             );
                           }}
                         />
-                      ) : field.type === "select" && field.options ? (
+                      ) : isSelectLikeField(field) && field.options.length > 0 ? (
                         <Select
                           defaultValue={stringValue}
                           onValueChange={(nextValue) => {
@@ -300,7 +308,15 @@ export function TrackedDocumentClient({
                           }}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Выберите" />
+                            <SelectValue
+                              placeholder={
+                                field.type === "employee"
+                                  ? "Выберите сотрудника"
+                                  : field.type === "equipment"
+                                    ? "Выберите оборудование"
+                                    : "Выберите"
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             {field.options.map((option) => (

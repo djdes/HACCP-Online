@@ -24,6 +24,7 @@ import { CLIMATE_DOCUMENT_TEMPLATE_CODE } from "@/lib/climate-document";
 import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
 import { CLEANING_DOCUMENT_TEMPLATE_CODE } from "@/lib/cleaning-document";
 import { TrackedDocumentsClient } from "@/components/journals/tracked-documents-client";
+import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 
 export const dynamic = "force-dynamic";
 
@@ -267,7 +268,8 @@ export default async function JournalDocumentsPage({
     if (
       code === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
       code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE ||
-      code === CLEANING_DOCUMENT_TEMPLATE_CODE
+      code === CLEANING_DOCUMENT_TEMPLATE_CODE ||
+      isTrackedDocumentTemplate(code)
     ) {
       return (
         <TrackedDocumentsClient

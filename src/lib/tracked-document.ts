@@ -1,12 +1,22 @@
 export const TRACKED_DOCUMENT_TEMPLATE_CODES = [
   "cooking_temp",
   "shipment",
+  "hand_hygiene_control",
+  "waste_disposal_control",
+  "uv_lamp_runtime",
   "uv_lamp_control",
   "fryer_oil",
   "general_cleaning",
+  "disinfectant_usage",
+  "equipment_maintenance",
+  "staff_training",
   "daily_rejection",
   "raw_storage_control",
   "defrosting_control",
+  "sanitary_day_control",
+  "water_temperature_control",
+  "dishwashing_control",
+  "inventory_sanitation",
 ] as const;
 
 export type TrackedDocumentTemplateCode =
@@ -21,14 +31,27 @@ export function isTrackedDocumentTemplate(templateCode: string) {
 const TRACKED_DOCUMENT_TITLES: Record<TrackedDocumentTemplateCode, string> = {
   cooking_temp: "Журнал термической обработки",
   shipment: "Журнал отгрузки",
+  hand_hygiene_control: "Журнал контроля гигиены рук",
+  waste_disposal_control: "Журнал контроля утилизации отходов",
+  uv_lamp_runtime: "Журнал учета наработки УФ-ламп",
   uv_lamp_control: "Журнал контроля УФ-ламп",
   fryer_oil: "Журнал фритюрного масла",
   general_cleaning: "Журнал генеральной уборки",
+  disinfectant_usage: "Журнал учета дезинфицирующих средств",
+  equipment_maintenance: "График ППО оборудования",
+  staff_training: "Журнал инструктажей",
   daily_rejection: "Журнал ежедневного бракеража блюд",
   raw_storage_control: "Журнал контроля хранения сырья",
   defrosting_control: "Журнал контроля размораживания",
+  sanitary_day_control: "Журнал санитарного дня",
+  water_temperature_control: "Журнал контроля температуры воды",
+  dishwashing_control: "Журнал контроля мойки посуды",
+  inventory_sanitation: "Журнал санобработки инвентаря",
 };
 
 export function getTrackedDocumentTitle(templateCode: string) {
-  return TRACKED_DOCUMENT_TITLES[templateCode as TrackedDocumentTemplateCode] || "Журнал";
+  return (
+    TRACKED_DOCUMENT_TITLES[templateCode as TrackedDocumentTemplateCode] ||
+    "Журнал"
+  );
 }

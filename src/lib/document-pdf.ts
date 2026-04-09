@@ -33,6 +33,11 @@ import {
   normalizeFinishedProductDocumentConfig,
 } from "@/lib/finished-product-document";
 import {
+  getTrackedDocumentTitle,
+  isTrackedDocumentTemplate,
+  type TrackedDocumentTemplateCode,
+} from "@/lib/tracked-document";
+import {
   buildHygieneExampleEmployees,
   buildDateKeys,
   formatMonthLabel,
@@ -932,6 +937,108 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
   });
 }
 
+type TrackedField = {
+  key: string;
+  label: string;
+  type: string;
+  options: { value: string; label: string }[];
+};
+
+function getTrackedFields(fields: unknown): TrackedField[] {
+  if (!Array.isArray(fields)) return [];
+
+  return fields
+    .map((field) => {
+      const item = field as Record<string, unknown>;
+      return {
+        key: typeof item.key === "string" ? item.key : "",
+        label: typeof item.label === "string" ? item.label : "",
+        type: typeof item.type === "string" ? item.type : "text",
+        options: Array.isArray(item.options)
+          ? (item.options as Array<Record<string, unknown>>)
+              .map((option) => ({
+                value: typeof option.value === "string" ? option.value : "",
+                label: typeof option.label === "string" ? option.label : "",
+              }))
+              .filter((option) => option.value !== "")
+          : [],
+      };
+    })
+    .filter((field) => field.key !== "");
+}
+
+function getTrackedFieldValue(field: TrackedField, value: unknown) {
+  if (value == null || value === "") return "";
+  if (field.type === "boolean") return value === true ? "Да" : "Нет";
+
+  if (field.type === "select") {
+    const stringValue = String(value);
+    return field.options.find((option) => option.value === stringValue)?.label || stringValue;
+  }
+
+  return String(value);
+}
+
+function getTrackedFilePrefix(templateCode: string) {
+  return `journal-${templateCode.replace(/[^a-z0-9-]/gi, "-").toLowerCase()}`;
+}
+
+function drawTrackedPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  fields: TrackedField[];
+  entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
+  users: { id: string; name: string; role: string }[];
+}) {
+  drawTitle(doc, params.title);
+  drawClimateMetaTable(doc, {
+    organizationName: params.organizationName,
+    title: params.title,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+
+  const userMap = Object.fromEntries(params.users.map((user) => [user.id, user.name]));
+
+  const head: RowInput[] = [[
+    centerCell("Дата"),
+    centerCell("Ответственный"),
+    ...params.fields.map((field) => centerCell(field.label)),
+  ]];
+
+  const body: RowInput[] = params.entries.map((entry) => [
+    centerCell(getClimateDateLabel(entry.date)),
+    centerCell(userMap[entry.employeeId] || ""),
+    ...params.fields.map((field) =>
+      centerCell(getTrackedFieldValue(field, entry.data[field.key]))
+    ),
+  ]);
+
+  autoTable(doc, {
+    startY: 66,
+    head,
+    body,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.1,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+}
+
 function renderWrappedTextBlock(
   doc: jsPDF,
   lines: string[],
@@ -1001,6 +1108,7 @@ export async function generateJournalDocumentPdf(params: {
   const coldConfig = normalizeColdEquipmentDocumentConfig(document.config);
   const cleaningConfig = normalizeCleaningDocumentConfig(document.config);
   const finishedConfig = normalizeFinishedProductDocumentConfig(document.config);
+  const trackedFields = getTrackedFields(document.template.fields);
 
   document.entries.forEach((entry) => {
     entryMap[makeCellKey(entry.employeeId, toDateKey(entry.date))] =
@@ -1072,6 +1180,22 @@ export async function generateJournalDocumentPdf(params: {
       dateTo: document.dateTo,
       config: finishedConfig,
     });
+  } else if (isTrackedDocumentTemplate(templateCode)) {
+    drawTrackedPdf(doc, {
+      organizationName,
+      title:
+        document.title ||
+        getTrackedDocumentTitle(templateCode as TrackedDocumentTemplateCode),
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      fields: trackedFields,
+      entries: document.entries.map((entry) => ({
+        employeeId: entry.employeeId,
+        date: entry.date,
+        data: (entry.data as Record<string, unknown>) || {},
+      })),
+      users,
+    });
   } else {
     drawHygienePdf(doc, {
       organizationName,
@@ -1097,6 +1221,8 @@ export async function generateJournalDocumentPdf(params: {
             ? getCleaningFilePrefix()
             : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
               ? getFinishedProductFilePrefix()
+              : isTrackedDocumentTemplate(templateCode)
+                ? getTrackedFilePrefix(templateCode)
               : "hygiene-journal";
 
   return {

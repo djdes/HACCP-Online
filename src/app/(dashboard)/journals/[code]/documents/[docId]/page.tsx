@@ -37,6 +37,18 @@ import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 
 export const dynamic = "force-dynamic";
 
+type TrackedFieldOption = {
+  value: string;
+  label: string;
+};
+
+type TrackedField = {
+  key: string;
+  label: string;
+  type: string;
+  options: TrackedFieldOption[];
+};
+
 export default async function JournalDocumentPage({
   params,
 }: {
@@ -45,7 +57,7 @@ export default async function JournalDocumentPage({
   const { code, docId } = await params;
   const session = await requireAuth();
 
-  const [document, organization, employees, areas] = await Promise.all([
+  const [document, organization, employees, areas, equipment] = await Promise.all([
     db.journalDocument.findUnique({
       where: { id: docId },
       include: {
@@ -70,6 +82,15 @@ export default async function JournalDocumentPage({
     db.area.findMany({
       where: {
         organizationId: session.user.organizationId,
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    db.equipment.findMany({
+      where: {
+        area: {
+          organizationId: session.user.organizationId,
+        },
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
@@ -171,20 +192,39 @@ export default async function JournalDocumentPage({
   if (isTrackedDocumentTemplate(document.template.code)) {
     const fields = Array.isArray(document.template.fields)
       ? (document.template.fields as Array<Record<string, unknown>>)
-          .map((field) => ({
-            key: typeof field.key === "string" ? field.key : "",
-            label: typeof field.label === "string" ? field.label : "",
-            type: typeof field.type === "string" ? field.type : "text",
-            options: Array.isArray(field.options)
-              ? (field.options as Array<Record<string, unknown>>)
-                  .map((option) => ({
-                    value: typeof option.value === "string" ? option.value : "",
-                    label: typeof option.label === "string" ? option.label : "",
+          .map((field): TrackedField | null => {
+            const key = typeof field.key === "string" ? field.key : "";
+            if (!key) return null;
+
+            const type = typeof field.type === "string" ? field.type : "text";
+            const options =
+              type === "employee"
+                ? enrichedEmployees.map((employee) => ({
+                    value: employee.name,
+                    label: employee.name,
                   }))
-                  .filter((option) => option.value !== "")
-              : [],
-          }))
-          .filter((field) => field.key !== "")
+                : type === "equipment"
+                  ? equipment.map((item) => ({
+                      value: item.name,
+                      label: item.name,
+                    }))
+                  : Array.isArray(field.options)
+                    ? (field.options as Array<Record<string, unknown>>)
+                        .map((option) => ({
+                          value: typeof option.value === "string" ? option.value : "",
+                          label: typeof option.label === "string" ? option.label : "",
+                        }))
+                        .filter((option) => option.value !== "")
+                    : [];
+
+            return {
+              key,
+              label: typeof field.label === "string" ? field.label : "",
+              type,
+              options,
+            };
+          })
+          .filter((field): field is TrackedField => field !== null)
       : [];
 
     return (
