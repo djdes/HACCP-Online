@@ -292,10 +292,14 @@ function buildHealthBody(params: {
   employeeIds: string[];
   dateKeys: string[];
   entryMap: Record<string, Record<string, unknown>>;
+  printEmptyRows?: number;
 }): RowInput[] {
   const uniqueIds = [...new Set(params.employeeIds)];
   const rosterUsers = params.users.filter((user) => uniqueIds.includes(user.id));
-  const printableUsers = buildHygieneExampleEmployees(rosterUsers, 5);
+  const printableUsers = buildHygieneExampleEmployees(
+    rosterUsers,
+    Math.max(rosterUsers.length + (params.printEmptyRows || 0), 5)
+  );
 
   const rows = printableUsers.map((employee) => [
     centerCell("☐"),
@@ -423,6 +427,7 @@ function drawHealthPdf(doc: jsPDF, params: {
   users: { id: string; name: string; role: string }[];
   employeeIds: string[];
   entryMap: Record<string, Record<string, unknown>>;
+  printEmptyRows?: number;
 }) {
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -703,8 +708,8 @@ function drawClimatePdf(doc: jsPDF, params: {
     theme: "grid",
     styles: {
       font: "JournalUnicode",
-      fontSize: 7.3,
-      cellPadding: 1.2,
+      fontSize: 6.5,
+      cellPadding: 0.8,
       lineColor: [0, 0, 0],
       textColor: [0, 0, 0],
       overflow: "linebreak",
@@ -715,7 +720,7 @@ function drawClimatePdf(doc: jsPDF, params: {
       fontStyle: "bold",
       lineColor: [0, 0, 0],
     },
-    margin: { left: 14, right: 14 },
+    margin: { left: 10, right: 10 },
   });
 }
 
@@ -800,6 +805,13 @@ export async function generateJournalDocumentPdf(params: {
       users,
       employeeIds,
       entryMap,
+      printEmptyRows:
+        document.config &&
+        typeof document.config === "object" &&
+        !Array.isArray(document.config) &&
+        typeof (document.config as { printEmptyRows?: unknown }).printEmptyRows === "number"
+          ? Math.max(0, (document.config as { printEmptyRows: number }).printEmptyRows)
+          : 0,
     });
   } else if (templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
     drawClimatePdf(doc, {

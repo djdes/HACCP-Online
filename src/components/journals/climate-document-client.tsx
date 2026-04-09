@@ -171,14 +171,14 @@ function RoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[860px] rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[640px] rounded-[24px] border-0 p-0">
+        <DialogHeader className="border-b px-6 py-5">
+          <DialogTitle className="text-[24px] font-medium text-black">
             {initialRoom ? "Редактирование помещения" : "Добавление нового помещения"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-14 py-12">
+        <div className="space-y-6 px-6 py-5">
           <div className="space-y-3">
             <Label htmlFor="room-name" className="sr-only">
               Название помещения
@@ -188,7 +188,7 @@ function RoomDialog({
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Введите название помещения"
-              className="h-22 rounded-3xl border-[#dfe1ec] px-8 text-[24px]"
+              className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
             />
           </div>
 
@@ -196,18 +196,18 @@ function RoomDialog({
             <div className="text-[18px] font-medium text-black">Нормы условий</div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <Switch
                   checked={temperatureEnabled}
                   onCheckedChange={setTemperatureEnabled}
-                  className="h-10 w-16 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
+                  className="h-8 w-14 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
                 />
                 <div className="text-[20px] text-black">Температура (T)</div>
                 <Input
                   type="number"
                   value={temperatureMin}
                   onChange={(event) => setTemperatureMin(event.target.value)}
-                  className="h-16 w-[120px] rounded-3xl border-[#dfe1ec] px-6 text-[18px]"
+                  className="h-11 w-[96px] rounded-2xl border-[#dfe1ec] px-3 text-[15px]"
                   disabled={!temperatureEnabled}
                 />
                 <span className="text-[18px]">°C</span>
@@ -215,24 +215,24 @@ function RoomDialog({
                   type="number"
                   value={temperatureMax}
                   onChange={(event) => setTemperatureMax(event.target.value)}
-                  className="h-16 w-[120px] rounded-3xl border-[#dfe1ec] px-6 text-[18px]"
+                  className="h-11 w-[96px] rounded-2xl border-[#dfe1ec] px-3 text-[15px]"
                   disabled={!temperatureEnabled}
                 />
                 <span className="text-[18px]">°C</span>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <Switch
                   checked={humidityEnabled}
                   onCheckedChange={setHumidityEnabled}
-                  className="h-10 w-16 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
+                  className="h-8 w-14 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
                 />
                 <div className="text-[20px] text-black">Влажность воздуха (ВВ)</div>
                 <Input
                   type="number"
                   value={humidityMin}
                   onChange={(event) => setHumidityMin(event.target.value)}
-                  className="h-16 w-[120px] rounded-3xl border-[#dfe1ec] px-6 text-[18px]"
+                  className="h-11 w-[96px] rounded-2xl border-[#dfe1ec] px-3 text-[15px]"
                   disabled={!humidityEnabled}
                 />
                 <span className="text-[18px]">%</span>
@@ -240,7 +240,7 @@ function RoomDialog({
                   type="number"
                   value={humidityMax}
                   onChange={(event) => setHumidityMax(event.target.value)}
-                  className="h-16 w-[120px] rounded-3xl border-[#dfe1ec] px-6 text-[18px]"
+                  className="h-11 w-[96px] rounded-2xl border-[#dfe1ec] px-3 text-[15px]"
                   disabled={!humidityEnabled}
                 />
                 <span className="text-[18px]">%</span>
@@ -248,7 +248,7 @@ function RoomDialog({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex items-center justify-between gap-3 pt-2">
             <div>
               {initialRoom && canDelete && (
                 <Button
@@ -256,7 +256,7 @@ function RoomDialog({
                   variant="outline"
                   onClick={handleDelete}
                   disabled={isSubmitting}
-                  className="h-16 rounded-3xl border-[#ffd7d3] px-8 text-[18px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                  className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
                 >
                   Удалить помещение
                 </Button>
@@ -266,7 +266,7 @@ function RoomDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || name.trim() === ""}
-              className="h-16 rounded-3xl bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-11 rounded-2xl bg-[#5b66ff] px-5 text-[15px] text-white hover:bg-[#4b57ff]"
             >
               {isSubmitting ? "Сохранение..." : initialRoom ? "Сохранить" : "Добавить"}
             </Button>

@@ -1,5 +1,18 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Settings2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
 import {
   HEALTH_REGISTER_NOTES,
@@ -25,15 +38,14 @@ type Props = {
   autoFill?: boolean;
   employees: { id: string; name: string; role: string }[];
   initialEntries: { employeeId: string; date: string; data: HealthEntryData }[];
+  printEmptyRows?: number;
 };
 
-function HealthCheckbox() {
-  return (
-    <div
-      aria-hidden="true"
-      className="health-checkbox mx-auto h-6 w-6 rounded-[5px] border border-[#c8ccda] bg-white"
-    />
-  );
+function HealthCheckbox(props: {
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+}) {
+  return <Checkbox checked={props.checked} onCheckedChange={(value) => props.onCheckedChange?.(value === true)} className="mx-auto h-5 w-5 rounded-[5px] border-[#c8ccda]" />;
 }
 
 function HealthHeader({
@@ -91,6 +103,7 @@ function getHealthMeasures(
 }
 
 export function HealthDocumentClient(props: Props) {
+  const router = useRouter();
   const {
     documentId,
     title,
@@ -101,12 +114,21 @@ export function HealthDocumentClient(props: Props) {
     autoFill = false,
     employees,
     initialEntries,
+    printEmptyRows = 0,
   } = props;
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [emptyRows, setEmptyRows] = useState(String(printEmptyRows));
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
   const rosterUsers = employees.filter((employee) => includedEmployeeIds.includes(employee.id));
-  const printableEmployees = buildHygieneExampleEmployees(rosterUsers, 5);
+  const printableEmployees = buildHygieneExampleEmployees(
+    rosterUsers,
+    Math.max(rosterUsers.length + printEmptyRows, 5)
+  );
   const monthLabel = formatMonthLabel(dateFrom, dateTo);
   const organizationLabel = organizationName || 'ООО "Тест"';
   const documentTitle = title || "Журнал здоровья";
@@ -115,6 +137,55 @@ export function HealthDocumentClient(props: Props) {
   initialEntries.forEach((entry) => {
     entryMap[makeCellKey(entry.employeeId, entry.date)] = normalizeHealthEntryData(entry.data);
   });
+
+  const selectedCount = selectedEmployeeIds.length;
+  const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
+
+  function toggleEmployee(employeeId: string, checked: boolean) {
+    setSelectedEmployeeIds((current) =>
+      checked ? [...new Set([...current, employeeId])] : current.filter((item) => item !== employeeId)
+    );
+  }
+
+  async function handleDeleteSelected() {
+    if (selectedEmployeeIds.length === 0) return;
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        selectedEmployeeIds.map((employeeId) =>
+          fetch(`/api/journal-documents/${documentId}/entries`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ employeeId }),
+          })
+        )
+      );
+      setSelectedEmployeeIds([]);
+      router.refresh();
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  async function handleSaveSettings() {
+    setIsSavingSettings(true);
+    try {
+      await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            printEmptyRows: Math.max(0, Number(emptyRows) || 0),
+          },
+        }),
+      });
+      setSettingsOpen(false);
+      router.refresh();
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
 
   return (
     <div className="bg-white text-black">
@@ -197,6 +268,40 @@ export function HealthDocumentClient(props: Props) {
             users={employees}
             includedEmployeeIds={includedEmployeeIds}
           />
+
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedCount > 0 && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedEmployeeIds([])}
+                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                >
+                  Выбрано: {selectedCount}
+                  <X className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                >
+                  {isDeleting ? "Удаление..." : "Удалить"}
+                </Button>
+              </>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            >
+              <Settings2 className="size-4" />
+              Настройки печати
+            </Button>
+          </div>
         </div>
 
         <div className="mx-auto max-w-[1860px]">
@@ -215,7 +320,12 @@ export function HealthDocumentClient(props: Props) {
                   className="w-[42px] border border-black p-2 text-center font-semibold"
                   rowSpan={2}
                 >
-                  <HealthCheckbox />
+                  <HealthCheckbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) =>
+                      setSelectedEmployeeIds(checked ? rosterUsers.map((employee) => employee.id) : [])
+                    }
+                  />
                 </th>
                 <th
                   className="w-[72px] border border-black p-2 text-center font-semibold"
@@ -270,7 +380,12 @@ export function HealthDocumentClient(props: Props) {
                 return (
                   <tr key={employee.id}>
                     <td className="border border-black p-2 text-center align-middle">
-                      <HealthCheckbox />
+                      {employee.name ? (
+                        <HealthCheckbox
+                          checked={selectedEmployeeIds.includes(employee.id)}
+                          onCheckedChange={(checked) => toggleEmployee(employee.id, checked)}
+                        />
+                      ) : null}
                     </td>
                     <td className="border border-black p-2 text-center align-middle">
                       {employee.name ? employee.number : ""}
@@ -329,6 +444,40 @@ export function HealthDocumentClient(props: Props) {
           </div>
         </div>
       </div>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[520px] rounded-[24px] border-0 p-0">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[22px] font-medium text-black">
+              Настройки журнала
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 px-6 py-5">
+            <div className="space-y-2">
+              <Label htmlFor="health-print-empty-rows">Пустые строки при печати</Label>
+              <Input
+                id="health-print-empty-rows"
+                type="number"
+                min={0}
+                max={50}
+                value={emptyRows}
+                onChange={(event) => setEmptyRows(event.target.value)}
+                className="h-11 rounded-2xl border-[#dfe1ec]"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={isSavingSettings}
+                className="h-11 rounded-2xl bg-[#5b66ff] px-5 text-[15px] text-white hover:bg-[#4b57ff]"
+              >
+                {isSavingSettings ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -97,6 +97,7 @@ export function CreateDocumentDialog({
   const isClimateJournal = templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE;
   const isColdEquipmentJournal = templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE;
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
+  const showDateFields = !isColdEquipmentJournal;
   const responsibleTitleOptions = useMemo(
     () => (isStaffJournal ? getStaffJournalResponsibleTitleOptions(users) : []),
     [isStaffJournal, users]
@@ -166,7 +167,7 @@ export function CreateDocumentDialog({
   }
 
   const isHygiene = isStaffJournal;
-  const showDateTo = !isClimateJournal;
+  const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -258,28 +259,34 @@ export function CreateDocumentDialog({
                 </div>
               )}
 
-              <div className={cn("grid gap-4", showDateTo ? "grid-cols-2" : "grid-cols-1")}>
-                <div className="space-y-2">
-                  <Label htmlFor="doc-from">Дата начала</Label>
-                  <Input
-                    id="doc-from"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    required
-                  />
+              {showDateFields ? (
+                <div className={cn("grid gap-4", showDateTo ? "grid-cols-2" : "grid-cols-1")}>
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-from">Дата начала</Label>
+                    <Input
+                      id="doc-from"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {showDateTo && <div className="space-y-2">
+                    <Label htmlFor="doc-to">Дата окончания</Label>
+                    <Input
+                      id="doc-to"
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      required
+                    />
+                  </div>}
                 </div>
-                {showDateTo && <div className="space-y-2">
-                  <Label htmlFor="doc-to">Дата окончания</Label>
-                  <Input
-                    id="doc-to"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    required
-                  />
-                </div>}
-              </div>
+              ) : (
+                <div className="rounded-xl border border-[#dfe1ec] px-4 py-3 text-sm text-muted-foreground">
+                  Период документа автоматически задается на 15 дней.
+                </div>
+              )}
 
               {!isCleaningJournal && (
                 <div className="space-y-2">

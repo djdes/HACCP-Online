@@ -125,6 +125,14 @@ export default async function JournalDocumentPage({
         status={document.status}
         autoFill={document.autoFill}
         employees={enrichedEmployees}
+        printEmptyRows={
+          document.config &&
+          typeof document.config === "object" &&
+          !Array.isArray(document.config) &&
+          typeof (document.config as { printEmptyRows?: unknown }).printEmptyRows === "number"
+            ? Math.max(0, (document.config as { printEmptyRows: number }).printEmptyRows)
+            : 0
+        }
         initialEntries={document.entries.map((entry) => ({
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),

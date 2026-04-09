@@ -545,6 +545,53 @@ async function main() {
     console.log(`  Done: ${template.code}: ${template.name}`);
   }
 
+  console.log("Seeding example areas and equipment...");
+  const organizations = await prisma.organization.findMany({ select: { id: true } });
+
+  for (const organization of organizations) {
+    const areaNames = ["Холодильный цех", "Горячий цех", "Склад", "Упаковка"];
+
+    for (const areaName of areaNames) {
+      const areaId = `${organization.id}-${areaName}`;
+      await prisma.area.upsert({
+        where: { id: areaId },
+        update: { name: areaName },
+        create: {
+          id: areaId,
+          organizationId: organization.id,
+          name: areaName,
+        },
+      });
+    }
+
+    const areas = await prisma.area.findMany({
+      where: { organizationId: organization.id },
+      select: { id: true, name: true },
+    });
+
+    for (const area of areas) {
+      const equipmentSeeds =
+        area.name === "Холодильный цех"
+          ? [
+              { name: "Холодильная камера 1", type: "refrigerator", tempMin: 2, tempMax: 4 },
+              { name: "Морозильный ларь 1", type: "freezer", tempMin: -20, tempMax: -18 },
+            ]
+          : [{ name: `${area.name} - термогигрометр`, type: "sensor", tempMin: 18, tempMax: 25 }];
+
+      for (const equipment of equipmentSeeds) {
+        await prisma.equipment.upsert({
+          where: { id: `${area.id}-${equipment.name}` },
+          update: equipment,
+          create: {
+            id: `${area.id}-${equipment.name}`,
+            areaId: area.id,
+            ...equipment,
+          },
+        });
+      }
+    }
+  }
+
   console.log("Seeding complete.");
 }
 
