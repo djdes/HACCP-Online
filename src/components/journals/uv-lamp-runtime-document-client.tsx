@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -25,13 +27,21 @@ import {
 import {
   buildDailyRange,
   buildUvRuntimeDocumentTitle,
+  calculateDurationMinutes,
+  calculateMonthlyHours,
+  CONTROL_FREQUENCY_OPTIONS,
+  formatMonthLabel,
   formatRuDateDash,
+  getDisinfectionConditionLabel,
+  getDisinfectionObjectLabel,
+  getRadiationModeLabel,
   getUvResponsibleOptions,
   normalizeUvRuntimeDocumentConfig,
   normalizeUvRuntimeEntryData,
   toIsoDate,
   type UvRuntimeDocumentConfig,
   type UvRuntimeEntryData,
+  type UvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
 
 type UserItem = {
@@ -50,6 +60,7 @@ type EntryItem = {
 type Props = {
   documentId: string;
   title: string;
+  organizationName: string;
   status: string;
   dateFrom: string;
   dateTo: string;
@@ -67,16 +78,12 @@ type GridRow = {
   data: UvRuntimeEntryData;
 };
 
-function defaultEntryData(data?: Record<string, unknown>) {
-  return normalizeUvRuntimeEntryData(data || {});
-}
-
 function entryToRow(entry: EntryItem): GridRow {
   return {
     id: entry.id,
     date: entry.date,
     employeeId: entry.employeeId,
-    data: defaultEntryData(entry.data),
+    data: normalizeUvRuntimeEntryData(entry.data),
   };
 }
 
@@ -102,14 +109,216 @@ function buildRows(params: {
       id: `virtual:${day}:${index}`,
       date: day,
       employeeId: params.fallbackEmployeeId,
-      data: {
-        startTime: "",
-        endTime: "",
-        counterValue: "",
-      },
+      data: { startTime: "", endTime: "" },
     };
   });
 }
+
+/* ─── Specification Edit Dialog ─── */
+
+function UvSpecEditDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  spec: UvSpecification;
+  onSave: (spec: UvSpecification) => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [air, setAir] = useState(props.spec.disinfectionAir);
+  const [surface, setSurface] = useState(props.spec.disinfectionSurface);
+  const [microorganism, setMicroorganism] = useState(props.spec.microorganismType);
+  const [radiationMode, setRadiationMode] = useState(props.spec.radiationMode);
+  const [condition, setCondition] = useState(props.spec.disinfectionCondition);
+  const [lampHours, setLampHours] = useState(String(props.spec.lampLifetimeHours));
+  const [commDate, setCommDate] = useState(props.spec.commissioningDate);
+  const [minInterval, setMinInterval] = useState(props.spec.minIntervalBetweenSessions);
+  const [frequency, setFrequency] = useState(props.spec.controlFrequency);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setAir(props.spec.disinfectionAir);
+    setSurface(props.spec.disinfectionSurface);
+    setMicroorganism(props.spec.microorganismType);
+    setRadiationMode(props.spec.radiationMode);
+    setCondition(props.spec.disinfectionCondition);
+    setLampHours(String(props.spec.lampLifetimeHours));
+    setCommDate(props.spec.commissioningDate);
+    setMinInterval(props.spec.minIntervalBetweenSessions);
+    setFrequency(props.spec.controlFrequency);
+  }, [props.open, props.spec]);
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[560px] overflow-y-auto rounded-[24px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
+          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
+            Редактирование
+          </DialogTitle>
+          <button
+            type="button"
+            className="rounded-md p-1 text-black/80 hover:bg-black/5"
+            onClick={() => props.onOpenChange(false)}
+          >
+            <X className="size-6" />
+          </button>
+        </DialogHeader>
+
+        <div className="space-y-5 px-7 py-6">
+          <div>
+            <div className="mb-3 text-[16px] font-medium text-black">Объект обеззараживания</div>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-[15px]">
+                <Switch checked={air} onCheckedChange={setAir} />
+                Воздух
+              </label>
+              <label className="flex items-center gap-2 text-[15px]">
+                <Switch checked={surface} onCheckedChange={setSurface} />
+                Поверхность
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Вид микроорганизма</Label>
+            <Input
+              value={microorganism}
+              onChange={(e) => setMicroorganism(e.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+            />
+          </div>
+
+          <div>
+            <div className="mb-3 text-[16px] font-medium text-black">Режим облучения</div>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-[15px]">
+                <input
+                  type="radio"
+                  name="radiationMode"
+                  checked={radiationMode === "continuous"}
+                  onChange={() => setRadiationMode("continuous")}
+                  className="size-4 accent-[#5863f8]"
+                />
+                Непрерывный
+              </label>
+              <label className="flex items-center gap-2 text-[15px]">
+                <input
+                  type="radio"
+                  name="radiationMode"
+                  checked={radiationMode === "intermittent"}
+                  onChange={() => setRadiationMode("intermittent")}
+                  className="size-4 accent-[#5863f8]"
+                />
+                Повторно-кратковременный
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 text-[16px] font-medium text-black">Условия обеззараживания</div>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-[15px]">
+                <input
+                  type="radio"
+                  name="condition"
+                  checked={condition === "with_people"}
+                  onChange={() => setCondition("with_people")}
+                  className="size-4 accent-[#5863f8]"
+                />
+                В присутствии людей
+              </label>
+              <label className="flex items-center gap-2 text-[15px]">
+                <input
+                  type="radio"
+                  name="condition"
+                  checked={condition === "without_people"}
+                  onChange={() => setCondition("without_people")}
+                  className="size-4 accent-[#5863f8]"
+                />
+                В отсутствии людей
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Ресурс рабочего времени лампы, часов</Label>
+            <Input
+              type="number"
+              value={lampHours}
+              onChange={(e) => setLampHours(e.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+            />
+            <div className="text-[12px] text-[#999]">*срок замены отработавших ламп</div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Дата ввода установки в эксплуатацию</Label>
+            <Input
+              type="date"
+              value={commDate}
+              onChange={(e) => setCommDate(e.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Введите минимальный интервал между сеансами</Label>
+            <Input
+              value={minInterval}
+              onChange={(e) => setMinInterval(e.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+            />
+            <div className="text-[12px] text-[#999]">*для повторно-кратковременного облучения</div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Частота контроля работы установки</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CONTROL_FREQUENCY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-[12px] text-[#999]">*частота включений</div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                try {
+                  await props.onSave({
+                    disinfectionAir: air,
+                    disinfectionSurface: surface,
+                    microorganismType: microorganism.trim() || "санитарно-показательный",
+                    radiationMode,
+                    disinfectionCondition: condition,
+                    lampLifetimeHours: Math.max(1, parseInt(lampHours, 10) || 10000),
+                    commissioningDate: commDate,
+                    minIntervalBetweenSessions: minInterval.trim(),
+                    controlFrequency: frequency,
+                  });
+                  props.onOpenChange(false);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
+            >
+              {submitting ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─── Settings Dialog ─── */
 
 function UvRuntimeSettingsDialog(props: {
   open: boolean;
@@ -154,7 +363,7 @@ function UvRuntimeSettingsDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[40px] font-semibold tracking-[-0.03em] text-black">
+          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
             Настройки документа
           </DialogTitle>
           <button
@@ -172,7 +381,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[30px] leading-none"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px] leading-none"
             />
           </div>
           <div className="space-y-1">
@@ -180,7 +389,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px]"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
             />
           </div>
           <div className="space-y-1">
@@ -189,20 +398,20 @@ function UvRuntimeSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px]"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
             />
           </div>
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
             <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[24px]">
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="- Выберите значение -">- Выберите значение -</SelectItem>
                 {options.management.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[16px] font-semibold italic text-black">Руководство</SelectLabel>
+                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
                     {options.management.map((user) => (
                       <SelectItem key={`title:${user.id}`} value={user.role === "technologist" ? "Управляющий" : "Руководитель"}>
                         {user.role === "technologist" ? "Управляющий" : "Руководитель"}
@@ -212,7 +421,7 @@ function UvRuntimeSettingsDialog(props: {
                 )}
                 {options.staff.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[16px] font-semibold italic text-black">Сотрудники</SelectLabel>
+                    <SelectLabel className="text-[14px] font-semibold italic text-black">Сотрудники</SelectLabel>
                     <SelectItem value="Шеф-повар">Шеф-повар</SelectItem>
                     <SelectItem value="Повар">Повар</SelectItem>
                     <SelectItem value="Официант">Официант</SelectItem>
@@ -224,7 +433,7 @@ function UvRuntimeSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[24px]">
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -246,6 +455,7 @@ function UvRuntimeSettingsDialog(props: {
                 try {
                   await props.onSave({
                     config: {
+                      ...props.initialConfig,
                       lampNumber: lampNumber.trim() || "1",
                       areaName: areaName.trim() || "Журнал учета работы",
                     },
@@ -269,14 +479,349 @@ function UvRuntimeSettingsDialog(props: {
   );
 }
 
+/* ─── Add Row Dialog ─── */
+
+function AddRowDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  users: UserItem[];
+  defaultEmployeeId: string;
+  defaultResponsibleTitle: string;
+  onAdd: (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    employeeId: string;
+    responsibleTitle: string;
+  }) => void;
+}) {
+  const [date, setDate] = useState(toIsoDate(new Date()));
+  const [startHour, setStartHour] = useState("10");
+  const [startMin, setStartMin] = useState("00");
+  const [endHour, setEndHour] = useState("18");
+  const [endMin, setEndMin] = useState("00");
+  const [responsibleTitle, setResponsibleTitle] = useState(props.defaultResponsibleTitle);
+  const [employeeId, setEmployeeId] = useState(props.defaultEmployeeId);
+
+  const options = useMemo(() => getUvResponsibleOptions(props.users), [props.users]);
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+
+  useEffect(() => {
+    if (!props.open) return;
+    setDate(toIsoDate(new Date()));
+    setStartHour("10");
+    setStartMin("00");
+    setEndHour("18");
+    setEndMin("00");
+    setResponsibleTitle(props.defaultResponsibleTitle);
+    setEmployeeId(props.defaultEmployeeId);
+  }, [props.open, props.defaultEmployeeId, props.defaultResponsibleTitle]);
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[560px] overflow-y-auto rounded-[24px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
+          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
+            Добавление новой строки
+          </DialogTitle>
+          <button
+            type="button"
+            className="rounded-md p-1 text-black/80 hover:bg-black/5"
+            onClick={() => props.onOpenChange(false)}
+          >
+            <X className="size-6" />
+          </button>
+        </DialogHeader>
+
+        <div className="space-y-5 px-7 py-6">
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Дата</Label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
+            />
+          </div>
+
+          <div>
+            <div className="mb-2 text-[16px] font-medium text-black">Время включения</div>
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <Label className="text-[14px] text-[#6f7282]">Часы</Label>
+                <Select value={startHour} onValueChange={setStartHour}>
+                  <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {hours.map((h) => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
+                <Select value={startMin} onValueChange={setStartMin}>
+                  <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {minutes.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-[16px] font-medium text-black">Время выключения</div>
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <Label className="text-[14px] text-[#6f7282]">Часы</Label>
+                <Select value={endHour} onValueChange={setEndHour}>
+                  <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {hours.map((h) => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
+                <Select value={endMin} onValueChange={setEndMin}>
+                  <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {minutes.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
+            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {options.management.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
+                    {options.management.map((user) => (
+                      <SelectItem key={`title:${user.id}`} value={user.role === "technologist" ? "Управляющий" : "Руководитель"}>
+                        {user.role === "technologist" ? "Управляющий" : "Руководитель"}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId}>
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {props.users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              onClick={() => {
+                props.onAdd({
+                  date,
+                  startTime: `${startHour}:${startMin}`,
+                  endTime: `${endHour}:${endMin}`,
+                  employeeId,
+                  responsibleTitle,
+                });
+                props.onOpenChange(false);
+              }}
+              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
+            >
+              Добавить
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─── Specification Display Table ─── */
+
+function SpecificationTable({ config, onEdit }: { config: UvRuntimeDocumentConfig; onEdit: () => void }) {
+  const spec = config.spec;
+
+  return (
+    <div className="uv-spec-section">
+      <div className="mb-3 text-center text-[14px] font-bold">
+        Спецификация ультрафиолетовой бактерицидной установки
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <tbody>
+          <tr>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Объект обеззараживания (воздух или поверхность, или то и другое)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {getDisinfectionObjectLabel(spec)}
+            </td>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Ресурс рабочего времени (срок замены отработавших ламп), часов
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {spec.lampLifetimeHours}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Вид микроорганизма (санитарно-показательный или иной)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {spec.microorganismType}
+            </td>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Дата ввода установки в эксплуатацию
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {spec.commissioningDate ? formatRuDateDash(spec.commissioningDate) : "—"}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Режим облучения (непрерывный или повторно-кратковременный)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {getRadiationModeLabel(spec.radiationMode)}
+            </td>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Минимальный интервал между сеансами (для повторно-кратковременной)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {spec.minIntervalBetweenSessions || "—"}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Условия обеззараживания (в присутствии и отсутствии людей)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {getDisinfectionConditionLabel(spec.disinfectionCondition)}
+            </td>
+            <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-2 font-medium">
+              Частота контроля работы установки (частота включений)
+            </td>
+            <td className="border border-[#ccc] px-3 py-2 text-center">
+              {spec.controlFrequency}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="mt-2 flex justify-end print:hidden">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-[13px] text-[#5b66ff] underline hover:no-underline"
+        >
+          Настроить спецификацию
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Monthly Summary Table ─── */
+
+function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; hours: number; remaining: number }[] }) {
+  if (monthlyData.length === 0) return null;
+
+  const half = Math.ceil(monthlyData.length / 2);
+  const leftCol = monthlyData.slice(0, half);
+  const rightCol = monthlyData.slice(half);
+
+  return (
+    <div className="uv-monthly-section">
+      <div className="mb-3 text-center text-[14px] font-bold">
+        Суммарное количество отработанных часов бактерицидной установкой по месяцам
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-[#f0f0f0]">
+            <th className="border border-[#ccc] px-3 py-2 text-left font-semibold">Месяц, год</th>
+            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Количество часов</th>
+            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Остаточное количество часов</th>
+            <th className="border border-[#ccc] px-3 py-2 text-left font-semibold">Месяц, год</th>
+            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Количество часов</th>
+            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Остаточное количество часов</th>
+          </tr>
+        </thead>
+        <tbody>
+          {leftCol.map((left, i) => {
+            const right = rightCol[i];
+            return (
+              <tr key={left.month}>
+                <td className="border border-[#ccc] px-3 py-1.5">{formatMonthLabel(left.month)}</td>
+                <td className="border border-[#ccc] px-3 py-1.5 text-center">{left.hours.toFixed(2).replace(".", ",")}</td>
+                <td className="border border-[#ccc] px-3 py-1.5 text-center">{left.remaining.toFixed(2).replace(".", ",")}</td>
+                {right ? (
+                  <>
+                    <td className="border border-[#ccc] px-3 py-1.5">{formatMonthLabel(right.month)}</td>
+                    <td className="border border-[#ccc] px-3 py-1.5 text-center">{right.hours.toFixed(2).replace(".", ",")}</td>
+                    <td className="border border-[#ccc] px-3 py-1.5 text-center">{right.remaining.toFixed(2).replace(".", ",")}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="border border-[#ccc] px-3 py-1.5" />
+                    <td className="border border-[#ccc] px-3 py-1.5" />
+                    <td className="border border-[#ccc] px-3 py-1.5" />
+                  </>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ─── Main Document Client ─── */
+
 export function UvLampRuntimeDocumentClient(props: Props) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [specEditOpen, setSpecEditOpen] = useState(false);
+  const [addRowOpen, setAddRowOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [autoFill, setAutoFill] = useState(false);
 
-  const config = useMemo(() => normalizeUvRuntimeDocumentConfig(props.config), [props.config]);
+  const [config, setConfig] = useState(() => normalizeUvRuntimeDocumentConfig(props.config));
   const fallbackEmployeeId = props.responsibleUserId || props.users[0]?.id || "";
-  const [rows, setRows] = useState(
+  const [rows, setRows] = useState(() =>
     buildRows({
       dateFrom: props.dateFrom,
       dateTo: props.dateTo,
@@ -287,33 +832,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   );
 
   const userMap = useMemo(() => Object.fromEntries(props.users.map((user) => [user.id, user.name])), [props.users]);
+  const responsibleName = props.responsibleUserId ? userMap[props.responsibleUserId] || "—" : "—";
 
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
 
-  function addManualRow() {
-    const lastDate = rows[rows.length - 1]?.date || props.dateFrom;
-    const next = new Date(`${lastDate}T00:00:00.000Z`);
-    next.setUTCDate(next.getUTCDate() + 1);
-    const nextDate = toIsoDate(next);
+  const monthlyData = useMemo(() => {
+    const entriesWithData = rows
+      .filter((row) => !row.id.startsWith("virtual:") || (row.data.startTime && row.data.endTime))
+      .map((row) => ({ date: row.date, data: row.data }));
+    return calculateMonthlyHours(entriesWithData, config.spec.lampLifetimeHours);
+  }, [rows, config.spec.lampLifetimeHours]);
 
-    if (rows.some((row) => row.date === nextDate)) return;
-
-    setRows((current) => [
-      ...current,
-      {
-        id: `virtual:${nextDate}:${current.length}`,
-        date: nextDate,
-        employeeId: fallbackEmployeeId,
-        data: {
-          startTime: "",
-          endTime: "",
-          counterValue: "",
-        },
-      },
-    ]);
-  }
-
-  async function saveRow(row: GridRow) {
+  const saveRow = useCallback(async (row: GridRow) => {
     const response = await fetch(`/api/journal-documents/${props.documentId}/entries`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -336,7 +866,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       data: row.data,
     };
     setRows((current) => current.map((item) => (item.date === saved.date ? saved : item)));
-  }
+  }, [props.documentId, fallbackEmployeeId]);
 
   async function deleteSelectedRows() {
     const deletable = rows.filter((row) => selectedRowIds.includes(row.id) && !row.id.startsWith("virtual:"));
@@ -357,72 +887,213 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     setRows((current) =>
       current.map((row) =>
         selectedRowIds.includes(row.id)
-          ? { ...row, id: `virtual:${row.date}`, data: { startTime: "", endTime: "", counterValue: "" } }
+          ? { ...row, id: `virtual:${row.date}`, data: { startTime: "", endTime: "" } }
           : row
       )
     );
     setSelectedRowIds([]);
   }
 
+  async function handleCloseJournal() {
+    if (!window.confirm("Закончить журнал? Документ станет доступен только для чтения.")) return;
+
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "closed" }),
+    });
+
+    if (!response.ok) {
+      window.alert("Не удалось закрыть журнал");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  async function handleAddRow(data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    employeeId: string;
+  }) {
+    const newRow: GridRow = {
+      id: `virtual:${data.date}:new`,
+      date: data.date,
+      employeeId: data.employeeId,
+      data: { startTime: data.startTime, endTime: data.endTime },
+    };
+
+    setRows((current) => {
+      const existing = current.find((r) => r.date === data.date);
+      if (existing) {
+        return current.map((r) =>
+          r.date === data.date ? { ...r, data: newRow.data, employeeId: newRow.employeeId } : r
+        );
+      }
+      const updated = [...current, newRow];
+      updated.sort((a, b) => a.date.localeCompare(b.date));
+      return updated;
+    });
+
+    try {
+      await saveRow(newRow);
+    } catch {
+      window.alert("Не удалось сохранить строку");
+    }
+  }
+
+  async function handleSaveSettings(data: {
+    config: UvRuntimeDocumentConfig;
+    dateFrom: string;
+    responsibleTitle: string;
+    responsibleUserId: string;
+  }) {
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: buildUvRuntimeDocumentTitle(data.config),
+        config: data.config,
+        dateFrom: data.dateFrom,
+        responsibleTitle: data.responsibleTitle || null,
+        responsibleUserId: data.responsibleUserId || null,
+      }),
+    });
+
+    if (!response.ok) {
+      window.alert("Не удалось сохранить настройки");
+      return;
+    }
+
+    setConfig(data.config);
+    router.refresh();
+  }
+
+  async function handleSaveSpec(spec: UvSpecification) {
+    const nextConfig = { ...config, spec };
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: nextConfig }),
+    });
+
+    if (!response.ok) {
+      window.alert("Не удалось сохранить спецификацию");
+      return;
+    }
+
+    setConfig(nextConfig);
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-[12px] border border-[#eceef5] bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-[24px] font-semibold text-black">{props.title || buildUvRuntimeDocumentTitle(config)}</div>
-          <div className="flex items-center gap-2">
-            {props.status === "active" && (
-              <Button
+    <div className="space-y-4">
+      {/* Breadcrumb */}
+      <div className="text-[13px] text-[#7c7c93] print:hidden">
+        <Link href={`/journals/uv`} className="hover:underline">
+          Журнал учета работы УФ бактерицидной установки
+        </Link>
+        {" › "}
+        <span>Журнал учета работы</span>
+      </div>
+
+      <div className="flex items-center justify-between print:hidden">
+        <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">Журнал учета работы</h1>
+        <Link href="/sanpin" className="text-[14px] text-[#5b66ff] hover:underline">
+          Настроить журналы
+        </Link>
+      </div>
+
+      {/* Auto-fill toggle */}
+      {props.status === "active" && (
+        <div className="flex items-center gap-3 print:hidden">
+          <Switch checked={autoFill} onCheckedChange={setAutoFill} />
+          <span className="text-[14px] text-black">Автоматически заполнять журнал</span>
+        </div>
+      )}
+
+      {/* Toolbar row */}
+      <div className="flex flex-wrap items-center gap-3 print:hidden">
+        {selectedRowIds.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 text-[14px]">
+              <button
                 type="button"
-                onClick={addManualRow}
-                className="h-9 rounded-md bg-[#5b66ff] px-3 text-[13px] font-medium text-white hover:bg-[#4c58ff]"
+                onClick={() => setSelectedRowIds([])}
+                className="text-[#7c7c93] hover:text-black"
               >
-                <Plus className="mr-1 size-4" />
-                Добавить
-              </Button>
-            )}
-            {props.status === "active" && selectedRowIds.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 rounded-md border-[#ffd7d3] px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1]"
-                onClick={() => {
-                  deleteSelectedRows().catch(() => {
-                    window.alert("Не удалось удалить выбранные строки");
-                  });
-                }}
-              >
-                <Trash2 className="mr-1 size-4" />
-                Удалить
-              </Button>
-            )}
+                <X className="size-4" />
+              </button>
+              <span>Выбранно: {selectedRowIds.length}</span>
+            </div>
             <Button
               type="button"
-              variant="outline"
-              className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
-              onClick={() => setSettingsOpen(true)}
+              variant="ghost"
+              className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]"
+              onClick={() => {
+                deleteSelectedRows().catch(() => window.alert("Ошибка удаления"));
+              }}
             >
-              <Settings2 className="mr-1 size-4" />
-              Настройки
+              <Trash2 className="mr-1 size-4" />
+              Удалить
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
-              onClick={() => window.open(`/api/journal-documents/${props.documentId}/pdf`, "_blank")}
-            >
-              <Printer className="mr-1 size-4" />
-              Печать
-            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Print header */}
+      <div className="uv-print-header hidden print:block">
+        <div className="mb-1 text-right text-[10px]">
+          <div>Дата: {formatRuDateDash(props.dateFrom)}</div>
+          <div>Стр.: 1 из 1</div>
+        </div>
+        <div className="text-center text-[11px]">
+          <div className="font-bold">{props.organizationName}</div>
+          <div className="mt-1">
+            ЖУРНАЛ УЧЕТА НАРАБОТКИ И ОБЕЗЗАРАЖИВАНИЯ УЛЬТРАФИОЛЕТОВОЙ УСТАНОВКИ
           </div>
+          <div className="mt-0.5 text-[10px]">Журнал учета работы</div>
+        </div>
+        <div className="mt-2 text-[10px]">
+          <div>БАКТЕРИЦИДНАЯ УСТАНОВКА №{config.lampNumber}</div>
+          <div>(наименование цеха / участка применения)</div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[12px] border border-[#eceef5] bg-white">
-        <table className="min-w-[1240px] w-full border-collapse text-[13px]">
+      {/* Specification table */}
+      <SpecificationTable config={config} onEdit={() => setSpecEditOpen(true)} />
+
+      {/* Monthly summary */}
+      <MonthlySummaryTable monthlyData={monthlyData} />
+
+      {/* Add button + Close journal */}
+      {props.status === "active" && (
+        <div className="flex items-center justify-between print:hidden">
+          <Button
+            type="button"
+            onClick={() => setAddRowOpen(true)}
+            className="h-11 rounded-xl bg-[#5b66ff] px-5 text-[14px] font-medium text-white hover:bg-[#4c58ff]"
+          >
+            <Plus className="mr-1 size-4" />
+            Добавить
+          </Button>
+          <button
+            type="button"
+            onClick={handleCloseJournal}
+            className="text-[14px] text-[#5b66ff] hover:underline"
+          >
+            Закончить журнал
+          </button>
+        </div>
+      )}
+
+      {/* Data table */}
+      <div className="overflow-x-auto rounded-[12px] border border-[#eceef5] bg-white print:rounded-none print:border-[#ccc]">
+        <table className="w-full min-w-[900px] border-collapse text-[13px]">
           <thead>
-            <tr className="bg-[#f6f7fb]">
+            <tr className="bg-[#f6f7fb] print:bg-[#f0f0f0]">
               {props.status === "active" && (
-                <th className="w-[40px] border border-[#eceef5] px-2 py-2">
+                <th className="w-[40px] border border-[#eceef5] px-2 py-2 print:hidden">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -431,130 +1102,145 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                   />
                 </th>
               )}
-              <th className="border border-[#eceef5] px-3 py-2 text-left font-medium text-[#5b6075]">Дата</th>
-              <th className="border border-[#eceef5] px-3 py-2 text-left font-medium text-[#5b6075]">Время включения</th>
-              <th className="border border-[#eceef5] px-3 py-2 text-left font-medium text-[#5b6075]">Время выключения</th>
-              <th className="border border-[#eceef5] px-3 py-2 text-left font-medium text-[#5b6075]">Показание счетчика, ч</th>
-              <th className="border border-[#eceef5] px-3 py-2 text-left font-medium text-[#5b6075]">Ответственный</th>
+              <th className="border border-[#eceef5] px-3 py-2 text-left font-semibold text-[#5b6075] print:border-[#ccc]">Дата</th>
+              <th className="border border-[#eceef5] px-3 py-2 text-center font-semibold text-[#5b6075] print:border-[#ccc]">Время ВКЛ</th>
+              <th className="border border-[#eceef5] px-3 py-2 text-center font-semibold text-[#5b6075] print:border-[#ccc]">Время ВЫКЛ</th>
+              <th className="border border-[#eceef5] px-3 py-2 text-center font-semibold text-[#5b6075] print:border-[#ccc]">
+                Итого продолжительность работы, минут
+              </th>
+              <th className="border border-[#eceef5] px-3 py-2 text-left font-semibold text-[#5b6075] print:border-[#ccc]">
+                ФИО ответственного лица
+              </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-[#fafbff]">
-                {props.status === "active" && (
-                  <td className="border border-[#eceef5] p-2 text-center">
-                    <Checkbox
-                      checked={selectedRowIds.includes(row.id)}
-                      onCheckedChange={(checked) =>
-                        setSelectedRowIds((current) =>
-                          checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id)
-                        )
-                      }
-                    />
+            {rows.map((row) => {
+              const duration = calculateDurationMinutes(row.data.startTime, row.data.endTime);
+              return (
+                <tr key={row.id} className="hover:bg-[#fafbff] print:hover:bg-transparent">
+                  {props.status === "active" && (
+                    <td className="border border-[#eceef5] p-2 text-center print:hidden">
+                      <Checkbox
+                        checked={selectedRowIds.includes(row.id)}
+                        onCheckedChange={(checked) =>
+                          setSelectedRowIds((current) =>
+                            checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id)
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  <td className="border border-[#eceef5] p-2 print:border-[#ccc]">
+                    <div className="px-2 py-1 text-[14px] text-black">{formatRuDateDash(row.date)}</div>
                   </td>
-                )}
-                <td className="border border-[#eceef5] p-2">
-                  <div className="px-2 py-1 text-[18px] text-black">{formatRuDateDash(row.date)}</div>
-                </td>
-                <td className="border border-[#eceef5] p-2">
-                  {props.status === "active" ? (
-                    <Input
-                      type="time"
-                      value={row.data.startTime}
-                      onChange={(event) =>
-                        setRows((current) =>
-                          current.map((item) =>
-                            item.id === row.id
-                              ? { ...item, data: { ...item.data, startTime: event.target.value } }
-                              : item
+                  <td className="border border-[#eceef5] p-2 text-center print:border-[#ccc]">
+                    {props.status === "active" ? (
+                      <Input
+                        type="time"
+                        value={row.data.startTime}
+                        onChange={(event) =>
+                          setRows((current) =>
+                            current.map((item) =>
+                              item.id === row.id
+                                ? { ...item, data: { ...item.data, startTime: event.target.value } }
+                                : item
+                            )
                           )
-                        )
-                      }
-                      onBlur={() => {
-                        saveRow(row).catch(() => window.alert("Не удалось сохранить строку"));
-                      }}
-                      className="h-9 rounded-md border-[#dfe1ec] text-[13px]"
-                    />
-                  ) : (
-                    <div className="px-2 py-1 text-[18px] text-black">{row.data.startTime || "—"}</div>
-                  )}
-                </td>
-                <td className="border border-[#eceef5] p-2">
-                  {props.status === "active" ? (
-                    <Input
-                      type="time"
-                      value={row.data.endTime}
-                      onChange={(event) =>
-                        setRows((current) =>
-                          current.map((item) =>
-                            item.id === row.id
-                              ? { ...item, data: { ...item.data, endTime: event.target.value } }
-                              : item
+                        }
+                        onBlur={() => {
+                          saveRow(row).catch(() => window.alert("Не удалось сохранить строку"));
+                        }}
+                        className="mx-auto h-9 w-[110px] rounded-md border-[#dfe1ec] text-center text-[13px]"
+                      />
+                    ) : (
+                      <span className="text-[14px] text-black">{row.data.startTime || "—"}</span>
+                    )}
+                  </td>
+                  <td className="border border-[#eceef5] p-2 text-center print:border-[#ccc]">
+                    {props.status === "active" ? (
+                      <Input
+                        type="time"
+                        value={row.data.endTime}
+                        onChange={(event) =>
+                          setRows((current) =>
+                            current.map((item) =>
+                              item.id === row.id
+                                ? { ...item, data: { ...item.data, endTime: event.target.value } }
+                                : item
+                            )
                           )
-                        )
-                      }
-                      onBlur={() => {
-                        saveRow(row).catch(() => window.alert("Не удалось сохранить строку"));
-                      }}
-                      className="h-9 rounded-md border-[#dfe1ec] text-[13px]"
-                    />
-                  ) : (
-                    <div className="px-2 py-1 text-[18px] text-black">{row.data.endTime || "—"}</div>
-                  )}
-                </td>
-                <td className="border border-[#eceef5] p-2">
-                  {props.status === "active" ? (
-                    <Input
-                      value={row.data.counterValue}
-                      onChange={(event) =>
-                        setRows((current) =>
-                          current.map((item) =>
-                            item.id === row.id
-                              ? { ...item, data: { ...item.data, counterValue: event.target.value } }
-                              : item
-                          )
-                        )
-                      }
-                      onBlur={() => {
-                        saveRow(row).catch(() => window.alert("Не удалось сохранить строку"));
-                      }}
-                      className="h-9 rounded-md border-[#dfe1ec] text-[13px]"
-                    />
-                  ) : (
-                    <div className="px-2 py-1 text-[18px] text-black">{row.data.counterValue || "—"}</div>
-                  )}
-                </td>
-                <td className="border border-[#eceef5] p-2">
-                  {props.status === "active" ? (
-                    <Select
-                      value={row.employeeId || fallbackEmployeeId}
-                      onValueChange={(value) =>
-                        setRows((current) =>
-                          current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-9 rounded-md border-[#dfe1ec] text-[13px]">
-                        <SelectValue placeholder="Выберите сотрудника" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {props.users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="px-2 py-1 text-[18px] text-black">{userMap[row.employeeId] || "—"}</div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                        }
+                        onBlur={() => {
+                          saveRow(row).catch(() => window.alert("Не удалось сохранить строку"));
+                        }}
+                        className="mx-auto h-9 w-[110px] rounded-md border-[#dfe1ec] text-center text-[13px]"
+                      />
+                    ) : (
+                      <span className="text-[14px] text-black">{row.data.endTime || "—"}</span>
+                    )}
+                  </td>
+                  <td className="border border-[#eceef5] p-2 text-center print:border-[#ccc]">
+                    <span className="text-[14px] text-black">{duration !== null ? duration : "—"}</span>
+                  </td>
+                  <td className="border border-[#eceef5] p-2 print:border-[#ccc]">
+                    {props.status === "active" ? (
+                      <Select
+                        value={row.employeeId || fallbackEmployeeId}
+                        onValueChange={(value) => {
+                          setRows((current) =>
+                            current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
+                          );
+                          const updated = { ...row, employeeId: value };
+                          saveRow(updated).catch(() => window.alert("Не удалось сохранить строку"));
+                        }}
+                      >
+                        <SelectTrigger className="h-9 rounded-md border-[#dfe1ec] text-[13px]">
+                          <SelectValue placeholder="Выберите сотрудника" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {props.users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-[14px] text-black">{userMap[row.employeeId] || "—"}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
+      {/* Settings / Print buttons */}
+      <div className="flex items-center justify-end gap-2 print:hidden">
+        {props.status === "active" && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings2 className="mr-1 size-4" />
+            Настройки документа
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
+          onClick={() => window.print()}
+        >
+          <Printer className="mr-1 size-4" />
+          Печать
+        </Button>
+      </div>
+
+      {/* Dialogs */}
       <UvRuntimeSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
@@ -563,25 +1249,24 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         initialDateFrom={props.dateFrom}
         initialResponsibleTitle={props.responsibleTitle || ""}
         initialResponsibleUserId={props.responsibleUserId || fallbackEmployeeId}
-        onSave={async (data) => {
-          const response = await fetch(`/api/journal-documents/${props.documentId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: buildUvRuntimeDocumentTitle(data.config),
-              config: data.config,
-              dateFrom: data.dateFrom,
-              responsibleTitle: data.responsibleTitle || null,
-              responsibleUserId: data.responsibleUserId || null,
-            }),
-          });
+        onSave={handleSaveSettings}
+      />
 
-          if (!response.ok) {
-            window.alert("Не удалось сохранить настройки");
-            return;
-          }
+      <UvSpecEditDialog
+        open={specEditOpen}
+        onOpenChange={setSpecEditOpen}
+        spec={config.spec}
+        onSave={handleSaveSpec}
+      />
 
-          router.refresh();
+      <AddRowDialog
+        open={addRowOpen}
+        onOpenChange={setAddRowOpen}
+        users={props.users}
+        defaultEmployeeId={fallbackEmployeeId}
+        defaultResponsibleTitle={props.responsibleTitle || "Управляющий"}
+        onAdd={(data) => {
+          handleAddRow(data).catch(() => window.alert("Ошибка добавления строки"));
         }}
       />
     </div>

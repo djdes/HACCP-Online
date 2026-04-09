@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import {
   buildUvRuntimeDocumentTitle,
-  formatRuDate,
+  formatRuDateDash,
   getUvResponsibleOptions,
   normalizeUvRuntimeDocumentConfig,
   type UvRuntimeDocumentConfig,
@@ -93,7 +93,7 @@ function UvRuntimeSettingsDialog(props: {
   async function handleSave() {
     if (!props.editing) return;
     setSubmitting(true);
-    const nextConfig = { lampNumber: lampNumber.trim() || "1", areaName: areaName.trim() || "Журнал учета работы" };
+    const nextConfig = { ...props.editing.config, lampNumber: lampNumber.trim() || "1", areaName: areaName.trim() || "Журнал учета работы" };
 
     try {
       const response = await fetch(`/api/journal-documents/${props.editing.id}`, {
@@ -263,7 +263,9 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-[54px] font-semibold tracking-[-0.04em] text-black">Журнал учета работы УФ бактерицидной установки</h1>
+        <h1 className="text-[54px] font-semibold tracking-[-0.04em] text-black">
+          Журнал учета работы УФ бактерицидной установки{props.activeTab === "closed" ? " (Закрытые!!!)" : ""}
+        </h1>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -337,14 +339,16 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
               <Link href={href} className="border-l border-[#edf0f7] px-6">
                 <div className="text-[11px] text-[#979aab]">Ответственный</div>
                 <div className="mt-1 text-[12px] font-semibold text-black">
-                  {document.responsibleTitle || "—"}
+                  {document.responsibleTitle
+                    ? `${document.responsibleTitle}: ${document.responsibleUserId ? (props.users.find((u) => u.id === document.responsibleUserId)?.name || "") : ""}`
+                    : "—"}
                 </div>
               </Link>
 
               <Link href={href} className="border-l border-[#edf0f7] px-6">
                 <div className="text-[11px] text-[#979aab]">Дата начала</div>
                 <div className="mt-1 text-[12px] font-semibold text-black">
-                  {formatRuDate(document.dateFrom)}
+                  {formatRuDateDash(document.dateFrom)}
                 </div>
               </Link>
 

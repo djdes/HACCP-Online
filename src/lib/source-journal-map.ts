@@ -47,12 +47,7 @@ export function getSourceJournalMapBySlug(sourceSlug: string) {
   return SOURCE_JOURNAL_MAP.find((item) => item.sourceSlug === sourceSlug);
 }
 
-const SHORT_ALIASES: Record<string, string> = {
-  uv: "uv_lamp_runtime",
-};
-
 export function resolveJournalCodeAlias(codeOrSlug: string) {
-  if (SHORT_ALIASES[codeOrSlug]) return SHORT_ALIASES[codeOrSlug];
   const sourceItem = getSourceJournalMapBySlug(codeOrSlug);
   if (!sourceItem) return codeOrSlug;
   if (!sourceItem.localCode) return codeOrSlug;
