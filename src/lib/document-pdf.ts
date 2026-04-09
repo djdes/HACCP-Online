@@ -505,6 +505,8 @@ function drawClimateMetaTable(doc: jsPDF, params: {
   dateFrom: Date | string;
   dateTo: Date | string;
 }) {
+  // drawTitle() sets a large font size; reset it for header table.
+  doc.setFontSize(10);
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = 36;
   const y = 28;
