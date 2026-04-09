@@ -68,7 +68,12 @@ import {
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   buildUvRuntimeDocumentTitle,
+  defaultUvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
+import {
+  MED_BOOK_TEMPLATE_CODE,
+  MED_BOOK_DOCUMENT_TITLE,
+} from "@/lib/med-book-document";
 
 interface Props {
   templateCode: string;
@@ -121,6 +126,7 @@ export function CreateDocumentDialog({
   const isSourceStyleTrackedJournal = isSourceStyleTrackedTemplate(templateCode);
   const isAcceptanceJournal = templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
   const isUvRuntimeJournal = templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE;
+  const isMedBookJournal = templateCode === MED_BOOK_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
@@ -146,6 +152,8 @@ export function CreateDocumentDialog({
               ? getCleaningDocumentTitle()
               : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
                 ? getFinishedProductDocumentTitle()
+                : templateCode === MED_BOOK_TEMPLATE_CODE
+                  ? MED_BOOK_DOCUMENT_TITLE
                 : isSourceStyleTrackedJournal
                   ? getTrackedDocumentTitle(templateCode)
                   : isRegisterDocumentTemplate(templateCode)
@@ -159,7 +167,7 @@ export function CreateDocumentDialog({
     isStaffJournal || isSourceStyleTrackedJournal ? responsibleTitleOptions[0] || "" : ""
   );
   const [trackedAreaName, setTrackedAreaName] = useState("");
-  const [trackedLampNumber] = useState("1");
+  const [trackedLampNumber, setTrackedLampNumber] = useState("1");
   const [fpFieldNameMode, setFpFieldNameMode] = useState<"dish" | "semi">("dish");
   const [fpInspectorMode, setFpInspectorMode] = useState<"inspector_name" | "commission_signatures">(
     "inspector_name"
@@ -169,6 +177,7 @@ export function CreateDocumentDialog({
   const [fpShowOxygenLevel, setFpShowOxygenLevel] = useState(false);
   const [fpShowCourierTime, setFpShowCourierTime] = useState(false);
   const [fpFooterNote, setFpFooterNote] = useState("");
+  const [medBookIncludeVaccinations, setMedBookIncludeVaccinations] = useState(true);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -194,14 +203,18 @@ export function CreateDocumentDialog({
             ? buildUvRuntimeDocumentTitle({
                 lampNumber: trackedLampNumber.trim() || "1",
                 areaName: trackedAreaName.trim() || "Журнал учета работы",
+                spec: defaultUvSpecification(),
               })
             : title.trim(),
           dateFrom,
           dateTo,
           responsibleUserId: selectedResponsibleUser || undefined,
           responsibleTitle: isCleaningJournal ? undefined : responsibleTitle || undefined,
-          config:
-            isAcceptanceJournal
+          config: isMedBookJournal
+            ? {
+                includeVaccinations: medBookIncludeVaccinations,
+              }
+            : isAcceptanceJournal
               ? {
                   ...getAcceptanceDocumentDefaultConfig(users),
                   showPackagingComplianceField: fpShowCorrectiveAction,
@@ -223,6 +236,7 @@ export function CreateDocumentDialog({
                   ? {
                       lampNumber: trackedLampNumber.trim() || "1",
                       areaName: trackedAreaName.trim() || "Журнал учета работы",
+                      spec: defaultUvSpecification(),
                     }
                   : { areaName: trackedAreaName.trim() }
                 : undefined,
@@ -245,7 +259,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -280,35 +294,62 @@ export function CreateDocumentDialog({
 
           {isCompactSourceModal ? (
             <>
-              <div className="space-y-3">
-                <Label htmlFor="doc-title" className="sr-only">
-                  Название документа
-                </Label>
-                <Input
-                  id="doc-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Введите название документа"
-                  className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
-                  required
-                />
-              </div>
-
-              {trackedCreateMode === "uv" && (
+              {trackedCreateMode === "uv" ? (
+                <>
+                  <div className="space-y-1">
+                    <Label htmlFor="uv-lamp-number" className="text-[16px] text-[#6f7282]">
+                      Бактерицидная установка №
+                    </Label>
+                    <Input
+                      id="uv-lamp-number"
+                      value={trackedLampNumber}
+                      onChange={(e) => setTrackedLampNumber(e.target.value)}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="tracked-area-name" className="sr-only">
+                      Наименование цеха или участка
+                    </Label>
+                    <Input
+                      id="tracked-area-name"
+                      value={trackedAreaName}
+                      onChange={(e) => setTrackedAreaName(e.target.value)}
+                      placeholder="Введите наименование цеха/участка применения"
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                    />
+                  </div>
+                </>
+              ) : (
                 <div className="space-y-3">
-                  <Label htmlFor="tracked-area-name" className="sr-only">
-                    Наименование цеха или участка
+                  <Label htmlFor="doc-title" className="sr-only">
+                    Название документа
                   </Label>
                   <Input
-                    id="tracked-area-name"
-                    value={trackedAreaName}
-                    onChange={(e) => setTrackedAreaName(e.target.value)}
-                    placeholder="Введите наименование цеха/участка применения"
+                    id="doc-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Введите название документа"
                     className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                    required
                   />
                 </div>
               )}
 
+              {isMedBookJournal && (
+                <label className="flex items-center gap-3 text-[16px]">
+                  <input
+                    type="checkbox"
+                    checked={medBookIncludeVaccinations}
+                    onChange={(e) => setMedBookIncludeVaccinations(e.target.checked)}
+                    className="size-5 rounded accent-[#5b66ff]"
+                  />
+                  включить &quot;Прививки&quot;
+                </label>
+              )}
+
+              {!isMedBookJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
@@ -324,8 +365,9 @@ export function CreateDocumentDialog({
                   </SelectContent>
                 </Select>
               </div>
+              )}
 
-              {trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && (trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">
@@ -348,7 +390,7 @@ export function CreateDocumentDialog({
                     required
                   />
                 </div>
-              )}
+              ))}
 
               {isAcceptanceJournal && (
                 <>
