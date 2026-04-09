@@ -65,7 +65,7 @@ const TRACKED_DOCUMENT_TITLES: Partial<Record<TrackedDocumentTemplateCode, strin
   waste_disposal_control: "Журнал контроля утилизации отходов",
   uv_lamp_runtime: "Журнал учета наработки УФ-ламп",
   uv_lamp_control: "Журнал контроля УФ-ламп",
-  fryer_oil: "Журнал фритюрного масла",
+  fryer_oil: "Журнал учета использования фритюрных жиров",
   general_cleaning: "Журнал генеральной уборки",
   disinfectant_usage: "Журнал учета дезинфицирующих средств",
   equipment_maintenance: "График ППО оборудования",
@@ -95,5 +95,6 @@ export function getTrackedDocumentCreateMode(templateCode: string) {
   ) {
     return "dated";
   }
+  if (templateCode === "fryer_oil") return "fryer_oil";
   return "default";
 }

@@ -362,41 +362,12 @@ const journalTemplates = [
   // Кислотное число > 1.0 мг KOH/г или изменение цвета/запаха → обязательная замена.
   {
     code: "fryer_oil",
-    name: "Журнал фритюрных жиров",
+    name: "Журнал учета использования фритюрных жиров",
     description: "Контроль качества фритюрных жиров: органолептика, кислотное число, замена",
     sortOrder: 14,
     isMandatorySanpin: true,
     isMandatoryHaccp: false,
-    fields: [
-      { key: "equipmentId", label: "Фритюрница", type: "equipment", required: true },
-      { key: "oilType", label: "Тип масла", type: "select", required: true, options: [
-        { value: "vegetable", label: "Растительное" },
-        { value: "palm", label: "Пальмовое" },
-        { value: "blend", label: "Смесь" },
-        { value: "other", label: "Другое" },
-      ]},
-      { key: "color", label: "Цвет", type: "select", required: true, options: [
-        { value: "light_yellow", label: "Светло-жёлтый" },
-        { value: "yellow", label: "Жёлтый" },
-        { value: "dark_yellow", label: "Тёмно-жёлтый" },
-        { value: "brown", label: "Коричневый" },
-      ]},
-      { key: "smell", label: "Запах", type: "select", required: true, options: [
-        { value: "normal", label: "Характерный для масла" },
-        { value: "rancid", label: "Прогорклый / посторонний" },
-      ]},
-      { key: "foamHeight", label: "Высота пены (мм)", type: "number", required: false, step: 1 },
-      { key: "acidNumber", label: "Кислотное число (мг KOH/г)", type: "number", required: false, step: 0.01 },
-      { key: "temperature", label: "Температура масла (°C)", type: "number", required: false, step: 1 },
-      { key: "oilChanged", label: "Произведена замена масла", type: "boolean", required: true },
-      { key: "changeReason", label: "Причина замены", type: "select", required: false, showIf: { field: "oilChanged", equals: true }, options: [
-        { value: "acid_number", label: "Превышение кислотного числа" },
-        { value: "color", label: "Изменение цвета" },
-        { value: "smell", label: "Прогорклый запах" },
-        { value: "scheduled", label: "Плановая замена" },
-      ]},
-      { key: "responsiblePerson", label: "Ответственный", type: "employee", required: true },
-    ],
+    fields: [],
   },
 
   // === График генеральных уборок (СанПиН 2.3/2.4.3590-20, п. 2.12) ===
