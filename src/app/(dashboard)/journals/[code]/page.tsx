@@ -22,7 +22,10 @@ import { FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE } from "@/lib/finished-product-
 import { FinishedProductDocumentsClient } from "@/components/journals/finished-product-documents-client";
 import { CLIMATE_DOCUMENT_TEMPLATE_CODE } from "@/lib/climate-document";
 import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
-import { CLEANING_DOCUMENT_TEMPLATE_CODE } from "@/lib/cleaning-document";
+import {
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+  defaultCleaningDocumentConfig,
+} from "@/lib/cleaning-document";
 import { TrackedDocumentsClient } from "@/components/journals/tracked-documents-client";
 import {
   getTrackedDocumentCreateMode,
@@ -48,6 +51,15 @@ import {
   getSanitationApproveLabel,
 } from "@/lib/sanitation-day-document";
 import { SanitationDayDocumentsClient } from "@/components/journals/sanitation-day-documents-client";
+import {
+  TRAINING_PLAN_TEMPLATE_CODE,
+  TRAINING_PLAN_SOURCE_SLUG,
+  TRAINING_PLAN_DOCUMENT_TITLE,
+  getTrainingPlanDefaultConfig,
+  getTrainingPlanDocumentDateLabel,
+  getTrainingPlanApproveLabel,
+} from "@/lib/training-plan-document";
+import { TrainingPlanDocumentsClient } from "@/components/journals/training-plan-documents-client";
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   buildUvRuntimeDocumentTitle,
@@ -693,6 +705,36 @@ export default async function JournalDocumentsPage({
       templateFields: parsedTemplateFields,
     });
 
+    if (resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+      const existingCleaningCount = await db.journalDocument.count({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+        },
+      });
+
+      if (existingCleaningCount === 0) {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = now.getUTCMonth();
+        const dateFrom = new Date(Date.UTC(year, month, 1));
+        const dateTo = new Date(Date.UTC(year, month + 1, 0));
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: getJournalDocumentDefaultTitle(resolvedCode),
+            status: "active",
+            dateFrom,
+            dateTo,
+            createdById: session.user.id,
+            config: defaultCleaningDocumentConfig(),
+          },
+        });
+      }
+    }
+
     if (resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
       const existingDocument = await db.journalDocument.findFirst({
         where: {
@@ -789,6 +831,56 @@ export default async function JournalDocumentsPage({
             responsibleTitle: getSanitationApproveLabel("", ""),
             metaLabel: "",
             metaValue: "",
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
+      // Auto-seed sample documents
+      const existingTP = await db.journalDocument.findMany({
+        where: { templateId: template.id, organizationId: session.user.organizationId },
+        select: { status: true },
+      });
+      const tpStatuses = new Set(existingTP.map((d) => d.status));
+      if (!tpStatuses.has("active")) {
+        const now = new Date();
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${now.getUTCFullYear()}`,
+            status: "active",
+            dateFrom: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
+            dateTo: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
+            createdById: session.user.id,
+            config: getTrainingPlanDefaultConfig(now),
+          },
+        });
+      }
+
+      const tpDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <TrainingPlanDocumentsClient
+          routeCode={code === TRAINING_PLAN_SOURCE_SLUG ? code : resolvedCode}
+          templateCode={resolvedCode}
+          activeTab={activeTab}
+          users={orgUsers}
+          documents={tpDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || TRAINING_PLAN_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            dateTo: document.dateTo.toISOString().slice(0, 10),
+            config: document.config,
           }))}
         />
       );

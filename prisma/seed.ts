@@ -127,28 +127,12 @@ const journalTemplates = [
   // === Новые обязательные журналы по ХАССП / СанПиН ===
   {
     code: "cleaning",
-    name: "Уборка и дезинфекция",
+    name: "Чек-лист уборки и проветривания помещений",
     description: "Журнал уборки и санитарной обработки помещений и оборудования",
     sortOrder: 6,
     isMandatorySanpin: true,
     isMandatoryHaccp: false,
-    fields: [
-      { key: "areaOrObject", label: "Объект уборки", type: "text", required: true },
-      { key: "cleaningType", label: "Вид уборки", type: "select", required: true, options: [
-        { value: "routine", label: "Текущая" },
-        { value: "general", label: "Генеральная" },
-        { value: "emergency", label: "Внеплановая" },
-      ]},
-      { key: "detergent", label: "Моющее/дезинфицирующее средство", type: "text", required: true },
-      { key: "concentration", label: "Концентрация раствора (%)", type: "number", required: false, step: 0.1 },
-      { key: "exposureTime", label: "Время экспозиции (мин)", type: "number", required: false, step: 1 },
-      { key: "result", label: "Результат", type: "select", required: true, options: [
-        { value: "satisfactory", label: "Удовлетворительно" },
-        { value: "unsatisfactory", label: "Неудовлетворительно" },
-      ]},
-      { key: "correctiveAction", label: "Корректирующее действие", type: "text", required: false, showIf: { field: "result", equals: "unsatisfactory" } },
-      { key: "responsiblePerson", label: "Ответственный", type: "employee", required: true },
-    ],
+    fields: [],
   },
   {
     code: "pest_control",
