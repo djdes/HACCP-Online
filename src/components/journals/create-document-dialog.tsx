@@ -75,6 +75,11 @@ import {
   MED_BOOK_DOCUMENT_TITLE,
 } from "@/lib/med-book-document";
 import {
+  PERISHABLE_REJECTION_TEMPLATE_CODE,
+  PERISHABLE_REJECTION_DOCUMENT_TITLE,
+  getPerishableRejectionCreatePeriodBounds,
+} from "@/lib/perishable-rejection-document";
+import {
   FRYER_OIL_TEMPLATE_CODE,
   defaultFryerOilDocumentConfig,
 } from "@/lib/fryer-oil-document";
@@ -117,7 +122,9 @@ export function CreateDocumentDialog({
             ? getCleaningCreatePeriodBounds()
             : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
               ? getFinishedProductCreatePeriodBounds()
-              : isRegisterDocumentTemplate(templateCode)
+              : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
+                ? getPerishableRejectionCreatePeriodBounds()
+                : isRegisterDocumentTemplate(templateCode)
                 ? getRegisterDocumentCreatePeriodBounds()
                 : getHygieneCreatePeriodBounds(),
     [templateCode]
@@ -131,6 +138,7 @@ export function CreateDocumentDialog({
   const isAcceptanceJournal = templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
   const isUvRuntimeJournal = templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE;
   const isMedBookJournal = templateCode === MED_BOOK_TEMPLATE_CODE;
+  const isPerishableRejectionJournal = templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
@@ -156,6 +164,8 @@ export function CreateDocumentDialog({
               ? getCleaningDocumentTitle()
               : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
                 ? getFinishedProductDocumentTitle()
+                : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
+                  ? PERISHABLE_REJECTION_DOCUMENT_TITLE
                 : templateCode === MED_BOOK_TEMPLATE_CODE
                   ? MED_BOOK_DOCUMENT_TITLE
                 : isSourceStyleTrackedJournal
@@ -265,7 +275,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -355,7 +365,23 @@ export function CreateDocumentDialog({
                 </label>
               )}
 
-              {!isMedBookJournal && (
+              {isPerishableRejectionJournal && (
+                <div className="space-y-3">
+                  <Label htmlFor="perishable-date-from" className="text-[18px] text-[#73738a]">
+                    Дата начала
+                  </Label>
+                  <Input
+                    id="perishable-date-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                    required
+                  />
+                </div>
+              )}
+
+              {!isMedBookJournal && !isPerishableRejectionJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
@@ -373,7 +399,7 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && !isPerishableRejectionJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">

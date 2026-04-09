@@ -15,7 +15,7 @@ export const SOURCE_JOURNAL_MAP: SourceJournalMapItem[] = [
   { sourceSlug: "sanitationdayjournal", localCode: "general_cleaning", status: "mapped" },
   { sourceSlug: "bactericiplantjournal", localCode: "uv_lamp_runtime", status: "mapped" },
   { sourceSlug: "brakeryjournal", localCode: "finished_product", status: "mapped" },
-  { sourceSlug: "brakery1journal", localCode: null, status: "new", notes: "separate perishables rejection journal" },
+  { sourceSlug: "brakery1journal", localCode: "perishable_rejection", status: "mapped", notes: "separate perishables rejection journal" },
   { sourceSlug: "acceptance1journal", localCode: "incoming_control", status: "mapped" },
   { sourceSlug: "deepfatjournal", localCode: "fryer_oil", status: "mapped" },
   { sourceSlug: "medbook", localCode: "med_books", status: "mapped" },
