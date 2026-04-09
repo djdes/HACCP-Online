@@ -25,6 +25,7 @@ import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   normalizeFinishedProductDocumentConfig,
 } from "@/lib/finished-product-document";
+import { RegisterDocumentClient } from "@/components/journals/register-document-client";
 import { HealthDocumentClient } from "@/components/journals/health-document-client";
 import { HygieneDocumentClient } from "@/components/journals/hygiene-document-client";
 import {
@@ -33,6 +34,11 @@ import {
   normalizeHygieneEntryData,
   toDateKey,
 } from "@/lib/hygiene-document";
+import {
+  isRegisterDocumentTemplate,
+  normalizeRegisterDocumentConfig,
+  parseRegisterFields,
+} from "@/lib/register-document";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 
 export const dynamic = "force-dynamic";
@@ -189,7 +195,10 @@ export default async function JournalDocumentPage({
     );
   }
 
-  if (isTrackedDocumentTemplate(document.template.code)) {
+  if (
+    isTrackedDocumentTemplate(document.template.code) &&
+    !isRegisterDocumentTemplate(document.template.code)
+  ) {
     const fields = Array.isArray(document.template.fields)
       ? (document.template.fields as Array<Record<string, unknown>>)
           .map((field): TrackedField | null => {
@@ -234,6 +243,8 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || 'ООО "Тест"'}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
+        responsibleTitle={document.responsibleTitle}
+        responsibleUserId={document.responsibleUserId}
         status={document.status}
         employees={enrichedEmployees}
         fields={fields}
@@ -311,5 +322,25 @@ export default async function JournalDocumentPage({
     );
   }
 
+  if (isRegisterDocumentTemplate(document.template.code)) {
+    const fields = parseRegisterFields(document.template.fields);
+
+    return (
+      <RegisterDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        dateTo={toDateKey(document.dateTo)}
+        status={document.status}
+        fields={fields}
+        initialConfig={normalizeRegisterDocumentConfig(document.config, fields)}
+        users={enrichedEmployees}
+        equipment={equipment}
+      />
+    );
+  }
+
   notFound();
 }
+
