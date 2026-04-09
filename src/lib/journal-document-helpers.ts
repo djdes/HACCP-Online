@@ -23,6 +23,10 @@ import {
   getFinishedProductDocumentTitle,
   getFinishedProductPeriodLabel,
 } from "@/lib/finished-product-document";
+import {
+  getTrackedDocumentTitle,
+  isTrackedDocumentTemplate,
+} from "@/lib/tracked-document";
 
 export function isDocumentTemplate(templateCode: string) {
   return (
@@ -31,7 +35,8 @@ export function isDocumentTemplate(templateCode: string) {
     templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE ||
     templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE ||
     templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
-    templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+    templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE ||
+    isTrackedDocumentTemplate(templateCode)
   );
 }
 
@@ -52,6 +57,9 @@ export function getJournalDocumentDefaultTitle(templateCode: string) {
   }
   if (templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
     return getCleaningDocumentTitle();
+  }
+  if (isTrackedDocumentTemplate(templateCode)) {
+    return getTrackedDocumentTitle(templateCode);
   }
   return getHygieneDocumentTitle();
 }

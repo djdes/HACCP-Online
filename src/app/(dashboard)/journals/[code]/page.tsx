@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
@@ -307,20 +309,68 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  const documents = await db.journalDocument.findMany({
+  const entries = await db.journalEntry.findMany({
     where: {
       organizationId: session.user.organizationId,
       templateId: template.id,
-      status: activeTab,
     },
-    orderBy: { dateFrom: "desc" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      filledBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   return (
-    <div className="space-y-3">
-      {documents.map((document) => (
-        <div key={document.id}>{document.title}</div>
-      ))}
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{template.name}</h1>
+          {template.description ? (
+            <p className="mt-1 text-muted-foreground">{template.description}</p>
+          ) : null}
+        </div>
+        <Link
+          href={`/journals/${code}/new`}
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="size-4" />
+          Новая запись
+        </Link>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="rounded-lg border bg-card p-6 text-muted-foreground">
+          Записей пока нет
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {entries.map((entry) => (
+            <Link
+              key={entry.id}
+              href={`/journals/${code}/${entry.id}`}
+              className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">
+                    {entry.createdAt.toLocaleString("ru-RU")}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Заполнил: {entry.filledBy?.name || "—"}
+                  </div>
+                </div>
+                <div className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                  {entry.status}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

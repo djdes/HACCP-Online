@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { TrackedDocumentClient } from "@/components/journals/tracked-document-client";
 import { ColdEquipmentDocumentClient } from "@/components/journals/cold-equipment-document-client";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
@@ -32,6 +33,7 @@ import {
   normalizeHygieneEntryData,
   toDateKey,
 } from "@/lib/hygiene-document";
+import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +163,45 @@ export default async function JournalDocumentPage({
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
           data: normalizeColdEquipmentEntryData(entry.data),
+        }))}
+      />
+    );
+  }
+
+  if (isTrackedDocumentTemplate(document.template.code)) {
+    const fields = Array.isArray(document.template.fields)
+      ? (document.template.fields as Array<Record<string, unknown>>)
+          .map((field) => ({
+            key: typeof field.key === "string" ? field.key : "",
+            label: typeof field.label === "string" ? field.label : "",
+            type: typeof field.type === "string" ? field.type : "text",
+            options: Array.isArray(field.options)
+              ? (field.options as Array<Record<string, unknown>>)
+                  .map((option) => ({
+                    value: typeof option.value === "string" ? option.value : "",
+                    label: typeof option.label === "string" ? option.label : "",
+                  }))
+                  .filter((option) => option.value !== "")
+              : [],
+          }))
+          .filter((field) => field.key !== "")
+      : [];
+
+    return (
+      <TrackedDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        dateTo={toDateKey(document.dateTo)}
+        status={document.status}
+        employees={enrichedEmployees}
+        fields={fields}
+        initialEntries={document.entries.map((entry) => ({
+          id: entry.id,
+          employeeId: entry.employeeId,
+          date: toDateKey(entry.date),
+          data: ((entry.data as Record<string, unknown>) || {}) as Record<string, unknown>,
         }))}
       />
     );
