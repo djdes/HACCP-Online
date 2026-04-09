@@ -1079,17 +1079,21 @@ function drawSanitationDayPdf(doc: jsPDF, params: {
     withPeriodicity: false,
   });
 
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const rightX = pageWidth - 14;
+
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(10);
-  doc.text("УТВЕРЖДАЮ", 274, 63);
+  doc.text("УТВЕРЖДАЮ", rightX, 63, { align: "right" });
   doc.setFont("JournalUnicode", "normal");
-  doc.text(cfg.approveRole || "", 274, 69);
-  doc.text(cfg.approveEmployee || "", 274, 75);
-  doc.line(222, 72, 270, 72);
+  doc.text(cfg.approveRole || "", rightX, 69, { align: "right" });
+  doc.line(rightX - 52, 72, rightX - 2, 72);
+  doc.text(cfg.approveEmployee || "", rightX, 75, { align: "right" });
   doc.text(
     `« ${cfg.documentDate.slice(8, 10)} » ${new Date(cfg.documentDate).toLocaleDateString("ru-RU", { month: "long" })} ${cfg.year} г.`,
-    246,
-    80
+    rightX,
+    80,
+    { align: "right" }
   );
 
   doc.setFont("JournalUnicode", "bold");
