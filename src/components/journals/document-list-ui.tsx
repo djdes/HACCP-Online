@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import { Button } from "@/components/ui/button";
@@ -26,13 +25,25 @@ export function JournalTopBar(props: {
     <div className={compact ? "rounded-[28px] bg-white p-8 shadow-sm" : ""}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className={compact ? "text-[32px] font-semibold tracking-[-0.03em] text-black" : "text-[62px] font-semibold tracking-[-0.04em] text-black"}>
+          <h1
+            className={
+              compact
+                ? "text-[32px] font-semibold tracking-[-0.03em] text-black"
+                : "text-[62px] font-semibold tracking-[-0.04em] text-black"
+            }
+          >
             {props.heading}
           </h1>
-          <div className={compact ? "mt-4 flex flex-wrap gap-3" : "mt-0 flex items-center gap-4"}>
+          <div
+            className={compact ? "mt-4 flex flex-wrap gap-3" : "mt-0 flex items-center gap-4"}
+          >
             <Button
               variant="outline"
-              className={compact ? "h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none" : "h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"}
+              className={
+                compact
+                  ? "h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none"
+                  : "h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              }
               asChild
             >
               <Link href="/sanpin">
@@ -45,7 +56,11 @@ export function JournalTopBar(props: {
                 templateCode={props.templateCode}
                 templateName={props.templateName}
                 users={props.users}
-                triggerClassName={compact ? "h-12 rounded-2xl bg-[#5b66ff] px-5 text-[16px] text-white hover:bg-[#4d58f5]" : "h-16 rounded-2xl bg-[#5b66ff] px-8 text-[18px] font-medium text-white hover:bg-[#4c58ff]"}
+                triggerClassName={
+                  compact
+                    ? "h-12 rounded-2xl bg-[#5b66ff] px-5 text-[16px] text-white hover:bg-[#4d58f5]"
+                    : "h-16 rounded-2xl bg-[#5b66ff] px-8 text-[18px] font-medium text-white hover:bg-[#4c58ff]"
+                }
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className={compact ? "size-5" : "size-7"} />}
               />
@@ -65,10 +80,10 @@ export function JournalTabs(props: {
   const compact = props.compact ?? true;
   return (
     <div className={compact ? "border-b border-[#d9dce8]" : "border-b border-[#d9d9e4]"}>
-      <div className={compact ? "flex gap-12 text-[18px]" : "flex gap-12 text-[18px]"}>
+      <div className="flex gap-12 text-[18px]">
         <Link
           href={`/journals/${props.templateCode}`}
-          className={`relative ${compact ? "pb-5" : "pb-5"} ${
+          className={`relative pb-5 ${
             props.activeTab === "active"
               ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5b66ff]"
               : "text-[#7c7c93]"
@@ -78,7 +93,7 @@ export function JournalTabs(props: {
         </Link>
         <Link
           href={`/journals/${props.templateCode}?tab=closed`}
-          className={`relative ${compact ? "pb-5" : "pb-5"} ${
+          className={`relative pb-5 ${
             props.activeTab === "closed"
               ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5b66ff]"
               : "text-[#7c7c93]"
@@ -116,16 +131,44 @@ export function DocumentActionsMenu(props: {
           <Ellipsis className="size-8 text-[#5b66ff]" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className={md ? "w-[320px] rounded-[28px] border-0 p-6 shadow-xl" : "w-[280px] rounded-[24px] border-0 p-4 shadow-xl"}>
-        <DropdownMenuItem className={md ? "mb-3 h-16 rounded-2xl px-4 text-[20px]" : "mb-2 h-14 rounded-2xl px-4 text-[18px]"} onSelect={props.onEdit}>
+      <DropdownMenuContent
+        align="end"
+        className={
+          md
+            ? "w-[320px] rounded-[28px] border-0 p-6 shadow-xl"
+            : "w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
+        }
+      >
+        <DropdownMenuItem
+          className={
+            md
+              ? "mb-3 h-16 rounded-2xl px-4 text-[20px]"
+              : "mb-2 h-14 rounded-2xl px-4 text-[18px]"
+          }
+          onSelect={props.onEdit}
+        >
           <Pencil className={md ? "mr-4 size-7 text-[#6f7282]" : "mr-3 size-5 text-[#6f7282]"} />
           Настройки
         </DropdownMenuItem>
-        <DropdownMenuItem className={md ? "mb-3 h-16 rounded-2xl px-4 text-[20px]" : "mb-2 h-14 rounded-2xl px-4 text-[18px]"} onSelect={props.onPrint}>
+        <DropdownMenuItem
+          className={
+            md
+              ? "mb-3 h-16 rounded-2xl px-4 text-[20px]"
+              : "mb-2 h-14 rounded-2xl px-4 text-[18px]"
+          }
+          onSelect={props.onPrint}
+        >
           <Printer className={md ? "mr-4 size-7 text-[#6f7282]" : "mr-3 size-5 text-[#6f7282]"} />
           Печать
         </DropdownMenuItem>
-        <DropdownMenuItem className={md ? "h-16 rounded-2xl px-4 text-[20px] text-[#ff3b30] focus:text-[#ff3b30]" : "h-14 rounded-2xl px-4 text-[18px] text-[#ff3b30] focus:text-[#ff3b30]"} onSelect={props.onDelete}>
+        <DropdownMenuItem
+          className={
+            md
+              ? "h-16 rounded-2xl px-4 text-[20px] text-[#ff3b30] focus:text-[#ff3b30]"
+              : "h-14 rounded-2xl px-4 text-[18px] text-[#ff3b30] focus:text-[#ff3b30]"
+          }
+          onSelect={props.onDelete}
+        >
           <Trash2 className={md ? "mr-4 size-7 text-[#ff3b30]" : "mr-3 size-5 text-[#ff3b30]"} />
           Удалить
         </DropdownMenuItem>
