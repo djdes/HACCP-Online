@@ -130,6 +130,7 @@ export function HealthDocumentClient(props: Props) {
   } = props;
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsDocTitle, setSettingsDocTitle] = useState(title || "Журнал здоровья");
   const [emptyRows, setEmptyRows] = useState(String(printEmptyRows));
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -474,21 +475,33 @@ export function HealthDocumentClient(props: Props) {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[520px] rounded-[24px] border-0 p-0">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[22px] font-medium text-black">
-              Настройки журнала
+              Настройки документа
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 px-6 py-5">
             <div className="space-y-2">
-              <Label htmlFor="health-print-empty-rows">Пустые строки при печати</Label>
+              <Label htmlFor="health-doc-title">Название документа</Label>
               <Input
-                id="health-print-empty-rows"
-                type="number"
-                min={0}
-                max={50}
+                id="health-doc-title"
+                value={settingsDocTitle}
+                onChange={(event) => setSettingsDocTitle(event.target.value)}
+                placeholder="Введите название документа"
+                className="h-11 rounded-2xl border-[#dfe1ec] px-4"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Добавлять пустых строк при печати</Label>
+              <select
                 value={emptyRows}
                 onChange={(event) => setEmptyRows(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec]"
-              />
+                className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-sm"
+              >
+                {[0, 1, 2, 3, 4, 5, 10, 15, 20].map((n) => (
+                  <option key={n} value={String(n)}>
+                    {n}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex justify-end">
               <Button

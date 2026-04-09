@@ -373,11 +373,13 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && (trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">
-                    {HYGIENE_PERIODICITY_TEXT}
+                    {templateCode === "health_check"
+                      ? "Документ создается автоматически на период 15 дней."
+                      : HYGIENE_PERIODICITY_TEXT}
                   </div>
                 </div>
               ) : (
@@ -429,7 +431,7 @@ export function CreateDocumentDialog({
               )}
 
               <div className="hidden">
-                {trackedCreateMode === "staff" && (
+                {(isStaffJournal || trackedCreateMode === "staff") && (
                   <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
                 )}
                 <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />

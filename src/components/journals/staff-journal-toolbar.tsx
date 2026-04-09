@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   getHygienePositionLabel,
   getStaffJournalResponsibleTitleOptions,
+  HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 
 type UserItem = {
@@ -344,6 +345,10 @@ function JournalSettingsDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
+            <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+            <div className="text-[22px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
           </div>
           <div className="flex justify-end">
             <Button
