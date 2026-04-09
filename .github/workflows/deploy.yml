@@ -76,6 +76,9 @@ jobs:
             # Restore .env from backup if it exists
             [ -f .env.bak ] && cp .env.bak .env || true
 
+            echo "=== Clearing previous Next build cache ==="
+            rm -rf .next
+
             echo "=== Installing dependencies ==="
             source ~/.nvm/nvm.sh 2>/dev/null || true
             npm install 2>&1 | tail -5
