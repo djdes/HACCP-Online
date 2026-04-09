@@ -74,6 +74,11 @@ import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
   normalizePerishableRejectionConfig,
 } from "@/lib/perishable-rejection-document";
+import { StaffTrainingDocumentClient } from "@/components/journals/staff-training-document-client";
+import {
+  STAFF_TRAINING_TEMPLATE_CODE,
+  normalizeStaffTrainingConfig,
+} from "@/lib/staff-training-document";
 
 export const dynamic = "force-dynamic";
 
@@ -257,6 +262,20 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizePerishableRejectionConfig(document.config)}
+        users={enrichedEmployees}
+      />
+    );
+  }
+
+  if (document.template.code === STAFF_TRAINING_TEMPLATE_CODE) {
+    return (
+      <StaffTrainingDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        status={document.status}
+        initialConfig={normalizeStaffTrainingConfig(document.config)}
         users={enrichedEmployees}
       />
     );

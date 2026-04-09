@@ -25,6 +25,7 @@ import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-docu
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   defaultCleaningDocumentConfig,
+  buildCleaningAutoFillEntries,
 } from "@/lib/cleaning-document";
 import { TrackedDocumentsClient } from "@/components/journals/tracked-documents-client";
 import {
@@ -75,6 +76,13 @@ import {
   PERISHABLE_REJECTION_DOCUMENT_TITLE,
   getDefaultPerishableRejectionConfig,
 } from "@/lib/perishable-rejection-document";
+import { StaffTrainingDocumentsClient } from "@/components/journals/staff-training-documents-client";
+import {
+  STAFF_TRAINING_TEMPLATE_CODE,
+  STAFF_TRAINING_DOCUMENT_TITLE,
+  getDefaultStaffTrainingConfig,
+  buildStaffTrainingSeedRows,
+} from "@/lib/staff-training-document";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -691,6 +699,69 @@ export default async function JournalDocumentsPage({
     );
   }
 
+  if (resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
+    const existingCount = await db.journalDocument.count({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+      },
+    });
+
+    if (existingCount === 0) {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const dateFrom = new Date(Date.UTC(year, 0, 1));
+      const dateTo = new Date(Date.UTC(year, 11, 31));
+
+      const seedRows = buildStaffTrainingSeedRows(
+        orgUsers,
+        `${year}-01-01`
+      );
+
+      await db.journalDocument.create({
+        data: {
+          templateId: template.id,
+          organizationId: session.user.organizationId,
+          title: STAFF_TRAINING_DOCUMENT_TITLE,
+          status: "active",
+          dateFrom,
+          dateTo,
+          createdById: session.user.id,
+          config: {
+            ...getDefaultStaffTrainingConfig(),
+            rows: seedRows,
+          },
+        },
+      });
+    }
+
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { dateFrom: "asc" },
+    });
+
+    return (
+      <StaffTrainingDocumentsClient
+        activeTab={activeTab}
+        templateCode={resolvedCode}
+        templateName={template.name}
+        users={orgUsers}
+        documents={documents.map((doc) => ({
+          id: doc.id,
+          title: doc.title || STAFF_TRAINING_DOCUMENT_TITLE,
+          status: doc.status as "active" | "closed",
+          startedAtLabel: doc.dateFrom.toLocaleDateString("ru-RU").replaceAll(".", "-"),
+          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
+          config: doc.config,
+        }))}
+      />
+    );
+  }
+
   if (isDocumentTemplate(resolvedCode)) {
     const parsedTemplateFields = Array.isArray(template.fields)
       ? (template.fields as TrackedTemplateField[])
@@ -720,7 +791,13 @@ export default async function JournalDocumentsPage({
         const dateFrom = new Date(Date.UTC(year, month, 1));
         const dateTo = new Date(Date.UTC(year, month + 1, 0));
 
-        await db.journalDocument.create({
+        const cleaningConfig = defaultCleaningDocumentConfig(orgUsers);
+        const responsibleUser =
+          orgUsers.find((u) => u.role === "owner") ||
+          orgUsers.find((u) => u.role === "technologist") ||
+          orgUsers[0];
+
+        const created = await db.journalDocument.create({
           data: {
             templateId: template.id,
             organizationId: session.user.organizationId,
@@ -729,9 +806,33 @@ export default async function JournalDocumentsPage({
             dateFrom,
             dateTo,
             createdById: session.user.id,
-            config: defaultCleaningDocumentConfig(),
+            responsibleUserId: responsibleUser?.id || null,
+            responsibleTitle: responsibleUser
+              ? (responsibleUser.role === "owner" ? "Управляющий" : "Управляющий")
+              : null,
+            config: cleaningConfig,
           },
         });
+
+        // Seed sample entries for past dates
+        const sampleEntries = buildCleaningAutoFillEntries({
+          config: cleaningConfig,
+          dateFrom: `${year}-${String(month + 1).padStart(2, "0")}-01`,
+          dateTo: `${year}-${String(month + 1).padStart(2, "0")}-${String(new Date(Date.UTC(year, month + 1, 0)).getUTCDate()).padStart(2, "0")}`,
+          users: orgUsers.map((u) => ({ id: u.id, name: u.name })),
+        });
+
+        if (sampleEntries.length > 0) {
+          await db.journalDocumentEntry.createMany({
+            data: sampleEntries.map((e) => ({
+              documentId: created.id,
+              employeeId: responsibleUser?.id || "system",
+              date: new Date(e.date),
+              data: e.data,
+            })),
+            skipDuplicates: true,
+          });
+        }
       }
     }
 

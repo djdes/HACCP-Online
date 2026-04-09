@@ -82,6 +82,11 @@ import {
   getPerishableRejectionCreatePeriodBounds,
 } from "@/lib/perishable-rejection-document";
 import {
+  STAFF_TRAINING_TEMPLATE_CODE,
+  STAFF_TRAINING_DOCUMENT_TITLE,
+  getStaffTrainingCreatePeriodBounds,
+} from "@/lib/staff-training-document";
+import {
   FRYER_OIL_TEMPLATE_CODE,
   defaultFryerOilDocumentConfig,
 } from "@/lib/fryer-oil-document";
@@ -124,6 +129,8 @@ export function CreateDocumentDialog({
             ? getCleaningCreatePeriodBounds()
             : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
               ? getFinishedProductCreatePeriodBounds()
+              : templateCode === STAFF_TRAINING_TEMPLATE_CODE
+                ? getStaffTrainingCreatePeriodBounds()
               : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
                 ? getPerishableRejectionCreatePeriodBounds()
                 : isRegisterDocumentTemplate(templateCode)
@@ -141,6 +148,7 @@ export function CreateDocumentDialog({
   const isUvRuntimeJournal = templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE;
   const isMedBookJournal = templateCode === MED_BOOK_TEMPLATE_CODE;
   const isPerishableRejectionJournal = templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE;
+  const isStaffTrainingJournal = templateCode === STAFF_TRAINING_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
@@ -166,6 +174,8 @@ export function CreateDocumentDialog({
               ? getCleaningDocumentTitle()
               : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
                 ? getFinishedProductDocumentTitle()
+                : templateCode === STAFF_TRAINING_TEMPLATE_CODE
+                  ? STAFF_TRAINING_DOCUMENT_TITLE
                 : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
                   ? PERISHABLE_REJECTION_DOCUMENT_TITLE
                 : templateCode === MED_BOOK_TEMPLATE_CODE
@@ -229,9 +239,11 @@ export function CreateDocumentDialog({
           responsibleTitle: responsibleTitle || undefined,
           config: isCleaningJournal
             ? {
-                ...defaultCleaningDocumentConfig(),
+                ...defaultCleaningDocumentConfig(users),
                 ventilationEnabled: cleaningVentilation,
               }
+            : isStaffTrainingJournal
+            ? { showSignatureField: medBookIncludeVaccinations }
             : isMedBookJournal
             ? {
                 includeVaccinations: medBookIncludeVaccinations,
@@ -283,7 +295,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isCleaningJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -389,6 +401,33 @@ export function CreateDocumentDialog({
                 </div>
               )}
 
+              {isStaffTrainingJournal && (
+                <>
+                  <div className="space-y-3">
+                    <Label htmlFor="training-date-from" className="text-[18px] text-[#73738a]">
+                      Дата начала
+                    </Label>
+                    <Input
+                      id="training-date-from"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                      required
+                    />
+                  </div>
+                  <label className="flex items-center gap-3 text-[16px]">
+                    <input
+                      type="checkbox"
+                      checked={medBookIncludeVaccinations}
+                      onChange={(e) => setMedBookIncludeVaccinations(e.target.checked)}
+                      className="size-5 rounded accent-[#5b66ff]"
+                    />
+                    Добавить поле &quot;Подпись инструктируемого&quot;
+                  </label>
+                </>
+              )}
+
               {isCleaningJournal && (
                 <>
                   <div className="space-y-3">
@@ -436,7 +475,7 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isCleaningJournal && (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isCleaningJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
@@ -454,7 +493,7 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">

@@ -73,22 +73,46 @@ export const ACTIVITY_LABELS: Record<CleaningActivityType, string> = {
 // Defaults
 // ---------------------------------------------------------------------------
 
-export function defaultCleaningDocumentConfig(): CleaningDocumentConfig {
+export function defaultCleaningDocumentConfig(
+  users?: { id: string; name: string; role: string }[]
+): CleaningDocumentConfig {
+  const responsible =
+    users?.find((u) => u.role === "owner") ||
+    users?.find((u) => u.role === "technologist") ||
+    users?.[0] ||
+    null;
+
+  const responsibleUserId = responsible?.id || null;
+
+  const responsiblePersons: CleaningResponsiblePerson[] = users
+    ? users
+        .slice(0, 3)
+        .map((u) => ({
+          userId: u.id,
+          title:
+            u.role === "owner"
+              ? "Управляющий"
+              : u.role === "technologist"
+                ? "Управляющий"
+                : "Повар",
+        }))
+    : [];
+
   return {
     ventilationEnabled: true,
     skipWeekends: false,
     schedule: {
       disinfection: {
         times: ["14:00", "12:00", "23:00"],
-        responsibleUserId: null,
+        responsibleUserId,
       },
       ventilation: {
         times: ["12:00", "10:00", "23:00"],
-        responsibleUserId: null,
+        responsibleUserId,
       },
       wetCleaning: {
         times: ["12:00", "18:00"],
-        responsibleUserId: null,
+        responsibleUserId,
       },
     },
     procedure: {
@@ -99,7 +123,7 @@ export function defaultCleaningDocumentConfig(): CleaningDocumentConfig {
         "заготовочный цех, мясной цех, холодный цех, горячий цех, обеденный зал, бар",
       detergent: "Ph Средство дезинфицирующее - 0.5%",
     },
-    responsiblePersons: [],
+    responsiblePersons,
     periodicity: {
       disinfectionPerDay: 3,
       ventilationPerDay: 3,
