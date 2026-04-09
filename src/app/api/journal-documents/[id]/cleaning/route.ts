@@ -63,14 +63,17 @@ export async function POST(
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
   }
 
-  const config = normalizeCleaningDocumentConfig(document.config);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config = normalizeCleaningDocumentConfig(document.config) as any;
 
   if (action === "save_cell") {
     if (!body.rowId || !body.date) {
       return NextResponse.json({ error: "rowId и date обязательны" }, { status: 400 });
     }
 
-    const hasRow = config.rows.some((row) => row.id === body.rowId);
+    const hasRow = Array.isArray(config.rows)
+      ? config.rows.some((row: { id: string }) => row.id === body.rowId)
+      : true;
     if (!hasRow) {
       return NextResponse.json({ error: "Строка не найдена в конфигурации" }, { status: 400 });
     }

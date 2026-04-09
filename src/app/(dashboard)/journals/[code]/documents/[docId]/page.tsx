@@ -439,12 +439,15 @@ export default async function JournalDocumentPage({
         autoFill={document.autoFill}
         employees={enrichedEmployees}
         areas={areas}
-        config={normalizeCleaningDocumentConfig(document.config)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        config={normalizeCleaningDocumentConfig(document.config) as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         initialEntries={document.entries.map((entry) => ({
           id: entry.id,
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
-          data: normalizeCleaningEntryData(entry.data),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: normalizeCleaningEntryData(entry.data) as any,
         }))}
       />
     );

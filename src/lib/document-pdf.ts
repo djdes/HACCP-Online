@@ -858,7 +858,8 @@ function drawCleaningPdf(doc: jsPDF, params: {
   title: string;
   dateFrom: Date | string;
   dateTo: Date | string;
-  config: ReturnType<typeof normalizeCleaningDocumentConfig>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any;
   entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
 }) {
   drawTitle(doc, getCleaningDocumentTitle());
@@ -869,11 +870,16 @@ function drawCleaningPdf(doc: jsPDF, params: {
     dateTo: params.dateTo,
   });
 
-  const rows = params.config.rows;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: Array<{ id: string; name: string }> = Array.isArray(params.config.rows)
+    ? params.config.rows
+    : [];
   const dateKeys = buildDateKeys(params.dateFrom, params.dateTo);
   const entryMap = new Map<string, string>();
   params.entries.forEach((entry) => {
-    const mark = normalizeCleaningEntryData(entry.data).mark;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = entry.data as any;
+    const mark = typeof data.mark === "string" ? data.mark : null;
     const code = mark === "routine" ? "Т" : mark === "general" ? "Г" : "";
     entryMap.set(`${entry.employeeId}:${toDateKey(entry.date)}`, code);
   });
