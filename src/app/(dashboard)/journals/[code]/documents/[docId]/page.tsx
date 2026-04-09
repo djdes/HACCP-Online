@@ -456,17 +456,13 @@ export default async function JournalDocumentPage({
         responsibleUserId={document.responsibleUserId}
         status={document.status}
         autoFill={document.autoFill}
-        employees={enrichedEmployees}
-        areas={areas}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        config={normalizeCleaningDocumentConfig(document.config) as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        users={enrichedEmployees}
+        config={normalizeCleaningDocumentConfig(document.config)}
         initialEntries={document.entries.map((entry) => ({
           id: entry.id,
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: normalizeCleaningEntryData(entry.data) as any,
+          data: normalizeCleaningEntryData(entry.data),
         }))}
       />
     );
