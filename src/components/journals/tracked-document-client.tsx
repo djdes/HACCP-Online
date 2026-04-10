@@ -26,6 +26,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PestControlDocumentClient } from "@/components/journals/pest-control-document-client";
+import {
+  isPestControlDocumentFields,
+  normalizePestControlEntryData,
+} from "@/lib/pest-control-document";
 
 type EmployeeItem = {
   id: string;
@@ -92,7 +97,7 @@ function sortedEntries(entries: EntryItem[]) {
   });
 }
 
-export function TrackedDocumentClient({
+function TrackedDocumentClientImpl({
   documentId,
   title,
   organizationName,
@@ -739,6 +744,34 @@ export function TrackedDocumentClient({
       </Dialog>
     </div>
   );
+}
+
+export function TrackedDocumentClient(props: Props) {
+  if (isPestControlDocumentFields(props.fields)) {
+    return (
+      <PestControlDocumentClient
+        documentId={props.documentId}
+        title={props.title}
+        organizationName={props.organizationName}
+        dateFrom={props.dateFrom}
+        dateTo={props.dateTo}
+        status={props.status}
+        routeCode="pest_control"
+        users={props.employees}
+        initialEntries={props.initialEntries.map((entry) => ({
+          id: entry.id,
+          data: normalizePestControlEntryData(
+            entry.data,
+            entry.date,
+            props.employees,
+            entry.employeeId
+          ),
+        }))}
+      />
+    );
+  }
+
+  return <TrackedDocumentClientImpl {...props} />;
 }
 
 

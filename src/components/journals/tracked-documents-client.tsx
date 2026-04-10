@@ -33,6 +33,7 @@ import {
   getTrackedDocumentCreateMode,
   isSourceStyleTrackedTemplate,
 } from "@/lib/tracked-document";
+import { PestControlDocumentsClient } from "@/components/journals/pest-control-documents-client";
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
   normalizeAcceptanceDocumentConfig,
@@ -109,7 +110,7 @@ function EditTrackedDocumentDialog({
     const acceptanceConfig = normalizeAcceptanceDocumentConfig(document.config, users);
     setShowPackagingField(acceptanceConfig.showPackagingComplianceField);
     setResponsibleUserId(acceptanceConfig.defaultResponsibleUserId || "");
-  }, [document, open, responsibleOptions]);
+  }, [document, open, responsibleOptions, users]);
 
   async function handleSave() {
     if (!document) return;
@@ -277,7 +278,7 @@ function EditTrackedDocumentDialog({
   );
 }
 
-export function TrackedDocumentsClient({
+function TrackedDocumentsClientImpl({
   activeTab,
   templateCode,
   templateName,
@@ -439,8 +440,29 @@ export function TrackedDocumentsClient({
         document={editingDocument}
         templateCode={templateCode}
         users={users}
-        onSaved={() => router.refresh()}
+  onSaved={() => router.refresh()}
       />
     </>
   );
+}
+
+export function TrackedDocumentsClient(props: Props) {
+  if (props.templateCode === "pest_control") {
+    return (
+      <PestControlDocumentsClient
+        routeCode={props.templateCode}
+        activeTab={props.activeTab}
+        templateCode={props.templateCode}
+        users={props.users}
+        documents={props.documents.map((document) => ({
+          id: document.id,
+          title: document.title,
+          status: document.status,
+          dateFrom: document.dateFrom,
+        }))}
+      />
+    );
+  }
+
+  return <TrackedDocumentsClientImpl {...props} />;
 }
