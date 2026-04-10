@@ -512,6 +512,35 @@ const journalTemplates = [
 ];
 
 const additionalJournalTemplates = [
+  {
+    code: "complaint_register",
+    name: "Журнал регистрации жалоб",
+    description: "Журнал регистрации и обработки жалоб заявителей",
+    sortOrder: 38,
+    isMandatorySanpin: false,
+    isMandatoryHaccp: false,
+    fields: [
+      { key: "receiptDate", label: "Дата поступления", type: "date", required: true },
+      { key: "applicantName", label: "ФИО заявителя", type: "text", required: true },
+      {
+        key: "complaintReceiptForm",
+        label: "Форма поступления жалобы",
+        type: "select",
+        required: true,
+        options: [
+          { value: "по почте", label: "по почте" },
+          { value: "по телефону", label: "по телефону" },
+          { value: "по факсу", label: "по факсу" },
+          { value: "по электронной почте", label: "по электронной почте" },
+          { value: "в книге отзывов и предложений", label: "в книге отзывов и предложений" },
+        ],
+      },
+      { key: "applicantDetails", label: "Реквизиты заявителя", type: "textarea", required: false },
+      { key: "complaintContent", label: "Содержание жалобы", type: "textarea", required: true },
+      { key: "decisionDate", label: "Дата решения", type: "date", required: false },
+      { key: "decisionSummary", label: "Решение, краткое содержание", type: "textarea", required: false },
+    ],
+  },
   { code: "accident_journal", name: "Журнал учета аварий", description: "Журнал регистрации аварий, их последствий и корректирующих мероприятий", sortOrder: 32, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [] },
   { code: "sanitary_day_control", name: "Чек-лист (памятка) проведения санитарного дня", description: "Чек-лист проведения санитарного дня", sortOrder: 21, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "hand_hygiene_control", name: "Контроль гигиены рук", description: "Проверка соблюдения процедур гигиены рук", sortOrder: 22, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "employeeName", label: "Сотрудник", type: "employee", required: true }, { key: "hasViolations", label: "Есть нарушения", type: "boolean", required: true }, { key: "comment", label: "Комментарий", type: "text", required: false }] },

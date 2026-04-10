@@ -115,6 +115,13 @@ import {
   PERISHABLE_REJECTION_DOCUMENT_TITLE,
   getDefaultPerishableRejectionConfig,
 } from "@/lib/perishable-rejection-document";
+import { ProductWriteoffDocumentsClient } from "@/components/journals/product-writeoff-documents-client";
+import {
+  PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+  PRODUCT_WRITEOFF_TEMPLATE_CODE,
+  buildProductWriteoffConfigFromData,
+  normalizeProductWriteoffConfig,
+} from "@/lib/product-writeoff-document";
 import { GlassListDocumentsClient } from "@/components/journals/glass-list-documents-client";
 import {
   GLASS_LIST_DOCUMENT_TITLE,
@@ -1141,11 +1148,6 @@ export default async function JournalDocumentsPage({
     select: { id: true, name: true, role: true, email: true },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
-  const organization = await db.organization.findUnique({
-    where: { id: session.user.organizationId },
-    select: { name: true },
-  });
-
   if (resolvedCode === "hygiene" || resolvedCode === "health_check") {
     await ensureStaffJournalSampleDocuments({
       templateCode: resolvedCode,
@@ -1202,14 +1204,16 @@ export default async function JournalDocumentsPage({
         activeTab={activeTab}
         templateCode={resolvedCode}
         templateName={scanConfig?.title || template.name}
-        pageCount={pageCount}
         documents={documents.map((document) => ({
           id: document.id,
           title: document.title || (scanConfig?.title || template.name),
           status: document.status as "active" | "closed",
-          dateFromLabel: document.dateFrom.toISOString().slice(0, 10),
-          dateToLabel: document.dateTo.toISOString().slice(0, 10),
-          pageCount,
+          dateLabel: "Период",
+          dateValue:
+            document.dateFrom.toISOString().slice(0, 10) ===
+            document.dateTo.toISOString().slice(0, 10)
+              ? document.dateFrom.toISOString().slice(0, 10)
+              : `${document.dateFrom.toISOString().slice(0, 10)} — ${document.dateTo.toISOString().slice(0, 10)}`,
         }))}
       />
     );
@@ -1811,6 +1815,90 @@ export default async function JournalDocumentsPage({
       });
     }
 
+    if (resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
+      const [products, batches, existingDocuments] = await Promise.all([
+        db.product.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+            isActive: true,
+          },
+          select: { name: true },
+          orderBy: { name: "asc" },
+        }),
+        db.batch.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+          },
+          select: {
+            code: true,
+            productName: true,
+            supplier: true,
+            quantity: true,
+            unit: true,
+            receivedAt: true,
+          },
+          orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
+          take: 10,
+        }),
+        db.journalDocument.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+            templateId: template.id,
+          },
+          select: {
+            status: true,
+          },
+        }),
+      ]);
+
+      const existingStatuses = new Set(existingDocuments.map((item) => item.status));
+      const sampleDate = new Date("2025-08-05T00:00:00.000Z");
+
+      if (!existingStatuses.has("active")) {
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: sampleDate,
+            dateTo: sampleDate,
+            createdById: session.user.id,
+            config: buildProductWriteoffConfigFromData({
+              users: orgUsers,
+              products,
+              batches,
+              referenceDate: sampleDate,
+            }) as Prisma.InputJsonValue,
+          },
+        });
+      }
+
+      if (!existingStatuses.has("closed")) {
+        const closedConfig = buildProductWriteoffConfigFromData({
+          users: orgUsers,
+          products,
+          batches,
+          referenceDate: sampleDate,
+        });
+        closedConfig.actNumber = "2";
+        closedConfig.comment = "Архивный тестовый документ";
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: sampleDate,
+            dateTo: sampleDate,
+            createdById: session.user.id,
+            config: closedConfig as Prisma.InputJsonValue,
+          },
+        });
+      }
+    }
+
     if (resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
       await ensurePestControlSampleDocuments({
         templateId: template.id,
@@ -1852,6 +1940,24 @@ export default async function JournalDocumentsPage({
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             config: document.config,
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
+      return (
+        <ProductWriteoffDocumentsClient
+          activeTab={activeTab}
+          templateCode={resolvedCode}
+          templateName={template.name}
+          users={orgUsers}
+          documents={documents.map((document) => ({
+            id: document.id,
+            title: document.title || PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config: normalizeProductWriteoffConfig(document.config),
           }))}
         />
       );

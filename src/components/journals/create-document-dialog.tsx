@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -82,6 +83,11 @@ import {
   getPerishableRejectionCreatePeriodBounds,
 } from "@/lib/perishable-rejection-document";
 import {
+  PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+  PRODUCT_WRITEOFF_TEMPLATE_CODE,
+  getProductWriteoffCreatePeriodBounds,
+} from "@/lib/product-writeoff-document";
+import {
   STAFF_TRAINING_TEMPLATE_CODE,
   STAFF_TRAINING_DOCUMENT_TITLE,
   getStaffTrainingCreatePeriodBounds,
@@ -104,6 +110,14 @@ import {
   SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,
   defaultSdcConfig,
 } from "@/lib/sanitary-day-checklist-document";
+import {
+  EQUIPMENT_CLEANING_TEMPLATE_CODE,
+  EQUIPMENT_CLEANING_VARIANT_LABELS,
+  getDefaultEquipmentCleaningConfig,
+  getEquipmentCleaningCreatePeriodBounds,
+  getEquipmentCleaningDocumentTitle,
+  type EquipmentCleaningFieldVariant,
+} from "@/lib/equipment-cleaning-document";
 
 interface Props {
   templateCode: string;
@@ -151,6 +165,10 @@ export function CreateDocumentDialog({
                 ? getStaffTrainingCreatePeriodBounds()
               : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
                 ? getPerishableRejectionCreatePeriodBounds()
+                : templateCode === EQUIPMENT_CLEANING_TEMPLATE_CODE
+                  ? getEquipmentCleaningCreatePeriodBounds()
+                : templateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+                  ? getProductWriteoffCreatePeriodBounds()
                 : isRegisterDocumentTemplate(templateCode)
                 ? getRegisterDocumentCreatePeriodBounds()
                 : getHygieneCreatePeriodBounds(),
@@ -166,6 +184,8 @@ export function CreateDocumentDialog({
   const isUvRuntimeJournal = templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE;
   const isMedBookJournal = templateCode === MED_BOOK_TEMPLATE_CODE;
   const isPerishableRejectionJournal = templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE;
+  const isEquipmentCleaningJournal = templateCode === EQUIPMENT_CLEANING_TEMPLATE_CODE;
+  const isProductWriteoffJournal = templateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE;
   const isStaffTrainingJournal = templateCode === STAFF_TRAINING_TEMPLATE_CODE;
   const isEquipmentMaintenanceJournal = templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE;
   const isEquipmentCalibrationJournal = templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE;
@@ -202,6 +222,10 @@ export function CreateDocumentDialog({
                   ? STAFF_TRAINING_DOCUMENT_TITLE
                 : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
                   ? PERISHABLE_REJECTION_DOCUMENT_TITLE
+                : templateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+                  ? PRODUCT_WRITEOFF_DOCUMENT_TITLE
+                : templateCode === EQUIPMENT_CLEANING_TEMPLATE_CODE
+                  ? getEquipmentCleaningDocumentTitle()
                 : templateCode === MED_BOOK_TEMPLATE_CODE
                   ? MED_BOOK_DOCUMENT_TITLE
                 : isSourceStyleTrackedJournal
@@ -228,6 +252,10 @@ export function CreateDocumentDialog({
   const [fpShowCourierTime, setFpShowCourierTime] = useState(false);
   const [fpFooterNote, setFpFooterNote] = useState("");
   const [medBookIncludeVaccinations, setMedBookIncludeVaccinations] = useState(true);
+  const [productWriteoffActNumber, setProductWriteoffActNumber] = useState("1");
+  const [productWriteoffComment, setProductWriteoffComment] = useState("");
+  const [equipmentCleaningVariant, setEquipmentCleaningVariant] =
+    useState<EquipmentCleaningFieldVariant>("rinse_temperature");
   const [cleaningVentilation, setCleaningVentilation] = useState(true);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -266,6 +294,11 @@ export function CreateDocumentDialog({
                 ...defaultCleaningDocumentConfig(users),
                 ventilationEnabled: cleaningVentilation,
               }
+            : isEquipmentCleaningJournal
+            ? {
+                ...getDefaultEquipmentCleaningConfig(),
+                fieldVariant: equipmentCleaningVariant,
+              }
             : isEquipmentMaintenanceJournal
             ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom }
             : isEquipmentCalibrationJournal
@@ -293,8 +326,15 @@ export function CreateDocumentDialog({
                   showCourierTime: fpShowCourierTime,
                   footerNote: fpFooterNote.trim(),
                 }
-              : templateCode === FRYER_OIL_TEMPLATE_CODE
+            : templateCode === FRYER_OIL_TEMPLATE_CODE
               ? defaultFryerOilDocumentConfig()
+              : templateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+              ? {
+                  documentName: title.trim() || PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+                  actNumber: productWriteoffActNumber || "1",
+                  documentDate: dateFrom,
+                  comment: productWriteoffComment,
+                }
               : templateCode === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE
               ? defaultSdcConfig()
               : isSourceStyleTrackedJournal && (trackedAreaName.trim() || isUvRuntimeJournal)
@@ -325,7 +365,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal || isCleaningJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isProductWriteoffJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal || isCleaningJournal || isEquipmentCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -415,6 +455,43 @@ export function CreateDocumentDialog({
                 </label>
               )}
 
+              {isEquipmentCleaningJournal && (
+                <>
+                  <div className="space-y-3">
+                    <Label htmlFor="equipment-cleaning-date-from" className="text-[18px] text-[#73738a]">
+                      Дата начала
+                    </Label>
+                    <Input
+                      id="equipment-cleaning-date-from"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => {
+                        setDateFrom(e.target.value);
+                        setDateTo(e.target.value);
+                      }}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="text-[18px] font-semibold text-black">Название поля</div>
+                    <div className="flex flex-col gap-3 text-[18px] text-black sm:flex-row sm:gap-8">
+                      {(Object.keys(EQUIPMENT_CLEANING_VARIANT_LABELS) as EquipmentCleaningFieldVariant[]).map((variant) => (
+                        <label key={variant} className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            checked={equipmentCleaningVariant === variant}
+                            onChange={() => setEquipmentCleaningVariant(variant)}
+                            className="size-5 accent-[#5b66ff]"
+                          />
+                          {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
               {isPerishableRejectionJournal && (
                 <div className="space-y-3">
                   <Label htmlFor="perishable-date-from" className="text-[18px] text-[#73738a]">
@@ -429,6 +506,47 @@ export function CreateDocumentDialog({
                     required
                   />
                 </div>
+              )}
+
+              {isProductWriteoffJournal && (
+                <>
+                  <div className="space-y-3">
+                    <Label htmlFor="product-writeoff-act-number" className="text-[18px] text-[#73738a]">
+                      № акта
+                    </Label>
+                    <Input
+                      id="product-writeoff-act-number"
+                      value={productWriteoffActNumber}
+                      onChange={(e) => setProductWriteoffActNumber(e.target.value)}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="product-writeoff-date" className="text-[18px] text-[#73738a]">
+                      Дата документа
+                    </Label>
+                    <Input
+                      id="product-writeoff-date"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="product-writeoff-comment" className="text-[18px] text-[#73738a]">
+                      Комментарий
+                    </Label>
+                    <Textarea
+                      id="product-writeoff-comment"
+                      value={productWriteoffComment}
+                      onChange={(e) => setProductWriteoffComment(e.target.value)}
+                      className="min-h-[150px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]"
+                    />
+                  </div>
+                </>
               )}
 
               {isStaffTrainingJournal && (
@@ -531,7 +649,7 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
@@ -549,7 +667,7 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">
@@ -585,7 +703,7 @@ export function CreateDocumentDialog({
                         checked={fpShowCorrectiveAction}
                         onCheckedChange={(checked) => setFpShowCorrectiveAction(checked === true)}
                       />
-                      "Соответствие внешнего вида упаковки, маркировки требованиям НД"
+                      &quot;Соответствие внешнего вида упаковки, маркировки требованиям НД&quot;
                     </label>
                   </div>
                   <div className="space-y-3">

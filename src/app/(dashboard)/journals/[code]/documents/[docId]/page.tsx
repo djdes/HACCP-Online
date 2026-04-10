@@ -108,6 +108,11 @@ import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
   normalizePerishableRejectionConfig,
 } from "@/lib/perishable-rejection-document";
+import { ProductWriteoffDocumentClient } from "@/components/journals/product-writeoff-document-client";
+import {
+  PRODUCT_WRITEOFF_TEMPLATE_CODE,
+  normalizeProductWriteoffConfig,
+} from "@/lib/product-writeoff-document";
 import { GlassListDocumentClient } from "@/components/journals/glass-list-document-client";
 import {
   GLASS_LIST_TEMPLATE_CODE,
@@ -150,6 +155,12 @@ import {
   METAL_IMPURITY_TEMPLATE_CODE,
   normalizeMetalImpurityConfig,
 } from "@/lib/metal-impurity-document";
+import { EquipmentCleaningDocumentClient } from "@/components/journals/equipment-cleaning-document-client";
+import {
+  EQUIPMENT_CLEANING_TEMPLATE_CODE,
+  normalizeEquipmentCleaningConfig,
+  normalizeEquipmentCleaningRowData,
+} from "@/lib/equipment-cleaning-document";
 
 export const dynamic = "force-dynamic";
 
@@ -177,7 +188,7 @@ export default async function JournalDocumentPage({
   const query = await searchParams;
   const session = await requireAuth();
 
-  const [document, organization, employees, areas, equipment] = await Promise.all([
+  const [document, organization, employees, equipment] = await Promise.all([
     db.journalDocument.findUnique({
       where: { id: docId },
       include: {
@@ -198,13 +209,6 @@ export default async function JournalDocumentPage({
       },
       select: { id: true, name: true, role: true, email: true },
       orderBy: [{ role: "asc" }, { name: "asc" }],
-    }),
-    db.area.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-      },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
     }),
     db.equipment.findMany({
       where: {
@@ -306,6 +310,26 @@ export default async function JournalDocumentPage({
     );
   }
 
+  if (document.template.code === EQUIPMENT_CLEANING_TEMPLATE_CODE) {
+    return (
+      <EquipmentCleaningDocumentClient
+        documentId={document.id}
+        title={document.title}
+        templateCode={resolvedCode}
+        organizationName={organization?.name || 'РћРћРћ "РўРµСЃС‚"'}
+        status={document.status as "active" | "closed"}
+        dateFrom={toDateKey(document.dateFrom)}
+        config={normalizeEquipmentCleaningConfig(document.config)}
+        users={enrichedEmployees}
+        equipmentOptions={equipment.map((item) => item.name)}
+        initialRows={document.entries.map((entry) => ({
+          id: entry.id,
+          data: normalizeEquipmentCleaningRowData(entry.data),
+        }))}
+      />
+    );
+  }
+
   if (document.template.code === MED_BOOK_TEMPLATE_CODE) {
     const medConfig = normalizeMedBookConfig(document.config);
 
@@ -356,6 +380,20 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizePerishableRejectionConfig(document.config)}
+        users={enrichedEmployees}
+      />
+    );
+  }
+
+  if (document.template.code === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
+    return (
+      <ProductWriteoffDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        status={document.status}
+        initialConfig={normalizeProductWriteoffConfig(document.config)}
         users={enrichedEmployees}
       />
     );
