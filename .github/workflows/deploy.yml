@@ -11,7 +11,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -25,6 +25,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Prepare CI env for build
+        run: |
+          if [ -n "${{ secrets.DATABASE_URL }}" ]; then
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          else
+            echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres" >> .env
+          fi
 
       - name: Build app in CI
         run: |
@@ -100,8 +108,14 @@ jobs:
             npx prisma db push 2>&1 | tail -5
 
             echo "=== Seeding journal templates ==="
-            if [ -f .env ]; then set -a; . ./.env; set +a; fi
-            npx tsx prisma/seed.ts 2>&1 | tail -20
+            if [ -f .env ]; then
+              set -a
+              . ./.env
+              set +a
+              npx --yes tsx prisma/seed.ts 2>&1 | tail -20 || echo "Seed failed, continue deploy"
+            else
+              echo ".env not found, skip seed"
+            fi
 
             echo "=== Restarting PM2 ==="
             npx pm2 delete haccp-online 2>/dev/null || true
