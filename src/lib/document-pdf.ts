@@ -85,6 +85,11 @@ import {
   normalizeTrainingPlanConfig,
 } from "@/lib/training-plan-document";
 import {
+  BREAKDOWN_HISTORY_TEMPLATE_CODE,
+  BREAKDOWN_HISTORY_HEADING,
+  normalizeBreakdownHistoryDocumentConfig,
+} from "@/lib/breakdown-history-document";
+import {
   buildHygieneExampleEmployees,
   buildDateKeys,
   formatMonthLabel,
@@ -1390,6 +1395,118 @@ function drawAcceptancePdf(doc: jsPDF, params: {
   });
 }
 
+function formatBreakdownDateRu(dateKey: string) {
+  if (!dateKey) return "";
+  const [y, m, d] = dateKey.split("-");
+  if (!y || !m || !d) return dateKey;
+  return `${d}-${m}-${y}`;
+}
+
+function drawBreakdownHistoryPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  config: ReturnType<typeof normalizeBreakdownHistoryDocumentConfig>;
+}) {
+  const cfg = params.config;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const centerX = pageWidth / 2;
+
+  drawTitle(doc, params.title || BREAKDOWN_HISTORY_HEADING);
+
+  const x = 24;
+  const y = 28;
+  const width = pageWidth - 48;
+  const leftWidth = 56;
+  const rightWidth = 32;
+  const middleWidth = width - leftWidth - rightWidth;
+  const topHeight = 10;
+  const secondHeight = 10;
+  const totalHeight = topHeight + secondHeight;
+
+  doc.setLineWidth(0.25);
+  doc.rect(x, y, width, totalHeight);
+  doc.line(x + leftWidth, y, x + leftWidth, y + totalHeight);
+  doc.line(x + leftWidth + middleWidth, y, x + leftWidth + middleWidth, y + totalHeight);
+  doc.line(x + leftWidth, y + topHeight, x + leftWidth + middleWidth, y + topHeight);
+
+  doc.setFontSize(10);
+  doc.setFont("JournalUnicode", "bold");
+  drawCenteredText(doc, params.organizationName, x + 3, y, leftWidth - 6, totalHeight, leftWidth - 10);
+
+  doc.setFont("JournalUnicode", "normal");
+  drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, topHeight, middleWidth - 10);
+
+  doc.setFont("JournalUnicode", "italic");
+  drawCenteredText(doc, "КАРТОЧКА ИСТОРИИ ПОЛОМОК", x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
+
+  const dateFromStr = params.dateFrom instanceof Date
+    ? formatBreakdownDateRu(params.dateFrom.toISOString().slice(0, 10))
+    : formatBreakdownDateRu(String(params.dateFrom).slice(0, 10));
+
+  doc.setFont("JournalUnicode", "normal");
+  drawCenteredText(doc, `Начат  ${dateFromStr}\nОкончен _________`, x + leftWidth + middleWidth, y, rightWidth, topHeight, rightWidth - 4);
+  drawCenteredText(doc, "СТР. 1 ИЗ 1", x + leftWidth + middleWidth, y + topHeight, rightWidth, secondHeight, rightWidth - 4);
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(12);
+  doc.text("КАРТОЧКА ИСТОРИИ ПОЛОМОК", centerX, y + totalHeight + 12, { align: "center" });
+
+  const head: RowInput[] = [[
+    { content: "Дата и\nвремя\nначала\nработ", styles: { halign: "center", valign: "middle" } },
+    { content: "Наименование\nоборудования", styles: { halign: "center", valign: "middle" } },
+    { content: "Описание поломки", styles: { halign: "center", valign: "middle" } },
+    { content: "Выполненный ремонт", styles: { halign: "center", valign: "middle" } },
+    { content: "Замена частей (если\nпроизведена)", styles: { halign: "center", valign: "middle" } },
+    { content: "Дата и\nвремя\nокончания\nработ", styles: { halign: "center", valign: "middle" } },
+    { content: "Часы\nпрост\nоя", styles: { halign: "center", valign: "middle" } },
+    { content: "ФИО лица отв\nетственного\nза ремонт", styles: { halign: "center", valign: "middle" } },
+  ]];
+
+  const body: RowInput[] = cfg.rows.map((row) => {
+    const startTime = row.startHour && row.startMinute ? `${row.startHour}:${row.startMinute}` : "";
+    const endTime = row.endHour && row.endMinute ? `${row.endHour}:${row.endMinute}` : "";
+    return [
+      centerCell(`${formatBreakdownDateRu(row.startDate)}\n${startTime}`),
+      centerCell(row.equipmentName),
+      centerCell(row.breakdownDescription),
+      centerCell(row.repairPerformed),
+      centerCell(row.partsReplaced),
+      centerCell(`${formatBreakdownDateRu(row.endDate)}\n${endTime}`),
+      centerCell(row.downtimeHours),
+      centerCell(row.responsiblePerson),
+    ];
+  });
+
+  if (body.length === 0) {
+    for (let i = 0; i < 3; i++) body.push(Array(8).fill(centerCell("")));
+  }
+
+  autoTable(doc, {
+    startY: y + totalHeight + 18,
+    margin: { left: 24, right: 24 },
+    head,
+    body,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      lineWidth: 0.2,
+      fontStyle: "bold",
+    },
+    bodyStyles: { lineWidth: 0.2 },
+  });
+}
+
 function drawTrainingPlanPdf(doc: jsPDF, params: {
   organizationName: string;
   title: string;
@@ -2263,6 +2380,13 @@ export async function generateJournalDocumentPdf(params: {
       title: document.title || TRAINING_PLAN_HEADING,
       config: normalizeTrainingPlanConfig(document.config),
     });
+  } else if (templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+    drawBreakdownHistoryPdf(doc, {
+      organizationName,
+      title: document.title || BREAKDOWN_HISTORY_HEADING,
+      dateFrom: document.dateFrom,
+      config: normalizeBreakdownHistoryDocumentConfig(document.config),
+    });
   } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
     drawAcceptancePdf(doc, {
       organizationName,
@@ -2354,6 +2478,8 @@ export async function generateJournalDocumentPdf(params: {
               ? "general-cleaning-schedule"
             : templateCode === TRAINING_PLAN_TEMPLATE_CODE
               ? "training-plan"
+            : templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE
+              ? "breakdown-history"
             : templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE
               ? "acceptance-journal"
             : templateCode === FRYER_OIL_TEMPLATE_CODE

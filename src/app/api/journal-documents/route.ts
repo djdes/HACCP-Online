@@ -27,6 +27,7 @@ import {
 } from "@/lib/register-document";
 import { SANITATION_DAY_TEMPLATE_CODE, getSanitationDayDefaultConfig } from "@/lib/sanitation-day-document";
 import { TRAINING_PLAN_TEMPLATE_CODE, getTrainingPlanDefaultConfig } from "@/lib/training-plan-document";
+import { BREAKDOWN_HISTORY_TEMPLATE_CODE, getBreakdownHistoryDefaultConfig } from "@/lib/breakdown-history-document";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -162,6 +163,8 @@ export async function POST(request: Request) {
       ? getSanitationDayDefaultConfig()
       : templateCode === TRAINING_PLAN_TEMPLATE_CODE
       ? getTrainingPlanDefaultConfig()
+      : templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE
+      ? getBreakdownHistoryDefaultConfig()
       : isRegisterDocumentTemplate(templateCode)
       ? buildRegisterDocumentConfigFromUsers(allUsers)
       : undefined;

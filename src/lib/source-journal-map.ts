@@ -24,7 +24,7 @@ export const SOURCE_JOURNAL_MAP: SourceJournalMapItem[] = [
   { sourceSlug: "disinfectjournal", localCode: "disinfectant_usage", status: "mapped" },
   { sourceSlug: "sanitationdaycheklist", localCode: "sanitary_day_control", status: "mapped" },
   { sourceSlug: "preventiveequipment", localCode: "equipment_maintenance", status: "mapped" },
-  { sourceSlug: "breakdownhistoryjournal", localCode: null, status: "new" },
+  { sourceSlug: "breakdownhistoryjournal", localCode: "breakdown_history", status: "mapped" },
   { sourceSlug: "instrumentcalibration", localCode: "equipment_calibration", status: "mapped" },
   { sourceSlug: "acceptance2journal", localCode: "receiving_temperature_control", status: "candidate" },
   { sourceSlug: "issuancesizjournal", localCode: null, status: "new" },
