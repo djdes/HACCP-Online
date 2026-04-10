@@ -19,6 +19,14 @@ import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   buildFinishedProductConfigFromUsers,
 } from "@/lib/finished-product-document";
+import {
+  PRODUCT_WRITEOFF_TEMPLATE_CODE,
+  buildProductWriteoffConfigFromData,
+} from "@/lib/product-writeoff-document";
+import {
+  GLASS_LIST_TEMPLATE_CODE,
+  buildGlassListConfigFromData,
+} from "@/lib/glass-list-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { ACCEPTANCE_DOCUMENT_TEMPLATE_CODE, getAcceptanceDocumentDefaultConfig } from "@/lib/acceptance-document";
 import {
@@ -32,6 +40,22 @@ import {
 import { SANITATION_DAY_TEMPLATE_CODE, getSanitationDayDefaultConfig } from "@/lib/sanitation-day-document";
 import { TRAINING_PLAN_TEMPLATE_CODE, getTrainingPlanDefaultConfig } from "@/lib/training-plan-document";
 import { BREAKDOWN_HISTORY_TEMPLATE_CODE, getBreakdownHistoryDefaultConfig } from "@/lib/breakdown-history-document";
+import {
+  ACCIDENT_DOCUMENT_TEMPLATE_CODE,
+  getAccidentDocumentDefaultConfig,
+} from "@/lib/accident-document";
+import {
+  AUDIT_PROTOCOL_TEMPLATE_CODE,
+  getDefaultAuditProtocolConfig,
+} from "@/lib/audit-protocol-document";
+import {
+  AUDIT_REPORT_TEMPLATE_CODE,
+  getDefaultAuditReportConfig,
+} from "@/lib/audit-report-document";
+import {
+  METAL_IMPURITY_TEMPLATE_CODE,
+  getDefaultMetalImpurityConfig,
+} from "@/lib/metal-impurity-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import {
   buildEquipmentCalibrationConfigFromEquipment,
@@ -141,6 +165,68 @@ export async function POST(request: Request) {
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
 
+  const allProducts =
+    resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE ||
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+      ? await db.product.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+            isActive: true,
+          },
+          select: {
+            name: true,
+          },
+          orderBy: { name: "asc" },
+        })
+      : [];
+
+  const recentBatches =
+    resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+      ? await db.batch.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+          },
+          select: {
+            code: true,
+            productName: true,
+            supplier: true,
+            quantity: true,
+            unit: true,
+            receivedAt: true,
+          },
+          orderBy: { receivedAt: "desc" },
+          take: 10,
+        })
+      : [];
+
+  const allAreas =
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+      ? await db.area.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+          },
+          select: {
+            name: true,
+          },
+          orderBy: { name: "asc" },
+        })
+      : [];
+
+  const allEquipment =
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+      ? await db.equipment.findMany({
+          where: {
+            area: {
+              organizationId: session.user.organizationId,
+            },
+          },
+          select: {
+            name: true,
+          },
+          orderBy: { name: "asc" },
+        })
+      : [];
+
   const cleaningAreas =
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.area.findMany({
@@ -231,6 +317,21 @@ export async function POST(request: Request) {
       ? buildCleaningConfigFromAreas(cleaningAreas, cleaningDefaults || undefined)
       : resolvedTemplateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
       ? buildFinishedProductConfigFromUsers(allUsers)
+      : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+      ? buildProductWriteoffConfigFromData({
+          users: allUsers,
+          products: allProducts,
+          batches: recentBatches,
+          referenceDate: new Date(dateFrom),
+        })
+      : resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+      ? buildGlassListConfigFromData({
+          users: allUsers,
+          areas: allAreas,
+          equipment: allEquipment,
+          products: allProducts,
+          referenceDate: new Date(dateFrom),
+        })
       : resolvedTemplateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE
       ? getAcceptanceDocumentDefaultConfig(allUsers)
       : resolvedTemplateCode === PPE_ISSUANCE_TEMPLATE_CODE
@@ -241,6 +342,14 @@ export async function POST(request: Request) {
       ? getTrainingPlanDefaultConfig()
       : resolvedTemplateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE
       ? getBreakdownHistoryDefaultConfig()
+      : resolvedTemplateCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE
+      ? getAccidentDocumentDefaultConfig()
+      : resolvedTemplateCode === AUDIT_PROTOCOL_TEMPLATE_CODE
+      ? getDefaultAuditProtocolConfig()
+      : resolvedTemplateCode === AUDIT_REPORT_TEMPLATE_CODE
+      ? getDefaultAuditReportConfig()
+      : resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
+      ? getDefaultMetalImpurityConfig()
       : isRegisterDocumentTemplate(resolvedTemplateCode)
       ? buildRegisterDocumentConfigFromUsers(allUsers)
       : undefined;
@@ -260,16 +369,32 @@ export async function POST(request: Request) {
       config:
         resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
           ? equipmentCalibrationConfig
+          : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
+          ? {
+              ...(((initialConfig as Record<string, unknown>) || {}) as Record<string, unknown>),
+              ...((rawConfig || {}) as Record<string, unknown>),
+            }
+          : resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+          ? {
+              ...(((initialConfig as Record<string, unknown>) || {}) as Record<string, unknown>),
+              ...((rawConfig || {}) as Record<string, unknown>),
+            }
           : config ?? initialConfig ?? undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId:
         responsibleUserId ||
+        (resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+          ? ((initialConfig as { responsibleUserId?: string } | undefined)?.responsibleUserId || null)
+          : null) ||
         (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
           ? cleaningDefaults?.responsibleControlUserId || null
           : null),
       responsibleTitle:
         responsibleTitle ||
+        (resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+          ? ((initialConfig as { responsibleTitle?: string } | undefined)?.responsibleTitle || null)
+          : null) ||
         (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
           ? getHygienePositionLabel(cleaningControlRole || "owner")
           : null),

@@ -896,6 +896,117 @@ async function ensureGlassControlSampleDocuments(params: {
   });
 }
 
+async function ensureIntensiveCoolingSampleDocuments(params: {
+  templateId: string;
+  organizationId: string;
+  createdById: string;
+  users: { id: string; name: string; role: string; email?: string | null }[];
+}) {
+  const { templateId, organizationId, createdById, users } = params;
+  const existingStatuses = new Set(
+    (
+      await db.journalDocument.findMany({
+        where: { templateId, organizationId },
+        select: { status: true },
+      })
+    ).map((item) => item.status)
+  );
+
+  if (existingStatuses.has("active") && existingStatuses.has("closed")) return;
+
+  const products = await db.product.findMany({
+    where: {
+      organizationId,
+      isActive: true,
+    },
+    select: { name: true },
+    orderBy: { name: "asc" },
+    take: 12,
+  });
+
+  const dishSuggestions = products
+    .map((item) => item.name.trim())
+    .filter((name) => name.length > 0);
+  const fallbackDishes =
+    dishSuggestions.length > 0
+      ? dishSuggestions
+      : ["Пельмени", "Котлеты жареные", "Гуляш", "Плов"];
+
+  const responsibleUser =
+    users.find((user) => user.role === "owner") ||
+    users.find((user) => user.role === "technologist") ||
+    users[0] ||
+    null;
+  const responsibleTitle = getResponsibleTitleByRole(responsibleUser?.role);
+  const activeDate = "2021-10-01";
+
+  if (!existingStatuses.has("active")) {
+    const activeConfig = getDefaultIntensiveCoolingConfig(users, fallbackDishes);
+    activeConfig.defaultResponsibleTitle = responsibleTitle;
+    activeConfig.defaultResponsibleUserId = responsibleUser?.id || null;
+    activeConfig.rows = [
+      createIntensiveCoolingRow({
+        productionDate: "2021-10-29",
+        productionHour: "10",
+        productionMinute: "00",
+        dishName: fallbackDishes[0] || "Пельмени",
+        startTemperature: "86",
+        endTemperature: "5",
+        correctiveAction: "-",
+        comment: "-",
+        responsibleTitle: "",
+        responsibleUserId: "",
+      }),
+      createIntensiveCoolingRow({
+        productionDate: "2021-10-30",
+        productionHour: "20",
+        productionMinute: "09",
+        dishName: fallbackDishes[1] || "Котлеты жареные",
+        startTemperature: "95",
+        endTemperature: "8",
+        correctiveAction:
+          "Проведена настройка шокера. Уменьшено количество загрузки шокера",
+        comment: "Утилизировано",
+        responsibleTitle,
+        responsibleUserId: responsibleUser?.id || "",
+      }),
+    ];
+
+    await db.journalDocument.create({
+      data: {
+        templateId,
+        organizationId,
+        title: INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
+        status: "active",
+        dateFrom: new Date(activeDate),
+        dateTo: new Date(activeDate),
+        createdById,
+        config: activeConfig as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  if (!existingStatuses.has("closed")) {
+    const closedConfig = getDefaultIntensiveCoolingConfig(users, fallbackDishes);
+    closedConfig.defaultResponsibleTitle = responsibleTitle;
+    closedConfig.defaultResponsibleUserId = responsibleUser?.id || null;
+    closedConfig.finishedAt = new Date("2021-10-31").toISOString();
+
+    await db.journalDocument.create({
+      data: {
+        templateId,
+        organizationId,
+        title: INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
+        status: "closed",
+        dateFrom: new Date(activeDate),
+        dateTo: new Date(activeDate),
+        createdById,
+        config: closedConfig as Prisma.InputJsonValue,
+      },
+    });
+  }
+}
+
 export default async function JournalDocumentsPage({
   params,
   searchParams,
