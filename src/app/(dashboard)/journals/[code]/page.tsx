@@ -68,18 +68,12 @@ import {
 } from "@/lib/breakdown-history-document";
 import { BreakdownHistoryDocumentsClient } from "@/components/journals/breakdown-history-documents-client";
 import {
-  ACCIDENT_DOCUMENT_TEMPLATE_CODE,
-  ACCIDENT_DOCUMENT_SOURCE_SLUG,
-  ACCIDENT_DOCUMENT_TITLE,
-  buildAccidentDocumentDemoConfig,
-} from "@/lib/accident-document";
-import { AccidentDocumentsClient } from "@/components/journals/accident-documents-client";
-import { IntensiveCoolingDocumentsClient } from "@/components/journals/intensive-cooling-documents-client";
-import {
   TRAINING_PLAN_TEMPLATE_CODE,
   TRAINING_PLAN_SOURCE_SLUG,
   TRAINING_PLAN_DOCUMENT_TITLE,
   getTrainingPlanDefaultConfig,
+  getTrainingPlanDocumentDateLabel,
+  getTrainingPlanApproveLabel,
 } from "@/lib/training-plan-document";
 import { TrainingPlanDocumentsClient } from "@/components/journals/training-plan-documents-client";
 import {
@@ -91,15 +85,29 @@ import {
 } from "@/lib/audit-plan-document";
 import { AuditPlanDocumentsClient } from "@/components/journals/audit-plan-documents-client";
 import {
+  AUDIT_PROTOCOL_DOCUMENT_TITLE,
+  AUDIT_PROTOCOL_SOURCE_SLUG,
+  AUDIT_PROTOCOL_TEMPLATE_CODE,
+  getDefaultAuditProtocolConfig,
+  normalizeAuditProtocolConfig,
+} from "@/lib/audit-protocol-document";
+import { AuditProtocolDocumentsClient } from "@/components/journals/audit-protocol-documents-client";
+import {
+  AUDIT_REPORT_DOCUMENT_TITLE,
+  AUDIT_REPORT_SOURCE_SLUG,
+  AUDIT_REPORT_TEMPLATE_CODE,
+  getDefaultAuditReportConfig,
+  normalizeAuditReportConfig,
+} from "@/lib/audit-report-document";
+import { AuditReportDocumentsClient } from "@/components/journals/audit-report-documents-client";
+import {
   DISINFECTANT_TEMPLATE_CODE,
   DISINFECTANT_SOURCE_SLUG,
   DISINFECTANT_DOCUMENT_TITLE,
   getDisinfectantDefaultConfig,
 } from "@/lib/disinfectant-document";
 import { DisinfectantDocumentsClient } from "@/components/journals/disinfectant-documents-client";
-import { PestControlDocumentsClient } from "@/components/journals/pest-control-documents-client";
 import {
-  buildDailyRange,
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   buildUvRuntimeDocumentTitle,
   defaultUvSpecification,
@@ -108,23 +116,12 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import { FryerOilDocumentsClient } from "@/components/journals/fryer-oil-documents-client";
 import { FRYER_OIL_TEMPLATE_CODE } from "@/lib/fryer-oil-document";
-import {
-  PEST_CONTROL_DOCUMENT_TITLE,
-  PEST_CONTROL_PAGE_TITLE,
-  PEST_CONTROL_TEMPLATE_CODE,
-} from "@/lib/pest-control-document";
 import { PerishableRejectionDocumentsClient } from "@/components/journals/perishable-rejection-documents-client";
 import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
+  PERISHABLE_REJECTION_DOCUMENT_TITLE,
   getDefaultPerishableRejectionConfig,
 } from "@/lib/perishable-rejection-document";
-import { ProductWriteoffDocumentsClient } from "@/components/journals/product-writeoff-documents-client";
-import {
-  PRODUCT_WRITEOFF_TEMPLATE_CODE,
-  PRODUCT_WRITEOFF_DOCUMENT_TITLE,
-  buildProductWriteoffConfigFromData,
-  normalizeProductWriteoffConfig,
-} from "@/lib/product-writeoff-document";
 import { GlassListDocumentsClient } from "@/components/journals/glass-list-documents-client";
 import {
   GLASS_LIST_DOCUMENT_TITLE,
@@ -133,14 +130,7 @@ import {
   normalizeGlassListConfig,
 } from "@/lib/glass-list-document";
 import { GlassControlDocumentsClient } from "@/components/journals/glass-control-documents-client";
-import {
-  GLASS_CONTROL_DEFAULT_FREQUENCY,
-  GLASS_CONTROL_DOCUMENT_TITLE,
-  GLASS_CONTROL_PAGE_TITLE,
-  GLASS_CONTROL_SOURCE_SLUG,
-  GLASS_CONTROL_TEMPLATE_CODE,
-  getDefaultGlassControlConfig,
-} from "@/lib/glass-control-document";
+import * as glassControlDocument from "@/lib/glass-control-document";
 import { StaffTrainingDocumentsClient } from "@/components/journals/staff-training-documents-client";
 import {
   STAFF_TRAINING_TEMPLATE_CODE,
@@ -173,34 +163,19 @@ import {
   normalizeTraceabilityDocumentConfig,
 } from "@/lib/traceability-document";
 import {
-  formatScanJournalDate,
   getScanJournalConfig,
   isScanOnlyDocumentTemplate,
 } from "@/lib/scan-journal-config";
 import { getScanJournalPageCount } from "@/lib/scan-journal-pages";
 import { ScanJournalDocumentsClient } from "@/components/journals/scan-journal-documents-client";
-import { EquipmentCleaningDocumentsClient } from "@/components/journals/equipment-cleaning-documents-client";
 import {
-  emptyEquipmentCleaningRow,
-  EQUIPMENT_CLEANING_DOCUMENT_TITLE,
-  EQUIPMENT_CLEANING_TEMPLATE_CODE,
-  normalizeEquipmentCleaningConfig,
-} from "@/lib/equipment-cleaning-document";
-import { ComplaintDocumentsClient } from "@/components/journals/complaint-documents-client";
-import {
-  buildComplaintRow,
-  type ComplaintDocumentConfig,
-  COMPLAINT_REGISTER_TEMPLATE_CODE,
-  COMPLAINT_REGISTER_TITLE,
-} from "@/lib/complaint-document";
-import {
-  createIntensiveCoolingRow,
-  getDefaultIntensiveCoolingConfig,
-  getResponsibleTitleByRole,
-  INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
-  INTENSIVE_COOLING_SOURCE_SLUG,
-  INTENSIVE_COOLING_TEMPLATE_CODE,
-} from "@/lib/intensive-cooling-document";
+  METAL_IMPURITY_DOCUMENT_TITLE,
+  METAL_IMPURITY_SOURCE_SLUG,
+  METAL_IMPURITY_TEMPLATE_CODE,
+  getDefaultMetalImpurityConfig,
+  normalizeMetalImpurityConfig,
+} from "@/lib/metal-impurity-document";
+import { MetalImpurityDocumentsClient } from "@/components/journals/metal-impurity-documents-client";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -352,12 +327,6 @@ function buildTrackedDemoValue(field: TrackedTemplateField, rowIndex: number) {
     default:
       return `${field.label || field.key} ${rowIndex + 1}`.trim();
   }
-}
-
-function userRoleLabel(role: string) {
-  if (role === "owner") return "Управляющий";
-  if (role === "technologist") return "Технолог";
-  return "Оператор";
 }
 
 function getTrackedMeta(templateCode: string, dateFrom: Date, dateTo: Date) {
@@ -556,111 +525,6 @@ async function ensureSourceStyleTrackedSampleDocuments({
   }
 }
 
-async function ensurePestControlSampleDocuments(params: {
-  templateId: string;
-  organizationId: string;
-  createdById: string;
-  users: { id: string; name: string; role: string }[];
-}) {
-  const { templateId, organizationId, createdById, users } = params;
-  const existing = await db.journalDocument.findMany({
-    where: {
-      templateId,
-      organizationId,
-    },
-    select: {
-      id: true,
-      status: true,
-      _count: { select: { entries: true } },
-    },
-  });
-
-  const statuses = new Set(existing.map((item) => item.status));
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0];
-
-  if (!responsibleUser) return;
-
-  const secondaryUser =
-    users.find((user) => user.id !== responsibleUser.id) || responsibleUser;
-
-  const activeFrom = new Date("2025-03-05T00:00:00.000Z");
-  const closedFrom = new Date("2025-02-05T00:00:00.000Z");
-
-  if (!statuses.has("active")) {
-    const activeDocument = await db.journalDocument.create({
-      data: {
-        templateId,
-        organizationId,
-        title: PEST_CONTROL_DOCUMENT_TITLE,
-        status: "active",
-        dateFrom: activeFrom,
-        dateTo: activeFrom,
-        createdById,
-      },
-      select: { id: true },
-    });
-
-    await db.journalDocumentEntry.createMany({
-      data: [
-        {
-          documentId: activeDocument.id,
-          employeeId: responsibleUser.id,
-          date: new Date("2025-03-17T18:00:00.000Z"),
-          data: {
-            performedDate: "2025-03-17",
-            performedHour: "18",
-            performedMinute: "00",
-            timeSpecified: true,
-            event: "Дезинсекция",
-            areaOrVolume: "200",
-            treatmentProduct: "Раствор",
-            note: "Не мыть полы 24 -48 часов. Добавочно расставить ловушки.",
-            performedBy: "ИП",
-            acceptedRole: "Управляющий",
-            acceptedEmployeeId: responsibleUser.id,
-          },
-        },
-        {
-          documentId: activeDocument.id,
-          employeeId: secondaryUser.id,
-          date: new Date("2025-03-25T11:00:01.000Z"),
-          data: {
-            performedDate: "2025-03-25",
-            performedHour: "11",
-            performedMinute: "00",
-            timeSpecified: true,
-            event: "Дезинсекция",
-            areaOrVolume: "84,9",
-            treatmentProduct: "пропан",
-            note: "",
-            performedBy: "ИП Хижняк",
-            acceptedRole: "Управляющий",
-            acceptedEmployeeId: secondaryUser.id,
-          },
-        },
-      ],
-      skipDuplicates: true,
-    });
-  }
-
-  if (!statuses.has("closed")) {
-    await db.journalDocument.create({
-      data: {
-        templateId,
-        organizationId,
-        title: PEST_CONTROL_DOCUMENT_TITLE,
-        status: "closed",
-        dateFrom: closedFrom,
-        dateTo: new Date("2025-02-28T00:00:00.000Z"),
-        createdById,
-      },
-    });
-  }
-}
-
 async function ensureSanitationDaySampleDocuments(params: {
   templateId: string;
   organizationId: string;
@@ -758,181 +622,6 @@ async function ensurePpeIssuanceSampleDocuments(params: {
         dateTo: item.dateFrom,
         createdById,
         config: item.config,
-      },
-    });
-  }
-}
-
-async function ensureComplaintSampleDocuments(params: {
-  templateId: string;
-  organizationId: string;
-  createdById: string;
-  users: { id: string; name: string; role: string; email?: string | null }[];
-}) {
-  const { templateId, organizationId, createdById, users } = params;
-  const existingCount = await db.journalDocument.count({
-    where: {
-      templateId,
-      organizationId,
-    },
-  });
-
-  if (existingCount > 0) return;
-
-  const products = await db.product.findMany({
-    where: {
-      organizationId,
-      isActive: true,
-    },
-    select: { name: true },
-    orderBy: { name: "asc" },
-    take: 2,
-  });
-
-  const applicantName = users[0]?.name || "Иванов И.И.";
-  const productName = products[0]?.name || "готовой продукции";
-
-  await db.journalDocument.create({
-    data: {
-      templateId,
-      organizationId,
-      title: COMPLAINT_REGISTER_TITLE,
-      status: "active",
-      dateFrom: new Date("2021-10-01"),
-      dateTo: new Date("2021-10-01"),
-      createdById,
-      responsibleUserId: users[0]?.id || null,
-      responsibleTitle: getHygieneDefaultResponsibleTitle(users),
-      config: {
-        rows: [
-          buildComplaintRow({
-            receiptDate: "2021-10-29",
-            applicantName,
-            complaintReceiptForm: "по электронной почте",
-            applicantDetails: `Контактные данные заявителя для ответа по жалобе на ${productName}.`,
-            complaintContent: `Жалоба на качество ${productName}: нарушены ожидания по органолептическим показателям и сроку ответа.`,
-            decisionDate: "2021-10-29",
-            decisionSummary: `Проведена проверка партии ${productName}, заявителю направлен ответ, корректирующие действия назначены.`,
-          }),
-        ],
-        defaultResponsibleUserId: users[0]?.id || null,
-        defaultResponsibleTitle: getHygieneDefaultResponsibleTitle(users),
-        finishedAt: null,
-      },
-    },
-  });
-}
-
-async function ensureIntensiveCoolingSampleDocuments(params: {
-  templateId: string;
-  organizationId: string;
-  createdById: string;
-  users: { id: string; name: string; role: string; email?: string | null }[];
-}) {
-  const { templateId, organizationId, createdById, users } = params;
-  const existingStatuses = new Set(
-    (
-      await db.journalDocument.findMany({
-        where: {
-          templateId,
-          organizationId,
-        },
-        select: { status: true },
-      })
-    ).map((item) => item.status)
-  );
-
-  if (existingStatuses.has("active") && existingStatuses.has("closed")) return;
-
-  const products = await db.product.findMany({
-    where: {
-      organizationId,
-      isActive: true,
-    },
-    select: { name: true },
-    orderBy: { name: "asc" },
-    take: 12,
-  });
-
-  const dishSuggestions = products
-    .map((item) => item.name.trim())
-    .filter((name) => name.length > 0);
-
-  const fallbackDishes =
-    dishSuggestions.length > 0
-      ? dishSuggestions
-      : ["Пельмени", "Котлеты жареные", "Гуляш", "Плов"];
-
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
-  const responsibleTitle = getResponsibleTitleByRole(responsibleUser?.role);
-
-  const activeDate = "2021-10-01";
-  if (!existingStatuses.has("active")) {
-    const activeConfig = getDefaultIntensiveCoolingConfig(users, fallbackDishes);
-    activeConfig.defaultResponsibleTitle = responsibleTitle;
-    activeConfig.defaultResponsibleUserId = responsibleUser?.id || null;
-    activeConfig.rows = [
-      createIntensiveCoolingRow({
-        productionDate: "2021-10-29",
-        productionHour: "10",
-        productionMinute: "00",
-        dishName: fallbackDishes[0] || "Пельмени",
-        startTemperature: "86",
-        endTemperature: "5",
-        correctiveAction: "-",
-        comment: "-",
-        responsibleTitle: "",
-        responsibleUserId: "",
-      }),
-      createIntensiveCoolingRow({
-        productionDate: "2021-10-30",
-        productionHour: "20",
-        productionMinute: "09",
-        dishName: fallbackDishes[1] || "Котлеты жареные",
-        startTemperature: "95",
-        endTemperature: "8",
-        correctiveAction:
-          "Проведена настройка шокера. Уменьшено количество загрузки шокера",
-        comment: "Утилизировано",
-        responsibleTitle: responsibleTitle,
-        responsibleUserId: responsibleUser?.id || "",
-      }),
-    ];
-
-    await db.journalDocument.create({
-      data: {
-        templateId,
-        organizationId,
-        title: INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
-        status: "active",
-        dateFrom: new Date(activeDate),
-        dateTo: new Date(activeDate),
-        createdById,
-        config: activeConfig as Prisma.InputJsonValue,
-      },
-    });
-  }
-
-  if (!existingStatuses.has("closed")) {
-    const closedConfig = getDefaultIntensiveCoolingConfig(users, fallbackDishes);
-    closedConfig.defaultResponsibleTitle = responsibleTitle;
-    closedConfig.defaultResponsibleUserId = responsibleUser?.id || null;
-    closedConfig.finishedAt = new Date("2021-10-31").toISOString();
-
-    await db.journalDocument.create({
-      data: {
-        templateId,
-        organizationId,
-        title: INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
-        status: "closed",
-        dateFrom: new Date(activeDate),
-        dateTo: new Date(activeDate),
-        createdById,
-        config: closedConfig as Prisma.InputJsonValue,
       },
     });
   }
@@ -1078,12 +767,11 @@ async function ensureGlassControlSampleDocuments(params: {
 }) {
   const { templateId, organizationId, createdById, users } = params;
 
-  const existingDocuments = await db.journalDocument.findMany({
+  const existingDocuments = await db.journalDocument.count({
     where: { templateId, organizationId },
-    select: { id: true, status: true },
   });
 
-  if (existingDocuments.length > 0) return;
+  if (existingDocuments > 0) return;
 
   const responsibleUser =
     users.find((user) => user.role === "owner") ||
@@ -1093,65 +781,48 @@ async function ensureGlassControlSampleDocuments(params: {
 
   if (!responsibleUser) return;
 
-  const itemNames = [
-    ...(await db.equipment.findMany({
-      where: {
-        area: {
-          organizationId,
-        },
-      },
-      select: { name: true },
-      orderBy: { name: "asc" },
-      take: 6,
-    })).map((item) => item.name.trim()),
-    ...(await db.product.findMany({
-      where: {
+  const equipment = await db.equipment.findMany({
+    where: {
+      area: {
         organizationId,
-        isActive: true,
       },
-      select: { name: true },
-      orderBy: { name: "asc" },
-      take: 6,
-    })).map((item) => item.name.trim()),
-  ].filter((item) => item.length > 0);
+    },
+    select: { name: true },
+    orderBy: { name: "asc" },
+    take: 4,
+  });
+
+  const products = await db.product.findMany({
+    where: {
+      organizationId,
+      isActive: true,
+    },
+    select: { name: true },
+    orderBy: { name: "asc" },
+    take: 4,
+  });
+
+  const itemNames = [...equipment, ...products]
+    .map((item) => item.name.trim())
+    .filter((item) => item.length > 0);
 
   const now = new Date();
-  const createRowsForRange = (from: Date, to: Date, withDamage = false) => {
-    const rows = buildDailyRange(
-      from.toISOString().slice(0, 10),
-      to.toISOString().slice(0, 10)
-    );
-
-    return rows.map((dateKey, index) => ({
-      employeeId: responsibleUser.id,
-      date: new Date(`${dateKey}T00:00:00.000Z`),
-      data:
-        withDamage && index === Math.max(0, rows.length - 2)
-          ? {
-              damagesDetected: true,
-              itemName: itemNames[0] || "Стеклянная емкость",
-              quantity: "1",
-              damageInfo: "Скол. Изделие заменено.",
-            }
-          : {
-              damagesDetected: false,
-              itemName: "",
-              quantity: "",
-              damageInfo: "",
-            },
-    }));
-  };
-
   const activeFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const activeTo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const closedFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
   const closedTo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
 
+  const baseConfig = {
+    ...glassControlDocument.getDefaultGlassControlConfig(),
+    documentName: glassControlDocument.GLASS_CONTROL_DOCUMENT_TITLE,
+    controlFrequency: glassControlDocument.GLASS_CONTROL_DEFAULT_FREQUENCY,
+  } as Prisma.InputJsonValue;
+
   const activeDocument = await db.journalDocument.create({
     data: {
       templateId,
       organizationId,
-      title: GLASS_CONTROL_DOCUMENT_TITLE,
+      title: glassControlDocument.GLASS_CONTROL_DOCUMENT_TITLE,
       status: "active",
       dateFrom: activeFrom,
       dateTo: activeFrom,
@@ -1159,11 +830,7 @@ async function ensureGlassControlSampleDocuments(params: {
       responsibleTitle: "Управляющий",
       autoFill: true,
       createdById,
-      config: {
-        ...getDefaultGlassControlConfig(),
-        documentName: GLASS_CONTROL_DOCUMENT_TITLE,
-        controlFrequency: GLASS_CONTROL_DEFAULT_FREQUENCY,
-      } as Prisma.InputJsonValue,
+      config: baseConfig,
     },
   });
 
@@ -1171,37 +838,59 @@ async function ensureGlassControlSampleDocuments(params: {
     data: {
       templateId,
       organizationId,
-      title: GLASS_CONTROL_DOCUMENT_TITLE,
+      title: glassControlDocument.GLASS_CONTROL_DOCUMENT_TITLE,
       status: "closed",
       dateFrom: closedFrom,
       dateTo: closedTo,
       responsibleUserId: responsibleUser.id,
       responsibleTitle: "Управляющий",
       createdById,
-      config: {
-        ...getDefaultGlassControlConfig(),
-        documentName: GLASS_CONTROL_DOCUMENT_TITLE,
-        controlFrequency: GLASS_CONTROL_DEFAULT_FREQUENCY,
-      } as Prisma.InputJsonValue,
+      config: baseConfig,
     },
   });
 
+  const activeRows = glassControlDocument.buildDailyRange(
+    activeFrom.toISOString().slice(0, 10),
+    activeTo.toISOString().slice(0, 10)
+  );
+  const closedRows = glassControlDocument.buildDailyRange(
+    closedFrom.toISOString().slice(0, 10),
+    closedTo.toISOString().slice(0, 10)
+  );
+
   await db.journalDocumentEntry.createMany({
-    data: createRowsForRange(activeFrom, activeTo, true).map((row) => ({
+    data: activeRows.map((dateKey: string, index: number) => ({
       documentId: activeDocument.id,
-      employeeId: row.employeeId,
-      date: row.date,
-      data: row.data as Prisma.InputJsonValue,
+      employeeId: responsibleUser.id,
+      date: new Date(`${dateKey}T00:00:00.000Z`),
+      data: (index === Math.max(0, activeRows.length - 2)
+        ? {
+            damagesDetected: true,
+            itemName: itemNames[0] || "Стеклянная емкость",
+            quantity: "1",
+            damageInfo: "Скол. Изделие заменено.",
+          }
+        : {
+            damagesDetected: false,
+            itemName: "",
+            quantity: "",
+            damageInfo: "",
+          }) as Prisma.InputJsonValue,
     })),
     skipDuplicates: true,
   });
 
   await db.journalDocumentEntry.createMany({
-    data: createRowsForRange(closedFrom, closedTo, false).map((row) => ({
+    data: closedRows.map((dateKey: string) => ({
       documentId: closedDocument.id,
-      employeeId: row.employeeId,
-      date: row.date,
-      data: row.data as Prisma.InputJsonValue,
+      employeeId: responsibleUser.id,
+      date: new Date(`${dateKey}T00:00:00.000Z`),
+      data: {
+        damagesDetected: false,
+        itemName: "",
+        quantity: "",
+        damageInfo: "",
+      } as Prisma.InputJsonValue,
     })),
     skipDuplicates: true,
   });
@@ -1237,7 +926,6 @@ export default async function JournalDocumentsPage({
     select: { id: true, name: true, role: true, email: true },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
-
   const organization = await db.organization.findUnique({
     where: { id: session.user.organizationId },
     select: { name: true },
@@ -1303,121 +991,14 @@ export default async function JournalDocumentsPage({
           id: document.id,
           title: document.title || (scanConfig?.title || template.name),
           status: document.status as "active" | "closed",
-          dateLabel: scanConfig?.dateLabel || "Дата документа",
-          dateValue: formatScanJournalDate(document.dateFrom),
-          responsibleLabel: scanConfig?.showResponsible
-            ? scanConfig.defaultResponsibleTitle || "Ответственный"
-            : null,
-          responsibleValue: scanConfig?.showResponsible
-            ? document.responsibleTitle || null
-            : null,
-        }))}
-      />
-    );
-  }
-
-  if (resolvedCode === EQUIPMENT_CLEANING_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: session.user.organizationId,
-        templateId: template.id,
-      },
-    });
-
-    const equipment = await db.equipment.findMany({
-      where: {
-        area: {
-          organizationId: session.user.organizationId,
-        },
-      },
-      select: {
-        name: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
-    if (existingCount === 0) {
-      const defaultDate = new Date("2025-03-05T00:00:00.000Z");
-      const washer =
-        orgUsers.find((user) => user.role === "operator") ||
-        orgUsers.find((user) => user.role === "technologist") ||
-        orgUsers[0] ||
-        null;
-      const controller =
-        orgUsers.find((user) => user.role === "owner") ||
-        orgUsers.find((user) => user.role === "technologist") ||
-        orgUsers[0] ||
-        null;
-
-      const document = await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: session.user.organizationId,
-          title: EQUIPMENT_CLEANING_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom: defaultDate,
-          dateTo: defaultDate,
-          createdById: session.user.id,
-          config: {
-            fieldVariant: "rinse_completeness",
-          },
-        },
-      });
-
-      if (washer && controller) {
-        const sampleRow = emptyEquipmentCleaningRow({
-          washDate: "2025-03-18",
-          washTime: "22:30",
-          equipmentName: equipment[0]?.name || "Тестомес",
-          detergentName: "Ника",
-          detergentConcentration: "5 %",
-          disinfectantName: "Ника",
-          disinfectantConcentration: "1 %",
-          rinseResult: "compliant",
-          rinseTemperature: "85",
-          washerPosition: "Мойщик",
-          washerName: washer.name,
-          washerUserId: washer.id,
-          controllerPosition: userRoleLabel(controller.role),
-          controllerName: controller.name,
-          controllerUserId: controller.id,
-        });
-
-        await db.journalDocumentEntry.create({
-          data: {
-            documentId: document.id,
-            employeeId: washer.id,
-            date: new Date("2025-03-18T22:30:00.000Z"),
-            data: sampleRow,
-          },
-        });
-      }
-    }
-
-    const documents = await db.journalDocument.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-        templateId: template.id,
-        status: activeTab,
-      },
-      orderBy: { dateFrom: "asc" },
-    });
-
-    return (
-      <EquipmentCleaningDocumentsClient
-        activeTab={activeTab}
-        templateCode={resolvedCode}
-        templateName={template.name}
-        users={orgUsers}
-        documents={documents.map((document) => ({
-          id: document.id,
-          title: document.title || EQUIPMENT_CLEANING_DOCUMENT_TITLE,
-          status: document.status as "active" | "closed",
-          startedAtLabel: document.dateFrom.toLocaleDateString("ru-RU").replaceAll(".", "-"),
-          dateFrom: document.dateFrom.toISOString().slice(0, 10),
-          fieldVariant: normalizeEquipmentCleaningConfig(document.config).fieldVariant,
+          dateLabel: "Период",
+          dateValue:
+            document.dateFrom.toISOString().slice(0, 10) ===
+            document.dateTo.toISOString().slice(0, 10)
+              ? document.dateFrom.toISOString().slice(0, 10)
+              : `${document.dateFrom.toISOString().slice(0, 10)} - ${document.dateTo
+                  .toISOString()
+                  .slice(0, 10)}`,
         }))}
       />
     );
@@ -1577,109 +1158,6 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
-    const existingStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: session.user.organizationId,
-            templateId: template.id,
-          },
-          select: { status: true },
-        })
-      ).map((item) => item.status)
-    );
-
-    const products = await db.product.findMany({
-      where: { organizationId: session.user.organizationId, isActive: true },
-      select: { name: true },
-      orderBy: { name: "asc" },
-    });
-    const batches = await db.batch.findMany({
-      where: { organizationId: session.user.organizationId },
-      select: {
-        code: true,
-        productName: true,
-        supplier: true,
-        quantity: true,
-        unit: true,
-        receivedAt: true,
-      },
-      orderBy: { receivedAt: "desc" },
-      take: 10,
-    });
-
-    if (!existingStatuses.has("active")) {
-      const activeConfig = buildProductWriteoffConfigFromData({
-        users: orgUsers,
-        products,
-        batches,
-        referenceDate: new Date(),
-      });
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: session.user.organizationId,
-          title: activeConfig.documentName,
-          status: "active",
-          dateFrom: new Date(activeConfig.documentDate),
-          dateTo: new Date(activeConfig.documentDate),
-          createdById: session.user.id,
-          config: activeConfig as Prisma.InputJsonValue,
-        },
-      });
-    }
-
-    if (!existingStatuses.has("closed")) {
-      const previousDate = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 5));
-      const closedConfig = buildProductWriteoffConfigFromData({
-        users: orgUsers,
-        products,
-        batches,
-        referenceDate: previousDate,
-      });
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: session.user.organizationId,
-          title: closedConfig.documentName,
-          status: "closed",
-          dateFrom: new Date(closedConfig.documentDate),
-          dateTo: new Date(closedConfig.documentDate),
-          createdById: session.user.id,
-          config: closedConfig as Prisma.InputJsonValue,
-        },
-      });
-    }
-
-    const documents = await db.journalDocument.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-        templateId: template.id,
-        status: activeTab,
-      },
-      orderBy: { dateFrom: "desc" },
-    });
-
-    return (
-      <ProductWriteoffDocumentsClient
-        activeTab={activeTab}
-        templateCode={resolvedCode}
-        templateName={template.name}
-        users={orgUsers}
-        documents={documents.map((doc) => ({
-          id: doc.id,
-          title: doc.title || PRODUCT_WRITEOFF_DOCUMENT_TITLE,
-          status: doc.status as "active" | "closed",
-          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
-          config: normalizeProductWriteoffConfig(doc.config),
-        }))}
-      />
-    );
-  }
-
   if (resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
@@ -1769,7 +1247,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === GLASS_CONTROL_TEMPLATE_CODE) {
+  if (resolvedCode === glassControlDocument.GLASS_CONTROL_TEMPLATE_CODE) {
     await ensureGlassControlSampleDocuments({
       templateId: template.id,
       organizationId: session.user.organizationId,
@@ -1777,7 +1255,7 @@ export default async function JournalDocumentsPage({
       users: orgUsers,
     });
 
-    const glassDocuments = await db.journalDocument.findMany({
+    const documents = await db.journalDocument.findMany({
       where: {
         organizationId: session.user.organizationId,
         templateId: template.id,
@@ -1789,18 +1267,18 @@ export default async function JournalDocumentsPage({
     return (
       <GlassControlDocumentsClient
         activeTab={activeTab}
-        routeCode={code === GLASS_CONTROL_SOURCE_SLUG ? code : resolvedCode}
+        routeCode={code === glassControlDocument.GLASS_CONTROL_SOURCE_SLUG ? code : resolvedCode}
         templateCode={resolvedCode}
         templateName={template.name}
         users={orgUsers}
-        documents={glassDocuments.map((document) => ({
-          id: document.id,
-          title: document.title || GLASS_CONTROL_DOCUMENT_TITLE,
-          status: document.status as "active" | "closed",
-          responsibleTitle: document.responsibleTitle,
-          responsibleUserId: document.responsibleUserId,
-          dateFrom: document.dateFrom.toISOString().slice(0, 10),
-          config: document.config,
+        documents={documents.map((doc) => ({
+          id: doc.id,
+          title: doc.title || glassControlDocument.GLASS_CONTROL_DOCUMENT_TITLE,
+          status: doc.status as "active" | "closed",
+          responsibleTitle: doc.responsibleTitle,
+          responsibleUserId: doc.responsibleUserId,
+          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
+          config: doc.config,
         }))}
       />
     );
@@ -2113,15 +1591,6 @@ export default async function JournalDocumentsPage({
       });
     }
 
-    if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
-      await ensureIntensiveCoolingSampleDocuments({
-        templateId: template.id,
-        organizationId: session.user.organizationId,
-        createdById: session.user.id,
-        users: orgUsers,
-      });
-    }
-
     const documents = await db.journalDocument.findMany({
       where: {
         organizationId: session.user.organizationId,
@@ -2130,34 +1599,6 @@ export default async function JournalDocumentsPage({
       },
       orderBy: { dateFrom: "asc" },
     });
-
-    if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
-      const products = await db.product.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          isActive: true,
-        },
-        select: { name: true },
-        orderBy: { name: "asc" },
-        take: 20,
-      });
-
-      return (
-        <IntensiveCoolingDocumentsClient
-          activeTab={activeTab}
-          routeCode={code === INTENSIVE_COOLING_SOURCE_SLUG ? code : resolvedCode}
-          users={orgUsers}
-          dishSuggestions={products.map((item) => item.name)}
-          documents={documents.map((document) => ({
-            id: document.id,
-            title: document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
-            status: document.status as "active" | "closed",
-            dateFrom: document.dateFrom.toISOString().slice(0, 10),
-            config: document.config,
-          }))}
-        />
-      );
-    }
 
     if (resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
       return (
@@ -2268,39 +1709,6 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
-      await ensurePestControlSampleDocuments({
-        templateId: template.id,
-        organizationId: session.user.organizationId,
-        createdById: session.user.id,
-        users: orgUsers,
-      });
-
-      const pestDocuments = await db.journalDocument.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          templateId: template.id,
-          status: activeTab,
-        },
-        orderBy: { dateFrom: "asc" },
-      });
-
-      return (
-        <PestControlDocumentsClient
-          activeTab={activeTab}
-          routeCode={code}
-          templateCode={resolvedCode}
-          users={orgUsers}
-          documents={pestDocuments.map((document) => ({
-            id: document.id,
-            title: document.title || PEST_CONTROL_DOCUMENT_TITLE,
-            status: document.status as "active" | "closed",
-            dateFrom: document.dateFrom.toISOString().slice(0, 10),
-          }))}
-        />
-      );
-    }
-
     if (resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
       // Auto-seed sample documents
       const existingTP = await db.journalDocument.findMany({
@@ -2360,7 +1768,7 @@ export default async function JournalDocumentsPage({
 
       if (!auditPlanStatuses.has("active")) {
         const defaultConfig = getAuditPlanDefaultConfig({
-          organizationName: organization?.name || 'ООО "Тест"',
+          organizationName: 'ООО "Тест"',
           users: orgUsers,
         });
 
@@ -2400,9 +1808,84 @@ export default async function JournalDocumentsPage({
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             dateTo: document.dateTo.toISOString().slice(0, 10),
             config: normalizeAuditPlanConfig(document.config, {
-              organizationName: organization?.name || 'ООО "Тест"',
+              organizationName: 'ООО "Тест"',
               users: orgUsers,
             }),
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === AUDIT_PROTOCOL_TEMPLATE_CODE) {
+      const protocolDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <AuditProtocolDocumentsClient
+          routeCode={code === AUDIT_PROTOCOL_SOURCE_SLUG ? code : resolvedCode}
+          activeTab={activeTab}
+          documents={protocolDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || AUDIT_PROTOCOL_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config: normalizeAuditProtocolConfig(document.config ?? getDefaultAuditProtocolConfig()),
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === AUDIT_REPORT_TEMPLATE_CODE) {
+      const reportDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <AuditReportDocumentsClient
+          routeCode={code === AUDIT_REPORT_SOURCE_SLUG ? code : resolvedCode}
+          activeTab={activeTab}
+          documents={reportDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || AUDIT_REPORT_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config: normalizeAuditReportConfig(document.config ?? getDefaultAuditReportConfig()),
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
+      const metalDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <MetalImpurityDocumentsClient
+          routeCode={code === METAL_IMPURITY_SOURCE_SLUG ? code : resolvedCode}
+          activeTab={activeTab}
+          documents={metalDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || METAL_IMPURITY_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config: normalizeMetalImpurityConfig(document.config ?? getDefaultMetalImpurityConfig()),
           }))}
         />
       );
@@ -2449,97 +1932,6 @@ export default async function JournalDocumentsPage({
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             config: document.config,
-          }))}
-        />
-      );
-    }
-
-    if (resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
-      const existingAccidents = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
-        select: { status: true },
-      });
-      const accidentStatuses = new Set(existingAccidents.map((d) => d.status));
-      if (!accidentStatuses.has("active")) {
-        const areaNames = (
-          await db.area.findMany({
-            where: { organizationId: session.user.organizationId },
-            select: { name: true },
-            orderBy: { name: "asc" },
-          })
-        ).map((item) => item.name);
-
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: session.user.organizationId,
-            title: ACCIDENT_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: new Date("2021-10-01"),
-            dateTo: new Date("2021-10-01"),
-            createdById: session.user.id,
-            config: buildAccidentDocumentDemoConfig({
-              areaNames,
-              userNames: orgUsers.map((user) => user.name),
-            }),
-          },
-        });
-      }
-
-      const accidentDocuments = await db.journalDocument.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          templateId: template.id,
-          status: activeTab,
-        },
-        orderBy: { createdAt: "asc" },
-      });
-
-      return (
-        <AccidentDocumentsClient
-          routeCode={code === ACCIDENT_DOCUMENT_SOURCE_SLUG ? code : resolvedCode}
-          templateCode={resolvedCode}
-          activeTab={activeTab}
-          documents={accidentDocuments.map((document) => ({
-            id: document.id,
-            title: document.title || ACCIDENT_DOCUMENT_TITLE,
-            status: document.status as "active" | "closed",
-            dateFrom: document.dateFrom.toISOString().slice(0, 10),
-          }))}
-        />
-      );
-    }
-
-    if (resolvedCode === COMPLAINT_REGISTER_TEMPLATE_CODE) {
-      await ensureComplaintSampleDocuments({
-        templateId: template.id,
-        organizationId: session.user.organizationId,
-        createdById: session.user.id,
-        users: orgUsers,
-      });
-
-      const complaintDocuments = await db.journalDocument.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          templateId: template.id,
-          status: activeTab,
-        },
-        orderBy: { dateFrom: "asc" },
-      });
-
-      return (
-        <ComplaintDocumentsClient
-          activeTab={activeTab}
-          routeCode={code}
-          documents={complaintDocuments.map((document) => ({
-            id: document.id,
-            title: document.title || COMPLAINT_REGISTER_TITLE,
-            status: document.status as "active" | "closed",
-            dateFrom: document.dateFrom.toISOString().slice(0, 10),
-            config:
-              document.config && typeof document.config === "object" && !Array.isArray(document.config)
-                ? (document.config as ComplaintDocumentConfig)
-                : null,
           }))}
         />
       );

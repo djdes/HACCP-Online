@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
-import { SCAN_JOURNALS } from "../src/lib/scan-journal-config";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -137,26 +136,32 @@ const journalTemplates = [
   },
   {
     code: "pest_control",
-    name: "Журнал учета дезинфекции, дезинсекции и дератизации",
-    description: "Журнал учета мероприятий по дезинфекции, дезинсекции и дератизации",
+    name: "Дезинсекция и дератизация",
+    description: "Журнал учёта мероприятий по дезинсекции и дератизации",
     sortOrder: 7,
     isMandatorySanpin: true,
     isMandatoryHaccp: false,
     fields: [
-      { key: "performedDate", label: "Дата проведения", type: "date", required: true },
-      { key: "performedHour", label: "Часы", type: "text", required: false },
-      { key: "performedMinute", label: "Минуты", type: "text", required: false },
-      { key: "event", label: "Мероприятие (вид, место)", type: "text", required: true },
-      { key: "areaOrVolume", label: "Площадь и (или) объем", type: "text", required: false },
-      { key: "treatmentProduct", label: "Средство обработки", type: "text", required: false },
-      { key: "note", label: "Примечание", type: "text", required: false },
-      { key: "performedBy", label: "Кем проведено", type: "text", required: false },
-      { key: "acceptedRole", label: "Должность принявшего работы", type: "select", required: true, options: [
-        { value: "Управляющий", label: "Управляющий" },
-        { value: "Технолог", label: "Технолог" },
-        { value: "Сотрудник", label: "Сотрудник" },
+      { key: "eventType", label: "Тип мероприятия", type: "select", required: true, options: [
+        { value: "disinsection", label: "Дезинсекция (насекомые)" },
+        { value: "deratization", label: "Дератизация (грызуны)" },
+        { value: "disinfection", label: "Дезинфекция" },
       ]},
-      { key: "acceptedEmployeeId", label: "Сотрудник", type: "employee", required: true },
+      { key: "method", label: "Метод обработки", type: "select", required: true, options: [
+        { value: "chemical", label: "Химический" },
+        { value: "mechanical", label: "Механический" },
+        { value: "biological", label: "Биологический" },
+        { value: "combined", label: "Комбинированный" },
+      ]},
+      { key: "product", label: "Используемый препарат", type: "text", required: true },
+      { key: "treatedAreas", label: "Обработанные зоны", type: "text", required: true },
+      { key: "contractor", label: "Исполнитель (организация/ФИО)", type: "text", required: true },
+      { key: "contractNumber", label: "Номер договора", type: "text", required: false },
+      { key: "nextScheduledDate", label: "Следующая плановая обработка", type: "date", required: false },
+      { key: "result", label: "Результат", type: "select", required: true, options: [
+        { value: "effective", label: "Эффективно" },
+        { value: "repeat_needed", label: "Требуется повторная" },
+      ]},
     ],
   },
   {
@@ -507,7 +512,6 @@ const journalTemplates = [
 ];
 
 const additionalJournalTemplates = [
-  { code: "accident_journal", name: "Журнал учета аварий", description: "Журнал регистрации аварий, их последствий и корректирующих мероприятий", sortOrder: 32, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [] },
   { code: "sanitary_day_control", name: "Чек-лист (памятка) проведения санитарного дня", description: "Чек-лист проведения санитарного дня", sortOrder: 21, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "hand_hygiene_control", name: "Контроль гигиены рук", description: "Проверка соблюдения процедур гигиены рук", sortOrder: 22, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "employeeName", label: "Сотрудник", type: "employee", required: true }, { key: "hasViolations", label: "Есть нарушения", type: "boolean", required: true }, { key: "comment", label: "Комментарий", type: "text", required: false }] },
   { code: "waste_disposal_control", name: "Контроль утилизации отходов", description: "Учёт вывоза и утилизации пищевых отходов", sortOrder: 23, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "wasteType", label: "Тип отходов", type: "text", required: true }, { key: "quantity", label: "Количество", type: "number", required: true, step: 0.01 }, { key: "contractor", label: "Подрядчик", type: "text", required: false }] },
@@ -520,87 +524,23 @@ const additionalJournalTemplates = [
   { code: "inventory_sanitation", name: "Санобработка инвентаря", description: "Учёт мойки и дезинфекции инвентаря", sortOrder: 30, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "inventoryName", label: "Инвентарь", type: "text", required: true }, { key: "method", label: "Метод обработки", type: "text", required: true }, { key: "agent", label: "Средство", type: "text", required: false }] },
   { code: "receiving_temperature_control", name: "Температура при приёмке", description: "Контроль температуры сырья при приёмке", sortOrder: 31, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Продукт", type: "text", required: true }, { key: "supplier", label: "Поставщик", type: "text", required: true }, { key: "temperature", label: "Температура (°C)", type: "number", required: true, step: 0.1 }] },
   { code: "allergen_control", name: "Контроль аллергенов", description: "Маркировка и предотвращение перекрёстного контакта", sortOrder: 32, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "productName", label: "Продукт", type: "text", required: true }, { key: "allergen", label: "Аллерген", type: "text", required: true }, { key: "isolated", label: "Изолирован", type: "boolean", required: true }] },
-  { code: "glass_control", name: "Журнал контроля изделий из стекла и хрупкого пластика", description: "Документный журнал контроля стекла и хрупкого пластика с фиксацией повреждений и замен", sortOrder: 33, isMandatorySanpin: true, isMandatoryHaccp: true, fields: [] },
-  { code: "critical_limit_check", name: "Проверка критических пределов", description: "Проверки критических пределов ККТ", sortOrder: 34, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "ccpName", label: "ККТ", type: "text", required: true }, { key: "limitValue", label: "Критический предел", type: "text", required: true }, { key: "actualValue", label: "Факт", type: "text", required: true }] },
-  { code: "intensive_cooling", name: "Журнал контроля интенсивного охлаждения горячих блюд", description: "Контроль интенсивного охлаждения горячих блюд", sortOrder: 35, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [] },
+  { code: "critical_limit_check", name: "Проверка критических пределов", description: "Проверки критических пределов ККТ", sortOrder: 33, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "ccpName", label: "ККТ", type: "text", required: true }, { key: "limitValue", label: "Критический предел", type: "text", required: true }, { key: "actualValue", label: "Факт", type: "text", required: true }] },
   { code: "supplier_audit", name: "Оценка поставщиков", description: "Результаты оценки и переоценки поставщиков", sortOrder: 34, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "supplier", label: "Поставщик", type: "text", required: true }, { key: "criterion", label: "Критерий", type: "text", required: true }, { key: "score", label: "Оценка", type: "number", required: true, step: 1 }] },
   { code: "traceability_test", name: "Журнал прослеживаемости продукции", description: "Проверка прослеживаемости продукции по партиям", sortOrder: 35, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [{ key: "batchNumber", label: "Партия", type: "text", required: true }, { key: "productName", label: "Продукт", type: "text", required: true }, { key: "status", label: "Статус", type: "select", required: true, options: [{ value: "ok", label: "Пройдено" }, { value: "fail", label: "Не пройдено" }] }] },
   { code: "audit_plan", name: "План-программа внутренних аудитов", description: "План-программа внутренних аудитов с таблицей требований и датами аудита по подразделениям", sortOrder: 36, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [] },
+  { code: "audit_protocol", name: "Протокол внутреннего аудита", description: "Протокол внутреннего аудита с секциями требований, отметками да/нет и примечаниями", sortOrder: 37, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [] },
+  { code: "audit_report", name: "Отчет о внутреннем аудите", description: "Отчет по результатам внутреннего аудита с несоответствиями, корректирующими действиями и подписями", sortOrder: 38, isMandatorySanpin: false, isMandatoryHaccp: true, fields: [] },
+  { code: "metal_impurity", name: "Журнал учета металлопримесей", description: "Журнал учета металлопримесей в сырье с таблицей записей, настройками и справочниками", sortOrder: 39, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "med_books", name: "Медицинские книжки", description: "Журнал учёта медицинских книжек, осмотров и прививок сотрудников", sortOrder: 36, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "perishable_rejection", name: "Бракераж скоропортящейся пищевой продукции", description: "Журнал бракеража скоропортящейся пищевой продукции", sortOrder: 37, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
-  { code: "equipment_cleaning", name: "Журнал мойки и дезинфекции оборудования", description: "Учёт мойки и дезинфекции оборудования с контролем смываемости или температуры ополаскивания", sortOrder: 38, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "audit_plan_scan", name: "Журнал аудита - План", description: "Шаблон журнала сканирования для плана аудита", sortOrder: 39, isMandatorySanpin: false, isMandatoryHaccp: false, fields: [] },
   { code: "audit_protocol_scan", name: "Журнал аудита - Протокол", description: "Шаблон журнала сканирования для протокола аудита", sortOrder: 40, isMandatorySanpin: false, isMandatoryHaccp: false, fields: [] },
   { code: "audit_report_scan", name: "Журнал аудита - Отчет", description: "Шаблон журнала сканирования для отчета по аудиту", sortOrder: 41, isMandatorySanpin: false, isMandatoryHaccp: false, fields: [] },
 ];
 
-additionalJournalTemplates.push({
-  code: "complaint_register",
-  name: "Журнал регистрации жалоб",
-  description: "Журнал регистрации и обработки жалоб заявителей",
-  sortOrder: 39,
-  isMandatorySanpin: false,
-  isMandatoryHaccp: false,
-  fields: [
-    { key: "receiptDate", label: "Дата поступления", type: "date", required: true },
-    { key: "applicantName", label: "ФИО заявителя", type: "text", required: true },
-    {
-      key: "complaintReceiptForm",
-      label: "Форма поступления жалобы",
-      type: "select",
-      required: true,
-      options: [
-        { value: "по почте", label: "по почте" },
-        { value: "по телефону", label: "по телефону" },
-        { value: "по факсу", label: "по факсу" },
-        { value: "по электронной почте", label: "по электронной почте" },
-        {
-          value: "в книге отзывов и предложений",
-          label: "в книге отзывов и предложений",
-        },
-      ],
-    },
-    {
-      key: "applicantDetails",
-      label: "Реквизиты заявителя, указанные в жалобе заявителя для отправки ответа",
-      type: "text",
-      required: false,
-    },
-    { key: "complaintContent", label: "Содержание жалобы", type: "text", required: false },
-    { key: "decisionDate", label: "Дата решения", type: "date", required: false },
-    {
-      key: "decisionSummary",
-      label: "Решение, дата, краткое содержание",
-      type: "text",
-      required: false,
-    },
-  ],
-});
-
-additionalJournalTemplates.push({
-  code: "glass_items_list",
-  name: "РџРµСЂРµС‡РµРЅСЊ РёР·РґРµР»РёР№ РёР· СЃС‚РµРєР»Р° Рё С…СЂСѓРїРєРѕРіРѕ РїР»Р°СЃС‚РёРєР°",
-  description:
-    "Р”РѕРєСѓРјРµРЅС‚ РґР»СЏ РІРµРґРµРЅРёСЏ РїРµСЂРµС‡РЅСЏ РёР·РґРµР»РёР№ РёР· СЃС‚РµРєР»Р° Рё С…СЂСѓРїРєРѕРіРѕ РїР»Р°СЃС‚РёРєР° РїРѕ СѓС‡Р°СЃС‚РєР°Рј",
-  sortOrder: 42,
-  isMandatorySanpin: true,
-  isMandatoryHaccp: true,
-  fields: [],
-});
-
-const scanJournalTemplates = SCAN_JOURNALS.map((journal) => ({
-  code: journal.code,
-  name: journal.title,
-  description: journal.description,
-  sortOrder: journal.sortOrder,
-  isMandatorySanpin: false,
-  isMandatoryHaccp: false,
-  fields: [],
-}));
-
 async function main() {
   console.log("Seeding journal templates...");
-  const allTemplates = [...journalTemplates, ...additionalJournalTemplates, ...scanJournalTemplates];
+  const allTemplates = [...journalTemplates, ...additionalJournalTemplates];
   const allowedCodes = new Set(allTemplates.map((template) => template.code));
 
   for (const template of allTemplates) {
