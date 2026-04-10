@@ -47,6 +47,14 @@ import {
   TRAINING_PLAN_TEMPLATE_CODE,
   TRAINING_PLAN_DOCUMENT_TITLE,
 } from "@/lib/training-plan-document";
+import {
+  BREAKDOWN_HISTORY_TEMPLATE_CODE,
+  BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+} from "@/lib/breakdown-history-document";
+import {
+  EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+  EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
+} from "@/lib/equipment-maintenance-document";
 
 export function isDocumentTemplate(templateCode: string) {
   return (
@@ -56,10 +64,12 @@ export function isDocumentTemplate(templateCode: string) {
     templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE ||
     templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
     templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE ||
+    templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE ||
     templateCode === STAFF_TRAINING_TEMPLATE_CODE ||
     templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE ||
     templateCode === MED_BOOK_TEMPLATE_CODE ||
     templateCode === TRAINING_PLAN_TEMPLATE_CODE ||
+    templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE ||
     isTrackedDocumentTemplate(templateCode)
   );
 }
@@ -85,6 +95,9 @@ export function getJournalDocumentDefaultTitle(templateCode: string) {
   if (templateCode === SANITATION_DAY_TEMPLATE_CODE) {
     return SANITATION_DAY_DOCUMENT_TITLE;
   }
+  if (templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
+    return EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE;
+  }
   if (templateCode === STAFF_TRAINING_TEMPLATE_CODE) {
     return STAFF_TRAINING_FULL_TITLE;
   }
@@ -96,6 +109,9 @@ export function getJournalDocumentDefaultTitle(templateCode: string) {
   }
   if (templateCode === TRAINING_PLAN_TEMPLATE_CODE) {
     return TRAINING_PLAN_DOCUMENT_TITLE;
+  }
+  if (templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+    return BREAKDOWN_HISTORY_DOCUMENT_TITLE;
   }
   if (isTrackedDocumentTemplate(templateCode)) {
     return getTrackedDocumentTitle(templateCode);

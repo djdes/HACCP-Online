@@ -53,6 +53,13 @@ import {
 } from "@/lib/sanitation-day-document";
 import { SanitationDayDocumentsClient } from "@/components/journals/sanitation-day-documents-client";
 import {
+  BREAKDOWN_HISTORY_TEMPLATE_CODE,
+  BREAKDOWN_HISTORY_SOURCE_SLUG,
+  BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+  getBreakdownHistoryDefaultConfig,
+} from "@/lib/breakdown-history-document";
+import { BreakdownHistoryDocumentsClient } from "@/components/journals/breakdown-history-documents-client";
+import {
   TRAINING_PLAN_TEMPLATE_CODE,
   TRAINING_PLAN_SOURCE_SLUG,
   TRAINING_PLAN_DOCUMENT_TITLE,
@@ -83,6 +90,11 @@ import {
   getDefaultStaffTrainingConfig,
   buildStaffTrainingSeedRows,
 } from "@/lib/staff-training-document";
+import { EquipmentMaintenanceDocumentsClient } from "@/components/journals/equipment-maintenance-documents-client";
+import {
+  EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+  getDefaultEquipmentMaintenanceConfig,
+} from "@/lib/equipment-maintenance-document";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -762,6 +774,62 @@ export default async function JournalDocumentsPage({
     );
   }
 
+  if (resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
+    const existingCount = await db.journalDocument.count({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+      },
+    });
+
+    if (existingCount === 0) {
+      const year = new Date().getUTCFullYear();
+      const cfg = getDefaultEquipmentMaintenanceConfig(year);
+      const owner = orgUsers.find((u) => u.role === "owner");
+      const tech = orgUsers.find((u) => u.role === "technologist");
+      if (owner) cfg.approveEmployee = owner.name;
+      if (tech) cfg.responsibleEmployee = tech.name;
+
+      await db.journalDocument.create({
+        data: {
+          templateId: template.id,
+          organizationId: session.user.organizationId,
+          title: "График",
+          status: "active",
+          dateFrom: new Date(Date.UTC(year, 0, 1)),
+          dateTo: new Date(Date.UTC(year, 11, 31)),
+          createdById: session.user.id,
+          config: cfg,
+        },
+      });
+    }
+
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { dateFrom: "desc" },
+    });
+
+    return (
+      <EquipmentMaintenanceDocumentsClient
+        activeTab={activeTab}
+        templateCode={resolvedCode}
+        templateName={template.name}
+        users={orgUsers}
+        documents={documents.map((doc) => ({
+          id: doc.id,
+          title: doc.title || "График",
+          status: doc.status as "active" | "closed",
+          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
+          config: doc.config,
+        }))}
+      />
+    );
+  }
+
   if (isDocumentTemplate(resolvedCode)) {
     const parsedTemplateFields = Array.isArray(template.fields)
       ? (template.fields as TrackedTemplateField[])
@@ -981,6 +1049,52 @@ export default async function JournalDocumentsPage({
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             dateTo: document.dateTo.toISOString().slice(0, 10),
+            config: document.config,
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+      const existingBH = await db.journalDocument.findMany({
+        where: { templateId: template.id, organizationId: session.user.organizationId },
+        select: { status: true },
+      });
+      const bhStatuses = new Set(existingBH.map((d) => d.status));
+      if (!bhStatuses.has("active")) {
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date("2021-10-28"),
+            dateTo: new Date("2021-10-28"),
+            createdById: session.user.id,
+            config: getBreakdownHistoryDefaultConfig(),
+          },
+        });
+      }
+
+      const bhDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <BreakdownHistoryDocumentsClient
+          routeCode={code === BREAKDOWN_HISTORY_SOURCE_SLUG ? code : resolvedCode}
+          templateCode={resolvedCode}
+          activeTab={activeTab}
+          documents={bhDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
             config: document.config,
           }))}
         />

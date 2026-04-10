@@ -432,7 +432,7 @@ const journalTemplates = [
   // Профилактическое обслуживание, отличается от поверки (equipment_calibration).
   {
     code: "equipment_maintenance",
-    name: "График ППО оборудования",
+    name: "График профилактического обслуживания оборудования",
     description: "Планово-предупредительное обслуживание и техническое состояние оборудования",
     sortOrder: 17,
     isMandatorySanpin: false,

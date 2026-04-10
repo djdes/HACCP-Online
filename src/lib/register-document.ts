@@ -1,6 +1,5 @@
 export const REGISTER_DOCUMENT_TEMPLATE_CODES = [
   "disinfectant_usage",
-  "equipment_maintenance",
 ] as const;
 
 export type RegisterDocumentTemplateCode =
@@ -38,7 +37,6 @@ export type RegisterDocumentConfig = {
 
 const TITLES: Record<RegisterDocumentTemplateCode, string> = {
   disinfectant_usage: "Журнал учета дезинфицирующих средств",
-  equipment_maintenance: "График ППО оборудования",
 };
 
 function createId(prefix: string) {

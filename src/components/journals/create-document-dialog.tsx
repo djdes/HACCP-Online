@@ -90,6 +90,11 @@ import {
   FRYER_OIL_TEMPLATE_CODE,
   defaultFryerOilDocumentConfig,
 } from "@/lib/fryer-oil-document";
+import {
+  EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+  EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
+  getMaintenanceCreatePeriodBounds,
+} from "@/lib/equipment-maintenance-document";
 
 interface Props {
   templateCode: string;
@@ -129,6 +134,8 @@ export function CreateDocumentDialog({
             ? getCleaningCreatePeriodBounds()
             : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
               ? getFinishedProductCreatePeriodBounds()
+              : templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+                ? getMaintenanceCreatePeriodBounds()
               : templateCode === STAFF_TRAINING_TEMPLATE_CODE
                 ? getStaffTrainingCreatePeriodBounds()
               : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
@@ -149,6 +156,7 @@ export function CreateDocumentDialog({
   const isMedBookJournal = templateCode === MED_BOOK_TEMPLATE_CODE;
   const isPerishableRejectionJournal = templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE;
   const isStaffTrainingJournal = templateCode === STAFF_TRAINING_TEMPLATE_CODE;
+  const isEquipmentMaintenanceJournal = templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
@@ -174,6 +182,8 @@ export function CreateDocumentDialog({
               ? getCleaningDocumentTitle()
               : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
                 ? getFinishedProductDocumentTitle()
+                : templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+                  ? EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE
                 : templateCode === STAFF_TRAINING_TEMPLATE_CODE
                   ? STAFF_TRAINING_DOCUMENT_TITLE
                 : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
@@ -242,6 +252,8 @@ export function CreateDocumentDialog({
                 ...defaultCleaningDocumentConfig(users),
                 ventilationEnabled: cleaningVentilation,
               }
+            : isEquipmentMaintenanceJournal
+            ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom }
             : isStaffTrainingJournal
             ? { showSignatureField: medBookIncludeVaccinations }
             : isMedBookJournal
@@ -295,7 +307,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isCleaningJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -428,6 +440,32 @@ export function CreateDocumentDialog({
                 </>
               )}
 
+              {isEquipmentMaintenanceJournal && (
+                <>
+                  <div className="space-y-3">
+                    <Label className="text-[18px] text-[#73738a]">Дата документа</Label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[18px]"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[18px] text-[#73738a]">Год</Label>
+                    <select
+                      value={dateFrom.slice(0, 4)}
+                      onChange={(e) => setDateFrom(`${e.target.value}-01-01`)}
+                      className="h-14 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]"
+                    >
+                      {Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - 3 + i)).map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
               {isCleaningJournal && (
                 <>
                   <div className="space-y-3">
@@ -475,7 +513,7 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isCleaningJournal && (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isCleaningJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
@@ -493,7 +531,7 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">

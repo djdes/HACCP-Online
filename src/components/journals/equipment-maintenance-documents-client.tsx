@@ -1,0 +1,297 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Ellipsis, Pencil, Copy, Printer, Archive, Trash2, ArchiveRestore } from "lucide-react";
+import {
+  normalizeEquipmentMaintenanceConfig,
+  formatMaintenanceDate,
+} from "@/lib/equipment-maintenance-document";
+
+const POSITION_OPTIONS = ["Управляющий", "Шеф-повар", "Повар", "Кондитер", "Официант", "Бармен"];
+
+type JournalListDocument = {
+  id: string;
+  title: string;
+  status: "active" | "closed";
+  dateFrom: string;
+  config?: unknown;
+};
+
+type Props = {
+  activeTab: "active" | "closed";
+  templateCode: string;
+  templateName: string;
+  users: { id: string; name: string; role: string }[];
+  documents: JournalListDocument[];
+};
+
+export function EquipmentMaintenanceDocumentsClient({
+  activeTab,
+  templateCode,
+  templateName,
+  users,
+  documents,
+}: Props) {
+  const router = useRouter();
+  const [editingDoc, setEditingDoc] = useState<JournalListDocument | null>(null);
+  const [title, setTitle] = useState("");
+  const [docDate, setDocDate] = useState("");
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [approveRole, setApproveRole] = useState("");
+  const [approveEmployee, setApproveEmployee] = useState("");
+  const [responsibleRole, setResponsibleRole] = useState("");
+  const [responsibleEmployee, setResponsibleEmployee] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editingDoc) return;
+    const cfg = normalizeEquipmentMaintenanceConfig(editingDoc.config);
+    setTitle(editingDoc.title);
+    setDocDate(cfg.documentDate);
+    setYear(String(cfg.year));
+    setApproveRole(cfg.approveRole);
+    setApproveEmployee(cfg.approveEmployee);
+    setResponsibleRole(cfg.responsibleRole);
+    setResponsibleEmployee(cfg.responsibleEmployee);
+  }, [editingDoc]);
+
+  async function handleDelete(docId: string, docTitle: string) {
+    if (!window.confirm(`Удалить документ "${docTitle}"?`)) return;
+    await fetch(`/api/journal-documents/${docId}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  async function handleStatusChange(docId: string, newStatus: "active" | "closed", docTitle: string) {
+    const label = newStatus === "closed" ? "Отправить в закрытые" : "Отправить в активные";
+    if (!window.confirm(`${label} документ "${docTitle}"?`)) return;
+    await fetch(`/api/journal-documents/${docId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    router.refresh();
+  }
+
+  async function handleCopy(doc: JournalListDocument) {
+    const cfg = normalizeEquipmentMaintenanceConfig(doc.config);
+    const newYear = cfg.year + 1;
+    await fetch("/api/journal-documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        templateCode,
+        title: doc.title,
+        dateFrom: `${newYear}-01-01`,
+        dateTo: `${newYear}-12-31`,
+        config: { ...cfg, year: newYear, documentDate: `${newYear}-01-01` },
+      }),
+    });
+    router.refresh();
+  }
+
+  async function saveSettings() {
+    if (!editingDoc) return;
+    setIsSaving(true);
+    try {
+      const prevConfig = normalizeEquipmentMaintenanceConfig(editingDoc.config);
+      await fetch(`/api/journal-documents/${editingDoc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          dateFrom: docDate,
+          config: {
+            ...prevConfig,
+            year: Number(year),
+            documentDate: docDate,
+            approveRole,
+            approveEmployee,
+            responsibleRole,
+            responsibleEmployee,
+          },
+        }),
+      });
+      setEditingDoc(null);
+      router.refresh();
+    } catch {
+      window.alert("Не удалось сохранить");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      <JournalTopBar
+        heading="График профилактического обслуживания оборудования"
+        activeTab={activeTab}
+        templateCode={templateCode}
+        templateName={templateName}
+        users={users}
+      />
+      <JournalTabs activeTab={activeTab} templateCode={templateCode} />
+      <div className="space-y-4">
+        {documents.length === 0 && <EmptyDocumentsState />}
+        {documents.map((doc) => {
+          const cfg = normalizeEquipmentMaintenanceConfig(doc.config);
+          return (
+            <div
+              key={doc.id}
+              className="grid grid-cols-[1fr_80px_200px_200px_160px_48px] items-center rounded-[16px] border border-[#eceef5] bg-white px-4 py-3"
+            >
+              <Link href={`/journals/${templateCode}/documents/${doc.id}`} className="min-w-0">
+                <div className="text-[24px] font-semibold text-black">{doc.title}</div>
+              </Link>
+              <div className="text-center">
+                <div className="text-[12px] text-[#85889b]">Год</div>
+                <div className="text-[18px] font-semibold">{cfg.year}</div>
+              </div>
+              <div className="px-3">
+                <div className="text-[12px] text-[#85889b]">Должность &quot;Утверждаю&quot;</div>
+                <div className="text-[14px] font-semibold">{cfg.approveRole}: {cfg.approveEmployee}</div>
+              </div>
+              <div className="px-3">
+                <div className="text-[12px] text-[#85889b]">Ответственный</div>
+                <div className="text-[14px] font-semibold">{cfg.responsibleRole}: {cfg.responsibleEmployee}</div>
+              </div>
+              <div className="px-3">
+                <div className="text-[12px] text-[#85889b]">Дата документа</div>
+                <div className="text-[18px] font-semibold">{formatMaintenanceDate(cfg.documentDate)}</div>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
+                    <Ellipsis className="size-5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[280px] rounded-2xl border-0 p-3 shadow-xl">
+                  {doc.status === "active" && (
+                    <>
+                      <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => setEditingDoc(doc)}>
+                        <Pencil className="mr-3 size-5 text-[#6f7282]" /> Настройки
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleCopy(doc)}>
+                        <Copy className="mr-3 size-5 text-[#6f7282]" /> Сделать копию
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => window.open(`/api/journal-documents/${doc.id}/pdf`, "_blank")}>
+                    <Printer className="mr-3 size-5 text-[#6f7282]" /> Печать
+                  </DropdownMenuItem>
+                  {doc.status === "active" ? (
+                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "closed", doc.title)}>
+                      <Archive className="mr-3 size-5 text-[#6f7282]" /> Отправить в закрытые
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "active", doc.title)}>
+                      <ArchiveRestore className="mr-3 size-5 text-[#6f7282]" /> Отправить в активные
+                    </DropdownMenuItem>
+                  )}
+                  {doc.status === "active" && (
+                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => handleDelete(doc.id, doc.title)}>
+                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" /> Удалить
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        })}
+      </div>
+
+      <Dialog open={!!editingDoc} onOpenChange={(open) => !open && setEditingDoc(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[24px] font-medium text-black">Настройки документа</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-5">
+            <div className="space-y-2">
+              <Label>Название документа</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Дата документа</Label>
+              <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Год</Label>
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - 3 + i)).map((y) => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Должность &quot;Утверждаю&quot;</Label>
+              <Select value={approveRole} onValueChange={setApproveRole}>
+                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectContent>
+                  {POSITION_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Сотрудник</Label>
+              <Select value={approveEmployee} onValueChange={setApproveEmployee}>
+                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Должность ответственного</Label>
+              <Select value={responsibleRole} onValueChange={setResponsibleRole}>
+                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectContent>
+                  {POSITION_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Сотрудник</Label>
+              <Select value={responsibleEmployee} onValueChange={setResponsibleEmployee}>
+                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={saveSettings} disabled={isSaving}>
+                {isSaving ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

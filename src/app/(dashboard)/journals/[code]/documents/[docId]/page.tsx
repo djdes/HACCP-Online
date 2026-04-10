@@ -50,6 +50,8 @@ import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
 import { TRAINING_PLAN_TEMPLATE_CODE } from "@/lib/training-plan-document";
 import { TrainingPlanDocumentClient } from "@/components/journals/training-plan-document-client";
+import { BREAKDOWN_HISTORY_TEMPLATE_CODE } from "@/lib/breakdown-history-document";
+import { BreakdownHistoryDocumentClient } from "@/components/journals/breakdown-history-document-client";
 import { UvLampRuntimeDocumentClient } from "@/components/journals/uv-lamp-runtime-document-client";
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
@@ -79,6 +81,11 @@ import {
   STAFF_TRAINING_TEMPLATE_CODE,
   normalizeStaffTrainingConfig,
 } from "@/lib/staff-training-document";
+import { EquipmentMaintenanceDocumentClient } from "@/components/journals/equipment-maintenance-document-client";
+import {
+  EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+  normalizeEquipmentMaintenanceConfig,
+} from "@/lib/equipment-maintenance-document";
 
 export const dynamic = "force-dynamic";
 
@@ -281,6 +288,20 @@ export default async function JournalDocumentPage({
     );
   }
 
+  if (document.template.code === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
+    return (
+      <EquipmentMaintenanceDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        status={document.status}
+        initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
+        users={enrichedEmployees}
+      />
+    );
+  }
+
   if (document.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
     return (
       <ColdEquipmentDocumentClient
@@ -326,6 +347,19 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || 'ООО "Тест"'}
         status={document.status}
         users={enrichedEmployees}
+        config={document.config}
+      />
+    );
+  }
+
+  if (document.template.code === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+    return (
+      <BreakdownHistoryDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        status={document.status}
         config={document.config}
       />
     );
