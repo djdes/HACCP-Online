@@ -33,6 +33,11 @@ import { SANITATION_DAY_TEMPLATE_CODE, getSanitationDayDefaultConfig } from "@/l
 import { TRAINING_PLAN_TEMPLATE_CODE, getTrainingPlanDefaultConfig } from "@/lib/training-plan-document";
 import { BREAKDOWN_HISTORY_TEMPLATE_CODE, getBreakdownHistoryDefaultConfig } from "@/lib/breakdown-history-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import {
+  buildEquipmentCalibrationConfigFromEquipment,
+  EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+  normalizeEquipmentCalibrationConfig,
+} from "@/lib/equipment-calibration-document";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -155,9 +160,71 @@ export async function POST(request: Request) {
       ? getDefaultCleaningResponsibleIds(cleaningUsers)
       : null;
 
+  const equipmentCalibrationSource =
+    resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+      ? await db.equipment.findMany({
+          where: {
+            area: {
+              organizationId: session.user.organizationId,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            serialNumber: true,
+            tempMin: true,
+            tempMax: true,
+            area: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
+        })
+      : [];
+
+  const rawConfig =
+    config && typeof config === "object" && !Array.isArray(config)
+      ? (config as Record<string, unknown>)
+      : undefined;
+
+  const calibrationYear = Number(String(dateFrom).slice(0, 4)) || new Date().getUTCFullYear();
+  const calibrationOwner =
+    allUsers.find((user) => user.role === "owner") ||
+    allUsers.find((user) => user.role === "technologist") ||
+    allUsers[0] ||
+    null;
+  const calibrationProvidedRows =
+    rawConfig && Array.isArray(rawConfig.rows) && rawConfig.rows.length > 0
+      ? normalizeEquipmentCalibrationConfig(rawConfig).rows
+      : null;
+  const equipmentCalibrationConfig =
+    resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+      ? (() => {
+          const built = buildEquipmentCalibrationConfigFromEquipment(
+            equipmentCalibrationSource,
+            {
+              ...rawConfig,
+              year: calibrationYear,
+            }
+          );
+
+          return {
+            ...built,
+            year: calibrationYear,
+            approveEmployee: built.approveEmployee || calibrationOwner?.name || "",
+            rows: calibrationProvidedRows || built.rows,
+          };
+        })()
+      : undefined;
+
   const initialConfig =
     resolvedTemplateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
       ? coldEquipmentConfig
+      : resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+      ? equipmentCalibrationConfig
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? getDefaultClimateDocumentConfig()
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
@@ -190,7 +257,10 @@ export async function POST(request: Request) {
       templateId: template.id,
       organizationId: session.user.organizationId,
       title: title || template.name,
-      config: config ?? initialConfig ?? undefined,
+      config:
+        resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+          ? equipmentCalibrationConfig
+          : config ?? initialConfig ?? undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId:

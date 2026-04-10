@@ -117,8 +117,8 @@ import {
 } from "@/lib/sanitary-day-checklist-document";
 import { EquipmentCalibrationDocumentsClient } from "@/components/journals/equipment-calibration-documents-client";
 import {
+  buildEquipmentCalibrationConfigFromEquipment,
   EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
-  getDefaultEquipmentCalibrationConfig,
 } from "@/lib/equipment-calibration-document";
 import { TraceabilityDocumentsClient } from "@/components/journals/traceability-documents-client";
 import {
@@ -1100,7 +1100,28 @@ export default async function JournalDocumentsPage({
 
     if (existingCount === 0) {
       const year = new Date().getUTCFullYear();
-      const cfg = getDefaultEquipmentCalibrationConfig(year);
+      const equipmentSource = await db.equipment.findMany({
+        where: {
+          area: {
+            organizationId: session.user.organizationId,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          serialNumber: true,
+          tempMin: true,
+          tempMax: true,
+          area: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
+      });
+      const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year });
       const owner = orgUsers.find((u) => u.role === "owner");
       if (owner) cfg.approveEmployee = owner.name;
 

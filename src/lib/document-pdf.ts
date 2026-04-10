@@ -103,6 +103,14 @@ import {
   normalizeBreakdownHistoryDocumentConfig,
 } from "@/lib/breakdown-history-document";
 import {
+  EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
+  EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+  calculateNextCalibrationDate,
+  formatCalibrationDate,
+  formatCalibrationDateLong,
+  normalizeEquipmentCalibrationConfig,
+} from "@/lib/equipment-calibration-document";
+import {
   buildHygieneExampleEmployees,
   buildDateKeys,
   formatMonthLabel,
@@ -1592,6 +1600,154 @@ function drawBreakdownHistoryPdf(doc: jsPDF, params: {
   });
 }
 
+function drawEquipmentCalibrationPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  config: ReturnType<typeof normalizeEquipmentCalibrationConfig>;
+}) {
+  const cfg = params.config;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const centerX = pageWidth / 2;
+  const headerRight = pageWidth - 24;
+
+  drawTitle(doc, params.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE);
+  drawJournalHeader(doc, {
+    organizationName: params.organizationName,
+    pageLabel: "СТР. 1 ИЗ 1",
+    journalLabel: "ГРАФИК ПОВЕРКИ СРЕДСТВ ИЗМЕРЕНИЙ",
+    withPeriodicity: false,
+  });
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(10);
+  doc.text("УТВЕРЖДАЮ", headerRight, 60, { align: "right" });
+  doc.setFont("JournalUnicode", "normal");
+  doc.setFontSize(9);
+  doc.text(cfg.approveRole || "", headerRight, 66, { align: "right" });
+  doc.line(headerRight - 52, 70, headerRight, 70);
+  doc.text(cfg.approveEmployee || "", headerRight, 74, { align: "right" });
+  doc.text(formatCalibrationDateLong(cfg.documentDate), headerRight - 6, 80, {
+    align: "center",
+  });
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(12);
+  doc.text(`График поверки средств измерений на ${cfg.year} г.`, centerX, 90, {
+    align: "center",
+  });
+
+  const head: RowInput[] = [
+    [
+      { content: "№ п/п", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+      {
+        content:
+          "Идентификаторы СИ\n(наименование, тип, заводское обозначение, номер, место расположения)",
+        rowSpan: 2,
+        styles: { halign: "center", valign: "middle" },
+      },
+      {
+        content: "Метрологические характеристики",
+        colSpan: 2,
+        styles: { halign: "center", valign: "middle" },
+      },
+      {
+        content: "Межповерочный\nинтервал",
+        rowSpan: 2,
+        styles: { halign: "center", valign: "middle" },
+      },
+      {
+        content: "Дата\nпоследней\nповерки",
+        rowSpan: 2,
+        styles: { halign: "center", valign: "middle" },
+      },
+      {
+        content: "Сроки проведения\nочередной\nповерки",
+        rowSpan: 2,
+        styles: { halign: "center", valign: "middle" },
+      },
+      { content: "Примечание", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    ],
+    [
+      {
+        content: "Назначение\n(измеряемые\nпараметры)",
+        styles: { halign: "center", valign: "middle" },
+      },
+      {
+        content: "Предел (диапазон)\nизмерений",
+        styles: { halign: "center", valign: "middle" },
+      },
+    ],
+  ];
+
+  const body: RowInput[] = cfg.rows.map((row, index) => {
+    const nextDate = calculateNextCalibrationDate(
+      row.lastCalibrationDate,
+      row.calibrationInterval
+    );
+    const isOverdue =
+      nextDate !== "" && new Date(`${nextDate}T00:00:00.000Z`) < new Date();
+
+    return [
+      centerCell(String(index + 1)),
+      centerCell(
+        [row.equipmentName, row.equipmentNumber, row.location].filter(Boolean).join(", ")
+      ),
+      centerCell(row.purpose),
+      centerCell(row.measurementRange),
+      centerCell(`${row.calibrationInterval} мес.`),
+      centerCell(formatCalibrationDate(row.lastCalibrationDate)),
+      {
+        content: formatCalibrationDate(nextDate),
+        styles: {
+          halign: "center",
+          valign: "middle",
+          textColor: isOverdue ? [220, 38, 38] : [0, 0, 0],
+          fontStyle: isOverdue ? "bold" : "normal",
+        },
+      },
+      centerCell(row.note),
+    ];
+  });
+
+  if (body.length === 0) {
+    body.push(Array(8).fill(centerCell("")));
+  }
+
+  autoTable(doc, {
+    startY: 96,
+    margin: { left: 24, right: 24 },
+    head,
+    body,
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 8,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      lineWidth: 0.2,
+      fontStyle: "bold",
+    },
+    bodyStyles: { lineWidth: 0.2 },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 48 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 30 },
+      4: { cellWidth: 26 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 22 },
+      7: { cellWidth: 34 },
+    },
+  });
+}
+
 function drawTrainingPlanPdf(doc: jsPDF, params: {
   organizationName: string;
   title: string;
@@ -2479,6 +2635,7 @@ export async function generateJournalDocumentPdf(params: {
   const cleaningConfig = normalizeCleaningDocumentConfig(document.config);
   const finishedConfig = normalizeFinishedProductDocumentConfig(document.config);
   const uvRuntimeConfig = normalizeUvRuntimeDocumentConfig(document.config);
+  const equipmentCalibrationConfig = normalizeEquipmentCalibrationConfig(document.config);
   const trackedFields = getTrackedFields(document.template.fields);
   const registerFields = parseRegisterFields(document.template.fields);
   const registerConfig = normalizeRegisterDocumentConfig(document.config, registerFields);
@@ -2572,6 +2729,12 @@ export async function generateJournalDocumentPdf(params: {
       title: document.title || BREAKDOWN_HISTORY_HEADING,
       dateFrom: document.dateFrom,
       config: normalizeBreakdownHistoryDocumentConfig(document.config),
+    });
+  } else if (templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
+    drawEquipmentCalibrationPdf(doc, {
+      organizationName,
+      title: document.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
+      config: equipmentCalibrationConfig,
     });
   } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
     drawAcceptancePdf(doc, {
@@ -2681,6 +2844,8 @@ export async function generateJournalDocumentPdf(params: {
               ? "training-plan"
             : templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE
               ? "breakdown-history"
+            : templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+              ? "equipment-calibration"
             : templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE
               ? "acceptance-journal"
             : templateCode === PPE_ISSUANCE_TEMPLATE_CODE
