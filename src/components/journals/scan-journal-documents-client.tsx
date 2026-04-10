@@ -10,9 +10,10 @@ type JournalDocumentRow = {
   id: string;
   title: string;
   status: "active" | "closed";
-  dateFromLabel: string;
-  dateToLabel: string;
-  pageCount: number;
+  dateLabel: string;
+  dateValue: string;
+  responsibleLabel?: string | null;
+  responsibleValue?: string | null;
 };
 
 type Props = {
@@ -20,7 +21,6 @@ type Props = {
   templateCode: string;
   templateName: string;
   documents: JournalDocumentRow[];
-  pageCount: number;
 };
 
 export function ScanJournalDocumentsClient({
@@ -28,7 +28,6 @@ export function ScanJournalDocumentsClient({
   templateCode,
   templateName,
   documents,
-  pageCount,
 }: Props) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -134,27 +133,27 @@ export function ScanJournalDocumentsClient({
             return (
               <div
                 key={document.id}
-                className="grid grid-cols-[1.6fr_190px_190px_140px_40px] items-start gap-0 rounded-[16px] border border-[#eef0f6] bg-white px-3 py-4"
+                className="grid gap-3 rounded-[16px] border border-[#eef0f6] bg-white px-4 py-4 md:grid-cols-[minmax(0,1.4fr)_220px_200px_40px] md:items-start md:gap-0"
               >
                 <Link href={href} className="px-2 text-[14px] font-semibold leading-5 text-black">
                   {document.title}
                 </Link>
-                <Link href={href} className="border-l border-[#edf0f7] px-6">
-                  <div className="text-[11px] text-[#979aab]">Период</div>
-                  <div className="mt-1 text-[12px] font-semibold text-black">
-                    {document.dateFromLabel}
-                    {document.dateFromLabel !== document.dateToLabel ? ` — ${document.dateToLabel}` : ""}
-                  </div>
+                {document.responsibleValue ? (
+                  <Link href={href} className="px-2 md:border-l md:border-[#edf0f7] md:px-6">
+                    <div className="text-[11px] text-[#979aab]">
+                      {document.responsibleLabel || "Ответственный"}
+                    </div>
+                    <div className="mt-1 text-[12px] font-semibold text-black">
+                      {document.responsibleValue}
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="hidden md:block md:border-l md:border-[#edf0f7]" />
+                )}
+                <Link href={href} className="px-2 md:border-l md:border-[#edf0f7] md:px-6">
+                  <div className="text-[11px] text-[#979aab]">{document.dateLabel}</div>
+                  <div className="mt-1 text-[12px] font-semibold text-black">{document.dateValue}</div>
                 </Link>
-                <Link href={href} className="border-l border-[#edf0f7] px-6">
-                  <div className="text-[11px] text-[#979aab]">Страниц</div>
-                  <div className="mt-1 text-[12px] font-semibold text-black">
-                    {pageCount || document.pageCount}
-                  </div>
-                </Link>
-                <div className="border-l border-[#edf0f7] px-6 text-[12px] text-[#979aab]">
-                  Статус: {document.status}
-                </div>
                 <div className="flex justify-center">
                   {document.status === "active" && (
                     <button

@@ -10,6 +10,7 @@ import {
   buildExampleHygieneEntryMap,
   buildHygieneExampleEmployees,
   getHygieneDemoTeamUsers,
+  getHygienePositionLabel,
   getHealthSeedDocumentConfigs,
   getHygieneDefaultResponsibleTitle,
   getHygieneSeedDocumentConfigs,
@@ -176,6 +177,10 @@ import {
   INTENSIVE_COOLING_SOURCE_SLUG,
   INTENSIVE_COOLING_TEMPLATE_CODE,
 } from "@/lib/intensive-cooling-document";
+import {
+  PEST_CONTROL_DOCUMENT_TITLE,
+  PEST_CONTROL_TEMPLATE_CODE,
+} from "@/lib/pest-control-document";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -1007,6 +1012,105 @@ async function ensureIntensiveCoolingSampleDocuments(params: {
   }
 }
 
+async function ensurePestControlSampleDocuments({
+  organizationId,
+  templateId,
+  users,
+  createdById,
+}: {
+  organizationId: string;
+  templateId: string;
+  users: { id: string; name: string; role: string; email?: string | null }[];
+  createdById: string;
+}) {
+  const existingCount = await db.journalDocument.count({
+    where: { organizationId, templateId },
+  });
+
+  if (existingCount > 0) return;
+
+  const acceptedUser =
+    users.find((user) => user.role === "owner") ||
+    users.find((user) => user.role === "manager") ||
+    users[0] ||
+    null;
+
+  const acceptedRole = acceptedUser
+    ? getHygienePositionLabel(acceptedUser.role)
+    : "Управляющий";
+
+  const activeDocument = await db.journalDocument.create({
+    data: {
+      templateId,
+      organizationId,
+      title: PEST_CONTROL_DOCUMENT_TITLE,
+      status: "active",
+      dateFrom: new Date("2025-03-05T00:00:00.000Z"),
+      dateTo: new Date("2025-03-05T00:00:00.000Z"),
+      responsibleTitle: acceptedRole,
+      responsibleUserId: acceptedUser?.id || null,
+      createdById,
+    },
+  });
+
+  if (acceptedUser) {
+    await db.journalDocumentEntry.createMany({
+      data: [
+        {
+          documentId: activeDocument.id,
+          employeeId: acceptedUser.id,
+          date: new Date("2025-03-17T18:00:11.000Z"),
+          data: {
+            performedDate: "2025-03-17",
+            performedHour: "18",
+            performedMinute: "00",
+            timeSpecified: true,
+            event: "Дезинсекция",
+            areaOrVolume: "200",
+            treatmentProduct: "Раствор",
+            note: "Не мыть полы 24 -48 часов. Добавочно расставить ловушки.",
+            performedBy: "ИП",
+            acceptedRole,
+            acceptedEmployeeId: acceptedUser.id,
+          } satisfies Prisma.InputJsonValue,
+        },
+        {
+          documentId: activeDocument.id,
+          employeeId: acceptedUser.id,
+          date: new Date("2025-03-25T11:00:22.000Z"),
+          data: {
+            performedDate: "2025-03-25",
+            performedHour: "11",
+            performedMinute: "00",
+            timeSpecified: true,
+            event: "Дезинсекция",
+            areaOrVolume: "84,9",
+            treatmentProduct: "пропан",
+            note: "",
+            performedBy: "ИП Хижняк",
+            acceptedRole,
+            acceptedEmployeeId: acceptedUser.id,
+          } satisfies Prisma.InputJsonValue,
+        },
+      ],
+    });
+  }
+
+  await db.journalDocument.create({
+    data: {
+      templateId,
+      organizationId,
+      title: `${PEST_CONTROL_DOCUMENT_TITLE} (Закрытые!!!)`,
+      status: "closed",
+      dateFrom: new Date("2025-02-05T00:00:00.000Z"),
+      dateTo: new Date("2025-02-28T00:00:00.000Z"),
+      responsibleTitle: acceptedRole,
+      responsibleUserId: acceptedUser?.id || null,
+      createdById,
+    },
+  });
+}
+
 export default async function JournalDocumentsPage({
   params,
   searchParams,
@@ -1098,18 +1202,14 @@ export default async function JournalDocumentsPage({
         activeTab={activeTab}
         templateCode={resolvedCode}
         templateName={scanConfig?.title || template.name}
+        pageCount={pageCount}
         documents={documents.map((document) => ({
           id: document.id,
           title: document.title || (scanConfig?.title || template.name),
           status: document.status as "active" | "closed",
-          dateLabel: "Период",
-          dateValue:
-            document.dateFrom.toISOString().slice(0, 10) ===
-            document.dateTo.toISOString().slice(0, 10)
-              ? document.dateFrom.toISOString().slice(0, 10)
-              : `${document.dateFrom.toISOString().slice(0, 10)} - ${document.dateTo
-                  .toISOString()
-                  .slice(0, 10)}`,
+          dateFromLabel: document.dateFrom.toISOString().slice(0, 10),
+          dateToLabel: document.dateTo.toISOString().slice(0, 10),
+          pageCount,
         }))}
       />
     );
@@ -1704,6 +1804,15 @@ export default async function JournalDocumentsPage({
 
     if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
       await ensureIntensiveCoolingSampleDocuments({
+        templateId: template.id,
+        organizationId: session.user.organizationId,
+        createdById: session.user.id,
+        users: orgUsers,
+      });
+    }
+
+    if (resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
+      await ensurePestControlSampleDocuments({
         templateId: template.id,
         organizationId: session.user.organizationId,
         createdById: session.user.id,
