@@ -5,7 +5,7 @@ on:
     branches: [master]
 
 env:
-  APP_DIR: www/wesetup.ru/app
+  APP_DIR: /var/www/wesetupru/data/www/wesetup.ru/app
 
 jobs:
   deploy:
@@ -80,7 +80,7 @@ jobs:
             rm -rf .next .next-lock
 
             echo "=== Installing dependencies ==="
-            source ~/.nvm/nvm.sh 2>/dev/null || true
+            [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true
             npm install 2>&1 | tail -5
 
             echo "=== Generating Prisma client ==="
@@ -90,7 +90,7 @@ jobs:
             npx prisma db push 2>&1 | tail -5
 
             echo "=== Seeding journal templates ==="
-            set -a && source .env && set +a
+            if [ -f .env ]; then set -a; . ./.env; set +a; fi
             npx tsx prisma/seed.ts 2>&1 | tail -20
 
             echo "=== Building ==="
