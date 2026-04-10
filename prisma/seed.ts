@@ -409,7 +409,7 @@ const journalTemplates = [
   // Приход / расход / утилизация дез. средств, остатки на складе.
   {
     code: "disinfectant_usage",
-    name: "Учёт дезинфицирующих средств",
+    name: "Журнал учета получения, расхода дезинфицирующих средств и проведения дезинфекционных работ на объекте",
     description: "Приход, расход и утилизация моющих и дезинфицирующих средств",
     sortOrder: 16,
     isMandatorySanpin: true,
@@ -511,7 +511,7 @@ const journalTemplates = [
 ];
 
 const additionalJournalTemplates = [
-  { code: "sanitary_day_control", name: "Контроль санитарного дня", description: "План и факт санитарных дней", sortOrder: 21, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "areaName", label: "Помещение", type: "text", required: true }, { key: "plannedDate", label: "Плановая дата", type: "date", required: true }, { key: "actualDate", label: "Фактическая дата", type: "date", required: false }, { key: "result", label: "Результат", type: "text", required: false }] },
+  { code: "sanitary_day_control", name: "Чек-лист (памятка) проведения санитарного дня", description: "Чек-лист проведения санитарного дня", sortOrder: 21, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [] },
   { code: "hand_hygiene_control", name: "Контроль гигиены рук", description: "Проверка соблюдения процедур гигиены рук", sortOrder: 22, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "employeeName", label: "Сотрудник", type: "employee", required: true }, { key: "hasViolations", label: "Есть нарушения", type: "boolean", required: true }, { key: "comment", label: "Комментарий", type: "text", required: false }] },
   { code: "waste_disposal_control", name: "Контроль утилизации отходов", description: "Учёт вывоза и утилизации пищевых отходов", sortOrder: 23, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "wasteType", label: "Тип отходов", type: "text", required: true }, { key: "quantity", label: "Количество", type: "number", required: true, step: 0.01 }, { key: "contractor", label: "Подрядчик", type: "text", required: false }] },
   { code: "uv_lamp_runtime", name: "Учёт наработки УФ-ламп", description: "Часы работы и замена УФ-ламп", sortOrder: 24, isMandatorySanpin: true, isMandatoryHaccp: false, fields: [{ key: "lampName", label: "Установка/лампа", type: "text", required: true }, { key: "hoursBefore", label: "Часы до смены", type: "number", required: true, step: 1 }, { key: "hoursAfter", label: "Часы после смены", type: "number", required: true, step: 1 }] },

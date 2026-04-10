@@ -69,6 +69,13 @@ import {
 } from "@/lib/training-plan-document";
 import { TrainingPlanDocumentsClient } from "@/components/journals/training-plan-documents-client";
 import {
+  DISINFECTANT_TEMPLATE_CODE,
+  DISINFECTANT_SOURCE_SLUG,
+  DISINFECTANT_DOCUMENT_TITLE,
+  getDisinfectantDefaultConfig,
+} from "@/lib/disinfectant-document";
+import { DisinfectantDocumentsClient } from "@/components/journals/disinfectant-documents-client";
+import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   buildUvRuntimeDocumentTitle,
   defaultUvSpecification,
@@ -95,6 +102,17 @@ import {
   EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
   getDefaultEquipmentMaintenanceConfig,
 } from "@/lib/equipment-maintenance-document";
+import { SanitaryDayChecklistDocumentsClient } from "@/components/journals/sanitary-day-checklist-documents-client";
+import {
+  SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,
+  SANITARY_DAY_CHECKLIST_TITLE,
+  defaultSdcConfig,
+} from "@/lib/sanitary-day-checklist-document";
+import { EquipmentCalibrationDocumentsClient } from "@/components/journals/equipment-calibration-documents-client";
+import {
+  EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+  getDefaultEquipmentCalibrationConfig,
+} from "@/lib/equipment-calibration-document";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -830,6 +848,60 @@ export default async function JournalDocumentsPage({
     );
   }
 
+  if (resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
+    const existingCount = await db.journalDocument.count({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+      },
+    });
+
+    if (existingCount === 0) {
+      const year = new Date().getUTCFullYear();
+      const cfg = getDefaultEquipmentCalibrationConfig(year);
+      const owner = orgUsers.find((u) => u.role === "owner");
+      if (owner) cfg.approveEmployee = owner.name;
+
+      await db.journalDocument.create({
+        data: {
+          templateId: template.id,
+          organizationId: session.user.organizationId,
+          title: "График поверки",
+          status: "active",
+          dateFrom: new Date(Date.UTC(year, 0, 1)),
+          dateTo: new Date(Date.UTC(year, 11, 31)),
+          createdById: session.user.id,
+          config: cfg,
+        },
+      });
+    }
+
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { dateFrom: "desc" },
+    });
+
+    return (
+      <EquipmentCalibrationDocumentsClient
+        activeTab={activeTab}
+        templateCode={resolvedCode}
+        templateName={template.name}
+        users={orgUsers}
+        documents={documents.map((doc) => ({
+          id: doc.id,
+          title: doc.title || "График поверки",
+          status: doc.status as "active" | "closed",
+          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
+          config: doc.config,
+        }))}
+      />
+    );
+  }
+
   if (isDocumentTemplate(resolvedCode)) {
     const parsedTemplateFields = Array.isArray(template.fields)
       ? (template.fields as TrackedTemplateField[])
@@ -1005,6 +1077,53 @@ export default async function JournalDocumentsPage({
       );
     }
 
+    if (resolvedCode === DISINFECTANT_TEMPLATE_CODE) {
+      const existingDis = await db.journalDocument.findMany({
+        where: { templateId: template.id, organizationId: session.user.organizationId },
+        select: { status: true },
+      });
+      const disStatuses = new Set(existingDis.map((d) => d.status));
+      if (!disStatuses.has("active")) {
+        const now = new Date();
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: DISINFECTANT_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: now,
+            dateTo: now,
+            createdById: session.user.id,
+            config: getDisinfectantDefaultConfig() as any,
+          },
+        });
+      }
+
+      const disDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return (
+        <DisinfectantDocumentsClient
+          routeCode={code === DISINFECTANT_SOURCE_SLUG ? code : resolvedCode}
+          templateCode={resolvedCode}
+          activeTab={activeTab}
+          users={orgUsers}
+          documents={disDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || DISINFECTANT_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            config: document.config,
+          }))}
+        />
+      );
+    }
+
     if (resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
       // Auto-seed sample documents
       const existingTP = await db.journalDocument.findMany({
@@ -1096,6 +1215,57 @@ export default async function JournalDocumentsPage({
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             config: document.config,
+          }))}
+        />
+      );
+    }
+
+    if (resolvedCode === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE) {
+      const existingSdc = await db.journalDocument.findMany({
+        where: { templateId: template.id, organizationId: session.user.organizationId },
+        select: { status: true },
+      });
+
+      if (existingSdc.length === 0) {
+        const today = new Date();
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: SANITARY_DAY_CHECKLIST_TITLE,
+            status: "active",
+            dateFrom: today,
+            dateTo: today,
+            createdById: session.user.id,
+            config: defaultSdcConfig(),
+          },
+        });
+      }
+
+      const sdcDocuments = await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          templateId: template.id,
+          status: activeTab,
+        },
+        orderBy: { dateFrom: "desc" },
+      });
+
+      return (
+        <SanitaryDayChecklistDocumentsClient
+          routeCode={code}
+          templateCode={resolvedCode}
+          activeTab={activeTab}
+          users={orgUsers}
+          documents={sdcDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || SANITARY_DAY_CHECKLIST_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config:
+              document.config && typeof document.config === "object" && !Array.isArray(document.config)
+                ? (document.config as Record<string, unknown>)
+                : null,
           }))}
         />
       );

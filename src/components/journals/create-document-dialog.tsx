@@ -95,6 +95,15 @@ import {
   EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
   getMaintenanceCreatePeriodBounds,
 } from "@/lib/equipment-maintenance-document";
+import {
+  EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+  EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
+  getCalibrationCreatePeriodBounds,
+} from "@/lib/equipment-calibration-document";
+import {
+  SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,
+  defaultSdcConfig,
+} from "@/lib/sanitary-day-checklist-document";
 
 interface Props {
   templateCode: string;
@@ -136,6 +145,8 @@ export function CreateDocumentDialog({
               ? getFinishedProductCreatePeriodBounds()
               : templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
                 ? getMaintenanceCreatePeriodBounds()
+              : templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+                ? getCalibrationCreatePeriodBounds()
               : templateCode === STAFF_TRAINING_TEMPLATE_CODE
                 ? getStaffTrainingCreatePeriodBounds()
               : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
@@ -157,6 +168,7 @@ export function CreateDocumentDialog({
   const isPerishableRejectionJournal = templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE;
   const isStaffTrainingJournal = templateCode === STAFF_TRAINING_TEMPLATE_CODE;
   const isEquipmentMaintenanceJournal = templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE;
+  const isEquipmentCalibrationJournal = templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
   const showDateFields = !isColdEquipmentJournal;
@@ -184,6 +196,8 @@ export function CreateDocumentDialog({
                 ? getFinishedProductDocumentTitle()
                 : templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
                   ? EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE
+                : templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
+                  ? EQUIPMENT_CALIBRATION_DOCUMENT_TITLE
                 : templateCode === STAFF_TRAINING_TEMPLATE_CODE
                   ? STAFF_TRAINING_DOCUMENT_TITLE
                 : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
@@ -254,6 +268,8 @@ export function CreateDocumentDialog({
               }
             : isEquipmentMaintenanceJournal
             ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom }
+            : isEquipmentCalibrationJournal
+            ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom, rows: [], approveRole: responsibleTitle || "Управляющий", approveEmployee: "" }
             : isStaffTrainingJournal
             ? { showSignatureField: medBookIncludeVaccinations }
             : isMedBookJournal
@@ -279,6 +295,8 @@ export function CreateDocumentDialog({
                 }
               : templateCode === FRYER_OIL_TEMPLATE_CODE
               ? defaultFryerOilDocumentConfig()
+              : templateCode === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE
+              ? defaultSdcConfig()
               : isSourceStyleTrackedJournal && (trackedAreaName.trim() || isUvRuntimeJournal)
                 ? isUvRuntimeJournal
                   ? {
@@ -307,7 +325,7 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isCleaningJournal;
+  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal || isCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -440,7 +458,7 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {isEquipmentMaintenanceJournal && (
+              {(isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal) && (
                 <>
                   <div className="space-y-3">
                     <Label className="text-[18px] text-[#73738a]">Дата документа</Label>
@@ -513,7 +531,7 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isCleaningJournal && (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && (
               <div className="space-y-3">
                 <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
                 <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>

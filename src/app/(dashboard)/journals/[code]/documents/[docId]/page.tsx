@@ -50,6 +50,8 @@ import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
 import { TRAINING_PLAN_TEMPLATE_CODE } from "@/lib/training-plan-document";
 import { TrainingPlanDocumentClient } from "@/components/journals/training-plan-document-client";
+import { DISINFECTANT_TEMPLATE_CODE } from "@/lib/disinfectant-document";
+import { DisinfectantDocumentClient } from "@/components/journals/disinfectant-document-client";
 import { BREAKDOWN_HISTORY_TEMPLATE_CODE } from "@/lib/breakdown-history-document";
 import { BreakdownHistoryDocumentClient } from "@/components/journals/breakdown-history-document-client";
 import { UvLampRuntimeDocumentClient } from "@/components/journals/uv-lamp-runtime-document-client";
@@ -86,6 +88,17 @@ import {
   EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
   normalizeEquipmentMaintenanceConfig,
 } from "@/lib/equipment-maintenance-document";
+import { SanitaryDayChecklistDocumentClient } from "@/components/journals/sanitary-day-checklist-document-client";
+import {
+  SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,
+  normalizeSdcConfig,
+  normalizeSdcEntryData,
+} from "@/lib/sanitary-day-checklist-document";
+import { EquipmentCalibrationDocumentClient } from "@/components/journals/equipment-calibration-document-client";
+import {
+  EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+  normalizeEquipmentCalibrationConfig,
+} from "@/lib/equipment-calibration-document";
 
 export const dynamic = "force-dynamic";
 
@@ -302,6 +315,20 @@ export default async function JournalDocumentPage({
     );
   }
 
+  if (document.template.code === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
+    return (
+      <EquipmentCalibrationDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        dateFrom={toDateKey(document.dateFrom)}
+        status={document.status}
+        initialConfig={normalizeEquipmentCalibrationConfig(document.config)}
+        users={enrichedEmployees}
+      />
+    );
+  }
+
   if (document.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
     return (
       <ColdEquipmentDocumentClient
@@ -329,6 +356,19 @@ export default async function JournalDocumentPage({
   if (document.template.code === SANITATION_DAY_TEMPLATE_CODE) {
     return (
       <SanitationDayDocumentClient
+        documentId={document.id}
+        title={document.title}
+        organizationName={organization?.name || 'ООО "Тест"'}
+        status={document.status}
+        users={enrichedEmployees}
+        config={document.config}
+      />
+    );
+  }
+
+  if (document.template.code === DISINFECTANT_TEMPLATE_CODE) {
+    return (
+      <DisinfectantDocumentClient
         documentId={document.id}
         title={document.title}
         organizationName={organization?.name || 'ООО "Тест"'}
@@ -425,6 +465,26 @@ export default async function JournalDocumentPage({
             date: toIsoDate(entry.date),
             data: ((entry.data as Record<string, unknown>) || {}) as Record<string, unknown>,
           }))}
+        />
+      );
+    }
+
+    if (document.template.code === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE) {
+      return (
+        <SanitaryDayChecklistDocumentClient
+          documentId={document.id}
+          title={document.title || "Чек-лист"}
+          organizationName={organization?.name || 'ООО "Тест"'}
+          status={document.status}
+          dateFrom={toIsoDate(document.dateFrom)}
+          users={enrichedEmployees}
+          config={normalizeSdcConfig(document.config)}
+          initialEntries={document.entries.map((entry) => ({
+            id: entry.id,
+            date: toIsoDate(entry.date),
+            data: normalizeSdcEntryData(entry.data),
+          }))}
+          routeCode={code}
         />
       );
     }
