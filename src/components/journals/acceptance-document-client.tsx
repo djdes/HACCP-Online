@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -55,7 +56,7 @@ type Props = {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
-const POSITION_OPTIONS = ["Управляющий", "Шеф-повар", "Повар", "Кондитер", "Официант", "Бармен"];
+const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 function getResponsibleLabel(row: AcceptanceRow, users: User[]) {
   const user = users.find((u) => u.id === row.responsibleUserId);

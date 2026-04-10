@@ -21,12 +21,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { USER_ROLE_OPTIONS } from "@/lib/user-roles";
 
-const roles = [
-  { value: "owner", label: "Владелец" },
-  { value: "technologist", label: "Технолог" },
-  { value: "operator", label: "Оператор" },
-];
+const roles = USER_ROLE_OPTIONS;
 
 interface EditUserDialogProps {
   user: {
@@ -85,9 +82,17 @@ export function EditUserDialog({ user, isSelf }: EditUserDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm"><Pencil className="size-4" /></Button>
+        <Button variant="ghost" size="sm">
+          <Pencil className="size-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -95,46 +100,80 @@ export function EditUserDialog({ user, isSelf }: EditUserDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="edit-user-name">Имя <span className="text-destructive">*</span></Label>
-            <Input id="edit-user-name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Label htmlFor="edit-user-name">
+              Имя <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="edit-user-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
             <Input value={user.email} disabled className="bg-muted" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-user-role">Роль <span className="text-destructive">*</span></Label>
+            <Label htmlFor="edit-user-role">
+              Должность <span className="text-destructive">*</span>
+            </Label>
             <Select value={role} onValueChange={setRole} disabled={isSelf}>
               <SelectTrigger id="edit-user-role" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {roles.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                {roles.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {isSelf && <p className="text-xs text-muted-foreground">Нельзя изменить свою роль</p>}
+            {isSelf && (
+              <p className="text-xs text-muted-foreground">
+                Нельзя изменить свою должность
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-user-phone">Телефон</Label>
-            <Input id="edit-user-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (999) 123-45-67" />
+            <Input
+              id="edit-user-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 (999) 123-45-67"
+            />
           </div>
           {!isSelf && (
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <Label>Активен</Label>
-                <p className="text-xs text-muted-foreground">Деактивированный сотрудник не сможет войти</p>
+                <p className="text-xs text-muted-foreground">
+                  Деактивированный сотрудник не сможет войти
+                </p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} />
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>Отмена</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Сохранение..." : "Сохранить"}</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
+              Отмена
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Сохранение..." : "Сохранить"}
+            </Button>
           </div>
         </form>
       </DialogContent>

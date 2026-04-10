@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendComplianceReminderEmail } from "@/lib/email";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
       const users = await db.user.findMany({
         where: {
           organizationId: org.id,
-          role: { in: ["owner", "technologist"] },
+          role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
           isActive: true,
         },
         select: { email: true },

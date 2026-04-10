@@ -20,12 +20,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { USER_ROLE_OPTIONS } from "@/lib/user-roles";
 
-const roles = [
-  { value: "owner", label: "Владелец" },
-  { value: "technologist", label: "Технолог" },
-  { value: "operator", label: "Оператор" },
-];
+const roles = USER_ROLE_OPTIONS;
 
 export function InviteUserDialog() {
   const router = useRouter();
@@ -67,7 +64,7 @@ export function InviteUserDialog() {
 
       if (!response.ok) {
         const result = await response.json();
-        throw new Error(result.error || "Ошибка при создании пользователя");
+        throw new Error(result.error || "Ошибка при создании сотрудника");
       }
 
       resetForm();
@@ -75,7 +72,7 @@ export function InviteUserDialog() {
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Ошибка при создании пользователя"
+        err instanceof Error ? err.message : "Ошибка при создании сотрудника"
       );
     } finally {
       setIsSubmitting(false);
@@ -147,16 +144,16 @@ export function InviteUserDialog() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="user-role">
-              Роль <span className="text-destructive">*</span>
+              Должность <span className="text-destructive">*</span>
             </Label>
             <Select value={role} onValueChange={setRole} required>
               <SelectTrigger id="user-role" className="w-full">
-                <SelectValue placeholder="Выберите роль" />
+                <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
-                {roles.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                {roles.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
                   </SelectItem>
                 ))}
               </SelectContent>

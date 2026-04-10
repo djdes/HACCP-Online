@@ -41,7 +41,7 @@ model User {
   name            String
   phone           String?
   passwordHash    String
-  role            String         @default("operator")
+  role            String         @default("cook")
   organizationId  String
   organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   telegramChatId    String?

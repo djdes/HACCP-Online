@@ -1,6 +1,7 @@
 import { Bot } from "grammy";
 import crypto from "node:crypto";
 import { escapeHtml } from "@/lib/html-escape";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 // Initialize bot (only if token is set)
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -41,10 +42,15 @@ export async function notifyOrganization(
   // Import db here to avoid circular deps
   const { db } = await import("./db");
 
+  const dbRoles =
+    roles[0] === "owner" || roles[0] === "manager"
+      ? getDbRoleValuesWithLegacy(MANAGEMENT_ROLES)
+      : roles;
+
   const users = await db.user.findMany({
     where: {
       organizationId,
-      role: { in: roles },
+      role: { in: dbRoles },
       telegramChatId: { not: null },
       isActive: true,
     },

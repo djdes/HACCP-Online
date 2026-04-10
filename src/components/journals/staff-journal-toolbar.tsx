@@ -26,6 +26,7 @@ import {
   getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
+import { getUserRoleGroupLabel } from "@/lib/user-roles";
 
 type UserItem = {
   id: string;

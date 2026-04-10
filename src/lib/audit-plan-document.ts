@@ -1,3 +1,5 @@
+import { getUserRoleLabel, normalizeUserRole, pickPrimaryManager } from "@/lib/user-roles";
+
 export const AUDIT_PLAN_TEMPLATE_CODE = "audit_plan";
 export const AUDIT_PLAN_SOURCE_SLUG = "auditplan";
 
@@ -38,12 +40,6 @@ type UserLike = {
   role: string;
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Управляющий",
-  technologist: "Технолог",
-  operator: "Сотрудник",
-};
-
 function createId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -59,17 +55,17 @@ function safeYear(value: unknown, fallback: number) {
 }
 
 function resolveRoleLabel(role: string) {
-  return ROLE_LABELS[role] || role || "Сотрудник";
+  return getUserRoleLabel(role);
 }
 
 function pickApproveUser(users: UserLike[]) {
-  return users.find((user) => user.role === "owner") || users[0] || null;
+  return pickPrimaryManager(users);
 }
 
 function pickAuditors(users: UserLike[]) {
-  const primary = users.find((user) => user.role === "owner") || users[0] || null;
+  const primary = pickPrimaryManager(users);
   const secondary =
-    users.find((user) => user.role === "technologist") ||
+    users.find((user) => normalizeUserRole(user.role) === "head_chef") ||
     users.find((user) => user.name !== primary?.name) ||
     primary;
 

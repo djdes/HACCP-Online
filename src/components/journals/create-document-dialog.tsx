@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { getUserRoleLabel } from "@/lib/user-roles";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   getColdEquipmentCreatePeriodBounds,
@@ -127,12 +128,6 @@ interface Props {
   triggerLabel?: string;
   triggerIcon?: ReactNode;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Владелец",
-  technologist: "Технолог",
-  operator: "Оператор",
-};
 
 export function CreateDocumentDialog({
   templateCode,
@@ -795,7 +790,7 @@ export function CreateDocumentDialog({
                       setResponsibleUserId(value);
                       const user = users.find((item) => item.id === value);
                       if (user) {
-                        setResponsibleTitle(ROLE_LABELS[user.role] || user.role);
+                        setResponsibleTitle(getUserRoleLabel(user.role));
                       }
                     }}
                   >
@@ -805,7 +800,7 @@ export function CreateDocumentDialog({
                     <SelectContent>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.name} ({ROLE_LABELS[user.role] || user.role})
+                          {user.name} ({getUserRoleLabel(user.role)})
                         </SelectItem>
                       ))}
                     </SelectContent>

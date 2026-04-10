@@ -1,6 +1,7 @@
 import { getServerSession } from "@/lib/server-session";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { hasAnyUserRole } from "@/lib/user-roles";
 
 export async function requireAuth() {
   const session = await getServerSession(authOptions);
@@ -15,7 +16,7 @@ export async function requireAuth() {
 export async function requireRole(roles: string[]) {
   const session = await requireAuth();
 
-  if (!roles.includes(session.user.role)) {
+  if (!hasAnyUserRole(session.user.role, roles)) {
     redirect("/dashboard");
   }
 

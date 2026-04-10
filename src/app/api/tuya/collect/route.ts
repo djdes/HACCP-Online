@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getDeviceTemperature } from "@/lib/tuya";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendTemperatureAlertEmail } from "@/lib/email";
+import { getDbRoleValuesWithLegacy, MANAGER_ROLES, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 export async function POST(request: Request) {
   try {
@@ -56,11 +57,11 @@ export async function POST(request: Request) {
           equip.tuyaDeviceId!
         );
 
-        // Find system user (first owner in org) to attribute the entry
+        // Find system user (first manager in org) to attribute the entry
         const systemUser = await db.user.findFirst({
           where: {
             organizationId: equip.area.organizationId,
-            role: "owner",
+            role: { in: getDbRoleValuesWithLegacy(MANAGER_ROLES) },
             isActive: true,
           },
         });
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
             .findMany({
               where: {
                 organizationId: equip.area.organizationId,
-                role: { in: ["owner", "technologist"] },
+                role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
                 isActive: true,
               },
               select: { email: true },

@@ -5,12 +5,13 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInviteEmail } from "@/lib/email";
+import { isManagerRole, USER_ROLE_VALUES } from "@/lib/user-roles";
 
 const inviteUserSchema = z.object({
   name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
   email: z.string().email("Введите корректный email"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
-  role: z.enum(["owner", "technologist", "operator"], {
+  role: z.enum(USER_ROLE_VALUES, {
     message: "Выберите роль",
   }),
   phone: z.string().optional(),
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (session.user.role !== "owner") {
+    if (!isManagerRole(session.user.role)) {
       return NextResponse.json(
         { error: "Недостаточно прав" },
         { status: 403 }

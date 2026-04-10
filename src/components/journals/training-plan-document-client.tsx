@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getDistinctRoleLabels, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 import {
   createEmptyTrainingRow,
   createTrainingTopic,
@@ -49,24 +50,17 @@ type SettingsState = {
   approveEmployee: string;
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Управляющий",
-  technologist: "Технолог",
-  operator: "Сотрудник",
-};
-
 const MONTH_OPTIONS = [
   "январь", "февраль", "март", "апрель", "май", "июнь",
   "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
 ];
 
 function roleOptionsFromUsers(users: UserItem[]) {
-  const labels = users.map((u) => ROLE_LABELS[u.role] || u.role);
-  return [...new Set(labels)];
+  return getDistinctRoleLabels(users);
 }
 
 function usersForRole(users: UserItem[], roleLabel: string) {
-  return users.filter((u) => (ROLE_LABELS[u.role] || u.role) === roleLabel);
+  return getUsersForRoleLabel(users, roleLabel);
 }
 
 function toIsoDate(value: string) {
@@ -101,7 +95,7 @@ function AddPositionDialog(props: {
   const [submitting, setSubmitting] = useState(false);
 
   const uniqueRoles = useMemo(() => {
-    const labels = props.users.map((u) => ROLE_LABELS[u.role] || u.role);
+    const labels = props.users.map((u) => getUserRoleLabel(u.role));
     return [...new Set(labels)];
   }, [props.users]);
 

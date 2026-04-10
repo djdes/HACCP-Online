@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
   Dialog,
   DialogContent,
@@ -49,14 +50,7 @@ type Props = {
   users: { id: string; name: string; role: string }[];
 };
 
-const POSITION_OPTIONS = [
-  "Управляющий",
-  "Шеф-повар",
-  "Повар",
-  "Кондитер",
-  "Официант",
-  "Бармен",
-];
+const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 function nowDate() {
   return new Date().toISOString().slice(0, 10);

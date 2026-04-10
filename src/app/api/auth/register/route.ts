@@ -38,7 +38,7 @@ export async function POST(request: Request) {
           name: validatedData.name,
           phone: validatedData.phone || null,
           passwordHash,
-          role: "owner",
+          role: "manager",
           organizationId: organization.id,
         },
       });

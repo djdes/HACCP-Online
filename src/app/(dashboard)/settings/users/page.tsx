@@ -13,12 +13,7 @@ import {
 import { InviteUserDialog } from "@/components/settings/invite-user-dialog";
 import { EditUserDialog } from "@/components/settings/edit-user-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
-
-const roleLabels: Record<string, string> = {
-  owner: "Владелец",
-  technologist: "Технолог",
-  operator: "Оператор",
-};
+import { getUserRoleLabel, isManagerRole } from "@/lib/user-roles";
 
 export default async function UsersSettingsPage() {
   const session = await requireAuth();
@@ -36,7 +31,7 @@ export default async function UsersSettingsPage() {
     },
   });
 
-  const isOwner = session.user.role === "owner";
+  const isManager = isManagerRole(session.user.role);
 
   return (
     <div className="space-y-6">
@@ -47,7 +42,7 @@ export default async function UsersSettingsPage() {
             Управление сотрудниками организации
           </p>
         </div>
-        {isOwner && <InviteUserDialog />}
+        {isManager && <InviteUserDialog />}
       </div>
 
       {users.length === 0 ? (
@@ -66,9 +61,9 @@ export default async function UsersSettingsPage() {
                 <TableHead>Имя</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Телефон</TableHead>
-                <TableHead>Роль</TableHead>
+                <TableHead>Должность</TableHead>
                 <TableHead>Статус</TableHead>
-                {isOwner && <TableHead className="w-[100px]">Действия</TableHead>}
+                {isManager && <TableHead className="w-[100px]">Действия</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -77,7 +72,7 @@ export default async function UsersSettingsPage() {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="text-sm">{user.phone ?? "—"}</TableCell>
-                  <TableCell>{roleLabels[user.role] ?? user.role}</TableCell>
+                  <TableCell>{getUserRoleLabel(user.role)}</TableCell>
                   <TableCell>
                     {user.isActive ? (
                       <Badge variant="default">Активен</Badge>
@@ -85,7 +80,7 @@ export default async function UsersSettingsPage() {
                       <Badge variant="secondary">Неактивен</Badge>
                     )}
                   </TableCell>
-                  {isOwner && (
+                  {isManager && (
                     <TableCell>
                       <div className="flex gap-1">
                         <EditUserDialog

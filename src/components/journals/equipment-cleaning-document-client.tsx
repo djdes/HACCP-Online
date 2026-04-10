@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
   Select,
   SelectContent,
@@ -60,16 +61,14 @@ type RowDraftState = {
   data: EquipmentCleaningRowData;
 };
 
-const ROLE_OPTIONS = ["Мойщик", "Официант", "Повар", "Кондитер", "Управляющий", "Технолог"];
+const ROLE_OPTIONS = USER_ROLE_LABEL_VALUES;
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
 const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) =>
   String(index * 5).padStart(2, "0")
 );
 
 function userRoleLabel(role: string) {
-  if (role === "owner") return "Управляющий";
-  if (role === "technologist") return "Технолог";
-  return "Оператор";
+  return getUserRoleLabel(role);
 }
 
 function splitTime(value: string) {

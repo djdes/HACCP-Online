@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isManagerRole, normalizeUserRole } from "@/lib/user-roles";
 
 export async function PUT(
   request: Request,
@@ -15,7 +16,7 @@ export async function PUT(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (session.user.role !== "owner") {
+    if (!isManagerRole(session.user.role)) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -31,7 +32,7 @@ export async function PUT(
     const { name, role, phone, isActive } = body;
 
     // Prevent owner from demoting themselves
-    if (id === session.user.id && role && role !== "owner") {
+    if (id === session.user.id && role && normalizeUserRole(role) !== "manager") {
       return NextResponse.json(
         { error: "Нельзя изменить свою роль" },
         { status: 400 }
@@ -76,7 +77,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (session.user.role !== "owner") {
+    if (!isManagerRole(session.user.role)) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 

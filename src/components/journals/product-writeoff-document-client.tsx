@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { Textarea } from "@/components/ui/textarea";
 import {
   createProductWriteoffCommissionMember,
@@ -46,7 +47,7 @@ type CommissionDialogState = {
   member: ProductWriteoffCommissionMember;
 };
 
-const ROLE_OPTIONS = ["Управляющий", "Технолог", "Заведующий производством", "Повар", "Кладовщик"];
+const ROLE_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 function emptyRow() {
   return createProductWriteoffRow();

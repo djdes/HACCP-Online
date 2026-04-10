@@ -188,6 +188,7 @@ import {
   PEST_CONTROL_DOCUMENT_TITLE,
   PEST_CONTROL_TEMPLATE_CODE,
 } from "@/lib/pest-control-document";
+import { getUserRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -243,11 +244,7 @@ async function ensureStaffJournalSampleDocuments({
     })
   );
 
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
+  const responsibleUser = pickPrimaryManager(users);
 
   for (const config of configs) {
     const key = `${config.status}:${config.dateFrom}:${config.dateTo}`;
@@ -401,10 +398,7 @@ async function ensureSourceStyleTrackedSampleDocuments({
 }) {
   if (!SOURCE_STYLE_TRACKED_DEMO_CODES.has(templateCode)) return;
 
-  const activeUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0];
+  const activeUser = pickPrimaryManager(users) || users[0];
 
   if (!activeUser) return;
 
@@ -673,11 +667,7 @@ async function ensureTraceabilitySampleDocuments(params: {
   const rawMaterialList = orgItemNames.length > 0 ? orgItemNames.slice(0, 8) : ["Мука"];
   const productList = orgItemNames.length > 0 ? orgItemNames.slice(0, 8) : ["Пельмени"];
 
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
+  const responsibleUser = pickPrimaryManager(users);
   const defaultResponsibleRole =
     responsibleUser?.role === "technologist"
       ? "Технолог"
@@ -785,11 +775,7 @@ async function ensureGlassControlSampleDocuments(params: {
 
   if (existingDocuments > 0) return;
 
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
+  const responsibleUser = pickPrimaryManager(users);
 
   if (!responsibleUser) return;
 
@@ -944,11 +930,7 @@ async function ensureIntensiveCoolingSampleDocuments(params: {
       ? dishSuggestions
       : ["Пельмени", "Котлеты жареные", "Гуляш", "Плов"];
 
-  const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
+  const responsibleUser = pickPrimaryManager(users);
   const responsibleTitle = getResponsibleTitleByRole(responsibleUser?.role);
   const activeDate = "2021-10-01";
 
@@ -1036,11 +1018,7 @@ async function ensurePestControlSampleDocuments({
 
   if (existingCount > 0) return;
 
-  const acceptedUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "manager") ||
-    users[0] ||
-    null;
+  const acceptedUser = pickPrimaryManager(users);
 
   const acceptedRole = acceptedUser
     ? getHygienePositionLabel(acceptedUser.role)
@@ -1573,10 +1551,10 @@ export default async function JournalDocumentsPage({
     if (existingCount === 0) {
       const year = new Date().getUTCFullYear();
       const cfg = getDefaultEquipmentMaintenanceConfig(year);
-      const owner = orgUsers.find((u) => u.role === "owner");
-      const tech = orgUsers.find((u) => u.role === "technologist");
-      if (owner) cfg.approveEmployee = owner.name;
-      if (tech) cfg.responsibleEmployee = tech.name;
+      const manager = pickPrimaryManager(orgUsers);
+      const headChef = orgUsers.find((u) => getUserRoleLabel(u.role) === "???-?????") || manager;
+      if (manager) cfg.approveEmployee = manager.name;
+      if (headChef) cfg.responsibleEmployee = headChef.name;
 
       await db.journalDocument.create({
         data: {
@@ -1650,8 +1628,8 @@ export default async function JournalDocumentsPage({
         orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
       });
       const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year });
-      const owner = orgUsers.find((u) => u.role === "owner");
-      if (owner) cfg.approveEmployee = owner.name;
+      const manager = pickPrimaryManager(orgUsers);
+      if (manager) cfg.approveEmployee = manager.name;
 
       await db.journalDocument.create({
         data: {
@@ -1723,10 +1701,7 @@ export default async function JournalDocumentsPage({
         const dateTo = new Date(Date.UTC(year, month + 1, 0));
 
         const cleaningConfig = defaultCleaningDocumentConfig(orgUsers);
-        const responsibleUser =
-          orgUsers.find((u) => u.role === "owner") ||
-          orgUsers.find((u) => u.role === "technologist") ||
-          orgUsers[0];
+        const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
 
         const created = await db.journalDocument.create({
           data: {

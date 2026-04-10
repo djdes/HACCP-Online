@@ -2,6 +2,7 @@ import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { getPermissionRole } from "@/lib/user-roles";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -88,7 +89,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: getPermissionRole(user.role),
           organizationId: user.organizationId,
           organizationName: user.organization.name,
         };

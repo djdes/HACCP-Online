@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getDistinctRoleLabels, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 import {
   DISINFECTANT_HEADING,
   DISINFECTANT_DOCUMENT_TITLE,
@@ -52,19 +53,12 @@ type Props = {
   config: unknown;
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Управляющий",
-  technologist: "Технолог",
-  operator: "Сотрудник",
-};
-
 function roleOptionsFromUsers(users: UserItem[]) {
-  const labels = users.map((u) => ROLE_LABELS[u.role] || u.role);
-  return [...new Set(labels)];
+  return getDistinctRoleLabels(users);
 }
 
 function usersForRole(users: UserItem[], roleLabel: string) {
-  return users.filter((u) => (ROLE_LABELS[u.role] || u.role) === roleLabel);
+  return getUsersForRoleLabel(users, roleLabel);
 }
 
 function toIsoDate(value: string) {

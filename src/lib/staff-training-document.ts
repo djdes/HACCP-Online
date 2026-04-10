@@ -1,3 +1,5 @@
+import { getUserRoleLabel, normalizeUserRole } from "@/lib/user-roles";
+
 export const STAFF_TRAINING_TEMPLATE_CODE = "staff_training";
 export const STAFF_TRAINING_DOCUMENT_TITLE = "Журнал регистрации инструктажей";
 export const STAFF_TRAINING_FULL_TITLE =
@@ -81,23 +83,17 @@ export function buildStaffTrainingSeedRows(
   users: Array<{ name: string; role: string }>,
   dateKey: string
 ): StaffTrainingRow[] {
-  const positionLabels: Record<string, string> = {
-    owner: "Управляющий",
-    technologist: "Шеф-повар",
-    operator: "Повар",
-  };
-
   const rows: StaffTrainingRow[] = [];
   const topics = ["Охрана труда", "Должностные обязанности", "ККТ"];
 
   for (const user of users.slice(0, 5)) {
-    if (user.role === "owner") continue;
+    if (normalizeUserRole(user.role) === "manager") continue;
     for (const topic of topics) {
       rows.push(
         createStaffTrainingRow({
           date: dateKey,
           employeeName: user.name,
-          employeePosition: positionLabels[user.role] || "Сотрудник",
+          employeePosition: getUserRoleLabel(user.role),
           topic,
           trainingType: "",
           unscheduledReason: "",

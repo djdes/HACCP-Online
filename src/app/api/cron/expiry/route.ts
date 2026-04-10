@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendComplianceReminderEmail } from "@/lib/email";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 export async function POST(request: Request) {
   try {
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       const users = await db.user.findMany({
         where: {
           organizationId: orgId,
-          role: { in: ["owner", "technologist"] },
+          role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
           isActive: true,
         },
         select: { email: true },

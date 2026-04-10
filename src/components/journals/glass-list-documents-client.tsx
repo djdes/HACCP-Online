@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 import {
   GLASS_LIST_DOCUMENT_TITLE,
   GLASS_LIST_PAGE_TITLE,
@@ -67,21 +68,12 @@ type Props = {
   documents: DocumentItem[];
 };
 
-const RESPONSIBLE_TITLES = [
-  "Управляющий",
-  "Технолог",
-  "Заведующий производством",
-  "Кладовщик",
-  "Повар",
-];
+const RESPONSIBLE_TITLES = USER_ROLE_LABEL_VALUES;
 
 function getDefaultFormState(users: UserItem[]): FormState {
   const defaultConfig = getDefaultGlassListConfig();
   const responsibleUser =
-    users.find((user) => user.role === "owner") ||
-    users.find((user) => user.role === "technologist") ||
-    users[0] ||
-    null;
+    pickPrimaryManager(users);
 
   return {
     documentName: defaultConfig.documentName,

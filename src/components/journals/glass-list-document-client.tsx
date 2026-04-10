@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 import {
   GLASS_LIST_PAGE_TITLE,
   createGlassListRow,
@@ -38,13 +39,7 @@ type RowDialogState = {
   row: GlassListRow;
 };
 
-const RESPONSIBLE_TITLES = [
-  "Управляющий",
-  "Технолог",
-  "Заведующий производством",
-  "Кладовщик",
-  "Повар",
-];
+const RESPONSIBLE_TITLES = USER_ROLE_LABEL_VALUES;
 
 function emptyRow(location: string) {
   return createGlassListRow({ location });

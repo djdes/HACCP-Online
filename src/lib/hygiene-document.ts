@@ -1,3 +1,10 @@
+import {
+  getDistinctRoleLabels,
+  getUserRoleLabel,
+  getUserRoleSortOrder,
+  normalizeUserRole,
+} from "@/lib/user-roles";
+
 export const HYGIENE_STATUS_OPTIONS = [
   { value: "healthy", code: "Зд.", label: "Здоров" },
   { value: "day_off", code: "В", label: "Выходной / отгул" },
@@ -242,29 +249,11 @@ export function getHygieneDocumentTitle() {
 }
 
 function getRoleOrder(role: string): number {
-  switch (role) {
-    case "owner":
-      return 0;
-    case "technologist":
-      return 1;
-    case "operator":
-      return 2;
-    default:
-      return 3;
-  }
+  return getUserRoleSortOrder(role);
 }
 
 export function getHygienePositionLabel(role: string): string {
-  switch (role) {
-    case "owner":
-      return "Управляющий";
-    case "technologist":
-      return "Шеф-повар";
-    case "operator":
-      return "Повар";
-    default:
-      return "Сотрудник";
-  }
+  return getUserRoleLabel(role);
 }
 
 export function getHygieneUserPositionLabel(employee: HygieneRosterUser): string {
@@ -303,11 +292,13 @@ export function getHygieneDemoTeamUsers(
 export function getHygieneDefaultResponsibleTitle(
   employees: HygieneRosterUser[]
 ): string {
-  const owner = employees.find((employee) => employee.role === "owner");
+  const owner = employees.find(
+    (employee) => normalizeUserRole(employee.role) === "manager"
+  );
   if (owner) return getHygienePositionLabel(owner.role);
 
   const technologist = employees.find(
-    (employee) => employee.role === "technologist"
+    (employee) => normalizeUserRole(employee.role) === "head_chef"
   );
   if (technologist) return getHygienePositionLabel(technologist.role);
 
@@ -320,8 +311,7 @@ export function getHygieneDefaultResponsibleTitle(
 export function getHygieneResponsibleTitleOptions(
   employees: HygieneRosterUser[]
 ): string[] {
-  const titles = employees.map((employee) => getHygienePositionLabel(employee.role));
-  return [...new Set(titles)];
+  return getDistinctRoleLabels(employees);
 }
 
 export function getStaffJournalResponsibleTitleOptions(
@@ -602,13 +592,7 @@ export function isWeekend(dateKey: string): boolean {
 }
 
 export function getRoleLabel(role: string): string {
-  const labels: Record<string, string> = {
-    owner: "Руководитель",
-    technologist: "Технолог",
-    operator: "Оператор",
-  };
-
-  return labels[role] || "Сотрудник";
+  return getUserRoleLabel(role);
 }
 
 export function getStatusMeta(status?: string | null) {

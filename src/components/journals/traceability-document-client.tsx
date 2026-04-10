@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ type Props = {
 };
 
 const DEFAULT_TITLE = TRACEABILITY_DOCUMENT_TITLE;
-const ROLE_OPTIONS = ["Управляющий", "Технолог", "Шеф-повар", "Старший смены", "Мастер"];
+const ROLE_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 function normalizeIsoDate(value: string) {

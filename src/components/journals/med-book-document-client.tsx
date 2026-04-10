@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
   Select,
   SelectContent,
@@ -54,12 +55,7 @@ type Props = {
 };
 
 function getPositionLabel(role: string): string {
-  switch (role) {
-    case "owner": return "Управляющий";
-    case "technologist": return "Шеф-повар";
-    case "operator": return "Повар";
-    default: return "Сотрудник";
-  }
+  return getUserRoleLabel(role);
 }
 
 export function MedBookDocumentClient({
