@@ -1291,81 +1291,57 @@ function drawAcceptancePdf(doc: jsPDF, params: {
   doc.setFontSize(11);
   doc.text("ЖУРНАЛ ПРИЕМКИ И ВХОДНОГО КОНТРОЛЯ ПРОДУКЦИИ", centerX, 60, { align: "center" });
 
-  const showPackaging = cfg.showPackagingComplianceField;
-
   const headRow1: CellDef[] = [
-    { content: "Дата\nпоставки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Дата, время\nпоступления\nпродукции,\nтовара", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
     { content: "Наименование\nпродукции", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Годен до", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
     { content: "Производитель/\nпоставщик", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "ТТН,\nдокументы\nсоответствия", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Объем,\nномер\nпартии,\nдата\nпр-ва", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Внутр-яя\nтемп-ра\nпродукта (для\nскоропор\nтящихся и\nзамороженных\nпродуктов)", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Соответствие\nтовара\nсопроводи\nтельной\nдокументации", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-  ];
-
-  if (showPackaging) {
-    headRow1.push({
-      content: "Соответствие\nвнешнего\nвида\nупаковки,\nмаркировки\nтребованиям\nНД",
-      rowSpan: 2,
-      styles: { halign: "center", valign: "middle" },
-    });
-  }
-
-  headRow1.push(
-    { content: "Принять/\nОтклонить,\nП/О", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Корректирующие\nдействия для\nзабракованного\nтовара", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Условия\nтранспорти\nровки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Соответствие\nупаковки,\nмаркировки,\nтоваросопроводи\nтельной\nдокументации", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Результаты\nорганолепти\nческой\nоценки\nдоброка\nчественности", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Предельный\nсрок\nреализации\n(дата, час)", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Примечания", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
     { content: "Ответственный", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-  );
+  ];
 
   const head: RowInput[] = [headRow1];
 
   const userMap = new Map(params.users.map((u) => [u.id, u.name]));
 
-  const rows = cfg.sortByExpiry
-    ? [...cfg.rows].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
-    : cfg.rows;
+  const rows = cfg.rows;
 
   const body: RowInput[] = rows.map((row) => {
-    const batchParts = [row.batchVolume, row.batchNumber, formatAcceptanceDateRu(row.productionDate)]
-      .filter(Boolean)
-      .join("\n");
+    const deliveryDateStr = formatAcceptanceDateRu((row as Record<string, string>).deliveryDate || (row as Record<string, string>).dateSupply || "");
+    const deliveryTime = (row as Record<string, string>).deliveryHour ? `\n${(row as Record<string, string>).deliveryHour}:${(row as Record<string, string>).deliveryMinute || "00"}` : "";
+    const expiryDateStr = formatAcceptanceDateRu(row.expiryDate || "");
+    const expiryTime = (row as Record<string, string>).expiryHour ? `\n${(row as Record<string, string>).expiryHour}:${(row as Record<string, string>).expiryMinute || "00"}` : "";
+
+    const transport = (row as Record<string, string>).transportCondition === "unsatisfactory" ? "Не удовл." : "Удовл.";
+    const packaging = ((row as Record<string, string>).packagingCompliance === "non_compliant" || (row as Record<string, string>).packagingCompliance === "no") ? "Не соотв." : "Соответствует";
+    const organoleptic = ((row as Record<string, string>).organolepticResult === "unsatisfactory" || (row as Record<string, string>).decision === "reject") ? "Не удовл." : "Удовл.";
 
     const cells: CellDef[] = [
-      centerCell(formatAcceptanceDateRu(row.dateSupply)),
+      centerCell(deliveryDateStr + deliveryTime),
       centerCell(row.productName),
-      centerCell(formatAcceptanceDateRu(row.expiryDate)),
-      centerCell([row.manufacturer, row.supplier].filter(Boolean).join("\n")),
-      centerCell(row.ttnDocs),
-      centerCell(batchParts),
-      centerCell(row.innerTemperature ? `${row.innerTemperature}°C` : ""),
-      centerCell(row.docsCompliance === "yes" ? "Да" : "Нет"),
-    ];
-
-    if (showPackaging) {
-      cells.push(centerCell(row.packagingCompliance === "yes" ? "Да" : "Нет"));
-    }
-
-    cells.push(
-      centerCell(row.decision === "accept" ? "П" : "О"),
-      centerCell(row.correctiveAction),
+      centerCell([row.manufacturer, row.supplier].filter(Boolean).join(" / ")),
+      centerCell(transport),
+      centerCell(packaging),
+      centerCell(organoleptic),
+      centerCell(expiryDateStr + expiryTime),
+      centerCell((row as Record<string, string>).note || (row as Record<string, string>).correctiveAction || ""),
       centerCell(userMap.get(row.responsibleUserId) || ""),
-    );
+    ];
 
     return cells;
   });
 
   if (body.length === 0) {
-    const emptyColCount = showPackaging ? 12 : 11;
     for (let i = 0; i < 3; i++) {
-      body.push(Array(emptyColCount).fill(centerCell("")));
+      body.push(Array(9).fill(centerCell("")));
     }
   }
 
-  const baseColCount = showPackaging ? 12 : 11;
-  const monthColWidth = showPackaging
-    ? (pageWidth - 28) / baseColCount
-    : (pageWidth - 28) / baseColCount;
+  const baseColCount = 9;
+  const monthColWidth = (pageWidth - 28) / baseColCount;
 
   autoTable(doc, {
     startY: 66,

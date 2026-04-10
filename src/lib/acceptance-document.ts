@@ -1,23 +1,21 @@
 export const ACCEPTANCE_DOCUMENT_TEMPLATE_CODE = "incoming_control";
 
-export type AcceptanceDecision = "accept" | "reject";
-
 export type AcceptanceRow = {
   id: string;
-  dateSupply: string;
+  deliveryDate: string;
+  deliveryHour: string;
+  deliveryMinute: string;
   productName: string;
-  expiryDate: string;
   manufacturer: string;
   supplier: string;
-  ttnDocs: string;
-  batchVolume: string;
-  batchNumber: string;
-  productionDate: string;
-  innerTemperature: string;
-  docsCompliance: "yes" | "no";
-  packagingCompliance: "yes" | "no";
-  decision: AcceptanceDecision;
-  correctiveAction: string;
+  transportCondition: "satisfactory" | "unsatisfactory";
+  packagingCompliance: "compliant" | "non_compliant";
+  organolepticResult: "satisfactory" | "unsatisfactory";
+  expiryDate: string;
+  expiryHour: string;
+  expiryMinute: string;
+  note: string;
+  responsibleTitle: string;
   responsibleUserId: string;
 };
 
@@ -26,7 +24,7 @@ export type AcceptanceDocumentConfig = {
   products: string[];
   manufacturers: string[];
   suppliers: string[];
-  sortByExpiry: boolean;
+  expiryFieldLabel: "expiry_deadline" | "shelf_life";
   showPackagingComplianceField: boolean;
   defaultResponsibleTitle: string | null;
   defaultResponsibleUserId: string | null;
@@ -44,22 +42,23 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeBool(value: unknown, fallback: boolean) {
-  if (typeof value === "boolean") return value;
-  return fallback;
+function normalizeTransport(value: unknown): "satisfactory" | "unsatisfactory" {
+  if (value === "unsatisfactory") return "unsatisfactory";
+  return "satisfactory";
 }
 
-function normalizeYesNo(value: unknown, fallback: "yes" | "no"): "yes" | "no" {
-  if (value === "yes" || value === "no") return value;
-  return fallback;
+function normalizeCompliance(value: unknown): "compliant" | "non_compliant" {
+  if (value === "non_compliant") return "non_compliant";
+  // backward compat: old "no" → non_compliant
+  if (value === "no") return "non_compliant";
+  return "compliant";
 }
 
-function normalizeDecision(
-  value: unknown,
-  fallback: AcceptanceDecision
-): AcceptanceDecision {
-  if (value === "accept" || value === "reject") return value;
-  return fallback;
+function normalizeOrganoleptic(value: unknown): "satisfactory" | "unsatisfactory" {
+  if (value === "unsatisfactory") return "unsatisfactory";
+  // backward compat: old "reject" → unsatisfactory
+  if (value === "reject") return "unsatisfactory";
+  return "satisfactory";
 }
 
 export function createAcceptanceRow(
@@ -68,20 +67,20 @@ export function createAcceptanceRow(
   const today = new Date().toISOString().slice(0, 10);
   return {
     id: overrides?.id || createId("acceptance-row"),
-    dateSupply: normalizeText(overrides?.dateSupply) || today,
+    deliveryDate: normalizeText(overrides?.deliveryDate) || normalizeText((overrides as Record<string, unknown>)?.dateSupply) || today,
+    deliveryHour: normalizeText(overrides?.deliveryHour),
+    deliveryMinute: normalizeText(overrides?.deliveryMinute),
     productName: normalizeText(overrides?.productName),
-    expiryDate: normalizeText(overrides?.expiryDate),
     manufacturer: normalizeText(overrides?.manufacturer),
     supplier: normalizeText(overrides?.supplier),
-    ttnDocs: normalizeText(overrides?.ttnDocs),
-    batchVolume: normalizeText(overrides?.batchVolume),
-    batchNumber: normalizeText(overrides?.batchNumber),
-    productionDate: normalizeText(overrides?.productionDate),
-    innerTemperature: normalizeText(overrides?.innerTemperature),
-    docsCompliance: normalizeYesNo(overrides?.docsCompliance, "yes"),
-    packagingCompliance: normalizeYesNo(overrides?.packagingCompliance, "yes"),
-    decision: normalizeDecision(overrides?.decision, "accept"),
-    correctiveAction: normalizeText(overrides?.correctiveAction),
+    transportCondition: normalizeTransport(overrides?.transportCondition),
+    packagingCompliance: normalizeCompliance(overrides?.packagingCompliance),
+    organolepticResult: normalizeOrganoleptic(overrides?.organolepticResult || (overrides as Record<string, unknown>)?.decision),
+    expiryDate: normalizeText(overrides?.expiryDate),
+    expiryHour: normalizeText(overrides?.expiryHour),
+    expiryMinute: normalizeText(overrides?.expiryMinute),
+    note: normalizeText(overrides?.note) || normalizeText((overrides as Record<string, unknown>)?.correctiveAction),
+    responsibleTitle: normalizeText(overrides?.responsibleTitle),
     responsibleUserId: normalizeText(overrides?.responsibleUserId),
   };
 }
@@ -101,8 +100,8 @@ export function getAcceptanceDocumentDefaultConfig(
     products: [],
     manufacturers: [],
     suppliers: [],
-    sortByExpiry: false,
-    showPackagingComplianceField: false,
+    expiryFieldLabel: "expiry_deadline",
+    showPackagingComplianceField: true,
     defaultResponsibleTitle: null,
     defaultResponsibleUserId: users[0]?.id || null,
   };
@@ -136,13 +135,54 @@ export function normalizeAcceptanceDocumentConfig(
     products: normalizeStringList(record.products),
     manufacturers: normalizeStringList(record.manufacturers),
     suppliers: normalizeStringList(record.suppliers),
-    sortByExpiry: normalizeBool(record.sortByExpiry, fallback.sortByExpiry),
-    showPackagingComplianceField: normalizeBool(
-      record.showPackagingComplianceField,
-      fallback.showPackagingComplianceField
-    ),
+    expiryFieldLabel: record.expiryFieldLabel === "shelf_life" ? "shelf_life" : "expiry_deadline",
+    showPackagingComplianceField:
+      typeof record.showPackagingComplianceField === "boolean"
+        ? record.showPackagingComplianceField
+        : true,
     defaultResponsibleUserId:
       defaultResponsibleUserId || fallback.defaultResponsibleUserId,
     defaultResponsibleTitle: defaultResponsibleTitle || null,
   };
+}
+
+export function formatAcceptanceDateDash(date: string): string {
+  if (!date) return "";
+  const [year, month, day] = date.split("-");
+  return year && month && day ? `${day}-${month}-${year}` : date;
+}
+
+export function formatDeliveryDateTime(row: AcceptanceRow): string {
+  let s = formatAcceptanceDateDash(row.deliveryDate);
+  if (row.deliveryHour) {
+    s += `\n${row.deliveryHour}:${row.deliveryMinute || "00"}`;
+  }
+  return s;
+}
+
+export function formatExpiryDateTime(row: AcceptanceRow): string {
+  let s = formatAcceptanceDateDash(row.expiryDate);
+  if (row.expiryHour) {
+    s += `\n${row.expiryHour}:${row.expiryMinute || "00"}`;
+  }
+  return s;
+}
+
+export const TRANSPORT_LABELS = {
+  satisfactory: "Удовл.",
+  unsatisfactory: "Не удовл.",
+} as const;
+
+export const COMPLIANCE_LABELS = {
+  compliant: "Соответствует",
+  non_compliant: "Не соотв.",
+} as const;
+
+export const ORGANOLEPTIC_LABELS = {
+  satisfactory: "Удовл.",
+  unsatisfactory: "Не удовл.",
+} as const;
+
+export function getExpiryFieldDisplayLabel(mode: AcceptanceDocumentConfig["expiryFieldLabel"]): string {
+  return mode === "shelf_life" ? "Срок годности" : "Предельный срок реализации (дата, час)";
 }
