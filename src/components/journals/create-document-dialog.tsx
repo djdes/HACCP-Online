@@ -549,7 +549,7 @@ export function CreateDocumentDialog({
               </div>
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {!isMedBookJournal && !isPerishableRejectionJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[22px] leading-[1.35] text-black">
