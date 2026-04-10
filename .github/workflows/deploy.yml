@@ -77,7 +77,7 @@ jobs:
             [ -f .env.bak ] && cp .env.bak .env || true
 
             echo "=== Clearing previous Next build cache ==="
-            rm -rf .next
+            rm -rf .next .next-lock
 
             echo "=== Installing dependencies ==="
             source ~/.nvm/nvm.sh 2>/dev/null || true
