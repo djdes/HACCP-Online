@@ -6,6 +6,7 @@
       "id": "AC1",
       "status": "PASS",
       "evidence": [
+        "src/lib/journal-document-helpers.ts",
         "src/app/(dashboard)/journals/[code]/page.tsx",
         "src/components/journals/metal-impurity-documents-client.tsx"
       ]
@@ -91,7 +92,8 @@
       "id": "AC12",
       "status": "PASS",
       "evidence": [
-        ".agent/tasks/metal-impurity-journal-2026-04-11/raw/build.txt"
+        ".agent/tasks/metal-impurity-journal-2026-04-11/raw/build.txt",
+        ".agent/tasks/metal-impurity-journal-2026-04-11/raw/verification-markers.txt"
       ]
     }
   ],

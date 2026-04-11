@@ -89,6 +89,10 @@ import {
   INTENSIVE_COOLING_TEMPLATE_CODE,
 } from "@/lib/intensive-cooling-document";
 import {
+  METAL_IMPURITY_DOCUMENT_TITLE,
+  METAL_IMPURITY_TEMPLATE_CODE,
+} from "@/lib/metal-impurity-document";
+import {
   getScanJournalConfig,
   isScanOnlyDocumentTemplate as isScanOnlyDocumentTemplateFromConfig,
 } from "@/lib/scan-journal-config";
@@ -162,6 +166,7 @@ export function isDocumentTemplate(templateCode: string) {
     templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE ||
     templateCode === PPE_ISSUANCE_TEMPLATE_CODE ||
     templateCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE ||
+    templateCode === METAL_IMPURITY_TEMPLATE_CODE ||
     templateCode === INTENSIVE_COOLING_TEMPLATE_CODE ||
     templateCode === DISINFECTANT_TEMPLATE_CODE ||
     isScanOnlyJournalTemplate(templateCode) ||
@@ -230,6 +235,9 @@ export function getJournalDocumentDefaultTitle(templateCode: string) {
   }
   if (templateCode === PPE_ISSUANCE_TEMPLATE_CODE) {
     return PPE_ISSUANCE_DOCUMENT_TITLE;
+  }
+  if (templateCode === METAL_IMPURITY_TEMPLATE_CODE) {
+    return METAL_IMPURITY_DOCUMENT_TITLE;
   }
   if (templateCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
     return INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME;

@@ -1053,13 +1053,10 @@ export function MetalImpurityDocumentClient({
                 <td className="border border-black px-6 py-4 text-center text-[18px]">
                   СИСТЕМА ХАССП
                 </td>
-                <td
-                  rowSpan={2}
-                  className="w-[180px] border border-black px-4 py-2 align-top text-[16px]"
-                >
+                <td className="w-[180px] border border-black px-4 py-2 align-top text-[16px]">
                   <div className="font-semibold">Начат {formatHeaderDate(config.startDate)}</div>
                   <div className="font-semibold">
-                    Окончен{config.endDate ? ` ${formatHeaderDate(config.endDate)}` : "__________"}
+                    Окончен {config.endDate ? formatHeaderDate(config.endDate) : "__________"}
                   </div>
                 </td>
               </tr>
@@ -1067,9 +1064,7 @@ export function MetalImpurityDocumentClient({
                 <td className="border border-black px-6 py-3 text-center text-[16px] italic">
                   ЖУРНАЛ УЧЕТА МЕТАЛЛОПРИМЕСЕЙ В СЫРЬЕ
                 </td>
-              </tr>
-              <tr>
-                <td colSpan={3} className="border border-black px-6 py-3 text-right text-[16px]">
+                <td className="border border-black px-4 py-3 text-right text-[16px]">
                   СТР. 1 ИЗ 1
                 </td>
               </tr>
