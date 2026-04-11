@@ -119,6 +119,7 @@ function DocumentDialog({
   title,
   users,
   documents,
+  showEmployeeField,
   onSubmit,
 }: {
   open: boolean;
@@ -128,6 +129,7 @@ function DocumentDialog({
   title: string;
   users: MetalImpurityUser[];
   documents: DocumentItem[];
+  showEmployeeField: boolean;
   onSubmit: (value: SettingsState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
@@ -210,24 +212,26 @@ function DocumentDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-3">
-            <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
-            <Select
-              value={state.responsibleEmployee}
-              onValueChange={(value) => setState({ ...state, responsibleEmployee: value })}
-            >
-              <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {employeeOptions.map((employee) => (
-                  <SelectItem key={employee} value={employee}>
-                    {employee}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showEmployeeField && (
+            <div className="space-y-3">
+              <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
+              <Select
+                value={state.responsibleEmployee}
+                onValueChange={(value) => setState({ ...state, responsibleEmployee: value })}
+              >
+                <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeeOptions.map((employee) => (
+                    <SelectItem key={employee} value={employee}>
+                      {employee}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex justify-end">
             <Button
               type="button"
@@ -286,7 +290,7 @@ function DeleteDialog({
                 setSubmitting(false);
               }
             }}
-            className="h-16 rounded-[18px] bg-[#ff5e57] px-10 text-[18px] text-white hover:bg-[#ef4b44]"
+            className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -314,6 +318,10 @@ export function MetalImpurityDocumentsClient({
     [availableMaterials, availableSuppliers, users]
   );
 
+  function resolveResponsibleUserId(employeeName: string) {
+    return users.find((user) => user.name === employeeName)?.id ?? null;
+  }
+
   async function createDocument(payload: SettingsState) {
     const config = getDefaultMetalImpurityConfig({
       users,
@@ -332,6 +340,8 @@ export function MetalImpurityDocumentsClient({
         title: payload.title.trim() || METAL_IMPURITY_DOCUMENT_TITLE,
         dateFrom: payload.startDate,
         dateTo: payload.startDate,
+        responsibleTitle: payload.responsiblePosition,
+        responsibleUserId: resolveResponsibleUserId(config.responsibleEmployee),
         config,
       }),
     });
@@ -362,6 +372,8 @@ export function MetalImpurityDocumentsClient({
         title: payload.title.trim() || METAL_IMPURITY_DOCUMENT_TITLE,
         dateFrom: payload.startDate,
         dateTo: current.endDate || payload.startDate,
+        responsibleTitle: payload.responsiblePosition,
+        responsibleUserId: resolveResponsibleUserId(payload.responsibleEmployee),
         config: {
           ...current,
           startDate: payload.startDate,
@@ -545,6 +557,7 @@ export function MetalImpurityDocumentsClient({
         title="Создание документа"
         users={users}
         documents={documents}
+        showEmployeeField={false}
         onSubmit={createDocument}
       />
 
@@ -572,6 +585,7 @@ export function MetalImpurityDocumentsClient({
         title="Настройки документа"
         users={users}
         documents={documents}
+        showEmployeeField={true}
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveSettings(settingsDocument, value);

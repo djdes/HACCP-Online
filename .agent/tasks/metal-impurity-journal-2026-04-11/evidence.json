@@ -1,0 +1,118 @@
+{
+  "task_id": "metal-impurity-journal-2026-04-11",
+  "status": "PASS",
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": [
+        "src/app/(dashboard)/journals/[code]/page.tsx",
+        "src/components/journals/metal-impurity-documents-client.tsx"
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-documents-client.tsx",
+        "src/app/api/journal-documents/route.ts"
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-document-client.tsx",
+        "src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx"
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": [
+        "src/lib/metal-impurity-document.ts",
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC6",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC7",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC8",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-documents-client.tsx",
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC9",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-document-client.tsx"
+      ]
+    },
+    {
+      "id": "AC10",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/metal-impurity-documents-client.tsx",
+        "src/components/journals/metal-impurity-document-client.tsx",
+        "src/lib/metal-impurity-document.ts"
+      ]
+    },
+    {
+      "id": "AC11",
+      "status": "PASS",
+      "evidence": [
+        "src/app/(dashboard)/journals/[code]/page.tsx",
+        "src/app/api/journal-documents/route.ts"
+      ]
+    },
+    {
+      "id": "AC12",
+      "status": "PASS",
+      "evidence": [
+        ".agent/tasks/metal-impurity-journal-2026-04-11/raw/build.txt"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "npm run build",
+      "status": "PASS",
+      "artifact": ".agent/tasks/metal-impurity-journal-2026-04-11/raw/build.txt"
+    },
+    {
+      "name": "implementation markers",
+      "status": "PASS",
+      "artifact": ".agent/tasks/metal-impurity-journal-2026-04-11/raw/verification-markers.txt"
+    },
+    {
+      "name": "git diff capture",
+      "status": "PASS",
+      "artifact": ".agent/tasks/metal-impurity-journal-2026-04-11/raw/git-diff.txt"
+    }
+  ],
+  "limitations": [
+    "Local Postgres was unreachable during this session, so interactive browser verification against live DB data was not executed locally."
+  ]
+}

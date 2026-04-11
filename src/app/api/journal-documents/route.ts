@@ -167,7 +167,8 @@ export async function POST(request: Request) {
 
   const allProducts =
     resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE ||
-    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE ||
+    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
       ? await db.product.findMany({
           where: {
             organizationId: session.user.organizationId,
@@ -177,6 +178,21 @@ export async function POST(request: Request) {
             name: true,
           },
           orderBy: { name: "asc" },
+        })
+      : [];
+
+  const metalSuppliers =
+    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
+      ? await db.batch.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+            supplier: { not: null },
+          },
+          select: {
+            supplier: true,
+          },
+          orderBy: { supplier: "asc" },
+          distinct: ["supplier"],
         })
       : [];
 
@@ -349,7 +365,22 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === AUDIT_REPORT_TEMPLATE_CODE
       ? getDefaultAuditReportConfig()
       : resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
-      ? getDefaultMetalImpurityConfig()
+      ? getDefaultMetalImpurityConfig({
+          users: allUsers,
+          materials: allProducts.map((item) => item.name).filter(Boolean),
+          suppliers: metalSuppliers
+            .map((item) => item.supplier || "")
+            .filter(Boolean),
+          date: typeof dateFrom === "string" ? dateFrom : new Date(dateFrom).toISOString().slice(0, 10),
+          responsibleName:
+            rawConfig && typeof rawConfig.responsibleEmployee === "string"
+              ? rawConfig.responsibleEmployee
+              : undefined,
+          responsiblePosition:
+            rawConfig && typeof rawConfig.responsiblePosition === "string"
+              ? rawConfig.responsiblePosition
+              : undefined,
+        })
       : isRegisterDocumentTemplate(resolvedTemplateCode)
       ? buildRegisterDocumentConfigFromUsers(allUsers)
       : undefined;

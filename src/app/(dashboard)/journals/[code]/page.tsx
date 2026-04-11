@@ -2203,12 +2203,11 @@ export default async function JournalDocumentsPage({
     }
 
     if (resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
-      const [metalDocuments, metalUsers, metalProducts, metalSuppliers] = await Promise.all([
+      const [allMetalDocuments, metalUsers, metalProducts, metalSuppliers] = await Promise.all([
         db.journalDocument.findMany({
           where: {
             organizationId: session.user.organizationId,
             templateId: template.id,
-            status: activeTab,
           },
           orderBy: { createdAt: "asc" },
         }),
@@ -2241,15 +2240,88 @@ export default async function JournalDocumentsPage({
         }),
       ]);
 
+      const metalStatuses = new Set(allMetalDocuments.map((document) => document.status));
+      const materialNames = metalProducts.map((item) => item.name).filter(Boolean);
+      const supplierNames = metalSuppliers
+        .map((item) => item.supplier || "")
+        .filter(Boolean);
+      const responsibleUser = pickPrimaryManager(metalUsers) || metalUsers[0] || null;
+
+      if (!metalStatuses.has("active")) {
+        const config = getDefaultMetalImpurityConfig({
+          users: metalUsers,
+          materials: materialNames,
+          suppliers: supplierNames,
+          date: "2025-02-01",
+          responsibleName: responsibleUser?.name,
+          responsiblePosition: responsibleUser
+            ? getUserRoleLabel(responsibleUser.role)
+            : undefined,
+        });
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: METAL_IMPURITY_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date(config.startDate),
+            dateTo: new Date(config.startDate),
+            responsibleUserId: responsibleUser?.id || null,
+            responsibleTitle: config.responsiblePosition,
+            createdById: session.user.id,
+            config,
+          },
+        });
+      }
+
+      if (!metalStatuses.has("closed")) {
+        const config = getDefaultMetalImpurityConfig({
+          users: metalUsers,
+          materials: materialNames,
+          suppliers: supplierNames,
+          date: "2025-01-01",
+          responsibleName: responsibleUser?.name,
+          responsiblePosition: responsibleUser
+            ? getUserRoleLabel(responsibleUser.role)
+            : undefined,
+        });
+        config.endDate = "2025-01-31";
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: METAL_IMPURITY_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date(config.startDate),
+            dateTo: new Date(config.endDate),
+            responsibleUserId: responsibleUser?.id || null,
+            responsibleTitle: config.responsiblePosition,
+            createdById: session.user.id,
+            config,
+          },
+        });
+      }
+
+      const metalDocuments = metalStatuses.has("active") && metalStatuses.has("closed")
+        ? allMetalDocuments.filter((document) => document.status === activeTab)
+        : await db.journalDocument.findMany({
+            where: {
+              organizationId: session.user.organizationId,
+              templateId: template.id,
+              status: activeTab,
+            },
+            orderBy: { createdAt: "asc" },
+          });
+
       return (
         <MetalImpurityDocumentsClient
           routeCode={code === METAL_IMPURITY_SOURCE_SLUG ? code : resolvedCode}
           activeTab={activeTab}
           users={metalUsers}
-          availableMaterials={metalProducts.map((item) => item.name).filter(Boolean)}
-          availableSuppliers={metalSuppliers
-            .map((item) => item.supplier || "")
-            .filter(Boolean)}
+          availableMaterials={materialNames}
+          availableSuppliers={supplierNames}
           documents={metalDocuments.map((document) => ({
             id: document.id,
             title: document.title || METAL_IMPURITY_DOCUMENT_TITLE,

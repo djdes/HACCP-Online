@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
-  Circle,
   Paperclip,
   Pencil,
   Plus,
@@ -74,6 +73,7 @@ type ListEditorSectionProps = {
   onEditCommit: () => void;
   addPlaceholder: string;
   onImportClick: () => void;
+  onImportFile: (file: File) => void;
 };
 
 function formatRuDate(value: string) {
@@ -535,6 +535,7 @@ function ListEditorSection({
   onEditCommit,
   addPlaceholder,
   onImportClick,
+  onImportFile,
 }: ListEditorSectionProps) {
   return (
     <div className="space-y-4">
@@ -545,7 +546,7 @@ function ListEditorSection({
             key={item.id}
             className="flex items-center gap-3 rounded-[18px] bg-[#f6f7fb] px-4 py-4"
           >
-            <Circle className="size-5 text-[#787d94]" />
+            <span className="size-6 rounded-[8px] border-2 border-[#73788d] bg-white" />
             {editingId === item.id ? (
               <Input
                 autoFocus
@@ -586,10 +587,10 @@ function ListEditorSection({
           </Button>
         </div>
 
-        <div className="space-y-3 pt-1 text-[14px] text-[#6d7288]">
-          <button
-            type="button"
-            onClick={onImportClick}
+          <div className="space-y-3 pt-1 text-[14px] text-[#6d7288]">
+            <button
+              type="button"
+              onClick={onImportClick}
             className="text-left text-[#5f66ff] underline underline-offset-2"
           >
             Добавить из файла
@@ -598,11 +599,30 @@ function ListEditorSection({
             Список должен быть в файле Excel, на первом листе в первом столбце и начинаться с
             первой строки.
           </div>
-          <div className="flex min-h-[96px] items-center justify-center rounded-[18px] border border-dashed border-[#cfd4e9] bg-white text-center">
-            <div className="flex flex-col items-center gap-2 text-[#727890]">
-              <Paperclip className="size-5" />
-              <span>Выберите файл или перетащите его сюда</span>
-            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={onImportClick}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onImportClick();
+                }
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const file = event.dataTransfer.files?.[0];
+                if (file) onImportFile(file);
+              }}
+              className="flex min-h-[96px] cursor-pointer items-center justify-center rounded-[18px] border border-dashed border-[#cfd4e9] bg-white text-center transition-colors hover:border-[#5b66ff] hover:bg-[#f8f9ff]"
+            >
+              <div className="flex flex-col items-center gap-2 text-[#727890]">
+                <Paperclip className="size-5" />
+                <span>Выберите файл или перетащите его сюда</span>
+              </div>
           </div>
         </div>
       </div>
@@ -734,6 +754,9 @@ function ListsDialog({
             onEditCommit={commitMaterialEdit}
             addPlaceholder="Введите название нового сырья"
             onImportClick={() => materialFileInputRef.current?.click()}
+            onImportFile={(file) => {
+              importItems(file, "materials").catch(() => undefined);
+            }}
           />
 
           <ListEditorSection
@@ -764,6 +787,9 @@ function ListsDialog({
             onEditCommit={commitSupplierEdit}
             addPlaceholder="Введите название нового поставщика"
             onImportClick={() => supplierFileInputRef.current?.click()}
+            onImportFile={(file) => {
+              importItems(file, "suppliers").catch(() => undefined);
+            }}
           />
 
           <div className="flex justify-end">
@@ -865,6 +891,8 @@ export function MetalImpurityDocumentClient({
     nextConfig: MetalImpurityDocumentConfig,
     patch?: Record<string, unknown>
   ) {
+    const responsibleUserId =
+      users.find((user) => user.name === nextConfig.responsibleEmployee)?.id ?? null;
     const response = await fetch(`/api/journal-documents/${documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -872,6 +900,8 @@ export function MetalImpurityDocumentClient({
         title: nextTitle,
         dateFrom: nextConfig.startDate,
         dateTo: nextConfig.endDate || nextConfig.startDate,
+        responsibleTitle: nextConfig.responsiblePosition,
+        responsibleUserId,
         config: nextConfig,
         ...patch,
       }),
