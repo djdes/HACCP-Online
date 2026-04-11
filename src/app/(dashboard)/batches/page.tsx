@@ -150,7 +150,7 @@ export default async function BatchesPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {batches.map((batch) => {
+            {batches.map((batch: (typeof batches)[number]) => {
               const days = daysUntilExpiry(batch.expiryDate);
               const isExpiring = days !== null && days <= 3 && days >= 0;
               const isExpired = days !== null && days < 0;

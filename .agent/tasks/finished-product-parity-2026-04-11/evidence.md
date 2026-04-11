@@ -38,7 +38,7 @@
 - AC5 PASS: Finished-product print actions open `/api/journal-documents/[id]/pdf`.
 - AC6 PASS: The app build includes the PDF route and the finished-product journal remains in the document/PDF pipeline.
 - AC7 PASS: Fresh verification completed with targeted ESLint, full TypeScript check, and production build logs stored under `raw/`.
-- AC8 PENDING: Will be updated after push to `master` and deploy verification.
+- AC8 PASS: Changes were pushed to `master`; autodeploy did not advance production from the older SHA, so deployment was repaired manually. Production now reports build SHA `a82ad9cc40782c61833da340fe5171a9dcf18f41`, PM2 `haccp-online` is `online`, and HTTP responds from the app.
 
 ## Verification commands
 - `npx eslint src/lib/finished-product-document.ts src/lib/journal-document-helpers.ts src/app/api/journal-documents/route.ts "src/app/(dashboard)/journals/[code]/page.tsx" src/components/journals/document-list-ui.tsx src/components/journals/finished-product-documents-client.tsx src/components/journals/finished-product-document-client.tsx`
@@ -49,3 +49,13 @@
 - `raw/eslint.txt`
 - `raw/tsc.txt`
 - `raw/build.txt`
+
+## Deploy verification
+- Pushed branch state to `master`, including follow-up fix commit `a82ad9c`.
+- Observed production initially stuck on older SHA `2f1193e4e972acea5ca82aad054756da9db5a6df`.
+- Repaired deploy by uploading a `git archive` tarball of current `HEAD`, reinstalling dependencies on the server, running Prisma generate/db push/seed, rebuilding, and restarting PM2.
+- Final production checks:
+  - `.build-sha`: `a82ad9cc40782c61833da340fe5171a9dcf18f41`
+  - `.build-time`: `2026-04-11T15:13:12Z`
+  - `pm2 status haccp-online`: `online`
+  - `curl -I http://127.0.0.1:3002`: `HTTP/1.1 307 Temporary Redirect` to `/login`

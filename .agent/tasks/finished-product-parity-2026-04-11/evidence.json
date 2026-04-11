@@ -1,6 +1,6 @@
 {
   "taskId": "finished-product-parity-2026-04-11",
-  "status": "pending_deploy",
+  "status": "PASS",
   "acceptanceCriteria": [
     {
       "id": "AC1",
@@ -39,8 +39,8 @@
     },
     {
       "id": "AC8",
-      "status": "PENDING",
-      "summary": "Push and deploy verification are not recorded yet."
+      "status": "PASS",
+      "summary": "Changes were pushed to master; after autodeploy failed to advance production, deployment was repaired manually and production now reports SHA a82ad9cc40782c61833da340fe5171a9dcf18f41 with PM2 online."
     }
   ],
   "artifacts": [

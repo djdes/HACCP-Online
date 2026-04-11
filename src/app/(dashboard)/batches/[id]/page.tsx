@@ -117,7 +117,7 @@ export default async function BatchDetailPage({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {relatedEntries.map((entry) => (
+              {relatedEntries.map((entry: (typeof relatedEntries)[number]) => (
                 <Link
                   key={entry.id}
                   href={`/journals/${entry.template.code}/${entry.id}`}
