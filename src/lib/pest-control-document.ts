@@ -4,8 +4,7 @@ import { getHygienePositionLabel } from "@/lib/hygiene-document";
 export const PEST_CONTROL_TEMPLATE_CODE = "pest_control" as const;
 export const PEST_CONTROL_DOCUMENT_TITLE =
   "Журнал учета дезинфекции, дезинсекции и дератизации";
-export const PEST_CONTROL_CLOSED_TITLE =
-  "Журнал учета дезинфекции, дезинсекции и дератизации (Закрытые!!!)";
+export const PEST_CONTROL_CLOSED_TITLE = PEST_CONTROL_DOCUMENT_TITLE;
 
 export const PEST_CONTROL_PAGE_TITLE = PEST_CONTROL_DOCUMENT_TITLE;
 

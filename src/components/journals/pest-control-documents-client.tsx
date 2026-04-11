@@ -272,7 +272,7 @@ export function PestControlDocumentsClient(props: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             templateCode: props.templateCode,
-            title: `${PEST_CONTROL_DOCUMENT_TITLE} (Закрытые!!!)`,
+            title: PEST_CONTROL_DOCUMENT_TITLE,
             dateFrom: "2025-02-05",
             dateTo: "2025-02-05",
           }),
@@ -368,7 +368,6 @@ export function PestControlDocumentsClient(props: Props) {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[54px] font-semibold tracking-[-0.04em] text-black">
           {PEST_CONTROL_PAGE_TITLE}
-          {props.activeTab === "closed" ? " (Закрытые!!!)" : ""}
         </h1>
         <div className="flex items-center gap-3">
           <Button

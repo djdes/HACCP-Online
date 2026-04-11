@@ -830,6 +830,7 @@ export function ClimateDocumentClient({
     const nextValue = rawValue === "" ? null : Number(rawValue);
     const row = rows.find((item) => item.id === rowId);
     if (!row) return;
+    const previousRow = row;
 
     const nextRow: RowItem = {
       ...row,
@@ -861,6 +862,9 @@ export function ClimateDocumentClient({
     try {
       await saveRow(nextRow);
     } catch (error) {
+      setRows((currentRows) =>
+        currentRows.map((item) => (item.id === rowId ? previousRow : item))
+      );
       window.alert(error instanceof Error ? error.message : "Ошибка сохранения");
     }
   }

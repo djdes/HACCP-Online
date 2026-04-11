@@ -21,6 +21,8 @@ type Props = {
   templateCode: string;
   templateName: string;
   documents: JournalDocumentRow[];
+  defaultResponsibleTitle?: string | null;
+  defaultResponsibleUserId?: string | null;
 };
 
 export function ScanJournalDocumentsClient({
@@ -28,6 +30,8 @@ export function ScanJournalDocumentsClient({
   templateCode,
   templateName,
   documents,
+  defaultResponsibleTitle,
+  defaultResponsibleUserId,
 }: Props) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -45,7 +49,8 @@ export function ScanJournalDocumentsClient({
           title: templateName,
           dateFrom: date,
           dateTo: date,
-          responsibleTitle: "Ответственный",
+          responsibleUserId: defaultResponsibleUserId || null,
+          responsibleTitle: defaultResponsibleTitle || "Ответственный",
           config: {},
         }),
       });

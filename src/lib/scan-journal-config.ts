@@ -12,12 +12,23 @@ export type ScanJournalConfig = {
 
 export const SCAN_JOURNALS: ScanJournalConfig[] = [
   {
+    code: "audit_plan_scan",
+    title: "План-программа внутренних аудитов",
+    description: "Скан-версия плана-программы внутренних аудитов.",
+    folderName: "План-программа внутренних аудитов",
+    sourceSlugs: ["auditplan"],
+    sortOrder: 39,
+    dateLabel: "Дата документа",
+    showResponsible: true,
+    defaultResponsibleTitle: 'Должность "Утверждаю"',
+  },
+  {
     code: "audit_report_scan",
     title: "Отчет о внутреннем аудите",
     description: "Скан-версия журнала отчета о внутреннем аудите.",
     folderName: "Отчет о внутреннем аудите",
     sourceSlugs: ["auditreport"],
-    sortOrder: 40,
+    sortOrder: 41,
     dateLabel: "Дата документа",
   },
   {
@@ -26,14 +37,14 @@ export const SCAN_JOURNALS: ScanJournalConfig[] = [
     description: "Скан-версия журнала протокола внутреннего аудита.",
     folderName: "Протокол внутреннего аудита",
     sourceSlugs: ["auditprotocol"],
-    sortOrder: 39,
+    sortOrder: 40,
     dateLabel: "Дата документа",
   },
   {
     code: "metal_impurity_scan",
-    title: "Журнал учета металлопримесей",
-    description: "Скан-версия журнала учета металлопримесей.",
-    folderName: "Журнал учета металлопримесей",
+    title: "Журнал учета металлопримесей в сырье",
+    description: "Скан-версия журнала учета металлопримесей в сырье.",
+    folderName: "Журнал учета металлопримесей в сырье",
     sourceSlugs: ["metalimpurityjournal"],
     sortOrder: 33,
     dateLabel: "Дата начала",

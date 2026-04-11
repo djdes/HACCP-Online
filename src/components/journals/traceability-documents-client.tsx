@@ -278,9 +278,7 @@ export function TraceabilityDocumentsClient({
 
   const heading = useMemo(
     () =>
-      activeTab === "closed"
-        ? `${DEFAULT_TITLE} (Закрытые!!!)`
-        : DEFAULT_TITLE,
+      DEFAULT_TITLE,
     [activeTab]
   );
 

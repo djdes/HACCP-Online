@@ -751,5 +751,5 @@ export function isEntryDataEmpty(data: unknown): boolean {
 export function getJournalHeading(templateCode: string, closed = false): string {
   const base =
     templateCode === "health_check" ? getHealthDocumentTitle() : getHygieneDocumentTitle();
-  return closed ? `${base} (Закрытые!!!)` : base;
+  return base;
 }

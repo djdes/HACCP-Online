@@ -4,7 +4,6 @@ import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -519,9 +518,6 @@ export function SanitationDayDocumentClient({
           <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
             <thead>
               <tr>
-                <th rowSpan={2} className="w-14 border border-black/70 px-2 py-2">
-                  <Checkbox />
-                </th>
                 <th rowSpan={2} className="w-[460px] border border-black/70 px-3 py-2">
                   Помещение
                 </th>
@@ -542,9 +538,6 @@ export function SanitationDayDocumentClient({
               {normalized.rows.map((row) => (
                 <Fragment key={row.id}>
                   <tr key={`${row.id}-plan`}>
-                    <td rowSpan={2} className="border border-black/70 px-2 py-2 align-top">
-                      <Checkbox />
-                    </td>
                     <td rowSpan={2} className="border border-black/70 px-3 py-2 align-top">
                       {row.roomName}
                     </td>
@@ -590,9 +583,6 @@ export function SanitationDayDocumentClient({
                 </Fragment>
               ))}
               <tr>
-                <td className="border border-black/70 px-2 py-2">
-                  <Checkbox />
-                </td>
                 <td colSpan={2} className="border border-black/70 px-3 py-2">
                   Ответственный: {getSanitationApproveLabel(normalized.responsibleRole, normalized.responsibleEmployee)}
                 </td>

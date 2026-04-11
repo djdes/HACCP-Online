@@ -54,7 +54,7 @@ export function isSourceStyleTrackedTemplate(templateCode: string) {
 }
 
 const TRACKED_DOCUMENT_TITLES: Partial<Record<TrackedDocumentTemplateCode, string>> = {
-  incoming_control: "Р–СѓСЂРЅР°Р» РїСЂРёРµРјРєРё",
+  incoming_control: "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
   pest_control: "Журнал учета дезинфекции, дезинсекции и дератизации",
   equipment_calibration: "График поверки средств измерений",
   product_writeoff: "Акт забраковки",
@@ -66,7 +66,7 @@ const TRACKED_DOCUMENT_TITLES: Partial<Record<TrackedDocumentTemplateCode, strin
   uv_lamp_control: "Журнал контроля УФ-ламп",
   fryer_oil: "Журнал учета использования фритюрных жиров",
   general_cleaning: "Журнал генеральной уборки",
-  equipment_maintenance: "График ППО оборудования",
+  equipment_maintenance: "График профилактического обслуживания оборудования",
   staff_training: "Журнал инструктажей",
   daily_rejection: "Журнал ежедневного бракеража блюд",
   raw_storage_control: "Журнал контроля хранения сырья",

@@ -55,6 +55,33 @@ export async function POST(
   }
 
   const config = normalizeColdEquipmentDocumentConfig(document.config);
+  const entriesByDate = new Map<string, (typeof document.entries)>();
+
+  document.entries.forEach((entry) => {
+    const dateKey = toDateKey(entry.date);
+    const bucket = entriesByDate.get(dateKey);
+    if (bucket) {
+      bucket.push(entry);
+      return;
+    }
+    entriesByDate.set(dateKey, [entry]);
+  });
+
+  const duplicateDateKeys = Array.from(entriesByDate.entries())
+    .filter(([, entries]) => entries.length > 1)
+    .map(([dateKey]) => dateKey);
+
+  if (duplicateDateKeys.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          duplicateDateKeys.length === 1
+            ? `Обнаружено несколько строк с датой ${duplicateDateKeys[0]}. Удалите дубликаты и повторите действие.`
+            : `Обнаружены дублирующиеся строки по датам: ${duplicateDateKeys.join(", ")}. Удалите дубликаты и повторите действие.`,
+      },
+      { status: 409 }
+    );
+  }
 
   if (action === "sync_entries") {
     await Promise.all(
@@ -104,13 +131,9 @@ export async function POST(
     responsibleUserId,
   });
 
-  const existingByDate = new Map<string, (typeof document.entries)[number]>();
-  document.entries.forEach((entry) => {
-    const dateKey = toDateKey(entry.date);
-    if (!existingByDate.has(dateKey)) {
-      existingByDate.set(dateKey, entry);
-    }
-  });
+  const existingByDate = new Map<string, (typeof document.entries)[number]>(
+    Array.from(entriesByDate.entries()).map(([dateKey, entries]) => [dateKey, entries[0]])
+  );
 
   const rowsToCreate = generatedRows
     .filter((row) => !existingByDate.has(toDateKey(row.date)))

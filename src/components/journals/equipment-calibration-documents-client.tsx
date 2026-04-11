@@ -143,7 +143,7 @@ export function EquipmentCalibrationDocumentsClient({
   return (
     <div className="space-y-8">
       <JournalTopBar
-        heading={`График поверки средств измерений${activeTab === "closed" ? " (Закрытые!!!)" : ""}`}
+        heading="График поверки средств измерений"
         activeTab={activeTab}
         templateCode={templateCode}
         templateName={templateName}

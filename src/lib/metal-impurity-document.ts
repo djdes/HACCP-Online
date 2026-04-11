@@ -1,6 +1,6 @@
 export const METAL_IMPURITY_TEMPLATE_CODE = "metal_impurity";
 export const METAL_IMPURITY_SOURCE_SLUG = "metalimpurityjournal";
-export const METAL_IMPURITY_DOCUMENT_TITLE = "Журнал учета металлопримесей";
+export const METAL_IMPURITY_DOCUMENT_TITLE = "Журнал учета металлопримесей в сырье";
 
 export type MetalImpurityOption = {
   id: string;

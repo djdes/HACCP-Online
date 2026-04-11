@@ -1362,7 +1362,7 @@ function drawAcceptancePdf(doc: jsPDF, params: {
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
 
-  drawTitle(doc, params.title || "Журнал приемки");
+  drawTitle(doc, params.title || "Журнал входного контроля сырья, ингредиентов, упаковочных материалов");
   drawJournalHeader(doc, {
     organizationName: params.organizationName,
     pageLabel: "СТР. 1 ИЗ 1",
@@ -3675,7 +3675,7 @@ export async function generateJournalDocumentPdf(params: {
   } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
     drawAcceptancePdf(doc, {
       organizationName,
-      title: document.title || "Журнал приемки",
+      title: document.title || "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
       dateFrom: document.dateFrom,
       config: normalizeAcceptanceDocumentConfig(document.config, users),
       users,

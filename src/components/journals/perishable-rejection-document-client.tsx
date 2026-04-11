@@ -321,7 +321,7 @@ export function PerishableRejectionDocumentClient({
           variant="outline"
           onClick={() => window.print()}
         >
-          Настройки журнала
+          Печать журнала
         </Button>
       </div>
 

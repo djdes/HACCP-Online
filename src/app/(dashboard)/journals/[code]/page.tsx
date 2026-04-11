@@ -147,6 +147,7 @@ import {
 } from "@/lib/staff-training-document";
 import { EquipmentMaintenanceDocumentsClient } from "@/components/journals/equipment-maintenance-documents-client";
 import {
+  EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
   EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
   getDefaultEquipmentMaintenanceConfig,
 } from "@/lib/equipment-maintenance-document";
@@ -159,6 +160,7 @@ import {
 import { EquipmentCalibrationDocumentsClient } from "@/components/journals/equipment-calibration-documents-client";
 import {
   buildEquipmentCalibrationConfigFromEquipment,
+  EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
   EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
 } from "@/lib/equipment-calibration-document";
 import { TraceabilityDocumentsClient } from "@/components/journals/traceability-documents-client";
@@ -1092,7 +1094,7 @@ async function ensurePestControlSampleDocuments({
     data: {
       templateId,
       organizationId,
-      title: `${PEST_CONTROL_DOCUMENT_TITLE} (Закрытые!!!)`,
+      title: PEST_CONTROL_DOCUMENT_TITLE,
       status: "closed",
       dateFrom: new Date("2025-02-05T00:00:00.000Z"),
       dateTo: new Date("2025-02-28T00:00:00.000Z"),
@@ -1189,16 +1191,24 @@ export default async function JournalDocumentsPage({
         activeTab={activeTab}
         templateCode={resolvedCode}
         templateName={scanConfig?.title || template.name}
+        defaultResponsibleTitle={scanConfig?.defaultResponsibleTitle || null}
+        defaultResponsibleUserId={pickPrimaryManager(orgUsers)?.id || null}
         documents={documents.map((document) => ({
           id: document.id,
           title: document.title || (scanConfig?.title || template.name),
           status: document.status as "active" | "closed",
-          dateLabel: "Период",
+          dateLabel: scanConfig?.dateLabel || "Период",
           dateValue:
             document.dateFrom.toISOString().slice(0, 10) ===
             document.dateTo.toISOString().slice(0, 10)
               ? document.dateFrom.toISOString().slice(0, 10)
               : `${document.dateFrom.toISOString().slice(0, 10)} — ${document.dateTo.toISOString().slice(0, 10)}`,
+          responsibleLabel:
+            document.responsibleTitle ||
+            (scanConfig?.showResponsible ? scanConfig.defaultResponsibleTitle || null : null),
+          responsibleValue: document.responsibleUserId
+            ? orgUsers.find((user) => user.id === document.responsibleUserId)?.name || null
+            : null,
         }))}
       />
     );
@@ -1321,7 +1331,7 @@ export default async function JournalDocumentsPage({
         data: {
           templateId: template.id,
           organizationId: session.user.organizationId,
-          title: "Журнал бракеража",
+          title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
           status: "active",
           dateFrom,
           dateTo,
@@ -1348,7 +1358,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
-          title: doc.title || "Журнал бракеража",
+          title: doc.title || PERISHABLE_REJECTION_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           startedAtLabel: doc.dateFrom.toLocaleDateString("ru-RU").replaceAll(".", "-"),
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
@@ -1567,7 +1577,7 @@ export default async function JournalDocumentsPage({
         data: {
           templateId: template.id,
           organizationId: session.user.organizationId,
-          title: "График",
+          title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
           status: "active",
           dateFrom: new Date(Date.UTC(year, 0, 1)),
           dateTo: new Date(Date.UTC(year, 11, 31)),
@@ -1594,7 +1604,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
-          title: doc.title || "График",
+          title: doc.title || EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
           config: doc.config,
@@ -1642,7 +1652,7 @@ export default async function JournalDocumentsPage({
         data: {
           templateId: template.id,
           organizationId: session.user.organizationId,
-          title: "График поверки",
+          title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
           status: "active",
           dateFrom: new Date(Date.UTC(year, 0, 1)),
           dateTo: new Date(Date.UTC(year, 11, 31)),
@@ -1669,7 +1679,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
-          title: doc.title || "График поверки",
+          title: doc.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
           config: doc.config,

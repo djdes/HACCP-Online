@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -73,6 +73,7 @@ export function FinishedProductDocumentClient({
   const [isPending, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
   const [config, setConfig] = useState(() => normalizeFinishedProductDocumentConfig(initialConfig));
+  const readOnly = status === "closed";
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [listModalOpen, setListModalOpen] = useState(false);
@@ -122,16 +123,19 @@ export function FinishedProductDocumentClient({
   }
 
   function toggleRow(id: string, checked: boolean) {
+    if (readOnly) return;
     setSelectedRows((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
   }
 
   function removeSelectedRows() {
+    if (readOnly) return;
     if (selectedRows.length === 0) return;
     setConfig((prev) => ({ ...prev, rows: prev.rows.filter((row) => !selectedRows.includes(row.id)) }));
     setSelectedRows([]);
   }
 
   function addSingleRow(productName = "") {
+    if (readOnly) return;
     setConfig((prev) => ({
       ...prev,
       rows: [
@@ -151,12 +155,14 @@ export function FinishedProductDocumentClient({
   }
 
   function addRowsFromList() {
+    if (readOnly) return;
     const list = config.productLists.find((l) => l.id === activeListId);
     if (!list) return;
     list.items.forEach((item) => addSingleRow(item));
   }
 
   function addFromFile() {
+    if (readOnly) return;
     const text = window.prompt("Вставьте названия изделий, каждое с новой строки:");
     if (!text) return;
     text
@@ -167,6 +173,7 @@ export function FinishedProductDocumentClient({
   }
 
   function addList() {
+    if (readOnly) return;
     if (!newListName.trim()) return;
     const id = `list-${Date.now()}`;
     setConfig((prev) => ({
@@ -177,6 +184,7 @@ export function FinishedProductDocumentClient({
   }
 
   function addItemToCatalog() {
+    if (readOnly) return;
     if (!newItemName.trim()) return;
     setConfig((prev) => ({
       ...prev,
@@ -186,6 +194,7 @@ export function FinishedProductDocumentClient({
   }
 
   function addItemToActiveList(item: string) {
+    if (readOnly) return;
     if (!activeListId) return;
     setConfig((prev) => ({
       ...prev,
@@ -198,6 +207,7 @@ export function FinishedProductDocumentClient({
   }
 
   function saveDraftRow() {
+    if (readOnly) return;
     setConfig((prev) => ({ ...prev, rows: [...prev.rows, draftRow] }));
     setDraftRow(
       createFinishedProductRow({
@@ -221,7 +231,7 @@ export function FinishedProductDocumentClient({
           <h1 className="text-[48px] font-semibold tracking-[-0.03em]">{title}</h1>
         </div>
         <Button type="button" variant="outline" onClick={() => window.print()}>
-          Настройки журнала
+          Печать журнала
         </Button>
       </div>
 
@@ -243,7 +253,7 @@ export function FinishedProductDocumentClient({
         <h2 className="text-center text-[36px] font-semibold">ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</h2>
 
         <div className="flex flex-wrap gap-3">
-          <DropdownMenu>
+          {!readOnly && <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" className="bg-[#5b66ff] hover:bg-[#4d58f5]">
                 <Plus className="size-4" />
@@ -267,19 +277,19 @@ export function FinishedProductDocumentClient({
                 Добавить из Айко
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
-          <Button type="button" className="bg-[#5b66ff] hover:bg-[#4d58f5]" onClick={() => setAddModalOpen(true)}>
+          </DropdownMenu>}
+          <Button type="button" className="bg-[#5b66ff] hover:bg-[#4d58f5]" onClick={() => setAddModalOpen(true)} disabled={readOnly}>
             <Plus className="size-4" />
             Добавить изделие
           </Button>
-          <Button type="button" variant="outline" onClick={() => setListModalOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setListModalOpen(true)} disabled={readOnly}>
             Редактировать список изделий
           </Button>
-          <Button type="button" variant="outline" onClick={removeSelectedRows} disabled={selectedRows.length === 0}>
+          <Button type="button" variant="outline" onClick={removeSelectedRows} disabled={readOnly || selectedRows.length === 0}>
             <Trash2 className="size-4" />
             Удалить выбранные
           </Button>
-          <Button type="button" onClick={() => saveConfig()} disabled={isSaving || isPending}>
+          <Button type="button" onClick={() => saveConfig()} disabled={readOnly || isSaving || isPending}>
             <Save className="size-4" />
             {isSaving ? "Сохранение..." : "Сохранить"}
           </Button>
@@ -318,6 +328,7 @@ export function FinishedProductDocumentClient({
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) => toggleRow(row.id, checked === true)}
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="border p-1 align-top">
@@ -325,6 +336,7 @@ export function FinishedProductDocumentClient({
                       value={row.productionDateTime}
                       onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="border p-1 align-top">
@@ -332,6 +344,7 @@ export function FinishedProductDocumentClient({
                       value={row.rejectionTime}
                       onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="border p-1 align-top">
@@ -339,6 +352,7 @@ export function FinishedProductDocumentClient({
                       value={row.productName}
                       onChange={(e) => updateRow(row.id, { productName: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="border p-1 align-top">
@@ -346,6 +360,7 @@ export function FinishedProductDocumentClient({
                       value={row.organoleptic}
                       onChange={(e) => updateRow(row.id, { organoleptic: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   {config.showProductTemp && (
@@ -354,6 +369,7 @@ export function FinishedProductDocumentClient({
                         value={row.productTemp}
                         onChange={(e) => updateRow(row.id, { productTemp: e.target.value })}
                         className="border-0 shadow-none"
+                        disabled={readOnly}
                       />
                     </td>
                   )}
@@ -363,6 +379,7 @@ export function FinishedProductDocumentClient({
                         value={row.correctiveAction}
                         onChange={(e) => updateRow(row.id, { correctiveAction: e.target.value })}
                         className="border-0 shadow-none"
+                        disabled={readOnly}
                       />
                     </td>
                   )}
@@ -372,6 +389,7 @@ export function FinishedProductDocumentClient({
                         value={row.oxygenLevel}
                         onChange={(e) => updateRow(row.id, { oxygenLevel: e.target.value })}
                         className="border-0 shadow-none"
+                        disabled={readOnly}
                       />
                     </td>
                   )}
@@ -380,6 +398,7 @@ export function FinishedProductDocumentClient({
                       value={row.releasePermissionTime}
                       onChange={(e) => updateRow(row.id, { releasePermissionTime: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   {config.showCourierTime && (
@@ -388,6 +407,7 @@ export function FinishedProductDocumentClient({
                         value={row.courierTransferTime}
                         onChange={(e) => updateRow(row.id, { courierTransferTime: e.target.value })}
                         className="border-0 shadow-none"
+                        disabled={readOnly}
                       />
                     </td>
                   )}
@@ -396,6 +416,7 @@ export function FinishedProductDocumentClient({
                       value={row.responsiblePerson}
                       onChange={(e) => updateRow(row.id, { responsiblePerson: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                   <td className="border p-1 align-top">
@@ -403,6 +424,7 @@ export function FinishedProductDocumentClient({
                       value={row.inspectorName}
                       onChange={(e) => updateRow(row.id, { inspectorName: e.target.value })}
                       className="border-0 shadow-none"
+                      disabled={readOnly}
                     />
                   </td>
                 </tr>
@@ -414,7 +436,7 @@ export function FinishedProductDocumentClient({
         <div className="pt-2 text-[18px] underline">{config.footerNote}</div>
       </div>
 
-      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+      <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[760px]">
           <DialogHeader>
             <DialogTitle>Добавление новой строки</DialogTitle>
@@ -578,7 +600,7 @@ export function FinishedProductDocumentClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={listModalOpen} onOpenChange={setListModalOpen}>
+      <Dialog open={readOnly ? false : listModalOpen} onOpenChange={setListModalOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[760px]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
@@ -658,7 +680,7 @@ export function FinishedProductDocumentClient({
                       }))
                     }
                   >
-                    <Pencil className="size-4" />
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
               ))}

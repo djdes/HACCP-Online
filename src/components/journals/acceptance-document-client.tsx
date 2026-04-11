@@ -673,7 +673,7 @@ export function AcceptanceDocumentClient(props: Props) {
         </div>
 
         <div className="flex items-center justify-between">
-          <h1 className="text-[48px] font-semibold tracking-[-0.04em]">{title || "Журнал входного контроля сырья"}</h1>
+          <h1 className="text-[48px] font-semibold tracking-[-0.04em]">{title || "Журнал входного контроля сырья, ингредиентов, упаковочных материалов"}</h1>
           <button type="button" onClick={() => setSettingsOpen(true)} className="text-[14px] text-[#5b66ff] hover:underline">Настройки журнала</button>
         </div>
 

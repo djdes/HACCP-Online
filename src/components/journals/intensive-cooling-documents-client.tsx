@@ -289,9 +289,7 @@ export function IntensiveCoolingDocumentsClient({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <h1 className="max-w-[980px] text-[48px] font-semibold tracking-[-0.04em] text-black">
-          {activeTab === "closed"
-            ? `${INTENSIVE_COOLING_DOCUMENT_TITLE} (Закрытые!!!)`
-            : INTENSIVE_COOLING_DOCUMENT_TITLE}
+          {INTENSIVE_COOLING_DOCUMENT_TITLE}
         </h1>
         <div className="flex items-center gap-3">
           <Button

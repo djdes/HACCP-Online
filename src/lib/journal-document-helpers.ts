@@ -96,8 +96,8 @@ import {
 const SCAN_ONLY_JOURNALS = [
   {
     code: "audit_plan_scan",
-    folderName: "План внутреннего аудита",
-    title: "Журнал аудита - План",
+    folderName: "План-программа внутренних аудитов",
+    title: "План-программа внутренних аудитов",
   },
   {
     code: "audit_protocol_scan",

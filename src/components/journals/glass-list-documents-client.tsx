@@ -389,9 +389,7 @@ export function GlassListDocumentsClient(props: Props) {
       <div className="space-y-10">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
-            {props.activeTab === "closed"
-              ? `${GLASS_LIST_PAGE_TITLE} (Закрытые!!!)`
-              : GLASS_LIST_PAGE_TITLE}
+            {GLASS_LIST_PAGE_TITLE}
           </h1>
           {props.activeTab === "active" && (
             <Button

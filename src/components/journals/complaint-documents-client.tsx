@@ -303,9 +303,7 @@ export function ComplaintDocumentsClient({
       <div className="space-y-10">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
-            {activeTab === "closed"
-              ? `${COMPLAINT_REGISTER_TITLE} (Закрытые!!!)`
-              : COMPLAINT_REGISTER_TITLE}
+            {COMPLAINT_REGISTER_TITLE}
           </h1>
           <div className="flex items-center gap-3">
             <Button

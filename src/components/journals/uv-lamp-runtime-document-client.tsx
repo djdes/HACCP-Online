@@ -64,6 +64,7 @@ type Props = {
   status: string;
   dateFrom: string;
   dateTo: string;
+  autoFill?: boolean;
   responsibleTitle?: string | null;
   responsibleUserId?: string | null;
   users: UserItem[];
@@ -806,7 +807,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const [specEditOpen, setSpecEditOpen] = useState(false);
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  const [autoFill, setAutoFill] = useState(false);
+  const [autoFill, setAutoFill] = useState(props.autoFill === true);
 
   const [config, setConfig] = useState(() => normalizeUvRuntimeDocumentConfig(props.config));
   const fallbackEmployeeId = props.responsibleUserId || props.users[0]?.id || "";
@@ -824,6 +825,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const responsibleName = props.responsibleUserId ? userMap[props.responsibleUserId] || "—" : "—";
 
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
+
+  useEffect(() => {
+    setAutoFill(props.autoFill === true);
+  }, [props.autoFill]);
 
   const monthlyData = useMemo(() => {
     const entriesWithData = rows
@@ -975,6 +980,24 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     setConfig(nextConfig);
   }
 
+  async function handleAutoFillChange(value: boolean) {
+    setAutoFill(value);
+
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoFill: value }),
+    });
+
+    if (!response.ok) {
+      setAutoFill(!value);
+      window.alert("Не удалось сохранить настройку автозаполнения");
+      return;
+    }
+
+    router.refresh();
+  }
+
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
@@ -996,7 +1019,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Auto-fill toggle */}
       {props.status === "active" && (
         <div className="flex items-center gap-3 print:hidden">
-          <Switch checked={autoFill} onCheckedChange={setAutoFill} />
+          <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
           <span className="text-[14px] text-black">Автоматически заполнять журнал</span>
         </div>
       )}
