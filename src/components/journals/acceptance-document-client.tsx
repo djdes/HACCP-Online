@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, Pencil, Plus, Upload, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  Paperclip,
+  Pencil,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -57,10 +65,72 @@ type Props = {
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
+const ACCEPTANCE_PAGE_TITLE =
+  "Журнал входного контроля сырья, ингредиентов, упаковочных материалов";
 
 function getResponsibleLabel(row: AcceptanceRow, users: User[]) {
   const user = users.find((u) => u.id === row.responsibleUserId);
   return user?.name || "";
+}
+
+function getErrorMessage(error: unknown, fallback = "Ошибка") {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function normalizeImportText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function parseImportDate(value: string) {
+  const normalized = normalizeImportText(value);
+  if (!normalized) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(normalized)) {
+    const [day, month, year] = normalized.split(".");
+    return `${year}-${month}-${day}`;
+  }
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function parseImportTime(value: string) {
+  const normalized = normalizeImportText(value);
+  if (!normalized) return { hour: "", minute: "" };
+  const parts = normalized.split(":");
+  return {
+    hour: parts[0]?.padStart(2, "0") || "",
+    minute: parts[1]?.padStart(2, "0") || "",
+  };
+}
+
+function parseImportBoolean(value: string) {
+  const normalized = normalizeImportText(value).toLowerCase();
+  if (!normalized) return true;
+  return ["1", "да", "yes", "ok", "удовл.", "удовл", "соотв.", "соотв", "соответствует"].includes(normalized);
+}
+
+function parseListImportItems(rows: unknown[][]) {
+  return rows
+    .map((row) => normalizeImportText(Array.isArray(row) ? row[0] : ""))
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index);
+}
+
+function downloadAcceptanceImportTemplate() {
+  const header =
+    "Дата поступления;Время поступления;Наименование;Производитель;Поставщик;Условия транспортировки;Соответствие упаковки;Результаты орг. оценки;Предельный срок реализации, дата;Предельный срок реализации, время;Примечания";
+  const sample =
+    "11.04.2026;11:00;Гастрономия;ООО \"Агро-Юг\";ООО \"Метро\";1;1;1;11.04.2026;18:00;";
+  const blob = new Blob([[header, sample].join("\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "incoming-control-import-example.csv";
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ─── Row Dialog ─── */
@@ -431,6 +501,219 @@ function EditListsDialog(props: {
 
 /* ─── Settings Dialog ─── */
 
+function EditableListSection(props: {
+  title: string;
+  items: string[];
+  placeholder: string;
+  onChange: (items: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function upsertValue(nextValue: string) {
+    const trimmed = nextValue.trim();
+    if (!trimmed) return;
+    const withoutEdited = editingValue
+      ? props.items.filter((item) => item !== editingValue)
+      : props.items;
+    if (withoutEdited.includes(trimmed)) {
+      setDraft("");
+      setEditingValue(null);
+      return;
+    }
+    props.onChange([...withoutEdited, trimmed]);
+    setDraft("");
+    setEditingValue(null);
+  }
+
+  async function handleImport(file: File) {
+    const XLSX = await import("xlsx");
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) throw new Error("Файл не содержит листов");
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+    const importedItems = parseListImportItems(rawRows);
+    if (importedItems.length === 0) {
+      throw new Error("Не удалось найти значения в первом столбце первого листа");
+    }
+    props.onChange(
+      [...props.items, ...importedItems].filter(
+        (value, index, list) => list.indexOf(value) === index
+      )
+    );
+    setImportOpen(false);
+    setImportError(null);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="text-[16px] font-semibold">{props.title}</div>
+      {props.items.map((item) => (
+        <div
+          key={item}
+          className="flex items-center justify-between rounded-xl bg-[#f9f9fc] px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <Checkbox checked={false} className="pointer-events-none size-5 rounded-md" />
+            <span className="text-[15px]">{item}</span>
+          </div>
+          <button
+            type="button"
+            className="text-[#5b66ff] hover:text-[#4b57f3]"
+            onClick={() => {
+              setDraft(item);
+              setEditingValue(item);
+            }}
+          >
+            <Pencil className="size-4" />
+          </button>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={props.placeholder}
+          className="h-12 rounded-xl border-[#dfe1ec] px-4 text-[15px]"
+        />
+        <Button
+          type="button"
+          className="h-12 rounded-xl bg-[#5863f8] px-4"
+          onClick={() => upsertValue(draft)}
+        >
+          <Plus className="size-5" />
+        </Button>
+      </div>
+      <button
+        type="button"
+        className="text-left text-[15px] text-[#5863f8] underline underline-offset-4"
+        onClick={() => {
+          setImportOpen((current) => !current);
+          setImportError(null);
+        }}
+      >
+        Добавить из файла
+      </button>
+      {importOpen && (
+        <div className="space-y-3 rounded-2xl border border-[#e3e5ef] bg-white p-4">
+          <div className="text-[14px] leading-6 text-[#3d4152]">
+            Список должен быть в файле Excel, на первом листе в первом столбце и
+            начинаться с первой строки.
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              void handleImport(file).catch((error) =>
+                setImportError(getErrorMessage(error, "Ошибка импорта"))
+              );
+              event.currentTarget.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragActive(false);
+              const file = event.dataTransfer.files?.[0];
+              if (file) {
+                void handleImport(file).catch((error) =>
+                  setImportError(getErrorMessage(error, "Ошибка импорта"))
+                );
+              }
+            }}
+            className={`flex min-h-[148px] w-full flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed px-6 py-8 text-center ${
+              dragActive ? "border-[#5863f8] bg-[#f6f7ff]" : "border-[#d7d9e5] bg-white"
+            }`}
+          >
+            <Paperclip className="size-8 text-[#6f7282]" />
+            <span className="text-[18px] text-[#5863f8]">Выберите файл</span>
+            <span className="text-[16px] text-[#3d4152]">или перетащите его сюда</span>
+          </button>
+          {importError ? (
+            <div className="rounded-xl bg-[#fff2f1] px-4 py-3 text-[14px] text-[#d43a2f]">
+              {importError}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IncomingControlEditListsDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  config: AcceptanceDocumentConfig;
+  setConfig: (config: AcceptanceDocumentConfig) => void;
+}) {
+  const [products, setProducts] = useState<string[]>([]);
+  const [manufacturers, setManufacturers] = useState<string[]>([]);
+  const [suppliers, setSuppliers] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setProducts([...props.config.products]);
+    setManufacturers([...props.config.manufacturers]);
+    setSuppliers([...props.config.suppliers]);
+  }, [props.config, props.open]);
+
+  function handleClose() {
+    props.setConfig({ ...props.config, products, manufacturers, suppliers });
+    props.onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={props.open} onOpenChange={(open) => { if (!open) handleClose(); else props.onOpenChange(true); }}>
+      <DialogContent className="max-h-[92vh] max-w-[560px] overflow-y-auto rounded-[28px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
+          <DialogTitle className="text-[24px] font-semibold text-black">Редактировать список</DialogTitle>
+          <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={handleClose}><X className="size-6" /></button>
+        </DialogHeader>
+        <div className="space-y-6 px-8 py-6">
+          <EditableListSection
+            title="Продукция"
+            items={products}
+            placeholder="Введите название новой продукции"
+            onChange={setProducts}
+          />
+          <EditableListSection
+            title="Производители"
+            items={manufacturers}
+            placeholder="Введите название нового производителя"
+            onChange={setManufacturers}
+          />
+          <EditableListSection
+            title="Поставщики"
+            items={suppliers}
+            placeholder="Введите название нового поставщика"
+            onChange={setSuppliers}
+          />
+          <div className="flex justify-end">
+            <Button type="button" onClick={handleClose} className="h-14 rounded-xl bg-[#5863f8] px-7 text-[18px] font-medium text-white hover:bg-[#4b57f3]">
+              Закрыть
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SettingsDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -531,7 +814,284 @@ function SettingsDialog(props: {
   );
 }
 
+function ConfirmDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  actionLabel: string;
+  onConfirm: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (props.open) setSubmitting(false);
+  }, [props.open]);
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-w-[640px] rounded-[28px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
+          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
+            {props.title}
+          </DialogTitle>
+          <button
+            type="button"
+            className="rounded-md p-1 text-black/80 hover:bg-black/5"
+            onClick={() => props.onOpenChange(false)}
+          >
+            <X className="size-6" />
+          </button>
+        </DialogHeader>
+        <div className="flex justify-end px-8 py-6">
+          <Button
+            type="button"
+            disabled={submitting}
+            onClick={async () => {
+              setSubmitting(true);
+              try {
+                await props.onConfirm();
+                props.onOpenChange(false);
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+            className="h-14 rounded-xl bg-[#5863f8] px-7 text-[18px] font-medium text-white hover:bg-[#4b57f3]"
+          >
+            {submitting ? "Сохранение..." : props.actionLabel}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ImportRowsDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  responsibleTitle: string;
+  responsibleUserId: string;
+  users: User[];
+  onFileSelect: (file: File) => Promise<void>;
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setDragActive(false);
+    setSubmitting(false);
+    setErrorMessage(null);
+  }, [props.open]);
+
+  async function handleFile(file: File) {
+    setSubmitting(true);
+    try {
+      setErrorMessage(null);
+      await props.onFileSelect(file);
+      props.onOpenChange(false);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, "Ошибка импорта"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-h-[92vh] max-w-[760px] overflow-y-auto rounded-[28px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
+          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
+            Добавление списка изделий из файла в формате Excel
+          </DialogTitle>
+          <button
+            type="button"
+            className="rounded-md p-1 text-black/80 hover:bg-black/5"
+            onClick={() => props.onOpenChange(false)}
+          >
+            <X className="size-6" />
+          </button>
+        </DialogHeader>
+        <div className="space-y-5 px-8 py-6 text-[16px] text-black">
+          <div className="space-y-3 leading-7 text-[#333]">
+            <p>Список должен быть в файле Excel, на первом листе и начинаться с первой строки.</p>
+            <p>Столбцы должны быть в следующем формате:</p>
+            <div className="space-y-1">
+              <div>1-й столбец - дата поступления (не может быть пустым или строкой)</div>
+              <div>2-й столбец - время поступления</div>
+              <div>3-й столбец - наименование (не может быть пустым)</div>
+              <div>4-й столбец - производитель</div>
+              <div>5-й столбец - поставщик (не может быть пустым)</div>
+              <div>6-й столбец - условия транспортировки (0 - Не удовл., 1 - Удовл.)</div>
+              <div>7-й столбец - соответствие упаковки (0 - Не соотв., 1 - Соотв.)</div>
+              <div>8-й столбец - результаты орг. оценки (0 - Не удовл., 1 - Удовл.)</div>
+              <div>9-й столбец - предельный срок реализации, дата</div>
+              <div>10-й столбец - предельный срок реализации, время</div>
+              <div>11-й столбец - примечания</div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={downloadAcceptanceImportTemplate}
+            className="text-[16px] text-[#5863f8] underline underline-offset-4"
+          >
+            Скачать пример файла
+          </button>
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void handleFile(file);
+              event.currentTarget.value = "";
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragActive(false);
+              const file = event.dataTransfer.files?.[0];
+              if (file) void handleFile(file);
+            }}
+            className={`flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-[24px] border border-dashed px-6 py-8 text-center ${
+              dragActive ? "border-[#5863f8] bg-[#f6f7ff]" : "border-[#d7d9e5] bg-white"
+            }`}
+          >
+            <Paperclip className="size-10 text-[#6f7282]" />
+            <span className="text-[20px] text-[#5863f8]">Выберите файл</span>
+            <span className="text-[18px] text-[#3d4152]">или перетащите его сюда</span>
+          </button>
+          {errorMessage ? (
+            <div className="whitespace-pre-line rounded-xl bg-[#fff2f1] px-4 py-3 text-[14px] text-[#d43a2f]">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="space-y-3">
+            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <div className="flex h-14 items-center rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              {props.responsibleTitle || "—"}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <div className="flex h-14 items-center rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              {props.users.find((user) => user.id === props.responsibleUserId)?.name || "—"}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={() => inputRef.current?.click()}
+              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[18px] font-medium text-white hover:bg-[#4b57f3]"
+            >
+              {submitting ? "Добавление..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ─── iiko Dialog ─── */
+
+function AddMultipleRowsDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (count: number) => Promise<void>;
+}) {
+  const [count, setCount] = useState("5");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setCount("5");
+    setSubmitting(false);
+    setErrorMessage(null);
+  }, [props.open]);
+
+  async function handleSubmit() {
+    const parsed = Number(count);
+    if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 100) {
+      setErrorMessage("Укажите количество строк от 1 до 100.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await props.onSubmit(parsed);
+      props.onOpenChange(false);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, "Ошибка добавления строк"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="max-w-[520px] rounded-[28px] border-0 p-0">
+        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
+          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
+            Добавить несколько строк
+          </DialogTitle>
+          <button
+            type="button"
+            className="rounded-md p-1 text-black/80 hover:bg-black/5"
+            onClick={() => props.onOpenChange(false)}
+          >
+            <X className="size-6" />
+          </button>
+        </DialogHeader>
+        <div className="space-y-5 px-8 py-6">
+          <div className="space-y-2">
+            <Label className="text-[14px] text-[#6f7282]">Количество строк</Label>
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              value={count}
+              onChange={(event) => setCount(event.target.value)}
+              className="h-14 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+            />
+          </div>
+          {errorMessage ? (
+            <div className="rounded-xl bg-[#fff2f1] px-4 py-3 text-[14px] text-[#d43a2f]">
+              {errorMessage}
+            </div>
+          ) : null}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[18px] font-medium text-white hover:bg-[#4b57f3]"
+            >
+              {submitting ? "Добавление..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function IikoDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
@@ -563,7 +1123,11 @@ export function AcceptanceDocumentClient(props: Props) {
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<AcceptanceRow | null>(null);
   const [iikoOpen, setIikoOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
+  const [rowsImportOpen, setRowsImportOpen] = useState(false);
+  const [bulkAddOpen, setBulkAddOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => { setConfig(normalizeAcceptanceDocumentConfig(props.config, props.users)); }, [props.config, props.users]);
   useEffect(() => { setTitle(props.title); setDateFrom(props.dateFrom); }, [props.dateFrom, props.title]);
@@ -571,6 +1135,8 @@ export function AcceptanceDocumentClient(props: Props) {
   const rows = config.rows;
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
   const isClosed = props.status === "closed";
+  const responsibleTitle = config.defaultResponsibleTitle || "";
+  const responsibleUserId = config.defaultResponsibleUserId || "";
 
   async function persist(nextTitle: string, nextDateFrom: string, nextConfig: AcceptanceDocumentConfig) {
     const response = await fetch(`/api/journal-documents/${props.documentId}`, {
@@ -579,6 +1145,7 @@ export function AcceptanceDocumentClient(props: Props) {
       body: JSON.stringify({ title: nextTitle, dateFrom: nextDateFrom, config: nextConfig }),
     });
     if (!response.ok) throw new Error("Не удалось сохранить документ");
+    setErrorMessage(null);
     setTitle(nextTitle);
     setDateFrom(nextDateFrom);
     setConfig(nextConfig);
@@ -598,23 +1165,30 @@ export function AcceptanceDocumentClient(props: Props) {
 
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
-    if (!window.confirm("Удалить выбранные строки?")) return;
     await persist(title, dateFrom, { ...config, rows: config.rows.filter((r) => !selectedRowIds.includes(r.id)) });
     setSelectedRowIds([]);
+    setDeleteSelectedOpen(false);
   }
 
   async function handleCloseJournal() {
-    if (!window.confirm("Закончить журнал? Документ станет доступен только для чтения.")) return;
-    await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "closed" }) });
-    router.refresh();
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "closed" }),
+    });
+    if (!response.ok) throw new Error("Не удалось закончить журнал");
+    setErrorMessage(null);
+    setFinishOpen(false);
+    startTransition(() => router.refresh());
   }
 
   async function addMultipleRows(count: number) {
     const nextRows = [...config.rows];
     for (let i = 0; i < Math.min(count, 100); i++) {
-      nextRows.push(createAcceptanceRow({ responsibleUserId: config.defaultResponsibleUserId || "", responsibleTitle: config.defaultResponsibleTitle || "" }));
+      nextRows.push(createAcceptanceRow({ responsibleUserId, responsibleTitle }));
     }
     await persist(title, dateFrom, { ...config, rows: nextRows });
+    setBulkAddOpen(false);
   }
 
   async function handleImportFile(file: File) {
@@ -623,28 +1197,76 @@ export function AcceptanceDocumentClient(props: Props) {
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet) return;
-    const jsonRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
-    if (jsonRows.length <= 1) return;
-    const imported = jsonRows.slice(1).map((cols) => {
-      const c = cols.map((v) => (v == null ? "" : String(v).trim()));
-      return createAcceptanceRow({
-        deliveryDate: c[0] || new Date().toISOString().slice(0, 10),
-        deliveryHour: c[1]?.split(":")?.[0] || "",
-        deliveryMinute: c[1]?.split(":")?.[1] || "",
-        productName: c[2] || "",
-        manufacturer: c[3] || "",
-        supplier: c[4] || "",
-        transportCondition: c[5] === "0" ? "unsatisfactory" : "satisfactory",
-        packagingCompliance: c[6] === "0" ? "non_compliant" : "compliant",
-        organolepticResult: c[7] === "0" ? "unsatisfactory" : "satisfactory",
-        expiryDate: c[8] || "",
-        expiryHour: c[9]?.split(":")?.[0] || "",
-        note: c[10] || "",
-        responsibleUserId: config.defaultResponsibleUserId || "",
-      });
+    const normalizedRows = XLSX.utils
+      .sheet_to_json<unknown[]>(sheet, { header: 1, raw: false })
+      .filter((row) => Array.isArray(row))
+      .map((row) => row.map((cell) => normalizeImportText(cell)));
+    if (normalizedRows.length === 0) return;
+
+    const hasHeader = (normalizedRows[0] ?? []).some((cell) => {
+      const value = cell.toLowerCase();
+      return value.includes("дата") || value.includes("наименование") || value.includes("поставщик");
     });
+    const dataRows = (hasHeader ? normalizedRows.slice(1) : normalizedRows).filter((row) =>
+      row.some((cell) => normalizeImportText(cell))
+    );
+    if (dataRows.length === 0) return;
+
+    const errors: string[] = [];
+    const productsToAdd: string[] = [];
+    const manufacturersToAdd: string[] = [];
+    const suppliersToAdd: string[] = [];
+    const imported = dataRows.flatMap((cols, index) => {
+      const rowNumber = index + (hasHeader ? 2 : 1);
+      const deliveryDate = parseImportDate(cols[0] || "");
+      const deliveryTime = parseImportTime(cols[1] || "");
+      const productName = normalizeImportText(cols[2]);
+      const manufacturer = normalizeImportText(cols[3]);
+      const supplier = normalizeImportText(cols[4]);
+      const expiryDateRaw = normalizeImportText(cols[8]);
+      const expiryDate = parseImportDate(expiryDateRaw);
+      const expiryTime = parseImportTime(cols[9] || "");
+
+      if (!deliveryDate) errors.push(`Строка ${rowNumber}: заполните корректную дату поступления`);
+      if (!productName) errors.push(`Строка ${rowNumber}: заполните наименование продукции`);
+      if (!supplier) errors.push(`Строка ${rowNumber}: заполните поставщика`);
+      if (expiryDateRaw && !expiryDate) errors.push(`Строка ${rowNumber}: заполните корректную дату срока реализации`);
+      if (!deliveryDate || !productName || !supplier || (expiryDateRaw && !expiryDate)) return [];
+
+      if (productName) productsToAdd.push(productName);
+      if (manufacturer) manufacturersToAdd.push(manufacturer);
+      if (supplier) suppliersToAdd.push(supplier);
+
+      return [
+        createAcceptanceRow({
+          deliveryDate,
+          deliveryHour: deliveryTime.hour,
+          deliveryMinute: deliveryTime.minute,
+          productName,
+          manufacturer,
+          supplier,
+          transportCondition: parseImportBoolean(cols[5] || "") ? "satisfactory" : "unsatisfactory",
+          packagingCompliance: parseImportBoolean(cols[6] || "") ? "compliant" : "non_compliant",
+          organolepticResult: parseImportBoolean(cols[7] || "") ? "satisfactory" : "unsatisfactory",
+          expiryDate,
+          expiryHour: expiryTime.hour,
+          expiryMinute: expiryTime.minute,
+          note: normalizeImportText(cols[10]),
+          responsibleTitle,
+          responsibleUserId,
+        }),
+      ];
+    });
+    if (errors.length > 0) throw new Error(errors.slice(0, 8).join("\n"));
     if (imported.length === 0) return;
-    await persist(title, dateFrom, { ...config, rows: [...config.rows, ...imported] });
+    await persist(title, dateFrom, {
+      ...config,
+      rows: [...config.rows, ...imported],
+      products: [...new Set([...config.products, ...productsToAdd])],
+      manufacturers: [...new Set([...config.manufacturers, ...manufacturersToAdd])],
+      suppliers: [...new Set([...config.suppliers, ...suppliersToAdd])],
+    });
+    setRowsImportOpen(false);
   }
 
   const organizationLabel = props.organizationName || 'ООО "Тест"';
@@ -657,11 +1279,17 @@ export function AcceptanceDocumentClient(props: Props) {
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setSelectedRowIds([])} className="text-[#7c7c93] hover:text-black"><X className="size-4" /></button>
             <span className="text-[14px]">Выбранно: {selectedRowIds.length}</span>
-            <Button type="button" variant="ghost" className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => handleDeleteSelected().catch((e) => window.alert(e instanceof Error ? e.message : "Ошибка"))}>
+            <Button type="button" variant="ghost" className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => setDeleteSelectedOpen(true)}>
               <span className="mr-1">🗑</span> Удалить
             </Button>
           </div>
         )}
+
+        {errorMessage ? (
+          <div className="whitespace-pre-line rounded-2xl bg-[#fff2f1] px-5 py-4 text-[14px] text-[#d43a2f]">
+            {errorMessage}
+          </div>
+        ) : null}
 
         {/* Breadcrumb */}
         <div className="text-[13px] text-[#7c7c93]">
@@ -713,10 +1341,10 @@ export function AcceptanceDocumentClient(props: Props) {
                 <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => { setEditingRow(null); setRowDialogOpen(true); }}>
                   <Plus className="mr-2 size-4" /> Добавить
                 </DropdownMenuItem>
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => { const raw = window.prompt("Сколько строк добавить?", "5"); const count = Number(raw || "0"); if (count > 0) addMultipleRows(count).catch((e) => window.alert(e instanceof Error ? e.message : "Ошибка")); }}>
+                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => setBulkAddOpen(true)}>
                   <Plus className="mr-2 size-4" /> Добавить несколько строк
                 </DropdownMenuItem>
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => fileInputRef.current?.click()}>
+                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => setRowsImportOpen(true)}>
                   <Upload className="mr-2 size-4" /> Добавить из файла
                 </DropdownMenuItem>
                 <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5b66ff]" onSelect={() => setIikoOpen(true)}>
@@ -735,13 +1363,11 @@ export function AcceptanceDocumentClient(props: Props) {
 
             <div className="flex-1" />
 
-            <button type="button" className="text-[14px] text-[#5b66ff] hover:underline" onClick={handleCloseJournal}>
+            <button type="button" className="text-[14px] text-[#5b66ff] hover:underline" onClick={() => setFinishOpen(true)}>
               Закончить журнал
             </button>
           </div>
         )}
-
-        <input ref={fileInputRef} type="file" accept=".csv,.txt,.xlsx,.xls" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f).catch((err) => window.alert(err instanceof Error ? err.message : "Ошибка")); e.currentTarget.value = ""; }} />
 
         {/* Data table */}
         <div className="overflow-x-auto">
@@ -753,7 +1379,8 @@ export function AcceptanceDocumentClient(props: Props) {
                 </th>
                 <th className="border border-black p-2 text-center">Дата, время поступления продукции, товара</th>
                 <th className="border border-black p-2 text-center">Наименование продукции</th>
-                <th className="border border-black p-2 text-center">Производитель/ поставщик</th>
+                <th className="border border-black p-2 text-center">Производитель</th>
+                <th className="border border-black p-2 text-center">Поставщик</th>
                 <th className="border border-black p-2 text-center">Условия транспортировки</th>
                 <th className="border border-black p-2 text-center">Соответствие упаковки, маркировки, гигиенические требования, наличие и правильность оформления товаросопроводительной документации</th>
                 <th className="border border-black p-2 text-center">Результаты органолептической оценки доброкачественности</th>
@@ -777,9 +1404,8 @@ export function AcceptanceDocumentClient(props: Props) {
                       {row.productName || "—"}
                     </button>
                   </td>
-                  <td className="border border-black p-2 text-center">
-                    {row.manufacturer && row.supplier ? `${row.manufacturer} / ${row.supplier}` : row.manufacturer || row.supplier || "—"}
-                  </td>
+                  <td className="border border-black p-2 text-center">{row.manufacturer || "—"}</td>
+                  <td className="border border-black p-2 text-center">{row.supplier || "—"}</td>
                   <td className="border border-black p-2 text-center">{TRANSPORT_LABELS[row.transportCondition]}</td>
                   <td className="border border-black p-2 text-center">{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
                   <td className="border border-black p-2 text-center">{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
@@ -792,10 +1418,10 @@ export function AcceptanceDocumentClient(props: Props) {
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={10} className="border border-black p-8 text-center text-[#80849a]">Строк пока нет</td></tr>
+                <tr><td colSpan={11} className="border border-black p-8 text-center text-[#80849a]">Строк пока нет</td></tr>
               )}
               {/* Empty row at bottom */}
-              <tr><td className="border border-black p-2 text-center"><Checkbox disabled /></td><td colSpan={9} className="border border-black p-2" /></tr>
+              <tr><td className="border border-black p-2 text-center"><Checkbox disabled /></td><td colSpan={10} className="border border-black p-2" /></tr>
             </tbody>
           </table>
         </div>
@@ -803,19 +1429,23 @@ export function AcceptanceDocumentClient(props: Props) {
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} />
       {editListsOpen && (
-        <EditListsDialog
+        <IncomingControlEditListsDialog
           key={`${config.products.join("|")}::${config.manufacturers.join("|")}::${config.suppliers.join("|")}`}
           open={editListsOpen}
           onOpenChange={setEditListsOpen}
           config={config}
-          setConfig={(c) => {
-            persist(title, dateFrom, c).catch((e) =>
-              window.alert(e instanceof Error ? e.message : "Ошибка")
+          setConfig={(nextConfig) => {
+            void persist(title, dateFrom, nextConfig).catch((error) =>
+              setErrorMessage(getErrorMessage(error, "Ошибка сохранения списков"))
             );
           }}
         />
       )}
       <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
+      <ConfirmDialog open={deleteSelectedOpen} onOpenChange={setDeleteSelectedOpen} title={`Удаление строк (${selectedRowIds.length})`} actionLabel="Удалить" onConfirm={handleDeleteSelected} />
+      <ConfirmDialog open={finishOpen} onOpenChange={setFinishOpen} title={`Закончить журнал "${title}"`} actionLabel="Закончить" onConfirm={handleCloseJournal} />
+      <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} onFileSelect={handleImportFile} />
+      <AddMultipleRowsDialog open={bulkAddOpen} onOpenChange={setBulkAddOpen} onSubmit={addMultipleRows} />
       <IikoDialog open={iikoOpen} onOpenChange={setIikoOpen} />
     </div>
   );

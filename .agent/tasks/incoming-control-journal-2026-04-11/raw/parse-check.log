@@ -1,0 +1,4 @@
+PASS src/app/(dashboard)/journals/[code]/page.tsx
+PASS src/components/journals/incoming-control-documents-client.tsx
+PASS src/lib/acceptance-document.ts
+PASS src/components/journals/acceptance-document-client.tsx

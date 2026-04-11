@@ -1,0 +1,36 @@
+{
+  "task_id": "incoming-control-journal-2026-04-11",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "id": "tsc",
+      "command": "npx tsc --noEmit",
+      "status": "PASS",
+      "log": ".agent/tasks/incoming-control-journal-2026-04-11/raw/tsc.log"
+    },
+    {
+      "id": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "log": ".agent/tasks/incoming-control-journal-2026-04-11/raw/build.log"
+    }
+  ],
+  "acceptance_criteria": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS",
+    "AC5": "PASS",
+    "AC6": "PASS",
+    "AC7": "PASS",
+    "AC8": "PASS",
+    "AC9": "PASS",
+    "AC10": "PASS"
+  },
+  "artifacts": {
+    "spec": ".agent/tasks/incoming-control-journal-2026-04-11/spec.md",
+    "evidence": ".agent/tasks/incoming-control-journal-2026-04-11/evidence.md",
+    "problems": ".agent/tasks/incoming-control-journal-2026-04-11/problems.md",
+    "raw_dir": ".agent/tasks/incoming-control-journal-2026-04-11/raw"
+  }
+}
