@@ -35,6 +35,12 @@
 - `npx tsx prisma/seed-admin.ts`
   - Result: `FAIL`
   - Notes: local PostgreSQL connection refused on `localhost:5432`.
+- Remote runtime probe via SSH
+  - Result: `PARTIAL`
+  - Notes:
+    - process `haccp-online` is `online` under `pm2`
+    - `curl -I http://127.0.0.1:3002` returns `307` redirect to `/login`
+    - `.build-sha` / `.build-time` are empty on the remote app, so deployed revision cannot be matched to local git state
 
 ## Acceptance criteria status
 - `AC1` Visual parity:
@@ -53,7 +59,7 @@
   - `PARTIAL`
   - Fresh targeted lint was run and recorded.
   - Full typecheck failed for unrelated repository issues.
-  - Push/deploy verification not yet recorded in this artifact.
+  - Remote process and HTTP checks were captured, but deployed revision could not be tied back to a specific git SHA.
 
 ## Current verdict
 - Current state is improved but not proven `PASS`.

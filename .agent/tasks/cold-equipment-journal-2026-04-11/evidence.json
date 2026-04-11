@@ -14,6 +14,11 @@
       "command": "npx tsx prisma/seed-admin.ts",
       "status": "FAIL",
       "reason": "ECONNREFUSED to local PostgreSQL on localhost:5432."
+    },
+    {
+      "command": "remote ssh probe: pm2 status + curl -I http://127.0.0.1:3002",
+      "status": "PARTIAL",
+      "reason": "Remote app is online and responds with login redirect, but build revision metadata is empty so deployed commit cannot be confirmed."
     }
   ],
   "acceptanceCriteria": {
@@ -31,12 +36,12 @@
     },
     "AC4": {
       "status": "PARTIAL",
-      "reason": "Fresh targeted lint evidence exists; push/deploy verification is not yet recorded and full repo typecheck still fails."
+      "reason": "Fresh targeted lint evidence exists; remote app health was probed, but deployed revision cannot be confirmed and full repo typecheck still fails."
     }
   },
   "blockers": [
     "Local PostgreSQL is unavailable.",
     "Repository has unrelated existing TypeScript failures outside this task.",
-    "Remote deploy verification has not yet been captured."
+    "Remote runtime is reachable, but deployed git/build revision cannot be confirmed from current server metadata."
   ]
 }
