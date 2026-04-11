@@ -375,7 +375,6 @@ export default async function JournalDocumentPage({
       />
     );
   }
-        documentDateKey={toDateKey(document.dateFrom)}
 
   if (document.template.code === PERISHABLE_REJECTION_TEMPLATE_CODE) {
     return (
