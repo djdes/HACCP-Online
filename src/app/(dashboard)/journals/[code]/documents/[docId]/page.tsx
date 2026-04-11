@@ -371,6 +371,7 @@ export default async function JournalDocumentPage({
         config={medConfig}
         employees={enrichedEmployees}
         initialRows={medRows}
+        documentDateKey={toDateKey(document.dateFrom)}
       />
     );
   }
