@@ -1,55 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, Plus, Settings2, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, Pencil, Plus, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  ACTIVITY_LABELS,
+  applyCleaningAutoFillToConfig,
+  CLEANING_DOCUMENT_TITLE,
   CLEANING_PAGE_TITLE,
+  createCleaningResponsibleRow,
+  createCleaningRoomRow,
+  deleteCleaningResponsibleRow,
+  deleteCleaningRoomRow,
+  getCleaningPeriodLabel,
   normalizeCleaningDocumentConfig,
-  normalizeCleaningEntryData,
-  type CleaningActivityEntry,
-  type CleaningActivityType,
+  setCleaningMatrixValue,
+  toggleCleaningMatrixValue,
   type CleaningDocumentConfig,
-  type CleaningEntryData,
-  type CleaningResponsiblePerson,
+  type CleaningResponsible,
+  type CleaningResponsibleKind,
+  type CleaningRoomItem,
 } from "@/lib/cleaning-document";
-import { formatMonthLabel } from "@/lib/hygiene-document";
+import { buildDateKeys, isWeekend } from "@/lib/hygiene-document";
+import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
 
-/* ─── Types ─── */
-
-type UserItem = {
-  id: string;
-  name: string;
-  role: string;
-};
-
-type EntryItem = {
-  id: string;
-  employeeId: string;
-  date: string;
-  data: CleaningEntryData;
-};
-
+type UserItem = { id: string; name: string; role: string };
+type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
 type Props = {
   documentId: string;
   title: string;
@@ -64,1413 +49,254 @@ type Props = {
   config: CleaningDocumentConfig;
   initialEntries: EntryItem[];
 };
+type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
+type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string; generalScope: string };
+type ResponsibleFormState = { id: string | null; kind: CleaningResponsibleKind; title: string; userId: string };
+type RowDescriptor =
+  | { id: string; kind: "room"; room: CleaningRoomItem }
+  | { id: string; kind: "cleaning"; responsible: CleaningResponsible }
+  | { id: string; kind: "control"; responsible: CleaningResponsible };
 
-/* ─── Helpers ─── */
+const parseScope = (value: string) => value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+const primaryUserId = (users: UserItem[], roleLabel: string) => getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
+const userNameById = (users: UserItem[], userId: string) => users.find((user) => user.id === userId)?.name || "";
+const buildSettingsState = (config: CleaningDocumentConfig): SettingsState => ({
+  title: config.documentTitle || config.title || CLEANING_DOCUMENT_TITLE,
+  cleaningRole: config.cleaningResponsibles[0]?.title || "",
+  cleaningUserId: config.cleaningResponsibles[0]?.userId || "",
+  controlRole: config.controlResponsibles[0]?.title || "",
+  controlUserId: config.controlResponsibles[0]?.userId || "",
+});
+const buildRoomState = (room?: CleaningRoomItem): RoomFormState => ({
+  id: room?.id || null,
+  name: room?.name || "",
+  detergent: room?.detergent || "",
+  currentScope: room?.currentScope.join("\n") || "",
+  generalScope: room?.generalScope.join("\n") || "",
+});
+const buildResponsibleState = (kind: CleaningResponsibleKind, responsible?: CleaningResponsible): ResponsibleFormState => ({
+  id: responsible?.id || null,
+  kind,
+  title: responsible?.title || "",
+  userId: responsible?.userId || "",
+});
 
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
-
-function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function formatRuDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-function getActivityTypes(ventilationEnabled: boolean): CleaningActivityType[] {
-  return ventilationEnabled
-    ? ["disinfection", "ventilation", "wetCleaning"]
-    : ["disinfection", "wetCleaning"];
-}
-
-function getRoleName(role: string): string {
-  switch (role) {
-    case "owner": return "Руководитель";
-    case "technologist": return "Управляющий";
-    case "operator": return "Повар";
-    default: return "Сотрудник";
-  }
-}
-
-function parseTime(t: string): { h: string; m: string } {
-  const parts = t.split(":");
-  return { h: parts[0] || "12", m: parts[1] || "00" };
-}
-
-/* ─── Settings Dialog ─── */
-
-function SettingsDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  dateFrom: string;
-  ventilationEnabled: boolean;
-  responsibleTitle: string;
-  responsibleUserId: string;
-  users: UserItem[];
-  onSave: (data: {
-    title: string;
-    dateFrom: string;
-    ventilationEnabled: boolean;
-    responsibleTitle: string;
-    responsibleUserId: string;
-  }) => Promise<void>;
-}) {
+function ConfirmDialog(props: { open: boolean; title: string; submitLabel: string; onOpenChange: (open: boolean) => void; onSubmit: () => Promise<void> }) {
   const [submitting, setSubmitting] = useState(false);
-  const [docTitle, setDocTitle] = useState(props.title);
-  const [dateFrom, setDateFrom] = useState(props.dateFrom);
-  const [ventilationEnabled, setVentilationEnabled] = useState(props.ventilationEnabled);
-  const [responsibleTitle, setResponsibleTitle] = useState(props.responsibleTitle);
-  const [responsibleUserId, setResponsibleUserId] = useState(props.responsibleUserId);
-
-  useEffect(() => {
-    if (!props.open) return;
-    setDocTitle(props.title);
-    setDateFrom(props.dateFrom);
-    setVentilationEnabled(props.ventilationEnabled);
-    setResponsibleTitle(props.responsibleTitle);
-    setResponsibleUserId(props.responsibleUserId);
-  }, [props.open, props.title, props.dateFrom, props.ventilationEnabled, props.responsibleTitle, props.responsibleUserId]);
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[560px] overflow-y-auto rounded-[24px] border-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Настройки документа
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
+      <DialogContent className="max-w-[720px] rounded-[28px] border-0 p-0">
+        <DialogHeader className="border-b px-10 py-8">
+          <div className="flex items-start justify-between gap-6">
+            <DialogTitle className="text-[24px] font-semibold text-black">{props.title}</DialogTitle>
+            <button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button>
+          </div>
         </DialogHeader>
-
-        <div className="space-y-5 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Название документа</Label>
-            <Input
-              value={docTitle}
-              onChange={(e) => setDocTitle(e.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата начала</Label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Switch
-              checked={ventilationEnabled}
-              onCheckedChange={setVentilationEnabled}
-              className="data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
-            />
-            <span className="text-[16px] font-medium text-black">Включить проветривание</span>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Руководитель">Руководитель</SelectItem>
-                <SelectItem value="Управляющий">Управляющий</SelectItem>
-                <SelectItem value="Повар">Повар</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {props.users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSave({
-                    title: docTitle.trim() || CLEANING_PAGE_TITLE,
-                    dateFrom,
-                    ventilationEnabled,
-                    responsibleTitle,
-                    responsibleUserId,
-                  });
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
-              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
-            >
-              {submitting ? "Сохранение..." : "Сохранить"}
-            </Button>
-          </div>
+        <div className="flex justify-end px-10 py-8">
+          <Button type="button" disabled={submitting} onClick={async () => { setSubmitting(true); try { await props.onSubmit(); props.onOpenChange(false); } finally { setSubmitting(false); } }} className="h-14 rounded-[18px] bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]">{submitting ? "Сохранение..." : props.submitLabel}</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-/* ─── Add Row Dialog ─── */
-
-function AddRowDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  users: UserItem[];
-  defaultUserId: string;
-  onAdd: (data: { date: string; responsibleUserId: string }) => void;
-}) {
-  const [date, setDate] = useState(toIsoDate(new Date()));
-  const [userId, setUserId] = useState(props.defaultUserId);
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[560px] overflow-y-auto rounded-[24px] border-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Добавление новой строки
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
-        </DialogHeader>
-
-        <div className="space-y-5 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата</Label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Ответственное лицо</Label>
-            <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {props.users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              onClick={() => {
-                props.onAdd({ date, responsibleUserId: userId });
-                props.onOpenChange(false);
-              }}
-              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
-            >
-              Добавить
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ─── Add Responsible Person Dialog ─── */
-
-function AddResponsibleDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  users: UserItem[];
-  existingUserIds: Set<string>;
-  onAdd: (person: CleaningResponsiblePerson) => void;
-}) {
-  const [userId, setUserId] = useState("");
-  const [title, setTitle] = useState("Повар");
-
-  const availableUsers = props.users.filter((u) => !props.existingUserIds.has(u.id));
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Добавление ответственного лица
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
-        </DialogHeader>
-
-        <div className="space-y-5 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность</Label>
-            <Select value={title} onValueChange={setTitle}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Руководитель">Руководитель</SelectItem>
-                <SelectItem value="Управляющий">Управляющий</SelectItem>
-                <SelectItem value="Шеф-повар">Шеф-повар</SelectItem>
-                <SelectItem value="Повар">Повар</SelectItem>
-                <SelectItem value="Официант">Официант</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
-            <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue placeholder="- Выберите сотрудника -" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              disabled={!userId}
-              onClick={() => {
-                if (userId) {
-                  props.onAdd({ userId, title });
-                  props.onOpenChange(false);
-                }
-              }}
-              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
-            >
-              Добавить
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ─── Edit Responsible Person Dialog ─── */
-
-function EditResponsibleDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  person: CleaningResponsiblePerson | null;
-  users: UserItem[];
-  onSave: (person: CleaningResponsiblePerson) => void;
-  onDelete: (userId: string) => void;
-}) {
-  const [userId, setUserId] = useState(props.person?.userId || "");
-  const [title, setTitle] = useState(props.person?.title || "");
-  const [wantDelete, setWantDelete] = useState(false);
-
-  if (!props.person) return null;
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Редактирование ответственного лица
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
-        </DialogHeader>
-
-        <div className="space-y-5 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность</Label>
-            <Select value={title} onValueChange={setTitle}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Руководитель">Руководитель</SelectItem>
-                <SelectItem value="Управляющий">Управляющий</SelectItem>
-                <SelectItem value="Шеф-повар">Шеф-повар</SelectItem>
-                <SelectItem value="Повар">Повар</SelectItem>
-                <SelectItem value="Официант">Официант</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
-            <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {props.users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id="delete-responsible"
-              checked={wantDelete}
-              onCheckedChange={(v) => setWantDelete(v === true)}
-            />
-            <Label htmlFor="delete-responsible" className="text-[16px] text-[#ff3b30]">
-              Удалить ответственного
-            </Label>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-1">
-            {wantDelete ? (
-              <Button
-                type="button"
-                onClick={() => {
-                  props.onDelete(props.person!.userId);
-                  props.onOpenChange(false);
-                }}
-                className="h-14 rounded-xl bg-[#ff3b30] px-7 text-[20px] font-medium text-white hover:bg-[#e0352c]"
-              >
-                Удалить
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={() => {
-                  props.onSave({ userId, title });
-                  props.onOpenChange(false);
-                }}
-                className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
-              >
-                Сохранить
-              </Button>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ─── Add Periodicity Dialog ─── */
-
-function AddPeriodicityDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (data: {
-    surfaces: string;
-    rooms: string;
-    frequency: number;
-    note: string;
-  }) => void;
-}) {
-  const [surfaces, setSurfaces] = useState("");
-  const [rooms, setRooms] = useState("");
-  const [frequency, setFrequency] = useState("3");
-  const [note, setNote] = useState("");
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Добавление новой периодичности
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
-        </DialogHeader>
-
-        <div className="space-y-5 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Поверхности</Label>
-            <Textarea
-              value={surfaces}
-              onChange={(e) => setSurfaces(e.target.value)}
-              className="min-h-[80px] rounded-2xl border-[#dfe1ec] px-4 py-3 text-[16px]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Помещения</Label>
-            <Textarea
-              value={rooms}
-              onChange={(e) => setRooms(e.target.value)}
-              className="min-h-[80px] rounded-2xl border-[#dfe1ec] px-4 py-3 text-[16px]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Частота (раз в день)</Label>
-            <Select value={frequency} onValueChange={setFrequency}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Примечание</Label>
-            <Input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
-              placeholder="*(каждые 2-4 часа)"
-            />
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              onClick={() => {
-                props.onSave({
-                  surfaces: surfaces.trim(),
-                  rooms: rooms.trim(),
-                  frequency: parseInt(frequency, 10) || 3,
-                  note: note.trim(),
-                });
-                props.onOpenChange(false);
-              }}
-              className="h-14 rounded-xl bg-[#5863f8] px-7 text-[20px] font-medium text-white hover:bg-[#4b57f3]"
-            >
-              Добавить
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ─── Schedule Row ─── */
-
-function ScheduleActivityRow(props: {
-  label: string;
-  times: string[];
-  responsibleUserId: string | null;
-  users: UserItem[];
-  disabled: boolean;
-  onTimesChange: (times: string[]) => void;
-  onResponsibleChange: (userId: string | null) => void;
-}) {
-  const addTimeSlot = () => {
-    props.onTimesChange([...props.times, "12:00"]);
-  };
-
-  const removeTimeSlot = (index: number) => {
-    props.onTimesChange(props.times.filter((_, i) => i !== index));
-  };
-
-  const updateTime = (index: number, value: string) => {
-    const next = [...props.times];
-    next[index] = value;
-    props.onTimesChange(next);
-  };
-
-  return (
-    <div className="space-y-3 rounded-2xl bg-white px-5 py-4">
-      <div className="text-[16px] font-semibold text-black">{props.label}</div>
-
-      {props.times.map((time, idx) => {
-        const { h, m } = parseTime(time);
-        return (
-          <div key={idx} className="flex items-center gap-2">
-            <div className="flex-1">
-              <div className="flex gap-2">
-                <Select
-                  value={h}
-                  onValueChange={(v) => updateTime(idx, `${v}:${m}`)}
-                  disabled={props.disabled}
-                >
-                  <SelectTrigger className="h-11 w-[80px] rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3 text-[15px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {HOURS.map((hr) => (
-                      <SelectItem key={hr} value={hr}>{hr}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="flex items-center text-[16px] text-[#6f7282]">:</span>
-                <Select
-                  value={m}
-                  onValueChange={(v) => updateTime(idx, `${h}:${v}`)}
-                  disabled={props.disabled}
-                >
-                  <SelectTrigger className="h-11 w-[80px] rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3 text-[15px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {MINUTES.map((mn) => (
-                      <SelectItem key={mn} value={mn}>{mn}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {props.times.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeTimeSlot(idx)}
-                disabled={props.disabled}
-                className="rounded-md p-1 text-[#ff3b30] hover:bg-[#fff3f2]"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={addTimeSlot}
-        disabled={props.disabled}
-        className="text-[14px] font-medium text-[#5b66ff] hover:underline"
-      >
-        + Добавить время
-      </button>
-
-      <div className="space-y-1">
-        <Label className="text-[14px] text-[#6f7282]">ФИО отв. лица</Label>
-        <Select
-          value={props.responsibleUserId || "__none__"}
-          onValueChange={(v) => props.onResponsibleChange(v === "__none__" ? null : v)}
-          disabled={props.disabled}
-        >
-          <SelectTrigger className="h-11 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3 text-[15px]">
-            <SelectValue placeholder="- Не выбрано -" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">- Не выбрано -</SelectItem>
-            {props.users.map((u) => (
-              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Print Header ─── */
-
-function PrintHeader(props: {
-  organizationName: string;
-  dateFrom: string;
-  dateTo: string;
-  config: CleaningDocumentConfig;
-  users: UserItem[];
-  onAddResponsible: () => void;
-  onEditResponsible: (person: CleaningResponsiblePerson) => void;
-}) {
-  const { config, users } = props;
-  const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]));
-
-  return (
-    <div className="space-y-4">
-      {/* Organization header */}
-      <table className="w-full border-collapse text-[13px]">
-        <tbody>
-          <tr>
-            <td rowSpan={2} className="w-[220px] border border-black px-4 py-3 text-center text-[15px] font-semibold">
-              {props.organizationName}
-            </td>
-            <td className="border border-black px-4 py-2 text-center uppercase">
-              СИСТЕМА ХАССП
-            </td>
-            <td rowSpan={2} className="w-[160px] border border-black px-4 py-3 text-center text-[13px]">
-              <div>Дата: {formatRuDate(props.dateFrom)} - {formatRuDate(props.dateTo)}</div>
-              <div className="mt-1">СТР. 1 ИЗ 1</div>
-            </td>
-          </tr>
-          <tr>
-            <td className="border border-black px-4 py-2 text-center text-[13px] italic uppercase">
-              ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Procedure info table */}
-      <table className="w-full border-collapse text-[12px]">
-        <thead>
-          <tr className="bg-[#f0f0f0]">
-            <th className="border border-[#ccc] px-3 py-2 text-left font-semibold">Процедура</th>
-            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Периодичность</th>
-            <th className="border border-[#ccc] px-3 py-2 text-center font-semibold">Ответственные лица</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td className="border border-[#ccc] px-3 py-2 align-top">
-              <div className="space-y-1">
-                <div><strong>Поверхности:</strong> {config.procedure.surfaces}</div>
-                {config.ventilationEnabled && (
-                  <div><strong>Проветривание:</strong> {config.procedure.ventilationRooms}</div>
-                )}
-                <div><strong>Влажная уборка:</strong> {config.procedure.wetCleaningRooms}</div>
-                <div><strong>Моющее средство:</strong> {config.procedure.detergent}</div>
-              </div>
-            </td>
-            <td className="border border-[#ccc] px-3 py-2 align-top text-center">
-              <div className="space-y-1">
-                <div>Дезинфекция: {config.periodicity.disinfectionPerDay} раз(а) в день</div>
-                {config.ventilationEnabled && (
-                  <div>Проветривание: {config.periodicity.ventilationPerDay} раз(а) в день</div>
-                )}
-                <div>Влажная уборка: {config.periodicity.wetCleaningPerDay} раз(а) в день</div>
-                <div className="text-[11px] italic text-[#666]">*(каждые 2-4 часа)</div>
-              </div>
-            </td>
-            <td className="border border-[#ccc] px-3 py-2 align-top">
-              <div className="space-y-1">
-                {config.responsiblePersons.map((p) => {
-                  const name = userMap[p.userId] || "—";
-                  return (
-                    <div key={p.userId}>
-                      <button
-                        type="button"
-                        className="text-left hover:text-[#5b66ff] print:pointer-events-none"
-                        onClick={() => props.onEditResponsible(p)}
-                      >
-                        {p.title}: {name}
-                      </button>
-                    </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  className="text-[12px] font-medium text-[#5b66ff] hover:underline print:hidden"
-                  onClick={props.onAddResponsible}
-                >
-                  + Добавить ответственного
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Title */}
-      <div className="text-center text-[22px] font-bold uppercase">
-        {CLEANING_PAGE_TITLE}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Bulk Delete Bar ─── */
-
-function BulkDeleteBar(props: {
-  count: number;
-  onDelete: () => void;
-  onClear: () => void;
-}) {
-  if (props.count === 0) return null;
-
-  return (
-    <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-5 py-3">
-      <span className="text-[16px] text-[#6f7282]">Выбрано: {props.count}</span>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={props.onDelete}
-        className="h-10 rounded-xl border-[#ffd7d3] px-5 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
-      >
-        <Trash2 className="mr-2 size-4" />
-        Удалить
-      </Button>
-      <button
-        type="button"
-        onClick={props.onClear}
-        className="text-[14px] text-[#6f7282] hover:underline"
-      >
-        Сбросить
-      </button>
-    </div>
-  );
-}
-
-/* ─── Main Component ─── */
 
 export function CleaningDocumentClient(props: Props) {
   const router = useRouter();
-  const {
-    documentId,
-    title,
-    organizationName,
-    status,
-    dateFrom,
-    dateTo,
-    users,
-  } = props;
-
-  const [config, setConfig] = useState<CleaningDocumentConfig>(() =>
-    normalizeCleaningDocumentConfig(props.config)
-  );
-  const [entries, setEntries] = useState<EntryItem[]>(() =>
-    props.initialEntries.map((e) => ({
-      ...e,
-      data: normalizeCleaningEntryData(e.data),
-    }))
-  );
-  const [autoFillEnabled, setAutoFillEnabled] = useState(props.autoFill);
-  const [autoFillSwitching, setAutoFillSwitching] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
-  const [savingConfig, setSavingConfig] = useState(false);
-
-  // Dialog states
+  const searchParams = useSearchParams();
+  const printMode = searchParams.get("print") === "1";
+  const normalized = useMemo(() => normalizeCleaningDocumentConfig(props.config, { users: props.users }), [props.config, props.users]);
+  const [config, setConfig] = useState(normalized);
+  const [saving, setSaving] = useState(false);
+  const [selection, setSelection] = useState<string[]>([]);
+  const [roomDialog, setRoomDialog] = useState<RoomFormState | null>(null);
+  const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addRowOpen, setAddRowOpen] = useState(false);
-  const [addResponsibleOpen, setAddResponsibleOpen] = useState(false);
-  const [editingResponsible, setEditingResponsible] = useState<CleaningResponsiblePerson | null>(null);
-  const [addPeriodicityOpen, setAddPeriodicityOpen] = useState(false);
+  const [settingsState, setSettingsState] = useState(buildSettingsState(normalized));
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const roleOptions = useMemo(() => getDistinctRoleLabels(props.users), [props.users]);
+  const dayKeys = useMemo(() => buildDateKeys(props.dateFrom, props.dateTo), [props.dateFrom, props.dateTo]);
+  const rows = useMemo<RowDescriptor[]>(() => [
+    ...config.rooms.map((room) => ({ id: room.id, kind: "room" as const, room })),
+    ...config.cleaningResponsibles.map((responsible) => ({ id: responsible.id, kind: "cleaning" as const, responsible })),
+    ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
+  ], [config]);
 
-  const userMap = useMemo(
-    () => Object.fromEntries(users.map((u) => [u.id, u.name])),
-    [users]
-  );
+  useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
+  useEffect(() => { if (!printMode) return; const timeout = window.setTimeout(() => window.print(), 300); return () => window.clearTimeout(timeout); }, [printMode]);
 
-  const fallbackUserId = props.responsibleUserId || users[0]?.id || "";
-  const monthLabel = useMemo(() => formatMonthLabel(dateFrom, dateTo), [dateFrom, dateTo]);
-
-  const activityTypes = useMemo(
-    () => getActivityTypes(config.ventilationEnabled),
-    [config.ventilationEnabled]
-  );
-
-  // Sorted entries by date
-  const sortedEntries = useMemo(
-    () => [...entries].sort((a, b) => a.date.localeCompare(b.date)),
-    [entries]
-  );
-
-  const allSelected = sortedEntries.length > 0 && selectedEntryIds.size === sortedEntries.length;
-
-  // Existing responsible user ids
-  const existingResponsibleUserIds = useMemo(
-    () => new Set(config.responsiblePersons.map((p) => p.userId)),
-    [config.responsiblePersons]
-  );
-
-  // Max time columns needed
-  const maxTimeCols = useMemo(() => {
-    let max = 0;
-    for (const entry of entries) {
-      for (const activity of entry.data.activities) {
-        if (activity.times.length > max) max = activity.times.length;
-      }
-    }
-    // Also check schedule
-    for (const type of activityTypes) {
-      const schedTimes = config.schedule[type].times.length;
-      if (schedTimes > max) max = schedTimes;
-    }
-    return Math.max(max, 1);
-  }, [entries, config.schedule, activityTypes]);
-
-  /* ─── API helpers ─── */
-
-  const persistDocument = useCallback(
-    async (body: Record<string, unknown>) => {
-      const res = await fetch(`/api/journal-documents/${documentId}`, {
+  async function patchDocument(nextConfig: CleaningDocumentConfig, overrides?: Record<string, unknown>) {
+    setSaving(true);
+    try {
+      const payload = normalizeCleaningDocumentConfig(nextConfig, { users: props.users });
+      const response = await fetch(`/api/journal-documents/${props.documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const result = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(result?.error || "Ошибка обновления документа");
-      return result;
-    },
-    [documentId]
-  );
-
-  const saveConfig = useCallback(
-    async (nextConfig: CleaningDocumentConfig, extra: Record<string, unknown> = {}) => {
-      const prev = config;
-      setConfig(nextConfig);
-      setSavingConfig(true);
-      try {
-        await persistDocument({ config: nextConfig, ...extra });
-      } catch (err) {
-        setConfig(prev);
-        throw err;
-      } finally {
-        setSavingConfig(false);
-      }
-    },
-    [config, persistDocument]
-  );
-
-  /* ─── Handlers ─── */
-
-  async function handleAutoFillToggle(value: boolean) {
-    setAutoFillEnabled(value);
-    setAutoFillSwitching(true);
-    try {
-      await persistDocument({ autoFill: value });
-      if (value) {
-        const res = await fetch(`/api/journal-documents/${documentId}/cleaning`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "apply_auto_fill" }),
-        });
-        const result = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(result?.error || "Ошибка автозаполнения");
-      }
-      router.refresh();
-    } catch (err) {
-      setAutoFillEnabled(!value);
-      window.alert(err instanceof Error ? err.message : "Ошибка");
-    } finally {
-      setAutoFillSwitching(false);
-    }
-  }
-
-  async function handleScheduleChange(
-    type: CleaningActivityType,
-    field: "times" | "responsibleUserId",
-    value: string[] | string | null
-  ) {
-    const nextSchedule = { ...config.schedule };
-    nextSchedule[type] = { ...nextSchedule[type], [field]: value };
-    const nextConfig: CleaningDocumentConfig = { ...config, schedule: nextSchedule };
-    try {
-      await saveConfig(nextConfig);
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Ошибка сохранения");
-    }
-  }
-
-  async function handleSkipWeekendsChange(value: boolean) {
-    try {
-      await saveConfig({ ...config, skipWeekends: value });
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
-    }
-  }
-
-  async function handleAddEntry(data: { date: string; responsibleUserId: string }) {
-    const userName = userMap[data.responsibleUserId] || "";
-    const activities: CleaningActivityEntry[] = activityTypes.map((type) => ({
-      type,
-      times: [...config.schedule[type].times],
-      responsibleName: userName,
-    }));
-
-    try {
-      const res = await fetch(`/api/journal-documents/${documentId}/entries`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId: "system",
-          date: data.date,
-          data: { activities },
+          title: payload.documentTitle || payload.title,
+          config: payload,
+          responsibleTitle: payload.controlResponsibles[0]?.title || props.responsibleTitle || null,
+          responsibleUserId: payload.controlResponsibles[0]?.userId || props.responsibleUserId || null,
+          autoFill: payload.autoFill.enabled,
+          ...overrides,
         }),
       });
-      const result = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(result?.error || "Ошибка добавления");
-
-      const newEntry: EntryItem = {
-        id: result?.entry?.id || `temp:${data.date}`,
-        employeeId: "system",
-        date: data.date,
-        data: { activities },
-      };
-      setEntries((curr) => {
-        const filtered = curr.filter((e) => e.date !== data.date);
-        return [...filtered, newEntry];
-      });
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
+      if (!response.ok) throw new Error("save failed");
+      setConfig(payload);
+      setSettingsState(buildSettingsState(payload));
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function handleDeleteSelected() {
-    if (selectedEntryIds.size === 0) return;
-    const confirmed = window.confirm(`Удалить выбранные строки (${selectedEntryIds.size})?`);
-    if (!confirmed) return;
+  async function updateSettings(patch: Partial<SettingsState>) {
+    const nextState = { ...settingsState, ...patch };
+    setSettingsState(nextState);
+    const nextConfig = normalizeCleaningDocumentConfig({
+      ...config,
+      title: nextState.title.trim() || CLEANING_DOCUMENT_TITLE,
+      documentTitle: nextState.title.trim() || CLEANING_DOCUMENT_TITLE,
+      cleaningResponsibles: config.cleaningResponsibles.map((item, index) => index === 0 ? { ...item, title: nextState.cleaningRole, userId: nextState.cleaningUserId, userName: userNameById(props.users, nextState.cleaningUserId) } : item),
+      controlResponsibles: config.controlResponsibles.map((item, index) => index === 0 ? { ...item, title: nextState.controlRole, userId: nextState.controlUserId, userName: userNameById(props.users, nextState.controlUserId) } : item),
+    }, { users: props.users });
+    await patchDocument(nextConfig);
+  }
 
-    const ids = Array.from(selectedEntryIds);
-    try {
-      const res = await fetch(`/api/journal-documents/${documentId}/entries`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) {
-        const result = await res.json().catch(() => null);
-        throw new Error(result?.error || "Ошибка удаления");
-      }
-      setEntries((curr) => curr.filter((e) => !selectedEntryIds.has(e.id)));
-      setSelectedEntryIds(new Set());
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
+  async function toggleAutoFill(checked: boolean) {
+    const baseConfig = normalizeCleaningDocumentConfig({
+      ...config,
+      settings: { ...config.settings, autoFillEnabled: checked },
+      autoFill: { ...config.autoFill, enabled: checked },
+    }, { users: props.users });
+    const nextConfig = checked ? applyCleaningAutoFillToConfig({ config: baseConfig, dateFrom: props.dateFrom, dateTo: props.dateTo }) : baseConfig;
+    await patchDocument(nextConfig, { autoFill: checked });
+  }
+
+  async function toggleSkipWeekends(checked: boolean) {
+    const nextConfig = normalizeCleaningDocumentConfig({
+      ...config,
+      settings: { ...config.settings, skipWeekends: checked },
+      autoFill: { ...config.autoFill, skipWeekends: checked },
+      skipWeekends: checked,
+    }, { users: props.users });
+    await patchDocument(nextConfig);
+  }
+
+  async function updateCell(row: RowDescriptor, dateKey: string) {
+    if (props.status !== "active") return;
+    const currentValue = config.matrix[row.id]?.[dateKey] || "";
+    const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
+    await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
+  }
+
+  async function deleteSelectedRows() {
+    let nextConfig = config;
+    for (const rowId of selection) {
+      if (nextConfig.rooms.some((item) => item.id === rowId)) nextConfig = deleteCleaningRoomRow(nextConfig, rowId);
+      else if (nextConfig.cleaningResponsibles.some((item) => item.id === rowId)) nextConfig = deleteCleaningResponsibleRow(nextConfig, "cleaning", rowId);
+      else if (nextConfig.controlResponsibles.some((item) => item.id === rowId)) nextConfig = deleteCleaningResponsibleRow(nextConfig, "control", rowId);
     }
+    setSelection([]);
+    await patchDocument(nextConfig);
   }
 
-  async function handleSettingsSave(data: {
-    title: string;
-    dateFrom: string;
-    ventilationEnabled: boolean;
-    responsibleTitle: string;
-    responsibleUserId: string;
-  }) {
-    const nextConfig: CleaningDocumentConfig = {
+  async function submitRoom() {
+    if (!roomDialog) return;
+    const room = createCleaningRoomRow({ id: roomDialog.id || undefined, name: roomDialog.name, detergent: roomDialog.detergent, currentScope: parseScope(roomDialog.currentScope), generalScope: parseScope(roomDialog.generalScope) });
+    const nextConfig = normalizeCleaningDocumentConfig({
       ...config,
-      ventilationEnabled: data.ventilationEnabled,
-    };
-    await persistDocument({
-      title: data.title,
-      dateFrom: data.dateFrom,
-      config: nextConfig,
-      responsibleTitle: data.responsibleTitle,
-      responsibleUserId: data.responsibleUserId,
-    });
-    setConfig(nextConfig);
-    router.refresh();
+      rooms: roomDialog.id ? config.rooms.map((item) => item.id === roomDialog.id ? room : item) : [...config.rooms, room],
+    }, { users: props.users });
+    setRoomDialog(null);
+    await patchDocument(nextConfig);
   }
 
-  function handleAddResponsible(person: CleaningResponsiblePerson) {
-    const nextConfig: CleaningDocumentConfig = {
+  async function submitResponsible() {
+    if (!responsibleDialog) return;
+    const responsible = createCleaningResponsibleRow({ kind: responsibleDialog.kind, title: responsibleDialog.title, userId: responsibleDialog.userId, userName: userNameById(props.users, responsibleDialog.userId) });
+    const key = responsibleDialog.kind === "cleaning" ? "cleaningResponsibles" : "controlResponsibles";
+    const currentItems = config[key];
+    const nextConfig = normalizeCleaningDocumentConfig({
       ...config,
-      responsiblePersons: [...config.responsiblePersons, person],
-    };
-    saveConfig(nextConfig).catch((err) => {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
-    });
+      [key]: responsibleDialog.id ? currentItems.map((item) => item.id === responsibleDialog.id ? { ...responsible, id: responsibleDialog.id } : item) : [...currentItems, responsible],
+    }, { users: props.users });
+    setResponsibleDialog(null);
+    await patchDocument(nextConfig);
   }
 
-  function handleEditResponsible(updated: CleaningResponsiblePerson) {
-    const nextConfig: CleaningDocumentConfig = {
-      ...config,
-      responsiblePersons: config.responsiblePersons.map((p) =>
-        p.userId === editingResponsible?.userId ? updated : p
-      ),
-    };
-    saveConfig(nextConfig).catch((err) => {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
-    });
-  }
-
-  function handleDeleteResponsible(userId: string) {
-    const nextConfig: CleaningDocumentConfig = {
-      ...config,
-      responsiblePersons: config.responsiblePersons.filter((p) => p.userId !== userId),
-    };
-    saveConfig(nextConfig).catch((err) => {
-      window.alert(err instanceof Error ? err.message : "Ошибка");
-    });
-  }
-
-  function toggleEntrySelection(id: string) {
-    setSelectedEntryIds((curr) => {
-      const next = new Set(curr);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (allSelected) {
-      setSelectedEntryIds(new Set());
-    } else {
-      setSelectedEntryIds(new Set(sortedEntries.map((e) => e.id)));
-    }
-  }
-
-  const documentTitle = title || CLEANING_PAGE_TITLE;
+  const cleaningUsers = getUsersForRoleLabel(props.users, settingsState.cleaningRole);
+  const controlUsers = getUsersForRoleLabel(props.users, settingsState.controlRole);
+  const responsibleUsers = responsibleDialog ? getUsersForRoleLabel(props.users, responsibleDialog.title) : [];
 
   return (
-    <div className="bg-white text-black">
-      <style jsx global>{`
-        @page {
-          size: A4 landscape;
-          margin: 10mm;
-        }
-
-        @media print {
-          html,
-          body {
-            background: #ffffff !important;
-          }
-
-          body {
-            margin: 0;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          .screen-only {
-            display: none !important;
-          }
-
-          .cleaning-sheet {
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          .cleaning-data-table th,
-          .cleaning-data-table td {
-            font-size: 10px !important;
-            line-height: 1.2 !important;
-            padding: 3px 4px !important;
-          }
-        }
-      `}</style>
-
-      <div className="cleaning-sheet mx-auto max-w-[1400px] px-8 py-6">
-        {/* ─── Screen toolbar ─── */}
-        <div className="screen-only mb-8 space-y-6">
-          {/* Breadcrumb */}
-          <div className="text-[14px] text-[#6f7282]">
-            {organizationName}
-            <span className="mx-2">/</span>
-            <span>{CLEANING_PAGE_TITLE}</span>
-            <span className="mx-2">/</span>
-            <span className="text-black">{documentTitle}</span>
-          </div>
-
-          {/* Title + settings */}
-          <div className="flex items-start justify-between gap-6">
-            <h1 className="text-[42px] font-semibold tracking-[-0.04em] text-black leading-tight">
-              {CLEANING_PAGE_TITLE}
-            </h1>
-
-            {status === "active" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-14 shrink-0 rounded-2xl border-[#eef0fb] px-6 text-[16px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
-              >
-                <Settings2 className="mr-2 size-5" />
-                Настройки журнала
-              </Button>
-            )}
-          </div>
-
-          {/* Auto-fill toggle */}
-          {status === "active" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Switch
-                  checked={autoFillEnabled}
-                  onCheckedChange={handleAutoFillToggle}
-                  disabled={autoFillSwitching}
-                  className="h-8 w-14 data-[state=checked]:bg-[#5b66ff] data-[state=unchecked]:bg-[#d6d9ee]"
-                />
-                <span className="text-[18px] font-medium text-black">
-                  Автоматически заполнять чек-лист
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setScheduleOpen((v) => !v)}
-                  className="ml-2 text-[#5b66ff]"
-                >
-                  {scheduleOpen ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
-                </button>
-              </div>
-
-              {/* Schedule panel */}
-              {scheduleOpen && (
-                <div className="rounded-[20px] bg-[#f3f4fe] px-6 py-5 space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {activityTypes.map((type) => (
-                      <ScheduleActivityRow
-                        key={type}
-                        label={ACTIVITY_LABELS[type]}
-                        times={config.schedule[type].times}
-                        responsibleUserId={config.schedule[type].responsibleUserId}
-                        users={users}
-                        disabled={savingConfig}
-                        onTimesChange={(times) => handleScheduleChange(type, "times", times)}
-                        onResponsibleChange={(userId) => handleScheduleChange(type, "responsibleUserId", userId)}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
-                    <Checkbox
-                      id="skip-weekends-cleaning"
-                      checked={config.skipWeekends}
-                      onCheckedChange={(v) => handleSkipWeekendsChange(v === true)}
-                      disabled={savingConfig}
-                    />
-                    <Label htmlFor="skip-weekends-cleaning" className="text-[16px] text-black">
-                      Не заполнять в выходные дни
-                    </Label>
-                  </div>
-                </div>
-              )}
+    <>
+      <div className="space-y-8">
+        {!printMode ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[15px] text-[#5f6477]">
+              <Link href="/dashboard">{props.organizationName}</Link><span>›</span><Link href="/journals/cleaning">{CLEANING_PAGE_TITLE}</Link><span>›</span><span className="text-black">{config.documentTitle || CLEANING_DOCUMENT_TITLE}</span>
             </div>
-          )}
+            <Button type="button" variant="outline" className="h-12 rounded-[16px] border-[#eef0fb] px-6 text-[18px] text-[#5863f8] hover:bg-[#f7f8ff]" onClick={() => setSettingsOpen(true)}>Настройки журнала</Button>
+          </div>
+        ) : null}
+
+        <div className="flex items-start justify-between gap-6">
+          <div><h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">{config.documentTitle || CLEANING_PAGE_TITLE}</h1><p className="mt-2 text-[18px] text-[#6d7285]">{getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</p></div>
+          {!printMode && saving ? <div className="text-[16px] text-[#6d7285]">Сохранение...</div> : null}
         </div>
 
-        {/* ─── Print header ─── */}
-        <PrintHeader
-          organizationName={organizationName}
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          config={config}
-          users={users}
-          onAddResponsible={() => setAddResponsibleOpen(true)}
-          onEditResponsible={(p) => setEditingResponsible(p)}
-        />
-
-        {/* ─── Data entry area ─── */}
-        <div className="mt-6 space-y-4">
-          {/* Add + Bulk delete bar */}
-          {status === "active" && (
-            <div className="screen-only flex items-center gap-4">
-              <Button
-                type="button"
-                onClick={() => setAddRowOpen(true)}
-                className="h-[52px] rounded-2xl bg-[#5b66ff] px-7 text-[16px] text-white hover:bg-[#4b57ff]"
-              >
-                <Plus className="mr-2 size-5" />
-                Добавить
-              </Button>
-
-              <BulkDeleteBar
-                count={selectedEntryIds.size}
-                onDelete={handleDeleteSelected}
-                onClear={() => setSelectedEntryIds(new Set())}
-              />
+        <section className="rounded-[24px] bg-[#f5f6ff] px-8 py-6">
+          <div className="grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-start">
+            <div className="flex items-center gap-4"><Switch checked={config.autoFill.enabled} onCheckedChange={toggleAutoFill} disabled={props.status !== "active" || saving} className="data-[state=checked]:bg-[#5863f8] data-[state=unchecked]:bg-[#d4d8ec]" /><span className="text-[20px] font-semibold text-black">Автоматически заполнять журнал</span></div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2"><Label>Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-14 rounded-[16px] border-[#d7dcec] bg-white text-[18px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-14 rounded-[16px] border-[#d7dcec] bg-white text-[18px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
             </div>
-          )}
-
-          {/* Data table */}
-          <div className="overflow-x-auto">
-            <table className="cleaning-data-table w-full border-collapse text-[13px]">
-              <thead>
-                <tr className="bg-[#f2f2f2]">
-                  <th className="w-[40px] border border-[#ccc] p-2 text-center screen-only">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleSelectAll}
-                      disabled={status !== "active" || sortedEntries.length === 0}
-                    />
-                  </th>
-                  <th className="w-[100px] border border-[#ccc] p-2 text-center font-semibold">
-                    Дата
-                  </th>
-                  <th className="w-[140px] border border-[#ccc] p-2 text-center font-semibold">
-                    Вид деятельности
-                  </th>
-                  {Array.from({ length: maxTimeCols }, (_, i) => (
-                    <th key={`time-${i}`} className="w-[80px] border border-[#ccc] p-2 text-center font-semibold">
-                      Время {i + 1}
-                    </th>
-                  ))}
-                  <th className="border border-[#ccc] p-2 text-center font-semibold">
-                    ФИО ответственного лица
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedEntries.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={3 + maxTimeCols + 1}
-                      className="border border-[#ccc] p-6 text-center text-[15px] text-[#6f7282]"
-                    >
-                      Нет записей. Нажмите &quot;Добавить&quot; для создания новой строки.
-                    </td>
-                  </tr>
-                ) : (
-                  sortedEntries.map((entry) => {
-                    const data = normalizeCleaningEntryData(entry.data);
-                    const displayActivities = activityTypes.map((type) => {
-                      const found = data.activities.find((a) => a.type === type);
-                      return found || { type, times: [], responsibleName: "" };
-                    });
-
-                    return displayActivities.map((activity, actIdx) => (
-                      <tr
-                        key={`${entry.id}:${activity.type}`}
-                        className={selectedEntryIds.has(entry.id) ? "bg-[#f0f1ff]" : ""}
-                      >
-                        {actIdx === 0 && (
-                          <>
-                            <td
-                              rowSpan={displayActivities.length}
-                              className="border border-[#ccc] p-2 text-center align-middle screen-only"
-                            >
-                              {status === "active" && (
-                                <Checkbox
-                                  checked={selectedEntryIds.has(entry.id)}
-                                  onCheckedChange={() => toggleEntrySelection(entry.id)}
-                                />
-                              )}
-                            </td>
-                            <td
-                              rowSpan={displayActivities.length}
-                              className="border border-[#ccc] p-2 text-center align-middle font-medium"
-                            >
-                              {formatRuDate(entry.date)}
-                            </td>
-                          </>
-                        )}
-                        <td className="border border-[#ccc] p-2 font-medium">
-                          {ACTIVITY_LABELS[activity.type]}
-                        </td>
-                        {Array.from({ length: maxTimeCols }, (_, i) => (
-                          <td key={i} className="border border-[#ccc] p-2 text-center">
-                            {activity.times[i] || ""}
-                          </td>
-                        ))}
-                        <td className="border border-[#ccc] p-2">
-                          {activity.responsibleName}
-                        </td>
-                      </tr>
-                    ));
-                  })
-                )}
-              </tbody>
-            </table>
+            <div className="flex items-center gap-3"><Checkbox checked={config.autoFill.skipWeekends} onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))} disabled={props.status !== "active" || saving} className="size-7 rounded-[10px]" /><span className="text-[18px] text-black">Не заполнять в выходные дни</span></div>
           </div>
-        </div>
+        </section>
+
+        {!printMode ? (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button className="h-14 rounded-[18px] bg-[#5863f8] px-7 text-[22px] text-white hover:bg-[#4756f6]"><Plus className="size-6" />Добавить<ChevronDown className="size-5" /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[340px] rounded-[24px] border-0 p-3 shadow-xl">
+                  <DropdownMenuItem className="h-14 rounded-[18px] text-[18px]" onSelect={() => setRoomDialog(buildRoomState())}><Plus className="mr-3 size-5 text-[#5863f8]" />Добавить помещение</DropdownMenuItem>
+                  <DropdownMenuItem className="h-14 rounded-[18px] text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за уборку</DropdownMenuItem>
+                  <DropdownMenuItem className="h-14 rounded-[18px] text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за контроль</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selection.length > 0 ? <Button type="button" variant="outline" className="h-14 rounded-[18px] border-[#ffd6d3] bg-[#fff6f5] px-6 text-[18px] text-[#ff4d3d]" onClick={() => setDeleteOpen(true)}><Trash2 className="size-5" />Удалить</Button> : null}
+            </div>
+            {selection.length > 0 ? <div className="text-[18px] text-[#5863f8]">Выбрано: {selection.length}</div> : null}
+          </div>
+        ) : null}
+
+        <div className="overflow-x-auto"><div className="min-w-[1200px] space-y-8">
+          <table className="w-full border-collapse text-center"><thead><tr><th className="border border-black p-5 text-[24px] font-semibold">{props.organizationName}</th><th className="border border-black p-3 text-[22px] font-medium" colSpan={dayKeys.length + 1}>СИСТЕМА ХАССП<div className="mt-3 border-t border-black pt-3 italic">ЖУРНАЛ УБОРКИ</div></th><th className="border border-black p-5 text-[20px] font-medium">СТР. 1 ИЗ 1</th></tr></thead></table>
+          <h2 className="text-center text-[28px] font-semibold uppercase">Журнал уборки</h2>
+          <table className="w-full border-collapse text-[16px]"><thead><tr><th className="w-12 border border-black bg-white p-2" /><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Моющие и дезинфицирующие средства</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold" colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" />{dayKeys.map((dateKey) => <th key={dateKey} className="border border-black bg-white p-2 text-[18px] font-semibold">{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+            {rows.map((row) => {
+              const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
+              const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
+              return <tr key={row.id}>
+                <td className="border border-black p-2 text-center">{!printMode ? <Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /> : null}</td>
+                <td className="border border-black p-3 align-middle"><div className="flex items-center justify-between gap-3"><button type="button" className="text-left hover:text-[#5863f8]" disabled={printMode || props.status !== "active"} onClick={() => row.kind === "room" ? setRoomDialog(buildRoomState(row.room)) : setResponsibleDialog(buildResponsibleState(row.kind, row.responsible))}>{title}</button>{!printMode && props.status === "active" ? <Pencil className="size-4 text-[#7a7f93]" /> : null}</div></td>
+                <td className="border border-black p-3">{secondColumn}</td>
+                {dayKeys.map((dateKey) => <td key={dateKey} className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"}`} onClick={() => updateCell(row, dateKey)}>{config.matrix[row.id]?.[dateKey] || ""}</td>)}
+              </tr>;
+            })}
+          </tbody></table>
+          <div className="space-y-2 text-[18px] italic">{config.legend.map((item) => <div key={item}>{item}</div>)}</div>
+          <table className="w-full border-collapse text-[16px]"><thead><tr><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Текущая уборка</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id}><td className="border border-black p-3">{room.name}</td><td className="border border-black p-3">{room.currentScope.join(", ")}</td><td className="border border-black p-3">{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
+        </div></div>
       </div>
 
-      {/* ─── Dialogs ─── */}
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        title={documentTitle}
-        dateFrom={dateFrom}
-        ventilationEnabled={config.ventilationEnabled}
-        responsibleTitle={props.responsibleTitle || getRoleName(users.find((u) => u.id === fallbackUserId)?.role || "")}
-        responsibleUserId={fallbackUserId}
-        users={users}
-        onSave={handleSettingsSave}
-      />
-
-      {addRowOpen && (
-        <AddRowDialog
-          key={`row-${fallbackUserId}`}
-          open={addRowOpen}
-          onOpenChange={setAddRowOpen}
-          users={users}
-          defaultUserId={fallbackUserId}
-          onAdd={handleAddEntry}
-        />
-      )}
-
-      {addResponsibleOpen && (
-        <AddResponsibleDialog
-          key={`responsible-${users.length}-${existingResponsibleUserIds.size}`}
-          open={addResponsibleOpen}
-          onOpenChange={setAddResponsibleOpen}
-          users={users}
-          existingUserIds={existingResponsibleUserIds}
-          onAdd={handleAddResponsible}
-        />
-      )}
-
-      {!!editingResponsible && (
-        <EditResponsibleDialog
-          key={`edit-${editingResponsible.userId}-${editingResponsible.title}`}
-          open={!!editingResponsible}
-          onOpenChange={(v) => {
-            if (!v) setEditingResponsible(null);
-          }}
-          person={editingResponsible}
-          users={users}
-          onSave={handleEditResponsible}
-          onDelete={handleDeleteResponsible}
-        />
-      )}
-
-      {addPeriodicityOpen && (
-        <AddPeriodicityDialog
-          key="periodicity"
-          open={addPeriodicityOpen}
-          onOpenChange={setAddPeriodicityOpen}
-          onSave={(data) => {
-          const nextConfig: CleaningDocumentConfig = {
-            ...config,
-            procedure: {
-              ...config.procedure,
-              surfaces: data.surfaces || config.procedure.surfaces,
-              wetCleaningRooms: data.rooms || config.procedure.wetCleaningRooms,
-            },
-          };
-          saveConfig(nextConfig).catch((err) => {
-            window.alert(err instanceof Error ? err.message : "Ошибка");
-          });
-          }}
-        />
-      )}
-    </div>
+      <Dialog open={!!roomDialog} onOpenChange={(open) => !open && setRoomDialog(null)}><DialogContent className="max-w-[720px] rounded-[28px] border-0 p-0"><DialogHeader className="border-b px-10 py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[28px] font-semibold text-black">{roomDialog?.id ? "Редактирование помещения" : "Добавление нового помещения"}</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setRoomDialog(null)}><X className="size-7" /></button></div></DialogHeader>{roomDialog ? <div className="space-y-4 px-10 py-8"><Input value={roomDialog.name} onChange={(event) => setRoomDialog((current) => current ? { ...current, name: event.target.value } : current)} placeholder="Введите название помещения" className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]" /><Textarea value={roomDialog.detergent} onChange={(event) => setRoomDialog((current) => current ? { ...current, detergent: event.target.value } : current)} placeholder="Моющие и дезинфицирующие средства" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" /><Textarea value={roomDialog.currentScope} onChange={(event) => setRoomDialog((current) => current ? { ...current, currentScope: event.target.value } : current)} placeholder="Предмет текущей уборки" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" /><Textarea value={roomDialog.generalScope} onChange={(event) => setRoomDialog((current) => current ? { ...current, generalScope: event.target.value } : current)} placeholder="Предмет генеральной уборки" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" /><div className="flex justify-end"><Button type="button" className="h-14 rounded-[18px] bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]" onClick={submitRoom}>Сохранить</Button></div></div> : null}</DialogContent></Dialog>
+      <Dialog open={!!responsibleDialog} onOpenChange={(open) => !open && setResponsibleDialog(null)}><DialogContent className="max-w-[720px] rounded-[28px] border-0 p-0"><DialogHeader className="border-b px-10 py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[28px] font-semibold text-black">Добавление ответственного лица</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setResponsibleDialog(null)}><X className="size-7" /></button></div></DialogHeader>{responsibleDialog ? <div className="space-y-5 px-10 py-8"><div className="space-y-2"><Label>Должность ответственного</Label><Select value={responsibleDialog.title} onValueChange={(value) => setResponsibleDialog((current) => current ? { ...current, title: value, userId: primaryUserId(props.users, value) } : current)}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Выберите значение" /></SelectTrigger><SelectContent>{roleOptions.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Сотрудник</Label><Select value={responsibleDialog.userId} onValueChange={(value) => setResponsibleDialog((current) => current ? { ...current, userId: value } : current)}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{responsibleUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div><div className="flex justify-end"><Button type="button" className="h-14 rounded-[18px] bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]" onClick={submitResponsible}>Добавить</Button></div></div> : null}</DialogContent></Dialog>
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[760px] rounded-[28px] border-0 p-0"><DialogHeader className="border-b px-10 py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[28px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-10 py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent>{roleOptions.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent>{roleOptions.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-14 rounded-[18px] bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
+      <ConfirmDialog open={deleteOpen} title="Удалить выбранные строки?" submitLabel="Удалить" onOpenChange={setDeleteOpen} onSubmit={deleteSelectedRows} />
+    </>
   );
 }

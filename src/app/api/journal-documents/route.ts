@@ -11,9 +11,10 @@ import {
   getDefaultClimateDocumentConfig,
 } from "@/lib/climate-document";
 import {
-  buildCleaningConfigFromAreas,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  defaultCleaningDocumentConfig,
   getDefaultCleaningResponsibleIds,
+  normalizeCleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
           },
           select: {
             id: true,
+            name: true,
             role: true,
           },
           orderBy: [{ role: "asc" }, { id: "asc" }],
@@ -330,7 +332,10 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? getDefaultClimateDocumentConfig()
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? buildCleaningConfigFromAreas(cleaningAreas, cleaningDefaults || undefined)
+      ? normalizeCleaningDocumentConfig(rawConfig ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas), {
+          users: cleaningUsers,
+          areas: cleaningAreas,
+        })
       : resolvedTemplateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
       ? buildFinishedProductConfigFromUsers(allUsers)
       : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
@@ -388,7 +393,12 @@ export async function POST(request: Request) {
   const cleaningControlRole =
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? cleaningUsers.find(
-          (user) => user.id === (responsibleUserId || cleaningDefaults?.responsibleControlUserId)
+          (user) =>
+            user.id ===
+            (responsibleUserId ||
+              (initialConfig as { controlResponsibles?: Array<{ userId?: string }> } | undefined)
+                ?.controlResponsibles?.[0]?.userId ||
+              cleaningDefaults?.responsibleControlUserId)
         )?.role || null
       : null;
 
@@ -400,6 +410,11 @@ export async function POST(request: Request) {
       config:
         resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
           ? equipmentCalibrationConfig
+          : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+          ? normalizeCleaningDocumentConfig(rawConfig ?? initialConfig, {
+              users: cleaningUsers,
+              areas: cleaningAreas,
+            })
           : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
           ? {
               ...(((initialConfig as Record<string, unknown>) || {}) as Record<string, unknown>),
@@ -419,7 +434,10 @@ export async function POST(request: Request) {
           ? ((initialConfig as { responsibleUserId?: string } | undefined)?.responsibleUserId || null)
           : null) ||
         (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-          ? cleaningDefaults?.responsibleControlUserId || null
+          ? ((initialConfig as { controlResponsibles?: Array<{ userId?: string }> } | undefined)
+              ?.controlResponsibles?.[0]?.userId ||
+            cleaningDefaults?.responsibleControlUserId ||
+            null)
           : null),
       responsibleTitle:
         responsibleTitle ||
@@ -427,7 +445,9 @@ export async function POST(request: Request) {
           ? ((initialConfig as { responsibleTitle?: string } | undefined)?.responsibleTitle || null)
           : null) ||
         (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-          ? getHygienePositionLabel(cleaningControlRole || "owner")
+          ? ((initialConfig as { controlResponsibles?: Array<{ title?: string }> } | undefined)
+              ?.controlResponsibles?.[0]?.title ||
+            getHygienePositionLabel(cleaningControlRole || "owner"))
           : null),
       createdById: session.user.id,
     },

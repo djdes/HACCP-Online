@@ -1,0 +1,8 @@
+npx tsc --noEmit
+status: PASS
+
+npx eslint "src/lib/cleaning-document.ts" "src/app/api/journal-documents/[id]/cleaning/route.ts" "src/app/api/journal-documents/route.ts" "src/components/journals/cleaning-documents-client.tsx" "src/components/journals/cleaning-document-client.tsx" "src/app/(dashboard)/journals/[code]/page.tsx" "prisma/seed.ts"
+status: PASS_WITH_WARNINGS
+warnings:
+- src/app/(dashboard)/journals/[code]/page.tsx:99 unused getTrainingPlanDocumentDateLabel
+- src/app/(dashboard)/journals/[code]/page.tsx:100 unused getTrainingPlanApproveLabel

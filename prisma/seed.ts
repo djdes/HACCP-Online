@@ -127,8 +127,8 @@ const journalTemplates = [
   // === Новые обязательные журналы по ХАССП / СанПиН ===
   {
     code: "cleaning",
-    name: "Чек-лист уборки и проветривания помещений",
-    description: "Журнал уборки и санитарной обработки помещений и оборудования",
+    name: "Журнал уборки",
+    description: "Журнал уборки помещений и санитарной обработки зон предприятия",
     sortOrder: 6,
     isMandatorySanpin: true,
     isMandatoryHaccp: false,
@@ -602,7 +602,7 @@ const ACTIVE_JOURNAL_TEMPLATES = [
     name: "Журнал контроля температурного режима холодильного и морозильного оборудования",
     sortOrder: 4,
   },
-  { code: "cleaning", name: "Чек-лист уборки и проветривания помещений", sortOrder: 5 },
+  { code: "cleaning", name: "Журнал уборки", sortOrder: 5 },
   { code: "general_cleaning", name: "График и учет генеральных уборок", sortOrder: 6 },
   {
     code: "uv_lamp_runtime",

@@ -26,9 +26,11 @@ import { CLIMATE_DOCUMENT_TEMPLATE_CODE } from "@/lib/climate-document";
 import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  applyCleaningAutoFillToConfig,
+  getCleaningCreatePeriodBounds,
   defaultCleaningDocumentConfig,
-  buildCleaningAutoFillEntries,
 } from "@/lib/cleaning-document";
+import { CleaningDocumentsClient } from "@/components/journals/cleaning-documents-client";
 import {
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
   getEquipmentCleaningDocumentTitle,
@@ -44,13 +46,19 @@ import {
 import { UvLampRuntimeDocumentsClient } from "@/components/journals/uv-lamp-runtime-documents-client";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { MedBookDocumentsClient } from "@/components/journals/med-book-documents-client";
+import { IncomingControlDocumentsClient } from "@/components/journals/incoming-control-documents-client";
 import {
   MED_BOOK_TEMPLATE_CODE,
   MED_BOOK_DOCUMENT_TITLE,
   getDefaultMedBookConfig,
   emptyMedBookEntry,
 } from "@/lib/med-book-document";
-import { ACCEPTANCE_DOCUMENT_TEMPLATE_CODE } from "@/lib/acceptance-document";
+import {
+  ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
+  ACCEPTANCE_DOCUMENT_TITLE,
+  buildAcceptanceDocumentConfigFromData,
+  normalizeAcceptanceDocumentConfig,
+} from "@/lib/acceptance-document";
 import {
   PPE_ISSUANCE_DOCUMENT_TITLE,
   PPE_ISSUANCE_TEMPLATE_CODE,
@@ -1711,23 +1719,34 @@ export default async function JournalDocumentsPage({
       });
 
       if (existingCleaningCount === 0) {
-        const now = new Date();
-        const year = now.getUTCFullYear();
-        const month = now.getUTCMonth();
-        const dateFrom = new Date(Date.UTC(year, month, 1));
-        const dateTo = new Date(Date.UTC(year, month + 1, 0));
-
-        const cleaningConfig = defaultCleaningDocumentConfig(orgUsers);
+        const period = getCleaningCreatePeriodBounds();
+        const cleaningAreas = await db.area.findMany({
+          where: {
+            organizationId: session.user.organizationId,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+        const cleaningConfig = applyCleaningAutoFillToConfig({
+          config: defaultCleaningDocumentConfig(orgUsers, cleaningAreas),
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        });
         const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
 
-        const created = await db.journalDocument.create({
+        await db.journalDocument.create({
           data: {
             templateId: template.id,
             organizationId: session.user.organizationId,
             title: getJournalDocumentDefaultTitle(resolvedCode),
             status: "active",
-            dateFrom,
-            dateTo,
+            dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
+            dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
             createdById: session.user.id,
             responsibleUserId: responsibleUser?.id || null,
             responsibleTitle: responsibleUser
@@ -1737,25 +1756,6 @@ export default async function JournalDocumentsPage({
           },
         });
 
-        // Seed sample entries for past dates
-        const sampleEntries = buildCleaningAutoFillEntries({
-          config: cleaningConfig,
-          dateFrom: `${year}-${String(month + 1).padStart(2, "0")}-01`,
-          dateTo: `${year}-${String(month + 1).padStart(2, "0")}-${String(new Date(Date.UTC(year, month + 1, 0)).getUTCDate()).padStart(2, "0")}`,
-          users: orgUsers.map((u) => ({ id: u.id, name: u.name })),
-        });
-
-        if (sampleEntries.length > 0) {
-          await db.journalDocumentEntry.createMany({
-            data: sampleEntries.map((e) => ({
-              documentId: created.id,
-              employeeId: responsibleUser?.id || "system",
-              date: new Date(e.date),
-              data: e.data,
-            })),
-            skipDuplicates: true,
-          });
-        }
       }
     }
 
@@ -2333,6 +2333,140 @@ export default async function JournalDocumentsPage({
       );
     }
 
+    if (resolvedCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
+      const [allAcceptanceDocuments, acceptanceUsers, acceptanceProducts, acceptanceSuppliers] =
+        await Promise.all([
+          db.journalDocument.findMany({
+            where: {
+              organizationId: session.user.organizationId,
+              templateId: template.id,
+            },
+            orderBy: { createdAt: "asc" },
+          }),
+          db.user.findMany({
+            where: {
+              organizationId: session.user.organizationId,
+              isActive: true,
+            },
+            select: { id: true, name: true, role: true },
+            orderBy: [{ role: "asc" }, { name: "asc" }],
+          }),
+          db.product.findMany({
+            where: {
+              organizationId: session.user.organizationId,
+              isActive: true,
+            },
+            select: { name: true },
+            orderBy: { name: "asc" },
+            take: 50,
+          }),
+          db.batch.findMany({
+            where: {
+              organizationId: session.user.organizationId,
+              supplier: { not: null },
+            },
+            select: { supplier: true },
+            orderBy: { supplier: "asc" },
+            distinct: ["supplier"],
+            take: 50,
+          }),
+        ]);
+
+      const acceptanceStatuses = new Set(allAcceptanceDocuments.map((document) => document.status));
+      const productNames = acceptanceProducts.map((item) => item.name).filter(Boolean);
+      const supplierNames = acceptanceSuppliers
+        .map((item) => item.supplier || "")
+        .filter(Boolean);
+      const manufacturerNames = supplierNames;
+      const responsibleUser = pickPrimaryManager(acceptanceUsers) || acceptanceUsers[0] || null;
+
+      if (!acceptanceStatuses.has("active")) {
+        const config = buildAcceptanceDocumentConfigFromData({
+          users: acceptanceUsers,
+          products: productNames,
+          manufacturers: manufacturerNames,
+          suppliers: supplierNames,
+          date: "2025-03-01",
+          responsibleTitle: responsibleUser ? getUserRoleLabel(responsibleUser.role) : null,
+          responsibleUserId: responsibleUser?.id || null,
+          includeSampleRows: true,
+        });
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: ACCEPTANCE_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date("2025-03-01"),
+            dateTo: new Date("2025-03-01"),
+            responsibleUserId: responsibleUser?.id || null,
+            responsibleTitle: config.defaultResponsibleTitle,
+            createdById: session.user.id,
+            config,
+          },
+        });
+      }
+
+      if (!acceptanceStatuses.has("closed")) {
+        const config = buildAcceptanceDocumentConfigFromData({
+          users: acceptanceUsers,
+          products: productNames,
+          manufacturers: manufacturerNames,
+          suppliers: supplierNames,
+          date: "2025-02-01",
+          responsibleTitle: responsibleUser ? getUserRoleLabel(responsibleUser.role) : null,
+          responsibleUserId: responsibleUser?.id || null,
+          includeSampleRows: true,
+        });
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: session.user.organizationId,
+            title: ACCEPTANCE_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date("2025-02-01"),
+            dateTo: new Date("2025-02-28"),
+            responsibleUserId: responsibleUser?.id || null,
+            responsibleTitle: config.defaultResponsibleTitle,
+            createdById: session.user.id,
+            config,
+          },
+        });
+      }
+
+      const acceptanceDocuments =
+        acceptanceStatuses.has("active") && acceptanceStatuses.has("closed")
+          ? allAcceptanceDocuments.filter((document) => document.status === activeTab)
+          : await db.journalDocument.findMany({
+              where: {
+                organizationId: session.user.organizationId,
+                templateId: template.id,
+                status: activeTab,
+              },
+              orderBy: { createdAt: "asc" },
+            });
+
+      return (
+        <IncomingControlDocumentsClient
+          routeCode={code === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE ? code : resolvedCode}
+          activeTab={activeTab}
+          users={acceptanceUsers}
+          availableProducts={productNames}
+          availableManufacturers={manufacturerNames}
+          availableSuppliers={supplierNames}
+          documents={acceptanceDocuments.map((document) => ({
+            id: document.id,
+            title: document.title || ACCEPTANCE_DOCUMENT_TITLE,
+            status: document.status as "active" | "closed",
+            dateFrom: document.dateFrom.toISOString().slice(0, 10),
+            config: normalizeAcceptanceDocumentConfig(document.config ?? {}, acceptanceUsers),
+          }))}
+        />
+      );
+    }
+
     if (resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
       const existingBH = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
@@ -2548,6 +2682,25 @@ export default async function JournalDocumentsPage({
       resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE ||
       isTrackedDocumentTemplate(resolvedCode)
     ) {
+      if (resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+        return (
+          <CleaningDocumentsClient
+            activeTab={activeTab}
+            routeCode={code}
+            templateCode={resolvedCode}
+            users={orgUsers}
+            documents={documents.map((document) => ({
+              id: document.id,
+              title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
+              status: document.status as "active" | "closed",
+              dateFrom: document.dateFrom.toISOString().slice(0, 10),
+              dateTo: document.dateTo.toISOString().slice(0, 10),
+              config: document.config,
+            }))}
+          />
+        );
+      }
+
       if (resolvedCode === FRYER_OIL_TEMPLATE_CODE) {
         return (
           <FryerOilDocumentsClient
