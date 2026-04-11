@@ -50,8 +50,10 @@
   - The PDF route is present in the production build, and `drawCleaningPdf` now produces a tabular journal PDF structure.
 - AC8: PASS
   - Fresh `tsc` and production `next build` verification passed, and raw artifacts were captured in this task folder.
-- AC9: PENDING
-  - Commit/push/autodeploy still need to be completed from the current dirty multi-thread worktree.
+- AC9: PASS
+  - The journal parity batch was already committed on `master`, and a follow-up empty trigger commit `276fc56` was pushed to retrigger CI deployment.
+  - External production verification after the retrigger showed a fresh build response from `https://wesetup.ru/api/build-info` with `buildTime: 2026-04-11T14:11:00Z`.
+  - External HTTP probes passed for `https://wesetup.ru/login` (`200`) and `https://wesetup.ru/journals` (`307 -> /login`).
 
 ## Risks / limits
 - I did not run an authenticated browser click-through against a live session in this turn, so AC4 and AC5 are verified by current code-path inspection plus build success rather than live UI automation.

@@ -9,7 +9,10 @@
     "build": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/build.txt",
     "proof": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/cleaning-proof.txt",
     "screenshots": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/screenshot-inventory.txt",
-    "sourceCrawl": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/source-crawl-inventory.txt"
+    "sourceCrawl": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/source-crawl-inventory.txt",
+    "deployBuildInfo": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/deploy-build-info.json",
+    "deployLoginHead": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/deploy-login-head.txt",
+    "deployJournalsHead": ".agent/tasks/cleaning-journal-audit-2026-04-11/raw/deploy-journals-head.txt"
   },
   "checks": [
     {
@@ -60,8 +63,8 @@
       "method": "fresh tsc + next build"
     },
     "AC9": {
-      "status": "PENDING",
-      "method": "git push + deploy observation pending"
+      "status": "PASS",
+      "method": "origin/master push + external production build-info/http verification"
     }
   }
 }

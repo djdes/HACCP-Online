@@ -1,0 +1,11 @@
+﻿HTTP/1.1 200 OK
+Server: nginx
+Date: Sat, 11 Apr 2026 14:14:05 GMT
+Content-Type: text/html; charset=utf-8
+Connection: keep-alive
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0
+pragma: no-cache
+expires: 0
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding
+X-Powered-By: Next.js
+
