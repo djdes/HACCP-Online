@@ -74,3 +74,35 @@ Caused by:
     2: Unable to open static sorted file 00000211.sst
     3: The system cannot find the file specified. (os error 2)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+⨯ Error: ENOENT: no such file or directory, open 'C:\www\Wesetup.ru\.next\dev\server\app\(auth)\login\page\build-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\www\\Wesetup.ru\\.next\\dev\\server\\app\\(auth)\\login\\page\\build-manifest.json'
+}
+
+thread 'tokio-runtime-worker' (13908) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Data for PagesProject::client_main_module (TaskId 118569))
+
+Caused by:
+    0: Looking up data for TaskId 118569 from database failed
+    1: Unable to open static sorted file referenced from 00000212.meta
+    2: Unable to open static sorted file 00000211.sst
+    3: The system cannot find the file specified. (os error 2)
+
+thread 'tokio-runtime-worker' (59972) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Data for get_next_client_fallback_import_map (TaskId 118584))
+
+Caused by:
+    0: Looking up data for TaskId 118584 from database failed
+    1: Unable to open static sorted file referenced from 00000212.meta
+    2: Unable to open static sorted file 00000211.sst
+    3: The system cannot find the file specified. (os error 2)
+⨯ Error: ENOENT: no such file or directory, open 'C:\www\Wesetup.ru\.next\dev\server\app\(auth)\login\page\build-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\www\\Wesetup.ru\\.next\\dev\\server\\app\\(auth)\\login\\page\\build-manifest.json'
+}

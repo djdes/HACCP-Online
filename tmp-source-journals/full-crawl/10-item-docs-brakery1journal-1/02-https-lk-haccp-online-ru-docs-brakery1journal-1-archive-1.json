@@ -1,0 +1,231 @@
+{
+  "url": "https://lk.haccp-online.ru/docs/brakery1journal/1/?archive=1",
+  "title": "Бракеражный журнал | Haccp-Online: сервис электронных журналов",
+  "h1": "Журнал бракеража скоропортящейся пищевой продукции (Закрытые!!!)",
+  "tables": 0,
+  "forms": 0,
+  "modals": 0,
+  "buttons": [
+    "ООО \"Тест\"",
+    "Сотрудники",
+    "Обратная связь",
+    "Сотрудники",
+    "Обратная связь",
+    "Настройки",
+    "Выход",
+    "Инструкция",
+    "Активные",
+    "Закрытые"
+  ],
+  "tablike": [],
+  "links": [
+    {
+      "text": "ООО \"Тест\"",
+      "href": "/docs/1/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "Настройки",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "Выход",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Активные",
+      "href": "/docs/brakery1journal/1"
+    },
+    {
+      "text": "Закрытые",
+      "href": "/docs/brakery1journal/1/?archive=1"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=254"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=287"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=319"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=354"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=391"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=427"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=519"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=591"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=682"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=761"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=855"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=937"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1029"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1116"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1197"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1285"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1363"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1443"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1526"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1614"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1698"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1781"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1866"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=1956"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2033"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2106"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2183"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2248"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2312"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2372"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2427"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2484"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2544"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2597"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2665"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/brakery1journal/docprint/1/?id=2725"
+    },
+    {
+      "text": "Корпоративное решение",
+      "href": "https://haccp-online.ru/enterprise"
+    },
+    {
+      "text": "Частные разработки",
+      "href": "https://haccp-online.ru/private-idea"
+    },
+    {
+      "text": "",
+      "href": "https://t.me/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://vk.com/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://api.whatsapp.com/send/?phone=79300353383&text&type=phone_number&app_absent=0"
+    },
+    {
+      "text": "",
+      "href": "tel:+79300353383"
+    },
+    {
+      "text": "",
+      "href": "mailto:info@haccp-online.ru"
+    }
+  ]
+}

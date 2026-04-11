@@ -1,0 +1,175 @@
+{
+  "url": "https://lk.haccp-online.ru/docs/acceptance1journal/1/?archive=1",
+  "title": "Журнал приемки и входного контроля продукции | Haccp-Online: сервис электронных журналов",
+  "h1": "Журнал приемки и входного контроля продукции (Закрытые!!!)",
+  "tables": 0,
+  "forms": 0,
+  "modals": 0,
+  "buttons": [
+    "ООО \"Тест\"",
+    "Сотрудники",
+    "Обратная связь",
+    "Сотрудники",
+    "Обратная связь",
+    "Настройки",
+    "Выход",
+    "Инструкция",
+    "Активные",
+    "Закрытые"
+  ],
+  "tablike": [],
+  "links": [
+    {
+      "text": "ООО \"Тест\"",
+      "href": "/docs/1/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "Настройки",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "Выход",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Активные",
+      "href": "/docs/acceptance1journal/1"
+    },
+    {
+      "text": "Закрытые",
+      "href": "/docs/acceptance1journal/1/?archive=1"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=6"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=101"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=1414"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=1771"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=2127"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=2493"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=2884"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=3266"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=3665"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=4095"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=4537"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=5371"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=5798"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=6244"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=6695"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=7145"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=7620"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=8139"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=8690"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=9253"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=9834"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/acceptance1journal/docprint/1/?id=10439"
+    },
+    {
+      "text": "Корпоративное решение",
+      "href": "https://haccp-online.ru/enterprise"
+    },
+    {
+      "text": "Частные разработки",
+      "href": "https://haccp-online.ru/private-idea"
+    },
+    {
+      "text": "",
+      "href": "https://t.me/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://vk.com/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://api.whatsapp.com/send/?phone=79300353383&text&type=phone_number&app_absent=0"
+    },
+    {
+      "text": "",
+      "href": "tel:+79300353383"
+    },
+    {
+      "text": "",
+      "href": "mailto:info@haccp-online.ru"
+    }
+  ]
+}

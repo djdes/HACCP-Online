@@ -1,0 +1,391 @@
+{
+  "url": "https://lk.haccp-online.ru/docs/cleaning1journal/1/?archive=1",
+  "title": "Журнал уборки | Haccp-Online: сервис электронных журналов",
+  "h1": "Журнал уборки (Закрытые!!!)",
+  "tables": 0,
+  "forms": 0,
+  "modals": 0,
+  "buttons": [
+    "ООО \"Тест\"",
+    "Сотрудники",
+    "Обратная связь",
+    "Сотрудники",
+    "Обратная связь",
+    "Настройки",
+    "Выход",
+    "Инструкция",
+    "Активные",
+    "Закрытые"
+  ],
+  "tablike": [],
+  "links": [
+    {
+      "text": "ООО \"Тест\"",
+      "href": "/docs/1/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "Настройки",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "Выход",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Активные",
+      "href": "/docs/cleaning1journal/1"
+    },
+    {
+      "text": "Закрытые",
+      "href": "/docs/cleaning1journal/1/?archive=1"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=4415"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=4660"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=4916"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=5184"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=5453"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=5726"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=6016"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=6314"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=6624"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=6946"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=7313"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=7665"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=8042"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=8438"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=8843"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=9253"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=9664"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=10083"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=10526"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=10981"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=11479"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=11983"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=12495"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=13027"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=13570"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=14133"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=14701"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=15280"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=15863"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=16459"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=17073"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=17715"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=18353"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=18997"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=19650"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=20287"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=20902"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=21529"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=22169"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=22786"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=22809"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=23420"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=23468"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=24126"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=24795"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=25465"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=26158"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=26848"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=27534"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=28206"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=28906"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=29625"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=30350"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=31085"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=31811"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=31829"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=32536"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=32584"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=33265"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=33348"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=34118"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=34888"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=35698"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=36476"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=37266"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=38092"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=38954"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=39828"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=40736"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=41627"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=42517"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=43402"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=44316"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=45254"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=46201"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/cleaning1journal/docprint/1/?id=47162"
+    },
+    {
+      "text": "Корпоративное решение",
+      "href": "https://haccp-online.ru/enterprise"
+    },
+    {
+      "text": "Частные разработки",
+      "href": "https://haccp-online.ru/private-idea"
+    },
+    {
+      "text": "",
+      "href": "https://t.me/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://vk.com/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://api.whatsapp.com/send/?phone=79300353383&text&type=phone_number&app_absent=0"
+    },
+    {
+      "text": "",
+      "href": "tel:+79300353383"
+    },
+    {
+      "text": "",
+      "href": "mailto:info@haccp-online.ru"
+    }
+  ]
+}

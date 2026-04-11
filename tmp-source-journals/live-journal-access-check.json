@@ -1,0 +1,268 @@
+{
+  "summary": {
+    "total": 37,
+    "openOk": 37,
+    "redirectedToLogin": 0
+  },
+  "results": [
+    {
+      "text": "Гигиенический журнал",
+      "href": "/docs/healthjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/healthjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/healthjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал здоровья",
+      "href": "/docs/health1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/health1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/health1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Бланк контроля температуры и влажности",
+      "href": "/docs/storageconditionjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/storageconditionjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/storageconditionjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+      "href": "/docs/temprefrigerationjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/temprefrigerationjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/temprefrigerationjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Чек-лист уборки и проветривания помещений",
+      "href": "/docs/sanitation1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/sanitation1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/sanitation1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал уборки",
+      "href": "/docs/cleaning1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/cleaning1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/cleaning1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "График и учет генеральных уборок",
+      "href": "/docs/sanitationdayjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/sanitationdayjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/sanitationdayjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета работы УФ бактерицидной установки",
+      "href": "/docs/bactericiplantjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/bactericiplantjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/bactericiplantjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал бракеража готовой пищевой продукции",
+      "href": "/docs/brakeryjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/brakeryjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/brakeryjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал бракеража скоропортящейся пищевой продукции",
+      "href": "/docs/brakery1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/brakery1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/brakery1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал приемки и входного контроля продукции",
+      "href": "/docs/acceptance1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/acceptance1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/acceptance1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета использования фритюрных жиров",
+      "href": "/docs/deepfatjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/deepfatjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/deepfatjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Медицинские книжки",
+      "href": "/docs/medbook/1",
+      "url": "https://lk.haccp-online.ru/docs/medbook/1",
+      "final": "https://lk.haccp-online.ru/docs/medbook/1",
+      "needRelogin": false
+    },
+    {
+      "text": "План обучения персонала",
+      "href": "/docs/eduplan/1",
+      "url": "https://lk.haccp-online.ru/docs/eduplan/1",
+      "final": "https://lk.haccp-online.ru/docs/eduplan/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал регистрации инструктажей (обучения) сотрудников",
+      "href": "/docs/edujournal/1",
+      "url": "https://lk.haccp-online.ru/docs/edujournal/1",
+      "final": "https://lk.haccp-online.ru/docs/edujournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета дезинфицирующих средств",
+      "href": "/docs/disinfectjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/disinfectjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/disinfectjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Чек-лист (памятка) проведения санитарного дня",
+      "href": "/docs/sanitationdaycheklist/1",
+      "url": "https://lk.haccp-online.ru/docs/sanitationdaycheklist/1",
+      "final": "https://lk.haccp-online.ru/docs/sanitationdaycheklist/1",
+      "needRelogin": false
+    },
+    {
+      "text": "График профилактического обслуживания оборудования",
+      "href": "/docs/preventiveequipment/1",
+      "url": "https://lk.haccp-online.ru/docs/preventiveequipment/1",
+      "final": "https://lk.haccp-online.ru/docs/preventiveequipment/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Карточка истории поломок",
+      "href": "/docs/breakdownhistoryjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/breakdownhistoryjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/breakdownhistoryjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "График поверки средств измерений",
+      "href": "/docs/instrumentcalibration/1",
+      "url": "https://lk.haccp-online.ru/docs/instrumentcalibration/1",
+      "final": "https://lk.haccp-online.ru/docs/instrumentcalibration/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+      "href": "/docs/acceptance2journal/1",
+      "url": "https://lk.haccp-online.ru/docs/acceptance2journal/1",
+      "final": "https://lk.haccp-online.ru/docs/acceptance2journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета выдачи СИЗ",
+      "href": "/docs/issuancesizjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/issuancesizjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/issuancesizjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета аварий",
+      "href": "/docs/accidentjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/accidentjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/accidentjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал регистрации жалоб",
+      "href": "/docs/complaintjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/complaintjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/complaintjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Акт забраковки",
+      "href": "/docs/defectjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/defectjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/defectjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "План-программа внутренних аудитов",
+      "href": "/docs/auditplan/1",
+      "url": "https://lk.haccp-online.ru/docs/auditplan/1",
+      "final": "https://lk.haccp-online.ru/docs/auditplan/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Протокол внутреннего аудита",
+      "href": "/docs/auditprotocol/1",
+      "url": "https://lk.haccp-online.ru/docs/auditprotocol/1",
+      "final": "https://lk.haccp-online.ru/docs/auditprotocol/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Отчет о внутреннем аудите",
+      "href": "/docs/auditreport/1",
+      "url": "https://lk.haccp-online.ru/docs/auditreport/1",
+      "final": "https://lk.haccp-online.ru/docs/auditreport/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал прослеживаемости продукции",
+      "href": "/docs/traceabilityjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/traceabilityjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/traceabilityjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета металлопримесей в сырье",
+      "href": "/docs/metalimpurityjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/metalimpurityjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/metalimpurityjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал мойки и дезинфекции оборудования",
+      "href": "/docs/equipcleanjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/equipcleanjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/equipcleanjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал контроля интенсивного охлаждения горячих блюд",
+      "href": "/docs/intensivecoolingjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/intensivecoolingjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/intensivecoolingjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Перечень изделий из стекла и хрупкого пластика",
+      "href": "/docs/glasslist/1",
+      "url": "https://lk.haccp-online.ru/docs/glasslist/1",
+      "final": "https://lk.haccp-online.ru/docs/glasslist/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал контроля изделий из стекла и хрупкого пластика",
+      "href": "/docs/glassjournal/1",
+      "url": "https://lk.haccp-online.ru/docs/glassjournal/1",
+      "final": "https://lk.haccp-online.ru/docs/glassjournal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Журнал учета дезинфекции, дезинсекции и дератизации",
+      "href": "/docs/deratization1journal/1",
+      "url": "https://lk.haccp-online.ru/docs/deratization1journal/1",
+      "final": "https://lk.haccp-online.ru/docs/deratization1journal/1",
+      "needRelogin": false
+    },
+    {
+      "text": "Полезные статьи и материалы",
+      "href": "/docs/articles/",
+      "url": "https://lk.haccp-online.ru/docs/articles/",
+      "final": "https://lk.haccp-online.ru/docs/articles/",
+      "needRelogin": false
+    },
+    {
+      "text": "Новости сервиса и база знаний",
+      "href": "/docs/news/",
+      "url": "https://lk.haccp-online.ru/docs/news/",
+      "final": "https://lk.haccp-online.ru/docs/news/",
+      "needRelogin": false
+    }
+  ]
+}

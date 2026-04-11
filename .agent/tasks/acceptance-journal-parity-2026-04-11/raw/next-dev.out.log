@@ -13,3 +13,4 @@ Creating turbopack project { dir: 'C:\\www\\Wesetup.ru', testMode: true }
 ○ Compiling /journals/[code] ...
  GET /journals/incoming_control 307 in 47s (compile: 46s, render: 582ms)
  GET /login 200 in 171ms (compile: 31ms, render: 140ms)
+[?25h

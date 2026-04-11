@@ -1,0 +1,12 @@
+{
+  "journal": {
+    "title": "Новости сервиса и база знаний",
+    "href": "/docs/news/",
+    "url": "https://lk.haccp-online.ru/docs/news/"
+  },
+  "prefix": "https://lk.haccp-online.ru/docs/news/",
+  "capturedPages": 1,
+  "pages": [
+    "https://lk.haccp-online.ru/docs/news/"
+  ]
+}

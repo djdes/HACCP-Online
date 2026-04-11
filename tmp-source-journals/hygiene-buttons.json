@@ -1,0 +1,141 @@
+[
+  {
+    "tag": "A",
+    "text": "ООО \"Тест\"",
+    "href": "https://lk.haccp-online.ru/docs/1/",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "ООО \"Тест\"",
+    "cls": "nav_but2 alt_nav_but2"
+  },
+  {
+    "tag": "A",
+    "text": "Сотрудники",
+    "href": "https://lk.haccp-online.ru/docs/position/1/",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Сотрудники",
+    "cls": "nav_but4"
+  },
+  {
+    "tag": "A",
+    "text": "Обратная связь",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "cls": "feedback"
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Обратная связь",
+    "cls": "nav_but6"
+  },
+  {
+    "tag": "A",
+    "text": "Сотрудники",
+    "href": "https://lk.haccp-online.ru/docs/position/1/",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Сотрудники",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Обратная связь",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "cls": "feedback"
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Обратная связь",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Настройки",
+    "href": "https://lk.haccp-online.ru/docs/settings/1/",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Настройки",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Выход",
+    "href": "https://lk.haccp-online.ru/docs/logout/",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Выход",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Инструкция",
+    "cls": "button1 helpdochealthjournal"
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Создать документ",
+    "cls": "button2 createdochealthjournal"
+  },
+  {
+    "tag": "A",
+    "text": "Активные",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Активные",
+    "cls": "active"
+  },
+  {
+    "tag": "A",
+    "text": "Закрытые",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1/?archive=1",
+    "cls": ""
+  },
+  {
+    "tag": "BUTTON",
+    "text": "Закрытые",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Настройки",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "cls": "editDochealthjournal"
+  },
+  {
+    "tag": "A",
+    "text": "Печать",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/docprint/1/?id=59662",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Удалить",
+    "href": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "cls": "deleteDochealthjournal"
+  },
+  {
+    "tag": "A",
+    "text": "Корпоративное решение",
+    "href": "https://haccp-online.ru/enterprise",
+    "cls": ""
+  },
+  {
+    "tag": "A",
+    "text": "Частные разработки",
+    "href": "https://haccp-online.ru/private-idea",
+    "cls": ""
+  }
+]

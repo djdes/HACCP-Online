@@ -1,0 +1,12 @@
+{
+  "journal": {
+    "title": "Полезные статьи и материалы",
+    "href": "/docs/articles/",
+    "url": "https://lk.haccp-online.ru/docs/articles/"
+  },
+  "prefix": "https://lk.haccp-online.ru/docs/articles/",
+  "capturedPages": 1,
+  "pages": [
+    "https://lk.haccp-online.ru/docs/articles/"
+  ]
+}

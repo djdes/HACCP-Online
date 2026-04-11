@@ -1,0 +1,186 @@
+{
+  "totalSourceJournals": 35,
+  "status": {
+    "mapped": 17,
+    "candidate": 6,
+    "new": 12,
+    "missing": 0
+  },
+  "details": [
+    {
+      "sourceSlug": "healthjournal",
+      "status": "mapped",
+      "localCode": "hygiene"
+    },
+    {
+      "sourceSlug": "health1journal",
+      "status": "mapped",
+      "localCode": "health_check"
+    },
+    {
+      "sourceSlug": "storageconditionjournal",
+      "status": "mapped",
+      "localCode": "climate_control"
+    },
+    {
+      "sourceSlug": "temprefrigerationjournal",
+      "status": "mapped",
+      "localCode": "cold_equipment_control"
+    },
+    {
+      "sourceSlug": "sanitation1journal",
+      "status": "candidate",
+      "localCode": "inventory_sanitation"
+    },
+    {
+      "sourceSlug": "cleaning1journal",
+      "status": "mapped",
+      "localCode": "cleaning"
+    },
+    {
+      "sourceSlug": "sanitationdayjournal",
+      "status": "mapped",
+      "localCode": "general_cleaning"
+    },
+    {
+      "sourceSlug": "bactericiplantjournal",
+      "status": "mapped",
+      "localCode": "uv_lamp_runtime"
+    },
+    {
+      "sourceSlug": "brakeryjournal",
+      "status": "mapped",
+      "localCode": "finished_product"
+    },
+    {
+      "sourceSlug": "brakery1journal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "acceptance1journal",
+      "status": "mapped",
+      "localCode": "incoming_control"
+    },
+    {
+      "sourceSlug": "deepfatjournal",
+      "status": "mapped",
+      "localCode": "fryer_oil"
+    },
+    {
+      "sourceSlug": "medbook",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "eduplan",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "edujournal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "disinfectjournal",
+      "status": "mapped",
+      "localCode": "disinfectant_usage"
+    },
+    {
+      "sourceSlug": "sanitationdaycheklist",
+      "status": "mapped",
+      "localCode": "sanitary_day_control"
+    },
+    {
+      "sourceSlug": "preventiveequipment",
+      "status": "mapped",
+      "localCode": "equipment_maintenance"
+    },
+    {
+      "sourceSlug": "breakdownhistoryjournal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "instrumentcalibration",
+      "status": "mapped",
+      "localCode": "equipment_calibration"
+    },
+    {
+      "sourceSlug": "acceptance2journal",
+      "status": "candidate",
+      "localCode": "receiving_temperature_control"
+    },
+    {
+      "sourceSlug": "issuancesizjournal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "accidentjournal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "complaintjournal",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "defectjournal",
+      "status": "mapped",
+      "localCode": "product_writeoff"
+    },
+    {
+      "sourceSlug": "auditplan",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "auditprotocol",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "auditreport",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "traceabilityjournal",
+      "status": "mapped",
+      "localCode": "traceability_test"
+    },
+    {
+      "sourceSlug": "metalimpurityjournal",
+      "status": "candidate",
+      "localCode": "critical_limit_check"
+    },
+    {
+      "sourceSlug": "equipcleanjournal",
+      "status": "candidate",
+      "localCode": "inventory_sanitation"
+    },
+    {
+      "sourceSlug": "intensivecoolingjournal",
+      "status": "candidate",
+      "localCode": "critical_limit_check"
+    },
+    {
+      "sourceSlug": "glasslist",
+      "status": "new",
+      "localCode": null
+    },
+    {
+      "sourceSlug": "glassjournal",
+      "status": "candidate",
+      "localCode": "allergen_control"
+    },
+    {
+      "sourceSlug": "deratization1journal",
+      "status": "mapped",
+      "localCode": "pest_control"
+    }
+  ]
+}

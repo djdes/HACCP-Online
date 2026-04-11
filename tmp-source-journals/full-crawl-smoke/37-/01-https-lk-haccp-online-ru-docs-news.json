@@ -1,0 +1,124 @@
+{
+  "url": "https://lk.haccp-online.ru/docs/news/",
+  "title": "Новости сервиса и база знаний | Haccp-Online: сервис электронных журналов",
+  "h1": "База знаний",
+  "tables": 0,
+  "forms": 0,
+  "modals": 0,
+  "buttons": [
+    "Выход",
+    "Previous",
+    "Next"
+  ],
+  "tablike": [],
+  "links": [
+    {
+      "text": "",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Выход",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Загрузка данных через Excel в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС новой функцией загрузки данных через Excel в Haccp-Online процесс заполнения журналов стал еще быстрее.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tапрель 2022",
+      "href": "/docs/news/9"
+    },
+    {
+      "text": "Автозаполнение в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС сентября 2021 года в Haccp-Online появилась функция автозаполнения.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tсентябрь 2021",
+      "href": "/docs/news/8"
+    },
+    {
+      "text": "Первая версия сервиса Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ феврале 2021 года был представлен сервис Haccp-Online, который автоматизирует процесс заполнения журналов по СанПиН.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tфевраль 2021",
+      "href": "/docs/news/7"
+    },
+    {
+      "text": "Новая версия личного кабинета в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ мае 2025 года в Haccp-Online вышла новая версия личного кабинета. Теперь улучшенный интерфейс доступен для всех пользователей.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tмай 2025",
+      "href": "/docs/news/16"
+    },
+    {
+      "text": "Синхронизация с Айко в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС марта 2024 года Haccp-Online интегрируется с Айко для автоматической синхронизации данных.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tмарт 2024",
+      "href": "/docs/news/15"
+    },
+    {
+      "text": "Заполнение журналов через Telegram в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС декабря 2023 года в Haccp-Online доступна функция заполнения журналов через Telegram.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tдекабрь 2023",
+      "href": "/docs/news/14"
+    },
+    {
+      "text": "Уведомления в Telegram в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС октября 2023 года в Haccp-Online появились уведомления в Telegram.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tоктябрь 2023",
+      "href": "/docs/news/13"
+    },
+    {
+      "text": "Синхронизация через API в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС июня 2023 года Haccp-Online предлагает возможность синхронизации данных через API.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tиюнь 2023",
+      "href": "/docs/news/12"
+    },
+    {
+      "text": "Количество журналов в Haccp-Online увеличено до 35!\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ ноябре 2022 года в Haccp-Online расширили количество доступных документов до 35.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tноябрь 2022",
+      "href": "/docs/news/11"
+    },
+    {
+      "text": "Личный кабинет для сотрудников в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС августа 2022 года в Haccp-Online появился личный кабинет для сотрудников, позволяющий делегировать процесс заполнения журналов.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tавгуст 2022",
+      "href": "/docs/news/10"
+    },
+    {
+      "text": "Загрузка данных через Excel в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС новой функцией загрузки данных через Excel в Haccp-Online процесс заполнения журналов стал еще быстрее.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tапрель 2022",
+      "href": "/docs/news/9"
+    },
+    {
+      "text": "Автозаполнение в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС сентября 2021 года в Haccp-Online появилась функция автозаполнения.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tсентябрь 2021",
+      "href": "/docs/news/8"
+    },
+    {
+      "text": "Первая версия сервиса Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ феврале 2021 года был представлен сервис Haccp-Online, который автоматизирует процесс заполнения журналов по СанПиН.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tфевраль 2021",
+      "href": "/docs/news/7"
+    },
+    {
+      "text": "Новая версия личного кабинета в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ мае 2025 года в Haccp-Online вышла новая версия личного кабинета. Теперь улучшенный интерфейс доступен для всех пользователей.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tмай 2025",
+      "href": "/docs/news/16"
+    },
+    {
+      "text": "Синхронизация с Айко в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС марта 2024 года Haccp-Online интегрируется с Айко для автоматической синхронизации данных.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tмарт 2024",
+      "href": "/docs/news/15"
+    },
+    {
+      "text": "Заполнение журналов через Telegram в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС декабря 2023 года в Haccp-Online доступна функция заполнения журналов через Telegram.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tдекабрь 2023",
+      "href": "/docs/news/14"
+    },
+    {
+      "text": "Уведомления в Telegram в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС октября 2023 года в Haccp-Online появились уведомления в Telegram.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tоктябрь 2023",
+      "href": "/docs/news/13"
+    },
+    {
+      "text": "Синхронизация через API в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС июня 2023 года Haccp-Online предлагает возможность синхронизации данных через API.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tиюнь 2023",
+      "href": "/docs/news/12"
+    },
+    {
+      "text": "Количество журналов в Haccp-Online увеличено до 35!\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ ноябре 2022 года в Haccp-Online расширили количество доступных документов до 35.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tноябрь 2022",
+      "href": "/docs/news/11"
+    },
+    {
+      "text": "Личный кабинет для сотрудников в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС августа 2022 года в Haccp-Online появился личный кабинет для сотрудников, позволяющий делегировать процесс заполнения журналов.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tавгуст 2022",
+      "href": "/docs/news/10"
+    },
+    {
+      "text": "Загрузка данных через Excel в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС новой функцией загрузки данных через Excel в Haccp-Online процесс заполнения журналов стал еще быстрее.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tапрель 2022",
+      "href": "/docs/news/9"
+    },
+    {
+      "text": "Автозаполнение в Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tС сентября 2021 года в Haccp-Online появилась функция автозаполнения.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tсентябрь 2021",
+      "href": "/docs/news/8"
+    },
+    {
+      "text": "Первая версия сервиса Haccp-Online\n        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t            \t\t\t\t\t\t\t\t\t\n            \t\t\t\t\t\t\t\t\t\tВ феврале 2021 года был представлен сервис Haccp-Online, который автоматизирует процесс заполнения журналов по СанПиН.            \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t        \t\t\t\t\t\t\t\t\t\n        \t\t\t\t\t\t\t\t\t\tфевраль 2021",
+      "href": "/docs/news/7"
+    },
+    {
+      "text": "Журналы СанПиН и ХАССП",
+      "href": "/docs/"
+    },
+    {
+      "text": "Полезные статьи и материалы",
+      "href": "/docs/articles/"
+    }
+  ]
+}

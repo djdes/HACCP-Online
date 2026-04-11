@@ -9,5 +9,5 @@
 - Impact: no full-repo `PASS` gate can be claimed from current repository state.
 
 ## P3. Remote deploy verification not yet captured
-- Push/deploy status still needs to be checked after publishing the task changes.
-- Impact: AC4 remains partial until remote evidence exists.
+- Resolved on 2026-04-11.
+- Remote deploy completed, `pm2` restarted successfully, and `.build-sha` now reports `43429f0`.

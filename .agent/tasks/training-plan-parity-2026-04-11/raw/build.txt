@@ -1,0 +1,4 @@
+Build command: npm run build
+Workdir: C:\www\Wesetup.ru\.tmp-build-fix\training-plan-parity-build
+Result: PASS
+Note: main workspace build blocked by active .next lock from an existing next dev process, so build was verified in an isolated repo copy with shared node_modules.

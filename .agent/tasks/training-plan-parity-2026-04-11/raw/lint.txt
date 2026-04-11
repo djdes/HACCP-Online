@@ -1,0 +1,6 @@
+Lint command: npm run lint -- src/lib/training-plan-document.ts src/components/journals/training-plan-documents-client.tsx src/components/journals/training-plan-document-client.tsx "src/app/(dashboard)/journals/[code]/page.tsx" "src/app/api/journal-documents/[id]/route.ts" src/lib/document-pdf.ts
+Result: PASS with 3 pre-existing warnings in src/lib/document-pdf.ts
+Warnings:
+- line 335 formatDateTime unused
+- line 1453 monthColWidth unused
+- line 2403 marginLeft unused

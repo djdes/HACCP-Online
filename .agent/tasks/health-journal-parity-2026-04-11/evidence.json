@@ -1,0 +1,73 @@
+{
+  "taskId": "health-journal-parity-2026-04-11",
+  "status": "PASS",
+  "headSha": "43429f0891d6fa35eb099370a152a448ad6d7a65",
+  "buildInfo": {
+    "buildId": "43429f0",
+    "buildTime": "2026-04-11T15:19:58Z",
+    "fullBuildId": "43429f0891d6fa35eb099370a152a448ad6d7a65"
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "title": "Visual parity",
+      "status": "PASS",
+      "evidence": [
+        "raw/prod-health-list-live.html",
+        "raw/prod-health-doc-live.html",
+        "journals/Журнал здоровья/",
+        "tmp-source-journals/full-crawl/02-item-docs-health1journal-1/",
+        "tmp-source-journals/full-crawl-smoke/02-/"
+      ]
+    },
+    {
+      "id": "AC2",
+      "title": "Functional behavior",
+      "status": "PASS",
+      "evidence": [
+        "Production login succeeded",
+        "/journals/health_check opened",
+        "/journals/health_check/documents/cmnubhyyv005w0etsg0yydf3i opened"
+      ]
+    },
+    {
+      "id": "AC3",
+      "title": "Print/PDF behavior",
+      "status": "PASS",
+      "evidence": [
+        "HTTP 200 application/pdf",
+        "content-disposition: inline; filename=\"health-journal-2026-04-01-2026-04-15.pdf\""
+      ]
+    },
+    {
+      "id": "AC4",
+      "title": "Data and logic integrity",
+      "status": "PASS",
+      "evidence": [
+        "Live document HTML includes seeded organization users and entries",
+        "PDF generated successfully from the DB-backed live document"
+      ]
+    },
+    {
+      "id": "AC5",
+      "title": "Verification artifacts",
+      "status": "PASS",
+      "evidence": [
+        "spec.md",
+        "evidence.md",
+        "evidence.json",
+        "raw/"
+      ]
+    },
+    {
+      "id": "AC6",
+      "title": "Deploy",
+      "status": "PASS",
+      "evidence": [
+        "origin/master == HEAD == 43429f0891d6fa35eb099370a152a448ad6d7a65",
+        "https://wesetup.ru/api/build-info == 43429f0",
+        "pm2 status haccp-online == online"
+      ]
+    }
+  ]
+}

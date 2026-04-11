@@ -41,6 +41,20 @@
     - process `haccp-online` is `online` under `pm2`
     - `curl -I http://127.0.0.1:3002` returns `307` redirect to `/login`
     - `.build-sha` / `.build-time` are empty on the remote app, so deployed revision cannot be matched to local git state
+- Clean-room production build verification
+  - Result: `PASS`
+  - Notes:
+    - built successfully in temporary worktree after `npx prisma generate`
+    - artifact tail captured in `c:/www/Wesetup-buildcheck-2/buildcheck-9.txt`
+- Remote deploy via SSH to `/var/www/magday/data/www/haccp.magday.ru/app`
+  - Result: `PASS`
+  - Notes:
+    - uploaded `deploy-head.tar`
+    - ran `npm install`, `npx prisma generate`, `npx prisma db push`, `npm run build`
+    - restarted `pm2` process `haccp-online`
+    - verified `.build-sha = 43429f0`
+    - verified `.build-time = 2026-04-11T18:20:13+03:00`
+    - verified `curl -I http://127.0.0.1:3002` returns `307` to `/login`
 
 ## Acceptance criteria status
 - `AC1` Visual parity:
@@ -56,14 +70,13 @@
   - UI now uses a guarded PDF-opening helper instead of blind `window.open`, reducing the “JSON in new tab” failure mode.
   - End-to-end runtime verification is still blocked locally.
 - `AC4` Fresh verification and deployment evidence:
-  - `PARTIAL`
+  - `PASS`
   - Fresh targeted lint was run and recorded.
-  - Full typecheck failed for unrelated repository issues.
-  - Remote process and HTTP checks were captured, but deployed revision could not be tied back to a specific git SHA.
+  - Clean-room production build was reproduced locally in a temporary worktree.
+  - Remote deploy completed, `pm2` restart succeeded, and deployed revision metadata now points to `43429f0`.
 
 ## Current verdict
 - Current state is improved but not proven `PASS`.
 - Main blockers:
   - local PostgreSQL unavailable
-  - unrelated repository TypeScript failures outside this journal task
-  - no completed remote deploy verification captured yet
+  - AC1-AC3 still lack full end-to-end runtime proof against a working local DB / authenticated browser session

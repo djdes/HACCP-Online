@@ -1,0 +1,261 @@
+[
+  {
+    "dir": "01-item-docs-healthjournal-1",
+    "title": "Гигиенический журнал",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/healthjournal/"
+  },
+  {
+    "dir": "02-item-docs-health1journal-1",
+    "title": "Журнал здоровья",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/health1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/health1journal/"
+  },
+  {
+    "dir": "03-item-docs-storageconditionjournal-1",
+    "title": "Бланк контроля температуры и влажности",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/storageconditionjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/storageconditionjournal/"
+  },
+  {
+    "dir": "04-item-docs-temprefrigerationjournal-1",
+    "title": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/temprefrigerationjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/temprefrigerationjournal/"
+  },
+  {
+    "dir": "05-item-docs-sanitation1journal-1",
+    "title": "Чек-лист уборки и проветривания помещений",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/sanitation1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/sanitation1journal/"
+  },
+  {
+    "dir": "06-item-docs-cleaning1journal-1",
+    "title": "Журнал уборки",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/cleaning1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/cleaning1journal/"
+  },
+  {
+    "dir": "07-item-docs-sanitationdayjournal-1",
+    "title": "График и учет генеральных уборок",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/sanitationdayjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/sanitationdayjournal/"
+  },
+  {
+    "dir": "08-item-docs-bactericiplantjournal-1",
+    "title": "Журнал учета работы УФ бактерицидной установки",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/bactericiplantjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/bactericiplantjournal/"
+  },
+  {
+    "dir": "09-item-docs-brakeryjournal-1",
+    "title": "Журнал бракеража готовой пищевой продукции",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/brakeryjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/brakeryjournal/"
+  },
+  {
+    "dir": "10-item-docs-brakery1journal-1",
+    "title": "Журнал бракеража скоропортящейся пищевой продукции",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/brakery1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/brakery1journal/"
+  },
+  {
+    "dir": "11-item-docs-acceptance1journal-1",
+    "title": "Журнал приемки и входного контроля продукции",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/acceptance1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/acceptance1journal/"
+  },
+  {
+    "dir": "12-item-docs-deepfatjournal-1",
+    "title": "Журнал учета использования фритюрных жиров",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/deepfatjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/deepfatjournal/"
+  },
+  {
+    "dir": "13-item-docs-medbook-1",
+    "title": "Медицинские книжки",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/medbook/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/medbook/"
+  },
+  {
+    "dir": "14-item-docs-eduplan-1",
+    "title": "План обучения персонала",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/eduplan/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/eduplan/"
+  },
+  {
+    "dir": "15-item-docs-edujournal-1",
+    "title": "Журнал регистрации инструктажей (обучения) сотрудников",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/edujournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/edujournal/"
+  },
+  {
+    "dir": "16-item-docs-disinfectjournal-1",
+    "title": "Журнал учета дезинфицирующих средств",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/disinfectjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/disinfectjournal/"
+  },
+  {
+    "dir": "17-item-docs-sanitationdaycheklist-1",
+    "title": "Чек-лист (памятка) проведения санитарного дня",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/sanitationdaycheklist/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/sanitationdaycheklist/"
+  },
+  {
+    "dir": "18-item-docs-preventiveequipment-1",
+    "title": "График профилактического обслуживания оборудования",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/preventiveequipment/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/preventiveequipment/"
+  },
+  {
+    "dir": "19-item-docs-breakdownhistoryjournal-1",
+    "title": "Карточка истории поломок",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/breakdownhistoryjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/breakdownhistoryjournal/"
+  },
+  {
+    "dir": "20-item-docs-instrumentcalibration-1",
+    "title": "График поверки средств измерений",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/instrumentcalibration/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/instrumentcalibration/"
+  },
+  {
+    "dir": "21-item-docs-acceptance2journal-1",
+    "title": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/acceptance2journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/acceptance2journal/"
+  },
+  {
+    "dir": "22-item-docs-issuancesizjournal-1",
+    "title": "Журнал учета выдачи СИЗ",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/issuancesizjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/issuancesizjournal/"
+  },
+  {
+    "dir": "23-item-docs-accidentjournal-1",
+    "title": "Журнал учета аварий",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/accidentjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/accidentjournal/"
+  },
+  {
+    "dir": "24-item-docs-complaintjournal-1",
+    "title": "Журнал регистрации жалоб",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/complaintjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/complaintjournal/"
+  },
+  {
+    "dir": "25-item-docs-defectjournal-1",
+    "title": "Акт забраковки",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/defectjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/defectjournal/"
+  },
+  {
+    "dir": "26-item-docs-auditplan-1",
+    "title": "План-программа внутренних аудитов",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/auditplan/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/auditplan/"
+  },
+  {
+    "dir": "27-item-docs-auditprotocol-1",
+    "title": "Протокол внутреннего аудита",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/auditprotocol/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/auditprotocol/"
+  },
+  {
+    "dir": "28-item-docs-auditreport-1",
+    "title": "Отчет о внутреннем аудите",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/auditreport/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/auditreport/"
+  },
+  {
+    "dir": "29-item-docs-traceabilityjournal-1",
+    "title": "Журнал прослеживаемости продукции",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/traceabilityjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/traceabilityjournal/"
+  },
+  {
+    "dir": "30-item-docs-metalimpurityjournal-1",
+    "title": "Журнал учета металлопримесей в сырье",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/metalimpurityjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/metalimpurityjournal/"
+  },
+  {
+    "dir": "31-item-docs-equipcleanjournal-1",
+    "title": "Журнал мойки и дезинфекции оборудования",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/equipcleanjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/equipcleanjournal/"
+  },
+  {
+    "dir": "32-item-docs-intensivecoolingjournal-1",
+    "title": "Журнал контроля интенсивного охлаждения горячих блюд",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/intensivecoolingjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/intensivecoolingjournal/"
+  },
+  {
+    "dir": "33-item-docs-glasslist-1",
+    "title": "Перечень изделий из стекла и хрупкого пластика",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/glasslist/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/glasslist/"
+  },
+  {
+    "dir": "34-item-docs-glassjournal-1",
+    "title": "Журнал контроля изделий из стекла и хрупкого пластика",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/glassjournal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/glassjournal/"
+  },
+  {
+    "dir": "35-item-docs-deratization1journal-1",
+    "title": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/deratization1journal/1",
+    "capturedPages": 2,
+    "prefix": "https://lk.haccp-online.ru/docs/deratization1journal/"
+  },
+  {
+    "dir": "36-item-docs-articles",
+    "title": "Полезные статьи и материалы",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/articles/",
+    "capturedPages": 1,
+    "prefix": "https://lk.haccp-online.ru/docs/articles/"
+  },
+  {
+    "dir": "37-item-docs-news",
+    "title": "Новости сервиса и база знаний",
+    "sourceUrl": "https://lk.haccp-online.ru/docs/news/",
+    "capturedPages": 11,
+    "prefix": "https://lk.haccp-online.ru/docs/news/"
+  }
+]

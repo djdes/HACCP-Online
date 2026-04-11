@@ -1,0 +1,46 @@
+{
+  "taskId": "perishable-rejection-parity-2026-04-11",
+  "date": "2026-04-11",
+  "status": "partial_pass_with_blockers",
+  "checks": [
+    {
+      "name": "targeted_eslint",
+      "result": "pass",
+      "details": "0 errors, 3 warnings in src/lib/document-pdf.ts"
+    },
+    {
+      "name": "full_build",
+      "result": "pass",
+      "details": "One full npm run build completed successfully with compiled routes and no type errors"
+    },
+    {
+      "name": "local_db_runtime",
+      "result": "blocked",
+      "details": "Prisma ECONNREFUSED while attempting local seed/admin access"
+    },
+    {
+      "name": "detail_print_route",
+      "result": "pass",
+      "details": "Detail page print opens /api/journal-documents/${documentId}/pdf"
+    },
+    {
+      "name": "list_print_route",
+      "result": "pass",
+      "details": "List page print opens /api/journal-documents/${document.id}/pdf"
+    },
+    {
+      "name": "pdf_generator_branch",
+      "result": "pass",
+      "details": "document-pdf.ts contains dedicated perishable_rejection import, drawPerishableRejectionPdf, branch, and file prefix"
+    },
+    {
+      "name": "readonly_guards",
+      "result": "pass",
+      "details": "Detail page contains readOnly guards, disabled inputs, and closed-dialog enforcement for closed documents"
+    }
+  ],
+  "blockers": [
+    "Local database unavailable for browser/runtime verification",
+    "Dirty worktree with unrelated parallel changes prevents a safe task-only push from this checkout"
+  ]
+}

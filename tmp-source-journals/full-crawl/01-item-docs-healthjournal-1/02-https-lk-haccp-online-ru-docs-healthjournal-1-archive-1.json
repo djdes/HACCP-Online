@@ -1,0 +1,375 @@
+{
+  "url": "https://lk.haccp-online.ru/docs/healthjournal/1/?archive=1",
+  "title": "Гигиенический журнал | Haccp-Online: сервис электронных журналов",
+  "h1": "Гигиенический журнал (Закрытые!!!)",
+  "tables": 0,
+  "forms": 0,
+  "modals": 0,
+  "buttons": [
+    "ООО \"Тест\"",
+    "Сотрудники",
+    "Обратная связь",
+    "Сотрудники",
+    "Обратная связь",
+    "Настройки",
+    "Выход",
+    "Инструкция",
+    "Активные",
+    "Закрытые"
+  ],
+  "tablike": [],
+  "links": [
+    {
+      "text": "ООО \"Тест\"",
+      "href": "/docs/1/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Сотрудники",
+      "href": "/docs/position/1/"
+    },
+    {
+      "text": "Настройки",
+      "href": "/docs/settings/1/"
+    },
+    {
+      "text": "Выход",
+      "href": "/docs/logout/"
+    },
+    {
+      "text": "Активные",
+      "href": "/docs/healthjournal/1"
+    },
+    {
+      "text": "Закрытые",
+      "href": "/docs/healthjournal/1/?archive=1"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=6670"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=6991"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=7337"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=7696"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=8065"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=8441"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=8829"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=9222"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=9619"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=10042"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=10487"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=10944"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=11786"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=12206"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=12639"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=13096"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=13585"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=14059"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=14557"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=15108"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=15668"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=16226"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=16807"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=17403"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=18017"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=18653"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=19285"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=19922"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=20583"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=21257"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=21952"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=22677"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=23392"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=24114"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=24840"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=25560"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=26286"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=27031"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=27783"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=28551"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=29348"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=30139"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=30934"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=31479"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=31762"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=33192"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=34028"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=34903"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=35727"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=36576"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=37463"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=38361"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=39463"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=40348"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=41245"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=42159"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=43067"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=43983"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=44909"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=45851"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=46806"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=47788"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=48814"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=49849"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=50894"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=51930"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=52975"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=54021"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=55121"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=56243"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=57379"
+    },
+    {
+      "text": "Печать",
+      "href": "/docs/healthjournal/docprint/1/?id=58516"
+    },
+    {
+      "text": "Корпоративное решение",
+      "href": "https://haccp-online.ru/enterprise"
+    },
+    {
+      "text": "Частные разработки",
+      "href": "https://haccp-online.ru/private-idea"
+    },
+    {
+      "text": "",
+      "href": "https://t.me/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://vk.com/haccp_online"
+    },
+    {
+      "text": "",
+      "href": "https://api.whatsapp.com/send/?phone=79300353383&text&type=phone_number&app_absent=0"
+    },
+    {
+      "text": "",
+      "href": "tel:+79300353383"
+    },
+    {
+      "text": "",
+      "href": "mailto:info@haccp-online.ru"
+    }
+  ]
+}
