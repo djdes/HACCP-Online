@@ -713,6 +713,7 @@ export default async function JournalDocumentPage({
       const uvConfig = normalizeUvRuntimeDocumentConfig(document.config);
       return (
         <UvLampRuntimeDocumentClient
+          key={`${document.id}:${document.updatedAt.toISOString()}:${document.entries.length}:${document.status}:${document.dateFrom.toISOString()}:${document.dateTo.toISOString()}`}
           documentId={document.id}
           routeCode={code}
           title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}

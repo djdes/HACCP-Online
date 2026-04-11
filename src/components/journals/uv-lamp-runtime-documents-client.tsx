@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import { BookOpenText, Ellipsis, Pencil, Plus, Printer, RotateCcw, Trash2, X } from "lucide-react";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +93,11 @@ function UvRuntimeSettingsDialog(props: {
   async function handleSave() {
     if (!props.editing) return;
     setSubmitting(true);
-    const nextConfig = { ...props.editing.config, lampNumber: lampNumber.trim() || "1", areaName: areaName.trim() || "Журнал учета работы" };
+    const nextConfig = {
+      ...props.editing.config,
+      lampNumber: lampNumber.trim() || "1",
+      areaName: areaName.trim() || "Журнал учета работы",
+    };
 
     try {
       const response = await fetch(`/api/journal-documents/${props.editing.id}`, {
@@ -137,7 +141,7 @@ function UvRuntimeSettingsDialog(props: {
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[40px] font-semibold tracking-[-0.03em] text-black">
+          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
             Настройки документа
           </DialogTitle>
           <button
@@ -155,7 +159,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[30px] leading-none"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px] leading-none"
             />
           </div>
 
@@ -164,7 +168,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px]"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
             />
           </div>
 
@@ -174,23 +178,26 @@ function UvRuntimeSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[24px]"
+              className="h-14 rounded-2xl border-[#dfe1ec] px-4 text-[18px]"
             />
           </div>
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
             <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[24px]">
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="- Выберите значение -">- Выберите значение -</SelectItem>
                 {options.management.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[16px] font-semibold italic text-black">Руководство</SelectLabel>
+                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
                     {options.management.map((user) => (
-                      <SelectItem key={`title:${user.id}`} value={user.role === "technologist" ? "Управляющий" : "Руководитель"}>
+                      <SelectItem
+                        key={`title:${user.id}`}
+                        value={user.role === "technologist" ? "Управляющий" : "Руководитель"}
+                      >
                         {user.role === "technologist" ? "Управляющий" : "Руководитель"}
                       </SelectItem>
                     ))}
@@ -198,7 +205,7 @@ function UvRuntimeSettingsDialog(props: {
                 )}
                 {options.staff.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[16px] font-semibold italic text-black">Сотрудники</SelectLabel>
+                    <SelectLabel className="text-[14px] font-semibold italic text-black">Сотрудники</SelectLabel>
                     <SelectItem value="Шеф-повар">Шеф-повар</SelectItem>
                     <SelectItem value="Повар">Повар</SelectItem>
                     <SelectItem value="Официант">Официант</SelectItem>
@@ -211,7 +218,7 @@ function UvRuntimeSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[24px]">
+              <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -260,11 +267,30 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
     router.refresh();
   }
 
+  async function handleReactivate(documentId: string, title: string) {
+    if (!window.confirm(`Отправить документ "${title}" в активные?`)) return;
+
+    const response = await fetch(`/api/journal-documents/${documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "active" }),
+    });
+
+    if (!response.ok) {
+      window.alert("Не удалось вернуть документ в активные");
+      return;
+    }
+
+    router.refresh();
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[54px] font-semibold tracking-[-0.04em] text-black">
-          Журнал учета работы УФ бактерицидной установки
+          {props.activeTab === "closed"
+            ? "Журнал учета работы УФ бактерицидной установки (Закрытые!!!)"
+            : "Журнал учета работы УФ бактерицидной установки"}
         </h1>
         <div className="flex items-center gap-3">
           <Button
@@ -315,7 +341,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-6">
         {props.documents.length === 0 && (
           <div className="rounded-[16px] border border-[#eceef5] bg-white px-6 py-8 text-center text-[16px] text-[#7d8196]">
             Документов пока нет
@@ -326,46 +352,50 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
           const href = `/journals/${routeCode}/documents/${document.id}`;
           const config = normalizeUvRuntimeDocumentConfig(document.config);
           const resolvedTitle = document.title || buildUvRuntimeDocumentTitle(config);
+          const responsibleName = document.responsibleUserId
+            ? props.users.find((user) => user.id === document.responsibleUserId)?.name || ""
+            : "";
+          const responsibleLabel = document.responsibleTitle
+            ? `${document.responsibleTitle}${responsibleName ? `: ${responsibleName}` : ""}`
+            : ":";
 
           return (
             <div
               key={document.id}
-              className="grid grid-cols-[minmax(0,1.7fr)_220px_180px_40px] items-start gap-0 rounded-[16px] border border-[#eef0f6] bg-white px-3 py-4"
+              className="grid grid-cols-[minmax(0,1.9fr)_320px_220px_56px] items-stretch rounded-[18px] border border-[#e8ebf3] bg-white px-6 py-6 shadow-[0_2px_10px_rgba(46,55,89,0.04)]"
             >
-              <Link href={href} className="px-2 text-[14px] font-semibold leading-5 text-black">
+              <Link href={href} className="flex items-center pr-6 text-[28px] font-semibold leading-[1.25] tracking-[-0.03em] text-black">
                 {resolvedTitle}
               </Link>
 
-              <Link href={href} className="border-l border-[#edf0f7] px-6">
-                <div className="text-[11px] text-[#979aab]">Ответственный</div>
-                <div className="mt-1 text-[12px] font-semibold text-black">
-                  {document.responsibleTitle
-                    ? `${document.responsibleTitle}: ${document.responsibleUserId ? (props.users.find((u) => u.id === document.responsibleUserId)?.name || "") : ""}`
-                    : "—"}
+              <Link href={href} className="flex flex-col justify-center border-l border-[#e7eaf2] px-8">
+                <div className="text-[16px] text-[#8b8fa3]">Ответственный</div>
+                <div className="mt-3 text-[18px] font-semibold leading-[1.3] text-black">
+                  {responsibleLabel}
                 </div>
               </Link>
 
-              <Link href={href} className="border-l border-[#edf0f7] px-6">
-                <div className="text-[11px] text-[#979aab]">Дата начала</div>
-                <div className="mt-1 text-[12px] font-semibold text-black">
+              <Link href={href} className="flex flex-col justify-center border-l border-[#e7eaf2] px-8">
+                <div className="text-[16px] text-[#8b8fa3]">Дата начала</div>
+                <div className="mt-3 text-[18px] font-semibold text-black">
                   {formatRuDateDash(document.dateFrom)}
                 </div>
               </Link>
 
-              <div className="flex justify-center">
+              <div className="flex items-center justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="flex size-8 items-center justify-center rounded-full text-[#5b66ff] hover:bg-[#f5f6ff]"
+                      className="flex size-11 items-center justify-center rounded-full text-[#5b66ff] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[206px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg">
+                  <DropdownMenuContent align="end" className="w-[260px] rounded-[20px] border border-[#eceef5] p-3 shadow-lg">
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px]"
+                        className="h-14 rounded-xl px-4 text-[18px]"
                         onSelect={() =>
                           setEditing({
                             id: document.id,
@@ -382,15 +412,24 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="h-11 rounded-lg px-3 text-[14px]"
+                      className="h-14 rounded-xl px-4 text-[18px]"
                       onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
                     >
                       <Printer className="mr-2 size-4 text-[#6f7282]" />
                       Печать
                     </DropdownMenuItem>
+                    {document.status === "closed" && (
+                      <DropdownMenuItem
+                        className="h-14 rounded-xl px-4 text-[18px]"
+                        onSelect={() => handleReactivate(document.id, resolvedTitle)}
+                      >
+                        <RotateCcw className="mr-2 size-4 text-[#6f7282]" />
+                        Отправить в активные
+                      </DropdownMenuItem>
+                    )}
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-14 rounded-xl px-4 text-[18px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => handleDelete(document.id, resolvedTitle)}
                       >
                         <Trash2 className="mr-2 size-4 text-[#ff3b30]" />

@@ -80,6 +80,10 @@ type GridRow = {
   data: UvRuntimeEntryData;
 };
 
+function isDateInRange(date: string, from: string, to: string) {
+  return date >= from && date <= to;
+}
+
 function entryToRow(entry: EntryItem): GridRow {
   return {
     id: entry.id,
@@ -100,7 +104,10 @@ function buildRows(params: {
   const effectiveTo = params.status === "closed" ? params.dateTo : today;
   const days = buildDailyRange(params.dateFrom, effectiveTo);
 
-  const byDate = new Map(params.initialEntries.map((entry) => [entry.date, entry]));
+  const visibleEntries = params.initialEntries.filter((entry) =>
+    isDateInRange(entry.date, params.dateFrom, effectiveTo)
+  );
+  const byDate = new Map(visibleEntries.map((entry) => [entry.date, entry]));
   return days.map((day, index) => {
     const existing = byDate.get(day);
     if (existing) {
@@ -833,7 +840,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     return calculateMonthlyHours(entriesWithData, config.spec.lampLifetimeHours);
   }, [rows, config.spec.lampLifetimeHours]);
 
-  const saveRow = useCallback(async (row: GridRow) => {
+  const saveRow = useCallback(async (
+    row: GridRow,
+    previous?: { id: string; employeeId: string }
+  ) => {
     const response = await fetch(`/api/journal-documents/${props.documentId}/entries`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -847,6 +857,19 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) {
       throw new Error("save_row_failed");
+    }
+
+    if (
+      previous &&
+      !previous.id.startsWith("virtual:") &&
+      previous.employeeId &&
+      previous.employeeId !== (row.employeeId || fallbackEmployeeId)
+    ) {
+      await fetch(`/api/journal-documents/${props.documentId}/entries`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [previous.id] }),
+      });
     }
 
     const saved: GridRow = {
@@ -1007,7 +1030,14 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
       <div className="flex items-center justify-between print:hidden">
         <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">Журнал учета работы</h1>
-        <Link href="/sanpin" className="text-[14px] text-[#5b66ff] hover:underline">
+        <Link
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            setSettingsOpen(true);
+          }}
+          className="text-[14px] text-[#5b66ff] hover:underline"
+        >
           Настроить журналы
         </Link>
       </div>
@@ -1199,7 +1229,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                             current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
                           );
                           const updated = { ...row, employeeId: value };
-                          saveRow(updated).catch(() => window.alert("Не удалось сохранить строку"));
+                          saveRow(updated, { id: row.id, employeeId: row.employeeId }).catch(() =>
+                            window.alert("Не удалось сохранить строку")
+                          );
+                          return;
                         }}
                       >
                         <SelectTrigger className="h-9 rounded-md border-[#dfe1ec] text-[13px]">
@@ -1241,7 +1274,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           type="button"
           variant="outline"
           className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
-          onClick={() => window.print()}
+          onClick={() => window.open(`/api/journal-documents/${props.documentId}/pdf`, "_blank")}
         >
           <Printer className="mr-1 size-4" />
           Печать

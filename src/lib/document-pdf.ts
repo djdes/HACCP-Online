@@ -2919,6 +2919,29 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
   });
 }
 
+function buildVisibleUvRuntimeEntries(
+  entries: Array<{ employeeId: string; date: Date | string; data: Record<string, unknown> }>,
+  dateFrom: Date,
+  dateTo: Date
+) {
+  const fromKey = toDateKey(dateFrom);
+  const toKey = toDateKey(dateTo);
+  const byDate = new Map<string, { employeeId: string; date: Date | string; data: Record<string, unknown> }>();
+
+  for (const entry of entries) {
+    const dateKey = entry.date instanceof Date ? toDateKey(entry.date) : String(entry.date).slice(0, 10);
+    if (dateKey < fromKey || dateKey > toKey) {
+      continue;
+    }
+
+    byDate.set(dateKey, entry);
+  }
+
+  return [...byDate.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, entry]) => entry);
+}
+
 function drawRegisterPdf(doc: jsPDF, params: {
   organizationName: string;
   title: string;
@@ -3740,17 +3763,23 @@ export async function generateJournalDocumentPdf(params: {
       })),
     });
   } else if (templateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
+    const uvVisibleEntries = buildVisibleUvRuntimeEntries(
+      document.entries.map((entry) => ({
+        employeeId: entry.employeeId,
+        date: entry.date,
+        data: (entry.data as Record<string, unknown>) || {},
+      })),
+      document.dateFrom,
+      document.dateTo
+    );
+
     drawUvRuntimePdf(doc, {
       organizationName,
       title: document.title || getTrackedDocumentTitle(templateCode),
       dateFrom: document.dateFrom,
       dateTo: document.dateTo,
       config: uvRuntimeConfig,
-      entries: document.entries.map((entry) => ({
-        employeeId: entry.employeeId,
-        date: entry.date,
-        data: (entry.data as Record<string, unknown>) || {},
-      })),
+      entries: uvVisibleEntries,
       users,
     });
   } else if (templateCode === PEST_CONTROL_TEMPLATE_CODE) {
