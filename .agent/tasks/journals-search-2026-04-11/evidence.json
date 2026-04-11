@@ -1,0 +1,64 @@
+{
+  "task_id": "journals-search-2026-04-11",
+  "status": "PASS",
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": [
+        "src/app/(dashboard)/journals/page.tsx",
+        "src/components/journals/journals-browser.tsx"
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/journals-browser.tsx"
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/journals-browser.tsx",
+        ".agent/tasks/journals-search-2026-04-11/raw/verification-markers.txt"
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": [
+        "src/components/journals/journals-browser.tsx"
+      ]
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": [
+        ".agent/tasks/journals-search-2026-04-11/raw/eslint-targeted.txt",
+        ".agent/tasks/journals-search-2026-04-11/evidence.md"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "targeted eslint",
+      "status": "PASS",
+      "artifact": ".agent/tasks/journals-search-2026-04-11/raw/eslint-targeted.txt"
+    },
+    {
+      "name": "verification markers",
+      "status": "PASS",
+      "artifact": ".agent/tasks/journals-search-2026-04-11/raw/verification-markers.txt"
+    },
+    {
+      "name": "git diff capture",
+      "status": "PASS",
+      "artifact": ".agent/tasks/journals-search-2026-04-11/raw/git-diff.txt"
+    }
+  ],
+  "limitations": [
+    "Full `npm run lint` did not complete within a 5-minute local timeout, so verification used targeted eslint for the changed files."
+  ]
+}

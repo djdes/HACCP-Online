@@ -1,0 +1,4 @@
+Search field: PASS
+Filter by name/description/code: PASS
+Count and empty state: PASS
+Clear restores list: PASS

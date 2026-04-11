@@ -1,0 +1,198 @@
+--- src/app/(dashboard)/journals/page.tsx
+import { JournalsBrowser } from "@/components/journals/journals-browser";
+import { db } from "@/lib/db";
+
+export default async function JournalsPage() {
+  const templates = await db.journalTemplate.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  return <JournalsBrowser templates={templates} />;
+}
+
+--- src/components/journals/journals-browser.tsx
+"use client";
+
+import Link from "next/link";
+import { useDeferredValue, useState } from "react";
+import { Search, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+type JournalTemplateListItem = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  isMandatorySanpin: boolean;
+  isMandatoryHaccp: boolean;
+};
+
+type JournalsBrowserProps = {
+  templates: JournalTemplateListItem[];
+};
+
+function normalizeSearchValue(value: string) {
+  return value.toLocaleLowerCase("ru-RU").trim();
+}
+
+export function JournalsBrowser({ templates }: JournalsBrowserProps) {
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = normalizeSearchValue(deferredQuery);
+
+  const filteredTemplates = normalizedQuery
+    ? templates.filter((template) => {
+        const searchableText = normalizeSearchValue(
+          [template.name, template.description, template.code].filter(Boolean).join(" ")
+        );
+
+        return searchableText.includes(normalizedQuery);
+      })
+    : templates;
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div>
+          <h1 className="text-2xl font-bold">Журналы</h1>
+          <p className="text-sm text-muted-foreground">
+            Найдите журнал по названию, описанию или коду.
+          </p>
+        </div>
+
+        <div className="relative max-w-xl">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Поиск по журналам"
+            aria-label="Поиск по журналам"
+            className="h-11 rounded-xl pl-9 pr-11"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Очистить поиск"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </div>
+
+        {normalizedQuery ? (
+          <p className="text-sm text-muted-foreground">
+            Найдено: {filteredTemplates.length} из {templates.length}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Всего журналов: {templates.length}
+          </p>
+        )}
+      </div>
+
+      {filteredTemplates.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-card px-6 py-10 text-center">
+          <p className="text-base font-medium">Ничего не найдено</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Попробуйте изменить запрос или очистить поиск.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredTemplates.map((template) => (
+            <Link key={template.id} href={`/journals/${template.code}`}>
+              <Card className="h-full cursor-pointer rounded-2xl transition-shadow hover:shadow-md">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base">{template.name}</CardTitle>
+                    <div className="flex shrink-0 gap-1">
+                      {template.isMandatorySanpin ? (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                        >
+                          <ShieldCheck className="mr-0.5 size-3" />
+                          СанПиН
+                        </Badge>
+                      ) : null}
+                      {template.isMandatoryHaccp ? (
+                        <Badge
+                          variant="default"
+                          className="h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                        >
+                          <ShieldAlert className="mr-0.5 size-3" />
+                          ХАССП
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+                  {template.description ? (
+                    <CardDescription>{template.description}</CardDescription>
+                  ) : null}
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+--- .agent/tasks/journals-search-2026-04-11/spec.md
+# Task Spec: journals-search-2026-04-11
+
+## Metadata
+- Task ID: journals-search-2026-04-11
+- Created: 2026-04-11
+- Repo root: C:\www\Wesetup.ru
+
+## Guidance sources
+- AGENTS.md
+- CLAUDE.md
+- src/app/(dashboard)/journals/page.tsx
+- src/components/ui/input.tsx
+
+## Original task statement
+Add a convenient search on the journals tab because there are many journals and it is hard to find the needed one.
+
+## Current repo findings
+- `src/app/(dashboard)/journals/page.tsx` renders all active journal templates as a static grid of cards.
+- There is no filtering, quick navigation, or empty state for large journal catalogs.
+- The project already has a shared `Input` component suitable for a lightweight client-side search UI.
+
+## Acceptance criteria
+- AC1: The journals page shows a visible search field above the card grid without removing the existing journal cards or badges.
+- AC2: Typing in the search field filters journals immediately on the client by journal name, description, and code, case-insensitively.
+- AC3: The page shows helpful feedback for large catalogs: result count when a query is active and a clear empty state when nothing matches.
+- AC4: Clearing the query restores the full journal list without a reload and keeps navigation to journal pages working.
+- AC5: The implementation stays consistent with the existing dashboard UI and passes fresh verification on the current codebase.
+
+## Constraints
+- Freeze spec only in this step; no implementation changes beyond this file.
+- Keep the change scoped to the journals catalog page and directly related presentation components.
+- Reuse existing UI primitives and avoid introducing server/API changes unless required.
+
+## Non-goals
+- Adding backend full-text search.
+- Changing journal detail pages.
+- Reordering or redesigning the rest of the dashboard.
+
+## Verification plan
+- `npm run lint`
+- Targeted code inspection for search behavior, empty state, and preserved links
+
+## Key risks
+- Moving a server-rendered page to a mixed server/client structure must preserve the existing template data and links.
+- Search should remain responsive and predictable with Russian text and optional descriptions.
+
