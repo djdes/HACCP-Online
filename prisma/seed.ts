@@ -53,8 +53,8 @@ const journalTemplates = [
   },
   {
     code: "incoming_raw_materials_control",
-    name: "Р–СѓСЂРЅР°Р» РІС…РѕРґРЅРѕРіРѕ РєРѕРЅС‚СЂРѕР»СЏ СЃС‹СЂСЊСЏ, РёРЅРіСЂРµРґРёРµРЅС‚РѕРІ, СѓРїР°РєРѕРІРѕС‡РЅС‹С… РјР°С‚РµСЂРёР°Р»РѕРІ",
-    description: "Р–СѓСЂРЅР°Р» РІС…РѕРґРЅРѕРіРѕ РєРѕРЅС‚СЂРѕР»СЏ СЃС‹СЂСЊСЏ, РёРЅРіСЂРµРґРёРµРЅС‚РѕРІ, СѓРїР°РєРѕРІРѕС‡РЅС‹С… РјР°С‚РµСЂРёР°Р»РѕРІ",
+    name: "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    description: "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
     sortOrder: 3,
     isMandatorySanpin: true,
     isMandatoryHaccp: true,
@@ -523,8 +523,8 @@ const journalTemplates = [
 const documentOnlyJournalTemplates = [
   {
     code: "cleaning_ventilation_checklist",
-    name: "Р§РµРє-Р»РёСЃС‚ СѓР±РѕСЂРєРё Рё РїСЂРѕРІРµС‚СЂРёРІР°РЅРёСЏ РїРѕРјРµС‰РµРЅРёР№",
-    description: "Р§РµРє-Р»РёСЃС‚ СѓР±РѕСЂРєРё Рё РїСЂРѕРІРµС‚СЂРёРІР°РЅРёСЏ РїРѕРјРµС‰РµРЅРёР№",
+    name: "Чек-лист уборки и проветривания помещений",
+    description: "Чек-лист уборки и проветривания помещений",
     sortOrder: 29,
     isMandatorySanpin: true,
     isMandatoryHaccp: false,

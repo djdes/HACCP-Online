@@ -704,7 +704,7 @@ export function CleaningDocumentsClient(props: Props) {
                         ) : (
                           <ArchiveRestore className="mr-4 size-6 text-[#6f7282]" />
                         )}
-                        {document.status === "active" ? "Р—Р°РєСЂС‹С‚СЊ" : "Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ"}
+                        {document.status === "active" ? "Закрыть" : "Восстановить"}
                       </DropdownMenuItem>
                       {document.status === "active" ? (
                         <DropdownMenuItem

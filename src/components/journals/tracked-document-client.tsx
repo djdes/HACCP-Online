@@ -162,7 +162,7 @@ function TrackedDocumentClientImpl({
 
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) {
-      throw new Error(result?.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЃС‚СЂРѕРєСѓ");
+      throw new Error(result?.error || "Не удалось сохранить строку");
     }
 
     setEntries((current) => {
@@ -189,7 +189,7 @@ function TrackedDocumentClientImpl({
 
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.entry) {
-        throw new Error(result?.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ СЃС‚СЂРѕРєСѓ");
+        throw new Error(result?.error || "Не удалось добавить строку");
       }
 
       setEntries((current) =>
@@ -246,7 +246,7 @@ function TrackedDocumentClientImpl({
 
     const result = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(result?.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё");
+      throw new Error(result?.error || "Не удалось сохранить настройки");
     }
 
     setSettingsOpen(false);
@@ -254,7 +254,7 @@ function TrackedDocumentClientImpl({
   }
 
   async function removeEntry(entryId: string) {
-    if (!window.confirm("РЈРґР°Р»РёС‚СЊ СЃС‚СЂРѕРєСѓ?")) return;
+    if (!window.confirm("Удалить строку?")) return;
 
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
       method: "DELETE",
@@ -263,7 +263,7 @@ function TrackedDocumentClientImpl({
     });
 
     if (!response.ok) {
-      window.alert("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ СЃС‚СЂРѕРєСѓ");
+      window.alert("Не удалось удалить строку");
       return;
     }
 
@@ -273,7 +273,7 @@ function TrackedDocumentClientImpl({
 
   async function removeSelectedEntries() {
     if (selectedRowIds.length === 0) return;
-    if (!window.confirm("РЈРґР°Р»РёС‚СЊ РІС‹Р±СЂР°РЅРЅС‹Рµ СЃС‚СЂРѕРєРё?")) return;
+    if (!window.confirm("Удалить выбранные строки?")) return;
 
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
       method: "DELETE",
@@ -282,7 +282,7 @@ function TrackedDocumentClientImpl({
     });
 
     if (!response.ok) {
-      window.alert("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ СЃС‚СЂРѕРєРё");
+      window.alert("Не удалось удалить строки");
       return;
     }
 
@@ -300,7 +300,7 @@ function TrackedDocumentClientImpl({
               {title}
             </h1>
             <div className="mt-2 text-[16px] text-[#84849a]">
-              РџРµСЂРёРѕРґ: {formatDateLabel(dateFrom)} - {formatDateLabel(dateTo)}
+              Период: {formatDateLabel(dateFrom)} - {formatDateLabel(dateTo)}
             </div>
           </div>
 
@@ -314,7 +314,7 @@ function TrackedDocumentClientImpl({
                     className="h-12 rounded-2xl bg-[#5b66ff] px-5 text-[16px] text-white hover:bg-[#4d58f5]"
                   >
                     <Plus className="size-5" />
-                    Р”РѕР±Р°РІРёС‚СЊ
+                    Добавить
                     <ChevronDown className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -326,19 +326,19 @@ function TrackedDocumentClientImpl({
                     className="h-12 rounded-xl px-3 text-[15px] text-[#5464ff]"
                     onSelect={() => setAddRowOpen(true)}
                   >
-                    Р”РѕР±Р°РІРёС‚СЊ СЃС‚СЂРѕРєСѓ
+                    Добавить строку
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="h-12 rounded-xl px-3 text-[15px] text-[#5464ff]"
                     onSelect={() => {
                       fillForToday().catch((error) =>
                         window.alert(
-                          error instanceof Error ? error.message : "РћС€РёР±РєР° Р°РІС‚РѕР·Р°РїРѕР»РЅРµРЅРёСЏ"
+                          error instanceof Error ? error.message : "Ошибка автозаполнения"
                         )
                       );
                     }}
                   >
-                    Р—Р°РїРѕР»РЅРёС‚СЊ Р·Р° СЃРµРіРѕРґРЅСЏ
+                    Заполнить за сегодня
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -367,7 +367,7 @@ function TrackedDocumentClientImpl({
               className="h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none"
             >
               <Settings2 className="size-5" />
-              РќР°СЃС‚СЂРѕР№РєРё
+              Настройки
             </Button>
 
             <Button
@@ -379,7 +379,7 @@ function TrackedDocumentClientImpl({
               className="h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none"
             >
               <Printer className="size-5" />
-              РџРµС‡Р°С‚СЊ
+              Печать
             </Button>
           </div>
         </div>
@@ -404,7 +404,7 @@ function TrackedDocumentClientImpl({
                 Р”Р°С‚Р°
               </th>
               <th className="border border-[#eceef5] px-4 py-3 text-left font-medium text-[#5b6075]">
-                РЎРѕС‚СЂСѓРґРЅРёРє
+                Сотрудник
               </th>
               {fields.map((field) => (
                 <th
@@ -416,7 +416,7 @@ function TrackedDocumentClientImpl({
               ))}
               {status === "active" && (
                 <th className="border border-[#eceef5] px-4 py-3 text-center font-medium text-[#5b6075]">
-                  Р”РµР№СЃС‚РІРёСЏ
+                  Действия
                 </th>
               )}
             </tr>
@@ -452,7 +452,7 @@ function TrackedDocumentClientImpl({
                           date: event.target.value,
                         }).catch((error) =>
                           window.alert(
-                            error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ"
+                            error instanceof Error ? error.message : "Ошибка сохранения"
                           )
                         )
                       }
@@ -471,13 +471,13 @@ function TrackedDocumentClientImpl({
                       onValueChange={(value) => {
                         saveEntry({ ...entry, employeeId: value }).catch((error) =>
                           window.alert(
-                            error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ"
+                            error instanceof Error ? error.message : "Ошибка сохранения"
                           )
                         );
                       }}
                     >
                       <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec]">
-                        <SelectValue placeholder="РЎРѕС‚СЂСѓРґРЅРёРє" />
+                        <SelectValue placeholder="Сотрудник" />
                       </SelectTrigger>
                       <SelectContent>
                         {employees.map((employee) => (
@@ -520,7 +520,7 @@ function TrackedDocumentClientImpl({
                                 },
                               }).catch((error) =>
                                 window.alert(
-                                  error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ"
+                                  error instanceof Error ? error.message : "Ошибка сохранения"
                                 )
                               );
                             }}
@@ -538,13 +538,13 @@ function TrackedDocumentClientImpl({
                               },
                             }).catch((error) =>
                               window.alert(
-                                error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ"
+                                error instanceof Error ? error.message : "Ошибка сохранения"
                               )
                             );
                           }}
                         >
                           <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec]">
-                            <SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ" />
+                            <SelectValue placeholder="Выберите значение" />
                           </SelectTrigger>
                           <SelectContent>
                             {field.options.map((option) => (
@@ -574,7 +574,7 @@ function TrackedDocumentClientImpl({
                               },
                             }).catch((error) =>
                               window.alert(
-                                error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ"
+                                error instanceof Error ? error.message : "Ошибка сохранения"
                               )
                             )
                           }
@@ -593,7 +593,7 @@ function TrackedDocumentClientImpl({
                       className="h-10 rounded-xl border-[#ffd7d3] px-3 text-[#ff3b30] hover:bg-[#fff3f2]"
                     >
                       <Trash2 className="size-4" />
-                      РЈРґР°Р»РёС‚СЊ
+                      Удалить
                     </Button>
                   </td>
                 )}
@@ -606,7 +606,7 @@ function TrackedDocumentClientImpl({
                   colSpan={status === "active" ? fields.length + 4 : fields.length + 2}
                   className="border border-[#eceef5] p-8 text-center text-[16px] text-[#7d8196]"
                 >
-                  РџРѕРєР° РЅРµС‚ СЃС‚СЂРѕРє. Р”РѕР±Р°РІСЊС‚Рµ РїРµСЂРІСѓСЋ Р·Р°РїРёСЃСЊ.
+                  Пока нет строк. Добавьте первую запись.
                 </td>
               </tr>
             )}
@@ -618,7 +618,7 @@ function TrackedDocumentClientImpl({
         <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-12 py-10">
             <DialogTitle className="text-[32px] font-medium text-black">
-              Р”РѕР±Р°РІРёС‚СЊ СЃС‚СЂРѕРєСѓ
+              Добавить строку
             </DialogTitle>
           </DialogHeader>
 
@@ -634,10 +634,10 @@ function TrackedDocumentClientImpl({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">РЎРѕС‚СЂСѓРґРЅРёРє</Label>
+              <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
               <Select value={newEmployeeId} onValueChange={setNewEmployeeId}>
                 <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
-                  <SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ СЃРѕС‚СЂСѓРґРЅРёРєР°" />
+                  <SelectValue placeholder="Выберите сотрудника" />
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((employee) => (
@@ -655,14 +655,14 @@ function TrackedDocumentClientImpl({
                 onClick={() =>
                   createEntry(newEmployeeId, newDate).catch((error) =>
                     window.alert(
-                      error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ СЃС‚СЂРѕРєРё"
+                      error instanceof Error ? error.message : "Ошибка создания строки"
                     )
                   )
                 }
                 disabled={isCreating || !newDate || !newEmployeeId}
                 className="h-14 rounded-2xl bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
               >
-                {isCreating ? "РЎРѕР·РґР°РЅРёРµ..." : "РЎРѕР·РґР°С‚СЊ"}
+                {isCreating ? "Создание..." : "Создать"}
               </Button>
             </div>
           </div>
@@ -673,14 +673,14 @@ function TrackedDocumentClientImpl({
         <DialogContent className="max-w-[860px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-14 py-12">
             <DialogTitle className="text-[32px] font-medium text-black">
-              РќР°СЃС‚СЂРѕР№РєРё Р¶СѓСЂРЅР°Р»Р°
+              Настройки журнала
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-8 px-14 py-12">
             <div className="space-y-3">
               <Label htmlFor="journal-title" className="text-[18px] text-[#73738a]">
-                РќР°Р·РІР°РЅРёРµ Р¶СѓСЂРЅР°Р»Р°
+                Название журнала
               </Label>
               <Input
                 id="journal-title"
@@ -730,13 +730,13 @@ function TrackedDocumentClientImpl({
                 onClick={() =>
                   saveSettings().catch((error) =>
                     window.alert(
-                      error instanceof Error ? error.message : "РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ РЅР°СЃС‚СЂРѕРµРє"
+                      error instanceof Error ? error.message : "Ошибка сохранения настроек"
                     )
                   )
                 }
                 className="h-14 rounded-2xl bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
               >
-                РЎРѕС…СЂР°РЅРёС‚СЊ
+                Сохранить
               </Button>
             </div>
           </div>

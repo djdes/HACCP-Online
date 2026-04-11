@@ -5,7 +5,7 @@ export const SANITARY_DAY_CHECKLIST_TITLE =
   "Чек-лист (памятка) проведения санитарного дня";
 
 export const CLEANING_VENTILATION_CHECKLIST_TITLE =
-  "Р§РµРє-Р»РёСЃС‚ СѓР±РѕСЂРєРё Рё РїСЂРѕРІРµС‚СЂРёРІР°РЅРёСЏ РїРѕРјРµС‰РµРЅРёР№";
+  "Чек-лист уборки и проветривания помещений";
 
 export const SANITARY_DAY_CHECKLIST_TEMPLATE_CODES = [
   SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,

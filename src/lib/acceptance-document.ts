@@ -8,9 +8,9 @@ export const ACCEPTANCE_PAGE_TITLE =
 export const ACCEPTANCE_DOCUMENT_TITLE = "Журнал входного контроля сырья";
 
 export const PRODUCT_ACCEPTANCE_PAGE_TITLE =
-  "Р–СѓСЂРЅР°Р» РїСЂРёРµРјРєРё Рё РІС…РѕРґРЅРѕРіРѕ РєРѕРЅС‚СЂРѕР»СЏ РїСЂРѕРґСѓРєС†РёРё";
+  "Журнал приемки и входного контроля продукции";
 export const PRODUCT_ACCEPTANCE_DOCUMENT_TITLE =
-  "Р–СѓСЂРЅР°Р» РїСЂРёРµРјРєРё Рё РІС…РѕРґРЅРѕРіРѕ РєРѕРЅС‚СЂРѕР»СЏ РїСЂРѕРґСѓРєС†РёРё";
+  "Журнал приемки и входного контроля продукции";
 
 export const ACCEPTANCE_DOCUMENT_TEMPLATE_CODES = [
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,

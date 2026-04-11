@@ -41,6 +41,7 @@ import {
   createAcceptanceRow,
   normalizeAcceptanceDocumentConfig,
   formatAcceptanceDateDash,
+  getAcceptancePageTitle,
   getExpiryFieldDisplayLabel,
   TRANSPORT_LABELS,
   COMPLIANCE_LABELS,
@@ -66,9 +67,6 @@ type Props = {
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
-const ACCEPTANCE_PAGE_TITLE =
-  "Журнал входного контроля сырья, ингредиентов, упаковочных материалов";
-
 function getResponsibleLabel(row: AcceptanceRow, users: User[]) {
   const user = users.find((u) => u.id === row.responsibleUserId);
   return user?.name || "";
@@ -1264,6 +1262,8 @@ export function AcceptanceDocumentClient(props: Props) {
   }
 
   const organizationLabel = props.organizationName || 'ООО "Тест"';
+  const routeCode = props.routeCode;
+  const pageTitle = getAcceptancePageTitle(routeCode);
 
   return (
     <div className="bg-white text-black">
@@ -1289,7 +1289,7 @@ export function AcceptanceDocumentClient(props: Props) {
         <div className="text-[13px] text-[#7c7c93]">
           <Link href="/journals" className="hover:underline">{organizationLabel}</Link>
           {" > "}
-          <Link href="/journals/incoming_control" className="hover:underline">Журнал входного контроля сырья, ингредиентов, упаковочных материалов</Link>
+          <Link href={`/journals/${routeCode}`} className="hover:underline">{pageTitle}</Link>
           {" > "}
           <span>{title}</span>
         </div>

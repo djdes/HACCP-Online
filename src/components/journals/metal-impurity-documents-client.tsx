@@ -405,7 +405,7 @@ export function MetalImpurityDocumentsClient({
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
             {activeTab === "closed"
-              ? `${METAL_IMPURITY_PAGE_TITLE} (Закрытые!!!)`
+              ? `${METAL_IMPURITY_PAGE_TITLE} (Закрытые)`
               : METAL_IMPURITY_PAGE_TITLE}
           </h1>
           <div className="flex items-center gap-3">

@@ -31,9 +31,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getSanitaryDayChecklistTitle } from "@/lib/sanitary-day-checklist-document";
 
-const CHECKLIST_HEADING = "Чек-лист (памятка) проведения санитарного дня";
-const CHECKLIST_DOCUMENT_TITLE = "Чек-лист (памятка) проведения санитарного дня";
-
 type DocumentItem = {
   id: string;
   title: string;
@@ -66,7 +63,7 @@ function getDefaultDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function toUiState(document: DocumentItem): SettingsState {
+function toUiState(document: DocumentItem, fallbackTitle: string): SettingsState {
   const cfg = document.config ?? {};
   const documentDate =
     typeof cfg.documentDate === "string" && cfg.documentDate
@@ -75,7 +72,7 @@ function toUiState(document: DocumentItem): SettingsState {
         ? toIsoDate(document.dateFrom)
         : getDefaultDate();
   return {
-    title: document.title || CHECKLIST_DOCUMENT_TITLE,
+    title: document.title || fallbackTitle,
     documentDate,
   };
 }
@@ -534,7 +531,7 @@ export function SanitaryDayChecklistDocumentsClient({
         onOpenChange={(value) => {
           if (!value) setSettingsTarget(null);
         }}
-        initial={settingsTarget ? toUiState(settingsTarget) : null}
+        initial={settingsTarget ? toUiState(settingsTarget, checklistTitle) : null}
         onSubmit={async (value) => {
           if (!settingsTarget) return;
           await saveSettings(settingsTarget.id, value);

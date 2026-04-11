@@ -59,6 +59,7 @@ type EntryItem = {
 
 type Props = {
   documentId: string;
+  routeCode: string;
   title: string;
   organizationName: string;
   status: string;
@@ -822,13 +823,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   );
 
   const userMap = useMemo(() => Object.fromEntries(props.users.map((user) => [user.id, user.name])), [props.users]);
-  const responsibleName = props.responsibleUserId ? userMap[props.responsibleUserId] || "—" : "—";
 
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
-
-  useEffect(() => {
-    setAutoFill(props.autoFill === true);
-  }, [props.autoFill]);
 
   const monthlyData = useMemo(() => {
     const entriesWithData = rows
@@ -1002,7 +998,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     <div className="space-y-4">
       {/* Breadcrumb */}
       <div className="text-[13px] text-[#7c7c93] print:hidden">
-        <Link href={`/journals/uv`} className="hover:underline">
+        <Link href={`/journals/${props.routeCode}`} className="hover:underline">
           Журнал учета работы УФ бактерицидной установки
         </Link>
         {" › "}

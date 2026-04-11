@@ -714,6 +714,7 @@ export default async function JournalDocumentPage({
       return (
         <UvLampRuntimeDocumentClient
           documentId={document.id}
+          routeCode={code}
           title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}
           organizationName={organization?.name || 'ООО "Тест"'}
           status={document.status}

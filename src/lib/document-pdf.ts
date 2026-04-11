@@ -1683,7 +1683,7 @@ function drawGlassListPdf(doc: jsPDF, params: {
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(22);
-  doc.text(params.title || "РџРµСЂРµС‡РµРЅСЊ РёР·РґРµР»РёР№", 14, 18);
+  doc.text(params.title || "Перечень изделий", 14, 18);
 
   const x = 42;
   const y = 34;
@@ -1720,10 +1720,10 @@ function drawGlassListPdf(doc: jsPDF, params: {
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(12);
-  doc.text("РЈРўР’Р•Р Р–Р”РђР®", pageWidth - 36, 72, { align: "right" });
+  doc.text("УТВЕРЖДАЮ", pageWidth - 36, 72, { align: "right" });
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(11);
-  doc.text(config.responsibleTitle || "РЈРїСЂР°РІР»СЏСЋС‰РёР№", pageWidth - 36, 80, { align: "right" });
+  doc.text(config.responsibleTitle || "Управляющий", pageWidth - 36, 80, { align: "right" });
   doc.text(`____________________ ${params.responsibleName}`, pageWidth - 36, 88, { align: "right" });
   doc.text(`В« ${formatGlassListDateLong(documentDate)} Рі.`, pageWidth - 36, 96, { align: "right" });
 
@@ -1741,8 +1741,8 @@ function drawGlassListPdf(doc: jsPDF, params: {
     margin: { left: 42, right: 42 },
     head: [[
       "",
-      "РњРµСЃС‚Рѕ СЂР°СЃРїРѕР»РѕР¶РµРЅРёСЏ\n(СѓС‡Р°СЃС‚РѕРє)",
-      "РќР°РёРјРµРЅРѕРІР°РЅРёРµ РѕР±СЉРµРєС‚Р° РєРѕРЅС‚СЂРѕР»СЏ (РїСЂРµРґРјРµС‚Р°)",
+      "Место расположения\n(участок)",
+      "Наименование объекта контроля (предмета)",
       "РљРѕР»-РІРѕ",
     ]],
     body: (config.rows.length > 0 ? config.rows : [{ id: "empty", location: "", itemName: "", quantity: "" }]).map(
@@ -3616,7 +3616,7 @@ export async function generateJournalDocumentPdf(params: {
     const glassListConfig = normalizeGlassListConfig(document.config);
     drawGlassListPdf(doc, {
       organizationName,
-      title: document.title || "РџРµСЂРµС‡РµРЅСЊ РёР·РґРµР»РёР№",
+      title: document.title || "Перечень изделий",
       dateFrom: document.dateFrom,
       config: glassListConfig,
       responsibleName:

@@ -144,16 +144,16 @@ function SettingsDialog({
         </DialogHeader>
         <div className="space-y-6 px-12 py-10">
           <div className="space-y-3">
-            <Label className="text-[18px] text-[#73738a]">РќР°Р·РІР°РЅРёРµ РґРѕРєСѓРјРµРЅС‚Р°</Label>
+            <Label className="text-[18px] text-[#73738a]">Название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState({ ...state, title: event.target.value })}
               className="h-16 rounded-[18px] border-[#dfe1ec] px-6 text-[18px]"
-              placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РґРѕРєСѓРјРµРЅС‚Р°"
+              placeholder="Введите название документа"
             />
           </div>
           <div className="space-y-3">
-            <Label className="text-[18px] text-[#73738a]">Р”Р°С‚Р° РЅР°С‡Р°Р»Р°</Label>
+            <Label className="text-[18px] text-[#73738a]">Дата начала</Label>
             <Input
               type="date"
               value={state.startDate}
@@ -162,7 +162,7 @@ function SettingsDialog({
             />
           </div>
           <div className="space-y-4">
-            <div className="text-[18px] font-semibold text-black">РќР°Р·РІР°РЅРёРµ РїРѕР»СЏ</div>
+            <div className="text-[18px] font-semibold text-black">Название поля</div>
             <label className="flex items-center gap-3 text-[18px] text-black">
               <input
                 type="radio"
@@ -171,7 +171,7 @@ function SettingsDialog({
                 onChange={() => setState({ ...state, expiryFieldLabel: "expiry_deadline" })}
                 className="size-5 accent-[#5b66ff]"
               />
-              &quot;РџСЂРµРґРµР»СЊРЅС‹Р№ СЃСЂРѕРє СЂРµР°Р»РёР·Р°С†РёРё&quot;
+              &quot;Предельный срок реализации&quot;
             </label>
             <label className="flex items-center gap-3 text-[18px] text-black">
               <input
@@ -181,11 +181,11 @@ function SettingsDialog({
                 onChange={() => setState({ ...state, expiryFieldLabel: "shelf_life" })}
                 className="size-5 accent-[#5b66ff]"
               />
-              &quot;РЎСЂРѕРє РіРѕРґРЅРѕСЃС‚Рё&quot;
+              &quot;Срок годности&quot;
             </label>
           </div>
           <div className="space-y-3">
-            <Label className="text-[18px] text-[#73738a]">Р”РѕР»Р¶РЅРѕСЃС‚СЊ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕРіРѕ</Label>
+            <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
             <Select
               value={state.responsibleTitle}
               onValueChange={(value) =>
@@ -197,7 +197,7 @@ function SettingsDialog({
               }
             >
               <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
-                <SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" />
+                <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 {USER_ROLE_LABEL_VALUES.map((role) => (
@@ -210,13 +210,13 @@ function SettingsDialog({
           </div>
           {showEmployeeField && (
             <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">РЎРѕС‚СЂСѓРґРЅРёРє</Label>
+              <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
               <Select
                 value={state.responsibleUserId}
                 onValueChange={(value) => setState({ ...state, responsibleUserId: value })}
               >
                 <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
-                  <SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" />
+                  <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
                   {employeeOptions.map((user) => (
@@ -243,7 +243,7 @@ function SettingsDialog({
               }}
               className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
             >
-              {submitting ? "РЎРѕС…СЂР°РЅРµРЅРёРµ..." : submitLabel}
+              {submitting ? "Сохранение..." : submitLabel}
             </Button>
           </div>
         </div>
@@ -270,7 +270,7 @@ function DeleteDialog({
       <DialogContent className="max-w-[680px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
           <DialogTitle className="pr-10 text-[32px] font-medium text-black">
-            {`РЈРґР°Р»РµРЅРёРµ РґРѕРєСѓРјРµРЅС‚Р° "${title}"`}
+            {`Удаление документа "${title}"`}
           </DialogTitle>
         </DialogHeader>
         <div className="flex justify-end px-12 py-10">
@@ -288,7 +288,7 @@ function DeleteDialog({
             }}
             className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
           >
-            {submitting ? "РЈРґР°Р»РµРЅРёРµ..." : "РЈРґР°Р»РёС‚СЊ"}
+            {submitting ? "Удаление..." : "Удалить"}
           </Button>
         </div>
       </DialogContent>
@@ -362,7 +362,7 @@ export function IncomingControlDocumentsClient({
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.document?.id) {
-      throw new Error(result?.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РґРѕРєСѓРјРµРЅС‚");
+      throw new Error(result?.error || "Не удалось создать документ");
     }
     router.push(`/journals/${routeCode}/documents/${result.document.id}`);
     router.refresh();
@@ -387,7 +387,7 @@ export function IncomingControlDocumentsClient({
       }),
     });
     if (!response.ok) {
-      throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РґРѕРєСѓРјРµРЅС‚");
+      throw new Error("Не удалось сохранить документ");
     }
     router.refresh();
   }
@@ -395,7 +395,7 @@ export function IncomingControlDocumentsClient({
   async function deleteById(documentId: string) {
     const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
     if (!response.ok) {
-      throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РґРѕРєСѓРјРµРЅС‚");
+      throw new Error("Не удалось удалить документ");
     }
     router.refresh();
   }
@@ -425,7 +425,7 @@ export function IncomingControlDocumentsClient({
                 className="h-12 rounded-xl bg-[#5b66ff] px-5 text-[14px] font-medium text-white hover:bg-[#4c58ff]"
               >
                 <Plus className="size-4" />
-                РЎРѕР·РґР°С‚СЊ РґРѕРєСѓРјРµРЅС‚
+                Создать документ
               </Button>
             )}
           </div>
@@ -441,7 +441,7 @@ export function IncomingControlDocumentsClient({
                   : "text-[#7c7c93]"
               }`}
             >
-              РђРєС‚РёРІРЅС‹Рµ
+              Активные
             </Link>
             <Link
               href={`/journals/${routeCode}?tab=closed`}
@@ -451,7 +451,7 @@ export function IncomingControlDocumentsClient({
                   : "text-[#7c7c93]"
               }`}
             >
-              Р—Р°РєСЂС‹С‚С‹Рµ
+              Закрытые
             </Link>
           </div>
         </div>
@@ -459,7 +459,7 @@ export function IncomingControlDocumentsClient({
         <div className="space-y-3">
           {documents.length === 0 && (
             <div className="rounded-[16px] border border-[#eef0f6] bg-white px-8 py-10 text-[18px] text-[#7c7c93]">
-              Р”РѕРєСѓРјРµРЅС‚РѕРІ РїРѕРєР° РЅРµС‚
+              Документов пока нет
             </div>
           )}
           {documents.map((document) => {
@@ -482,9 +482,9 @@ export function IncomingControlDocumentsClient({
                   href={`/journals/${routeCode}/documents/${document.id}`}
                   className="border-l border-[#eef0f6] px-6"
                 >
-                  <div className="text-[11px] text-[#979aab]">РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№</div>
+                  <div className="text-[11px] text-[#979aab]">Ответственный</div>
                   <div className="mt-1 text-[12px] font-semibold text-black">
-                    {(config.defaultResponsibleTitle || "РЈРїСЂР°РІР»СЏСЋС‰РёР№") +
+                    {(config.defaultResponsibleTitle || "Управляющий") +
                       (responsibleUser?.name ? `: ${responsibleUser.name}` : "")}
                   </div>
                 </Link>
@@ -492,7 +492,7 @@ export function IncomingControlDocumentsClient({
                   href={`/journals/${routeCode}/documents/${document.id}`}
                   className="border-l border-[#eef0f6] px-6 text-right"
                 >
-                  <div className="text-[11px] text-[#979aab]">Р”Р°С‚Р° РЅР°С‡Р°Р»Р°</div>
+                  <div className="text-[11px] text-[#979aab]">Дата начала</div>
                   <div className="mt-1 text-[12px] font-semibold text-black">
                     {formatRuDate(document.dateFrom)}
                   </div>
@@ -516,7 +516,7 @@ export function IncomingControlDocumentsClient({
                           className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
                           onSelect={() => setSettingsDocument(document)}
                         >
-                          РќР°СЃС‚СЂРѕР№РєРё
+                          Настройки
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -530,7 +530,7 @@ export function IncomingControlDocumentsClient({
                         }
                       >
                         <Printer className="mr-3 size-5 text-[#6f7282]" />
-                        РџРµС‡Р°С‚СЊ
+                        Печать
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem
@@ -538,7 +538,7 @@ export function IncomingControlDocumentsClient({
                           onSelect={() => setDeleteDocument(document)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                          РЈРґР°Р»РёС‚СЊ
+                          Удалить
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -553,8 +553,8 @@ export function IncomingControlDocumentsClient({
       <SettingsDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        title="РЎРѕР·РґР°РЅРёРµ РґРѕРєСѓРјРµРЅС‚Р°"
-        submitLabel="РЎРѕР·РґР°С‚СЊ"
+        title="Создание документа"
+        submitLabel="Создать"
         initial={createState}
         users={users}
         showEmployeeField={false}
@@ -566,8 +566,8 @@ export function IncomingControlDocumentsClient({
         onOpenChange={(open) => {
           if (!open) setSettingsDocument(null);
         }}
-        title="РќР°СЃС‚СЂРѕР№РєРё РґРѕРєСѓРјРµРЅС‚Р°"
-        submitLabel="РЎРѕС…СЂР°РЅРёС‚СЊ"
+        title="Настройки документа"
+        submitLabel="Сохранить"
         initial={
           settingsDocument
             ? {
