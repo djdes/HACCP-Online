@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  Circle,
+  Paperclip,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,12 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   createMetalImpurityRow,
+  getDefaultMetalImpurityConfig,
   getMetalImpurityOptionName,
   getMetalImpurityValuePerKg,
   METAL_IMPURITY_DOCUMENT_TITLE,
+  METAL_IMPURITY_PAGE_TITLE,
+  METAL_IMPURITY_RESPONSIBLE_POSITIONS,
   METAL_IMPURITY_TEMPLATE_CODE,
   normalizeMetalImpurityConfig,
   type MetalImpurityDocumentConfig,
@@ -42,8 +52,24 @@ type RowDialogProps = {
   row: MetalImpurityRow | null;
   materials: MetalImpurityOption[];
   suppliers: MetalImpurityOption[];
-  defaultResponsibleName: string;
-  onSave: (row: MetalImpurityRow) => Promise<void>;
+  responsiblePosition: string;
+  responsibleEmployee: string;
+  employeeOptions: string[];
+  onSave: (row: MetalImpurityRow, additions?: { materialName?: string; supplierName?: string }) => Promise<void>;
+};
+
+type ListEditorSectionProps = {
+  title: string;
+  items: MetalImpurityOption[];
+  draftValue: string;
+  onDraftChange: (value: string) => void;
+  onAdd: () => void;
+  editingId: string | null;
+  editingValue: string;
+  onEditStart: (id: string, value: string) => void;
+  onEditChange: (value: string) => void;
+  onEditCommit: () => void;
+  addPlaceholder: string;
 };
 
 function formatRuDate(value: string) {
@@ -53,146 +79,235 @@ function formatRuDate(value: string) {
   return date.toLocaleDateString("ru-RU");
 }
 
+function formatHeaderDate(value: string) {
+  if (!value) return "__________";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("ru-RU").replace(/\./g, "-");
+}
+
+function buildEmployeeOptions(config: MetalImpurityDocumentConfig, currentValue: string) {
+  return Array.from(
+    new Set([
+      getDefaultMetalImpurityConfig().responsibleEmployee,
+      config.responsibleEmployee,
+      currentValue,
+      ...config.rows.map((row) => row.responsibleName),
+    ].filter(Boolean))
+  );
+}
+
+function AddableSelectField(props: {
+  label: string;
+  value: string;
+  options: MetalImpurityOption[];
+  selectPlaceholder: string;
+  addPlaceholder: string;
+  addValue: string;
+  onValueChange: (value: string) => void;
+  onAddValueChange: (value: string) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <Label className="text-[18px] text-[#73738a]">{props.label}</Label>
+      <Select value={props.value} onValueChange={props.onValueChange}>
+        <SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-white px-5 text-[16px]">
+          <SelectValue placeholder={props.selectPlaceholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {props.options.map((item) => (
+            <SelectItem key={item.id} value={item.id}>
+              {item.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex gap-3">
+        <Input
+          value={props.addValue}
+          placeholder={props.addPlaceholder}
+          onChange={(event) => props.onAddValueChange(event.target.value)}
+          className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
+        />
+        <Button
+          type="button"
+          onClick={props.onAdd}
+          className="size-14 rounded-[14px] bg-[#5b66ff] p-0 text-white hover:bg-[#4b57ff]"
+        >
+          <Plus className="size-5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RowDialog({
   open,
   onOpenChange,
   row,
   materials,
   suppliers,
-  defaultResponsibleName,
+  responsiblePosition,
+  responsibleEmployee,
+  employeeOptions,
   onSave,
 }: RowDialogProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [draft, setDraft] = useState<MetalImpurityRow>(
-    createMetalImpurityRow({ date: today, responsibleName: defaultResponsibleName })
+    createMetalImpurityRow({ date: today, responsibleName: responsibleEmployee })
   );
+  const [draftPosition, setDraftPosition] = useState(responsiblePosition);
+  const [draftEmployee, setDraftEmployee] = useState(responsibleEmployee);
+  const [newSupplier, setNewSupplier] = useState("");
+  const [newMaterial, setNewMaterial] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(
+    const initialRow =
       row ||
-        createMetalImpurityRow({
-          date: today,
-          materialId: materials[0]?.id || "",
-          supplierId: suppliers[0]?.id || "",
-          responsibleName: defaultResponsibleName,
-        })
-    );
+      createMetalImpurityRow({
+        date: today,
+        materialId: materials[0]?.id || "",
+        supplierId: suppliers[0]?.id || "",
+        responsibleName: responsibleEmployee,
+      });
+    setDraft(initialRow);
+    setDraftPosition(responsiblePosition);
+    setDraftEmployee(initialRow.responsibleName || responsibleEmployee);
+    setNewSupplier("");
+    setNewMaterial("");
     setSubmitting(false);
-  }, [defaultResponsibleName, materials, open, row, suppliers, today]);
+  }, [materials, open, responsibleEmployee, responsiblePosition, row, suppliers, today]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[780px] rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+      <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
+        <DialogHeader className="border-b px-10 py-8">
+          <DialogTitle className="text-[28px] font-medium text-black">
             {row ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-12 py-10">
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Дата</Label>
+        <div className="space-y-5 px-10 py-8">
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Дата</Label>
+            <div className="relative">
               <Input
                 type="date"
                 value={draft.date}
                 onChange={(event) => setDraft({ ...draft, date: event.target.value })}
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
+                className="h-14 rounded-[18px] border-[#dfe1ec] px-5 pr-12 text-[16px]"
               />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Поставщик</Label>
-              <Select
-                value={draft.supplierId}
-                onValueChange={(value) => setDraft({ ...draft, supplierId: value })}
-              >
-                <SelectTrigger className="h-15 rounded-[18px] border-[#dfe1ec] bg-[#f5f6fb] px-5 text-[18px]">
-                  <SelectValue placeholder="Выберите поставщика" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Наименование сырья</Label>
-              <Select
-                value={draft.materialId}
-                onValueChange={(value) => setDraft({ ...draft, materialId: value })}
-              >
-                <SelectTrigger className="h-15 rounded-[18px] border-[#dfe1ec] bg-[#f5f6fb] px-5 text-[18px]">
-                  <SelectValue placeholder="Выберите сырье" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">ФИО ответственного</Label>
-              <Input
-                value={draft.responsibleName}
-                onChange={(event) =>
-                  setDraft({ ...draft, responsibleName: event.target.value })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">
-                Количество израсходованного сырья, кг
-              </Label>
-              <Input
-                value={draft.consumedQuantityKg}
-                onChange={(event) =>
-                  setDraft({ ...draft, consumedQuantityKg: event.target.value })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">
-                Количество металломагнитной примеси, г
-              </Label>
-              <Input
-                value={draft.impurityQuantityG}
-                onChange={(event) =>
-                  setDraft({ ...draft, impurityQuantityG: event.target.value })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
+              <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#767b90]" />
             </div>
           </div>
+
+          <AddableSelectField
+            label="Поставщик"
+            value={draft.supplierId}
+            options={suppliers}
+            selectPlaceholder="Выберите из списка или добавьте новое"
+            addPlaceholder="Добавить название нового поставщика"
+            addValue={newSupplier}
+            onValueChange={(value) => setDraft({ ...draft, supplierId: value })}
+            onAddValueChange={setNewSupplier}
+            onAdd={() => {
+              const value = newSupplier.trim();
+              if (!value) return;
+              setDraft({ ...draft, supplierId: `new-supplier:${value}` });
+              setNewSupplier("");
+            }}
+          />
+
+          <AddableSelectField
+            label="Сырье"
+            value={draft.materialId}
+            options={materials}
+            selectPlaceholder="Выберите из списка или добавьте новое"
+            addPlaceholder="Добавить название нового сырья"
+            addValue={newMaterial}
+            onValueChange={(value) => setDraft({ ...draft, materialId: value })}
+            onAddValueChange={setNewMaterial}
+            onAdd={() => {
+              const value = newMaterial.trim();
+              if (!value) return;
+              setDraft({ ...draft, materialId: `new-material:${value}` });
+              setNewMaterial("");
+            }}
+          />
+
           <div className="space-y-3">
-            <Label className="text-[18px] text-[#73738a]">
-              Характеристика металломагнитной примеси
-            </Label>
-            <Textarea
+            <Input
+              value={draft.consumedQuantityKg}
+              placeholder="Введите кол-во израсходованного сырья, кг"
+              onChange={(event) =>
+                setDraft({ ...draft, consumedQuantityKg: event.target.value })
+              }
+              className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Input
+              value={draft.impurityQuantityG}
+              placeholder="Введите кол-во металломагнитной примеси, г"
+              onChange={(event) =>
+                setDraft({ ...draft, impurityQuantityG: event.target.value })
+              }
+              className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Input
               value={draft.impurityCharacteristic}
+              placeholder="Введите хар-ку металломагнитной примеси"
               onChange={(event) =>
                 setDraft({ ...draft, impurityCharacteristic: event.target.value })
               }
-              className="min-h-[130px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]"
+              className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
-          <div className="rounded-[18px] bg-[#f5f6fb] px-5 py-4 text-[17px] text-[#53566c]">
-            Количество в мг на 1 кг муки:{" "}
-            <span className="font-semibold text-black">
-              {getMetalImpurityValuePerKg(
-                draft.impurityQuantityG,
-                draft.consumedQuantityKg
-              ) || "—"}
-            </span>
+
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
+            <Select value={draftPosition} onValueChange={setDraftPosition}>
+              <SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {METAL_IMPURITY_RESPONSIBLE_POSITIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
+            <Select
+              value={draftEmployee}
+              onValueChange={(value) => {
+                setDraftEmployee(value);
+                setDraft({ ...draft, responsibleName: value });
+              }}
+            >
+              <SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {employeeOptions.map((employee) => (
+                  <SelectItem key={employee} value={employee}>
+                    {employee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-end">
             <Button
               type="button"
@@ -200,13 +315,19 @@ function RowDialog({
               onClick={async () => {
                 setSubmitting(true);
                 try {
-                  await onSave(draft);
+                  await onSave(
+                    { ...draft, responsibleName: draftEmployee },
+                    {
+                      materialName: newMaterial.trim() || undefined,
+                      supplierName: newSupplier.trim() || undefined,
+                    }
+                  );
                   onOpenChange(false);
                 } finally {
                   setSubmitting(false);
                 }
               }}
-              className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-14 rounded-[14px] bg-[#5b66ff] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : row ? "Сохранить" : "Добавить"}
             </Button>
@@ -222,12 +343,14 @@ function SettingsDialog({
   onOpenChange,
   title,
   config,
+  employeeOptions,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   config: MetalImpurityDocumentConfig;
+  employeeOptions: string[];
   onSave: (params: { title: string; config: MetalImpurityDocumentConfig }) => Promise<void>;
 }) {
   const [draftTitle, setDraftTitle] = useState(title);
@@ -244,69 +367,73 @@ function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
-            Настройки журнала
+        <DialogHeader className="border-b px-10 py-8">
+          <DialogTitle className="text-[28px] font-medium text-black">
+            Настройки документа
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-12 py-10">
+        <div className="space-y-5 px-10 py-8">
           <div className="space-y-3">
             <Label className="text-[18px] text-[#73738a]">Название документа</Label>
             <Input
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
-              className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
+              className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Дата начала</Label>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Дата начала</Label>
+            <div className="relative">
               <Input
                 type="date"
                 value={draftConfig.startDate}
                 onChange={(event) =>
                   setDraftConfig({ ...draftConfig, startDate: event.target.value })
                 }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
+                className="h-14 rounded-[18px] border-[#dfe1ec] px-5 pr-12 text-[16px]"
               />
+              <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#767b90]" />
             </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Дата окончания</Label>
-              <Input
-                type="date"
-                value={draftConfig.endDate}
-                onChange={(event) =>
-                  setDraftConfig({ ...draftConfig, endDate: event.target.value })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
-              <Input
-                value={draftConfig.responsiblePosition}
-                onChange={(event) =>
-                  setDraftConfig({
-                    ...draftConfig,
-                    responsiblePosition: event.target.value,
-                  })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
-              <Input
-                value={draftConfig.responsibleEmployee}
-                onChange={(event) =>
-                  setDraftConfig({
-                    ...draftConfig,
-                    responsibleEmployee: event.target.value,
-                  })
-                }
-                className="h-15 rounded-[18px] border-[#dfe1ec] px-5 text-[18px]"
-              />
-            </div>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
+            <Select
+              value={draftConfig.responsiblePosition}
+              onValueChange={(value) =>
+                setDraftConfig({ ...draftConfig, responsiblePosition: value })
+              }
+            >
+              <SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {METAL_IMPURITY_RESPONSIBLE_POSITIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
+            <Select
+              value={draftConfig.responsibleEmployee}
+              onValueChange={(value) =>
+                setDraftConfig({ ...draftConfig, responsibleEmployee: value })
+              }
+            >
+              <SelectTrigger className="h-14 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {employeeOptions.map((employee) => (
+                  <SelectItem key={employee} value={employee}>
+                    {employee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end">
             <Button
@@ -321,7 +448,7 @@ function SettingsDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-14 rounded-[14px] bg-[#5b66ff] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -329,6 +456,87 @@ function SettingsDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ListEditorSection({
+  title,
+  items,
+  draftValue,
+  onDraftChange,
+  onAdd,
+  editingId,
+  editingValue,
+  onEditStart,
+  onEditChange,
+  onEditCommit,
+  addPlaceholder,
+}: ListEditorSectionProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-[24px] font-semibold text-black">{title}</div>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 rounded-[18px] bg-[#f6f7fb] px-4 py-4"
+          >
+            <Circle className="size-5 text-[#787d94]" />
+            {editingId === item.id ? (
+              <Input
+                autoFocus
+                value={editingValue}
+                onChange={(event) => onEditChange(event.target.value)}
+                onBlur={onEditCommit}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") onEditCommit();
+                }}
+                className="h-10 border-0 bg-transparent px-0 text-[16px] shadow-none"
+              />
+            ) : (
+              <div className="flex-1 text-[16px] text-black">{item.name}</div>
+            )}
+            <button
+              type="button"
+              onClick={() => onEditStart(item.id, item.name)}
+              className="rounded-md p-1 text-[#5b66ff]"
+            >
+              <Pencil className="size-4" />
+            </button>
+          </div>
+        ))}
+
+        <div className="flex gap-3">
+          <Input
+            value={draftValue}
+            onChange={(event) => onDraftChange(event.target.value)}
+            placeholder={addPlaceholder}
+            className="h-14 rounded-[18px] border-[#dfe1ec] px-5 text-[16px]"
+          />
+          <Button
+            type="button"
+            onClick={onAdd}
+            className="size-14 rounded-[14px] bg-[#5b66ff] p-0 text-white hover:bg-[#4b57ff]"
+          >
+            <Plus className="size-5" />
+          </Button>
+        </div>
+
+        <div className="space-y-3 pt-1 text-[14px] text-[#6d7288]">
+          <div className="text-[#5f66ff]">Добавить из файла</div>
+          <div>
+            Список должен быть в файле Excel, на первом листе в первом столбце и начинаться с
+            первой строки.
+          </div>
+          <div className="flex min-h-[96px] items-center justify-center rounded-[18px] border border-dashed border-[#cfd4e9] bg-white text-center">
+            <div className="flex flex-col items-center gap-2 text-[#727890]">
+              <Paperclip className="size-5" />
+              <span>Выберите файл или перетащите его сюда</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -346,6 +554,9 @@ function ListsDialog({
   const [draft, setDraft] = useState(config);
   const [newMaterial, setNewMaterial] = useState("");
   const [newSupplier, setNewSupplier] = useState("");
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -353,123 +564,110 @@ function ListsDialog({
     setDraft(config);
     setNewMaterial("");
     setNewSupplier("");
+    setEditingMaterialId(null);
+    setEditingSupplierId(null);
+    setEditingValue("");
     setSubmitting(false);
   }, [config, open]);
 
+  function commitMaterialEdit() {
+    if (!editingMaterialId) return;
+    const value = editingValue.trim();
+    if (value) {
+      setDraft((current) => ({
+        ...current,
+        materials: current.materials.map((item) =>
+          item.id === editingMaterialId ? { ...item, name: value } : item
+        ),
+      }));
+    }
+    setEditingMaterialId(null);
+    setEditingValue("");
+  }
+
+  function commitSupplierEdit() {
+    if (!editingSupplierId) return;
+    const value = editingValue.trim();
+    if (value) {
+      setDraft((current) => ({
+        ...current,
+        suppliers: current.suppliers.map((item) =>
+          item.id === editingSupplierId ? { ...item, name: value } : item
+        ),
+      }));
+    }
+    setEditingSupplierId(null);
+    setEditingValue("");
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[980px] rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
-            Редактировать списки
+      <DialogContent className="max-w-[620px] rounded-[32px] border-0 p-0">
+        <DialogHeader className="border-b px-8 py-6">
+          <DialogTitle className="text-[24px] font-medium text-black">
+            Редактировать список
           </DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-8 px-12 py-10">
-          <div className="space-y-4">
-            <div className="text-[24px] font-semibold text-black">Сырье</div>
-            <div className="space-y-3 rounded-[24px] bg-[#f6f7fb] p-5">
-              {draft.materials.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-[16px] bg-white px-4 py-3">
-                  <Checkbox checked={false} />
-                  <Input
-                    value={item.name}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        materials: draft.materials.map((current) =>
-                          current.id === item.id
-                            ? { ...current, name: event.target.value }
-                            : current
-                        ),
-                      })
-                    }
-                    className="h-12 border-0 px-0 text-[17px] shadow-none"
-                  />
-                </div>
-              ))}
-              <div className="flex gap-3 pt-2">
-                <Input
-                  value={newMaterial}
-                  onChange={(event) => setNewMaterial(event.target.value)}
-                  placeholder="Добавить сырье"
-                  className="h-12 rounded-[16px] border-[#dfe1ec] px-4 text-[17px]"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (!newMaterial.trim()) return;
-                    setDraft({
-                      ...draft,
-                      materials: [
-                        ...draft.materials,
-                        { id: `material-${Date.now()}`, name: newMaterial.trim() },
-                      ],
-                    });
-                    setNewMaterial("");
-                  }}
-                  className="h-12 rounded-[16px] bg-[#5b66ff] px-5 text-white hover:bg-[#4b57ff]"
-                >
-                  Добавить
-                </Button>
-              </div>
-              <div className="rounded-[16px] border border-dashed border-[#cdd2ea] px-4 py-3 text-[15px] text-[#6d7288]">
-                Добавить из файла: первый лист, первый столбец, начиная с первой строки.
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="text-[24px] font-semibold text-black">Поставщики</div>
-            <div className="space-y-3 rounded-[24px] bg-[#f6f7fb] p-5">
-              {draft.suppliers.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-[16px] bg-white px-4 py-3">
-                  <Checkbox checked={false} />
-                  <Input
-                    value={item.name}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        suppliers: draft.suppliers.map((current) =>
-                          current.id === item.id
-                            ? { ...current, name: event.target.value }
-                            : current
-                        ),
-                      })
-                    }
-                    className="h-12 border-0 px-0 text-[17px] shadow-none"
-                  />
-                </div>
-              ))}
-              <div className="flex gap-3 pt-2">
-                <Input
-                  value={newSupplier}
-                  onChange={(event) => setNewSupplier(event.target.value)}
-                  placeholder="Добавить поставщика"
-                  className="h-12 rounded-[16px] border-[#dfe1ec] px-4 text-[17px]"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (!newSupplier.trim()) return;
-                    setDraft({
-                      ...draft,
-                      suppliers: [
-                        ...draft.suppliers,
-                        { id: `supplier-${Date.now()}`, name: newSupplier.trim() },
-                      ],
-                    });
-                    setNewSupplier("");
-                  }}
-                  className="h-12 rounded-[16px] bg-[#5b66ff] px-5 text-white hover:bg-[#4b57ff]"
-                >
-                  Добавить
-                </Button>
-              </div>
-              <div className="rounded-[16px] border border-dashed border-[#cdd2ea] px-4 py-3 text-[15px] text-[#6d7288]">
-                Добавить из файла: первый лист, первый столбец, начиная с первой строки.
-              </div>
-            </div>
-          </div>
-          <div className="col-span-2 flex justify-end">
+        <div className="space-y-8 px-8 py-6">
+          <ListEditorSection
+            title="Сырье"
+            items={draft.materials}
+            draftValue={newMaterial}
+            onDraftChange={setNewMaterial}
+            onAdd={() => {
+              const value = newMaterial.trim();
+              if (!value) return;
+              setDraft((current) => ({
+                ...current,
+                materials: [
+                  ...current.materials,
+                  { id: `material-${Date.now()}`, name: value },
+                ],
+              }));
+              setNewMaterial("");
+            }}
+            editingId={editingMaterialId}
+            editingValue={editingValue}
+            onEditStart={(id, value) => {
+              commitSupplierEdit();
+              setEditingMaterialId(id);
+              setEditingValue(value);
+            }}
+            onEditChange={setEditingValue}
+            onEditCommit={commitMaterialEdit}
+            addPlaceholder="Введите название нового сырья"
+          />
+
+          <ListEditorSection
+            title="Поставщики"
+            items={draft.suppliers}
+            draftValue={newSupplier}
+            onDraftChange={setNewSupplier}
+            onAdd={() => {
+              const value = newSupplier.trim();
+              if (!value) return;
+              setDraft((current) => ({
+                ...current,
+                suppliers: [
+                  ...current.suppliers,
+                  { id: `supplier-${Date.now()}`, name: value },
+                ],
+              }));
+              setNewSupplier("");
+            }}
+            editingId={editingSupplierId}
+            editingValue={editingValue}
+            onEditStart={(id, value) => {
+              commitMaterialEdit();
+              setEditingSupplierId(id);
+              setEditingValue(value);
+            }}
+            onEditChange={setEditingValue}
+            onEditCommit={commitSupplierEdit}
+            addPlaceholder="Введите название нового поставщика"
+          />
+
+          <div className="flex justify-end">
             <Button
               type="button"
               disabled={submitting}
@@ -482,9 +680,9 @@ function ListsDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-14 rounded-[14px] bg-[#5b66ff] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
-              {submitting ? "Сохранение..." : "Сохранить"}
+              {submitting ? "Сохранение..." : "Закрыть"}
             </Button>
           </div>
         </div>
@@ -529,6 +727,10 @@ export function MetalImpurityDocumentClient({
   }, [searchParams]);
 
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
+  const employeeOptions = useMemo(
+    () => buildEmployeeOptions(config, editingRow?.responsibleName || config.responsibleEmployee),
+    [config, editingRow?.responsibleName]
+  );
 
   async function persist(
     nextTitle: string,
@@ -557,11 +759,39 @@ export function MetalImpurityDocumentClient({
     startTransition(() => router.refresh());
   }
 
-  async function saveRow(row: MetalImpurityRow) {
+  async function saveRow(
+    row: MetalImpurityRow,
+    additions?: { materialName?: string; supplierName?: string }
+  ) {
+    let nextConfig = { ...config };
+    const normalizedRow = { ...row };
+
+    if (additions?.materialName) {
+      const item = { id: `material-${Date.now()}`, name: additions.materialName };
+      nextConfig = { ...nextConfig, materials: [...nextConfig.materials, item] };
+      normalizedRow.materialId = item.id;
+    } else if (normalizedRow.materialId.startsWith("new-material:")) {
+      const name = normalizedRow.materialId.slice("new-material:".length);
+      const item = { id: `material-${Date.now()}`, name };
+      nextConfig = { ...nextConfig, materials: [...nextConfig.materials, item] };
+      normalizedRow.materialId = item.id;
+    }
+
+    if (additions?.supplierName) {
+      const item = { id: `supplier-${Date.now()}`, name: additions.supplierName };
+      nextConfig = { ...nextConfig, suppliers: [...nextConfig.suppliers, item] };
+      normalizedRow.supplierId = item.id;
+    } else if (normalizedRow.supplierId.startsWith("new-supplier:")) {
+      const name = normalizedRow.supplierId.slice("new-supplier:".length);
+      const item = { id: `supplier-${Date.now()}`, name };
+      nextConfig = { ...nextConfig, suppliers: [...nextConfig.suppliers, item] };
+      normalizedRow.supplierId = item.id;
+    }
+
     const nextRows = editingRow
-      ? config.rows.map((item) => (item.id === editingRow.id ? row : item))
-      : [...config.rows, row];
-    await persist(documentTitle, { ...config, rows: nextRows });
+      ? nextConfig.rows.map((item) => (item.id === editingRow.id ? normalizedRow : item))
+      : [...nextConfig.rows, normalizedRow];
+    await persist(documentTitle, { ...nextConfig, rows: nextRows });
     setEditingRow(null);
   }
 
@@ -584,11 +814,10 @@ export function MetalImpurityDocumentClient({
     router.push(`/journals/${METAL_IMPURITY_TEMPLATE_CODE}?tab=closed`);
   }
 
-  const printRows = useMemo(
+  const rows = useMemo(
     () =>
-      config.rows.map((row, index) => ({
+      config.rows.map((row) => ({
         ...row,
-        number: index + 1,
         materialName: getMetalImpurityOptionName(config.materials, row.materialId),
         supplierName: getMetalImpurityOptionName(config.suppliers, row.supplierId),
         valuePerKg: getMetalImpurityValuePerKg(
@@ -634,59 +863,55 @@ export function MetalImpurityDocumentClient({
         <div className="flex items-start justify-between gap-6 print:hidden">
           <div>
             <div className="text-[15px] text-[#6f7282]">
-              {organizationName} <span className="mx-2">›</span> {documentTitle}
+              {organizationName} <span className="mx-2">›</span> {METAL_IMPURITY_PAGE_TITLE}{" "}
+              <span className="mx-2">›</span> {documentTitle}
             </div>
             <h1 className="mt-4 text-[58px] font-semibold tracking-[-0.04em] text-black">
               {documentTitle}
             </h1>
           </div>
           {status === "active" && (
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setListsOpen(true)}
-                className="h-14 rounded-[14px] border-[#eef0fb] px-6 text-[16px] text-[#5464ff] shadow-none"
-              >
-                Редактировать списки
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-14 rounded-[14px] border-[#eef0fb] px-6 text-[16px] text-[#5464ff] shadow-none"
-              >
-                <Settings2 className="size-4" />
-                Настройки журнала
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+              className="h-14 rounded-[14px] border-[#eef0fb] px-6 text-[16px] text-[#5464ff] shadow-none"
+            >
+              Настройки журнала
+            </Button>
           )}
         </div>
 
         <div className="overflow-x-auto">
-          <table className="mx-auto min-w-[1180px] max-w-[1500px] border-collapse">
+          <table className="mx-auto min-w-[1040px] max-w-[1250px] border-collapse">
             <tbody>
               <tr>
-                <td rowSpan={2} className="w-[240px] border border-black px-6 py-10 text-center text-[22px] font-medium">
+                <td
+                  rowSpan={2}
+                  className="w-[180px] border border-black px-6 py-10 text-center text-[18px] font-medium"
+                >
                   {organizationName}
                 </td>
-                <td className="w-[980px] border border-black px-6 py-5 text-center text-[20px]">
+                <td className="border border-black px-6 py-4 text-center text-[18px]">
                   СИСТЕМА ХАССП
                 </td>
-                <td rowSpan={2} className="w-[240px] border border-black px-6 py-4 align-top text-[18px] leading-[1.6]">
-                  <div className="font-semibold">Начат {formatRuDate(config.startDate)}</div>
+                <td
+                  rowSpan={2}
+                  className="w-[180px] border border-black px-4 py-2 align-top text-[16px]"
+                >
+                  <div className="font-semibold">Начат {formatHeaderDate(config.startDate)}</div>
                   <div className="font-semibold">
-                    Окончен {config.endDate ? formatRuDate(config.endDate) : "__________"}
+                    Окончен{config.endDate ? ` ${formatHeaderDate(config.endDate)}` : "__________"}
                   </div>
                 </td>
               </tr>
               <tr>
-                <td className="border border-black px-6 py-4 text-center text-[18px] italic">
+                <td className="border border-black px-6 py-3 text-center text-[16px] italic">
                   ЖУРНАЛ УЧЕТА МЕТАЛЛОПРИМЕСЕЙ В СЫРЬЕ
                 </td>
               </tr>
               <tr>
-                <td colSpan={3} className="border border-black px-6 py-5 text-right text-[18px]">
+                <td colSpan={3} className="border border-black px-6 py-3 text-right text-[16px]">
                   СТР. 1 ИЗ 1
                 </td>
               </tr>
@@ -694,19 +919,33 @@ export function MetalImpurityDocumentClient({
           </table>
         </div>
 
+        <div className="text-center text-[16px] font-semibold uppercase tracking-[0.02em]">
+          Журнал учета металлопримесей в сырье
+        </div>
+
         {status === "active" && (
           <div className="flex items-center justify-between gap-4 print:hidden">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingRow(null);
-                setRowDialogOpen(true);
-              }}
-              className="h-16 rounded-[14px] bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
-            >
-              <Plus className="size-6" />
-              Добавить
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                onClick={() => {
+                  setEditingRow(null);
+                  setRowDialogOpen(true);
+                }}
+                className="h-16 rounded-[14px] bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
+              >
+                <Plus className="size-6" />
+                Добавить
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setListsOpen(true)}
+                className="h-16 rounded-[14px] border-[#eef0fb] px-8 text-[18px] text-[#5464ff] shadow-none"
+              >
+                Редактировать списки
+              </Button>
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -719,7 +958,7 @@ export function MetalImpurityDocumentClient({
         )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1700px] w-full border-collapse text-[15px]">
+          <table className="min-w-[1540px] w-full border-collapse text-[15px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[42px] border border-black p-2 text-center print:hidden">
@@ -731,19 +970,34 @@ export function MetalImpurityDocumentClient({
                     disabled={status !== "active" || config.rows.length === 0}
                   />
                 </th>
-                <th className="w-[60px] border border-black p-3 text-center font-semibold">№</th>
-                <th className="w-[130px] border border-black p-3 text-center font-semibold">Дата</th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">Поставщик</th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">Наименование сырья</th>
-                <th className="w-[180px] border border-black p-3 text-center font-semibold">Количество израсходованного сырья, кг</th>
-                <th className="w-[180px] border border-black p-3 text-center font-semibold">Количество металломагнитной примеси, г</th>
-                <th className="w-[260px] border border-black p-3 text-center font-semibold">Характеристика металломагнитной примеси</th>
-                <th className="w-[170px] border border-black p-3 text-center font-semibold">Количество в мг на 1 кг муки (N - не более 3 мг)</th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">ФИО ответственного</th>
+                <th className="w-[130px] border border-black p-3 text-center font-semibold">
+                  Дата
+                </th>
+                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                  Поставщик
+                </th>
+                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                  Наименование сырья
+                </th>
+                <th className="w-[180px] border border-black p-3 text-center font-semibold">
+                  Количество израсходованного сырья, кг
+                </th>
+                <th className="w-[180px] border border-black p-3 text-center font-semibold">
+                  Количество металломагнитной примеси, г
+                </th>
+                <th className="w-[260px] border border-black p-3 text-center font-semibold">
+                  Характеристика металломагнитной примеси
+                </th>
+                <th className="w-[170px] border border-black p-3 text-center font-semibold">
+                  Количество в мг на 1 кг муки (N - не более 3 мг)
+                </th>
+                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                  ФИО ответственного
+                </th>
               </tr>
             </thead>
             <tbody>
-              {printRows.map((row) => (
+              {rows.map((row) => (
                 <tr key={row.id}>
                   <td className="border border-black p-2 text-center align-top print:hidden">
                     <Checkbox
@@ -758,7 +1012,6 @@ export function MetalImpurityDocumentClient({
                       disabled={status !== "active"}
                     />
                   </td>
-                  <td className="border border-black p-3 text-center align-top">{row.number}</td>
                   <td className="border border-black p-3 align-top">
                     <button
                       type="button"
@@ -775,16 +1028,27 @@ export function MetalImpurityDocumentClient({
                   </td>
                   <td className="border border-black p-3 align-top">{row.supplierName}</td>
                   <td className="border border-black p-3 align-top">{row.materialName}</td>
-                  <td className="border border-black p-3 align-top">{row.consumedQuantityKg || "—"}</td>
-                  <td className="border border-black p-3 align-top">{row.impurityQuantityG || "—"}</td>
-                  <td className="border border-black p-3 align-top whitespace-pre-wrap">{row.impurityCharacteristic || "—"}</td>
+                  <td className="border border-black p-3 align-top">
+                    {row.consumedQuantityKg || "—"}
+                  </td>
+                  <td className="border border-black p-3 align-top">
+                    {row.impurityQuantityG || "—"}
+                  </td>
+                  <td className="border border-black p-3 align-top whitespace-pre-wrap">
+                    {row.impurityCharacteristic || "—"}
+                  </td>
                   <td className="border border-black p-3 align-top">{row.valuePerKg || "—"}</td>
-                  <td className="border border-black p-3 align-top">{row.responsibleName || "—"}</td>
+                  <td className="border border-black p-3 align-top">
+                    {row.responsibleName || "—"}
+                  </td>
                 </tr>
               ))}
-              {printRows.length === 0 && (
+              {rows.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="border border-black px-4 py-10 text-center text-[18px] text-[#666a80]">
+                  <td
+                    colSpan={9}
+                    className="border border-black px-4 py-10 text-center text-[18px] text-[#666a80]"
+                  >
                     Записей пока нет
                   </td>
                 </tr>
@@ -803,7 +1067,9 @@ export function MetalImpurityDocumentClient({
         row={editingRow}
         materials={config.materials}
         suppliers={config.suppliers}
-        defaultResponsibleName={config.responsibleEmployee}
+        responsiblePosition={config.responsiblePosition}
+        responsibleEmployee={config.responsibleEmployee}
+        employeeOptions={employeeOptions}
         onSave={saveRow}
       />
 
@@ -812,6 +1078,7 @@ export function MetalImpurityDocumentClient({
         onOpenChange={setSettingsOpen}
         title={documentTitle}
         config={config}
+        employeeOptions={employeeOptions}
         onSave={async ({ title: nextTitle, config: nextConfig }) => {
           await persist(nextTitle.trim() || METAL_IMPURITY_DOCUMENT_TITLE, nextConfig);
         }}
@@ -828,12 +1095,12 @@ export function MetalImpurityDocumentClient({
 
       <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
         <DialogContent className="max-w-[680px] rounded-[32px] border-0 p-0">
-          <DialogHeader className="border-b px-12 py-10">
-            <DialogTitle className="pr-10 text-[32px] font-medium text-black">
+          <DialogHeader className="border-b px-10 py-8">
+            <DialogTitle className="pr-10 text-[28px] font-medium text-black">
               {`Закончить журнал "${documentTitle}"`}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex justify-end px-12 py-10">
+          <div className="flex justify-end px-10 py-8">
             <Button
               type="button"
               onClick={() =>
@@ -841,7 +1108,7 @@ export function MetalImpurityDocumentClient({
                   window.alert(error instanceof Error ? error.message : "Ошибка закрытия")
                 )
               }
-              className="h-16 rounded-[18px] bg-[#5b66ff] px-10 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-14 rounded-[14px] bg-[#5b66ff] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               Закончить
             </Button>

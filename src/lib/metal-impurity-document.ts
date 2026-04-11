@@ -1,6 +1,12 @@
 export const METAL_IMPURITY_TEMPLATE_CODE = "metal_impurity";
 export const METAL_IMPURITY_SOURCE_SLUG = "metalimpurityjournal";
-export const METAL_IMPURITY_DOCUMENT_TITLE = "Журнал учета металлопримесей в сырье";
+export const METAL_IMPURITY_PAGE_TITLE = "Журнал учета металлопримесей в сырье";
+export const METAL_IMPURITY_DOCUMENT_TITLE = "Журнал учета металлопримесей";
+export const METAL_IMPURITY_RESPONSIBLE_POSITIONS = [
+  "Управляющий",
+  "Технолог",
+  "Заведующий производством",
+] as const;
 
 export type MetalImpurityOption = {
   id: string;
@@ -99,30 +105,42 @@ export function getDefaultMetalImpurityConfig(params?: {
 }): MetalImpurityDocumentConfig {
   const startDate = params?.date || new Date().toISOString().slice(0, 10);
   const materials = [
-    { id: "mat-1", name: "Мука пшеничная в/с" },
-    { id: "mat-2", name: "Мука ржаная" },
+    { id: "mat-1", name: "Мука" },
+    { id: "mat-2", name: "Мука пшеничная в/с" },
   ];
   const suppliers = [
-    { id: "sup-1", name: 'ООО "Агро-Юг"' },
-    { id: "sup-2", name: 'ИП "Зерно"' },
+    { id: "sup-1", name: 'ИП "Ромашка"' },
+    { id: "sup-2", name: 'ООО "Агро-Юг"' },
   ];
+  const responsiblePosition =
+    params?.responsiblePosition || METAL_IMPURITY_RESPONSIBLE_POSITIONS[0];
+  const responsibleEmployee = params?.responsibleName || "Иванов И.И.";
 
   return {
     startDate,
     endDate: "",
-    responsiblePosition: params?.responsiblePosition || "Управляющий",
-    responsibleEmployee: params?.responsibleName || "Иванов И.И.",
+    responsiblePosition,
+    responsibleEmployee,
     materials,
     suppliers,
     rows: [
       createMetalImpurityRow({
         date: startDate,
-        materialId: materials[0].id,
+        materialId: materials[1].id,
         supplierId: suppliers[0].id,
-        consumedQuantityKg: "250",
-        impurityQuantityG: "0.45",
-        impurityCharacteristic: "мелкие частицы темного металла",
-        responsibleName: params?.responsibleName || "Иванов И.И.",
+        consumedQuantityKg: "100",
+        impurityQuantityG: "0",
+        impurityCharacteristic: "",
+        responsibleName: responsibleEmployee,
+      }),
+      createMetalImpurityRow({
+        date: startDate,
+        materialId: materials[1].id,
+        supplierId: suppliers[1].id,
+        consumedQuantityKg: "1000",
+        impurityQuantityG: "3",
+        impurityCharacteristic: "",
+        responsibleName: responsibleEmployee,
       }),
     ],
   };

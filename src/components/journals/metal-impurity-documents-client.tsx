@@ -22,7 +22,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   METAL_IMPURITY_DOCUMENT_TITLE,
+  METAL_IMPURITY_PAGE_TITLE,
+  METAL_IMPURITY_RESPONSIBLE_POSITIONS,
   METAL_IMPURITY_TEMPLATE_CODE,
   getDefaultMetalImpurityConfig,
   normalizeMetalImpurityConfig,
@@ -53,7 +62,23 @@ function formatRuDate(value: string) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("ru-RU");
+  return date.toLocaleDateString("ru-RU").replace(/\./g, "-");
+}
+
+function collectEmployeeOptions(
+  documents: DocumentItem[],
+  fallbackEmployee: string,
+  currentEmployee?: string
+) {
+  const values = new Set<string>([fallbackEmployee]);
+  if (currentEmployee) values.add(currentEmployee);
+
+  for (const document of documents) {
+    const config = normalizeMetalImpurityConfig(document.config);
+    if (config.responsibleEmployee) values.add(config.responsibleEmployee);
+  }
+
+  return Array.from(values).filter(Boolean);
 }
 
 function DocumentDialog({
@@ -62,6 +87,7 @@ function DocumentDialog({
   initial,
   submitLabel,
   title,
+  documents,
   onSubmit,
 }: {
   open: boolean;
@@ -69,10 +95,20 @@ function DocumentDialog({
   initial: SettingsState;
   submitLabel: string;
   title: string;
+  documents: DocumentItem[];
   onSubmit: (value: SettingsState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
+  const employeeOptions = useMemo(
+    () =>
+      collectEmployeeOptions(
+        documents,
+        getDefaultMetalImpurityConfig().responsibleEmployee,
+        state.responsibleEmployee
+      ),
+    [documents, state.responsibleEmployee]
+  );
 
   useEffect(() => {
     if (open) {
@@ -92,6 +128,7 @@ function DocumentDialog({
             <Label className="text-[18px] text-[#73738a]">Название документа</Label>
             <Input
               value={state.title}
+              placeholder="Введите название документа"
               onChange={(event) => setState({ ...state, title: event.target.value })}
               className="h-16 rounded-[18px] border-[#dfe1ec] px-6 text-[18px]"
             />
@@ -107,23 +144,39 @@ function DocumentDialog({
           </div>
           <div className="space-y-3">
             <Label className="text-[18px] text-[#73738a]">Должность ответственного</Label>
-            <Input
+            <Select
               value={state.responsiblePosition}
-              onChange={(event) =>
-                setState({ ...state, responsiblePosition: event.target.value })
-              }
-              className="h-16 rounded-[18px] border-[#dfe1ec] px-6 text-[18px]"
-            />
+              onValueChange={(value) => setState({ ...state, responsiblePosition: value })}
+            >
+              <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {METAL_IMPURITY_RESPONSIBLE_POSITIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-3">
             <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
-            <Input
+            <Select
               value={state.responsibleEmployee}
-              onChange={(event) =>
-                setState({ ...state, responsibleEmployee: event.target.value })
-              }
-              className="h-16 rounded-[18px] border-[#dfe1ec] px-6 text-[18px]"
-            />
+              onValueChange={(value) => setState({ ...state, responsibleEmployee: value })}
+            >
+              <SelectTrigger className="h-16 rounded-[18px] border-[#dfe1ec] bg-[#f3f4fb] px-6 text-[18px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {employeeOptions.map((employee) => (
+                  <SelectItem key={employee} value={employee}>
+                    {employee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end">
             <Button
@@ -167,7 +220,7 @@ function DeleteDialog({
       <DialogContent className="max-w-[680px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
           <DialogTitle className="pr-10 text-[32px] font-medium text-black">
-            {`Удалить документ "${title}"`}
+            {`Удаление документа "${title}"`}
           </DialogTitle>
         </DialogHeader>
         <div className="flex justify-end px-12 py-10">
@@ -286,8 +339,8 @@ export function MetalImpurityDocumentsClient({
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
             {activeTab === "closed"
-              ? `${METAL_IMPURITY_DOCUMENT_TITLE} (закрытые)`
-              : METAL_IMPURITY_DOCUMENT_TITLE}
+              ? `${METAL_IMPURITY_PAGE_TITLE} (Закрытые)`
+              : METAL_IMPURITY_PAGE_TITLE}
           </h1>
           <div className="flex items-center gap-3">
             <Button
@@ -362,11 +415,9 @@ export function MetalImpurityDocumentsClient({
                   href={`/journals/${routeCode}/documents/${document.id}`}
                   className="border-l border-[#eef0f6] px-6"
                 >
-                  <div className="text-[11px] text-[#979aab]">
-                    {config.responsiblePosition}
-                  </div>
+                  <div className="text-[11px] text-[#979aab]">Ответственный</div>
                   <div className="mt-1 text-[12px] font-semibold text-black">
-                    {config.responsibleEmployee}
+                    {`${config.responsiblePosition}: ${config.responsibleEmployee}`}
                   </div>
                 </Link>
                 <Link
@@ -438,6 +489,7 @@ export function MetalImpurityDocumentsClient({
         initial={createState}
         submitLabel="Создать"
         title="Создание документа"
+        documents={documents}
         onSubmit={createDocument}
       />
 
@@ -463,6 +515,7 @@ export function MetalImpurityDocumentsClient({
         }
         submitLabel="Сохранить"
         title="Настройки документа"
+        documents={documents}
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveSettings(settingsDocument, value);
