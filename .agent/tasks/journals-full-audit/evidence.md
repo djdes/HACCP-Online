@@ -70,6 +70,32 @@ Prod (HTTPS) NextAuth выставляет cookie `__Secure-haccp-online.session
 - **BUG-2** header overlap — в `ppe_issuance_AFTER.png`, `incoming_control_AFTER.png`, `traceability_test_AFTER.png` правая ячейка шапки чистая (`СТР. 1 ИЗ 1`), `Начат/Окончен` разведены по вертикали, перекрытий с текстом шапки нет. **NOT REGRESSED.**
 - **Mojibake** в glass-list — `glass_items_list.png` содержит читаемую кириллицу: `ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА`, `УТВЕРЖДАЮ`, `Горячий цех`, `Морозильный ларь`. **NOT REGRESSED.**
 
+## Дополнительно найденные баги в ходе поэлементного visual+logic sweep
+
+### BUG-5 (mid) cold_equipment Ответственный без имени сотрудника — FIXED `d75211c`
+
+Клиент показывал только `responsibleTitle` («Управляющий»), хотя reference JPG рендерит пару `<Должность>: <ФИО>` («Шеф-повар: Петров П.П.»). Передал `responsibleUserName` в клиент и применил тот же формат, что в `TrackedDocumentsClient`.
+
+### BUG-6 (low) cleaning placeholder-строка + genitive month — FIXED `2d17476`
+
+На странице списка клиент рендерил fallback-запись `Ответственный за уборку: —` поверх настоящих ответственных, дублируя колоночную метку. Плюс период отображался в родительном падеже (`апреля с 1 по 30`) вместо именительного как в JPG (`Апрель с 1 по 15`). Отфильтровал placeholder + перевёл `RU_MONTHS` в именительный.
+
+### BUG-7 (high) massive mojibake в 11 файлах — FIXED `81f57df`
+
+`equipment-maintenance-documents-client.tsx`, `equipment-calibration-documents-client.tsx`, `metal-impurity-*`, `disinfectant-document-client.tsx`, `audit-plan-document-client.tsx`, `training-plan-document-client.tsx`, `staff-training-document-client.tsx`, `metal-impurity-document.ts` и оба `journals/[code]/*page.tsx` хранили кириллицу double-encoded (UTF-8 → CP1251 → UTF-8 → `Р"СЂР°С„РёРє` вместо `График`). Автоматически распарсил и починил скриптом `.agent/tasks/journals-full-audit/_shared/fix_mojibake.py`.
+
+### BUG-8 (high) accident_journal упал в легаси fallback UI — FIXED `520e14f`
+
+`ACCIDENT_DOCUMENT_TEMPLATE_CODE` отсутствовал в `isDocumentTemplate()`, из-за чего dedicated `AccidentDocumentsClient` никогда не достигался. Страница рендерила легаси стиль «Журнал учета аварий / Новая запись / submitted».
+
+### BUG-9 (mid) `JournalTopBar` compact-wrap в белой карточке — FIXED `d9910e2` + `de94119` + `308584c`
+
+6 клиентов (`perishable_rejection`, `finished_product`, `equipment_maintenance`, `equipment_calibration`, `staff_training`, `equipment_cleaning`) + `product_writeoff` рендерили шапку в big white rounded card со шрифтом 62px + кнопками под заголовком — JPG references показывают чистую шапку (заголовок слева ~32px, кнопки справа). Убрал card-wrap, выровнял inline.
+
+### BUG-10 (mid) при выборе должности показывался весь список сотрудников — FIXED `03ade3b` + `fad0470`
+
+В 8 клиентах (`equipment_cleaning` washer+controller, `acceptance` row+settings, `equipment_maintenance` approve+responsible, `equipment_calibration`, `glass_list`, `perishable_rejection`, `intensive_cooling`, `uv_lamp_runtime`) Select "Сотрудник" показывал всех сотрудников без фильтра по выбранной должности. Добавил фильтрацию `getUsersForRoleLabel(users, position)` + автосброс несовместимого сотрудника при смене должности + симметричное автозаполнение должности при выборе сотрудника (коммит `ec197d2`).
+
 ## Затронутые коммиты
 
 1. `674df8f` fix: repair mojibake cyrillic strings in glass-list journal pdf (earlier session)

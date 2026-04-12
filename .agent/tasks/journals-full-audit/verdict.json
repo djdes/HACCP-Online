@@ -18,6 +18,12 @@
     {"id":"BUG-1","commit":"2a9bb0d","summary":"drawAcceptancePdf first row swallowed by rowSpan:2 head"},
     {"id":"BUG-2","commit":"2a9bb0d","summary":"drawJournalHeader overlap with Начат/Окончен in ppe/traceability/acceptance"},
     {"id":"BUG-3","commit":"d89734a","summary":"sanitary_day_control fell through to generic tracked drawer — added dedicated drawer"},
-    {"id":"BUG-4","commit":"1127938","summary":"getServerSession missed prod __Secure-haccp-online session cookie — 401 on NextAuth callback path"}
+    {"id":"BUG-4","commit":"1127938","summary":"getServerSession missed prod __Secure-haccp-online session cookie — 401 on NextAuth callback path"},
+    {"id":"BUG-5","commit":"d75211c","summary":"cold_equipment responsible rendered without user name; now shows <role>: <name>"},
+    {"id":"BUG-6","commit":"2d17476","summary":"cleaning list rendered placeholder responsible row + genitive month; filtered placeholder + nominative month"},
+    {"id":"BUG-7","commit":"81f57df","summary":"massive cp1251/utf-8 mojibake in 11 journal source files — repaired via fix_mojibake.py"},
+    {"id":"BUG-8","commit":"520e14f","summary":"accident_journal missing from isDocumentTemplate → rendered legacy fallback UI; added to list"},
+    {"id":"BUG-9","commit":"d9910e2+de94119+308584c","summary":"JournalTopBar white-card compact wrap mismatch JPG layout; removed wrap and shrunk heading"},
+    {"id":"BUG-10","commit":"03ade3b+fad0470+ec197d2","summary":"employee dropdown showed all users regardless of selected position — added filter + symmetric auto-sync"}
   ]
 }
