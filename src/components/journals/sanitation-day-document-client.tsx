@@ -20,6 +20,7 @@ import {
   type SanitationDayConfig,
   type SanitationMonthKey,
 } from "@/lib/sanitation-day-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = {
@@ -571,18 +572,9 @@ export function SanitationDayDocumentClient({
 
   return (
     <div className="space-y-8">
+      <DocumentBackLink href={journalHref} />
       <div className="flex items-center justify-between gap-4 text-[18px] text-[#555a6e]">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/journals" className="hover:text-black">
-            {organizationName}
-          </Link>
-          <span>›</span>
-          <Link href={journalHref} className="hover:text-black">
-            График и учет генеральных уборок
-          </Link>
-          <span>›</span>
-          <span className="text-black">{title}</span>
-        </div>
+        <div />
 
         <div className="flex items-center gap-3">
           <button

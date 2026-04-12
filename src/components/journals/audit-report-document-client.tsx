@@ -23,6 +23,7 @@ import {
   type AuditReportConfig,
   type AuditReportFinding,
 } from "@/lib/audit-report-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type Props = {
@@ -130,10 +131,9 @@ export function AuditReportDocumentClient({
   return (
     <>
       <div className="space-y-8">
+        <DocumentBackLink href="/journals/audit_report" />
         <div className="flex items-center justify-between print:hidden">
-          <div className="text-[16px] text-[#6f7282]">
-            {organizationName} <span className="mx-2">›</span> {documentTitle}
-          </div>
+          <div />
           {status === "active" && (
             <Button variant="outline" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5b66ff]" onClick={() => setSettingsOpen(true)}>
               <Settings2 className="size-4" />

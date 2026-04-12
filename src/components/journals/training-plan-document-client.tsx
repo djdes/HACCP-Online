@@ -28,6 +28,7 @@ import {
   normalizeTrainingPlanConfig,
   type TrainingPlanConfig,
 } from "@/lib/training-plan-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = { id: string; name: string; role: string };
@@ -479,11 +480,9 @@ export function TrainingPlanDocumentClient({
 
   return (
     <div className="space-y-8">
+      <DocumentBackLink href="/journals/training_plan" />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="text-[16px] text-[#6f7282]">
-          {organizationName} <span className="mx-2">›</span> План обучения персонала{" "}
-          <span className="mx-2">›</span> {title}
-        </div>
+        <div />
         <div className="flex items-center gap-3 self-start lg:self-auto">
           <Button
             type="button"

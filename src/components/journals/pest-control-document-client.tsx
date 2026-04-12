@@ -32,6 +32,7 @@ import {
   getPestControlUsersForRole,
   type PestControlEntryData,
 } from "@/lib/pest-control-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 type UserItem = {
   id: string;
@@ -539,15 +540,7 @@ export function PestControlDocumentClient(props: Props) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-2 text-[14px] text-[#4b4b56]">
-        <Link href="/journals" className="hover:text-black">Журналы</Link>
-        <span>›</span>
-        <Link href={`/journals/${props.routeCode}`} className="hover:text-black">
-          {PEST_CONTROL_PAGE_TITLE}
-        </Link>
-        <span>›</span>
-        <span>{props.title || PEST_CONTROL_DOCUMENT_TITLE}</span>
-      </div>
+      <DocumentBackLink href={`/journals/${props.routeCode}`} />
 
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-[52px] font-semibold tracking-[-0.04em] text-black">

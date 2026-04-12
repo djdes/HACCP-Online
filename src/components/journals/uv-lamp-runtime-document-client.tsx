@@ -44,6 +44,7 @@ import {
   type UvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = {
@@ -1033,14 +1034,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Breadcrumb */}
-      <div className="text-[13px] text-[#7c7c93] print:hidden">
-        <Link href={`/journals/${props.routeCode}`} className="hover:underline">
-          Журнал учета работы УФ бактерицидной установки
-        </Link>
-        {" › "}
-        <span>Журнал учета работы</span>
-      </div>
+      <DocumentBackLink href={`/journals/${props.routeCode}`} />
 
       <div className="flex items-center justify-between print:hidden">
         <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">Журнал учета работы</h1>

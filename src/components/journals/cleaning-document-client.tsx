@@ -32,6 +32,7 @@ import {
 } from "@/lib/cleaning-document";
 import { buildDateKeys, isWeekend } from "@/lib/hygiene-document";
 import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
@@ -229,12 +230,13 @@ export function CleaningDocumentClient(props: Props) {
     <>
       <div className="space-y-8">
         {!printMode ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[15px] text-[#5f6477]">
-              <Link href="/dashboard">{props.organizationName}</Link><span>›</span><Link href="/journals/cleaning">{CLEANING_PAGE_TITLE}</Link><span>›</span><span className="text-black">{config.documentTitle || CLEANING_DOCUMENT_TITLE}</span>
+          <>
+            <DocumentBackLink href="/journals/cleaning" />
+            <div className="flex items-center justify-between">
+              <div />
+              <Button type="button" variant="outline" className="h-12 rounded-[16px] border-[#eef0fb] px-6 text-[18px] text-[#5863f8] hover:bg-[#f7f8ff]" onClick={() => setSettingsOpen(true)}>Настройки журнала</Button>
             </div>
-            <Button type="button" variant="outline" className="h-12 rounded-[16px] border-[#eef0fb] px-6 text-[18px] text-[#5863f8] hover:bg-[#f7f8ff]" onClick={() => setSettingsOpen(true)}>Настройки журнала</Button>
-          </div>
+          </>
         ) : null}
 
         <div className="flex items-start justify-between gap-6">

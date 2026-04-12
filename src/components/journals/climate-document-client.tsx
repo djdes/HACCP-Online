@@ -41,6 +41,7 @@ import {
   type ClimateRoomConfig,
 } from "@/lib/climate-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type EmployeeItem = {
@@ -1155,12 +1156,9 @@ export function ClimateDocumentClient({
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1840px] px-6 py-8">
+        <DocumentBackLink href="/journals/climate_control" />
         <div className="mb-8 flex items-start justify-between gap-6">
           <div>
-            <div className="text-[15px] text-[#6f7282]">
-              {organizationName} <span className="mx-2">›</span> Бланк контроля температуры и влажности{" "}
-              <span className="mx-2">›</span> {documentTitle}
-            </div>
             <h1 className="mt-2 text-[56px] font-semibold tracking-[-0.04em] text-black">
               {documentTitle}
             </h1>

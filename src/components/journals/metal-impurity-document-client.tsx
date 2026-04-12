@@ -39,6 +39,7 @@ import {
   type MetalImpurityUser,
 } from "@/lib/metal-impurity-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type Props = {
@@ -1065,12 +1066,9 @@ export function MetalImpurityDocumentClient({
           </div>
         )}
 
+        <DocumentBackLink href={`/journals/${METAL_IMPURITY_TEMPLATE_CODE}`} />
         <div className="flex items-start justify-between gap-6 print:hidden">
           <div>
-            <div className="text-[15px] text-[#6f7282]">
-              {organizationName} <span className="mx-2">›</span> {METAL_IMPURITY_PAGE_TITLE}{" "}
-              <span className="mx-2">›</span> {documentTitle}
-            </div>
             <h1 className="mt-4 text-[58px] font-semibold tracking-[-0.04em] text-black">
               {documentTitle}
             </h1>

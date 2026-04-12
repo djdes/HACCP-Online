@@ -31,6 +31,7 @@ import {
   type EquipmentCleaningFieldVariant,
   type EquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = {
@@ -308,18 +309,9 @@ export function EquipmentCleaningDocumentClient({
         </div>
       ) : null}
 
+      <DocumentBackLink href={`/journals/${journalRouteCode}`} />
       <div className="flex items-center justify-between gap-4 text-[18px] text-[#555a6e]">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/journals" className="hover:text-black">
-            {organizationName}
-          </Link>
-          <span>›</span>
-          <Link href={`/journals/${journalRouteCode}`} className="hover:text-black">
-            Журнал мойки и дезинфекции оборудования
-          </Link>
-          <span>›</span>
-          <span className="text-black">{title}</span>
-        </div>
+        <div />
         <button
           type="button"
           className="rounded-2xl border border-[#e9ecf6] px-4 py-3 text-[#5b66ff]"

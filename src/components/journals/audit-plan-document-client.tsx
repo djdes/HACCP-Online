@@ -32,6 +32,7 @@ import {
   type AuditPlanConfig,
   type AuditPlanSection,
 } from "@/lib/audit-plan-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = { id: string; name: string; role: string };
@@ -658,11 +659,9 @@ export function AuditPlanDocumentClient({
 
   return (
     <div className="space-y-8">
+      <DocumentBackLink href="/journals/audit_plan" />
       <div className="flex items-center justify-between print:hidden">
-        <div className="text-[16px] text-[#6f7282]">
-          {organizationName} <span className="mx-2">›</span> План-программа внутренних аудитов{" "}
-          <span className="mx-2">›</span> {title || AUDIT_PLAN_DOCUMENT_TITLE}
-        </div>
+        <div />
         {!readOnly && (
           <Button
             variant="outline"

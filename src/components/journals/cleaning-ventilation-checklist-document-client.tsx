@@ -41,6 +41,7 @@ import {
   type CleaningVentilationChecklistEntryData,
   type CleaningVentilationResponsible,
 } from "@/lib/cleaning-ventilation-checklist-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type UserItem = {
@@ -598,17 +599,7 @@ export function CleaningVentilationChecklistDocumentClient({
       ) : null}
 
       <div className="space-y-6 rounded-[28px] bg-white p-8 shadow-sm">
-        <div className="text-[16px] text-[#72778c]">
-          <Link href="/dashboard" className="hover:underline">
-            {organizationName || 'ООО "Тест"'}
-          </Link>{" "}
-          {" > "}
-          <Link href={`/journals/${routeCode}`} className="hover:underline">
-            {CLEANING_VENTILATION_CHECKLIST_TITLE}
-          </Link>{" "}
-          {" > "}
-          <span>{docTitle}</span>
-        </div>
+        <DocumentBackLink href={`/journals/${routeCode}`} />
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <h1 className="max-w-[980px] text-[44px] font-semibold tracking-[-0.04em] text-black md:text-[62px]">
