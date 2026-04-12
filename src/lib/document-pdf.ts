@@ -1000,15 +1000,26 @@ function drawClimateMetaTable(doc: jsPDF, params: {
 
 function stampClimatePageNumbers(doc: jsPDF) {
   const totalPages = doc.getNumberOfPages();
-  const x = doc.internal.pageSize.getWidth() - 69;
-  const y = 56.5;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(10);
 
   for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
     doc.setPage(pageNumber);
-    doc.text(`СТР. ${pageNumber} ИЗ ${totalPages}`, x, y);
+    if (pageNumber === 1) {
+      // Keep the original position on the first page — it fits the header block
+      doc.text(`СТР. ${pageNumber} ИЗ ${totalPages}`, pageWidth - 69, 56.5);
+    } else {
+      // Continuation pages: place in the footer so it never overlaps the table body
+      doc.text(
+        `СТР. ${pageNumber} ИЗ ${totalPages}`,
+        pageWidth - 14,
+        pageHeight - 8,
+        { align: "right" }
+      );
+    }
   }
 }
 

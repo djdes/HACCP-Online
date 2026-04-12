@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -450,7 +451,7 @@ export function PestControlDocumentClient(props: Props) {
 
     if (!response.ok) {
       const result = await response.json().catch(() => null);
-      window.alert(result?.error || "Не удалось добавить строку");
+      toast.error(result?.error || "Не удалось добавить строку");
       return;
     }
 
@@ -471,7 +472,7 @@ export function PestControlDocumentClient(props: Props) {
 
     if (!response.ok) {
       const result = await response.json().catch(() => null);
-      window.alert(result?.error || "Не удалось сохранить строку");
+      toast.error(result?.error || "Не удалось сохранить строку");
       return;
     }
 
@@ -490,7 +491,7 @@ export function PestControlDocumentClient(props: Props) {
 
     if (!response.ok) {
       const result = await response.json().catch(() => null);
-      window.alert(result?.error || "Не удалось удалить строки");
+      toast.error(result?.error || "Не удалось удалить строки");
       return;
     }
 
@@ -509,7 +510,7 @@ export function PestControlDocumentClient(props: Props) {
     });
 
     if (!response.ok) {
-      window.alert("Не удалось сохранить настройки документа");
+      toast.error("Не удалось сохранить настройки документа");
       return;
     }
 
@@ -528,7 +529,7 @@ export function PestControlDocumentClient(props: Props) {
     });
 
     if (!response.ok) {
-      window.alert("Не удалось завершить журнал");
+      toast.error("Не удалось завершить журнал");
       return;
     }
 
