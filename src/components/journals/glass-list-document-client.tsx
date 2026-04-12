@@ -343,13 +343,22 @@ export function GlassListDocumentClient({
               <Label className="text-[18px] text-[#73738a]">Сотрудник</Label>
               <select
                 value={config.responsibleUserId}
-                onChange={(event) =>
-                  setConfig((prev) => ({ ...prev, responsibleUserId: event.target.value }))
-                }
+                onChange={(event) => {
+                  const userId = event.target.value;
+                  setConfig((prev) => {
+                    if (!prev.responsibleTitle && userId) {
+                      const user = users.find((u) => u.id === userId);
+                      if (user) {
+                        return { ...prev, responsibleUserId: userId, responsibleTitle: getUserRoleLabel(user.role) };
+                      }
+                    }
+                    return { ...prev, responsibleUserId: userId };
+                  });
+                }}
                 className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[20px]"
               >
                 <option value="">- Выберите значение -</option>
-                {getUsersForRoleLabel(users, config.responsibleTitle).map((user) => (
+                {(config.responsibleTitle ? getUsersForRoleLabel(users, config.responsibleTitle) : users).map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name}
                   </option>

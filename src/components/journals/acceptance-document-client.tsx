@@ -439,10 +439,16 @@ function RowDialog(props: {
               {/* Сотрудник */}
               <div className="space-y-1">
                 <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
-                <Select value={row.responsibleUserId} onValueChange={(v) => setValue("responsibleUserId", v)}>
+                <Select value={row.responsibleUserId} onValueChange={(v) => {
+                  setValue("responsibleUserId", v);
+                  if (!row.responsibleTitle) {
+                    const user = props.users.find((u) => u.id === v);
+                    if (user) setValue("responsibleTitle", getUserRoleLabel(user.role));
+                  }
+                }}>
                   <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                   <SelectContent>
-                    {getUsersForRoleLabel(props.users, row.responsibleTitle).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                    {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -849,10 +855,16 @@ function SettingsDialog(props: {
           </div>
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <Select value={responsibleUserId} onValueChange={(v) => {
+              setResponsibleUserId(v);
+              if (!responsibleTitle) {
+                const user = props.users.find((u) => u.id === v);
+                if (user) setResponsibleTitle(getUserRoleLabel(user.role));
+              }
+            }}>
               <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
-                {getUsersForRoleLabel(props.users, responsibleTitle).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

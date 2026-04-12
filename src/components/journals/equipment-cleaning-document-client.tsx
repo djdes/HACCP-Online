@@ -659,6 +659,9 @@ export function EquipmentCleaningDocumentClient({
                   updateDraft({
                     washerUserId: value,
                     washerName: user?.name || "",
+                    ...(!draft.data.washerPosition && user
+                      ? { washerPosition: getUserRoleLabel(user.role) }
+                      : {}),
                   });
                 }}
               >
@@ -666,7 +669,9 @@ export function EquipmentCleaningDocumentClient({
                   <SelectValue placeholder="Сотрудник" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getUsersForRoleLabel(users, draft.data.washerPosition).map((user) => (
+                  {(draft.data.washerPosition
+                    ? getUsersForRoleLabel(users, draft.data.washerPosition)
+                    : users).map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
                     </SelectItem>
@@ -713,6 +718,9 @@ export function EquipmentCleaningDocumentClient({
                   updateDraft({
                     controllerUserId: value,
                     controllerName: user?.name || "",
+                    ...(!draft.data.controllerPosition && user
+                      ? { controllerPosition: getUserRoleLabel(user.role) }
+                      : {}),
                   });
                 }}
               >
@@ -720,7 +728,9 @@ export function EquipmentCleaningDocumentClient({
                   <SelectValue placeholder="Сотрудник" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getUsersForRoleLabel(users, draft.data.controllerPosition).map((user) => (
+                  {(draft.data.controllerPosition
+                    ? getUsersForRoleLabel(users, draft.data.controllerPosition)
+                    : users).map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
                     </SelectItem>
