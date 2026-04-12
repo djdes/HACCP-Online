@@ -34,6 +34,7 @@ import {
   isCalibrationOverdue,
 } from "@/lib/equipment-calibration-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type Props = {
@@ -251,15 +252,7 @@ export function EquipmentCalibrationDocumentClient({
   return (
     <div className="space-y-6 text-black">
       {/* Breadcrumb */}
-      <div className="text-[13px] text-[#7c7c93] print:hidden">
-        <Link href="/journals" className="hover:underline">{organizationLabel}</Link>
-        {" > "}
-        <Link href={`/journals/equipment_calibration`} className="hover:underline">
-          График поверки средств измерений
-        </Link>
-        {" > "}
-        <span>{title}</span>
-      </div>
+      <DocumentBackLink href="/journals/equipment_calibration" />
 
       {/* screen header */}
       <div className="flex items-center justify-between print:hidden">

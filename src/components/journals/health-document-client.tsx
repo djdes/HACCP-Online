@@ -26,6 +26,7 @@ import {
   normalizeHealthEntryData,
   type HealthEntryData,
 } from "@/lib/hygiene-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type Props = {
@@ -210,6 +211,7 @@ export function HealthDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
+      <DocumentBackLink href="/journals/health_check" />
       <style jsx global>{`
         @page {
           size: A4 landscape;

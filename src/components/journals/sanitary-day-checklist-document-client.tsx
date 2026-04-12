@@ -31,6 +31,7 @@ import {
   type SdcZone,
   type SdcItem,
 } from "@/lib/sanitary-day-checklist-document";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 /* ─── Types ─── */
@@ -774,6 +775,7 @@ export function SanitaryDayChecklistDocumentClient({
 
   return (
     <div className="bg-white text-black">
+      <DocumentBackLink href={`/journals/${routeCode}`} />
       <style jsx global>{`
         @page {
           size: A4 portrait;

@@ -35,6 +35,7 @@ import {
   formatMaintenanceDate,
 } from "@/lib/equipment-maintenance-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 
 import { toast } from "sonner";
 type Props = {
@@ -252,6 +253,7 @@ export function EquipmentMaintenanceDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
+      <DocumentBackLink href="/journals/equipment_maintenance" />
       {/* screen header */}
       <div className="flex items-center justify-between">
         <div>

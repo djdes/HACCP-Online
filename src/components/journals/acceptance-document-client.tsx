@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1368,14 +1369,7 @@ export function AcceptanceDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        {/* Breadcrumb */}
-        <div className="text-[13px] text-[#7c7c93]">
-          <Link href="/journals" className="hover:underline">{organizationLabel}</Link>
-          {" > "}
-          <Link href={`/journals/${routeCode}`} className="hover:underline">{pageTitle}</Link>
-          {" > "}
-          <span>{documentTitle}</span>
-        </div>
+        <DocumentBackLink href={`/journals/${routeCode}`} />
 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-5">
