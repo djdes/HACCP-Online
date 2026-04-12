@@ -330,7 +330,7 @@ function drawMedBookPdf(doc: jsPDF, params: {
               : formatMedBookDate(exam.date);
           }),
         ])
-      : [Array(3 + params.config.examinations.length).fill("")],
+      : ensurePlainRows(3 + params.config.examinations.length),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -443,7 +443,7 @@ function drawMedBookPdf(doc: jsPDF, params: {
           }),
           row.data.note || "",
         ])
-      : [Array(4 + params.config.vaccinations.length).fill("")],
+      : ensurePlainRows(4 + params.config.vaccinations.length),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -615,6 +615,12 @@ function ensurePdfBodyRows(body: RowInput[], columnCount: number, minRows = 3): 
   if (body.length > 0) return body;
   return Array.from({ length: minRows }, () =>
     Array.from({ length: columnCount }, () => centerCell(""))
+  );
+}
+
+function ensurePlainRows(columnCount: number, minRows = 3): string[][] {
+  return Array.from({ length: minRows }, () =>
+    Array.from({ length: columnCount }, () => "")
   );
 }
 
@@ -1139,6 +1145,15 @@ function drawClimatePdf(doc: jsPDF, params: {
 }) {
   drawTitle(doc, getClimateDocumentTitle());
   drawClimateMetaTable(doc, params);
+  const climateColumnCount =
+    2 +
+    params.config.rooms
+      .filter((room) => room.temperature.enabled || room.humidity.enabled)
+      .reduce((total, room) => {
+        const metricCount =
+          Number(room.temperature.enabled) + Number(room.humidity.enabled);
+        return total + params.config.controlTimes.length * metricCount;
+      }, 0);
 
   autoTable(doc, {
     startY: 66,
@@ -1178,7 +1193,7 @@ function drawClimatePdf(doc: jsPDF, params: {
   autoTable(doc, {
     startY: normsEndY + 18,
     head: buildClimateHead(params.config),
-    body: buildClimateBody(params),
+    body: ensurePdfBodyRows(buildClimateBody(params), climateColumnCount),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -1939,9 +1954,17 @@ function drawProductWriteoffPdf(doc: jsPDF, params: {
       "Описание несоответствия",
       "Действия с ТМЦ",
     ]],
-    body: (params.config.rows.length > 0
-      ? params.config.rows
-      : [{ productName: "", batchNumber: "", productionDate: "", quantity: "", discrepancyDescription: "", action: "" }]
+    body: (
+      params.config.rows.length > 0
+        ? params.config.rows
+        : Array.from({ length: 3 }, () => ({
+            productName: "",
+            batchNumber: "",
+            productionDate: "",
+            quantity: "",
+            discrepancyDescription: "",
+            action: "",
+          }))
     ).map((row, index) => [
       String(index + 1),
       row.productName,
@@ -1996,27 +2019,25 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
   const rows =
     params.config.rows.length > 0
       ? params.config.rows
-      : [
-          {
-            id: "",
-            arrivalDate: "",
-            arrivalTime: "",
-            productName: "",
-            productionDate: "",
-            manufacturer: "",
-            supplier: "",
-            packaging: "",
-            quantity: "",
-            documentNumber: "",
-            organolepticResult: "compliant" as const,
-            storageCondition: "2_6" as const,
-            expiryDate: "",
-            actualSaleDate: "",
-            actualSaleTime: "",
-            responsiblePerson: "",
-            note: "",
-          },
-        ];
+      : Array.from({ length: 3 }, () => ({
+          id: "",
+          arrivalDate: "",
+          arrivalTime: "",
+          productName: "",
+          productionDate: "",
+          manufacturer: "",
+          supplier: "",
+          packaging: "",
+          quantity: "",
+          documentNumber: "",
+          organolepticResult: "compliant" as const,
+          storageCondition: "2_6" as const,
+          expiryDate: "",
+          actualSaleDate: "",
+          actualSaleTime: "",
+          responsiblePerson: "",
+          note: "",
+        }));
 
   autoTable(doc, {
     startY: 78,
@@ -2165,7 +2186,7 @@ function drawGlassListPdf(doc: jsPDF, params: {
       "Наименование объекта контроля (предмета)",
       "РљРѕР»-РІРѕ",
     ]],
-    body: (config.rows.length > 0 ? config.rows : [{ id: "empty", location: "", itemName: "", quantity: "" }]).map(
+    body: (config.rows.length > 0 ? config.rows : Array.from({ length: 3 }, (_, index) => ({ id: `empty-${index}`, location: "", itemName: "", quantity: "" }))).map(
       (row) => ["", row.location || config.location || "", row.itemName || "", row.quantity || ""]
     ),
     theme: "grid",
@@ -2768,6 +2789,20 @@ function drawSanitationDayPdf(doc: jsPDF, params: {
     ...SANITATION_MONTHS.map(() => centerCell("")),
   ]);
 
+  if (cfg.rows.length === 0) {
+    body.unshift(
+      [
+        { content: "", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "План", styles: { halign: "center", valign: "middle" } },
+        ...SANITATION_MONTHS.map(() => centerCell("")),
+      ],
+      [
+        { content: "Факт", styles: { halign: "center", valign: "middle" } },
+        ...SANITATION_MONTHS.map(() => centerCell("")),
+      ]
+    );
+  }
+
   autoTable(doc, {
     startY: 96,
     margin: { left: tableMargin, right: tableMargin },
@@ -3109,7 +3144,7 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
       "Мойщик (ФИО)",
       "Контролирующее лицо (должность, ФИО)",
     ]],
-    body: body.length > 0 ? body : [["", "", "", "", "", "", "", "", ""]],
+    body: body.length > 0 ? body : ensurePlainRows(9),
   });
 }
 
@@ -3351,7 +3386,7 @@ function drawTraceabilityPdf(doc: jsPDF, params: {
   autoTable(doc, {
     startY: 66,
     head,
-    body: body.length > 0 ? body : [Array(showShock ? 8 : 7).fill(centerCell(""))],
+    body: ensurePdfBodyRows(body, showShock ? 8 : 7),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -3788,7 +3823,7 @@ function drawAuditReportPdf(doc: jsPDF, params: {
       centerCell("Срок план"),
       centerCell("Срок факт"),
     ]],
-    body:
+    body: ensurePdfBodyRows(
       params.config.findings.map((finding, index) => [
         centerCell(String(index + 1)),
         centerCell(finding.nonConformity || ""),
@@ -3797,7 +3832,9 @@ function drawAuditReportPdf(doc: jsPDF, params: {
         centerCell([finding.responsiblePosition, finding.responsibleName].filter(Boolean).join(", ")),
         centerCell(finding.dueDatePlan ? formatRuDateDash(finding.dueDatePlan) : ""),
         centerCell(finding.dueDateFact ? formatRuDateDash(finding.dueDateFact) : ""),
-      ]) || [[{ content: "", colSpan: 7 }]],
+      ]),
+      7
+    ),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -3867,7 +3904,7 @@ function drawMetalImpurityPdf(doc: jsPDF, params: {
       centerCell("Характеристика"),
       centerCell("Ответственный"),
     ]],
-    body:
+    body: ensurePdfBodyRows(
       params.config.rows.map((row, index) => [
         centerCell(String(index + 1)),
         centerCell(row.date ? formatRuDateDash(row.date) : ""),
@@ -3878,7 +3915,9 @@ function drawMetalImpurityPdf(doc: jsPDF, params: {
         centerCell(getMetalImpurityValuePerKg(row.impurityQuantityG, row.consumedQuantityKg) || ""),
         centerCell(row.impurityCharacteristic || ""),
         centerCell([row.responsibleRole, row.responsibleName].filter(Boolean).join(", ")),
-      ]) || [[{ content: "", colSpan: 9 }]],
+      ]),
+      9
+    ),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -4014,7 +4053,7 @@ function drawIntensiveCoolingPdf(doc: jsPDF, params: {
             centerCell(responsibleLabel || "—"),
           ];
         })
-      : [[centerCell(""), centerCell(""), centerCell(""), centerCell(""), centerCell(""), centerCell(""), centerCell(""), centerCell("")]];
+      : ensurePdfBodyRows([], 8);
 
   autoTable(doc, {
     startY: y + totalHeight + 18,
@@ -4345,7 +4384,11 @@ function drawGlassControlPdf(doc: jsPDF, params: {
     ];
   });
 
-  bodyRows.push(["", "", "", "", "", "", ""]);
+  if (bodyRows.length === 0) {
+    bodyRows.push(...ensurePlainRows(7));
+  } else {
+    bodyRows.push(["", "", "", "", "", "", ""]);
+  }
 
   autoTable(doc, {
     startY: ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 60) + 8,

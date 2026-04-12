@@ -1,0 +1,1 @@
+PASS: no ?print=1 or window.print() references in src/components/journals and src/app

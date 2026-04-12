@@ -1,0 +1,28 @@
+{
+  "batch": "pdf-parity-batch",
+  "scope": "all journal PDF generators",
+  "print_scan": {
+    "legacy_print_query": 0,
+    "window_print": 0,
+    "api_pdf_route": "active"
+  },
+  "fixed_generators": [
+    "drawClimatePdf",
+    "drawAuditReportPdf",
+    "drawMetalImpurityPdf",
+    "drawTraceabilityPdf",
+    "drawEquipmentCleaningPdf",
+    "drawSanitationDayPdf",
+    "drawGlassControlPdf",
+    "drawIntensiveCoolingPdf",
+    "drawMedBookPdf",
+    "drawProductWriteoffPdf",
+    "drawPerishableRejectionPdf",
+    "drawGlassListPdf"
+  ],
+  "verification": {
+    "eslint": "PASS_WITH_WARNINGS",
+    "tsc": "PASS",
+    "legacy_print_scan": "PASS"
+  }
+}

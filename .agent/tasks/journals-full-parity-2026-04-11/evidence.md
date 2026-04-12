@@ -218,3 +218,25 @@ These are not runtime failures anymore. They are proof gaps: live/detail/docprin
 - Fresh checks for this batch:
   - focused `eslint` on touched files: `PASS` with warnings only
   - repo-wide `tsc`: blocked by existing unrelated `SettingsState` mismatch in `src/components/journals/training-plan-documents-client.tsx`
+
+## PDF parity batch
+
+- Print-route scan across `src/components/journals` and `src/app` is clean:
+  - no legacy `?print=1`
+  - no `window.print()`
+  - active print surface stays on `/api/journal-documents/{id}/pdf`
+- Strengthened shared PDF behavior in `src/lib/document-pdf.ts` against the hygiene-style baseline:
+  - empty measurement tables now render visible printable rows in `climate`
+  - false `.map(...) || fallback` branches were removed in `audit_report` and `metal_impurity`
+  - `traceability`, `equipment_cleaning`, `glass_control`, `intensive_cooling`, `med_books`, `product_writeoff`, `perishable_rejection`, and `glass_list` now render several blank printable rows instead of one skeletal row or none
+  - `sanitation_day` now renders an explicit empty plan/fact pair before the responsible row when the schedule is empty
+- Batch artifacts:
+  - `raw/pdf-parity-batch.md`
+  - `raw/pdf-parity-batch.json`
+  - `raw/pdf-parity-eslint-latest.txt`
+  - `raw/pdf-parity-tsc-latest.txt`
+  - `raw/pdf-parity-print-scan.txt`
+- Fresh checks for this batch:
+  - `npx eslint src/lib/document-pdf.ts`: `PASS` with warnings only
+  - `npx tsc --noEmit`: `PASS`
+  - legacy print scan: `PASS`
