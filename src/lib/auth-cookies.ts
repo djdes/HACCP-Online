@@ -2,6 +2,7 @@ export const CUSTOM_SESSION_COOKIE =
   "haccp-online.session-token";
 
 export const LEGACY_SESSION_COOKIES = [
+  "__Secure-haccp-online.session-token",
   "__Secure-next-auth.session-token",
   "next-auth.session-token",
 ];
