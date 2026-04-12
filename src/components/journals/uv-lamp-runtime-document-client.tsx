@@ -1066,7 +1066,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Toolbar row */}
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         {selectedRowIds.length > 0 && (
-          <>
+          <div className="sticky top-0 z-30 -mx-6 flex flex-wrap items-center gap-3 border-b border-[#eef0fb] bg-white/95 px-6 py-3 backdrop-blur">
             <div className="flex items-center gap-2 text-[14px]">
               <button
                 type="button"
@@ -1088,7 +1088,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
               <Trash2 className="mr-1 size-4" />
               Удалить
             </Button>
-          </>
+          </div>
         )}
       </div>
 

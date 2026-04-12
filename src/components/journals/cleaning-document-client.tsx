@@ -263,7 +263,7 @@ export function CleaningDocumentClient(props: Props) {
         </section>
 
         {!printMode ? (
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="sticky top-0 z-30 -mx-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#eef0fb] bg-white/95 px-6 py-3 backdrop-blur">
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button className="h-14 rounded-[18px] bg-[#5863f8] px-7 text-[22px] text-white hover:bg-[#4756f6]"><Plus className="size-6" />Добавить<ChevronDown className="size-5" /></Button></DropdownMenuTrigger>

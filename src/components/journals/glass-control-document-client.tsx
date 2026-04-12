@@ -700,7 +700,7 @@ export function GlassControlDocumentClient(props: Props) {
   return (
     <div className="space-y-6 text-black">
       {selectedCount > 0 && !isClosed && (
-        <div className="flex items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
+        <div className="sticky top-0 z-30 -mx-6 flex items-center gap-4 rounded-[20px] border-b border-[#eef0fb] bg-white/95 px-6 py-3 shadow-sm backdrop-blur">
           <button
             type="button"
             className="rounded-xl px-4 py-2 text-[18px] text-[#5b66ff]"

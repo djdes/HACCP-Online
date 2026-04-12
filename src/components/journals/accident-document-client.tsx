@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import {
   CalendarDays,
   Plus,
@@ -503,7 +504,7 @@ export function AccidentDocumentClient(props: Props) {
   return (
     <div className="bg-white text-black">
       {selectedRowIds.length > 0 ? (
-        <div className="border-b border-[#eef1f7] bg-white">
+        <div className="sticky top-0 z-30 border-b border-[#eef1f7] bg-white/95 backdrop-blur">
           <div className="mx-auto flex max-w-[1860px] items-center gap-4 px-6 py-5">
             <button
               type="button"
@@ -530,17 +531,8 @@ export function AccidentDocumentClient(props: Props) {
       ) : null}
 
       <div className="mx-auto max-w-[1860px] space-y-8 px-6 py-6">
-        <div className="text-sm text-[#444a60]">
-          <Link href="/journals" className="hover:underline">
-            {props.organizationName || 'ООО "Тест"'}
-          </Link>{" "}
-          {" > "}
-          <Link href="/journals/accidentjournal" className="hover:underline">
-            {ACCIDENT_DOCUMENT_TITLE}
-          </Link>{" "}
-          {" > "}
-          <span>{title || ACCIDENT_DOCUMENT_TITLE}</span>
-        </div>
+        <DocumentBackLink href="/journals/accidentjournal" />
+
 
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[56px] font-semibold tracking-[-0.04em]">
