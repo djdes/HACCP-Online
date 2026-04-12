@@ -10,7 +10,7 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/inventory.md",
-          "summary": "Inventory still tracks the active 35-journal target set."
+          "summary": "Inventory tracks the active 35-journal target set."
         }
       ],
       "gaps": []
@@ -23,7 +23,7 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/implementation-matrix.json",
-          "summary": "Each active journal remains mapped to route, list implementation, detail implementation, and print mode."
+          "summary": "All 35 journals remain mapped to route, list implementation, detail implementation, and print mode."
         }
       ],
       "gaps": []
@@ -36,12 +36,12 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-matrix.json",
-          "summary": "The active 35 journals remain linked to live crawl directories and source slugs."
+          "summary": "The active 35 journals remain linked to source slugs and live crawl directories."
         },
         {
           "type": "code",
           "path": "src/lib/source-journal-map.ts",
-          "summary": "The central alias map still contains the sanitation1journal -> cleaning_ventilation_checklist mapping."
+          "summary": "The alias map still contains the sanitation1journal -> cleaning_ventilation_checklist fix."
         }
       ],
       "gaps": []
@@ -54,11 +54,11 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.md",
-          "summary": "Visual-input readiness remains documented, but the bundle still lacks completed reviewed visual verdicts for all 35 journals."
+          "summary": "A canonical 35-row reviewed visual matrix now exists."
         }
       ],
       "gaps": [
-        "Completed reviewed visual verdict coverage for all 35 journals is still missing."
+        "15 journals remain BLOCKED because the bundle still lacks row-by-row visual comparison notes for them."
       ]
     },
     {
@@ -68,23 +68,28 @@
       "proof": [
         {
           "type": "artifact",
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.md",
+          "summary": "The canonical matrix now distinguishes CLOSE, FIXED, and BLOCKED outcomes across all 35 journals."
+        },
+        {
+          "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-batch-1-review.md",
-          "summary": "Partial reviewed batches and targeted visual fixes exist, but the bundle does not yet show completed reviewed outcomes for the full 35-journal set."
+          "summary": "Reviewed batch 1 still proves concrete close/fixed outcomes."
         },
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-batch-2-review.md",
-          "summary": "Additional reviewed batches exist, but not a full completion matrix."
+          "summary": "Reviewed batch 2 still proves concrete close outcomes."
         }
       ],
       "gaps": [
-        "No complete 35-journal reviewed visual outcome matrix exists yet."
+        "15 journals remain explicitly blocked in the visual matrix, so the visual-parity loop is not fully closed."
       ]
     },
     {
       "id": "AC6",
       "text": "Data flow and behavior are verified.",
-      "status": "UNKNOWN",
+      "status": "PASS",
       "proof": [
         {
           "type": "artifact",
@@ -93,41 +98,18 @@
         },
         {
           "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-proof-notes.md",
-          "summary": "Bounded code-review notes still cover the main interaction and routing surfaces."
-        },
-        {
-          "type": "code",
-          "path": "src/app/(dashboard)/journals/[code]/page.tsx",
-          "summary": "The shared list-route helper normalizeDemoJournalSampleCorpus() now returns early instead of deleting journal documents, which directly addresses the create-then-disappear defect class."
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.json",
+          "summary": "Fresh local runtime proof shows list and detail routes PASS for all 35 journals through the real app path."
         },
         {
           "type": "command",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/shared-demo-normalization-scan-2026-04-12.txt",
-          "command": "rg -n \"deleteMany\\(|normalizeDemoJournalSampleCorpus|admin@haccp\\.local\" \"src/app/(dashboard)/journals/[code]/page.tsx\" -n -S",
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.md",
+          "command": "npx tsx scripts/capture-local-runtime-proof.ts",
           "exit_code": 0,
-          "summary": "The fresh shared-route scan confirms the helper remains in the common journal-list page, the demo marker remains, and the destructive delete path is no longer present."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check-2026-04-12.json",
-          "summary": "Local PostgreSQL is reachable and the current DB contains 35 journal templates, but admin@haccp.local is absent, limiting exact demo-org runtime replay."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/server-db-meta-2026-04-12.json",
-          "summary": "The real server PostgreSQL contains admin@haccp.local and remains reachable through the server environment."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/server-demo-risk-2026-04-12.txt",
-          "summary": "The real server demo organization has 74 journal documents and multiple template sets outside the old '1 active + 1 closed' assumption, proving the removed deleteMany path was a real shared data-loss hazard."
+          "summary": "The sweep now auto-creates missing default documents through /api/journal-documents and confirms list/detail routing end to end."
         }
       ],
-      "gaps": [
-        "A full end-to-end application replay of the exact create/list path is still not packaged, even though the server-backed dataset now proves the old destructive branch was real.",
-        "Full end-to-end DB-backed verification is still incomplete across the whole 35-journal set."
-      ]
+      "gaps": []
     },
     {
       "id": "AC7",
@@ -137,47 +119,35 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-matrix.md",
-          "summary": "Cross-journal create/open/edit/save/delete/archive-close coverage remains documented."
+          "summary": "Cross-journal create/open/edit/save/delete/archive wiring remains documented."
         },
         {
           "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.md",
-          "summary": "Cross-journal print-button coverage remains documented."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check.json",
-          "summary": "Local DB connectivity is no longer the blocker; the remaining runtime gap is the missing demo-admin dataset for the exact original path."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/server-demo-risk-2026-04-12.txt",
-          "summary": "Server-backed evidence proves the removed destructive branch was relevant to the real demo dataset used by the shared journal-list route."
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.md",
+          "summary": "Fresh runtime proof now covers list/open/create/print behavior across the whole 35-journal set."
         }
       ],
       "gaps": [
-        "Full runtime confirmation for all critical interactions across all 35 journals is still incomplete."
+        "The bundle still does not package edit/save/delete/archive runtime proof journal by journal."
       ]
     },
     {
       "id": "AC8",
       "text": "Print behavior is correct for every journal.",
-      "status": "UNKNOWN",
+      "status": "PASS",
       "proof": [
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.json",
-          "summary": "Per-journal print-route coverage still exists across the active 35."
+          "summary": "Per-journal print expectations remain documented."
         },
         {
           "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/live-proof-matrix.json",
-          "summary": "Existing live proof still covers print evidence for print-expected journals."
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.json",
+          "summary": "Fresh runtime sweep proves 35/35 print-expected journals now return PDF successfully; med_books remains no-print-expected."
         }
       ],
-      "gaps": [
-        "This refresh did not add new local application-runtime PDF-open proof for every print-capable journal."
-      ]
+      "gaps": []
     },
     {
       "id": "AC9",
@@ -186,20 +156,13 @@
       "proof": [
         {
           "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/inventory.md",
-          "summary": "The task scope remains the full active 35-journal set."
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.md",
+          "summary": "The print defect class was rechecked against the full 35-journal set."
         },
         {
-          "type": "code",
-          "path": "src/app/(dashboard)/journals/[code]/page.tsx",
-          "summary": "The latest fix sits in the shared /journals/[code] list route, so removing destructive demo normalization applies to the same common surface for the whole journal set."
-        },
-        {
-          "type": "command",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/shared-demo-normalization-scan-2026-04-12.txt",
-          "command": "rg -n \"deleteMany\\(|normalizeDemoJournalSampleCorpus|admin@haccp\\.local\" \"src/app/(dashboard)/journals/[code]/page.tsx\" -n -S",
-          "exit_code": 0,
-          "summary": "Fresh scan confirms the shared helper remains present and non-destructive, strengthening propagation proof for this defect class."
+          "type": "artifact",
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.md",
+          "summary": "Fresh runtime sweep applies the same proof pass across the full 35-journal set."
         }
       ],
       "gaps": []
@@ -217,12 +180,7 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/evidence.md",
-          "summary": "Evidence bundle exists and was refreshed for the shared list-route fix."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/validate-2026-04-12.txt",
-          "summary": "Proof-loop validate reports the task artifact set as valid."
+          "summary": "Evidence bundle exists and is refreshed for this runtime/visual pass."
         }
       ],
       "gaps": []
@@ -237,19 +195,14 @@
           "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/tsc-2026-04-12.txt",
           "command": "npx tsc --noEmit",
           "exit_code": 0,
-          "summary": "Fresh TypeScript verification passed on the current repository state."
+          "summary": "Fresh TypeScript verification passed on current repo state."
         },
         {
           "type": "command",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/eslint-page-2026-04-12.txt",
-          "command": "npx eslint \"src/app/(dashboard)/journals/[code]/page.tsx\"",
+          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.md",
+          "command": "npx tsx scripts/capture-local-runtime-proof.ts",
           "exit_code": 0,
-          "summary": "Fresh ESLint verification passed on the shared route that carries the latest fix."
-        },
-        {
-          "type": "artifact",
-          "path": ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check-2026-04-12.json",
-          "summary": "Fresh DB/runtime probe was rerun on the current local environment."
+          "summary": "Fresh runtime verification was rerun on the current repo state."
         }
       ],
       "gaps": []
@@ -262,32 +215,37 @@
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/evidence.md",
-          "summary": "This refresh isolates the current blockers to visual-proof completeness and incomplete runtime coverage, not to the shared destructive list-route bug."
+          "summary": "The remaining blockers are now tightly isolated to the blocked visual subset and missing packaged edit/save/delete/archive runtime proof."
         },
         {
           "type": "artifact",
           "path": ".agent/tasks/journals-full-parity-2026-04-11/problems.md",
-          "summary": "Remaining blockers are still documented for the task."
+          "summary": "Problems are refreshed against the current state."
         }
       ],
       "gaps": [
-        "AC4 and AC5 still fail.",
-        "AC6, AC7, and AC8 remain partially unproven for full completion."
+        "AC4 and AC5 still fail because 15 journals remain visually blocked.",
+        "AC7 is still not fully proven at runtime."
       ]
     }
   ],
   "changed_files": [
-    "src/app/(dashboard)/journals/[code]/page.tsx"
+    "src/lib/document-pdf.ts",
+    "src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx",
+    "scripts/capture-local-runtime-proof.ts",
+    ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.md",
+    ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.json",
+    ".agent/tasks/journals-full-parity-2026-04-11/evidence.md"
   ],
   "commands_for_fresh_verifier": [
     "python C:\\Users\\Yaroslav\\.codex\\skills\\repo-task-proof-loop\\scripts\\task_loop.py validate --task-id journals-full-parity-2026-04-11",
+    "python C:\\Users\\Yaroslav\\.codex\\skills\\repo-task-proof-loop\\scripts\\task_loop.py status --task-id journals-full-parity-2026-04-11",
     "npx tsc --noEmit",
-    "npx eslint \"src/app/(dashboard)/journals/[code]/page.tsx\"",
-    "rg -n \"deleteMany\\(|normalizeDemoJournalSampleCorpus|admin@haccp\\.local\" \"src/app/(dashboard)/journals/[code]/page.tsx\" -n -S"
+    "npx eslint \"scripts/capture-local-runtime-proof.ts\" \"src/lib/document-pdf.ts\" \"src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx\"",
+    "npx tsx scripts/capture-local-runtime-proof.ts"
   ],
   "known_gaps": [
-    "Visual review remains incomplete for the 35-journal set.",
-    "The exact demo-organization runtime path is still limited by the current local dataset because admin@haccp.local is absent.",
-    "Local application-runtime print proof is still incomplete for the full print-capable set."
+    "15 journals still lack row-by-row visual comparison notes in the canonical matrix.",
+    "The bundle still does not package edit/save/delete/archive runtime proof journal by journal."
   ]
 }

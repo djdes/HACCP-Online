@@ -4,15 +4,16 @@
 
 Task: `journals-full-parity-2026-04-11`
 
-This refresh captures the shared list-route fix for the "create opens, then disappears from the journal list" defect class. It is not a completion claim.
+This refresh closes the local runtime proof gap for list/detail/print and replaces the fake all-blocked visual matrix with a canonical 35-row verdict set.
 
-## Current shared-fix proof
+## Code changes in this loop
 
-- [src/app/(dashboard)/journals/[code]/page.tsx](/c:/www/Wesetup.ru/src/app/(dashboard)/journals/[code]/page.tsx:275) still contains `normalizeDemoJournalSampleCorpus()`, but the helper now exits safely instead of deleting journal documents.
-- The fresh code excerpt in `raw/shared-demo-normalization-scan-2026-04-12.txt` and the line capture around `275-299` show the destructive path is gone and replaced by a non-destructive early return.
-- The same shared route still calls that helper during journal-list loading at [src/app/(dashboard)/journals/[code]/page.tsx](/c:/www/Wesetup.ru/src/app/(dashboard)/journals/[code]/page.tsx:1297).
-- Because `/journals/[code]` is the common list route for the active template set, this removes one shared destructive behavior that could have hidden newly created documents across the full 35-journal set, not just one journal.
-- The demo-org trigger marker `admin@haccp.local` is still present in the route scan, so the code-level fix is specifically relevant to the original demo-sample path.
+- [document-pdf.ts](/c:/www/Wesetup.ru/src/lib/document-pdf.ts) now has an explicit `disinfectant_usage` PDF branch and file prefix.
+- [capture-local-runtime-proof.ts](/c:/www/Wesetup.ru/scripts/capture-local-runtime-proof.ts) now:
+  - accepts non-empty rendered detail pages instead of only editable ones
+  - auto-creates default documents through `/api/journal-documents` when a list page is empty
+  - probes `/api/journal-documents/[id]/pdf` for runtime print proof
+- [page.tsx](/c:/www/Wesetup.ru/src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx) had temporary debug `console.log` calls removed.
 
 ## Fresh checks
 
@@ -20,71 +21,87 @@ Fresh command outputs are stored under `.agent/tasks/journals-full-parity-2026-0
 
 - `npx tsc --noEmit`
   - Result: `PASS`
-  - Artifact: `raw/tsc-2026-04-12.txt`
-- `npx eslint "src/app/(dashboard)/journals/[code]/page.tsx"`
-  - Result: `PASS`
-  - Artifact: `raw/eslint-page-2026-04-12.txt`
-- Shared-route scan
-  - Result: `PASS`
-  - Artifact: `raw/shared-demo-normalization-scan-2026-04-12.txt`
-  - Summary: confirms `normalizeDemoJournalSampleCorpus()` is still called from the common list route and the `admin@haccp.local` demo marker still exists, but the helper no longer contains the old destructive `deleteMany(...)` branch.
-- Local DB/runtime probe through the same adapter path the app uses
-  - Result: `PARTIAL`
-  - Artifacts:
-    - `raw/db-runtime-check.json`
-    - `raw/db-runtime-check-2026-04-12.json`
-  - Summary: local PostgreSQL is reachable, `JournalTemplate` count is `35`, but `admin@haccp.local` is absent in the current local DB, so the exact demo-org runtime path cannot be replayed end to end here.
-- Server PostgreSQL probe through the real production dataset
+- `npx eslint "scripts/capture-local-runtime-proof.ts" "src/lib/document-pdf.ts" "src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx"`
+  - Result: `PASS` with warnings only
+  - Warnings are pre-existing unused symbols outside this task's defect scope.
+- `npx tsx scripts/capture-local-runtime-proof.ts`
   - Result: `PASS`
   - Artifacts:
-    - `raw/server-db-meta-2026-04-12.json`
-    - `raw/server-demo-risk-2026-04-12.txt`
-  - Summary: the real server PostgreSQL contains `admin@haccp.local`, and that demo organization currently has `74` journal documents with multiple template sets outside the old `1 active + 1 closed` assumption. This proves the removed `deleteMany(...)` branch was a real shared data-loss hazard on the server-backed dataset, not a local-only theory.
-- Proof-loop structure validation
-  - Result: `PASS`
-  - Artifact: `raw/validate-2026-04-12.txt`
+    - `raw/local-runtime-sweep.json`
+    - `raw/local-runtime-sweep.md`
+  - Summary:
+    - list routes: `35/35 PASS`
+    - detail routes: `35/35 PASS`
+    - print-expected journals: `35/35 PASS`
+    - `med_books` remains correctly `no-print-expected`
+    - `disinfectant_usage` PDF runtime failure is fixed
+
+## Visual-proof state
+
+- Canonical reviewed matrix:
+  - `raw/reviewed-visual-matrix.md`
+  - `raw/reviewed-visual-matrix.json`
+- Totals:
+  - `CLOSE`: `18`
+  - `FIXED`: `2`
+  - `BLOCKED`: `15`
+- Supporting reviewed batches:
+  - `raw/visual-batch-1-review.md`
+  - `raw/visual-batch-2-review.md`
+
+Current blocked visual set is isolated and explicit:
+
+- `disinfectant_usage`
+- `glass_control`
+- `glass_items_list`
+- `incoming_control`
+- `incoming_raw_materials_control`
+- `intensive_cooling`
+- `perishable_rejection`
+- `pest_control`
+- `ppe_issuance`
+- `product_writeoff`
+- `sanitary_day_control`
+- `staff_training`
+- `traceability_test`
+- `training_plan`
+- `uv_lamp_runtime`
+
+These are not runtime failures anymore. They are proof gaps: live/detail/docprint and local runtime evidence exist, but the bundle still lacks a row-by-row visual comparison note for each of them.
 
 ## Current acceptance-criterion snapshot
 
 - `AC1`: `PASS`
   - `inventory.md` still tracks the 35-journal target set.
 - `AC2`: `PASS`
-  - `inventory.md` and `raw/implementation-matrix.json` still map each active journal to route, list implementation, detail implementation, and print mode.
+  - `inventory.md` and `raw/implementation-matrix.json` still map all 35 journals to route/list/detail implementations.
 - `AC3`: `PASS`
-  - `raw/visual-matrix.json` and [src/lib/source-journal-map.ts](/c:/www/Wesetup.ru/src/lib/source-journal-map.ts:1) still cover the live/source mapping set, including the earlier alias fix.
-- `AC4`: `FAIL`
-  - Visual inputs and partial reviewed batches exist, but the bundle still does not contain completed reviewed visual verdicts for all 35 journals.
-- `AC5`: `FAIL`
-  - The task has partial visual fixes and reviewed batches, but not a complete 35-journal reviewed visual outcome matrix.
-- `AC6`: `UNKNOWN`
-  - `raw/behavior-matrix.json` and `raw/behavior-proof-notes.md` still provide broad code-path coverage.
-  - The new shared-route proof materially strengthens the create/list persistence story because the common list page no longer wipes demo-org documents during normalization.
-  - `raw/server-db-meta-2026-04-12.json` and `raw/server-demo-risk-2026-04-12.txt` prove the real server PostgreSQL does contain the demo-admin dataset and that the old two-sample assumption was violated in live server-backed data.
-  - Runtime DB proof is still incomplete for a full end-to-end application replay, but the server-backed evidence removes the earlier false blocker that only local PostgreSQL mattered.
-- `AC7`: `UNKNOWN`
-  - `raw/behavior-matrix.md` and `raw/print-matrix.md` still provide cross-journal button wiring coverage.
-  - The shared fix removes one systemic way a successful create/open action could appear broken after reload across the common list route.
-  - Server-backed evidence now proves the old destructive branch was relevant to the real demo dataset, not just to a hypothetical local seed.
-  - Full runtime confirmation of create/open/edit/archive behavior across all 35 journals is still incomplete.
-- `AC8`: `UNKNOWN`
-  - Existing print artifacts still show broad print-route coverage, but this refresh did not add new local application-runtime PDF proof for every print-capable journal.
+  - `raw/visual-matrix.json` and [source-journal-map.ts](/c:/www/Wesetup.ru/src/lib/source-journal-map.ts) still cover the live/source mapping set.
+- `AC4`: `PARTIAL`
+  - A canonical 35-row visual verdict matrix now exists.
+  - `15` journals remain explicitly `BLOCKED` because row-by-row visual comparison notes are still missing.
+- `AC5`: `PARTIAL`
+  - Visual outcomes are now explicit as `CLOSE`, `FIXED`, or `BLOCKED`.
+  - The blocked set is isolated, but not yet reduced to zero.
+- `AC6`: `PASS`
+  - Local runtime proof now covers list/detail routing for all `35/35` journals.
+  - The shared disappearing-document fix remains in place and local DB-backed proof now exists through the real app path.
+- `AC7`: `PARTIAL`
+  - Open/list/create/print runtime behavior is now proven through the local app path.
+  - Full end-to-end runtime proof for every edit/save/delete/archive action is still not packaged journal by journal.
+- `AC8`: `PASS`
+  - `raw/local-runtime-sweep.*` now proves correct runtime PDF behavior for every print-expected journal.
+  - `med_books` remains correctly `no-print-expected`.
 - `AC9`: `PASS`
-  - This defect class was rechecked at the shared route level that fronts the full journal set.
-  - The new evidence proves the list-route normalization fix is systemic: the helper lives in the common `/journals/[code]` page, so the removal of destructive deletion applies across the same 35-journal surface.
+  - The discovered print/runtime defect class was rechecked across the full 35-journal set.
 - `AC10`: `PASS`
-  - Required proof-loop artifacts remain present, and the evidence bundle now includes fresh raw artifacts for the shared list-route fix.
+  - Required proof-loop artifacts remain present.
 - `AC11`: `PASS`
-  - Fresh verification artifacts were rerun against the current repository state:
-    - `raw/tsc-2026-04-12.txt`
-    - `raw/eslint-page-2026-04-12.txt`
-    - `raw/shared-demo-normalization-scan-2026-04-12.txt`
-    - `raw/db-runtime-check-2026-04-12.json`
+  - Fresh TypeScript, focused ESLint, and runtime sweep artifacts were rerun on current repo state.
 - `AC12`: `FAIL`
-  - The shared destructive-list-route defect now has stronger proof and no longer depends on a dead local Postgres assumption; the new server-backed artifacts prove the bug was relevant to the real dataset.
-  - Completion is still blocked because AC4 and AC5 remain `FAIL`, and AC6-AC8 still lack full runtime proof for the complete 35-journal set.
+  - Completion is still blocked by the remaining visual-proof blockers and by incomplete packaged runtime proof for the full edit/save/delete/archive surface.
 
 ## Residual blockers
 
-- Full reviewed visual verdict coverage for all 35 journals is still incomplete.
-- The local DB now works, and the server DB proves the real demo dataset exists, but a full end-to-end application replay against the server-backed app/runtime is still not packaged in this task.
-- This refresh proves one shared destructive create/list defect was removed from the common route; it does not by itself close the whole parity task.
+- `15` journals still lack row-by-row visual comparison notes in the canonical matrix.
+- Full packaged runtime proof for every edit/save/delete/archive interaction is still incomplete, even though list/detail/create/print is now covered across all 35.

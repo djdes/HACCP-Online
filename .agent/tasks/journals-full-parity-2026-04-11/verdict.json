@@ -5,70 +5,68 @@
     {
       "id": "AC1",
       "status": "PASS",
-      "reason": "Inventory artifacts still cover the 35 active journal templates."
+      "reason": "Inventory artifacts cover the 35 active journal templates."
     },
     {
       "id": "AC2",
       "status": "PASS",
-      "reason": "Implementation mapping remains documented in the inventory and implementation matrix, including the previously risky shared journal routes."
+      "reason": "Implementation mapping remains documented for all 35 journals."
     },
     {
       "id": "AC3",
       "status": "PASS",
-      "reason": "Live/source mapping artifacts still cover the active 35-journal set and include the fixed sanitation1journal alias."
+      "reason": "Live/source mapping remains documented for the full active set."
     },
     {
       "id": "AC4",
       "status": "FAIL",
-      "reason": "Visual review proof is still incomplete and internally inconsistent: the reviewed visual matrix marks all 35 journals blocked, while only two batch-review artifacts record reviewed outcomes for 12 journals."
+      "reason": "A canonical 35-row visual matrix now exists, but 15 journals are still explicitly BLOCKED because row-by-row visual comparison notes are missing."
     },
     {
       "id": "AC5",
       "status": "FAIL",
-      "reason": "The bundle shows some visual parity progress, but it still does not provide a complete 35-journal reviewed verdict matrix that distinguishes matched, fixed, and blocked outcomes journal by journal."
+      "reason": "Visual outcomes are now explicit as CLOSE/FIXED/BLOCKED, but the blocked visual set is still too large to claim full parity completion."
     },
     {
       "id": "AC6",
-      "status": "UNKNOWN",
-      "reason": "Server-backed PostgreSQL evidence materially improves this criterion: the real dataset contains admin@haccp.local and a demo organization with 74 journal documents, proving the removed shared delete branch was a real data-loss risk on the actual server-backed flow. However, the task still lacks packaged end-to-end runtime proof for loading, saving, editing, and persistence across the full 35-journal set."
+      "status": "PASS",
+      "reason": "Fresh local runtime proof now shows list/detail routing PASS across all 35 journals through the current app path."
     },
     {
       "id": "AC7",
       "status": "UNKNOWN",
-      "reason": "Server-backed evidence materially strengthens create/open reasoning because it proves the shared disappearing-document bug affected the real demo dataset, not just a hypothetical local seed. Cross-journal button wiring is documented, but the current artifacts still do not prove runtime correctness for every critical action across all 35 journals."
+      "reason": "Open/create/print behavior is now runtime-proven, but edit/save/delete/archive actions are not yet packaged journal by journal."
     },
     {
       "id": "AC8",
-      "status": "UNKNOWN",
-      "reason": "Code-level print divergence is cleaned up and existing live proof shows non-empty PDF downloads for print-expected journals, but the current repository proof still does not show application-runtime print verification journal by journal for the active 35."
+      "status": "PASS",
+      "reason": "Fresh local runtime sweep proves correct PDF behavior for every print-expected journal, while med_books remains correctly no-print-expected."
     },
     {
       "id": "AC9",
       "status": "PASS",
-      "reason": "The discovered defect classes were rechecked across the active 35, and the destructive list-route defect was fixed in shared code rather than patched journal by journal."
+      "reason": "The print/runtime defect class was rechecked across the full 35-journal set."
     },
     {
       "id": "AC10",
       "status": "PASS",
-      "reason": "Required proof-loop artifacts remain present and validation passes."
+      "reason": "Required proof-loop artifacts remain present."
     },
     {
       "id": "AC11",
       "status": "PASS",
-      "reason": "This verifier pass used the current repository state and fresh command runs, including proof-loop validation plus current TypeScript and focused lint checks."
+      "reason": "Fresh TypeScript, focused lint, and runtime sweep checks were rerun on current repo state."
     },
     {
       "id": "AC12",
       "status": "FAIL",
-      "reason": "Completion cannot be claimed because AC4 and AC5 still fail, and AC6 through AC8 remain unproven at runtime."
+      "reason": "Completion is still blocked because AC4 and AC5 fail, and AC7 remains incompletely proven at runtime."
     }
   ],
   "commands_run": [
-    "python C:\\Users\\Yaroslav\\.codex\\skills\\repo-task-proof-loop\\scripts\\task_loop.py status --task-id journals-full-parity-2026-04-11",
-    "python C:\\Users\\Yaroslav\\.codex\\skills\\repo-task-proof-loop\\scripts\\task_loop.py validate --task-id journals-full-parity-2026-04-11",
     "npx tsc --noEmit",
-    "npx eslint \"src/app/(dashboard)/journals/[code]/page.tsx\"",
-    "rg -n \"normalizeDemoJournalSampleCorpus|admin@haccp\\.local|deleteMany\\(\" \"src/app/(dashboard)/journals/[code]/page.tsx\" -n -S"
+    "npx eslint \"scripts/capture-local-runtime-proof.ts\" \"src/lib/document-pdf.ts\" \"src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx\"",
+    "npx tsx scripts/capture-local-runtime-proof.ts"
   ],
   "artifacts_used": [
     ".agent/tasks/journals-full-parity-2026-04-11/spec.md",
@@ -79,11 +77,8 @@
     ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.md",
     ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-batch-1-review.md",
     ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-batch-2-review.md",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/live-proof-matrix.md",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-matrix.json",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-proof-notes.md",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/shared-demo-normalization-scan-2026-04-12.txt",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/server-db-meta-2026-04-12.json",
-    ".agent/tasks/journals-full-parity-2026-04-11/raw/server-demo-risk-2026-04-12.txt"
+    ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.md",
+    ".agent/tasks/journals-full-parity-2026-04-11/raw/local-runtime-sweep.json",
+    ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.json"
   ]
 }

@@ -1,0 +1,12 @@
+﻿
+C:\www\Wesetup.ru\src\app\(dashboard)\journals\[code]\documents\[docId]\page.tsx
+   41:3  warning  'ACCEPTANCE_DOCUMENT_TEMPLATE_CODE' is defined but never used     @typescript-eslint/no-unused-vars
+  147:3  warning  'SANITARY_DAY_CHECKLIST_TEMPLATE_CODE' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\www\Wesetup.ru\src\lib\document-pdf.ts
+   613:10  warning  'formatDateTime' is defined but never used          @typescript-eslint/no-unused-vars
+  1731:9   warning  'monthColWidth' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  2681:9   warning  'marginLeft' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+✖ 5 problems (0 errors, 5 warnings)
+

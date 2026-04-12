@@ -1,0 +1,1308 @@
+{
+  "generatedAt": "2026-04-12T07:53:38.454Z",
+  "baseUrl": "http://localhost:3000",
+  "total": 35,
+  "passedList": 35,
+  "passedDetail": 35,
+  "passedPrintExpected": 35,
+  "entries": [
+    {
+      "code": "accident_journal",
+      "route": "/journals/accident_journal",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/accident_journal",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета аварий",
+        "documentLinks": [],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/accident_journal/documents/cmnvgrvgy00ft6s9meundyr6r",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Runtime proof accident_journal",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал учета аварий > Runtime proof accident_journal\nRuntime proof accident_journal\nНастройки журнала\nТестовая о",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvgrvgy00ft6s9meundyr6r",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 240347,
+        "error": null
+      },
+      "notes": [
+        "detail created via api for runtime proof"
+      ]
+    },
+    {
+      "code": "audit_plan",
+      "route": "/journals/audit_plan",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/audit_plan",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "План-программа внутренних аудитов",
+        "documentLinks": [
+          "http://localhost:3000/journals/audit_plan/documents/cmnvfulgw00006s9m425vc15j"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/audit_plan/documents/cmnvfulgw00006s9m425vc15j",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "План-программа аудитов",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › План-программа внутренних аудитов › План-программа аудитов\nНастройки журнала\nПлан-программа аудитов\nТестовая орг",
+        "inputCount": 2,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfulgw00006s9m425vc15j",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 279679,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "audit_protocol",
+      "route": "/journals/audit_protocol",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/audit_protocol",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Протокол внутреннего аудита",
+        "documentLinks": [],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/audit_protocol/documents/cmnvgs3zs00fu6s9mpc6xbru2",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Runtime proof audit_protocol",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › Runtime proof audit_protocol\nНастройки журнала\nRuntime proof audit_protocol\nТестовая организация (админ)\nСИСТЕМА",
+        "inputCount": 5,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvgs3zs00fu6s9mpc6xbru2",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 242969,
+        "error": null
+      },
+      "notes": [
+        "detail created via api for runtime proof"
+      ]
+    },
+    {
+      "code": "audit_report",
+      "route": "/journals/audit_report",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/audit_report",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Отчет о внутреннем аудите",
+        "documentLinks": [],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/audit_report/documents/cmnvgs83200fv6s9meyb3gtju",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Runtime proof audit_report",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › Runtime proof audit_report\nНастройки журнала\nRuntime proof audit_report\nТестовая организация (админ)\nСИСТЕМА ХАС",
+        "inputCount": 6,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvgs83200fv6s9meyb3gtju",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 246223,
+        "error": null
+      },
+      "notes": [
+        "detail created via api for runtime proof"
+      ]
+    },
+    {
+      "code": "breakdown_history",
+      "route": "/journals/breakdown_history",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/breakdown_history",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Карточка истории поломок",
+        "documentLinks": [
+          "http://localhost:3000/journals/breakdown_history/documents/cmnvfvbwa00026s9mnh488kwn"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/breakdown_history/documents/cmnvfvbwa00026s9mnh488kwn",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Карточка истории поломок",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nКарточка истории поломок\nЗакончить журнал\nНастройки\nТестовая организация (админ)\tСИСТЕМА ХАССП\t\nНачат 28-10-2021\nОкончен ___\nСТР. 1 ИЗ 1\n\nКАРТО",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfvbwa00026s9mnh488kwn",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 238392,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "cleaning",
+      "route": "/journals/cleaning",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/cleaning",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал уборки",
+        "documentLinks": [
+          "http://localhost:3000/journals/cleaning/documents/cmnvfvlkt00046s9mjmskors3"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/cleaning/documents/cmnvfvlkt00046s9mjmskors3",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал уборки",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\n›\nЖурнал уборки\n›\nЖурнал уборки\nНастройки журнала\nЖурнал уборки\n\nапреля с 1 по 15\n\nАвтоматически заполнять журнал\n",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfvlkt00046s9mjmskors3",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 294565,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "route": "/journals/cleaning_ventilation_checklist",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/cleaning_ventilation_checklist",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Чек-лист уборки и проветривания помещений",
+        "documentLinks": [
+          "http://localhost:3000/journals/cleaning_ventilation_checklist/documents/cmnvfvu0s00066s9msilsbbg8"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/cleaning_ventilation_checklist/documents/cmnvfvu0s00066s9msilsbbg8",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Чек-лист уборки и проветривания помещений",
+        "bodyTextSnippet": "HACCP-Online\n...\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Чек-лист уборки и проветривания помещений > Чек-лист уборки и проветривания помещений\nЧек-лист уборки и проветривани",
+        "inputCount": 610,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfvu0s00066s9msilsbbg8",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 330515,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "climate_control",
+      "route": "/journals/climate_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/climate_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Бланк контроля температуры и влажности",
+        "documentLinks": [
+          "http://localhost:3000/journals/climate_control/documents/cmnvfvyyh00086s9m5rmi77er"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/climate_control/documents/cmnvfvyyh00086s9m5rmi77er",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Бланк контроля температуры и влажности",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › Бланк контроля температуры и влажности › Бланк контроля температуры и влажности\nБланк контроля температуры и вла",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfvyyh00086s9m5rmi77er",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 246358,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "cold_equipment_control",
+      "route": "/journals/cold_equipment_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/cold_equipment_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+        "documentLinks": [
+          "http://localhost:3000/journals/cold_equipment_control/documents/cmnvfw4jt000a6s9msnn2by2k"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/cold_equipment_control/documents/cmnvfw4jt000a6s9msnn2by2k",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\n›\nЖурнал контроля температурного режима холодильного и морозильного оборудования\n›\nЖурнал контроля температурного ",
+        "inputCount": 240,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfw4jt000a6s9msnn2by2k",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/helper",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 238924,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "complaint_register",
+      "route": "/journals/complaint_register",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/complaint_register",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал регистрации жалоб",
+        "documentLinks": [],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/complaint_register/documents/cmnvgtcmb00fw6s9mr1jb27ap",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Runtime proof complaint_register",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nRuntime proof complaint_register\nПериод: 12.04.2026 - 12.04.2026\nПечать\nНастройки журнала\nСтрок в журнале: 0\nОтвет",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvgtcmb00fw6s9mr1jb27ap",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 229421,
+        "error": null
+      },
+      "notes": [
+        "detail created via api for runtime proof"
+      ]
+    },
+    {
+      "code": "disinfectant_usage",
+      "route": "/journals/disinfectant_usage",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/disinfectant_usage",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета получения, расхода дезинфицирующих средств и проведения дезинфекционных работ на объекте",
+        "documentLinks": [
+          "http://localhost:3000/journals/disinfectant_usage/documents/cmnvfwfp9000c6s9m7uyl9efk"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/disinfectant_usage/documents/cmnvfwfp9000c6s9m7uyl9efk",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета дез. средств",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › Журнал учета получения, расхода дезинфицирующих средств и проведения дезинфекционных работ на объекте › Журнал у",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfwfp9000c6s9m7uyl9efk",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 245811,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "equipment_calibration",
+      "route": "/journals/equipment_calibration",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/equipment_calibration",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Р“СЂР°С„РёРє РїРѕРІРµСЂРєРё СЃСЂРµРґСЃС‚РІ РёР·РјРµСЂРµРЅРёР№",
+        "documentLinks": [
+          "http://localhost:3000/journals/equipment_calibration/documents/cmnvfwlq1000e6s9m0ms3754r"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/equipment_calibration/documents/cmnvfwlq1000e6s9m0ms3754r",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "График поверки средств измерений",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > График поверки средств измерений > График поверки средств измерений\nГрафик поверки средств измерений\nНастройки ж",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfwlq1000e6s9m0ms3754r",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 246177,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "equipment_cleaning",
+      "route": "/journals/equipment_cleaning",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/equipment_cleaning",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал мойки и дезинфекции оборудования",
+        "documentLinks": [
+          "http://localhost:3000/journals/equipment_cleaning/documents/cmnvfwvad000f6s9m33hynflo"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/equipment_cleaning/documents/cmnvfwvad000f6s9m33hynflo",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал мойки и дезинфекции оборудования",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\n›\nЖурнал мойки и дезинфекции оборудования\n›\nЖурнал мойки и дезинфекции оборудования\nЖурнал мойки и дезинфекции обо",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfwvad000f6s9m33hynflo",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 237947,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "equipment_maintenance",
+      "route": "/journals/equipment_maintenance",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/equipment_maintenance",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Р“СЂР°С„РёРє РїСЂРѕС„РёР»Р°РєС‚РёС‡РµСЃРєРѕРіРѕ РѕР±СЃР»СѓР¶РёРІР°РЅРёСЏ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ",
+        "documentLinks": [
+          "http://localhost:3000/journals/equipment_maintenance/documents/cmnvfx3nt000h6s9muvi97vpc"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/equipment_maintenance/documents/cmnvfx3nt000h6s9muvi97vpc",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "График профилактического обслуживания оборудования",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nГрафик профилактического обслуживания оборудования\nНастройки журнала\nТестовая организация (админ)\tСИСТЕМА ХАССП\tСТ",
+        "inputCount": 48,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfx3nt000h6s9muvi97vpc",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 235698,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "finished_product",
+      "route": "/journals/finished_product",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/finished_product",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал бракеража готовой пищевой продукции",
+        "documentLinks": [
+          "http://localhost:3000/journals/finished_product/documents/cmnvfxbib000j6s9mhrdyrc1t"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/finished_product/documents/cmnvfxbib000j6s9mhrdyrc1t",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Бракеражный журнал",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nЖурнал бракеража готовой пищевой продукции\nБракеражный журнал\nБракеражный журнал\nПечать\nНастройки журнала\nТестовая",
+        "inputCount": 10,
+        "hasSaveButton": true,
+        "printButtonCount": 1,
+        "docId": "cmnvfxbib000j6s9mhrdyrc1t",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 237608,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "fryer_oil",
+      "route": "/journals/fryer_oil",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/fryer_oil",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета использования фритюрных жиров",
+        "documentLinks": [
+          "http://localhost:3000/journals/fryer_oil/documents/cmnvfxi4u001k6s9mvou9hdu2"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/fryer_oil/documents/cmnvfxi4u001k6s9mvou9hdu2",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета использования фритюрных жиров",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал учета использования фритюрных жиров > Журнал учета использования фритюрных жиров\nЖурнал учета использован",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfxi4u001k6s9mvou9hdu2",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/helper",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 278779,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "general_cleaning",
+      "route": "/journals/general_cleaning",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/general_cleaning",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "График и учет генеральных уборок",
+        "documentLinks": [
+          "http://localhost:3000/journals/general_cleaning/documents/cmnvfxot2001o6s9mta5y3lwe"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/general_cleaning/documents/cmnvfxot2001o6s9mta5y3lwe",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "График ген. уборок",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\n›\nГрафик и учет генеральных уборок\n›\nГрафик ген. уборок\nНастройки журнала\nГрафик ген. уборок\nТестовая организация ",
+        "inputCount": 48,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfxot2001o6s9mta5y3lwe",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 259417,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "glass_control",
+      "route": "/journals/glass_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/glass_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля изделий из стекла и хрупкого пластика",
+        "documentLinks": [
+          "http://localhost:3000/journals/glass_control/documents/cmnvfxu90001q6s9mfpx77p4y"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/glass_control/documents/cmnvfxu90001q6s9mfpx77p4y",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля изделий",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал контроля изделий из стекла и хрупкого пластика > Журнал контроля изделий\nНастройки журнала\nЖурнал контрол",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfxu90001q6s9mfpx77p4y",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 256221,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "glass_items_list",
+      "route": "/journals/glass_items_list",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/glass_items_list",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Перечень изделий из стекла и хрупкого пластика",
+        "documentLinks": [
+          "http://localhost:3000/journals/glass_items_list/documents/cmnvfy1h0002z6s9musw2ws23"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/glass_items_list/documents/cmnvfy1h0002z6s9musw2ws23",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Перечень изделий",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)  >  Перечень изделий из стекла и хрупкого пластика  >  Перечень изделий\nНастройки журнала\nПеречень изделий\nТестова",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfy1h0002z6s9musw2ws23",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 237647,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "health_check",
+      "route": "/journals/health_check",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/health_check",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал здоровья",
+        "documentLinks": [
+          "http://localhost:3000/journals/health_check/documents/cmnvfybln00316s9moh1fo838"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/health_check/documents/cmnvfybln00316s9moh1fo838",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал Здоровья",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал Здоровья > Журнал здоровья\nНастройки журнала\nЖурнал Здоровья\nДобавить\nТестовая организация (админ)\tСИСТЕМ",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfybln00316s9moh1fo838",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 274435,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "hygiene",
+      "route": "/journals/hygiene",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/hygiene",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Гигиенический журнал",
+        "documentLinks": [
+          "http://localhost:3000/journals/hygiene/documents/cmnvfyhrp00796s9mxvg39hy2"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/hygiene/documents/cmnvfyhrp00796s9mxvg39hy2",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Гигиенический журнал",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Гигиенический журнал > Гигиенический журнал — пример на 7 сотрудников\nПечать\nНастройки журнала\nГигиенический жур",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfyhrp00796s9mxvg39hy2",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 331659,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "incoming_control",
+      "route": "/journals/incoming_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/incoming_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал приемки и входного контроля продукции",
+        "documentLinks": [
+          "http://localhost:3000/journals/incoming_control/documents/cmnvfyqsf00d56s9mwyfozqbq"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/incoming_control/documents/cmnvfyqsf00d56s9mwyfozqbq",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал приемки и входного контроля продукции",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал приемки и входного контроля продукции > Журнал приемки и входного контроля продукции\nЖурнал приемки и вхо",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfyqsf00d56s9mwyfozqbq",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 247011,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "route": "/journals/incoming_raw_materials_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/incoming_raw_materials_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+        "documentLinks": [
+          "http://localhost:3000/journals/incoming_raw_materials_control/documents/cmnvfyxs100d76s9m2v2f7n93"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/incoming_raw_materials_control/documents/cmnvfyxs100d76s9m2v2f7n93",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал входного контроля сырья",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал входного контроля сырья, ингредиентов, упаковочных материалов > Журнал входного контроля сырья\nЖурнал вхо",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfyxs100d76s9m2v2f7n93",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 221330,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "intensive_cooling",
+      "route": "/journals/intensive_cooling",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/intensive_cooling",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля интенсивного охлаждения горячих блюд",
+        "documentLinks": [
+          "http://localhost:3000/journals/intensive_cooling/documents/cmnvfz4l200d96s9m6q69qlxc"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/intensive_cooling/documents/cmnvfz4l200d96s9m6q69qlxc",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал контроля",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал контроля интенсивного охлаждения горячих блюд > Журнал контроля\nЖурнал контроля\nНастройки журнала\nТестова",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfz4l200d96s9m6q69qlxc",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 254956,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "med_books",
+      "route": "/journals/med_books",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/med_books",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Медицинские книжки",
+        "documentLinks": [
+          "http://localhost:3000/journals/med_books/documents/cmnvfzea100db6s9mxu5cxv8o#med-book-reference",
+          "http://localhost:3000/journals/med_books/documents/cmnvfzea100db6s9mxu5cxv8o"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/med_books/documents/cmnvfzea100db6s9mxu5cxv8o#med-book-reference",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Мед. книжки",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\n>\nМедицинские книжки\n>\nМед. книжки\nМед. книжки\nНастройки журнала\nЗакрыть журнал\nДобавить сотрудника\nДобавить иссле",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfzea100db6s9mxu5cxv8o",
+        "ok": true
+      },
+      "print": {
+        "expected": false,
+        "mode": "none/none",
+        "ok": null,
+        "httpStatus": null,
+        "contentType": null,
+        "looksLikePdf": null,
+        "sizeBytes": null,
+        "error": null
+      },
+      "notes": [
+        "no-print-expected"
+      ]
+    },
+    {
+      "code": "metal_impurity",
+      "route": "/journals/metal_impurity",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/metal_impurity",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета металлопримесей в сырье",
+        "documentLinks": [
+          "http://localhost:3000/journals/metal_impurity/documents/cmnvfzl3a00di6s9mtyss38s6"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/metal_impurity/documents/cmnvfzl3a00di6s9mtyss38s6",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета металлопримесей",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › Журнал учета металлопримесей в сырье › Журнал учета металлопримесей\nЖурнал учета металлопримесей\nНастройки журна",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfzl3a00di6s9mtyss38s6",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 237376,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "perishable_rejection",
+      "route": "/journals/perishable_rejection",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/perishable_rejection",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал бракеража скоропортящейся пищевой продукции",
+        "documentLinks": [
+          "http://localhost:3000/journals/perishable_rejection/documents/cmnvfzoqp00dk6s9m01ku941x"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/perishable_rejection/documents/cmnvfzoqp00dk6s9m01ku941x",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал бракеража скоропортящейся пищевой продукции",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nЖурнал бракеража скоропортящейся пищевой продукции\nПечать журнала\nТестовая организация (админ)\tСИСТЕМА ХАССП\tНачат",
+        "inputCount": 0,
+        "hasSaveButton": true,
+        "printButtonCount": 1,
+        "docId": "cmnvfzoqp00dk6s9m01ku941x",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 238097,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "pest_control",
+      "route": "/journals/pest_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/pest_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета дезинфекции, дезинсекции и дератизации",
+        "documentLinks": [
+          "http://localhost:3000/journals/pest_control/documents/cmnvfzshn00dm6s9msq8ydjsh"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/pest_control/documents/cmnvfzshn00dm6s9msq8ydjsh",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета дезинфекции, дезинсекции и дератизации",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nЖурнал учета дезинфекции, дезинсекции и дератизации\nПериод: 05.03.2025 - 05.03.2025\nДобавить\nНастройки\nПечать\n\tР”Р",
+        "inputCount": 12,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvfzshn00dm6s9msq8ydjsh",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 251681,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "ppe_issuance",
+      "route": "/journals/ppe_issuance",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/ppe_issuance",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета выдачи СИЗ",
+        "documentLinks": [
+          "http://localhost:3000/journals/ppe_issuance/documents/cmnvfzwil00dq6s9mn8xu2yrj"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/ppe_issuance/documents/cmnvfzwil00dq6s9mn8xu2yrj",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета выдачи СИЗ",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал учета выдачи СИЗ > Журнал учета выдачи СИЗ\nЖурнал учета выдачи СИЗ\nНастройки журнала\nТестовая организация",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfzwil00dq6s9mn8xu2yrj",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 245246,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "product_writeoff",
+      "route": "/journals/product_writeoff",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/product_writeoff",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Акт забраковки",
+        "documentLinks": [
+          "http://localhost:3000/journals/product_writeoff/documents/cmnvfzzzb00ds6s9mhoikve7q"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/product_writeoff/documents/cmnvfzzzb00ds6s9mhoikve7q",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) / Акт забраковки, акт № 1\nНастройки журнала\nТестовая организация (админ)\tСИСТЕМА ХАССП\tСТР. 1 ИЗ 1\nАкт забраковки\n",
+        "inputCount": 2,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvfzzzb00ds6s9mhoikve7q",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 238100,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "sanitary_day_control",
+      "route": "/journals/sanitary_day_control",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/sanitary_day_control",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Чек-лист (памятка) проведения санитарного дня",
+        "documentLinks": [
+          "http://localhost:3000/journals/sanitary_day_control/documents/cmnvg03ao00du6s9m1q3uuuvz"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/sanitary_day_control/documents/cmnvg03ao00du6s9m1q3uuuvz",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Чек-лист",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nЧек-лист\nНастройки журнала\nДобавить\nРедактировать списки\nТестовая организация (админ)\tСИСТЕМА ХАССП\tСТР. 1 ИЗ 1\nЧЕК-ЛИСТ (ПАМЯТКА) ПРОВЕДЕНИЯ С",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvg03ao00du6s9m1q3uuuvz",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 221282,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "staff_training",
+      "route": "/journals/staff_training",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/staff_training",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал регистрации инструктажей (обучения) сотрудников",
+        "documentLinks": [
+          "http://localhost:3000/journals/staff_training/documents/cmnvg06n200dw6s9mlokgj0v6"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/staff_training/documents/cmnvg06n200dw6s9mlokgj0v6",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал регистрации инструктажей",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ)\nЖурнал регистрации инструктажей\nЗакончить журнал\nНастройки журнала\nТестовая организация (админ)\tСИСТЕМА ХАССП\tНача",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvg06n200dw6s9mlokgj0v6",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "helper/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 225847,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "traceability_test",
+      "route": "/journals/traceability_test",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/traceability_test",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал прослеживаемости продукции",
+        "documentLinks": [
+          "http://localhost:3000/journals/traceability_test/documents/cmnvg09wk00dy6s9mepztz5k5"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/traceability_test/documents/cmnvg09wk00dy6s9mepztz5k5",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал прослеживаемости",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) > Журнал прослеживаемости продукции > Журнал прослеживаемости\nЖурнал прослеживаемости\nАктивен\nНачат 01-01-2025\nТес",
+        "inputCount": 0,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvg09wk00dy6s9mepztz5k5",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/none",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 244862,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "training_plan",
+      "route": "/journals/training_plan",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/training_plan",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "План обучения персонала",
+        "documentLinks": [
+          "http://localhost:3000/journals/training_plan/documents/cmnvg0dha00e06s9mvqk10qxm"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/training_plan/documents/cmnvg0dha00e06s9mvqk10qxm",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "План обучения 2026",
+        "bodyTextSnippet": "HACCP-Online\n52466cd\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nТестовая организация (админ) › План обучения персонала › План обучения 2026\nНастройки журнала\nПлан обучения 2026\nТестовая организация (админ)\nС",
+        "inputCount": 6,
+        "hasSaveButton": false,
+        "printButtonCount": 0,
+        "docId": "cmnvg0dha00e06s9mvqk10qxm",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 243726,
+        "error": null
+      },
+      "notes": []
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "route": "/journals/uv_lamp_runtime",
+      "list": {
+        "ok": true,
+        "url": "http://localhost:3000/journals/uv_lamp_runtime",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета работы УФ бактерицидной установки",
+        "documentLinks": [
+          "http://localhost:3000/journals/uv_lamp_runtime/documents/cmnvg0goo00e26s9mdg47tflt"
+        ],
+        "printButtonCount": 0,
+        "hasCreateButton": true
+      },
+      "detail": {
+        "url": "http://localhost:3000/journals/uv_lamp_runtime/documents/cmnvg0goo00e26s9mdg47tflt",
+        "title": "HACCP-Online — Электронные журналы ХАССП",
+        "h1": "Журнал учета работы",
+        "bodyTextSnippet": "HACCP-Online\n...\nДашборд\nЖурналы\nПартии\nCAPA\nОтчёты\nНастройки\nТестовая организация (админ)\nА\nЖурнал учета работы УФ бактерицидной установки › Журнал учета работы\nЖурнал учета работы\nНастроить журналы\nАвтоматически заполнять журнал\nСпецифика",
+        "inputCount": 24,
+        "hasSaveButton": false,
+        "printButtonCount": 1,
+        "docId": "cmnvg0goo00e26s9mdg47tflt",
+        "ok": true
+      },
+      "print": {
+        "expected": true,
+        "mode": "pdf-window/pdf-window",
+        "ok": true,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "looksLikePdf": true,
+        "sizeBytes": 298181,
+        "error": null
+      },
+      "notes": []
+    }
+  ]
+}

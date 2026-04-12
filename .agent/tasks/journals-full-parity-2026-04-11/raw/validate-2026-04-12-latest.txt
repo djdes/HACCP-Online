@@ -1,0 +1,9 @@
+﻿{
+  "repo_root": "C:\\www\\Wesetup.ru",
+  "task_id": "journals-full-parity-2026-04-11",
+  "task_dir": "C:\\www\\Wesetup.ru\\.agent\\tasks\\journals-full-parity-2026-04-11",
+  "init_in_progress": false,
+  "valid": true,
+  "missing_files": [],
+  "errors": []
+}

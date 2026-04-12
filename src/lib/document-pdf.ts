@@ -210,6 +210,16 @@ import {
   normalizeEquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
 import {
+  DISINFECTANT_DOCUMENT_TITLE,
+  DISINFECTANT_TEMPLATE_CODE,
+  MEASURE_UNIT_LABELS,
+  computeNeedPerMonth,
+  computeNeedPerTreatment,
+  computeNeedPerYear,
+  formatNumber as formatDisinfectantNumber,
+  normalizeDisinfectantConfig,
+} from "@/lib/disinfectant-document";
+import {
   EXAMINATION_REFERENCE_DATA,
   formatMedBookDate,
   MED_BOOK_DOCUMENT_TITLE,
@@ -3091,6 +3101,164 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
   });
 }
 
+function drawDisinfectantPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ReturnType<typeof normalizeDisinfectantConfig>;
+}) {
+  const cfg = params.config;
+  const currentFont = doc.getFont().fontName || "helvetica";
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const dateFromLabel = toDateKey(params.dateFrom).split("-").reverse().join(".");
+  const dateToLabel = toDateKey(params.dateTo).split("-").reverse().join(".");
+
+  doc.setFont(currentFont, "bold");
+  doc.setFontSize(14);
+  doc.text(params.organizationName, pageWidth / 2, 16, { align: "center" });
+  doc.setFontSize(12);
+  doc.text(params.title || DISINFECTANT_DOCUMENT_TITLE, pageWidth / 2, 24, {
+    align: "center",
+  });
+  doc.setFont(currentFont, "normal");
+  doc.setFontSize(9);
+  doc.text(`Период: ${dateFromLabel} - ${dateToLabel}`, 14, 32);
+  doc.text(
+    `Ответственный: ${cfg.responsibleRole}${cfg.responsibleEmployee ? `, ${cfg.responsibleEmployee}` : ""}`,
+    14,
+    38
+  );
+
+  autoTable(doc, {
+    startY: 46,
+    margin: { left: 14, right: 14 },
+    theme: "grid",
+    styles: {
+      font: currentFont,
+      fontSize: 8,
+      cellPadding: 1.6,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    head: [[
+      "Подразделение / объект",
+      "Площадь / емкость",
+      "Вид обработки",
+      "Кратность в месяц",
+      "Дез. средство",
+      "Концентрация, %",
+      "Раствор на обработку",
+      "Потребность на обработку",
+      "Потребность в месяц",
+      "Потребность в год",
+    ]],
+    body:
+      cfg.subdivisions.length > 0
+        ? cfg.subdivisions.map((row) => [
+            row.name || "—",
+            row.byCapacity ? "На емкость" : row.area ? formatDisinfectantNumber(row.area, 2) : "—",
+            row.treatmentType === "general" ? "Генеральная" : "Текущая",
+            String(row.frequencyPerMonth || 0),
+            row.disinfectantName || "—",
+            formatDisinfectantNumber(row.concentration, 3) || "—",
+            formatDisinfectantNumber(row.solutionPerTreatment, 3) || "—",
+            formatDisinfectantNumber(computeNeedPerTreatment(row), 3) || "—",
+            formatDisinfectantNumber(computeNeedPerMonth(row), 3) || "—",
+            formatDisinfectantNumber(computeNeedPerYear(row), 3) || "—",
+          ])
+        : [["—", "—", "—", "—", "—", "—", "—", "—", "—", "—"]],
+  });
+
+  autoTable(doc, {
+    startY:
+      (((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY) || 46) + 8,
+    margin: { left: 14, right: 14 },
+    theme: "grid",
+    styles: {
+      font: currentFont,
+      fontSize: 8,
+      cellPadding: 1.6,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    head: [[
+      "Дата получения",
+      "Наименование дез. средства",
+      "Количество",
+      "Срок годности",
+      "Ответственный",
+    ]],
+    body:
+      cfg.receipts.length > 0
+        ? cfg.receipts.map((row) => [
+            row.date || "—",
+            row.disinfectantName || "—",
+            `${formatDisinfectantNumber(row.quantity, 3) || "0"} ${MEASURE_UNIT_LABELS[row.unit]}`,
+            row.expiryDate || "—",
+            [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", ") || "—",
+          ])
+        : [["—", "—", "—", "—", "—"]],
+  });
+
+  autoTable(doc, {
+    startY:
+      (((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY) || 80) + 8,
+    margin: { left: 14, right: 14 },
+    theme: "grid",
+    styles: {
+      font: currentFont,
+      fontSize: 8,
+      cellPadding: 1.6,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    head: [[
+      "Период",
+      "Наименование дез. средства",
+      "Получено",
+      "Израсходовано",
+      "Остаток",
+      "Ответственный",
+    ]],
+    body:
+      cfg.consumptions.length > 0
+        ? cfg.consumptions.map((row) => [
+            [row.periodFrom, row.periodTo].filter(Boolean).join(" - ") || "—",
+            row.disinfectantName || "—",
+            `${formatDisinfectantNumber(row.totalReceived, 3) || "0"} ${MEASURE_UNIT_LABELS[row.totalReceivedUnit]}`,
+            `${formatDisinfectantNumber(row.totalConsumed, 3) || "0"} ${MEASURE_UNIT_LABELS[row.totalConsumedUnit]}`,
+            `${formatDisinfectantNumber(row.remainder, 3) || "0"} ${MEASURE_UNIT_LABELS[row.remainderUnit]}`,
+            [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", ") || "—",
+          ])
+        : [["—", "—", "—", "—", "—", "—"]],
+  });
+}
+
 function drawTraceabilityPdf(doc: jsPDF, params: {
   organizationName: string;
   title: string;
@@ -4278,6 +4446,7 @@ export async function generateJournalDocumentPdf(params: {
   const auditProtocolConfig = normalizeAuditProtocolConfig(document.config);
   const auditReportConfig = normalizeAuditReportConfig(document.config);
   const metalImpurityConfig = normalizeMetalImpurityConfig(document.config);
+  const disinfectantConfig = normalizeDisinfectantConfig(document.config);
 
   document.entries.forEach((entry) => {
     entryMap[makeCellKey(entry.employeeId, toDateKey(entry.date))] =
@@ -4513,6 +4682,14 @@ export async function generateJournalDocumentPdf(params: {
         data: (entry.data as Record<string, unknown>) || {},
       })),
     });
+  } else if (templateCode === DISINFECTANT_TEMPLATE_CODE) {
+    drawDisinfectantPdf(doc, {
+      organizationName,
+      title: document.title || DISINFECTANT_DOCUMENT_TITLE,
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: disinfectantConfig,
+    });
   } else if (templateCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
     drawIntensiveCoolingPdf(doc, {
       organizationName,
@@ -4664,6 +4841,8 @@ export async function generateJournalDocumentPdf(params: {
               ? "traceability-journal"
             : templateCode === EQUIPMENT_CLEANING_TEMPLATE_CODE
               ? "equipment-cleaning-journal"
+            : templateCode === DISINFECTANT_TEMPLATE_CODE
+              ? "disinfectant-journal"
             : templateCode === INTENSIVE_COOLING_TEMPLATE_CODE
               ? getIntensiveCoolingFilePrefix()
             : templateCode === FRYER_OIL_TEMPLATE_CODE
