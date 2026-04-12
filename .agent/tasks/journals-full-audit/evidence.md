@@ -62,6 +62,14 @@ Head-ячейки имели `rowSpan: 2`, но `head` массив содерж
 
 Prod (HTTPS) NextAuth выставляет cookie `__Secure-haccp-online.session-token`, но `server-session.ts` искал `haccp-online.session-token` и legacy `__Secure-next-auth.*`. Custom `/api/auth/login` не затронут (UI-путь). Исправлено: `__Secure-haccp-online.session-token` добавлен в `LEGACY_SESSION_COOKIES` в `src/lib/auth-cookies.ts`.
 
+## Регресс-проверка ранее исправленных багов (post-fix PDF renders)
+
+На build `1127938`+ скачаны свежие PDF с прода и отрендерены в PNG при 140 DPI (`_shared/images/*_AFTER.png`):
+
+- **BUG-1** `drawAcceptancePdf` (rowSpan:2 → swallow first row) — `incoming_control_AFTER.png` содержит обе data-строки `Куриное филе` и `Лосось охлажденный`. Первая строка НЕ поглощена. **NOT REGRESSED.**
+- **BUG-2** header overlap — в `ppe_issuance_AFTER.png`, `incoming_control_AFTER.png`, `traceability_test_AFTER.png` правая ячейка шапки чистая (`СТР. 1 ИЗ 1`), `Начат/Окончен` разведены по вертикали, перекрытий с текстом шапки нет. **NOT REGRESSED.**
+- **Mojibake** в glass-list — `glass_items_list.png` содержит читаемую кириллицу: `ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА`, `УТВЕРЖДАЮ`, `Горячий цех`, `Морозильный ларь`. **NOT REGRESSED.**
+
 ## Затронутые коммиты
 
 1. `674df8f` fix: repair mojibake cyrillic strings in glass-list journal pdf (earlier session)
