@@ -26,13 +26,13 @@ export function JournalTopBar(props: {
       <h1
         className={
           compact
-            ? "text-[54px] font-semibold tracking-[-0.04em] text-black"
+            ? "max-w-[70%] text-[32px] font-semibold tracking-[-0.03em] text-black"
             : "text-[62px] font-semibold tracking-[-0.04em] text-black"
         }
       >
         {props.heading}
       </h1>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         <Button
           variant="outline"
           className="h-12 rounded-xl border-[#eef0fb] px-4 text-[14px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
