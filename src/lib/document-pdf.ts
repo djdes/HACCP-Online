@@ -121,6 +121,7 @@ import {
 } from "@/lib/register-document";
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
+  ACCEPTANCE_DOCUMENT_TEMPLATE_CODES,
   getAcceptanceDocumentTitle,
   normalizeAcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
@@ -1682,7 +1683,7 @@ function drawAcceptancePdf(doc: jsPDF, params: {
   drawJournalHeader(doc, {
     organizationName: params.organizationName,
     pageLabel: "СТР. 1 ИЗ 1",
-    journalLabel: "ЖУРНАЛ ПРИЕМКИ И ВХОДНОГО КОНТРОЛЯ ПРОДУКЦИИ",
+    journalLabel: (params.title || "Журнал приемки и входного контроля продукции").toUpperCase(),
     withPeriodicity: false,
   });
 
@@ -1699,7 +1700,7 @@ function drawAcceptancePdf(doc: jsPDF, params: {
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(11);
-  doc.text("ЖУРНАЛ ПРИЕМКИ И ВХОДНОГО КОНТРОЛЯ ПРОДУКЦИИ", centerX, 60, { align: "center" });
+  doc.text((params.title || "Журнал приемки и входного контроля продукции").toUpperCase(), centerX, 60, { align: "center" });
 
   const headRow1: CellDef[] = [
     { content: "Дата, время\nпоступления\nпродукции,\nтовара", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
@@ -4703,7 +4704,7 @@ export async function generateJournalDocumentPdf(params: {
       title: document.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
       config: equipmentCalibrationConfig,
     });
-  } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
+  } else if ((ACCEPTANCE_DOCUMENT_TEMPLATE_CODES as readonly string[]).includes(templateCode)) {
     drawAcceptancePdf(doc, {
       organizationName,
       title: document.title || getAcceptanceDocumentTitle(templateCode),
@@ -4889,7 +4890,7 @@ export async function generateJournalDocumentPdf(params: {
               ? "accident-journal"
             : templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
               ? "equipment-calibration"
-            : templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE
+            : (ACCEPTANCE_DOCUMENT_TEMPLATE_CODES as readonly string[]).includes(templateCode)
               ? "acceptance-journal"
             : templateCode === PPE_ISSUANCE_TEMPLATE_CODE
               ? "ppe-issuance-journal"
