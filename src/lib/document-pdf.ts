@@ -1716,27 +1716,27 @@ function drawAcceptancePdf(doc: jsPDF, params: {
     ? formatAcceptanceDateRu(params.dateFrom.toISOString().slice(0, 10))
     : formatAcceptanceDateRu(String(params.dateFrom).slice(0, 10));
 
-  // Date info in header right cell
+  // Date info below header block (header ends at y≈48)
   const headerRight = pageWidth - 24;
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(9);
-  doc.text(`Начат  ${dateFromStr}`, headerRight, 32, { align: "right" });
-  doc.text("Окончен ________", headerRight, 38, { align: "right" });
+  doc.text(`Начат  ${dateFromStr}`, headerRight, 54, { align: "right" });
+  doc.text("Окончен ________", headerRight, 60, { align: "right" });
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(11);
-  doc.text((params.title || "Журнал приемки и входного контроля продукции").toUpperCase(), centerX, 60, { align: "center" });
+  doc.text((params.title || "Журнал приемки и входного контроля продукции").toUpperCase(), centerX, 70, { align: "center" });
 
   const headRow1: CellDef[] = [
-    { content: "Дата, время\nпоступления\nпродукции,\nтовара", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Наименование\nпродукции", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Производитель/\nпоставщик", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Условия\nтранспорти\nровки", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Соответствие\nупаковки,\nмаркировки,\nтоваросопроводи\nтельной\nдокументации", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Результаты\nорганолепти\nческой\nоценки\nдоброка\nчественности", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Предельный\nсрок\nреализации\n(дата, час)", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Примечания", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-    { content: "Ответственный", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+    { content: "Дата, время\nпоступления\nпродукции,\nтовара", styles: { halign: "center", valign: "middle" } },
+    { content: "Наименование\nпродукции", styles: { halign: "center", valign: "middle" } },
+    { content: "Производитель/\nпоставщик", styles: { halign: "center", valign: "middle" } },
+    { content: "Условия\nтранспорти\nровки", styles: { halign: "center", valign: "middle" } },
+    { content: "Соответствие\nупаковки,\nмаркировки,\nтоваросопроводи\nтельной\nдокументации", styles: { halign: "center", valign: "middle" } },
+    { content: "Результаты\nорганолепти\nческой\nоценки\nдоброка\nчественности", styles: { halign: "center", valign: "middle" } },
+    { content: "Предельный\nсрок\nреализации\n(дата, час)", styles: { halign: "center", valign: "middle" } },
+    { content: "Примечания", styles: { halign: "center", valign: "middle" } },
+    { content: "Ответственный", styles: { halign: "center", valign: "middle" } },
   ];
 
   const head: RowInput[] = [headRow1];
@@ -1780,7 +1780,7 @@ function drawAcceptancePdf(doc: jsPDF, params: {
   const monthColWidth = (pageWidth - 28) / baseColCount;
 
   autoTable(doc, {
-    startY: 66,
+    startY: 76,
     margin: { left: 14, right: 14 },
     head,
     body: ensurePdfBodyRows(body, 9),
@@ -1833,12 +1833,12 @@ function drawPpeIssuancePdf(doc: jsPDF, params: {
   const headerRight = pageWidth - 24;
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(9);
-  doc.text(`Начат  ${dateFromStr}`, headerRight, 32, { align: "right" });
-  doc.text("Окончен __________", headerRight, 38, { align: "right" });
+  doc.text(`Начат  ${dateFromStr}`, headerRight, 54, { align: "right" });
+  doc.text("Окончен __________", headerRight, 60, { align: "right" });
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(11);
-  doc.text("ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ", centerX, 60, { align: "center" });
+  doc.text("ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ", centerX, 70, { align: "center" });
 
   const head: RowInput[] = [[
     { content: "Дата выдачи СИЗ", styles: { halign: "center" as const, valign: "middle" as const } },
@@ -1869,7 +1869,7 @@ function drawPpeIssuancePdf(doc: jsPDF, params: {
   }
 
   autoTable(doc, {
-    startY: 66,
+    startY: 76,
     margin: { left: 14, right: 14 },
     head,
     body,
@@ -3356,12 +3356,12 @@ function drawTraceabilityPdf(doc: jsPDF, params: {
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(9);
-  doc.text(`Начат  ${dateFromStr}`, pageWidth - 24, 32, { align: "right" });
-  doc.text("Окончен ________", pageWidth - 24, 38, { align: "right" });
+  doc.text(`Начат  ${dateFromStr}`, pageWidth - 24, 54, { align: "right" });
+  doc.text("Окончен ________", pageWidth - 24, 60, { align: "right" });
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(12);
-  doc.text("ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ", pageWidth / 2, 60, { align: "center" });
+  doc.text("ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ", pageWidth / 2, 70, { align: "center" });
 
   const head: RowInput[] = [
     [
@@ -3410,7 +3410,7 @@ function drawTraceabilityPdf(doc: jsPDF, params: {
   });
 
   autoTable(doc, {
-    startY: 66,
+    startY: 76,
     head,
     body: ensurePdfBodyRows(body, showShock ? 8 : 7),
     theme: "grid",
