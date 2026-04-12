@@ -1,0 +1,235 @@
+[
+  {
+    "code": "accident_journal",
+    "h1": "Журнал учета аварий",
+    "btns_n": 2,
+    "docs_n": 0,
+    "flags": [
+      "NO_DOCS_OR_CREATE"
+    ]
+  },
+  {
+    "code": "audit_plan",
+    "h1": "План-программа внутренних аудитов",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "audit_protocol",
+    "h1": "Протокол внутреннего аудита",
+    "btns_n": 3,
+    "docs_n": 0,
+    "flags": []
+  },
+  {
+    "code": "audit_report",
+    "h1": "Отчет о внутреннем аудите",
+    "btns_n": 3,
+    "docs_n": 0,
+    "flags": []
+  },
+  {
+    "code": "breakdown_history",
+    "h1": "Карточка истории поломок",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "cleaning",
+    "h1": "Журнал уборки",
+    "btns_n": 3,
+    "docs_n": 4,
+    "flags": []
+  },
+  {
+    "code": "cleaning_ventilation_checklist",
+    "h1": "Чек-лист уборки и проветривания помещений",
+    "btns_n": 3,
+    "docs_n": 2,
+    "flags": []
+  },
+  {
+    "code": "climate_control",
+    "h1": "Бланк контроля температуры и влажности",
+    "btns_n": 3,
+    "docs_n": 0,
+    "flags": []
+  },
+  {
+    "code": "cold_equipment_control",
+    "h1": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "complaint_register",
+    "h1": "Журнал регистрации жалоб",
+    "btns_n": 3,
+    "docs_n": 0,
+    "flags": []
+  },
+  {
+    "code": "disinfectant_usage",
+    "h1": "Журнал учета получения, расхода дезинфицирующих средств и проведения дезинфекционных работ на объекте",
+    "btns_n": 3,
+    "docs_n": 2,
+    "flags": []
+  },
+  {
+    "code": "equipment_calibration",
+    "h1": "Р“СЂР°С„РёРє РїРѕРІРµСЂРєРё СЃСЂРµРґСЃС‚РІ РёР·РјРµСЂРµРЅРёР№",
+    "btns_n": 3,
+    "docs_n": 3,
+    "flags": []
+  },
+  {
+    "code": "equipment_cleaning",
+    "h1": "Журнал мойки и дезинфекции оборудования",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "equipment_maintenance",
+    "h1": "Р“СЂР°С„РёРє РїСЂРѕС„РёР»Р°РєС‚РёС‡РµСЃРєРѕРіРѕ РѕР±СЃР»СѓР¶РёРІР°РЅРёСЏ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ",
+    "btns_n": 3,
+    "docs_n": 4,
+    "flags": []
+  },
+  {
+    "code": "finished_product",
+    "h1": "Журнал бракеража готовой пищевой продукции",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "fryer_oil",
+    "h1": "Журнал учета использования фритюрных жиров",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "general_cleaning",
+    "h1": "График и учет генеральных уборок",
+    "btns_n": 3,
+    "docs_n": 4,
+    "flags": []
+  },
+  {
+    "code": "glass_control",
+    "h1": "Журнал контроля изделий из стекла и хрупкого пластика",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "glass_items_list",
+    "h1": "Перечень изделий из стекла и хрупкого пластика",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "incoming_control",
+    "h1": "Журнал приемки и входного контроля продукции",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "incoming_raw_materials_control",
+    "h1": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "intensive_cooling",
+    "h1": "Журнал контроля интенсивного охлаждения горячих блюд",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "med_books",
+    "h1": "Медицинские книжки",
+    "btns_n": 5,
+    "docs_n": 2,
+    "flags": []
+  },
+  {
+    "code": "metal_impurity",
+    "h1": "Р–СѓСЂРЅР°Р» СѓС‡РµС‚Р° РјРµС‚Р°Р»Р»РѕРїСЂРёРјРµСЃРµР№ РІ СЃС‹СЂСЊРµ",
+    "btns_n": 3,
+    "docs_n": 2,
+    "flags": []
+  },
+  {
+    "code": "perishable_rejection",
+    "h1": "Журнал бракеража скоропортящейся пищевой продукции",
+    "btns_n": 3,
+    "docs_n": 2,
+    "flags": []
+  },
+  {
+    "code": "pest_control",
+    "h1": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "ppe_issuance",
+    "h1": "Журнал учета выдачи СИЗ",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "product_writeoff",
+    "h1": "Акт забраковки",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "sanitary_day_control",
+    "h1": "Чек-лист (памятка) проведения санитарного дня",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "staff_training",
+    "h1": "Журнал регистрации инструктажей (обучения) сотрудников",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "traceability_test",
+    "h1": "Журнал прослеживаемости продукции",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "training_plan",
+    "h1": "План обучения персонала",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  },
+  {
+    "code": "uv_lamp_runtime",
+    "h1": "Журнал учета работы УФ бактерицидной установки",
+    "btns_n": 3,
+    "docs_n": 1,
+    "flags": []
+  }
+]

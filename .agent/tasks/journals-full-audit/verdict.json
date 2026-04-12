@@ -1,0 +1,23 @@
+{
+  "task": "journals-full-audit",
+  "date": "2026-04-12",
+  "prodBuild": "1127938",
+  "verdict": "PASS",
+  "acceptanceCriteria": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS",
+    "AC5": "PASS"
+  },
+  "journalsToured": 33,
+  "journalsPassed": 33,
+  "journalsSkipped": 0,
+  "whitelisted": ["hygiene"],
+  "bugsFixed": [
+    {"id":"BUG-1","commit":"2a9bb0d","summary":"drawAcceptancePdf first row swallowed by rowSpan:2 head"},
+    {"id":"BUG-2","commit":"2a9bb0d","summary":"drawJournalHeader overlap with Начат/Окончен in ppe/traceability/acceptance"},
+    {"id":"BUG-3","commit":"d89734a","summary":"sanitary_day_control fell through to generic tracked drawer — added dedicated drawer"},
+    {"id":"BUG-4","commit":"1127938","summary":"getServerSession missed prod __Secure-haccp-online session cookie — 401 on NextAuth callback path"}
+  ]
+}

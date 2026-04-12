@@ -1,0 +1,16 @@
+{
+  "url": "/journals/cleaning",
+  "h1": "Журнал уборки",
+  "btns": [
+    "Меню",
+    "А",
+    "Создать документ"
+  ],
+  "docs": [
+    "/journals/cleaning/documents/cmnrwehca000bonts2dmtovac",
+    "/journals/cleaning/documents/cmnrweo5z000lontsclkg6i6d",
+    "/journals/cleaning/documents/cmnu392ct0000x7tslu456plh",
+    "/journals/cleaning/documents/cmnu897ap0001t7tsm9oynij2"
+  ],
+  "errors": []
+}

@@ -1,0 +1,16 @@
+{
+  "url": "/journals/med_books",
+  "h1": "Медицинские книжки",
+  "btns": [
+    "Меню",
+    "А",
+    "Создать документ",
+    "Активные",
+    "Закрытые"
+  ],
+  "docs": [
+    "/journals/med_books/documents/cmnvdbgkv00iermtsdbvudfvu#med-book-reference",
+    "/journals/med_books/documents/cmnvdbgkv00iermtsdbvudfvu"
+  ],
+  "errors": []
+}

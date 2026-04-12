@@ -1,0 +1,13 @@
+{
+  "url": "/journals/breakdown_history",
+  "h1": "Карточка истории поломок",
+  "btns": [
+    "Меню",
+    "А",
+    "Создать документ"
+  ],
+  "docs": [
+    "/journals/breakdown_history/documents/cmnsirdsn00056ktsqzweo2kx"
+  ],
+  "errors": []
+}

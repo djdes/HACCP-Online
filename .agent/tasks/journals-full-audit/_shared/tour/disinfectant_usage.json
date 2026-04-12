@@ -1,0 +1,14 @@
+{
+  "url": "/journals/disinfectant_usage",
+  "h1": "Журнал учета получения, расхода дезинфицирующих средств и проведения дезинфекционных работ на объекте",
+  "btns": [
+    "Меню",
+    "А",
+    "Создать документ"
+  ],
+  "docs": [
+    "/journals/disinfectant_usage/documents/cmnskazvh0000gdtsl9ip8c9u",
+    "/journals/disinfectant_usage/documents/cmnskbal20001gdtsga09kgco"
+  ],
+  "errors": []
+}
