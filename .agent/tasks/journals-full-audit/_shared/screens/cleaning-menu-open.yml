@@ -1,0 +1,154 @@
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - link:
+          - /url: /dashboard
+          - generic: HACCP-Online
+          - generic: 769af3a
+        - navigation:
+          - link:
+            - /url: /dashboard
+            - img
+            - text: Дашборд
+          - link:
+            - /url: /journals
+            - img
+            - text: Журналы
+          - link:
+            - /url: /batches
+            - img
+            - text: Партии
+          - link:
+            - /url: /capa
+            - img
+            - text: CAPA
+          - link:
+            - /url: /reports
+            - img
+            - text: Отчёты
+          - link:
+            - /url: /settings
+            - img
+            - text: Настройки
+        - generic: Тестовая организация (админ)
+        - button:
+          - generic:
+            - generic: А
+    - main:
+      - generic:
+        - generic:
+          - heading [level=1]: Журнал уборки
+          - generic:
+            - link:
+              - /url: /sanpin
+              - img
+              - text: Инструкция
+            - button:
+              - img
+              - text: Создать документ
+        - generic:
+          - generic:
+            - link:
+              - /url: /journals/cleaning
+              - text: Активные
+            - link:
+              - /url: /journals/cleaning?tab=closed
+              - text: Закрытые
+        - generic:
+          - generic:
+            - link:
+              - /url: /journals/cleaning/documents/cmnrwehca000bonts2dmtovac
+              - text: Журнал уборки
+            - link:
+              - /url: /journals/cleaning/documents/cmnrwehca000bonts2dmtovac
+              - generic: Ответственный за уборку
+              - generic:
+                - generic: "Ответственный за уборку: —"
+                - generic: "Шеф-повар: Петров П.П."
+            - link:
+              - /url: /journals/cleaning/documents/cmnrwehca000bonts2dmtovac
+              - generic: Ответственный за контроль
+              - generic: "Ответственный за контроль: —"
+            - link:
+              - /url: /journals/cleaning/documents/cmnrwehca000bonts2dmtovac
+              - generic: Период
+              - generic: апреля с 1 по 30
+            - generic:
+              - button [expanded]:
+                - img
+          - generic:
+            - link:
+              - /url: /journals/cleaning/documents/cmnrweo5z000lontsclkg6i6d
+              - text: Чек-лист уборки и проветривания помещений
+            - link:
+              - /url: /journals/cleaning/documents/cmnrweo5z000lontsclkg6i6d
+              - generic: Ответственный за уборку
+              - generic:
+                - generic: "Повар: Антонова А.А."
+            - link:
+              - /url: /journals/cleaning/documents/cmnrweo5z000lontsclkg6i6d
+              - generic: Ответственный за контроль
+              - generic: "Управляющий: Администратор"
+            - link:
+              - /url: /journals/cleaning/documents/cmnrweo5z000lontsclkg6i6d
+              - generic: Период
+              - generic: апреля с 1 по 30
+            - generic:
+              - button:
+                - img
+          - generic:
+            - link:
+              - /url: /journals/cleaning/documents/cmnu392ct0000x7tslu456plh
+              - text: Тестик
+            - link:
+              - /url: /journals/cleaning/documents/cmnu392ct0000x7tslu456plh
+              - generic: Ответственный за уборку
+              - generic:
+                - generic: "Шеф-повар: Петров П.П."
+            - link:
+              - /url: /journals/cleaning/documents/cmnu392ct0000x7tslu456plh
+              - generic: Ответственный за контроль
+              - generic: "Шеф-повар: Петров П.П."
+            - link:
+              - /url: /journals/cleaning/documents/cmnu392ct0000x7tslu456plh
+              - generic: Период
+              - generic: апреля с 1 по 15
+            - generic:
+              - button:
+                - img
+          - generic:
+            - link:
+              - /url: /journals/cleaning/documents/cmnu897ap0001t7tsm9oynij2
+              - text: Журнал уборки
+            - link:
+              - /url: /journals/cleaning/documents/cmnu897ap0001t7tsm9oynij2
+              - generic: Ответственный за уборку
+              - generic:
+                - generic: "Повар: Антонова А.А."
+            - link:
+              - /url: /journals/cleaning/documents/cmnu897ap0001t7tsm9oynij2
+              - generic: Ответственный за контроль
+              - generic: "Управляющий: Администратор"
+            - link:
+              - /url: /journals/cleaning/documents/cmnu897ap0001t7tsm9oynij2
+              - generic: Период
+              - generic: апреля с 1 по 15
+            - generic:
+              - button:
+                - img
+  - region "Notifications alt+T"
+  - alert
+  - menu [active] [ref=e162]:
+    - menuitem "Закрыть" [ref=e163]:
+      - img
+      - text: Закрыть
+    - menuitem "Настройки" [ref=e164]:
+      - img
+      - text: Настройки
+    - menuitem "Печать" [ref=e165]:
+      - img
+      - text: Печать
+    - menuitem "Удалить" [ref=e166]:
+      - img
+      - text: Удалить

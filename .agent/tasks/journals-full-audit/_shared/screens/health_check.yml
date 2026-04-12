@@ -1,0 +1,76 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "HACCP-Online 5cc02cd" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: HACCP-Online
+          - 'generic "Build: 2026-04-12T11:22:00Z" [ref=e7]': 5cc02cd
+        - navigation [ref=e8]:
+          - link "Дашборд" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e10]
+            - text: Дашборд
+          - link "Журналы" [ref=e15] [cursor=pointer]:
+            - /url: /journals
+            - img [ref=e16]
+            - text: Журналы
+          - link "Партии" [ref=e19] [cursor=pointer]:
+            - /url: /batches
+            - img [ref=e20]
+            - text: Партии
+          - link "CAPA" [ref=e24] [cursor=pointer]:
+            - /url: /capa
+            - img [ref=e25]
+            - text: CAPA
+          - link "Отчёты" [ref=e27] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e28]
+            - text: Отчёты
+          - link "Настройки" [ref=e31] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e32]
+            - text: Настройки
+        - generic [ref=e35]: Тестовая организация (админ)
+        - button "А" [ref=e36]:
+          - generic [ref=e38]: А
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - heading "Журнал здоровья" [level=1] [ref=e43]
+          - generic [ref=e44]:
+            - link "Инструкция" [ref=e45] [cursor=pointer]:
+              - /url: /sanpin
+              - img
+              - text: Инструкция
+            - button "Создать документ" [ref=e46]:
+              - img
+              - text: Создать документ
+        - generic [ref=e48]:
+          - link "Активные" [ref=e49] [cursor=pointer]:
+            - /url: /journals/health_check
+          - link "Закрытые" [ref=e50] [cursor=pointer]:
+            - /url: /journals/health_check?tab=closed
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - link "Журнал здоровьяо" [ref=e53] [cursor=pointer]:
+              - /url: /journals/health_check/documents/cmnvere1x0001antskzh77l1l
+              - generic [ref=e54]: Журнал здоровьяо
+            - link "Период Апрель с 1 по 15" [ref=e55] [cursor=pointer]:
+              - /url: /journals/health_check/documents/cmnvere1x0001antskzh77l1l
+              - generic [ref=e56]: Период
+              - generic [ref=e57]: Апрель с 1 по 15
+            - button [ref=e59]:
+              - img [ref=e60]
+          - generic [ref=e64]:
+            - link "Журнал здоровья" [ref=e65] [cursor=pointer]:
+              - /url: /journals/health_check/documents/cmnvd3dpk00dmrmtspnny08z7
+              - generic [ref=e66]: Журнал здоровья
+            - link "Период Апрель с 1 по 15" [ref=e67] [cursor=pointer]:
+              - /url: /journals/health_check/documents/cmnvd3dpk00dmrmtspnny08z7
+              - generic [ref=e68]: Период
+              - generic [ref=e69]: Апрель с 1 по 15
+            - button [ref=e71]:
+              - img [ref=e72]
+  - region "Notifications alt+T"
+  - alert [ref=e76]

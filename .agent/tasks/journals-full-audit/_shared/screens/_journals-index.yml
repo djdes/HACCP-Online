@@ -1,0 +1,380 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "HACCP-Online 5cc02cd" [ref=e330] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: HACCP-Online
+          - 'generic "Build: 2026-04-12T11:22:00Z" [ref=e331]': 5cc02cd
+        - navigation [ref=e8]:
+          - link "Дашборд" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e10]
+            - text: Дашборд
+          - link "Журналы" [ref=e15] [cursor=pointer]:
+            - /url: /journals
+            - img [ref=e16]
+            - text: Журналы
+          - link "Партии" [ref=e19] [cursor=pointer]:
+            - /url: /batches
+            - img [ref=e20]
+            - text: Партии
+          - link "CAPA" [ref=e24] [cursor=pointer]:
+            - /url: /capa
+            - img [ref=e25]
+            - text: CAPA
+          - link "Отчёты" [ref=e27] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e28]
+            - text: Отчёты
+          - link "Настройки" [ref=e31] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e32]
+            - text: Настройки
+        - generic [ref=e35]: Тестовая организация (админ)
+        - button "А" [ref=e36]:
+          - generic [ref=e38]: А
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - heading "Журналы" [level=1] [ref=e43]
+            - paragraph [ref=e44]: Найдите журнал по названию, описанию или коду.
+          - generic [ref=e45]:
+            - img
+            - textbox "Поиск по журналам" [ref=e46]
+          - paragraph [ref=e47]: "Всего журналов: 35"
+        - generic [ref=e48]:
+          - link "Гигиенический журнал СанПиН Журнал осмотра сотрудников на предмет признаков заболеваний" [ref=e49] [cursor=pointer]:
+            - /url: /journals/hygiene
+            - generic [ref=e51]:
+              - generic [ref=e52]:
+                - generic [ref=e53]: Гигиенический журнал
+                - generic [ref=e55]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e56]: Журнал осмотра сотрудников на предмет признаков заболеваний
+          - link "Журнал здоровья СанПиН Ежедневный контроль состояния здоровья сотрудников перед допуском к работе" [ref=e57] [cursor=pointer]:
+            - /url: /journals/health_check
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - generic [ref=e61]: Журнал здоровья
+                - generic [ref=e63]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e64]: Ежедневный контроль состояния здоровья сотрудников перед допуском к работе
+          - link "Бланк контроля температуры и влажности Документный журнал контроля температуры и влажности воздуха по помещениям" [ref=e65] [cursor=pointer]:
+            - /url: /journals/climate_control
+            - generic [ref=e67]:
+              - generic [ref=e69]: Бланк контроля температуры и влажности
+              - generic [ref=e70]: Документный журнал контроля температуры и влажности воздуха по помещениям
+          - link "Журнал контроля температурного режима холодильного и морозильного оборудования СанПиН ХАССП Документный журнал контроля температурного режима холодильного и морозильного оборудования по дням месяца" [ref=e71] [cursor=pointer]:
+            - /url: /journals/cold_equipment_control
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: Журнал контроля температурного режима холодильного и морозильного оборудования
+                - generic [ref=e76]:
+                  - generic [ref=e77]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e78]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e79]: Документный журнал контроля температурного режима холодильного и морозильного оборудования по дням месяца
+          - link "Журнал уборки СанПиН Журнал уборки помещений и санитарной обработки зон предприятия" [ref=e80] [cursor=pointer]:
+            - /url: /journals/cleaning
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - generic [ref=e84]: Журнал уборки
+                - generic [ref=e86]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e87]: Журнал уборки помещений и санитарной обработки зон предприятия
+          - link "График и учет генеральных уборок СанПиН Планирование и учёт генеральных уборок производственных помещений" [ref=e88] [cursor=pointer]:
+            - /url: /journals/general_cleaning
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e92]: График и учет генеральных уборок
+                - generic [ref=e94]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e95]: Планирование и учёт генеральных уборок производственных помещений
+          - link "Журнал учета работы УФ бактерицидной установки СанПиН Часы работы и замена УФ-ламп" [ref=e96] [cursor=pointer]:
+            - /url: /journals/uv_lamp_runtime
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: Журнал учета работы УФ бактерицидной установки
+                - generic [ref=e102]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e103]: Часы работы и замена УФ-ламп
+          - link "Журнал бракеража готовой пищевой продукции СанПиН Журнал бракеража готовой продукции" [ref=e104] [cursor=pointer]:
+            - /url: /journals/finished_product
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]: Журнал бракеража готовой пищевой продукции
+                - generic [ref=e110]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e111]: Журнал бракеража готовой продукции
+          - link "Журнал бракеража скоропортящейся пищевой продукции СанПиН Журнал бракеража скоропортящейся пищевой продукции" [ref=e112] [cursor=pointer]:
+            - /url: /journals/perishable_rejection
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - generic [ref=e116]: Журнал бракеража скоропортящейся пищевой продукции
+                - generic [ref=e118]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e119]: Журнал бракеража скоропортящейся пищевой продукции
+          - link "Журнал приемки и входного контроля продукции СанПиН ХАССП Журнал приемки и входного контроля поступающего сырья и продуктов" [ref=e120] [cursor=pointer]:
+            - /url: /journals/incoming_control
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - generic [ref=e124]: Журнал приемки и входного контроля продукции
+                - generic [ref=e125]:
+                  - generic [ref=e126]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e127]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e128]: Журнал приемки и входного контроля поступающего сырья и продуктов
+          - 'link "Журнал учета использования фритюрных жиров СанПиН Контроль качества фритюрных жиров: органолептика, кислотное число, замена" [ref=e129] [cursor=pointer]':
+            - /url: /journals/fryer_oil
+            - generic [ref=e131]:
+              - generic [ref=e132]:
+                - generic [ref=e133]: Журнал учета использования фритюрных жиров
+                - generic [ref=e135]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e136]: "Контроль качества фритюрных жиров: органолептика, кислотное число, замена"
+          - link "Медицинские книжки СанПиН Журнал учёта медицинских книжек, осмотров и прививок сотрудников" [ref=e137] [cursor=pointer]:
+            - /url: /journals/med_books
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]: Медицинские книжки
+                - generic [ref=e143]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e144]: Журнал учёта медицинских книжек, осмотров и прививок сотрудников
+          - 'link "План обучения персонала СанПиН ХАССП План обучения персонала по темам: ККТ, санитария и гигиена, охрана труда и др." [ref=e145] [cursor=pointer]':
+            - /url: /journals/training_plan
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - generic [ref=e149]: План обучения персонала
+                - generic [ref=e150]:
+                  - generic [ref=e151]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e152]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e153]: "План обучения персонала по темам: ККТ, санитария и гигиена, охрана труда и др."
+          - link "Журнал регистрации инструктажей (обучения) сотрудников СанПиН Учёт вводных, первичных, повторных и внеплановых инструктажей сотрудников" [ref=e154] [cursor=pointer]:
+            - /url: /journals/staff_training
+            - generic [ref=e156]:
+              - generic [ref=e157]:
+                - generic [ref=e158]: Журнал регистрации инструктажей (обучения) сотрудников
+                - generic [ref=e160]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e161]: Учёт вводных, первичных, повторных и внеплановых инструктажей сотрудников
+          - link "Журнал учета дезинфицирующих средств СанПиН Приход, расход и утилизация моющих и дезинфицирующих средств" [ref=e162] [cursor=pointer]:
+            - /url: /journals/disinfectant_usage
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166]: Журнал учета дезинфицирующих средств
+                - generic [ref=e168]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e169]: Приход, расход и утилизация моющих и дезинфицирующих средств
+          - link "Чек-лист (памятка) проведения санитарного дня СанПиН Чек-лист проведения санитарного дня" [ref=e170] [cursor=pointer]:
+            - /url: /journals/sanitary_day_control
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: Чек-лист (памятка) проведения санитарного дня
+                - generic [ref=e176]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e177]: Чек-лист проведения санитарного дня
+          - link "График профилактического обслуживания оборудования Планово-предупредительное обслуживание и техническое состояние оборудования" [ref=e178] [cursor=pointer]:
+            - /url: /journals/equipment_maintenance
+            - generic [ref=e180]:
+              - generic [ref=e182]: График профилактического обслуживания оборудования
+              - generic [ref=e183]: Планово-предупредительное обслуживание и техническое состояние оборудования
+          - link "Карточка истории поломок ХАССП Учёт поломок оборудования, выполненных ремонтов и простоев" [ref=e184] [cursor=pointer]:
+            - /url: /journals/breakdown_history
+            - generic [ref=e186]:
+              - generic [ref=e187]:
+                - generic [ref=e188]: Карточка истории поломок
+                - generic [ref=e190]:
+                  - img
+                  - text: ХАССП
+              - generic [ref=e191]: Учёт поломок оборудования, выполненных ремонтов и простоев
+          - link "График поверки средств измерений СанПиН Журнал метрологической поверки и калибровки измерительного оборудования" [ref=e192] [cursor=pointer]:
+            - /url: /journals/equipment_calibration
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]: График поверки средств измерений
+                - generic [ref=e198]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e199]: Журнал метрологической поверки и калибровки измерительного оборудования
+          - link "Журнал учета выдачи СИЗ СанПиН Журнал учета выдачи средств индивидуальной защиты сотрудникам" [ref=e200] [cursor=pointer]:
+            - /url: /journals/ppe_issuance
+            - generic [ref=e202]:
+              - generic [ref=e203]:
+                - generic [ref=e204]: Журнал учета выдачи СИЗ
+                - generic [ref=e206]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e207]: Журнал учета выдачи средств индивидуальной защиты сотрудникам
+          - link "Журнал учета аварий СанПиН ХАССП Журнал регистрации аварий, их последствий и корректирующих мероприятий" [ref=e208] [cursor=pointer]:
+            - /url: /journals/accident_journal
+            - generic [ref=e210]:
+              - generic [ref=e211]:
+                - generic [ref=e212]: Журнал учета аварий
+                - generic [ref=e213]:
+                  - generic [ref=e214]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e215]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e216]: Журнал регистрации аварий, их последствий и корректирующих мероприятий
+          - link "Журнал регистрации жалоб Журнал регистрации и обработки жалоб заявителей" [ref=e217] [cursor=pointer]:
+            - /url: /journals/complaint_register
+            - generic [ref=e219]:
+              - generic [ref=e221]: Журнал регистрации жалоб
+              - generic [ref=e222]: Журнал регистрации и обработки жалоб заявителей
+          - link "Акт забраковки СанПиН Журнал учёта списания продукции с истёкшим сроком годности или несоответствующего качества" [ref=e223] [cursor=pointer]:
+            - /url: /journals/product_writeoff
+            - generic [ref=e225]:
+              - generic [ref=e226]:
+                - generic [ref=e227]: Акт забраковки
+                - generic [ref=e229]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e230]: Журнал учёта списания продукции с истёкшим сроком годности или несоответствующего качества
+          - link "План-программа внутренних аудитов ХАССП План-программа внутренних аудитов с таблицей требований и датами аудита по подразделениям" [ref=e231] [cursor=pointer]:
+            - /url: /journals/audit_plan
+            - generic [ref=e233]:
+              - generic [ref=e234]:
+                - generic [ref=e235]: План-программа внутренних аудитов
+                - generic [ref=e237]:
+                  - img
+                  - text: ХАССП
+              - generic [ref=e238]: План-программа внутренних аудитов с таблицей требований и датами аудита по подразделениям
+          - link "Протокол внутреннего аудита ХАССП Протокол внутреннего аудита с секциями требований, отметками да/нет и примечаниями" [ref=e239] [cursor=pointer]:
+            - /url: /journals/audit_protocol
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - generic [ref=e243]: Протокол внутреннего аудита
+                - generic [ref=e245]:
+                  - img
+                  - text: ХАССП
+              - generic [ref=e246]: Протокол внутреннего аудита с секциями требований, отметками да/нет и примечаниями
+          - link "Отчет о внутреннем аудите ХАССП Отчет по результатам внутреннего аудита с несоответствиями, корректирующими действиями и подписями" [ref=e247] [cursor=pointer]:
+            - /url: /journals/audit_report
+            - generic [ref=e249]:
+              - generic [ref=e250]:
+                - generic [ref=e251]: Отчет о внутреннем аудите
+                - generic [ref=e253]:
+                  - img
+                  - text: ХАССП
+              - generic [ref=e254]: Отчет по результатам внутреннего аудита с несоответствиями, корректирующими действиями и подписями
+          - link "Журнал прослеживаемости продукции ХАССП Проверка прослеживаемости продукции по партиям" [ref=e255] [cursor=pointer]:
+            - /url: /journals/traceability_test
+            - generic [ref=e257]:
+              - generic [ref=e258]:
+                - generic [ref=e259]: Журнал прослеживаемости продукции
+                - generic [ref=e261]:
+                  - img
+                  - text: ХАССП
+              - generic [ref=e262]: Проверка прослеживаемости продукции по партиям
+          - link "Журнал учета металлопримесей в сырье СанПиН Журнал учета металлопримесей в сырье с таблицей записей, настройками и справочниками" [ref=e263] [cursor=pointer]:
+            - /url: /journals/metal_impurity
+            - generic [ref=e265]:
+              - generic [ref=e266]:
+                - generic [ref=e267]: Журнал учета металлопримесей в сырье
+                - generic [ref=e269]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e270]: Журнал учета металлопримесей в сырье с таблицей записей, настройками и справочниками
+          - link "Журнал мойки и дезинфекции оборудования СанПиН Журнал мойки и дезинфекции оборудования с настройками документа и таблицей записей." [ref=e271] [cursor=pointer]:
+            - /url: /journals/equipment_cleaning
+            - generic [ref=e273]:
+              - generic [ref=e274]:
+                - generic [ref=e275]: Журнал мойки и дезинфекции оборудования
+                - generic [ref=e277]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e278]: Журнал мойки и дезинфекции оборудования с настройками документа и таблицей записей.
+          - link "Журнал контроля интенсивного охлаждения горячих блюд СанПиН ХАССП Журнал контроля интенсивного охлаждения горячих блюд с настройками и таблицей записей." [ref=e279] [cursor=pointer]:
+            - /url: /journals/intensive_cooling
+            - generic [ref=e281]:
+              - generic [ref=e282]:
+                - generic [ref=e283]: Журнал контроля интенсивного охлаждения горячих блюд
+                - generic [ref=e284]:
+                  - generic [ref=e285]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e286]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e287]: Журнал контроля интенсивного охлаждения горячих блюд с настройками и таблицей записей.
+          - link "Перечень изделий из стекла и хрупкого пластика СанПиН ХАССП Документ для ведения перечня изделий из стекла и хрупкого пластика по участкам" [ref=e288] [cursor=pointer]:
+            - /url: /journals/glass_items_list
+            - generic [ref=e290]:
+              - generic [ref=e291]:
+                - generic [ref=e292]: Перечень изделий из стекла и хрупкого пластика
+                - generic [ref=e293]:
+                  - generic [ref=e294]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e295]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e296]: Документ для ведения перечня изделий из стекла и хрупкого пластика по участкам
+          - link "Журнал контроля изделий из стекла и хрупкого пластика СанПиН Журнал контроля изделий из стекла и хрупкого пластика с настройками документа, таблицей проверок и печатью" [ref=e297] [cursor=pointer]:
+            - /url: /journals/glass_control
+            - generic [ref=e299]:
+              - generic [ref=e300]:
+                - generic [ref=e301]: Журнал контроля изделий из стекла и хрупкого пластика
+                - generic [ref=e303]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e304]: Журнал контроля изделий из стекла и хрупкого пластика с настройками документа, таблицей проверок и печатью
+          - link "Журнал учета дезинфекции, дезинсекции и дератизации СанПиН Журнал учёта мероприятий по дезинсекции и дератизации" [ref=e305] [cursor=pointer]:
+            - /url: /journals/pest_control
+            - generic [ref=e307]:
+              - generic [ref=e308]:
+                - generic [ref=e309]: Журнал учета дезинфекции, дезинсекции и дератизации
+                - generic [ref=e311]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e312]: Журнал учёта мероприятий по дезинсекции и дератизации
+          - link "Журнал входного контроля сырья, ингредиентов, упаковочных материалов СанПиН ХАССП Журнал входного контроля сырья, ингредиентов, упаковочных материалов" [ref=e313] [cursor=pointer]:
+            - /url: /journals/incoming_raw_materials_control
+            - generic [ref=e315]:
+              - generic [ref=e316]:
+                - generic [ref=e317]: Журнал входного контроля сырья, ингредиентов, упаковочных материалов
+                - generic [ref=e318]:
+                  - generic [ref=e319]:
+                    - img
+                    - text: СанПиН
+                  - generic [ref=e320]:
+                    - img
+                    - text: ХАССП
+              - generic [ref=e321]: Журнал входного контроля сырья, ингредиентов, упаковочных материалов
+          - link "Чек-лист уборки и проветривания помещений СанПиН Чек-лист уборки и проветривания помещений" [ref=e322] [cursor=pointer]:
+            - /url: /journals/cleaning_ventilation_checklist
+            - generic [ref=e324]:
+              - generic [ref=e325]:
+                - generic [ref=e326]: Чек-лист уборки и проветривания помещений
+                - generic [ref=e328]:
+                  - img
+                  - text: СанПиН
+              - generic [ref=e329]: Чек-лист уборки и проветривания помещений
+  - region "Notifications alt+T"
+  - alert [ref=e332]
