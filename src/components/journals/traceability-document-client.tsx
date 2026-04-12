@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
+import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ type TraceabilityRowDraft = {
   outgoingQuantityKg: string;
   outgoingShockTemp: string;
   responsibleRole: string;
+  responsibleEmployeeId: string;
   responsibleEmployee: string;
 };
 type TraceabilityImportError = { rowNumber: number; errors: string[] };
@@ -115,6 +117,7 @@ function defaultRow(config: TraceabilityDocumentConfig, dateFrom: string): Trace
     incoming: { rawMaterialName: config.rawMaterialList[0] || "", batchNumber: "", packagingDate: dateFrom, quantityPieces: null, quantityKg: null },
     outgoing: { productName: config.productList[0] || "", quantityPacksPieces: null, quantityPacksKg: null, shockTemp: null },
     responsibleRole: config.defaultResponsibleRole || "",
+    responsibleEmployeeId: config.defaultResponsibleEmployeeId || "",
     responsibleEmployee: config.defaultResponsibleEmployee || "",
   });
 }
@@ -132,6 +135,7 @@ function rowToDraft(row: TraceabilityRow, config: TraceabilityDocumentConfig): T
     outgoingQuantityKg: row.outgoing.quantityPacksKg != null ? String(row.outgoing.quantityPacksKg) : "",
     outgoingShockTemp: row.outgoing.shockTemp != null ? String(row.outgoing.shockTemp) : "",
     responsibleRole: row.responsibleRole || config.defaultResponsibleRole || "",
+    responsibleEmployeeId: row.responsibleEmployeeId || config.defaultResponsibleEmployeeId || "",
     responsibleEmployee: row.responsibleEmployee || config.defaultResponsibleEmployee || "",
   };
 }
@@ -153,6 +157,7 @@ function draftToRow(draft: TraceabilityRowDraft) {
       shockTemp: parseLooseNumber(draft.outgoingShockTemp),
     },
     responsibleRole: draft.responsibleRole,
+    responsibleEmployeeId: draft.responsibleEmployeeId,
     responsibleEmployee: draft.responsibleEmployee,
   });
 }
@@ -404,8 +409,19 @@ function RowDialog(props: {
             <div className="space-y-2 rounded-[28px] border border-[#e3e5f0] px-4 py-4">
               <div className="text-[20px] font-semibold tracking-[-0.02em] text-black">Ответственный</div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Должность ответственного</Label><Select value={draft.responsibleRole || "__empty__"} onValueChange={(value) => setField("responsibleRole", value === "__empty__" ? "" : value)}><SelectTrigger className="h-14 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[18px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{roleOptions.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>
-                <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Сотрудник</Label>{employees.length > 0 ? <Select value={draft.responsibleEmployee || "__empty__"} onValueChange={(value) => setField("responsibleEmployee", value === "__empty__" ? "" : value)}><SelectTrigger className="h-14 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[18px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{employees.map((employee) => <SelectItem key={employee.id} value={employee.name}>{employee.name}</SelectItem>)}</SelectContent></Select> : <Input value={draft.responsibleEmployee} onChange={(e) => setField("responsibleEmployee", e.target.value)} placeholder="ФИО ответственного" className="h-14 rounded-2xl border-[#d8dae6] px-4 text-[18px]" />}</div>
+                <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Должность ответственного</Label><Select value={draft.responsibleRole || "__empty__"} onValueChange={(value) => setField("responsibleRole", value === "__empty__" ? "" : value)} disabled={employees.length > 0}><SelectTrigger className="h-14 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[18px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{roleOptions.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>
+                <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Сотрудник</Label>{employees.length > 0 ? <Select value={draft.responsibleEmployeeId || "__empty__"} onValueChange={(value) => {
+                  if (value === "__empty__") {
+                    setField("responsibleEmployeeId", "");
+                    setField("responsibleEmployee", "");
+                    setField("responsibleRole", "");
+                    return;
+                  }
+                  const employee = employees.find((item) => item.id === value);
+                  setField("responsibleEmployeeId", value);
+                  setField("responsibleEmployee", employee?.name || "");
+                  setField("responsibleRole", employee ? getUserRoleLabel(employee.role) : draft.responsibleRole);
+                }}><SelectTrigger className="h-14 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[18px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{employees.map((employee) => <SelectItem key={employee.id} value={employee.id}>{buildStaffOptionLabel(employee)}</SelectItem>)}</SelectContent></Select> : <Input value={draft.responsibleEmployee} onChange={(e) => setField("responsibleEmployee", e.target.value)} placeholder="ФИО ответственного" className="h-14 rounded-2xl border-[#d8dae6] px-4 text-[18px]" />}</div>
               </div>
             </div>
 
@@ -595,8 +611,8 @@ export function TraceabilityDocumentClient(props: Props) {
 
         {selectedRowIds.length > 0 && !isClosed && <div className="flex items-center gap-3 rounded-[18px] border border-[#e6e9f5] bg-[#fbfbff] px-4 py-3 print:hidden"><button type="button" className="text-[#7c7c93] hover:text-black" onClick={() => setSelectedRowIds([])}><X className="size-5" /></button><span className="text-[15px]">Выбрано: {selectedRowIds.length}</span><Button type="button" variant="outline" className="h-10 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => { deleteSelected().catch((error) => window.alert(error instanceof Error ? error.message : "Не удалось удалить строки")); }}><Trash2 className="size-4" />Удалить</Button></div>}
 
-        <div className="overflow-x-auto rounded-[18px] border border-[#1f1f1f] bg-white">
-          <table className="min-w-[1480px] w-full border-collapse text-[14px]">
+        <div className="max-w-full overflow-x-auto rounded-[18px] border border-[#1f1f1f] bg-white">
+          <table className="min-w-[980px] w-full border-collapse text-[14px] sm:min-w-[1480px]">
             <thead>
               <tr className="bg-[#efefef]">
                 {!isClosed && <th rowSpan={2} className="w-[44px] border border-black px-2 py-3 text-center"><Checkbox checked={allSelected} disabled={config.rows.length === 0} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} /></th>}

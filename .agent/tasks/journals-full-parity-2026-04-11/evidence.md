@@ -57,6 +57,14 @@ Fresh command outputs are stored under `.agent/tasks/journals-full-parity-2026-0
   - Result: `PASS`
   - Artifact:
     - `raw/tsc-visual-grid-2026-04-12.txt`
+- `npx eslint` on the touched wide-table detail files
+  - Result: `PASS` with pre-existing warnings only
+  - Artifact:
+    - `raw/eslint-visual-wide-table-2026-04-12.txt`
+- `npx tsc --noEmit`
+  - Result: `PASS`
+  - Artifact:
+    - `raw/tsc-visual-wide-table-2026-04-12.txt`
 
 ## Visual defect propagation
 
@@ -97,6 +105,25 @@ Fresh command outputs are stored under `.agent/tasks/journals-full-parity-2026-0
   - `staff_training`
 - Remaining likely visual classes after this batch:
   - wide table min-width defaults in detail pages
+  - oversized top-level list headings in some journals
+
+## Visual defect propagation: wide detail tables
+
+- New artifact set:
+  - `raw/visual-wide-table-batch.md`
+  - `raw/visual-wide-table-batch.json`
+- Defect class:
+  - print-oriented detail tables with oversized base `min-w` defaults on mobile
+  - scroll wrappers that allowed overflow but did not constrain width tightly enough
+- Classification:
+  - systemic, not local-only
+- Rechecked globally:
+  - `acceptance`
+  - `cleaning`
+  - `pest_control`
+  - `traceability_test`
+  - `uv_lamp_runtime`
+- Remaining likely visual class after this batch:
   - oversized top-level list headings in some journals
 
 ## Visual-proof state
@@ -145,7 +172,7 @@ These are not runtime failures anymore. They are proof gaps: live/detail/docprin
   - `15` journals remain explicitly `BLOCKED` because row-by-row visual comparison notes are still missing.
 - `AC5`: `PARTIAL`
   - Visual outcomes are now explicit as `CLOSE`, `FIXED`, or `BLOCKED`.
-  - The blocked set is isolated, and shared mobile-sizing plus mobile-grid defect classes are now fixed across multiple journals, but it is not yet reduced to zero.
+  - The blocked set is isolated, and shared mobile-sizing, mobile-grid, and wide-table defect classes are now fixed across multiple journals, but it is not yet reduced to zero.
 - `AC6`: `PASS`
   - Local runtime proof now covers list/detail routing for all `35/35` journals.
   - The shared disappearing-document fix remains in place and local DB-backed proof now exists through the real app path.
@@ -169,4 +196,4 @@ These are not runtime failures anymore. They are proof gaps: live/detail/docprin
 - `15` journals still lack row-by-row visual comparison notes in the canonical matrix.
 - Full packaged runtime proof for every edit/save/delete/archive interaction is still incomplete, even though list/detail/create/print is now covered across all 35.
 - The next likely systemic visual classes are already narrowed to fixed-column mobile grids, wide table defaults, and oversized list headings.
-- The fixed-column mobile grid class is now addressed for six journals, leaving wide table defaults and oversized list headings as the next likely systemic visual passes.
+- The fixed-column mobile grid class is now addressed for six journals, and the wide-table class is now addressed across five detail journals, leaving oversized list headings as the next likely systemic visual pass.

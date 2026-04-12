@@ -620,7 +620,7 @@ export function PestControlDocumentClient(props: Props) {
         )}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-w-full overflow-x-auto">
         <table className="min-w-full border-collapse border border-black bg-white text-[14px]">
           <thead>
             <tr className="bg-[#fafafa]">
@@ -634,13 +634,13 @@ export function PestControlDocumentClient(props: Props) {
                   />
                 )}
               </th>
-              <th className="min-w-[140px] border border-black px-3 py-3 text-center">Дата и время проведения</th>
-              <th className="min-w-[220px] border border-black px-3 py-3 text-center">Мероприятие (вид, место)</th>
-              <th className="min-w-[150px] border border-black px-3 py-3 text-center">Площадь и (или) объем</th>
-              <th className="min-w-[190px] border border-black px-3 py-3 text-center">Средство обработки</th>
-              <th className="min-w-[320px] border border-black px-3 py-3 text-center">Примечание</th>
-              <th className="min-w-[150px] border border-black px-3 py-3 text-center">Кем проведено</th>
-              <th className="min-w-[220px] border border-black px-3 py-3 text-center">ФИО принявшего работы</th>
+              <th className="min-w-[110px] border border-black px-3 py-3 text-center sm:min-w-[140px]">Дата и время проведения</th>
+              <th className="min-w-[170px] border border-black px-3 py-3 text-center sm:min-w-[220px]">Мероприятие (вид, место)</th>
+              <th className="min-w-[120px] border border-black px-3 py-3 text-center sm:min-w-[150px]">Площадь и (или) объем</th>
+              <th className="min-w-[150px] border border-black px-3 py-3 text-center sm:min-w-[190px]">Средство обработки</th>
+              <th className="min-w-[220px] border border-black px-3 py-3 text-center sm:min-w-[320px]">Примечание</th>
+              <th className="min-w-[120px] border border-black px-3 py-3 text-center sm:min-w-[150px]">Кем проведено</th>
+              <th className="min-w-[170px] border border-black px-3 py-3 text-center sm:min-w-[220px]">ФИО принявшего работы</th>
             </tr>
           </thead>
           <tbody>
