@@ -2145,19 +2145,19 @@ function drawGlassListPdf(doc: jsPDF, params: {
 
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(11);
-  drawCenteredText(doc, "РЎРРЎРўР•РњРђ РҐРђРЎРЎРџ", x + leftWidth, y, middleWidth, 11, middleWidth - 6);
+  drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, 11, middleWidth - 6);
 
   doc.setFont("JournalUnicode", "italic");
   drawCenteredText(
     doc,
-    "РџР•Р Р•Р§Р•РќР¬ РР—Р”Р•Р›РР™ РР— РЎРўР•РљР›Рђ Р РҐР РЈРџРљРћР“Рћ РџР›РђРЎРўРРљРђ",
+    "ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА",
     x + leftWidth,
     y + 11,
     middleWidth,
     11,
     middleWidth - 10
   );
-  drawCenteredText(doc, "РЎРўР . 1 РР— 1", x + leftWidth + middleWidth, y, rightWidth, 22, rightWidth - 4);
+  drawCenteredText(doc, "СТР. 1 ИЗ 1", x + leftWidth + middleWidth, y, rightWidth, 22, rightWidth - 4);
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(12);
@@ -2166,12 +2166,12 @@ function drawGlassListPdf(doc: jsPDF, params: {
   doc.setFontSize(11);
   doc.text(config.responsibleTitle || "Управляющий", pageWidth - 36, 80, { align: "right" });
   doc.text(`____________________ ${params.responsibleName}`, pageWidth - 36, 88, { align: "right" });
-  doc.text(`В« ${formatGlassListDateLong(documentDate)} Рі.`, pageWidth - 36, 96, { align: "right" });
+  doc.text(`«${formatGlassListDateLong(documentDate)}» г.`, pageWidth - 36, 96, { align: "right" });
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(14);
   doc.text(
-    "РџР•Р Р•Р§Р•РќР¬ РР—Р”Р•Р›РР™ РР— РЎРўР•РљР›Рђ Р РҐР РЈРџРљРћР“Рћ РџР›РђРЎРўРРљРђ",
+    "ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА",
     pageWidth / 2,
     106,
     { align: "center" }
@@ -2184,7 +2184,7 @@ function drawGlassListPdf(doc: jsPDF, params: {
       "",
       "Место расположения\n(участок)",
       "Наименование объекта контроля (предмета)",
-      "РљРѕР»-РІРѕ",
+      "Кол-во",
     ]],
     body: (config.rows.length > 0 ? config.rows : Array.from({ length: 3 }, (_, index) => ({ id: `empty-${index}`, location: "", itemName: "", quantity: "" }))).map(
       (row) => ["", row.location || config.location || "", row.itemName || "", row.quantity || ""]
@@ -4620,7 +4620,7 @@ export async function generateJournalDocumentPdf(params: {
       config: glassListConfig,
       responsibleName:
         users.find((user) => user.id === (document.responsibleUserId || glassListConfig.responsibleUserId))
-          ?.name || "РРІР°РЅРѕРІ Р.Р.",
+          ?.name || "Иванов И.И.",
     });
   } else if (templateCode === GLASS_CONTROL_TEMPLATE_CODE) {
     drawGlassControlPdf(doc, {
