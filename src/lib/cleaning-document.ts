@@ -1107,18 +1107,18 @@ export function getCleaningCreatePeriodBounds(referenceDate = new Date()) {
 }
 
 const RU_MONTHS = [
-  "января",
-  "февраля",
-  "марта",
-  "апреля",
-  "мая",
-  "июня",
-  "июля",
-  "августа",
-  "сентября",
-  "октября",
-  "ноября",
-  "декабря",
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
 ];
 
 export function getCleaningPeriodLabel(dateFrom: Date | string, dateTo: Date | string) {

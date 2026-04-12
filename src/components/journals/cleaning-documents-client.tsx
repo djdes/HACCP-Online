@@ -647,11 +647,12 @@ export function CleaningDocumentsClient(props: Props) {
             const config = normalizeCleaningDocumentConfig(document.config, {
               users: props.users,
             });
-            const cleaningLines = config.cleaningResponsibles.map((item) =>
-              `${item.title}: ${item.userName || "—"}`
-            );
+            const cleaningLines = config.cleaningResponsibles
+              .filter((item) => item.userName || (item.title && item.title !== "Ответственный за уборку"))
+              .map((item) => `${item.title}: ${item.userName || "—"}`);
+            if (cleaningLines.length === 0) cleaningLines.push("—");
             const controlLine =
-              config.controlResponsibles[0]
+              config.controlResponsibles[0] && (config.controlResponsibles[0].userName || (config.controlResponsibles[0].title && config.controlResponsibles[0].title !== "Ответственный за контроль"))
                 ? `${config.controlResponsibles[0].title}: ${config.controlResponsibles[0].userName || "—"}`
                 : "—";
             const href = `/journals/${props.routeCode}/documents/${document.id}`;
