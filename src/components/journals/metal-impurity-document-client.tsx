@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   Paperclip,
@@ -847,7 +847,6 @@ export function MetalImpurityDocumentClient({
   users,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [documentTitle, setDocumentTitle] = useState(title || METAL_IMPURITY_DOCUMENT_TITLE);
   const [config, setConfig] = useState(() => normalizeMetalImpurityConfig(initialConfig));
@@ -865,14 +864,6 @@ export function MetalImpurityDocumentClient({
   useEffect(() => {
     setDocumentTitle(title || METAL_IMPURITY_DOCUMENT_TITLE);
   }, [title]);
-
-  useEffect(() => {
-    if (searchParams.get("print") === "1") {
-      const timeoutId = window.setTimeout(() => window.print(), 200);
-      return () => window.clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [searchParams]);
 
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
   const employeeOptions = useMemo(

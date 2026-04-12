@@ -1,55 +1,58 @@
 # Journal Inventory
 
-Status snapshot on 2026-04-11.
+Status snapshot on 2026-04-12.
 
 - Total local reference folders in `journals/`: `35`
 - Total active journal templates in `prisma/seed.ts`: `35`
-- Major audit finding before fixes: two journals were missing from the active set.
-- Major audit finding after fixes: both missing journals are now registered separately and routed through existing document-based clients.
+- Total mapped live journal counterparts: `35`
+- Supporting artifacts:
+  - `raw/visual-matrix.json`
+  - `raw/visual-matrix.md`
+  - `raw/implementation-matrix.json`
+  - `raw/visual-review-ledger.json`
 
-## Per-journal status
+## Per-journal matrix
 
-| Status | Code | Journal |
-| --- | --- | --- |
-| implemented | `product_writeoff` | Акт забраковки |
-| implemented | `climate_control` | Бланк контроля температуры и влажности |
-| implemented | `hygiene` | Гигиенический журнал |
-| implemented | `general_cleaning` | График и учет генеральных уборок |
-| implemented | `equipment_calibration` | График поверки средств измерений |
-| implemented | `equipment_maintenance` | График профилактического обслуживания оборудования |
-| implemented | `finished_product` | Журнал бракеража готовой пищевой продукции |
-| implemented | `perishable_rejection` | Журнал бракеража скоропортящейся пищевой продукции |
-| fixed | `incoming_raw_materials_control` | Журнал входного контроля сырья, ингредиентов, упаковочных материалов |
-| implemented | `health_check` | Журнал здоровья |
-| implemented | `glass_control` | Журнал контроля изделий из стекла и хрупкого пластика |
-| implemented | `intensive_cooling` | Журнал контроля интенсивного охлаждения горячих блюд |
-| implemented | `cold_equipment_control` | Журнал контроля температурного режима холодильного и морозильного оборудования |
-| implemented | `equipment_cleaning` | Журнал мойки и дезинфекции оборудования |
-| implemented | `incoming_control` | Журнал приемки и входного контроля продукции |
-| implemented | `traceability_test` | Журнал прослеживаемости продукции |
-| implemented | `complaint_register` | Журнал регистрации жалоб |
-| implemented | `staff_training` | Журнал регистрации инструктажей (обучения) сотрудников |
-| implemented | `cleaning` | Журнал уборки |
-| implemented | `accident_journal` | Журнал учета аварий |
-| implemented | `ppe_issuance` | Журнал учета выдачи СИЗ |
-| implemented | `pest_control` | Журнал учета дезинфекции, дезинсекции и дератизации |
-| implemented | `disinfectant_usage` | Журнал учета дезинфицирующих средств |
-| implemented | `fryer_oil` | Журнал учета использования фритюрных жиров |
-| implemented | `metal_impurity` | Журнал учета металлопримесей |
-| implemented | `uv_lamp_runtime` | Журнал учета работы УФ бактерицидной установки |
-| implemented | `breakdown_history` | Карточка истории поломок |
-| implemented | `med_books` | Медицинские книжки |
-| implemented | `audit_report` | Отчет о внутреннем аудите |
-| implemented | `glass_items_list` | Перечень изделий из стекла и хрупкого пластика |
-| implemented | `training_plan` | План обучения персонала |
-| implemented | `audit_plan` | План-программа внутренних аудитов |
-| implemented | `audit_protocol` | Протокол внутреннего аудита |
-| implemented | `sanitary_day_control` | Чек-лист (памятка) проведения санитарного дня |
-| fixed | `cleaning_ventilation_checklist` | Чек-лист уборки и проветривания помещений |
+| Folder | Code | Source Slug | Route | List Impl | Detail Impl | Print Mode | Live Crawl Dir | Wiring | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Журнал учета аварий | `accident_journal` | `accidentjournal` | `/journals/accident_journal` | `src/components/journals/accident-documents-client.tsx` | `src/components/journals/accident-document-client.tsx` | `api-window` | `23-item-docs-accidentjournal-1` | `present` | `implemented` |
+| План-программа внутренних аудитов | `audit_plan` | `auditplan` | `/journals/audit_plan` | `src/components/journals/audit-plan-documents-client.tsx` | `src/components/journals/audit-plan-document-client.tsx` | `helper` | `26-item-docs-auditplan-1` | `present` | `implemented` |
+| Протокол внутреннего аудита | `audit_protocol` | `auditprotocol` | `/journals/audit_protocol` | `src/components/journals/audit-protocol-documents-client.tsx` | `src/components/journals/audit-protocol-document-client.tsx` | `helper` | `27-item-docs-auditprotocol-1` | `present` | `implemented` |
+| Отчет о внутреннем аудите | `audit_report` | `auditreport` | `/journals/audit_report` | `src/components/journals/audit-report-documents-client.tsx` | `src/components/journals/audit-report-document-client.tsx` | `helper` | `28-item-docs-auditreport-1` | `present` | `implemented` |
+| Карточка истории поломок | `breakdown_history` | `breakdownhistoryjournal` | `/journals/breakdown_history` | `src/components/journals/breakdown-history-documents-client.tsx` | `src/components/journals/breakdown-history-document-client.tsx` | `api-window` | `19-item-docs-breakdownhistoryjournal-1` | `present` | `implemented` |
+| Журнал уборки | `cleaning` | `cleaning1journal` | `/journals/cleaning` | `src/components/journals/cleaning-documents-client.tsx` | `src/components/journals/cleaning-document-client.tsx` | `api-window` | `06-item-docs-cleaning1journal-1` | `present` | `implemented` |
+| Чек-лист уборки и проветривания помещений | `cleaning_ventilation_checklist` | `sanitation1journal` | `/journals/cleaning_ventilation_checklist` | `src/components/journals/cleaning-ventilation-checklist-documents-client.tsx` | `src/components/journals/cleaning-ventilation-checklist-document-client.tsx` | `api-window` | `05-item-docs-sanitation1journal-1` | `present` | `fixed` |
+| Бланк контроля температуры и влажности | `climate_control` | `storageconditionjournal` | `/journals/climate_control` | `src/components/journals/tracked-documents-client.tsx` | `src/components/journals/climate-document-client.tsx` | `api-window` | `03-item-docs-storageconditionjournal-1` | `present` | `implemented` |
+| Журнал контроля температурного режима холодильного и морозильного оборудования | `cold_equipment_control` | `temprefrigerationjournal` | `/journals/cold_equipment_control` | `src/components/journals/cold-equipment-documents-client.tsx` | `src/components/journals/cold-equipment-document-client.tsx` | `helper` | `04-item-docs-temprefrigerationjournal-1` | `present` | `implemented` |
+| Журнал регистрации жалоб | `complaint_register` | `complaintjournal` | `/journals/complaint_register` | `src/components/journals/complaint-documents-client.tsx` | `src/components/journals/complaint-document-client.tsx` | `api-window` | `24-item-docs-complaintjournal-1` | `present` | `implemented` |
+| Журнал учета дезинфицирующих средств | `disinfectant_usage` | `disinfectjournal` | `/journals/disinfectant_usage` | `src/components/journals/disinfectant-documents-client.tsx` | `src/components/journals/disinfectant-document-client.tsx` | `api-window` | `16-item-docs-disinfectjournal-1` | `present` | `implemented` |
+| График поверки средств измерений | `equipment_calibration` | `instrumentcalibration` | `/journals/equipment_calibration` | `src/components/journals/equipment-calibration-documents-client.tsx` | `src/components/journals/equipment-calibration-document-client.tsx` | `api-window` | `20-item-docs-instrumentcalibration-1` | `present` | `implemented` |
+| Журнал мойки и дезинфекции оборудования | `equipment_cleaning` | `equipcleanjournal` | `/journals/equipment_cleaning` | `src/components/journals/equipment-cleaning-documents-client.tsx` | `src/components/journals/equipment-cleaning-document-client.tsx` | `api-window` | `31-item-docs-equipcleanjournal-1` | `present` | `implemented` |
+| График профилактического обслуживания оборудования | `equipment_maintenance` | `preventiveequipment` | `/journals/equipment_maintenance` | `src/components/journals/equipment-maintenance-documents-client.tsx` | `src/components/journals/equipment-maintenance-document-client.tsx` | `api-window` | `18-item-docs-preventiveequipment-1` | `present` | `implemented` |
+| Журнал бракеража готовой пищевой продукции | `finished_product` | `brakeryjournal` | `/journals/finished_product` | `src/components/journals/finished-product-documents-client.tsx` | `src/components/journals/finished-product-document-client.tsx` | `api-window` | `09-item-docs-brakeryjournal-1` | `present` | `implemented` |
+| Журнал учета использования фритюрных жиров | `fryer_oil` | `deepfatjournal` | `/journals/fryer_oil` | `src/components/journals/fryer-oil-documents-client.tsx` | `src/components/journals/fryer-oil-document-client.tsx` | `helper` | `12-item-docs-deepfatjournal-1` | `present` | `implemented` |
+| График и учет генеральных уборок | `general_cleaning` | `sanitationdayjournal` | `/journals/general_cleaning` | `src/components/journals/sanitation-day-documents-client.tsx` | `src/components/journals/sanitation-day-document-client.tsx` | `api-window` | `07-item-docs-sanitationdayjournal-1` | `present` | `implemented` |
+| Журнал контроля изделий из стекла и хрупкого пластика | `glass_control` | `glassjournal` | `/journals/glass_control` | `src/components/journals/glass-control-documents-client.tsx` | `src/components/journals/glass-control-document-client.tsx` | `api-window` | `34-item-docs-glassjournal-1` | `present` | `implemented` |
+| Перечень изделий из стекла и хрупкого пластика | `glass_items_list` | `glasslist` | `/journals/glass_items_list` | `src/components/journals/glass-list-documents-client.tsx` | `src/components/journals/glass-list-document-client.tsx` | `api-window` | `33-item-docs-glasslist-1` | `present` | `implemented` |
+| Журнал здоровья | `health_check` | `health1journal` | `/journals/health_check` | `src/components/journals/health-documents-client.tsx` | `src/components/journals/health-document-client.tsx` | `api-window` | `02-item-docs-health1journal-1` | `present` | `implemented` |
+| Гигиенический журнал | `hygiene` | `healthjournal` | `/journals/hygiene` | `src/components/journals/hygiene-documents-client.tsx` | `src/components/journals/hygiene-document-client.tsx` | `api-window` | `01-item-docs-healthjournal-1` | `present` | `implemented` |
+| Журнал приемки и входного контроля продукции | `incoming_control` | `acceptance1journal` | `/journals/incoming_control` | `src/components/journals/incoming-control-documents-client.tsx` | `src/components/journals/acceptance-document-client.tsx` | `api-window` | `11-item-docs-acceptance1journal-1` | `present` | `implemented` |
+| Журнал входного контроля сырья, ингредиентов, упаковочных материалов | `incoming_raw_materials_control` | `acceptance2journal` | `/journals/incoming_raw_materials_control` | `src/components/journals/incoming-control-documents-client.tsx` | `src/components/journals/acceptance-document-client.tsx` | `api-window` | `21-item-docs-acceptance2journal-1` | `present` | `fixed` |
+| Журнал контроля интенсивного охлаждения горячих блюд | `intensive_cooling` | `intensivecoolingjournal` | `/journals/intensive_cooling` | `src/components/journals/intensive-cooling-documents-client.tsx` | `src/components/journals/intensive-cooling-document-client.tsx` | `api-window` | `32-item-docs-intensivecoolingjournal-1` | `present` | `implemented` |
+| Медицинские книжки | `med_books` | `medbook` | `/journals/med_books` | `src/components/journals/med-book-documents-client.tsx` | `src/components/journals/med-book-document-client.tsx` | `none` | `13-item-docs-medbook-1` | `present` | `fixed` |
+| Журнал учета металлопримесей | `metal_impurity` | `metalimpurityjournal` | `/journals/metal_impurity` | `src/components/journals/metal-impurity-documents-client.tsx` | `src/components/journals/metal-impurity-document-client.tsx` | `helper` | `30-item-docs-metalimpurityjournal-1` | `present` | `implemented` |
+| Журнал бракеража скоропортящейся пищевой продукции | `perishable_rejection` | `brakery1journal` | `/journals/perishable_rejection` | `src/components/journals/perishable-rejection-documents-client.tsx` | `src/components/journals/perishable-rejection-document-client.tsx` | `api-window` | `10-item-docs-brakery1journal-1` | `present` | `implemented` |
+| Журнал учета дезинфекции, дезинсекции и дератизации | `pest_control` | `deratization1journal` | `/journals/pest_control` | `src/components/journals/pest-control-documents-client.tsx` | `src/components/journals/pest-control-document-client.tsx` | `api-window` | `35-item-docs-deratization1journal-1` | `present` | `implemented` |
+| Журнал учета выдачи СИЗ | `ppe_issuance` | `issuancesizjournal` | `/journals/ppe_issuance` | `src/components/journals/ppe-issuance-documents-client.tsx` | `src/components/journals/ppe-issuance-document-client.tsx` | `api-window` | `22-item-docs-issuancesizjournal-1` | `present` | `implemented` |
+| Акт забраковки | `product_writeoff` | `defectjournal` | `/journals/product_writeoff` | `src/components/journals/product-writeoff-documents-client.tsx` | `src/components/journals/product-writeoff-document-client.tsx` | `api-window` | `25-item-docs-defectjournal-1` | `present` | `implemented` |
+| Чек-лист (памятка) проведения санитарного дня | `sanitary_day_control` | `sanitationdaycheklist` | `/journals/sanitary_day_control` | `src/components/journals/sanitary-day-checklist-documents-client.tsx` | `src/components/journals/sanitary-day-checklist-document-client.tsx` | `api-window` | `17-item-docs-sanitationdaycheklist-1` | `present` | `implemented` |
+| Журнал регистрации инструктажей (обучения) сотрудников | `staff_training` | `edujournal` | `/journals/staff_training` | `src/components/journals/staff-training-documents-client.tsx` | `src/components/journals/staff-training-document-client.tsx` | `api-window` | `15-item-docs-edujournal-1` | `present` | `implemented` |
+| Журнал прослеживаемости продукции | `traceability_test` | `traceabilityjournal` | `/journals/traceability_test` | `src/components/journals/traceability-documents-client.tsx` | `src/components/journals/traceability-document-client.tsx` | `api-window` | `29-item-docs-traceabilityjournal-1` | `present` | `implemented` |
+| План обучения персонала | `training_plan` | `eduplan` | `/journals/training_plan` | `src/components/journals/training-plan-documents-client.tsx` | `src/components/journals/training-plan-document-client.tsx` | `api-window` | `14-item-docs-eduplan-1` | `present` | `implemented` |
+| Журнал учета работы УФ бактерицидной установки | `uv_lamp_runtime` | `bactericiplantjournal` | `/journals/uv_lamp_runtime` | `src/components/journals/uv-lamp-runtime-documents-client.tsx` | `src/components/journals/uv-lamp-runtime-document-client.tsx` | `api-window` | `08-item-docs-bactericiplantjournal-1` | `present` | `implemented` |
 
 ## Audit notes
 
-- `incoming_control` remains separate and keeps the product acceptance journal role.
-- `incoming_raw_materials_control` now registers the raw materials incoming-control journal and reuses the acceptance-style custom client stack.
-- `cleaning_ventilation_checklist` now registers the separate checklist and reuses the sanitary-day-checklist client stack.
-- No additional missing journal templates were found after reconciling folder names with the active template list.
+- The matrix now links each active journal to a route, a list implementation path, a detail implementation path, a print mode classification, and a live crawl folder.
+- This artifact improves AC2/AC3 proof, but does not by itself prove AC4/AC5 visual parity for every journal.
+- Recently fixed systemic defects remain: list-page wiring for `complaint_register`, `audit_protocol`, `audit_report`; missing alias for `sanitation1journal`; explicit PDF branches for audit/metal journals; and PDF/browser error handling.

@@ -1,0 +1,7 @@
+{
+  "status": "BLOCKED",
+  "code": "ECONNREFUSED",
+  "summary": "Local Prisma runtime cannot reach PostgreSQL at localhost:5432/haccp_online.",
+  "evidence": "PrismaClientKnownRequestError during journalTemplate query via src/lib/db.ts",
+  "impact": "Blocks local runtime verification for AC6, AC7, and AC8."
+}

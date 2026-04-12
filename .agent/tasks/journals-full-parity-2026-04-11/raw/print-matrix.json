@@ -1,0 +1,352 @@
+﻿[
+    {
+        "code":  "accident_journal",
+        "sourceSlug":  "accidentjournal",
+        "route":  "/journals/accident_journal",
+        "listImpl":  "src/components/journals/accident-documents-client.tsx",
+        "detailImpl":  "src/components/journals/accident-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "audit_plan",
+        "sourceSlug":  "auditplan",
+        "route":  "/journals/audit_plan",
+        "listImpl":  "src/components/journals/audit-plan-documents-client.tsx",
+        "detailImpl":  "src/components/journals/audit-plan-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "audit_protocol",
+        "sourceSlug":  "auditprotocol",
+        "route":  "/journals/audit_protocol",
+        "listImpl":  "src/components/journals/audit-protocol-documents-client.tsx",
+        "detailImpl":  "src/components/journals/audit-protocol-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "audit_report",
+        "sourceSlug":  "auditreport",
+        "route":  "/journals/audit_report",
+        "listImpl":  "src/components/journals/audit-report-documents-client.tsx",
+        "detailImpl":  "src/components/journals/audit-report-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "breakdown_history",
+        "sourceSlug":  "breakdownhistoryjournal",
+        "route":  "/journals/breakdown_history",
+        "listImpl":  "src/components/journals/breakdown-history-documents-client.tsx",
+        "detailImpl":  "src/components/journals/breakdown-history-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "cleaning",
+        "sourceSlug":  "cleaning1journal",
+        "route":  "/journals/cleaning",
+        "listImpl":  "src/components/journals/cleaning-documents-client.tsx",
+        "detailImpl":  "src/components/journals/cleaning-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "cleaning_ventilation_checklist",
+        "sourceSlug":  "sanitation1journal",
+        "route":  "/journals/cleaning_ventilation_checklist",
+        "listImpl":  "src/components/journals/cleaning-ventilation-checklist-documents-client.tsx",
+        "detailImpl":  "src/components/journals/cleaning-ventilation-checklist-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "climate_control",
+        "sourceSlug":  "storageconditionjournal",
+        "route":  "/journals/climate_control",
+        "listImpl":  "src/components/journals/tracked-documents-client.tsx",
+        "detailImpl":  "src/components/journals/climate-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "cold_equipment_control",
+        "sourceSlug":  "temprefrigerationjournal",
+        "route":  "/journals/cold_equipment_control",
+        "listImpl":  "src/components/journals/cold-equipment-documents-client.tsx",
+        "detailImpl":  "src/components/journals/cold-equipment-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "helper",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "complaint_register",
+        "sourceSlug":  "complaintjournal",
+        "route":  "/journals/complaint_register",
+        "listImpl":  "src/components/journals/complaint-documents-client.tsx",
+        "detailImpl":  "src/components/journals/complaint-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "disinfectant_usage",
+        "sourceSlug":  "disinfectjournal",
+        "route":  "/journals/disinfectant_usage",
+        "listImpl":  "src/components/journals/disinfectant-documents-client.tsx",
+        "detailImpl":  "src/components/journals/disinfectant-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "equipment_calibration",
+        "sourceSlug":  "instrumentcalibration",
+        "route":  "/journals/equipment_calibration",
+        "listImpl":  "src/components/journals/equipment-calibration-documents-client.tsx",
+        "detailImpl":  "src/components/journals/equipment-calibration-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "equipment_cleaning",
+        "sourceSlug":  "equipcleanjournal",
+        "route":  "/journals/equipment_cleaning",
+        "listImpl":  "src/components/journals/equipment-cleaning-documents-client.tsx",
+        "detailImpl":  "src/components/journals/equipment-cleaning-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "equipment_maintenance",
+        "sourceSlug":  "preventiveequipment",
+        "route":  "/journals/equipment_maintenance",
+        "listImpl":  "src/components/journals/equipment-maintenance-documents-client.tsx",
+        "detailImpl":  "src/components/journals/equipment-maintenance-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "finished_product",
+        "sourceSlug":  "brakeryjournal",
+        "route":  "/journals/finished_product",
+        "listImpl":  "src/components/journals/finished-product-documents-client.tsx",
+        "detailImpl":  "src/components/journals/finished-product-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "fryer_oil",
+        "sourceSlug":  "deepfatjournal",
+        "route":  "/journals/fryer_oil",
+        "listImpl":  "src/components/journals/fryer-oil-documents-client.tsx",
+        "detailImpl":  "src/components/journals/fryer-oil-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "helper",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "general_cleaning",
+        "sourceSlug":  "sanitationdayjournal",
+        "route":  "/journals/general_cleaning",
+        "listImpl":  "src/components/journals/sanitation-day-documents-client.tsx",
+        "detailImpl":  "src/components/journals/sanitation-day-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "glass_control",
+        "sourceSlug":  "glassjournal",
+        "route":  "/journals/glass_control",
+        "listImpl":  "src/components/journals/glass-control-documents-client.tsx",
+        "detailImpl":  "src/components/journals/glass-control-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "glass_items_list",
+        "sourceSlug":  "glasslist",
+        "route":  "/journals/glass_items_list",
+        "listImpl":  "src/components/journals/glass-list-documents-client.tsx",
+        "detailImpl":  "src/components/journals/glass-list-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "health_check",
+        "sourceSlug":  "health1journal",
+        "route":  "/journals/health_check",
+        "listImpl":  "src/components/journals/health-documents-client.tsx",
+        "detailImpl":  "src/components/journals/health-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "hygiene",
+        "sourceSlug":  "healthjournal",
+        "route":  "/journals/hygiene",
+        "listImpl":  "src/components/journals/hygiene-documents-client.tsx",
+        "detailImpl":  "src/components/journals/hygiene-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "incoming_control",
+        "sourceSlug":  "acceptance1journal",
+        "route":  "/journals/incoming_control",
+        "listImpl":  "src/components/journals/incoming-control-documents-client.tsx",
+        "detailImpl":  "src/components/journals/acceptance-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "incoming_raw_materials_control",
+        "sourceSlug":  "acceptance2journal",
+        "route":  "/journals/incoming_raw_materials_control",
+        "listImpl":  "src/components/journals/incoming-control-documents-client.tsx",
+        "detailImpl":  "src/components/journals/acceptance-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "intensive_cooling",
+        "sourceSlug":  "intensivecoolingjournal",
+        "route":  "/journals/intensive_cooling",
+        "listImpl":  "src/components/journals/intensive-cooling-documents-client.tsx",
+        "detailImpl":  "src/components/journals/intensive-cooling-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "med_books",
+        "sourceSlug":  "medbook",
+        "route":  "/journals/med_books",
+        "listImpl":  "src/components/journals/med-book-documents-client.tsx",
+        "detailImpl":  "src/components/journals/med-book-document-client.tsx",
+        "listPrint":  "none",
+        "detailPrint":  "none",
+        "printStatus":  "PASS"
+    },
+    {
+        "code":  "metal_impurity",
+        "sourceSlug":  "metalimpurityjournal",
+        "route":  "/journals/metal_impurity",
+        "listImpl":  "src/components/journals/metal-impurity-documents-client.tsx",
+        "detailImpl":  "src/components/journals/metal-impurity-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "perishable_rejection",
+        "sourceSlug":  "brakery1journal",
+        "route":  "/journals/perishable_rejection",
+        "listImpl":  "src/components/journals/perishable-rejection-documents-client.tsx",
+        "detailImpl":  "src/components/journals/perishable-rejection-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "pest_control",
+        "sourceSlug":  "deratization1journal",
+        "route":  "/journals/pest_control",
+        "listImpl":  "src/components/journals/pest-control-documents-client.tsx",
+        "detailImpl":  "src/components/journals/pest-control-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "ppe_issuance",
+        "sourceSlug":  "issuancesizjournal",
+        "route":  "/journals/ppe_issuance",
+        "listImpl":  "src/components/journals/ppe-issuance-documents-client.tsx",
+        "detailImpl":  "src/components/journals/ppe-issuance-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "product_writeoff",
+        "sourceSlug":  "defectjournal",
+        "route":  "/journals/product_writeoff",
+        "listImpl":  "src/components/journals/product-writeoff-documents-client.tsx",
+        "detailImpl":  "src/components/journals/product-writeoff-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "sanitary_day_control",
+        "sourceSlug":  "sanitationdaycheklist",
+        "route":  "/journals/sanitary_day_control",
+        "listImpl":  "src/components/journals/sanitary-day-checklist-documents-client.tsx",
+        "detailImpl":  "src/components/journals/sanitary-day-checklist-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "staff_training",
+        "sourceSlug":  "edujournal",
+        "route":  "/journals/staff_training",
+        "listImpl":  "src/components/journals/staff-training-documents-client.tsx",
+        "detailImpl":  "src/components/journals/staff-training-document-client.tsx",
+        "listPrint":  "helper",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "traceability_test",
+        "sourceSlug":  "traceabilityjournal",
+        "route":  "/journals/traceability_test",
+        "listImpl":  "src/components/journals/traceability-documents-client.tsx",
+        "detailImpl":  "src/components/journals/traceability-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "none",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "training_plan",
+        "sourceSlug":  "eduplan",
+        "route":  "/journals/training_plan",
+        "listImpl":  "src/components/journals/training-plan-documents-client.tsx",
+        "detailImpl":  "src/components/journals/training-plan-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    },
+    {
+        "code":  "uv_lamp_runtime",
+        "sourceSlug":  "bactericiplantjournal",
+        "route":  "/journals/uv_lamp_runtime",
+        "listImpl":  "src/components/journals/uv-lamp-runtime-documents-client.tsx",
+        "detailImpl":  "src/components/journals/uv-lamp-runtime-document-client.tsx",
+        "listPrint":  "pdf-window",
+        "detailPrint":  "pdf-window",
+        "printStatus":  "CHECK"
+    }
+]

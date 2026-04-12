@@ -1,0 +1,702 @@
+[
+  {
+    "code": "accident_journal",
+    "sourceSlug": "accidentjournal",
+    "crawlDir": "23-item-docs-accidentjournal-1",
+    "route": "/journals/accident_journal",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "audit_plan",
+    "sourceSlug": "auditplan",
+    "crawlDir": "26-item-docs-auditplan-1",
+    "route": "/journals/audit_plan",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "audit_protocol",
+    "sourceSlug": "auditprotocol",
+    "crawlDir": "27-item-docs-auditprotocol-1",
+    "route": "/journals/audit_protocol",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "audit_report",
+    "sourceSlug": "auditreport",
+    "crawlDir": "28-item-docs-auditreport-1",
+    "route": "/journals/audit_report",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "breakdown_history",
+    "sourceSlug": "breakdownhistoryjournal",
+    "crawlDir": "19-item-docs-breakdownhistoryjournal-1",
+    "route": "/journals/breakdown_history",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "cleaning",
+    "sourceSlug": "cleaning1journal",
+    "crawlDir": "06-item-docs-cleaning1journal-1",
+    "route": "/journals/cleaning",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "cleaning_ventilation_checklist",
+    "sourceSlug": "sanitation1journal",
+    "crawlDir": "05-item-docs-sanitation1journal-1",
+    "route": "/journals/cleaning_ventilation_checklist",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "climate_control",
+    "sourceSlug": "storageconditionjournal",
+    "crawlDir": "03-item-docs-storageconditionjournal-1",
+    "route": "/journals/climate_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "cold_equipment_control",
+    "sourceSlug": "temprefrigerationjournal",
+    "crawlDir": "04-item-docs-temprefrigerationjournal-1",
+    "route": "/journals/cold_equipment_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "complaint_register",
+    "sourceSlug": "complaintjournal",
+    "crawlDir": "24-item-docs-complaintjournal-1",
+    "route": "/journals/complaint_register",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "disinfectant_usage",
+    "sourceSlug": "disinfectjournal",
+    "crawlDir": "16-item-docs-disinfectjournal-1",
+    "route": "/journals/disinfectant_usage",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "equipment_calibration",
+    "sourceSlug": "instrumentcalibration",
+    "crawlDir": "20-item-docs-instrumentcalibration-1",
+    "route": "/journals/equipment_calibration",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "equipment_cleaning",
+    "sourceSlug": "equipcleanjournal",
+    "crawlDir": "31-item-docs-equipcleanjournal-1",
+    "route": "/journals/equipment_cleaning",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "equipment_maintenance",
+    "sourceSlug": "preventiveequipment",
+    "crawlDir": "18-item-docs-preventiveequipment-1",
+    "route": "/journals/equipment_maintenance",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "finished_product",
+    "sourceSlug": "brakeryjournal",
+    "crawlDir": "09-item-docs-brakeryjournal-1",
+    "route": "/journals/finished_product",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "fryer_oil",
+    "sourceSlug": "deepfatjournal",
+    "crawlDir": "12-item-docs-deepfatjournal-1",
+    "route": "/journals/fryer_oil",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "general_cleaning",
+    "sourceSlug": "sanitationdayjournal",
+    "crawlDir": "07-item-docs-sanitationdayjournal-1",
+    "route": "/journals/general_cleaning",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "glass_control",
+    "sourceSlug": "glassjournal",
+    "crawlDir": "34-item-docs-glassjournal-1",
+    "route": "/journals/glass_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "glass_items_list",
+    "sourceSlug": "glasslist",
+    "crawlDir": "33-item-docs-glasslist-1",
+    "route": "/journals/glass_items_list",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "health_check",
+    "sourceSlug": "health1journal",
+    "crawlDir": "02-item-docs-health1journal-1",
+    "route": "/journals/health_check",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "hygiene",
+    "sourceSlug": "healthjournal",
+    "crawlDir": "01-item-docs-healthjournal-1",
+    "route": "/journals/hygiene",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "incoming_control",
+    "sourceSlug": "acceptance1journal",
+    "crawlDir": "11-item-docs-acceptance1journal-1",
+    "route": "/journals/incoming_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "incoming_raw_materials_control",
+    "sourceSlug": "acceptance2journal",
+    "crawlDir": "21-item-docs-acceptance2journal-1",
+    "route": "/journals/incoming_raw_materials_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "intensive_cooling",
+    "sourceSlug": "intensivecoolingjournal",
+    "crawlDir": "32-item-docs-intensivecoolingjournal-1",
+    "route": "/journals/intensive_cooling",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "med_books",
+    "sourceSlug": "medbook",
+    "crawlDir": "13-item-docs-medbook-1",
+    "route": "/journals/med_books",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "metal_impurity",
+    "sourceSlug": "metalimpurityjournal",
+    "crawlDir": "30-item-docs-metalimpurityjournal-1",
+    "route": "/journals/metal_impurity",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "perishable_rejection",
+    "sourceSlug": "brakery1journal",
+    "crawlDir": "10-item-docs-brakery1journal-1",
+    "route": "/journals/perishable_rejection",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "pest_control",
+    "sourceSlug": "deratization1journal",
+    "crawlDir": "35-item-docs-deratization1journal-1",
+    "route": "/journals/pest_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "ppe_issuance",
+    "sourceSlug": "issuancesizjournal",
+    "crawlDir": "22-item-docs-issuancesizjournal-1",
+    "route": "/journals/ppe_issuance",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "product_writeoff",
+    "sourceSlug": "defectjournal",
+    "crawlDir": "25-item-docs-defectjournal-1",
+    "route": "/journals/product_writeoff",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "sanitary_day_control",
+    "sourceSlug": "sanitationdaycheklist",
+    "crawlDir": "17-item-docs-sanitationdaycheklist-1",
+    "route": "/journals/sanitary_day_control",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "staff_training",
+    "sourceSlug": "edujournal",
+    "crawlDir": "15-item-docs-edujournal-1",
+    "route": "/journals/staff_training",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "traceability_test",
+    "sourceSlug": "traceabilityjournal",
+    "crawlDir": "29-item-docs-traceabilityjournal-1",
+    "route": "/journals/traceability_test",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "training_plan",
+    "sourceSlug": "eduplan",
+    "crawlDir": "14-item-docs-eduplan-1",
+    "route": "/journals/training_plan",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  },
+  {
+    "code": "uv_lamp_runtime",
+    "sourceSlug": "bactericiplantjournal",
+    "crawlDir": "08-item-docs-bactericiplantjournal-1",
+    "route": "/journals/uv_lamp_runtime",
+    "localReferenceStatus": "PASS",
+    "liveBundleStatus": "PASS",
+    "liveBundleCounts": {
+      "png": 2,
+      "html": 2,
+      "json": 3
+    },
+    "listArchiveReviewReady": "PASS",
+    "detailReviewReady": "BLOCKED",
+    "printReviewReady": "BLOCKED",
+    "reviewedActiveVerdict": "REVIEW_NEEDED",
+    "reviewedArchiveVerdict": "REVIEW_NEEDED",
+    "reviewedOverallVisualVerdict": "BLOCKED",
+    "blocker": "Full-crawl provides list/archive surfaces only; detail and print captures are still missing, and no row-by-row reviewed comparison has been recorded."
+  }
+]

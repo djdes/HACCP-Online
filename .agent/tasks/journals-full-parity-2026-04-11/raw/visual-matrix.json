@@ -1,0 +1,317 @@
+[
+  {
+    "code": "accident_journal",
+    "sourceSlug": "accidentjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/accidentjournal/1",
+    "liveTitle": "Журнал учета аварий",
+    "crawlDir": "23-item-docs-accidentjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "audit_plan",
+    "sourceSlug": "auditplan",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/auditplan/1",
+    "liveTitle": "План-программа внутренних аудитов",
+    "crawlDir": "26-item-docs-auditplan-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "audit_protocol",
+    "sourceSlug": "auditprotocol",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/auditprotocol/1",
+    "liveTitle": "Протокол внутреннего аудита",
+    "crawlDir": "27-item-docs-auditprotocol-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "audit_report",
+    "sourceSlug": "auditreport",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/auditreport/1",
+    "liveTitle": "Отчет о внутреннем аудите",
+    "crawlDir": "28-item-docs-auditreport-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "breakdown_history",
+    "sourceSlug": "breakdownhistoryjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/breakdownhistoryjournal/1",
+    "liveTitle": "Карточка истории поломок",
+    "crawlDir": "19-item-docs-breakdownhistoryjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "cleaning",
+    "sourceSlug": "cleaning1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/cleaning1journal/1",
+    "liveTitle": "Журнал уборки",
+    "crawlDir": "06-item-docs-cleaning1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "cleaning_ventilation_checklist",
+    "sourceSlug": "sanitation1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/sanitation1journal/1",
+    "liveTitle": "Чек-лист уборки и проветривания помещений",
+    "crawlDir": "05-item-docs-sanitation1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "climate_control",
+    "sourceSlug": "storageconditionjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/storageconditionjournal/1",
+    "liveTitle": "Бланк контроля температуры и влажности",
+    "crawlDir": "03-item-docs-storageconditionjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "cold_equipment_control",
+    "sourceSlug": "temprefrigerationjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/temprefrigerationjournal/1",
+    "liveTitle": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "crawlDir": "04-item-docs-temprefrigerationjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "complaint_register",
+    "sourceSlug": "complaintjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/complaintjournal/1",
+    "liveTitle": "Журнал регистрации жалоб",
+    "crawlDir": "24-item-docs-complaintjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "disinfectant_usage",
+    "sourceSlug": "disinfectjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/disinfectjournal/1",
+    "liveTitle": "Журнал учета дезинфицирующих средств",
+    "crawlDir": "16-item-docs-disinfectjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "equipment_calibration",
+    "sourceSlug": "instrumentcalibration",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/instrumentcalibration/1",
+    "liveTitle": "График поверки средств измерений",
+    "crawlDir": "20-item-docs-instrumentcalibration-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "equipment_cleaning",
+    "sourceSlug": "equipcleanjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/equipcleanjournal/1",
+    "liveTitle": "Журнал мойки и дезинфекции оборудования",
+    "crawlDir": "31-item-docs-equipcleanjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "equipment_maintenance",
+    "sourceSlug": "preventiveequipment",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/preventiveequipment/1",
+    "liveTitle": "График профилактического обслуживания оборудования",
+    "crawlDir": "18-item-docs-preventiveequipment-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "finished_product",
+    "sourceSlug": "brakeryjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/brakeryjournal/1",
+    "liveTitle": "Журнал бракеража готовой пищевой продукции",
+    "crawlDir": "09-item-docs-brakeryjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "fryer_oil",
+    "sourceSlug": "deepfatjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/deepfatjournal/1",
+    "liveTitle": "Журнал учета использования фритюрных жиров",
+    "crawlDir": "12-item-docs-deepfatjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "general_cleaning",
+    "sourceSlug": "sanitationdayjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/sanitationdayjournal/1",
+    "liveTitle": "График и учет генеральных уборок",
+    "crawlDir": "07-item-docs-sanitationdayjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "glass_control",
+    "sourceSlug": "glassjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/glassjournal/1",
+    "liveTitle": "Журнал контроля изделий из стекла и хрупкого пластика",
+    "crawlDir": "34-item-docs-glassjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "glass_items_list",
+    "sourceSlug": "glasslist",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/glasslist/1",
+    "liveTitle": "Перечень изделий из стекла и хрупкого пластика",
+    "crawlDir": "33-item-docs-glasslist-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "health_check",
+    "sourceSlug": "health1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/health1journal/1",
+    "liveTitle": "Журнал здоровья",
+    "crawlDir": "02-item-docs-health1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "hygiene",
+    "sourceSlug": "healthjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/healthjournal/1",
+    "liveTitle": "Гигиенический журнал",
+    "crawlDir": "01-item-docs-healthjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "incoming_control",
+    "sourceSlug": "acceptance1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/acceptance1journal/1",
+    "liveTitle": "Журнал приемки и входного контроля продукции",
+    "crawlDir": "11-item-docs-acceptance1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "incoming_raw_materials_control",
+    "sourceSlug": "acceptance2journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/acceptance2journal/1",
+    "liveTitle": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    "crawlDir": "21-item-docs-acceptance2journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "intensive_cooling",
+    "sourceSlug": "intensivecoolingjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/intensivecoolingjournal/1",
+    "liveTitle": "Журнал контроля интенсивного охлаждения горячих блюд",
+    "crawlDir": "32-item-docs-intensivecoolingjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "med_books",
+    "sourceSlug": "medbook",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/medbook/1",
+    "liveTitle": "Медицинские книжки",
+    "crawlDir": "13-item-docs-medbook-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "metal_impurity",
+    "sourceSlug": "metalimpurityjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/metalimpurityjournal/1",
+    "liveTitle": "Журнал учета металлопримесей в сырье",
+    "crawlDir": "30-item-docs-metalimpurityjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "perishable_rejection",
+    "sourceSlug": "brakery1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/brakery1journal/1",
+    "liveTitle": "Журнал бракеража скоропортящейся пищевой продукции",
+    "crawlDir": "10-item-docs-brakery1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "pest_control",
+    "sourceSlug": "deratization1journal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/deratization1journal/1",
+    "liveTitle": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "crawlDir": "35-item-docs-deratization1journal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "ppe_issuance",
+    "sourceSlug": "issuancesizjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/issuancesizjournal/1",
+    "liveTitle": "Журнал учета выдачи СИЗ",
+    "crawlDir": "22-item-docs-issuancesizjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "product_writeoff",
+    "sourceSlug": "defectjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/defectjournal/1",
+    "liveTitle": "Акт забраковки",
+    "crawlDir": "25-item-docs-defectjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "sanitary_day_control",
+    "sourceSlug": "sanitationdaycheklist",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/sanitationdaycheklist/1",
+    "liveTitle": "Чек-лист (памятка) проведения санитарного дня",
+    "crawlDir": "17-item-docs-sanitationdaycheklist-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "staff_training",
+    "sourceSlug": "edujournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/edujournal/1",
+    "liveTitle": "Журнал регистрации инструктажей (обучения) сотрудников",
+    "crawlDir": "15-item-docs-edujournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "traceability_test",
+    "sourceSlug": "traceabilityjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/traceabilityjournal/1",
+    "liveTitle": "Журнал прослеживаемости продукции",
+    "crawlDir": "29-item-docs-traceabilityjournal-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "training_plan",
+    "sourceSlug": "eduplan",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/eduplan/1",
+    "liveTitle": "План обучения персонала",
+    "crawlDir": "14-item-docs-eduplan-1",
+    "capturedPages": 2
+  },
+  {
+    "code": "uv_lamp_runtime",
+    "sourceSlug": "bactericiplantjournal",
+    "localFolderGuess": null,
+    "liveUrl": "https://lk.haccp-online.ru/docs/bactericiplantjournal/1",
+    "liveTitle": "Журнал учета работы УФ бактерицидной установки",
+    "crawlDir": "08-item-docs-bactericiplantjournal-1",
+    "capturedPages": 2
+  }
+]

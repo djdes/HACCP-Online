@@ -1,0 +1,1 @@
+Not run in this pass. No targeted unit test suite exists for the journal proof batch.

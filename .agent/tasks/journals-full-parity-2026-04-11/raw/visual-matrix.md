@@ -1,0 +1,39 @@
+# Visual Matrix
+
+| Code | Source Slug | Local Folder Guess | Live URL | Crawl Dir | Pages | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| `accident_journal` | `accidentjournal` | ? | https://lk.haccp-online.ru/docs/accidentjournal/1 | 23-item-docs-accidentjournal-1 | 2 | manual-folder-link-needed |
+| `audit_plan` | `auditplan` | ? | https://lk.haccp-online.ru/docs/auditplan/1 | 26-item-docs-auditplan-1 | 2 | manual-folder-link-needed |
+| `audit_protocol` | `auditprotocol` | ? | https://lk.haccp-online.ru/docs/auditprotocol/1 | 27-item-docs-auditprotocol-1 | 2 | manual-folder-link-needed |
+| `audit_report` | `auditreport` | ? | https://lk.haccp-online.ru/docs/auditreport/1 | 28-item-docs-auditreport-1 | 2 | manual-folder-link-needed |
+| `breakdown_history` | `breakdownhistoryjournal` | ? | https://lk.haccp-online.ru/docs/breakdownhistoryjournal/1 | 19-item-docs-breakdownhistoryjournal-1 | 2 | manual-folder-link-needed |
+| `cleaning` | `cleaning1journal` | ? | https://lk.haccp-online.ru/docs/cleaning1journal/1 | 06-item-docs-cleaning1journal-1 | 2 | manual-folder-link-needed |
+| `cleaning_ventilation_checklist` | `sanitation1journal` | ? | https://lk.haccp-online.ru/docs/sanitation1journal/1 | 05-item-docs-sanitation1journal-1 | 2 | manual-folder-link-needed |
+| `climate_control` | `storageconditionjournal` | ? | https://lk.haccp-online.ru/docs/storageconditionjournal/1 | 03-item-docs-storageconditionjournal-1 | 2 | manual-folder-link-needed |
+| `cold_equipment_control` | `temprefrigerationjournal` | ? | https://lk.haccp-online.ru/docs/temprefrigerationjournal/1 | 04-item-docs-temprefrigerationjournal-1 | 2 | manual-folder-link-needed |
+| `complaint_register` | `complaintjournal` | ? | https://lk.haccp-online.ru/docs/complaintjournal/1 | 24-item-docs-complaintjournal-1 | 2 | manual-folder-link-needed |
+| `disinfectant_usage` | `disinfectjournal` | ? | https://lk.haccp-online.ru/docs/disinfectjournal/1 | 16-item-docs-disinfectjournal-1 | 2 | manual-folder-link-needed |
+| `equipment_calibration` | `instrumentcalibration` | ? | https://lk.haccp-online.ru/docs/instrumentcalibration/1 | 20-item-docs-instrumentcalibration-1 | 2 | manual-folder-link-needed |
+| `equipment_cleaning` | `equipcleanjournal` | ? | https://lk.haccp-online.ru/docs/equipcleanjournal/1 | 31-item-docs-equipcleanjournal-1 | 2 | manual-folder-link-needed |
+| `equipment_maintenance` | `preventiveequipment` | ? | https://lk.haccp-online.ru/docs/preventiveequipment/1 | 18-item-docs-preventiveequipment-1 | 2 | manual-folder-link-needed |
+| `finished_product` | `brakeryjournal` | ? | https://lk.haccp-online.ru/docs/brakeryjournal/1 | 09-item-docs-brakeryjournal-1 | 2 | manual-folder-link-needed |
+| `fryer_oil` | `deepfatjournal` | ? | https://lk.haccp-online.ru/docs/deepfatjournal/1 | 12-item-docs-deepfatjournal-1 | 2 | manual-folder-link-needed |
+| `general_cleaning` | `sanitationdayjournal` | ? | https://lk.haccp-online.ru/docs/sanitationdayjournal/1 | 07-item-docs-sanitationdayjournal-1 | 2 | manual-folder-link-needed |
+| `glass_control` | `glassjournal` | ? | https://lk.haccp-online.ru/docs/glassjournal/1 | 34-item-docs-glassjournal-1 | 2 | manual-folder-link-needed |
+| `glass_items_list` | `glasslist` | ? | https://lk.haccp-online.ru/docs/glasslist/1 | 33-item-docs-glasslist-1 | 2 | manual-folder-link-needed |
+| `health_check` | `health1journal` | ? | https://lk.haccp-online.ru/docs/health1journal/1 | 02-item-docs-health1journal-1 | 2 | manual-folder-link-needed |
+| `hygiene` | `healthjournal` | ? | https://lk.haccp-online.ru/docs/healthjournal/1 | 01-item-docs-healthjournal-1 | 2 | manual-folder-link-needed |
+| `incoming_control` | `acceptance1journal` | ? | https://lk.haccp-online.ru/docs/acceptance1journal/1 | 11-item-docs-acceptance1journal-1 | 2 | manual-folder-link-needed |
+| `incoming_raw_materials_control` | `acceptance2journal` | ? | https://lk.haccp-online.ru/docs/acceptance2journal/1 | 21-item-docs-acceptance2journal-1 | 2 | manual-folder-link-needed |
+| `intensive_cooling` | `intensivecoolingjournal` | ? | https://lk.haccp-online.ru/docs/intensivecoolingjournal/1 | 32-item-docs-intensivecoolingjournal-1 | 2 | manual-folder-link-needed |
+| `med_books` | `medbook` | ? | https://lk.haccp-online.ru/docs/medbook/1 | 13-item-docs-medbook-1 | 2 | manual-folder-link-needed |
+| `metal_impurity` | `metalimpurityjournal` | ? | https://lk.haccp-online.ru/docs/metalimpurityjournal/1 | 30-item-docs-metalimpurityjournal-1 | 2 | manual-folder-link-needed |
+| `perishable_rejection` | `brakery1journal` | ? | https://lk.haccp-online.ru/docs/brakery1journal/1 | 10-item-docs-brakery1journal-1 | 2 | manual-folder-link-needed |
+| `pest_control` | `deratization1journal` | ? | https://lk.haccp-online.ru/docs/deratization1journal/1 | 35-item-docs-deratization1journal-1 | 2 | manual-folder-link-needed |
+| `ppe_issuance` | `issuancesizjournal` | ? | https://lk.haccp-online.ru/docs/issuancesizjournal/1 | 22-item-docs-issuancesizjournal-1 | 2 | manual-folder-link-needed |
+| `product_writeoff` | `defectjournal` | ? | https://lk.haccp-online.ru/docs/defectjournal/1 | 25-item-docs-defectjournal-1 | 2 | manual-folder-link-needed |
+| `sanitary_day_control` | `sanitationdaycheklist` | ? | https://lk.haccp-online.ru/docs/sanitationdaycheklist/1 | 17-item-docs-sanitationdaycheklist-1 | 2 | manual-folder-link-needed |
+| `staff_training` | `edujournal` | ? | https://lk.haccp-online.ru/docs/edujournal/1 | 15-item-docs-edujournal-1 | 2 | manual-folder-link-needed |
+| `traceability_test` | `traceabilityjournal` | ? | https://lk.haccp-online.ru/docs/traceabilityjournal/1 | 29-item-docs-traceabilityjournal-1 | 2 | manual-folder-link-needed |
+| `training_plan` | `eduplan` | ? | https://lk.haccp-online.ru/docs/eduplan/1 | 14-item-docs-eduplan-1 | 2 | manual-folder-link-needed |
+| `uv_lamp_runtime` | `bactericiplantjournal` | ? | https://lk.haccp-online.ru/docs/bactericiplantjournal/1 | 08-item-docs-bactericiplantjournal-1 | 2 | manual-folder-link-needed |

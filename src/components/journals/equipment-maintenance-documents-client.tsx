@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,26 +82,28 @@ export function EquipmentMaintenanceDocumentsClient({
   }, [editingDoc]);
 
   async function handleDelete(docId: string, docTitle: string) {
-    if (!window.confirm(`Удалить документ "${docTitle}"?`)) return;
-    await fetch(`/api/journal-documents/${docId}`, { method: "DELETE" });
+    if (!window.confirm(`РЈРґР°Р»РёС‚СЊ РґРѕРєСѓРјРµРЅС‚ "${docTitle}"?`)) return;
+    const response = await fetch(`/api/journal-documents/${docId}`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Не удалось удалить документ");
     router.refresh();
   }
 
   async function handleStatusChange(docId: string, newStatus: "active" | "closed", docTitle: string) {
-    const label = newStatus === "closed" ? "Отправить в закрытые" : "Отправить в активные";
-    if (!window.confirm(`${label} документ "${docTitle}"?`)) return;
-    await fetch(`/api/journal-documents/${docId}`, {
+    const label = newStatus === "closed" ? "РћС‚РїСЂР°РІРёС‚СЊ РІ Р·Р°РєСЂС‹С‚С‹Рµ" : "РћС‚РїСЂР°РІРёС‚СЊ РІ Р°РєС‚РёРІРЅС‹Рµ";
+    if (!window.confirm(`${label} РґРѕРєСѓРјРµРЅС‚ "${docTitle}"?`)) return;
+    const response = await fetch(`/api/journal-documents/${docId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+    if (!response.ok) throw new Error("Не удалось изменить статус документа");
     router.refresh();
   }
 
   async function handleCopy(doc: JournalListDocument) {
     const cfg = normalizeEquipmentMaintenanceConfig(doc.config);
     const newYear = cfg.year + 1;
-    await fetch("/api/journal-documents", {
+    const response = await fetch("/api/journal-documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -111,6 +114,7 @@ export function EquipmentMaintenanceDocumentsClient({
         config: { ...cfg, year: newYear, documentDate: `${newYear}-01-01` },
       }),
     });
+    if (!response.ok) throw new Error("Не удалось скопировать документ");
     router.refresh();
   }
 
@@ -119,7 +123,7 @@ export function EquipmentMaintenanceDocumentsClient({
     setIsSaving(true);
     try {
       const prevConfig = normalizeEquipmentMaintenanceConfig(editingDoc.config);
-      await fetch(`/api/journal-documents/${editingDoc.id}`, {
+      const response = await fetch(`/api/journal-documents/${editingDoc.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -136,6 +140,7 @@ export function EquipmentMaintenanceDocumentsClient({
           },
         }),
       });
+      if (!response.ok) throw new Error("Не удалось сохранить");
       setEditingDoc(null);
       router.refresh();
     } catch {
@@ -148,7 +153,7 @@ export function EquipmentMaintenanceDocumentsClient({
   return (
     <div className="space-y-8">
       <JournalTopBar
-        heading="График профилактического обслуживания оборудования"
+        heading="Р“СЂР°С„РёРє РїСЂРѕС„РёР»Р°РєС‚РёС‡РµСЃРєРѕРіРѕ РѕР±СЃР»СѓР¶РёРІР°РЅРёСЏ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ"
         activeTab={activeTab}
         templateCode={templateCode}
         templateName={templateName}
@@ -168,19 +173,19 @@ export function EquipmentMaintenanceDocumentsClient({
                 <div className="text-[24px] font-semibold text-black">{doc.title}</div>
               </Link>
               <div className="text-center">
-                <div className="text-[12px] text-[#85889b]">Год</div>
+                <div className="text-[12px] text-[#85889b]">Р“РѕРґ</div>
                 <div className="text-[18px] font-semibold">{cfg.year}</div>
               </div>
               <div className="px-3">
-                <div className="text-[12px] text-[#85889b]">Должность &quot;Утверждаю&quot;</div>
+                <div className="text-[12px] text-[#85889b]">Р”РѕР»Р¶РЅРѕСЃС‚СЊ &quot;РЈС‚РІРµСЂР¶РґР°СЋ&quot;</div>
                 <div className="text-[14px] font-semibold">{cfg.approveRole}: {cfg.approveEmployee}</div>
               </div>
               <div className="px-3">
-                <div className="text-[12px] text-[#85889b]">Ответственный</div>
+                <div className="text-[12px] text-[#85889b]">РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№</div>
                 <div className="text-[14px] font-semibold">{cfg.responsibleRole}: {cfg.responsibleEmployee}</div>
               </div>
               <div className="px-3">
-                <div className="text-[12px] text-[#85889b]">Дата документа</div>
+                <div className="text-[12px] text-[#85889b]">Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°</div>
                 <div className="text-[18px] font-semibold">{formatMaintenanceDate(cfg.documentDate)}</div>
               </div>
               <DropdownMenu>
@@ -193,28 +198,28 @@ export function EquipmentMaintenanceDocumentsClient({
                   {doc.status === "active" && (
                     <>
                       <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => setEditingDoc(doc)}>
-                        <Pencil className="mr-3 size-5 text-[#6f7282]" /> Настройки
+                        <Pencil className="mr-3 size-5 text-[#6f7282]" /> РќР°СЃС‚СЂРѕР№РєРё
                       </DropdownMenuItem>
                       <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleCopy(doc)}>
-                        <Copy className="mr-3 size-5 text-[#6f7282]" /> Сделать копию
+                        <Copy className="mr-3 size-5 text-[#6f7282]" /> РЎРґРµР»Р°С‚СЊ РєРѕРїРёСЋ
                       </DropdownMenuItem>
                     </>
                   )}
-                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => window.open(`/api/journal-documents/${doc.id}/pdf`, "_blank")}>
-                    <Printer className="mr-3 size-5 text-[#6f7282]" /> Печать
+                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => openDocumentPdf(doc.id)}>
+                    <Printer className="mr-3 size-5 text-[#6f7282]" /> РџРµС‡Р°С‚СЊ
                   </DropdownMenuItem>
                   {doc.status === "active" ? (
                     <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "closed", doc.title)}>
-                      <Archive className="mr-3 size-5 text-[#6f7282]" /> Отправить в закрытые
+                      <Archive className="mr-3 size-5 text-[#6f7282]" /> РћС‚РїСЂР°РІРёС‚СЊ РІ Р·Р°РєСЂС‹С‚С‹Рµ
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "active", doc.title)}>
-                      <ArchiveRestore className="mr-3 size-5 text-[#6f7282]" /> Отправить в активные
+                      <ArchiveRestore className="mr-3 size-5 text-[#6f7282]" /> РћС‚РїСЂР°РІРёС‚СЊ РІ Р°РєС‚РёРІРЅС‹Рµ
                     </DropdownMenuItem>
                   )}
                   {doc.status === "active" && (
                     <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => handleDelete(doc.id, doc.title)}>
-                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" /> Удалить
+                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" /> РЈРґР°Р»РёС‚СЊ
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -227,19 +232,19 @@ export function EquipmentMaintenanceDocumentsClient({
       <Dialog open={!!editingDoc} onOpenChange={(open) => !open && setEditingDoc(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
           <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[24px] font-medium text-black">Настройки документа</DialogTitle>
+            <DialogTitle className="text-[24px] font-medium text-black">РќР°СЃС‚СЂРѕР№РєРё РґРѕРєСѓРјРµРЅС‚Р°</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 px-6 py-5">
             <div className="space-y-2">
-              <Label>Название документа</Label>
+              <Label>РќР°Р·РІР°РЅРёРµ РґРѕРєСѓРјРµРЅС‚Р°</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Дата документа</Label>
+              <Label>Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°</Label>
               <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Год</Label>
+              <Label>Р“РѕРґ</Label>
               <Select value={year} onValueChange={setYear}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -250,36 +255,36 @@ export function EquipmentMaintenanceDocumentsClient({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Должность &quot;Утверждаю&quot;</Label>
+              <Label>Р”РѕР»Р¶РЅРѕСЃС‚СЊ &quot;РЈС‚РІРµСЂР¶РґР°СЋ&quot;</Label>
               <Select value={approveRole} onValueChange={setApproveRole}>
-                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" /></SelectTrigger>
                 <SelectContent>
                   {POSITION_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Сотрудник</Label>
+              <Label>РЎРѕС‚СЂСѓРґРЅРёРє</Label>
               <Select value={approveEmployee} onValueChange={setApproveEmployee}>
-                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" /></SelectTrigger>
                 <SelectContent>
                   {users.map((u) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Должность ответственного</Label>
+              <Label>Р”РѕР»Р¶РЅРѕСЃС‚СЊ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕРіРѕ</Label>
               <Select value={responsibleRole} onValueChange={setResponsibleRole}>
-                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" /></SelectTrigger>
                 <SelectContent>
                   {POSITION_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Сотрудник</Label>
+              <Label>РЎРѕС‚СЂСѓРґРЅРёРє</Label>
               <Select value={responsibleEmployee} onValueChange={setResponsibleEmployee}>
-                <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="- Р’С‹Р±РµСЂРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ -" /></SelectTrigger>
                 <SelectContent>
                   {users.map((u) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
                 </SelectContent>
@@ -287,7 +292,7 @@ export function EquipmentMaintenanceDocumentsClient({
             </div>
             <div className="flex justify-end">
               <Button onClick={saveSettings} disabled={isSaving}>
-                {isSaving ? "Сохранение..." : "Сохранить"}
+                {isSaving ? "РЎРѕС…СЂР°РЅРµРЅРёРµ..." : "РЎРѕС…СЂР°РЅРёС‚СЊ"}
               </Button>
             </div>
           </div>
@@ -296,3 +301,5 @@ export function EquipmentMaintenanceDocumentsClient({
     </div>
   );
 }
+
+

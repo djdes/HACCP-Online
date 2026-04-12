@@ -9,7 +9,6 @@ import {
   Ellipsis,
   ExternalLink,
   Plus,
-  Printer,
   RotateCcw,
   Settings2,
   Trash2,
@@ -30,7 +29,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 type MedBookListDocument = {
   id: string;
@@ -278,17 +276,6 @@ export function MedBookDocumentsClient({
                     >
                       <ExternalLink className="mr-3 size-5 text-[#6f7282]" />
                       Открыть
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="mb-1 h-12 rounded-xl px-3 text-[16px]"
-                      onSelect={() => {
-                        openDocumentPdf(document.id).catch((error) => {
-                          window.alert(error instanceof Error ? error.message : "Не удалось открыть PDF");
-                        });
-                      }}
-                    >
-                      <Printer className="mr-3 size-5 text-[#6f7282]" />
-                      Печать
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="mb-1 h-12 rounded-xl px-3 text-[16px]"

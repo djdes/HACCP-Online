@@ -1,0 +1,14 @@
+PASS
+
+Verifier findings:
+- No blocking defects found in the checked routing, alias-mapping, print normalization, or explicit PDF branches.
+- Non-blocking lint warnings remain only for unused legacy helpers/imports.
+
+Checked references:
+- src/app/(dashboard)/journals/[code]/page.tsx:3603,3628,3653
+- src/lib/source-journal-map.ts:13
+- src/components/journals/audit-plan-documents-client.tsx:49,514
+- src/components/journals/audit-protocol-documents-client.tsx:23,314
+- src/components/journals/audit-report-documents-client.tsx:23,226
+- src/components/journals/metal-impurity-documents-client.tsx:40,525
+- src/lib/document-pdf.ts:4419,4427,4435,4443,4599,4663

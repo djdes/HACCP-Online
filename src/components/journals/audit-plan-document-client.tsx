@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -513,7 +513,6 @@ export function AuditPlanDocumentClient({
   config,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const normalized = normalizeAuditPlanConfig(config, { organizationName, users });
   const readOnly = status === "closed";
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -528,14 +527,6 @@ export function AuditPlanDocumentClient({
     title: string;
     value: string;
   } | null>(null);
-
-  useEffect(() => {
-    if (searchParams.get("print") === "1") {
-      const timeoutId = window.setTimeout(() => window.print(), 200);
-      return () => window.clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [searchParams]);
 
   const rowsBySection = useMemo(
     () =>

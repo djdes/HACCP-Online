@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Plus, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -84,7 +84,6 @@ export function AuditReportDocumentClient({
   config: initialConfig,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [documentTitle, setDocumentTitle] = useState(title || AUDIT_REPORT_DOCUMENT_TITLE);
   const [config, setConfig] = useState(() => normalizeAuditReportConfig(initialConfig));
@@ -99,14 +98,6 @@ export function AuditReportDocumentClient({
   useEffect(() => {
     setDocumentTitle(title || AUDIT_REPORT_DOCUMENT_TITLE);
   }, [title]);
-
-  useEffect(() => {
-    if (searchParams.get("print") === "1") {
-      const timeoutId = window.setTimeout(() => window.print(), 200);
-      return () => window.clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [searchParams]);
 
   async function persist(nextTitle: string, nextConfig: AuditReportConfig, patch?: Record<string, unknown>) {
     const response = await fetch(`/api/journal-documents/${documentId}`, {

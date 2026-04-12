@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 type JournalListDocument = {
   id: string;
@@ -117,7 +118,7 @@ export function StaffTrainingDocumentsClient({
             <DocumentActionsMenu
               size="sm"
               onEdit={() => setEditingDocument(document)}
-              onPrint={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+              onPrint={() => openDocumentPdf(document.id)}
               onDelete={() => handleDelete(document.id, document.title)}
             />
           </div>

@@ -39,6 +39,7 @@ import {
   defaultCleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import { CleaningDocumentsClient } from "@/components/journals/cleaning-documents-client";
+import { ComplaintDocumentsClient } from "@/components/journals/complaint-documents-client";
 import {
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
   getDefaultEquipmentCleaningConfig,
@@ -52,6 +53,11 @@ import {
   isSourceStyleTrackedTemplate,
   isTrackedDocumentTemplate,
 } from "@/lib/tracked-document";
+import {
+  COMPLAINT_REGISTER_TEMPLATE_CODE,
+  COMPLAINT_REGISTER_TITLE,
+  normalizeComplaintConfig,
+} from "@/lib/complaint-document";
 import { UvLampRuntimeDocumentsClient } from "@/components/journals/uv-lamp-runtime-documents-client";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { MedBookDocumentsClient } from "@/components/journals/med-book-documents-client";
@@ -116,6 +122,16 @@ import {
   normalizeAuditPlanConfig,
 } from "@/lib/audit-plan-document";
 import { AuditPlanDocumentsClient } from "@/components/journals/audit-plan-documents-client";
+import { AuditProtocolDocumentsClient } from "@/components/journals/audit-protocol-documents-client";
+import { AuditReportDocumentsClient } from "@/components/journals/audit-report-documents-client";
+import {
+  AUDIT_PROTOCOL_DOCUMENT_TITLE,
+  AUDIT_PROTOCOL_TEMPLATE_CODE,
+} from "@/lib/audit-protocol-document";
+import {
+  AUDIT_REPORT_DOCUMENT_TITLE,
+  AUDIT_REPORT_TEMPLATE_CODE,
+} from "@/lib/audit-report-document";
 import {
   DISINFECTANT_TEMPLATE_CODE,
   DISINFECTANT_SOURCE_SLUG,
@@ -3579,6 +3595,81 @@ export default async function JournalDocumentsPage({
           status: document.status as "active" | "closed",
           responsibleTitle: document.responsibleTitle,
           periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
+        }))}
+      />
+    );
+  }
+
+  if (resolvedCode === COMPLAINT_REGISTER_TEMPLATE_CODE) {
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return (
+      <ComplaintDocumentsClient
+        activeTab={activeTab}
+        routeCode={code}
+        documents={documents.map((document) => ({
+          id: document.id,
+          title: document.title || COMPLAINT_REGISTER_TITLE,
+          status: document.status as "active" | "closed",
+          dateFrom: document.dateFrom.toISOString().slice(0, 10),
+          config: normalizeComplaintConfig(document.config as never),
+        }))}
+      />
+    );
+  }
+
+  if (resolvedCode === AUDIT_PROTOCOL_TEMPLATE_CODE) {
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return (
+      <AuditProtocolDocumentsClient
+        activeTab={activeTab}
+        routeCode={code}
+        documents={documents.map((document) => ({
+          id: document.id,
+          title: document.title || AUDIT_PROTOCOL_DOCUMENT_TITLE,
+          status: document.status as "active" | "closed",
+          dateFrom: document.dateFrom.toISOString().slice(0, 10),
+          config: document.config,
+        }))}
+      />
+    );
+  }
+
+  if (resolvedCode === AUDIT_REPORT_TEMPLATE_CODE) {
+    const documents = await db.journalDocument.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        status: activeTab,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return (
+      <AuditReportDocumentsClient
+        activeTab={activeTab}
+        routeCode={code}
+        documents={documents.map((document) => ({
+          id: document.id,
+          title: document.title || AUDIT_REPORT_DOCUMENT_TITLE,
+          status: document.status as "active" | "closed",
+          dateFrom: document.dateFrom.toISOString().slice(0, 10),
+          config: document.config,
         }))}
       />
     );

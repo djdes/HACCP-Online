@@ -1,0 +1,69 @@
+[
+    {
+        "code":  "audit_plan",
+        "reviewStatus":  "CHECKED",
+        "parity":  "CLOSE",
+        "fixes":  "No new code fix needed in this batch",
+        "notes":  "Header, matrix layout, action row, and overall page composition closely match local reference and live detail capture.",
+        "refs":  [
+                     "journals/План-программа внутренних аудитов/266 - \u0027План-программа аудитов\u0027.jpg",
+                     "tmp-source-journals/detail-crawl/26-item-docs-auditplan-1/detail.png"
+                 ]
+    },
+    {
+        "code":  "audit_protocol",
+        "reviewStatus":  "CHECKED",
+        "parity":  "CLOSE",
+        "fixes":  "No new code fix needed in this batch",
+        "notes":  "Protocol sheet structure and compact audit table match the live detail surface; modal/reference flow is consistent.",
+        "refs":  [
+                     "journals/Протокол внутреннего аудита/281 - \u0027Протокол внутреннего аудита\u0027.jpg",
+                     "tmp-source-journals/detail-crawl/27-item-docs-auditprotocol-1/detail.png"
+                 ]
+    },
+    {
+        "code":  "audit_report",
+        "reviewStatus":  "CHECKED",
+        "parity":  "CLOSE",
+        "fixes":  "No new code fix needed in this batch",
+        "notes":  "Audit report title block, result sections, and signature layout remain visually aligned with the live detail capture.",
+        "refs":  [
+                     "journals/Отчет о внутреннем аудите/296 - \u0027Отчет о внутреннем аудите\u0027.jpg",
+                     "tmp-source-journals/detail-crawl/28-item-docs-auditreport-1/detail.png"
+                 ]
+    },
+    {
+        "code":  "cleaning",
+        "reviewStatus":  "CHECKED",
+        "parity":  "CLOSE",
+        "fixes":  "No new code fix needed in this batch",
+        "notes":  "Top controls, table density, and supporting cleaning tables remain close to the reference/live view after print cleanup.",
+        "refs":  [
+                     "journals/Журнал уборки/FireShot Pro Webpage Capture 410 - \u0027Журнал уборки I Haccp-Online_ сервис электронных журналов\u0027 - lk.haccp-online.ru.jpg",
+                     "tmp-source-journals/detail-crawl/06-item-docs-cleaning1journal-1/detail.png"
+                 ]
+    },
+    {
+        "code":  "metal_impurity",
+        "reviewStatus":  "CHECKED",
+        "parity":  "CLOSE",
+        "fixes":  "No new code fix needed in this batch",
+        "notes":  "Simple tabular sheet with supplier/raw-material fields visually matches the live detail capture; print cleanup remains compatible.",
+        "refs":  [
+                     "journals/Журнал учета металлопримесей/327 - \u0027Журнал учета металлопримесей\u0027.jpg",
+                     "tmp-source-journals/detail-crawl/30-item-docs-metalimpurityjournal-1/detail.png"
+                 ]
+    },
+    {
+        "code":  "med_books",
+        "reviewStatus":  "CHECKED",
+        "parity":  "FIXED",
+        "fixes":  "Removed unsupported print buttons from list and detail surfaces",
+        "notes":  "Local references and live detail do not expose print; the local mismatch was removed in this batch.",
+        "refs":  [
+                     "journals/Медицинские книжки/001 - \u0027Медицинские книжки\u0027.jpg",
+                     "journals/Медицинские книжки/009 - \u0027Мед. книжки\u0027.jpg",
+                     "tmp-source-journals/detail-crawl/13-item-docs-medbook-1/detail.png"
+                 ]
+    }
+]

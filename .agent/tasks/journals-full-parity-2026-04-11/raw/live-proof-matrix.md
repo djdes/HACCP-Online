@@ -1,0 +1,39 @@
+﻿# Live Proof Matrix
+
+| journalDir | detail | detailStatus | printExpected | print | printStatus | sizeBytes | file |
+| --- | --- | --- | --- | --- | --- | ---: | --- |
+| 01-item-docs-healthjournal-1 | True | 200 | True | True | PASS | 413751 | Gigienicheskiy_ghurnal.pdf |
+| 02-item-docs-health1journal-1 | True | 200 | True | True | PASS | 332155 | Ghurnal_Zdorovyya.pdf |
+| 03-item-docs-storageconditionjournal-1 | True | 200 | True | True | PASS | 338203 | Blank_kontrolya_temperatury_i_vlaghnosti.pdf |
+| 04-item-docs-temprefrigerationjournal-1 | True | 200 | True | True | PASS | 330843 | Ghurnal_kontrolya_temperaturnogo_reghima_holodilynogo_i_morozilynogo_oborudovaniya.pdf |
+| 05-item-docs-sanitation1journal-1 | True | 200 | True | True | PASS | 336432 | Chek-list_uborki_i_provetrivaniya_pomescheniy.pdf |
+| 06-item-docs-cleaning1journal-1 | True | 200 | True | True | PASS | 400573 | Ghurnal_uborki.pdf |
+| 07-item-docs-sanitationdayjournal-1 | True | 200 | True | True | PASS | 330154 | Grafik_gen._uborok.pdf |
+| 08-item-docs-bactericiplantjournal-1 | True | 200 | True | True | PASS | 387985 | Ghurnal_ucheta_raboty.pdf |
+| 09-item-docs-brakeryjournal-1 | True | 200 | True | True | PASS | 324896 | Brakeraghnyy_ghurnal.pdf |
+| 10-item-docs-brakery1journal-1 | True | 200 | True | True | PASS | 325773 | Ghurnal_brakeragha.pdf |
+| 11-item-docs-acceptance1journal-1 | True | 200 | True | True | PASS | 324275 | Ghurnal_priemki.pdf |
+| 12-item-docs-deepfatjournal-1 | True | 200 | True | True | PASS | 344761 | Ghurnal_ucheta_ispolyzovaniya_frityurnyh_ghirov.pdf |
+| 13-item-docs-medbook-1 | True | 200 | False | False | N/A |  |  |
+| 14-item-docs-eduplan-1 | True | 200 | True | True | PASS | 327199 | Plan_obucheniya_2025.pdf |
+| 15-item-docs-edujournal-1 | True | 200 | True | True | PASS | 331178 | Ghurnal_registracii_instruktaghey.pdf |
+| 16-item-docs-disinfectjournal-1 | True | 200 | True | True | PASS | 346149 | Ghurnal_ucheta_dez._sredstv.pdf |
+| 17-item-docs-sanitationdaycheklist-1 | True | 200 | True | True | PASS | 334222 | Chek-list.pdf |
+| 18-item-docs-preventiveequipment-1 | True | 200 | True | True | PASS | 335055 | Grafik.pdf |
+| 19-item-docs-breakdownhistoryjournal-1 | True | 200 | True | True | PASS | 325933 | Kartochka_istorii_polomok.pdf |
+| 20-item-docs-instrumentcalibration-1 | True | 200 | True | True | PASS | 327930 | Grafik_poverki.pdf |
+| 21-item-docs-acceptance2journal-1 | True | 200 | True | True | PASS | 333335 | Ghurnal_vhodnogo_kontrolya_syryya.pdf |
+| 22-item-docs-issuancesizjournal-1 | True | 200 | True | True | PASS | 325969 | Ghurnal_ucheta_vydachi_SIZ.pdf |
+| 23-item-docs-accidentjournal-1 | True | 200 | True | True | PASS | 329045 | Ghurnal_ucheta_avariy.pdf |
+| 24-item-docs-complaintjournal-1 | True | 200 | True | True | PASS | 328167 | Ghurnal_registracii_ghalob.pdf |
+| 25-item-docs-defectjournal-1 | True | 200 | True | True | PASS | 399540 | Akt_zabrakovki.pdf |
+| 26-item-docs-auditplan-1 | True | 200 | True | True | PASS | 472403 | Plan-programma_auditov.pdf |
+| 27-item-docs-auditprotocol-1 | True | 200 | True | True | PASS | 413276 | Protokol_vnutrennego_audita.pdf |
+| 28-item-docs-auditreport-1 | True | 200 | True | True | PASS | 343083 | Otchet_o_vnutrennem_audite.pdf |
+| 29-item-docs-traceabilityjournal-1 | True | 200 | True | True | PASS | 325807 | Ghurnal_prosleghivaemosti.pdf |
+| 30-item-docs-metalimpurityjournal-1 | True | 200 | True | True | PASS | 327014 | Ghurnal_ucheta_metalloprimesey.pdf |
+| 31-item-docs-equipcleanjournal-1 | True | 200 | True | True | PASS | 329693 | Ghurnal_moyki_i_dezinfekcii_oborudovaniya.pdf |
+| 32-item-docs-intensivecoolingjournal-1 | True | 200 | True | True | PASS | 330859 | Ghurnal_kontrolya.pdf |
+| 33-item-docs-glasslist-1 | True | 200 | True | True | PASS | 328503 | Perecheny_izdeliy.pdf |
+| 34-item-docs-glassjournal-1 | True | 200 | True | True | PASS | 325898 | Ghurnal_kontrolya_izdeliy.pdf |
+| 35-item-docs-deratization1journal-1 | True | 200 | True | True | PASS | 329826 | Ghurnal_ucheta_dezinfekcii_dezinsekcii_i_deratizacii.pdf |

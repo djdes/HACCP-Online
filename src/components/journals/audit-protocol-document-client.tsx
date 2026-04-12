@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,7 +130,6 @@ export function AuditProtocolDocumentClient({
   config: initialConfig,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [documentTitle, setDocumentTitle] = useState(title || AUDIT_PROTOCOL_DOCUMENT_TITLE);
   const [config, setConfig] = useState(() => normalizeAuditProtocolConfig(initialConfig));
@@ -147,14 +146,6 @@ export function AuditProtocolDocumentClient({
   useEffect(() => {
     setDocumentTitle(title || AUDIT_PROTOCOL_DOCUMENT_TITLE);
   }, [title]);
-
-  useEffect(() => {
-    if (searchParams.get("print") === "1") {
-      const timeoutId = window.setTimeout(() => window.print(), 200);
-      return () => window.clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [searchParams]);
 
   async function persist(nextTitle: string, nextConfig: AuditProtocolConfig, patch?: Record<string, unknown>) {
     const response = await fetch(`/api/journal-documents/${documentId}`, {

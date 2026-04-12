@@ -1,0 +1,1 @@
+Not run in this pass. Verification relied on static checks, code scans, and proof matrices for the journal proof batch.

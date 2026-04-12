@@ -37,6 +37,7 @@ import {
   getDefaultMetalImpurityConfig,
   normalizeMetalImpurityConfig,
 } from "@/lib/metal-impurity-document";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { getUsersForRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 
 type DocumentItem = {
@@ -521,10 +522,8 @@ export function MetalImpurityDocumentsClient({
                       <DropdownMenuItem
                         className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
                         onSelect={() =>
-                          window.open(
-                            `/journals/${routeCode}/documents/${document.id}?print=1`,
-                            "_blank",
-                            "noopener,noreferrer"
+                          void openDocumentPdf(document.id).catch((error) =>
+                            window.alert(error instanceof Error ? error.message : "Не удалось открыть PDF")
                           )
                         }
                       >

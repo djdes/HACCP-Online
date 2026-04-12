@@ -211,11 +211,15 @@ export function StaffTrainingDocumentClient({
 
   async function handleCloseJournal() {
     if (!window.confirm(`Закончить журнал "${title}"?`)) return;
-    await fetch(`/api/journal-documents/${documentId}`, {
+    const response = await fetch(`/api/journal-documents/${documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "closed" }),
     });
+    if (!response.ok) {
+      window.alert("Не удалось закончить журнал");
+      return;
+    }
     router.refresh();
   }
 
@@ -717,11 +721,14 @@ export function StaffTrainingDocumentClient({
               <Button
                 onClick={async () => {
                   try {
-                    await fetch(`/api/journal-documents/${documentId}`, {
+                    const response = await fetch(`/api/journal-documents/${documentId}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ title: settingsTitle }),
                     });
+                    if (!response.ok) {
+                      throw new Error("Не удалось сохранить настройки");
+                    }
                     setSettingsOpen(false);
                     router.refresh();
                   } catch {

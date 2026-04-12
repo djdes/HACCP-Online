@@ -24,6 +24,7 @@ import {
   formatPestControlDate,
 } from "@/lib/pest-control-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 type UserItem = { id: string; name: string; role: string };
 
@@ -230,7 +231,7 @@ export function PestControlDocumentsClient(props: Props) {
           : "Управляющий";
 
         if (acceptedUser) {
-          await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
+          const firstEntryResponse = await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -247,8 +248,11 @@ export function PestControlDocumentsClient(props: Props) {
               acceptedEmployeeId: acceptedUser.id,
             }),
           });
+          if (!firstEntryResponse.ok) {
+            throw new Error("Не удалось создать первую строку журнала");
+          }
 
-          await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
+          const secondEntryResponse = await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -265,6 +269,9 @@ export function PestControlDocumentsClient(props: Props) {
               acceptedEmployeeId: acceptedUser.id,
             }),
           });
+          if (!secondEntryResponse.ok) {
+            throw new Error("Не удалось создать вторую строку журнала");
+          }
         }
 
         const closedResponse = await fetch("/api/journal-documents", {
@@ -280,7 +287,7 @@ export function PestControlDocumentsClient(props: Props) {
 
         if (closedResponse.ok) {
           const closed = (await closedResponse.json()) as { document: { id: string } };
-          await fetch(`/api/journal-documents/${closed.document.id}`, {
+          const patchResponse = await fetch(`/api/journal-documents/${closed.document.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -288,10 +295,17 @@ export function PestControlDocumentsClient(props: Props) {
               dateTo: "2025-02-28",
             }),
           });
+          if (!patchResponse.ok) {
+            throw new Error("Не удалось подготовить закрытый документ журнала");
+          }
         }
 
         if (!cancelled) {
           router.refresh();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          window.alert(error instanceof Error ? error.message : "Не удалось подготовить тестовые документы");
         }
       } finally {
         if (!cancelled) {
@@ -474,7 +488,7 @@ export function PestControlDocumentsClient(props: Props) {
                     <DropdownMenuItem
                       className="h-11 rounded-lg px-3 text-[14px]"
                       onSelect={() =>
-                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
+                        openDocumentPdf(document.id)
                       }
                     >
                       <Printer className="mr-2 size-4 text-[#6f7282]" />

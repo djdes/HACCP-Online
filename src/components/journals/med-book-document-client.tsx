@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   Paperclip,
   Plus,
-  Printer,
   RotateCcw,
   Settings2,
   Trash2,
@@ -45,7 +44,6 @@ import {
   type MedBookEntryData,
   type MedBookVaccinationType,
 } from "@/lib/med-book-document";
-import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { getUserRoleLabel } from "@/lib/user-roles";
 
 type Employee = { id: string; name: string; role: string };
@@ -382,23 +380,6 @@ export function MedBookDocumentClient({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-16 rounded-2xl border border-[#edf0ff] bg-[#fafbff] px-7 text-[18px] text-[#5863f8]"
-            onClick={() =>
-              openDocumentPdf(documentId).catch((error) =>
-                toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : "Не удалось открыть PDF",
-                ),
-              )
-            }
-          >
-            <Printer className="size-5" />
-            Печать
-          </Button>
           <Button
             type="button"
             variant="ghost"

@@ -1,0 +1,39 @@
+﻿# Print Matrix
+
+| Code | List Print | Detail Print | Status | Route |
+| --- | --- | --- | --- | --- |
+| `accident_journal` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/accident_journal` |
+| `audit_plan` | `helper` | `none` | `CHECK` | `/journals/audit_plan` |
+| `audit_protocol` | `helper` | `none` | `CHECK` | `/journals/audit_protocol` |
+| `audit_report` | `helper` | `none` | `CHECK` | `/journals/audit_report` |
+| `breakdown_history` | `pdf-window` | `none` | `CHECK` | `/journals/breakdown_history` |
+| `cleaning` | `pdf-window` | `none` | `CHECK` | `/journals/cleaning` |
+| `cleaning_ventilation_checklist` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/cleaning_ventilation_checklist` |
+| `climate_control` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/climate_control` |
+| `cold_equipment_control` | `helper` | `helper` | `CHECK` | `/journals/cold_equipment_control` |
+| `complaint_register` | `pdf-window` | `none` | `CHECK` | `/journals/complaint_register` |
+| `disinfectant_usage` | `pdf-window` | `none` | `CHECK` | `/journals/disinfectant_usage` |
+| `equipment_calibration` | `helper` | `none` | `CHECK` | `/journals/equipment_calibration` |
+| `equipment_cleaning` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/equipment_cleaning` |
+| `equipment_maintenance` | `helper` | `none` | `CHECK` | `/journals/equipment_maintenance` |
+| `finished_product` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/finished_product` |
+| `fryer_oil` | `helper` | `helper` | `CHECK` | `/journals/fryer_oil` |
+| `general_cleaning` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/general_cleaning` |
+| `glass_control` | `pdf-window` | `none` | `CHECK` | `/journals/glass_control` |
+| `glass_items_list` | `pdf-window` | `none` | `CHECK` | `/journals/glass_items_list` |
+| `health_check` | `pdf-window` | `none` | `CHECK` | `/journals/health_check` |
+| `hygiene` | `helper` | `none` | `CHECK` | `/journals/hygiene` |
+| `incoming_control` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/incoming_control` |
+| `incoming_raw_materials_control` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/incoming_raw_materials_control` |
+| `intensive_cooling` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/intensive_cooling` |
+| `med_books` | `none` | `none` | `PASS` | `/journals/med_books` |
+| `metal_impurity` | `helper` | `none` | `CHECK` | `/journals/metal_impurity` |
+| `perishable_rejection` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/perishable_rejection` |
+| `pest_control` | `helper` | `none` | `CHECK` | `/journals/pest_control` |
+| `ppe_issuance` | `pdf-window` | `none` | `CHECK` | `/journals/ppe_issuance` |
+| `product_writeoff` | `pdf-window` | `none` | `CHECK` | `/journals/product_writeoff` |
+| `sanitary_day_control` | `pdf-window` | `none` | `CHECK` | `/journals/sanitary_day_control` |
+| `staff_training` | `helper` | `none` | `CHECK` | `/journals/staff_training` |
+| `traceability_test` | `pdf-window` | `none` | `CHECK` | `/journals/traceability_test` |
+| `training_plan` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/training_plan` |
+| `uv_lamp_runtime` | `pdf-window` | `pdf-window` | `CHECK` | `/journals/uv_lamp_runtime` |

@@ -1,93 +1,100 @@
 # Task Spec: journals-full-parity-2026-04-11
 
-## Original task statement
-User has 35 local journal reference folders in `journals/` and 33 journals currently available on the site. The two remaining journals to complete are:
-- `Чек-лист уборки и проветривания помещений`
-- `Журнал входного контроля сырья, ингредиентов, упаковочных материалов`
+## Goal
+Bring the journal system to current full parity across the 35 active journal templates by auditing, fixing, and re-verifying routing, implementation mapping, print/PDF behavior, data flows, interactions, and visual parity against the repository reference assets and live-site crawl artifacts.
 
-User wants:
-- both missing journals implemented and available separately from the already existing `Журнал приемки и входного контроля продукции`
-- all journals visually copied from the local screenshots/reference folders
-- functional behavior, logic, DB-backed persistence, structure, and print/PDF flows aligned with the site, prior journals, and current architecture
-- a repo-task-proof-loop audit of all journal deficiencies followed by fixes
+## Current facts
+- `prisma/seed.ts` defines **35 active journal templates** in `ACTIVE_JOURNAL_TEMPLATES`.
+- The previous spec is stale because it assumed 33 active journals plus 2 missing journals.
+- Local reference assets live in `journals/`.
+- Live-site mapping and comparison artifacts live in `tmp-source-journals/`, especially `full-crawl/` and `live-journal-access-check.json`.
+- Journal route dispatch is centered in `src/app/(dashboard)/journals/[code]/page.tsx`.
+- Journal document detail routing is centered in `src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx`.
+- Source/live slug mapping is centralized in `src/lib/source-journal-map.ts`.
+- PDF generation is centralized in `src/lib/document-pdf.ts`.
+- Known current risks:
+  - `complaint_register`, `audit_protocol`, and `audit_report` had list-page wiring risk even though related clients and detail flows exist.
+  - Print behavior is split between direct PDF API routes and legacy `?print=1` HTML print pages.
+  - `sanitation1journal -> cleaning_ventilation_checklist` is missing from the central alias mapping.
+  - `document-pdf.ts` contains a dangerous fallback path that can return a hygiene PDF for unsupported templates instead of failing explicitly.
 
-## Task goal
-Bring the journal system to full parity across all 35 local reference journals by:
-1. implementing the 2 missing journals,
-2. auditing all existing journals against local reference folders plus current site/repo behavior,
-3. fixing discovered parity, UX, routing, persistence, and print/PDF gaps,
-4. recording durable proof-loop artifacts and fresh verification evidence.
-
-## Relevant repo context
-- Root proof-loop instructions live in `AGENTS.md` and `CLAUDE.md`.
-- Journal screenshots/reference folders live under `journals/`.
-- Source crawl/site comparison data also exists under `tmp-source-journals/`.
-- Active journal templates are seeded from `prisma/seed.ts` via `ACTIVE_JOURNAL_TEMPLATES`.
-- The current active set has 33 journals; user confirmed the 2 remaining targets above.
-- Existing journal implementations span:
-  - template-based journals
-  - document-based journals using `JournalDocument` / `JournalDocumentEntry`
-  - custom document clients for more complex journals
-
-## Assumptions
-- Local folder contents in `journals/` are the visual source of truth for layout and visible controls.
-- Site/repo behavior is the source of truth for persistence, workflow logic, data relationships, and PDF/print integration when screenshots alone are insufficient.
-- “Check all deficiencies” means a practical engineering audit focused on real parity and functional gaps, not pixel-perfect design recreation where the source material does not justify it.
-- Existing completed proof-loop artifacts for individual journals may be reused as context, but verification must judge current code only.
-
-## Constraints
-- Freeze this spec before implementation.
-- Keep all proof-loop artifacts under `.agent/tasks/journals-full-parity-2026-04-11/`.
-- Do not claim completion unless every acceptance criterion passes on a fresh verification pass.
-- Preserve unrelated user changes already present in the dirty working tree.
-- Keep the new `Журнал входного контроля сырья, ингредиентов, упаковочных материалов` separate from `Журнал приемки и входного контроля продукции`.
+## Scope
+- Audit all 35 active journals end to end.
+- Fix systemic defects first, then journal-specific defects.
+- Keep diffs minimal and favor shared fixes when the same defect pattern affects multiple journals.
+- Preserve unrelated user changes in the worktree.
 
 ## Non-goals
 - Do not rewrite the entire journal framework if targeted fixes achieve parity.
-- Do not remove existing journals unless required by explicit user instruction.
-- Do not rely on static mock data for parity surfaces that already have DB-backed patterns in the repo.
+- Do not invent new journal behavior beyond what is supported by the current architecture, local references, and live-site artifacts.
+- Do not claim pixel-perfect parity where source artifacts are insufficient; document those cases instead.
 
 ## Acceptance criteria
 
-### AC1. Master audit inventory exists
-Pass conditions:
-- A durable inventory artifact is created listing all 35 local journals.
-- The inventory identifies the current implementation status for each journal.
-- The inventory explicitly marks the 2 missing journals and any major parity gaps found during the audit.
+### AC1. Full journal inventory exists
+A durable inventory artifact lists all 35 journal folders and all 35 active templates, with per-journal status and mapping.
 
-### AC2. The 2 missing journals are implemented and routable
-Pass conditions:
-- `Чек-лист уборки и проветривания помещений` is added to the active journal system and opens through the dashboard routes.
-- `Журнал входного контроля сырья, ингредиентов, упаковочных материалов` is added to the active journal system and opens through the dashboard routes.
-- `Журнал приемки и входного контроля продукции` remains available as a separate journal.
+### AC2. Each journal is mapped to local implementation
+Each journal folder is mapped to its local journal code, route, list implementation, and detail implementation, with partial or missing wiring explicitly flagged.
 
-### AC3. Visual parity work is applied across the journal set
-Pass conditions:
-- For each implemented journal, visible structure and controls are reconciled against the local reference folders as applicable.
-- Material mismatches in list pages, document pages, dialogs, tables, print affordances, or labels are fixed or explicitly recorded if blocked.
-- Russian UI text is readable and matches the intended journal names and controls.
+### AC3. Each journal is mapped to a live counterpart
+Each active journal is mapped to its live-site slug or counterpart using the crawl/access artifacts, including any alias handling required for correct matching.
 
-### AC4. Functional parity work is applied across the journal set
-Pass conditions:
-- Journal routing, create/edit/delete flows, document or entry persistence, and print/PDF affordances are checked and fixed where broken.
-- DB-backed behavior is used where the current architecture supports it.
-- Existing implemented journals continue to work after the fixes.
+### AC4. Visual parity is checked for every journal
+Each journal is checked against screenshots and/or live captures for list pages, detail pages, visible controls, labels, and print affordances.
 
-### AC5. Audit findings and fixes are tracked per journal
-Pass conditions:
-- Evidence artifacts record the journal-by-journal findings and resolutions.
-- If any issue remains blocked, it is documented with a concrete reason and current status.
+### AC5. Visual parity is improved where feasible
+Material visual mismatches are fixed where supported by available artifacts; any unresolved gaps are explicitly documented with a concrete blocker.
 
-### AC6. Fresh verification gate
-Pass conditions:
-- Fresh verification is run against the current codebase after the fixes.
-- Verification checks the current state of the implemented/updated journals, not prior chat claims.
-- Completion is not claimed unless the verifier records `PASS`.
+### AC6. Data flow and behavior are verified
+For each applicable journal, routing, loading, saving, editing, archive behavior, document/entry persistence, and DB-backed flows are checked and fixed where broken.
+
+### AC7. Critical buttons and interactions work
+All critical journal actions, including create, open, edit, delete/archive where applicable, and print actions, open the expected routes and perform the expected behavior.
+
+### AC8. Print behavior is correct for every journal
+For every journal where print is expected:
+- Print exists where expected.
+- Print opens the correct route.
+- The route yields the correct journal PDF table.
+- Print does not open a blank page.
+- Print does not silently fail.
+- List-page and detail-page print behavior do not diverge for the same journal.
+
+### AC9. Defect classes are propagated across all journals
+Every discovered defect class is re-checked across the full journal set, and systemic fixes are applied where safe and appropriate.
+
+### AC10. Proof-loop artifacts are complete
+The task contains `spec.md`, `evidence.md`, `evidence.json`, raw supporting artifacts, and `problems.md` if any verification pass initially fails.
+
+### AC11. Final verification is fresh
+A fresh verification pass is run against the current repository state after fixes, not against prior claims or stale outputs.
+
+### AC12. Completion is gated by PASS or isolated blockers
+Completion is allowed only when every acceptance criterion is `PASS`, or any remaining blocker is explicitly documented, isolated, and shown not to prevent completion of the rest of the journal set.
+
+## Implementation requirements
+- Rebuild the inventory/evidence matrix with at least:
+  `folder | code | sourceSlug | route | list-page wired? | detail wired? | print mode | live mapped? | status`
+- Treat `complaint_register`, `audit_protocol`, and `audit_report` as partial wiring risks until route dispatch is verified.
+- Add the missing alias `sanitation1journal -> cleaning_ventilation_checklist` in the central source/live mapping.
+- Normalize print behavior toward the PDF API path as the primary print path.
+- Before switching any legacy `?print=1` journal to the PDF API, add explicit PDF generator support for that journal if missing.
+- Remove the silent hygiene-PDF fallback for unsupported template codes; unsupported PDF generation must fail explicitly and observably.
+- Re-check all journals for analogous print defects after any print fix.
+- Re-check all journals for analogous wiring defects after any wiring fix.
 
 ## Verification plan
-- Build a 35-journal inventory from `journals/` and current active repo templates.
-- Identify missing or mismatched journals by name, route code, and implementation path.
-- Verify the 2 missing journals are added to active templates and routed in the dashboard.
-- Verify representative list/detail/print flows for updated document journals.
-- Run targeted lint/build or other relevant checks on touched journal files.
-- Record per-journal status in evidence artifacts and mark the final verdict only after a fresh pass.
+- Build and validate the 35/35/35 inventory: local folders, active templates, and live mappings.
+- Verify route coverage for all 35 `/journals/[code]` pages.
+- Verify list/detail implementation coverage for all 35 journals.
+- Verify print behavior for every applicable journal, including route correctness and non-blank PDF output.
+- Run fresh static checks on touched code, including `npx tsc --noEmit` and targeted linting.
+- Record per-journal findings, fixes, remaining blockers, and final acceptance-criterion verdicts in proof-loop artifacts.
+
+## Assumptions
+- The existing task id remains `.agent/tasks/journals-full-parity-2026-04-11/`.
+- The active target set is the 35 templates in `prisma/seed.ts`.
+- The three journals with suspected list-page gaps are considered partially implemented until verified otherwise, not missing.
+- Live crawl artifacts and local screenshot folders are sufficient for autonomous comparison work.
+- If a specific visual parity issue cannot be resolved because source material is insufficient, it must be documented as an isolated blocker rather than guessed.

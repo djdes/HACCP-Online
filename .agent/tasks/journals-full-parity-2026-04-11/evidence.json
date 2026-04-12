@@ -1,57 +1,317 @@
 {
-  "task_id": "journals-full-parity-2026-04-11",
-  "date": "2026-04-11",
-  "journal_folder_count": 35,
-  "active_template_count": 35,
-  "fixed_journals": [
-    {
-      "code": "incoming_raw_materials_control",
-      "name": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов"
-    },
-    {
-      "code": "cleaning_ventilation_checklist",
-      "name": "Чек-лист уборки и проветривания помещений"
-    }
-  ],
-  "separate_existing_journal_preserved": {
-    "code": "incoming_control",
-    "name": "Журнал приемки и входного контроля продукции"
-  },
-  "checks": [
-    {
-      "command": "npx tsc --noEmit",
-      "status": "PASS"
-    },
-    {
-      "command": "targeted eslint on touched files",
-      "status": "PASS",
-      "details": {
-        "errors": 0,
-        "warnings": 17
-      }
-    }
-  ],
-  "acceptance_criteria": {
-    "AC1": "PASS",
-    "AC2": "PASS",
-    "AC3": "PASS",
-    "AC4": "PASS",
-    "AC5": "PASS",
-    "AC6": "PASS"
-  },
-  "changed_files": [
-    "prisma/seed.ts",
-    "src/lib/acceptance-document.ts",
-    "src/lib/sanitary-day-checklist-document.ts",
-    "src/lib/source-journal-map.ts",
-    "src/lib/tracked-document.ts",
-    "src/lib/journal-document-helpers.ts",
-    "src/app/api/journal-documents/route.ts",
-    "src/app/(dashboard)/journals/[code]/page.tsx",
-    "src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx",
-    "src/components/journals/incoming-control-documents-client.tsx",
-    "src/components/journals/acceptance-document-client.tsx",
-    "src/components/journals/sanitary-day-checklist-documents-client.tsx",
-    "src/components/journals/sanitary-day-checklist-document-client.tsx"
-  ]
+    "task_id":  "journals-full-parity-2026-04-11",
+    "overall_status":  "FAIL",
+    "acceptance_criteria":  [
+                                {
+                                    "id":  "AC1",
+                                    "text":  "All journal folders are discovered and tracked.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/inventory.md",
+                                                      "summary":  "Inventory tracks 35 local journal folders and the active journal set."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC2",
+                                    "text":  "Each journal is mapped to its implementation in the repository.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/implementation-matrix.json",
+                                                      "summary":  "Each active journal is mapped to route, list implementation, detail implementation, and print mode."
+                                                  },
+                                                  {
+                                                      "type":  "code",
+                                                      "path":  "src/app/(dashboard)/journals/[code]/page.tsx",
+                                                      "summary":  "List-page wiring includes the previously missing complaint/audit dispatch branches."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC3",
+                                    "text":  "Each journal is mapped to its live-site counterpart.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/visual-matrix.json",
+                                                      "summary":  "The active 35 journals are linked to live crawl directories and source slugs."
+                                                  },
+                                                  {
+                                                      "type":  "code",
+                                                      "path":  "src/lib/source-journal-map.ts",
+                                                      "summary":  "Central alias map includes the missing sanitation1journal -\u003e cleaning_ventilation_checklist mapping."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC4",
+                                    "text":  "Each journal is checked for visual parity against screenshots and/or the live site.",
+                                    "status":  "FAIL",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.md",
+                                                      "summary":  "All 35 journals now have documented local/live visual input readiness and explicit blocker status for missing reviewed verdicts."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/live-proof-matrix.md",
+                                                      "summary":  "Fresh live detail captures now exist for all 35 journals, but the bundle still lacks completed reviewed visual verdicts."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "The bundle still does not record completed reviewed visual verdicts for all 35 journals."
+                                             ]
+                                },
+                                {
+                                    "id":  "AC5",
+                                    "text":  "Visual parity is improved as far as feasible.",
+                                    "status":  "FAIL",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/reviewed-visual-matrix.json",
+                                                      "summary":  "The full 35-journal matrix distinguishes input readiness from missing reviewed visual outcomes."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/live-proof-matrix.json",
+                                                      "summary":  "Live proof depth improved with detail captures for 35/35 journals and print evidence for every print-expected journal."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "No full 35-journal reviewed visual verdict matrix exists yet."
+                                             ]
+                                },
+                                {
+                                    "id":  "AC6",
+                                    "text":  "Data flow, DB integration, routing, and interactions are verified.",
+                                    "status":  "UNKNOWN",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-matrix.json",
+                                                      "summary":  "All 35 journals are tracked with create/open/edit/save/delete/archive-close flow flags."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-proof-notes.md",
+                                                      "summary":  "Bounded batch A/B/C review notes confirm journal-specific interaction and routing proof beyond the raw matrix."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check.json",
+                                                      "summary":  "The current local runtime is blocked by PostgreSQL connection refusal, so stronger DB/data-flow proof could not be rerun."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "The current bundle still lacks runtime proof for DB integration, data loading, and data saving across the full 35-journal set."
+                                             ]
+                                },
+                                {
+                                    "id":  "AC7",
+                                    "text":  "All critical buttons work correctly.",
+                                    "status":  "UNKNOWN",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-matrix.md",
+                                                      "summary":  "Per-journal create/open/edit/save/delete/archive-close coverage exists for the full 35-journal set."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.md",
+                                                      "summary":  "Print-button coverage exists for all 35 journals and the current scan has no RISK rows."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check.json",
+                                                      "summary":  "The current local runtime is blocked by PostgreSQL connection refusal, which prevents stronger cross-journal button verification."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "The current bundle still lacks runtime confirmation that every critical button works correctly across all 35 journals."
+                                             ]
+                                },
+                                {
+                                    "id":  "AC8",
+                                    "text":  "The Print button in every journal opens the correct page with a PDF table.",
+                                    "status":  "UNKNOWN",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.json",
+                                                      "summary":  "Per-journal print routes are classified across the full 35-journal set and the current code scan shows no RISK rows."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/live-proof-matrix.json",
+                                                      "summary":  "Fresh live print evidence now proves non-empty PDF downloads for every print-expected journal; med_books is correctly classified as no-print-expected."
+                                                  },
+                                                  {
+                                                      "type":  "command",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/print-scan-2.txt",
+                                                      "command":  "rg -n \"openDocumentPdf\\(|window.open\\(`/api/journal-documents/\\$\\{.*\\}/pdf|\\?print=1|window.print\\(\" src/components/journals -g \"*.tsx\"",
+                                                      "exit_code":  0,
+                                                      "summary":  "The latest scan confirms the previously risky detail-side legacy print paths were removed."
+                                                  },
+                                                  {
+                                                      "type":  "code",
+                                                      "path":  "src/lib/document-pdf.ts",
+                                                      "summary":  "Explicit PDF generation now exists for hygiene in addition to prior audit/metal branches."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/db-runtime-check.json",
+                                                      "summary":  "The current local runtime is blocked by PostgreSQL connection refusal, which prevents route-level PDF verification through the application."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "The current bundle still lacks local application-runtime PDF-open/non-blank evidence for every print-capable journal."
+                                             ]
+                                },
+                                {
+                                    "id":  "AC9",
+                                    "text":  "Every discovered defect class is re-checked across all journals.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/print-matrix.md",
+                                                      "summary":  "The print defect class was rechecked across the full journal set."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/inventory.md",
+                                                      "summary":  "Routing/mapping coverage was rebuilt across the active 35."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/behavior-proof-notes.md",
+                                                      "summary":  "Bounded batch A/B/C review notes confirm the remaining cross-journal interaction/button classes were rechecked after systemic fixes."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC10",
+                                    "text":  "Proof-loop artifacts exist for substantial work.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/spec.md",
+                                                      "summary":  "Frozen spec exists."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/evidence.md",
+                                                      "summary":  "Evidence bundle exists."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/verdict.json",
+                                                      "summary":  "Verifier verdict artifact exists."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC11",
+                                    "text":  "Final verification is fresh and based on the current repository state.",
+                                    "status":  "PASS",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "command",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/build.txt",
+                                                      "command":  "npx tsc --noEmit",
+                                                      "exit_code":  0,
+                                                      "summary":  "Fresh TypeScript verification passed after the latest fixes."
+                                                  },
+                                                  {
+                                                      "type":  "command",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/raw/lint.txt",
+                                                      "command":  "npx eslint src/lib/document-pdf.ts src/components/journals/hygiene-documents-client.tsx src/components/journals/equipment-maintenance-documents-client.tsx src/components/journals/equipment-calibration-documents-client.tsx src/components/journals/staff-training-documents-client.tsx src/components/journals/pest-control-documents-client.tsx",
+                                                      "exit_code":  0,
+                                                      "summary":  "Fresh targeted lint passed with warnings only."
+                                                  }
+                                              ],
+                                    "gaps":  [
+
+                                             ]
+                                },
+                                {
+                                    "id":  "AC12",
+                                    "text":  "Completion is allowed only when all ACs are PASS, or remaining blockers are explicitly documented and isolated.",
+                                    "status":  "FAIL",
+                                    "proof":  [
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/verdict.json",
+                                                      "summary":  "The current overall verdict remains FAIL."
+                                                  },
+                                                  {
+                                                      "type":  "artifact",
+                                                      "path":  ".agent/tasks/journals-full-parity-2026-04-11/problems.md",
+                                                      "summary":  "Remaining blockers are documented."
+                                                  }
+                                              ],
+                                    "gaps":  [
+                                                 "AC4 and AC5 are currently FAIL; AC6, AC7, and AC8 remain partially unproven."
+                                             ]
+                                }
+                            ],
+    "changed_files":  [
+                          "src/app/(dashboard)/journals/[code]/page.tsx",
+                          "src/app/api/journal-documents/[id]/pdf/route.ts",
+                          "src/components/journals/audit-plan-documents-client.tsx",
+                          "src/components/journals/audit-plan-document-client.tsx",
+                          "src/components/journals/audit-protocol-documents-client.tsx",
+                          "src/components/journals/audit-protocol-document-client.tsx",
+                          "src/components/journals/audit-report-documents-client.tsx",
+                          "src/components/journals/audit-report-document-client.tsx",
+                          "src/components/journals/cleaning-document-client.tsx",
+                          "src/components/journals/equipment-calibration-documents-client.tsx",
+                          "src/components/journals/equipment-maintenance-documents-client.tsx",
+                          "src/components/journals/hygiene-documents-client.tsx",
+                          "src/components/journals/metal-impurity-document-client.tsx",
+                          "src/components/journals/metal-impurity-documents-client.tsx",
+                          "src/components/journals/pest-control-documents-client.tsx",
+                          "src/components/journals/staff-training-document-client.tsx",
+                          "src/components/journals/staff-training-documents-client.tsx",
+                          "src/lib/document-pdf.ts",
+                          "src/lib/source-journal-map.ts",
+                          "scripts/capture-source-details.ts",
+                          "scripts/capture-source-docprints.ts",
+                          "src/components/journals/med-book-document-client.tsx",
+                          "src/components/journals/med-book-documents-client.tsx"
+                      ],
+    "commands_for_fresh_verifier":  [
+                                        "python C:\\Users\\Yaroslav\\.codex\\skills\\repo-task-proof-loop\\scripts\\task_loop.py validate --task-id journals-full-parity-2026-04-11",
+                                        "npx tsc --noEmit",
+                                        "npx eslint src/components/journals/med-book-documents-client.tsx src/components/journals/med-book-document-client.tsx scripts/capture-source-docprints.ts scripts/capture-source-details.ts"
+                                    ],
+    "known_gaps":  [
+                       "Visual review remains incomplete for the 35-journal set.",
+                       "Per-journal runtime interaction proof remains incomplete.",
+                       "The print matrix is clean at code-scan level and live proof now covers every print-expected journal, but local runtime PDF-open/non-blank proof is still incomplete."
+                   ]
 }

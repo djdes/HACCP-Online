@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Pencil, Plus, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -102,8 +102,7 @@ function ConfirmDialog(props: { open: boolean; title: string; submitLabel: strin
 
 export function CleaningDocumentClient(props: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const printMode = searchParams.get("print") === "1";
+  const printMode = false;
   const normalized = useMemo(() => normalizeCleaningDocumentConfig(props.config, { users: props.users }), [props.config, props.users]);
   const [config, setConfig] = useState(normalized);
   const [saving, setSaving] = useState(false);
@@ -122,8 +121,6 @@ export function CleaningDocumentClient(props: Props) {
   ], [config]);
 
   useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
-  useEffect(() => { if (!printMode) return; const timeout = window.setTimeout(() => window.print(), 300); return () => window.clearTimeout(timeout); }, [printMode]);
-
   async function patchDocument(nextConfig: CleaningDocumentConfig, overrides?: Record<string, unknown>) {
     setSaving(true);
     try {

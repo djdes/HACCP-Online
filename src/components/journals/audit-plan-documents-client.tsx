@@ -46,6 +46,7 @@ import {
   normalizeAuditPlanConfig,
   type AuditPlanConfig,
 } from "@/lib/audit-plan-document";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 type UserItem = { id: string; name: string; role: string };
 
@@ -510,7 +511,11 @@ export function AuditPlanDocumentsClient({
                     <DropdownMenuItem
                       className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
                       onSelect={() =>
-                        window.open(`${href}?print=1`, "_blank", "noopener,noreferrer")
+                        void openDocumentPdf(document.id).catch((error) =>
+                          window.alert(
+                            error instanceof Error ? error.message : "Не удалось открыть PDF"
+                          )
+                        )
                       }
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать

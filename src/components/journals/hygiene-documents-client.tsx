@@ -35,6 +35,7 @@ import {
   getJournalDocumentHeading,
   isStaffDocumentTemplate,
 } from "@/lib/journal-document-helpers";
+import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 type JournalListDocument = {
   id: string;
@@ -81,7 +82,7 @@ function EditDocumentDialog({
 
     setIsSubmitting(true);
     try {
-      await fetch(`/api/journal-documents/${document.id}`, {
+      const response = await fetch(`/api/journal-documents/${document.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -89,9 +90,14 @@ function EditDocumentDialog({
           responsibleTitle,
         }),
       });
+      if (!response.ok) {
+        throw new Error("Не удалось сохранить настройки документа");
+      }
 
       onOpenChange(false);
       router.refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Не удалось сохранить настройки документа");
     } finally {
       setIsSubmitting(false);
     }
@@ -207,7 +213,7 @@ function DocumentRow({
             )}
             <DropdownMenuItem
               className="mb-3 h-16 rounded-2xl px-4 text-[20px]"
-              onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+              onSelect={() => openDocumentPdf(document.id)}
             >
               <Printer className="mr-4 size-7 text-[#6f7282]" />
               Печать

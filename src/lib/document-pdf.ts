@@ -137,6 +137,28 @@ import {
   normalizeTrainingPlanConfig,
 } from "@/lib/training-plan-document";
 import {
+  AUDIT_PLAN_DOCUMENT_TITLE,
+  AUDIT_PLAN_TEMPLATE_CODE,
+  normalizeAuditPlanConfig,
+} from "@/lib/audit-plan-document";
+import {
+  AUDIT_PROTOCOL_DOCUMENT_TITLE,
+  AUDIT_PROTOCOL_TEMPLATE_CODE,
+  normalizeAuditProtocolConfig,
+} from "@/lib/audit-protocol-document";
+import {
+  AUDIT_REPORT_DOCUMENT_TITLE,
+  AUDIT_REPORT_TEMPLATE_CODE,
+  normalizeAuditReportConfig,
+} from "@/lib/audit-report-document";
+import {
+  METAL_IMPURITY_DOCUMENT_TITLE,
+  METAL_IMPURITY_TEMPLATE_CODE,
+  getMetalImpurityOptionName,
+  getMetalImpurityValuePerKg,
+  normalizeMetalImpurityConfig,
+} from "@/lib/metal-impurity-document";
+import {
   BREAKDOWN_HISTORY_TEMPLATE_CODE,
   BREAKDOWN_HISTORY_HEADING,
   normalizeBreakdownHistoryDocumentConfig,
@@ -3398,6 +3420,305 @@ function drawRegisterPdf(doc: jsPDF, params: {
   });
 }
 
+function drawAuditPlanPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ReturnType<typeof normalizeAuditPlanConfig>;
+}) {
+  drawTitle(doc, params.title);
+  drawClimateMetaTable(doc, {
+    organizationName: params.organizationName,
+    title: params.title,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+
+  const head: RowInput[] = [[
+    centerCell("№"),
+    centerCell("Требование"),
+    centerCell("Контроль"),
+    ...params.config.columns.map((column) => centerCell(`${column.title}\n${column.auditorName}`)),
+  ]];
+
+  const body: RowInput[] = [];
+  params.config.sections.forEach((section) => {
+    body.push([
+      {
+        content: section.title,
+        colSpan: 3 + Math.max(params.config.columns.length, 1),
+        styles: { fontStyle: "bold", halign: "left", fillColor: [245, 245, 245] },
+      },
+    ]);
+
+    params.config.rows
+      .filter((row) => row.sectionId === section.id)
+      .forEach((row, index) => {
+        body.push([
+          centerCell(String(index + 1)),
+          centerCell(row.text),
+          centerCell(row.checked ? "Да" : ""),
+          ...params.config.columns.map((column) => centerCell(row.values[column.id] || "")),
+        ]);
+      });
+  });
+
+  autoTable(doc, {
+    startY: 66,
+    head,
+    body: body.length > 0 ? body : [[{ content: "", colSpan: 3 + Math.max(params.config.columns.length, 1) }]],
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7.5,
+      cellPadding: 1.3,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+}
+
+function drawAuditProtocolPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ReturnType<typeof normalizeAuditProtocolConfig>;
+}) {
+  drawTitle(doc, params.title);
+  drawClimateMetaTable(doc, {
+    organizationName: params.organizationName,
+    title: params.title,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+
+  const body: RowInput[] = [];
+  params.config.sections.forEach((section) => {
+    body.push([
+      { content: section.title, colSpan: 5, styles: { fontStyle: "bold", halign: "left", fillColor: [245, 245, 245] } },
+    ]);
+    params.config.rows
+      .filter((row) => row.sectionId === section.id)
+      .forEach((row, index) => {
+        body.push([
+          centerCell(String(index + 1)),
+          centerCell(row.text),
+          centerCell(row.result === "yes" ? "Да" : ""),
+          centerCell(row.result === "no" ? "Нет" : ""),
+          centerCell(row.note || ""),
+        ]);
+      });
+  });
+
+  autoTable(doc, {
+    startY: 66,
+    head: [[centerCell("№"), centerCell("Требование"), centerCell("Да"), centerCell("Нет"), centerCell("Примечание")]],
+    body: body.length > 0 ? body : [[{ content: "", colSpan: 5 }]],
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 8,
+      cellPadding: 1.4,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 120 },
+      2: { cellWidth: 16 },
+      3: { cellWidth: 16 },
+      4: { cellWidth: 100 },
+    },
+  });
+
+  const finalY = ((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || 66) + 10;
+  doc.setFont("JournalUnicode", "normal");
+  doc.setFontSize(9);
+  let cursorY = finalY;
+  params.config.signatures.forEach((signature) => {
+    doc.text(
+      `${signature.role || "Подпись"}: ${signature.name}${signature.signedAt ? `, ${formatRuDateDash(signature.signedAt)}` : ""}`,
+      12,
+      cursorY
+    );
+    cursorY += 6;
+  });
+}
+
+function drawAuditReportPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ReturnType<typeof normalizeAuditReportConfig>;
+}) {
+  drawTitle(doc, params.title);
+  drawClimateMetaTable(doc, {
+    organizationName: params.organizationName,
+    title: params.title,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+
+  doc.setFont("JournalUnicode", "normal");
+  let cursorY = 64;
+  cursorY = renderWrappedTextBlock(
+    doc,
+    [
+      `Основание: ${params.config.basisTitle || "—"}`,
+      `Объект аудита: ${params.config.auditedObject || "—"}`,
+      `Аудиторы: ${(params.config.auditors || []).join(", ") || "—"}`,
+      `Итог: ${params.config.summary || "—"}`,
+      `Рекомендации: ${params.config.recommendations || "—"}`,
+    ],
+    12,
+    cursorY,
+    270,
+    5
+  ) + 4;
+
+  autoTable(doc, {
+    startY: cursorY,
+    head: [[
+      centerCell("№"),
+      centerCell("Несоответствие"),
+      centerCell("Исправление"),
+      centerCell("Корректирующие действия"),
+      centerCell("Ответственный"),
+      centerCell("Срок план"),
+      centerCell("Срок факт"),
+    ]],
+    body:
+      params.config.findings.map((finding, index) => [
+        centerCell(String(index + 1)),
+        centerCell(finding.nonConformity || ""),
+        centerCell(finding.correctionActions || ""),
+        centerCell(finding.correctiveActions || ""),
+        centerCell([finding.responsiblePosition, finding.responsibleName].filter(Boolean).join(", ")),
+        centerCell(finding.dueDatePlan ? formatRuDateDash(finding.dueDatePlan) : ""),
+        centerCell(finding.dueDateFact ? formatRuDateDash(finding.dueDateFact) : ""),
+      ]) || [[{ content: "", colSpan: 7 }]],
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7.5,
+      cellPadding: 1.3,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  cursorY = ((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || cursorY) + 10;
+  params.config.signatures.forEach((signature) => {
+    doc.text(
+      `${signature.role || "Подпись"}: ${[signature.position, signature.name].filter(Boolean).join(", ")}${signature.signedAt ? `, ${formatRuDateDash(signature.signedAt)}` : ""}`,
+      12,
+      cursorY
+    );
+    cursorY += 6;
+  });
+}
+
+function drawMetalImpurityPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  dateTo: Date | string;
+  config: ReturnType<typeof normalizeMetalImpurityConfig>;
+}) {
+  drawTitle(doc, params.title);
+  drawClimateMetaTable(doc, {
+    organizationName: params.organizationName,
+    title: params.title,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+
+  autoTable(doc, {
+    startY: 66,
+    body: [[
+      { content: "Ответственный", styles: { fontStyle: "bold" } },
+      { content: `${params.config.responsiblePosition}: ${params.config.responsibleEmployee}`, colSpan: 8 },
+    ]],
+    theme: "grid",
+    styles: { font: "JournalUnicode", fontSize: 9, lineColor: [0, 0, 0], textColor: [0, 0, 0] },
+    margin: { left: 10, right: 10 },
+  });
+
+  autoTable(doc, {
+    startY: (((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY) || 66) + 4,
+    head: [[
+      centerCell("№"),
+      centerCell("Дата"),
+      centerCell("Материал"),
+      centerCell("Поставщик"),
+      centerCell("Количество, кг"),
+      centerCell("Металлопримеси, г"),
+      centerCell("г/т"),
+      centerCell("Характеристика"),
+      centerCell("Ответственный"),
+    ]],
+    body:
+      params.config.rows.map((row, index) => [
+        centerCell(String(index + 1)),
+        centerCell(row.date ? formatRuDateDash(row.date) : ""),
+        centerCell(getMetalImpurityOptionName(params.config.materials, row.materialId)),
+        centerCell(getMetalImpurityOptionName(params.config.suppliers, row.supplierId)),
+        centerCell(row.consumedQuantityKg || ""),
+        centerCell(row.impurityQuantityG || ""),
+        centerCell(getMetalImpurityValuePerKg(row.impurityQuantityG, row.consumedQuantityKg) || ""),
+        centerCell(row.impurityCharacteristic || ""),
+        centerCell([row.responsibleRole, row.responsibleName].filter(Boolean).join(", ")),
+      ]) || [[{ content: "", colSpan: 9 }]],
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 7.5,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [242, 242, 242],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+    },
+    margin: { left: 10, right: 10 },
+  });
+}
+
 function renderWrappedTextBlock(
   doc: jsPDF,
   lines: string[],
@@ -3953,13 +4274,28 @@ export async function generateJournalDocumentPdf(params: {
   const equipmentCleaningConfig = normalizeEquipmentCleaningConfig(document.config);
   const intensiveCoolingConfig = normalizeIntensiveCoolingConfig(document.config, users);
   const medBookConfig = normalizeMedBookConfig(document.config);
+  const auditPlanConfig = normalizeAuditPlanConfig(document.config);
+  const auditProtocolConfig = normalizeAuditProtocolConfig(document.config);
+  const auditReportConfig = normalizeAuditReportConfig(document.config);
+  const metalImpurityConfig = normalizeMetalImpurityConfig(document.config);
 
   document.entries.forEach((entry) => {
     entryMap[makeCellKey(entry.employeeId, toDateKey(entry.date))] =
       (entry.data as Record<string, unknown>) || {};
   });
 
-  if (templateCode === "health_check") {
+  if (templateCode === "hygiene") {
+    drawHygienePdf(doc, {
+      organizationName,
+      title: document.title || getHygieneDocumentTitle(),
+      monthLabel,
+      dateKeys,
+      users,
+      employeeIds,
+      responsibleTitle: document.responsibleTitle,
+      entryMap,
+    });
+  } else if (templateCode === "health_check") {
     drawHealthPdf(doc, {
       organizationName,
       title: document.title || getHealthDocumentTitle(),
@@ -4089,6 +4425,38 @@ export async function generateJournalDocumentPdf(params: {
       organizationName,
       title: document.title || TRAINING_PLAN_HEADING,
       config: normalizeTrainingPlanConfig(document.config),
+    });
+  } else if (templateCode === AUDIT_PLAN_TEMPLATE_CODE) {
+    drawAuditPlanPdf(doc, {
+      organizationName,
+      title: document.title || AUDIT_PLAN_DOCUMENT_TITLE,
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: auditPlanConfig,
+    });
+  } else if (templateCode === AUDIT_PROTOCOL_TEMPLATE_CODE) {
+    drawAuditProtocolPdf(doc, {
+      organizationName,
+      title: document.title || AUDIT_PROTOCOL_DOCUMENT_TITLE,
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: auditProtocolConfig,
+    });
+  } else if (templateCode === AUDIT_REPORT_TEMPLATE_CODE) {
+    drawAuditReportPdf(doc, {
+      organizationName,
+      title: document.title || AUDIT_REPORT_DOCUMENT_TITLE,
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: auditReportConfig,
+    });
+  } else if (templateCode === METAL_IMPURITY_TEMPLATE_CODE) {
+    drawMetalImpurityPdf(doc, {
+      organizationName,
+      title: document.title || METAL_IMPURITY_DOCUMENT_TITLE,
+      dateFrom: document.dateFrom,
+      dateTo: document.dateTo,
+      config: metalImpurityConfig,
     });
   } else if (templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
     drawBreakdownHistoryPdf(doc, {
@@ -4239,21 +4607,14 @@ export async function generateJournalDocumentPdf(params: {
       users,
     });
   } else {
-    drawHygienePdf(doc, {
-      organizationName,
-      title: document.title || getHygieneDocumentTitle(),
-      monthLabel,
-      dateKeys,
-      users,
-      employeeIds,
-      responsibleTitle: document.responsibleTitle,
-      entryMap,
-    });
+    throw new Error(`PDF шаблон не поддерживается для кода: ${templateCode}`);
   }
 
   const buffer = Buffer.from(doc.output("arraybuffer"));
   const prefix =
-    templateCode === "health_check"
+    templateCode === "hygiene"
+      ? "hygiene-journal"
+      : templateCode === "health_check"
       ? "health-journal"
       : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
         ? getClimateFilePrefix()
@@ -4279,6 +4640,14 @@ export async function generateJournalDocumentPdf(params: {
               ? getGlassControlFilePrefix()
             : templateCode === SANITATION_DAY_TEMPLATE_CODE
               ? "general-cleaning-schedule"
+            : templateCode === AUDIT_PLAN_TEMPLATE_CODE
+              ? "audit-plan"
+            : templateCode === AUDIT_PROTOCOL_TEMPLATE_CODE
+              ? "audit-protocol"
+            : templateCode === AUDIT_REPORT_TEMPLATE_CODE
+              ? "audit-report"
+            : templateCode === METAL_IMPURITY_TEMPLATE_CODE
+              ? "metal-impurity"
             : templateCode === TRAINING_PLAN_TEMPLATE_CODE
               ? "training-plan"
             : templateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE
@@ -4300,10 +4669,12 @@ export async function generateJournalDocumentPdf(params: {
             : templateCode === FRYER_OIL_TEMPLATE_CODE
               ? getFryerOilFilePrefix()
             : isRegisterDocumentTemplate(templateCode)
-                ? getRegisterDocumentFilePrefix(templateCode)
+              ? getRegisterDocumentFilePrefix(templateCode)
               : isTrackedDocumentTemplate(templateCode)
                 ? getTrackedFilePrefix(templateCode)
-              : "hygiene-journal";
+              : (() => {
+                  throw new Error(`Не удалось определить префикс PDF для кода: ${templateCode}`);
+                })();
 
   return {
     buffer,
