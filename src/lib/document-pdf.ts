@@ -74,6 +74,12 @@ import {
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { drawCleaningVentilationChecklistPdf } from "@/lib/cleaning-ventilation-checklist-pdf";
 import {
+  SANITARY_DAY_CHECKLIST_TEMPLATE_CODE,
+  SANITARY_DAY_CHECKLIST_TITLE,
+  getSdcFilePrefix,
+} from "@/lib/sanitary-day-checklist-document";
+import { drawSanitaryDayChecklistPdf } from "@/lib/sanitary-day-checklist-pdf";
+import {
   getTrackedDocumentTitle,
   isTrackedDocumentTemplate,
   type TrackedDocumentTemplateCode,
@@ -4849,6 +4855,18 @@ export async function generateJournalDocumentPdf(params: {
       })),
       users,
     });
+  } else if (templateCode === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE) {
+    drawSanitaryDayChecklistPdf(doc, {
+      organizationName,
+      title: document.title || SANITARY_DAY_CHECKLIST_TITLE,
+      dateFrom: document.dateFrom,
+      config: document.config,
+      entries: document.entries.map((entry) => ({
+        date: entry.date,
+        data: entry.data,
+      })),
+      users,
+    });
   } else if (isTrackedDocumentTemplate(templateCode)) {
     drawTrackedPdf(doc, {
       organizationName,
@@ -4881,6 +4899,8 @@ export async function generateJournalDocumentPdf(params: {
           ? getColdEquipmentFilePrefix()
           : templateCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
             ? getCleaningVentilationFilePrefix()
+            : templateCode === SANITARY_DAY_CHECKLIST_TEMPLATE_CODE
+              ? getSdcFilePrefix()
             : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
               ? getCleaningFilePrefix()
             : templateCode === MED_BOOK_TEMPLATE_CODE
