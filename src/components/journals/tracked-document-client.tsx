@@ -298,6 +298,31 @@ function TrackedDocumentClientImpl({
 
   return (
     <div className="space-y-8">
+      {status === "active" && selectedRowIds.length > 0 ? (
+        <div className="sticky top-0 z-30 -mx-6 flex flex-wrap items-center gap-3 border-b border-[#eef0fb] bg-white/95 px-6 py-3 backdrop-blur">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-2 text-[15px] text-[#5563ff]"
+            onClick={() => setSelectedRowIds([])}
+          >
+            Сбросить выбор ({selectedRowIds.length})
+          </button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              removeSelectedEntries().catch((error) =>
+                toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
+              )
+            }
+            className="h-10 rounded-2xl border-[#ffd7d3] px-5 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+          >
+            <Trash2 className="size-4" />
+            Удалить выбранные ({selectedRowIds.length})
+          </Button>
+        </div>
+      ) : null}
+
       <div className="rounded-[32px] border border-[#eceef5] bg-white px-8 py-7 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
