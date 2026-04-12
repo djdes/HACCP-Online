@@ -43,6 +43,7 @@ import {
   type UvRuntimeEntryData,
   type UvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 type UserItem = {
   id: string;
@@ -412,7 +413,13 @@ function UvRuntimeSettingsDialog(props: {
           </div>
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select value={responsibleTitle} onValueChange={(value) => {
+              const candidates = getUsersForRoleLabel(props.users, value);
+              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
+                setResponsibleUserId("");
+              }
+              setResponsibleTitle(value);
+            }}>
               <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -446,7 +453,7 @@ function UvRuntimeSettingsDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -610,7 +617,13 @@ function AddRowDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select value={responsibleTitle} onValueChange={(value) => {
+              const candidates = getUsersForRoleLabel(props.users, value);
+              if (employeeId && !candidates.some((u) => u.id === employeeId)) {
+                setEmployeeId("");
+              }
+              setResponsibleTitle(value);
+            }}>
               <SelectTrigger className="h-14 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[18px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -636,7 +649,7 @@ function AddRowDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
