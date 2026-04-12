@@ -171,17 +171,17 @@ export function ProductWriteoffDocumentsClient({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-10 rounded-[28px] bg-white p-8 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">Акт забраковки</h1>
-          <div className="flex items-center gap-4">
+      <div className="space-y-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <h1 className="max-w-[70%] text-[32px] font-semibold tracking-[-0.03em] text-black">Акт забраковки</h1>
+          <div className="flex shrink-0 items-center gap-3">
             <Button
               variant="outline"
-              className="h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              className="h-12 rounded-xl border-[#eef0fb] px-4 text-[14px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
               asChild
             >
               <Link href="/sanpin">
-                <BookOpenText className="size-6" />
+                <BookOpenText className="size-4" />
                 Инструкция
               </Link>
             </Button>
@@ -190,9 +190,9 @@ export function ProductWriteoffDocumentsClient({
                 templateCode={templateCode}
                 templateName={templateName}
                 users={users}
-                triggerClassName="h-16 rounded-2xl bg-[#5b66ff] px-8 text-[18px] font-medium text-white hover:bg-[#4c58ff]"
+                triggerClassName="h-12 rounded-xl bg-[#5b66ff] px-5 text-[14px] font-medium text-white hover:bg-[#4c58ff]"
                 triggerLabel="Создать документ"
-                triggerIcon={<Plus className="size-7" />}
+                triggerIcon={<Plus className="size-4" />}
               />
             )}
           </div>
