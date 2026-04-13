@@ -39,6 +39,7 @@ function containsAll(text: string, needles: string[]) {
     value
       .toLowerCase()
       .replace(/\s+/g, "")
+      .replace(/:/g, "")
       .replace(/\u00ad/g, "");
   const haystack = normalize(text);
   return needles.every((needle) => haystack.includes(normalize(needle)));
