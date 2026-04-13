@@ -1,0 +1,55 @@
+{
+  "taskId": "journal-demo-reset-2026-04-13",
+  "status": "PASS",
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "summary": "Reset script removed old demo journal data and preserved owner login admin@haccp.local.",
+      "artifacts": [
+        "raw/reset-demo-journals.txt",
+        "raw/db-state.json"
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "summary": "Demo staff was replaced with 8 active users that have distinct roles and position titles; legacy demo emails are absent.",
+      "artifacts": [
+        "raw/db-state.json"
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "summary": "Each of the 35 active templates has exactly one journal document and each document contains meaningful seeded content via entries or populated config.",
+      "artifacts": [
+        "raw/reset-demo-journals.txt",
+        "raw/db-state.json",
+        "raw/ac3-content-check.json"
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "summary": "Fresh verification captured actual DB counts and TypeScript passed with no emit.",
+      "artifacts": [
+        "raw/reset-demo-journals.txt",
+        "raw/tsc.txt"
+      ]
+    }
+  ],
+  "metrics": {
+    "organizationId": "cmnx55fg000005o9maiggrvya",
+    "activeUsers": 8,
+    "activeTemplates": 35,
+    "documents": 35,
+    "entries": 268
+  },
+  "commands": [
+    "npm run reset:demo:journals",
+    "npx tsc --noEmit",
+    "ad-hoc Prisma verification query for active users and per-template coverage",
+    "ad-hoc Prisma verification query for meaningful journal content"
+  ]
+}

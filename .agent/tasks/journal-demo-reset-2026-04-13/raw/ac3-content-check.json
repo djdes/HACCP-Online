@@ -1,0 +1,519 @@
+[
+  {
+    "code": "accident_journal",
+    "name": "Журнал учета аварий",
+    "documentTitle": "Журнал учета аварий",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "audit_plan",
+    "name": "План-программа внутренних аудитов",
+    "documentTitle": "План-программа аудитов",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(23)",
+      "year:number",
+      "columns:array(2)",
+      "sections:array(3)",
+      "approveRole:string",
+      "documentDate:string",
+      "approveEmployee:string",
+      "approveEmployeeId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "audit_protocol",
+    "name": "Протокол внутреннего аудита",
+    "documentTitle": "Протокол внутреннего аудита",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "sections:array(3)",
+      "basisTitle:string",
+      "signatures:array(2)",
+      "documentDate:string",
+      "auditedObject:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "audit_report",
+    "name": "Отчет о внутреннем аудите",
+    "documentTitle": "Отчет о внутреннем аудите",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "summary:string",
+      "auditors:array(2)",
+      "findings:array(1)",
+      "auditType:string",
+      "basisTitle:string",
+      "signatures:array(2)",
+      "documentDate:string",
+      "auditedObject:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "breakdown_history",
+    "name": "Карточка истории поломок",
+    "documentTitle": "Карточка истории поломок",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "cleaning",
+    "name": "Журнал уборки",
+    "documentTitle": "Журнал уборки",
+    "entryCount": 3,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "marks:object(8)",
+      "rooms:array(6)",
+      "title:string",
+      "legend:array(3)",
+      "matrix:object(8)",
+      "autoFill:object(4)",
+      "schedule:object(3)",
+      "settings:object(3)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "cleaning_ventilation_checklist",
+    "name": "Чек-лист уборки и проветривания помещений",
+    "documentTitle": "Чек-лист уборки и проветривания помещений",
+    "entryCount": 1,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "procedures:array(3)",
+      "responsibles:array(3)",
+      "skipWeekends:boolean",
+      "autoFillEnabled:boolean",
+      "ventilationEnabled:boolean",
+      "mainResponsibleTitle:string",
+      "mainResponsibleUserId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "climate_control",
+    "name": "Бланк контроля температуры и влажности",
+    "documentTitle": "Бланк контроля температуры и влажности",
+    "entryCount": 3,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rooms:array(4)",
+      "controlTimes:array(3)",
+      "skipWeekends:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "cold_equipment_control",
+    "name": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "documentTitle": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "entryCount": 3,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "equipment:array(8)",
+      "skipWeekends:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "complaint_register",
+    "name": "Журнал регистрации жалоб",
+    "documentTitle": "Журнал регистрации жалоб",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)",
+      "finishedAt:string",
+      "defaultResponsibleTitle:string",
+      "defaultResponsibleUserId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "disinfectant_usage",
+    "name": "Журнал учета дезинфицирующих средств",
+    "documentTitle": "Журнал учета дез. средств",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "receipts:array(2)",
+      "consumptions:array(1)",
+      "subdivisions:array(3)",
+      "responsibleRole:string",
+      "responsibleEmployee:string",
+      "responsibleEmployeeId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "equipment_calibration",
+    "name": "График поверки средств измерений",
+    "documentTitle": "График поверки средств измерений",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(11)",
+      "year:number",
+      "approveRole:string",
+      "documentDate:string",
+      "approveEmployee:string",
+      "approveEmployeeId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "equipment_cleaning",
+    "name": "Журнал мойки и дезинфекции оборудования",
+    "documentTitle": "Журнал мойки и дезинфекции оборудования",
+    "entryCount": 1,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "fieldVariant:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "equipment_maintenance",
+    "name": "График профилактического обслуживания оборудования",
+    "documentTitle": "График профилактического обслуживания оборудования",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(4)",
+      "year:number",
+      "approveRole:string",
+      "documentDate:string",
+      "approveEmployee:string",
+      "responsibleRole:string",
+      "approveEmployeeId:string",
+      "responsibleEmployee:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "finished_product",
+    "name": "Журнал бракеража готовой пищевой продукции",
+    "documentTitle": "Журнал бракеража готовой пищевой продукции",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)",
+      "footerNote:string",
+      "itemsCatalog:array(10)",
+      "productLists:array(2)",
+      "fieldNameMode:string",
+      "inspectorMode:string",
+      "showCourierTime:boolean",
+      "showOxygenLevel:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "fryer_oil",
+    "name": "Журнал учета использования фритюрных жиров",
+    "documentTitle": "Журнал учета использования фритюрных жиров",
+    "entryCount": 1,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "lists:object(3)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "general_cleaning",
+    "name": "График и учет генеральных уборок",
+    "documentTitle": "График ген. уборок",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "year:number",
+      "approveRole:string",
+      "documentDate:string",
+      "approveEmployee:string",
+      "responsibleRole:string",
+      "approveEmployeeId:string",
+      "responsibleEmployee:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "glass_control",
+    "name": "Журнал контроля изделий из стекла и хрупкого пластика",
+    "documentTitle": "Журнал контроля изделий",
+    "entryCount": 1,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "documentName:string",
+      "controlFrequency:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "glass_items_list",
+    "name": "Перечень изделий из стекла и хрупкого пластика",
+    "documentTitle": "Перечень изделий",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(3)",
+      "location:string",
+      "documentDate:string",
+      "documentName:string",
+      "responsibleTitle:string",
+      "responsibleUserId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "health_check",
+    "name": "Журнал здоровья",
+    "documentTitle": "Журнал здоровья",
+    "entryCount": 120,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "printEmptyRows:number"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "hygiene",
+    "name": "Гигиенический журнал",
+    "documentTitle": "Гигиенический журнал",
+    "entryCount": 120,
+    "hasMeaningfulConfig": false,
+    "signals": [],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "incoming_control",
+    "name": "Журнал приемки и входного контроля продукции",
+    "documentTitle": "Журнал приемки и входного контроля продукции",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "products:array(10)",
+      "suppliers:array(7)",
+      "manufacturers:array(7)",
+      "expiryFieldLabel:string",
+      "defaultResponsibleTitle:string",
+      "defaultResponsibleUserId:string",
+      "showPackagingComplianceField:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "incoming_raw_materials_control",
+    "name": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    "documentTitle": "Журнал входного контроля сырья",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "products:array(10)",
+      "suppliers:array(7)",
+      "manufacturers:array(7)",
+      "expiryFieldLabel:string",
+      "defaultResponsibleTitle:string",
+      "defaultResponsibleUserId:string",
+      "showPackagingComplianceField:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "intensive_cooling",
+    "name": "Журнал контроля интенсивного охлаждения горячих блюд",
+    "documentTitle": "Журнал контроля",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)",
+      "dishSuggestions:array(10)",
+      "defaultResponsibleTitle:string",
+      "defaultResponsibleUserId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "med_books",
+    "name": "Медицинские книжки",
+    "documentTitle": "Мед. книжки",
+    "entryCount": 8,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "examinations:array(10)",
+      "vaccinations:array(8)",
+      "includeVaccinations:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "metal_impurity",
+    "name": "Журнал учета металлопримесей в сырье",
+    "documentTitle": "Журнал учета металлопримесей",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "endDate:string",
+      "materials:array(10)",
+      "startDate:string",
+      "suppliers:array(7)",
+      "responsibleEmployee:string",
+      "responsiblePosition:string",
+      "responsibleEmployeeId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "perishable_rejection",
+    "name": "Журнал бракеража скоропортящейся пищевой продукции",
+    "documentTitle": "Журнал бракеража скоропортящейся пищевой продукции",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)",
+      "suppliers:array(7)",
+      "productLists:array(1)",
+      "manufacturers:array(7)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "pest_control",
+    "name": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "documentTitle": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "entryCount": 1,
+    "hasMeaningfulConfig": false,
+    "signals": [],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "ppe_issuance",
+    "name": "Журнал учета выдачи СИЗ",
+    "documentTitle": "Журнал учета выдачи СИЗ",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(3)",
+      "showCaps:boolean",
+      "showShoes:boolean",
+      "showGloves:boolean",
+      "showClothing:boolean",
+      "defaultIssuerTitle:string",
+      "defaultIssuerUserId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "product_writeoff",
+    "name": "Акт забраковки",
+    "documentTitle": "Акт забраковки",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(2)",
+      "actNumber:string",
+      "documentDate:string",
+      "documentName:string",
+      "productLists:array(1)",
+      "supplierName:string",
+      "commissionMembers:array(2)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "sanitary_day_control",
+    "name": "Чек-лист (памятка) проведения санитарного дня",
+    "documentTitle": "Чек-лист (памятка) проведения санитарного дня",
+    "entryCount": 1,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "items:array(20)",
+      "zones:array(3)",
+      "checkerName:string",
+      "responsibleName:string",
+      "generalPrinciples:array(2)"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "staff_training",
+    "name": "Журнал регистрации инструктажей (обучения) сотрудников",
+    "documentTitle": "Журнал регистрации инструктажей",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(15)",
+      "showSignatureField:boolean"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "traceability_test",
+    "name": "Журнал прослеживаемости продукции",
+    "documentTitle": "Журнал прослеживаемости продукции",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(1)",
+      "dateFrom:string",
+      "productList:array(5)",
+      "documentTitle:string",
+      "rawMaterialList:array(5)",
+      "showShipmentBlock:boolean",
+      "showShockTempField:boolean",
+      "defaultResponsibleRole:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "training_plan",
+    "name": "План обучения персонала",
+    "documentTitle": "План обучения 2026",
+    "entryCount": 0,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "rows:array(3)",
+      "year:number",
+      "topics:array(5)",
+      "approveRole:string",
+      "documentDate:string",
+      "approveEmployee:string",
+      "approveEmployeeId:string"
+    ],
+    "passesAc3Heuristic": true
+  },
+  {
+    "code": "uv_lamp_runtime",
+    "name": "Журнал учета работы УФ бактерицидной установки",
+    "documentTitle": "Бактерицидная установка №2 | Упаковка",
+    "entryCount": 5,
+    "hasMeaningfulConfig": true,
+    "signals": [
+      "spec:object(9)",
+      "areaName:string",
+      "lampNumber:string"
+    ],
+    "passesAc3Heuristic": true
+  }
+]

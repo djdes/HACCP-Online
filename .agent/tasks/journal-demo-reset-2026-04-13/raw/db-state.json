@@ -1,0 +1,385 @@
+﻿{
+  "organization": {
+    "id": "cmnx55fg000005o9maiggrvya",
+    "name": "Тестовая организация (админ)"
+  },
+  "users": [
+    {
+      "email": "admin@haccp.local",
+      "name": "Крылов Денис Сергеевич",
+      "role": "owner",
+      "positionTitle": "Управляющий",
+      "isActive": true
+    },
+    {
+      "email": "coldcook@haccp.local",
+      "name": "Орлов Илья Максимович",
+      "role": "operator",
+      "positionTitle": "Повар холодного цеха",
+      "isActive": true
+    },
+    {
+      "email": "hotcook@haccp.local",
+      "name": "Волкова Анна Дмитриевна",
+      "role": "operator",
+      "positionTitle": "Повар горячего цеха",
+      "isActive": true
+    },
+    {
+      "email": "pastry@haccp.local",
+      "name": "Мельникова Софья Романовна",
+      "role": "operator",
+      "positionTitle": "Кондитер",
+      "isActive": true
+    },
+    {
+      "email": "quality@haccp.local",
+      "name": "Белова Елена Андреевна",
+      "role": "technologist",
+      "positionTitle": "Технолог по качеству",
+      "isActive": true
+    },
+    {
+      "email": "sanitation@haccp.local",
+      "name": "Егорова Марина Викторовна",
+      "role": "operator",
+      "positionTitle": "Санитарный работник",
+      "isActive": true
+    },
+    {
+      "email": "souschef@haccp.local",
+      "name": "Никитин Павел Игоревич",
+      "role": "operator",
+      "positionTitle": "Су-шеф",
+      "isActive": true
+    },
+    {
+      "email": "storekeeper@haccp.local",
+      "name": "Кузьмин Артем Сергеевич",
+      "role": "operator",
+      "positionTitle": "Кладовщик",
+      "isActive": true
+    }
+  ],
+  "removedLegacyEmailsAbsent": true,
+  "templates": 35,
+  "documents": 35,
+  "entries": 268,
+  "perTemplate": [
+    {
+      "code": "equipment_calibration",
+      "title": "График поверки средств измерений",
+      "status": "active",
+      "dateFrom": "2026-01-01",
+      "dateTo": "2026-12-31",
+      "entryCount": 0,
+      "configBytes": 3222
+    },
+    {
+      "code": "equipment_maintenance",
+      "title": "График профилактического обслуживания оборудования",
+      "status": "active",
+      "dateFrom": "2026-01-01",
+      "dateTo": "2026-12-31",
+      "entryCount": 0,
+      "configBytes": 1829
+    },
+    {
+      "code": "staff_training",
+      "title": "Журнал регистрации инструктажей",
+      "status": "active",
+      "dateFrom": "2026-01-01",
+      "dateTo": "2026-12-31",
+      "entryCount": 0,
+      "configBytes": 4139
+    },
+    {
+      "code": "audit_plan",
+      "title": "План-программа аудитов",
+      "status": "active",
+      "dateFrom": "2026-01-15",
+      "dateTo": "2026-01-15",
+      "entryCount": 0,
+      "configBytes": 4589
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "title": "Бактерицидная установка №2 | Упаковка",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 5,
+      "configBytes": 339
+    },
+    {
+      "code": "fryer_oil",
+      "title": "Журнал учета использования фритюрных жиров",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 1,
+      "configBytes": 240
+    },
+    {
+      "code": "health_check",
+      "title": "Журнал здоровья",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-15",
+      "entryCount": 120,
+      "configBytes": 20
+    },
+    {
+      "code": "equipment_cleaning",
+      "title": "Журнал мойки и дезинфекции оборудования",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 1,
+      "configBytes": 36
+    },
+    {
+      "code": "glass_control",
+      "title": "Журнал контроля изделий",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 1,
+      "configBytes": 77
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "title": "Чек-лист уборки и проветривания помещений",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 1,
+      "configBytes": 884
+    },
+    {
+      "code": "finished_product",
+      "title": "Журнал бракеража готовой пищевой продукции",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 0,
+      "configBytes": 1395
+    },
+    {
+      "code": "perishable_rejection",
+      "title": "Журнал бракеража скоропортящейся пищевой продукции",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 0,
+      "configBytes": 976
+    },
+    {
+      "code": "climate_control",
+      "title": "Бланк контроля температуры и влажности",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 3,
+      "configBytes": 699
+    },
+    {
+      "code": "cold_equipment_control",
+      "title": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 3,
+      "configBytes": 1573
+    },
+    {
+      "code": "cleaning",
+      "title": "Журнал уборки",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 3,
+      "configBytes": 11587
+    },
+    {
+      "code": "complaint_register",
+      "title": "Журнал регистрации жалоб",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-01",
+      "entryCount": 0,
+      "configBytes": 522
+    },
+    {
+      "code": "intensive_cooling",
+      "title": "Журнал контроля",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-01",
+      "entryCount": 0,
+      "configBytes": 729
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "title": "Журнал входного контроля сырья",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-01",
+      "entryCount": 0,
+      "configBytes": 1575
+    },
+    {
+      "code": "traceability_test",
+      "title": "Журнал прослеживаемости продукции",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-01",
+      "entryCount": 0,
+      "configBytes": 1007
+    },
+    {
+      "code": "hygiene",
+      "title": "Гигиенический журнал",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-15",
+      "entryCount": 120,
+      "configBytes": 0
+    },
+    {
+      "code": "ppe_issuance",
+      "title": "Журнал учета выдачи СИЗ",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 0,
+      "configBytes": 1078
+    },
+    {
+      "code": "metal_impurity",
+      "title": "Журнал учета металлопримесей",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-30",
+      "entryCount": 0,
+      "configBytes": 1498
+    },
+    {
+      "code": "incoming_control",
+      "title": "Журнал приемки и входного контроля продукции",
+      "status": "active",
+      "dateFrom": "2026-04-01",
+      "dateTo": "2026-04-01",
+      "entryCount": 0,
+      "configBytes": 1575
+    },
+    {
+      "code": "pest_control",
+      "title": "Журнал учета дезинфекции, дезинсекции и дератизации",
+      "status": "active",
+      "dateFrom": "2026-04-06",
+      "dateTo": "2026-04-06",
+      "entryCount": 1,
+      "configBytes": 0
+    },
+    {
+      "code": "accident_journal",
+      "title": "Журнал учета аварий",
+      "status": "active",
+      "dateFrom": "2026-04-08",
+      "dateTo": "2026-04-08",
+      "entryCount": 0,
+      "configBytes": 684
+    },
+    {
+      "code": "training_plan",
+      "title": "План обучения 2026",
+      "status": "active",
+      "dateFrom": "2026-04-11",
+      "dateTo": "2026-04-11",
+      "entryCount": 0,
+      "configBytes": 1129
+    },
+    {
+      "code": "breakdown_history",
+      "title": "Карточка истории поломок",
+      "status": "active",
+      "dateFrom": "2026-04-12",
+      "dateTo": "2026-04-12",
+      "entryCount": 0,
+      "configBytes": 483
+    },
+    {
+      "code": "glass_items_list",
+      "title": "Перечень изделий",
+      "status": "active",
+      "dateFrom": "2026-04-13",
+      "dateTo": "2026-04-13",
+      "entryCount": 0,
+      "configBytes": 595
+    },
+    {
+      "code": "med_books",
+      "title": "Мед. книжки",
+      "status": "active",
+      "dateFrom": "2026-04-13",
+      "dateTo": "2026-04-13",
+      "entryCount": 8,
+      "configBytes": 293
+    },
+    {
+      "code": "disinfectant_usage",
+      "title": "Журнал учета дез. средств",
+      "status": "active",
+      "dateFrom": "2026-04-13",
+      "dateTo": "2026-04-13",
+      "entryCount": 0,
+      "configBytes": 2017
+    },
+    {
+      "code": "product_writeoff",
+      "title": "Акт забраковки",
+      "status": "active",
+      "dateFrom": "2026-04-18",
+      "dateTo": "2026-04-18",
+      "entryCount": 0,
+      "configBytes": 1282
+    },
+    {
+      "code": "general_cleaning",
+      "title": "График ген. уборок",
+      "status": "active",
+      "dateFrom": "2026-04-20",
+      "dateTo": "2026-04-20",
+      "entryCount": 0,
+      "configBytes": 927
+    },
+    {
+      "code": "sanitary_day_control",
+      "title": "Чек-лист (памятка) проведения санитарного дня",
+      "status": "active",
+      "dateFrom": "2026-04-21",
+      "dateTo": "2026-04-21",
+      "entryCount": 1,
+      "configBytes": 4603
+    },
+    {
+      "code": "audit_protocol",
+      "title": "Протокол внутреннего аудита",
+      "status": "active",
+      "dateFrom": "2026-04-22",
+      "dateTo": "2026-04-22",
+      "entryCount": 0,
+      "configBytes": 924
+    },
+    {
+      "code": "audit_report",
+      "title": "Отчет о внутреннем аудите",
+      "status": "active",
+      "dateFrom": "2026-04-23",
+      "dateTo": "2026-04-23",
+      "entryCount": 0,
+      "configBytes": 1229
+    }
+  ]
+}
