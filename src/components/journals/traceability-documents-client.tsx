@@ -228,7 +228,7 @@ function TraceabilityActionsMenu(props: {
           <Ellipsis className="size-8 text-[#5b66ff]" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-4 shadow-xl">
+      <DropdownMenuContent forceMount align="end" className="w-[320px] rounded-[28px] border-0 p-4 shadow-xl">
         <DropdownMenuItem
           className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
           onSelect={props.onSettings}

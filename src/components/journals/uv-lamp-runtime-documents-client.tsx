@@ -393,7 +393,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[260px] rounded-[20px] border border-[#eceef5] p-3 shadow-lg">
+                  <DropdownMenuContent forceMount align="end" className="w-[260px] rounded-[20px] border border-[#eceef5] p-3 shadow-lg">
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="h-14 rounded-xl px-4 text-[18px]"

@@ -119,7 +119,7 @@ export function DocumentActionsMenu(props: {
           <Ellipsis className="size-8 text-[#5b66ff]" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
+      <DropdownMenuContent forceMount
         align="end"
         className={
           md

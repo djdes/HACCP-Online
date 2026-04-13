@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  BookOpenText,
   CalendarDays,
   Ellipsis,
   Plus,
@@ -248,15 +249,27 @@ export function CleaningVentilationChecklistDocumentsClient({
           {CLEANING_VENTILATION_CHECKLIST_TITLE}
           {activeTab === "closed" ? " (Закрытые)" : ""}
         </h1>
-        {activeTab === "active" ? (
+        <div className="flex items-center gap-3">
           <Button
-            className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff]"
-            onClick={() => setCreateOpen(true)}
+            variant="outline"
+            className="h-12 rounded-2xl border-[#e8ebf7] px-6 text-[16px] text-[#5b66ff] shadow-none"
+            asChild
           >
-            <Plus className="mr-2 size-5" />
-            Создать документ
+            <Link href="/sanpin">
+              <BookOpenText className="size-5" />
+              Инструкция
+            </Link>
           </Button>
-        ) : null}
+          {activeTab === "active" ? (
+            <Button
+              className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff]"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="mr-2 size-5" />
+              Создать документ
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="border-b border-[#d9dce8]">
@@ -328,7 +341,7 @@ export function CleaningVentilationChecklistDocumentsClient({
                       <Ellipsis className="size-8" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent forceMount align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
                     <DropdownMenuItem
                       className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
                       onSelect={() => setSettingsTarget(document)}

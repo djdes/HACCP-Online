@@ -273,7 +273,7 @@ export function FryerOilDocumentsClient(props: Props) {
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[206px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg">
+                  <DropdownMenuContent forceMount align="end" className="w-[206px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg">
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="h-11 rounded-lg px-3 text-[14px]"

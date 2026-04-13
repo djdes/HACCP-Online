@@ -169,6 +169,21 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
     if (!response.ok) throw new Error("Не удалось удалить документ");
     router.refresh();
   }
+  async function moveToStatus(documentId: string, status: "active" | "closed") {
+    const response = await fetch(`/api/journal-documents/${documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) {
+      throw new Error(
+        status === "closed"
+          ? "Не удалось отправить в закрытые"
+          : "Не удалось отправить в активные"
+      );
+    }
+    router.refresh();
+  }
 
   return (
     <>
@@ -218,7 +233,7 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
                         <Ellipsis className="size-6" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
+                    <DropdownMenuContent forceMount align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                       {document.status === "active" && (
                         <DropdownMenuItem className="mb-2 h-14 rounded-2xl px-4 text-[18px]" onSelect={() => setSettingsDocument(document)}>
                           <Settings2 className="mr-3 size-5 text-[#6f7282]" />Настройки
@@ -226,6 +241,24 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
                       )}
                       <DropdownMenuItem className="mb-2 h-14 rounded-2xl px-4 text-[18px]" onSelect={() => void openDocumentPdf(document.id).catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF"))}>
                         <Printer className="mr-3 size-5 text-[#6f7282]" />Печать
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className={`h-14 rounded-2xl px-4 text-[18px] ${document.status === "active" ? "mb-2" : ""}`}
+                        onSelect={() =>
+                          void moveToStatus(
+                            document.id,
+                            document.status === "active" ? "closed" : "active"
+                          ).catch((error) =>
+                            toast.error(
+                              error instanceof Error ? error.message : "Ошибка изменения статуса"
+                            )
+                          )
+                        }
+                      >
+                        <BookOpenText className="mr-3 size-5 text-[#6f7282]" />
+                        {document.status === "active"
+                          ? "Отправить в закрытые"
+                          : "Отправить в активные"}
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem className="h-14 rounded-2xl px-4 text-[18px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => setDeleteDocument(document)}>

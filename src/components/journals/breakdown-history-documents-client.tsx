@@ -378,7 +378,7 @@ export function BreakdownHistoryDocumentsClient({
                       <Ellipsis className="size-8" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent forceMount align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="mb-2 h-14 rounded-2xl px-4 text-[18px]"

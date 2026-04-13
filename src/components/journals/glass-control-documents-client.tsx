@@ -410,7 +410,7 @@ export function GlassControlDocumentsClient(props: Props) {
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent
+                  <DropdownMenuContent forceMount
                     align="end"
                     className="w-[240px] rounded-[24px] border-0 p-3 shadow-xl"
                   >

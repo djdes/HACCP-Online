@@ -340,7 +340,7 @@ export function ColdEquipmentDocumentsClient({
                         <Ellipsis className="size-9" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
+                    <DropdownMenuContent forceMount
                       align="end"
                       className="w-[320px] rounded-[28px] border-0 p-4 shadow-[0_24px_80px_rgba(54,61,112,0.18)]"
                     >

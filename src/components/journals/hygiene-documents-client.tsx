@@ -202,7 +202,7 @@ function DocumentRow({
               <Ellipsis className="size-8" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-6 shadow-xl">
+          <DropdownMenuContent forceMount align="end" className="w-[320px] rounded-[28px] border-0 p-6 shadow-xl">
             {canManage && (
               <DropdownMenuItem
                 className="mb-3 h-16 rounded-2xl px-4 text-[20px]"

@@ -506,7 +506,7 @@ export function PpeIssuanceDocumentsClient({
                       <Ellipsis className="size-8" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent
+                  <DropdownMenuContent forceMount
                     align="end"
                     className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
                   >

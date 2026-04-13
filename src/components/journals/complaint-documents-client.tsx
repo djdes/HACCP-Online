@@ -388,7 +388,7 @@ export function ComplaintDocumentsClient({
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
+                  <DropdownMenuContent forceMount align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
