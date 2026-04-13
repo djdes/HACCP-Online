@@ -768,13 +768,10 @@ export async function dispatchExternalEntries(params: {
     let documentConfig: unknown = currentDoc.config;
     if (shouldPersistEntryConfig(template.code)) {
       documentConfig = normalizeEntryDocumentConfig(template.code, currentDoc.config, allUsers);
-      const missingConfig = !isRecord(currentDoc.config);
-      if (missingConfig) {
-        currentDoc = await tx.journalDocument.update({
-          where: { id: currentDoc.id },
-          data: { config: toPrismaJsonValue(documentConfig) },
-        });
-      }
+      currentDoc = await tx.journalDocument.update({
+        where: { id: currentDoc.id },
+        data: { config: toPrismaJsonValue(documentConfig) },
+      });
     }
 
     if (usesConfigWriter(template.code)) {
