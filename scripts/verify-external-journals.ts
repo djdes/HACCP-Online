@@ -35,8 +35,13 @@ function markerFor(code: string) {
 }
 
 function containsAll(text: string, needles: string[]) {
-  const haystack = text.toLowerCase();
-  return needles.every((needle) => haystack.includes(needle.toLowerCase()));
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/\u00ad/g, "");
+  const haystack = normalize(text);
+  return needles.every((needle) => haystack.includes(normalize(needle)));
 }
 
 function toRegisterRow(values: Record<string, string>) {
@@ -164,8 +169,8 @@ const DEFINITIONS: Record<string, PayloadDefinition> = {
         },
         responsibleUserId: marker,
       },
-      expectedUi: ["06:41", "14:21"],
-      expectedPdf: ["06:41", "14:21"],
+      expectedUi: ["06:40", "14:20"],
+      expectedPdf: ["06:40", "14:20"],
     }),
   },
   climate_control: {

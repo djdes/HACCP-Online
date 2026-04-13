@@ -121,6 +121,10 @@ import {
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
   normalizeEquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
+import {
+  CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE,
+  normalizeCleaningVentilationEntryData,
+} from "@/lib/cleaning-ventilation-checklist-document";
 
 export type ExternalEntryInput = {
   employeeId?: string | null;
@@ -403,6 +407,29 @@ function normalizeEquipmentCleaningPayload(value: unknown) {
   return normalizeEquipmentCleaningRowData(value);
 }
 
+function normalizeChecklistTime(value: unknown) {
+  const raw = normalizeText(value);
+  const match = raw.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!match) return raw;
+  const hour = String(Math.min(23, Math.max(0, Number(match[1])))).padStart(2, "0");
+  const minute = Math.floor(Math.min(59, Math.max(0, Number(match[2]))) / 5) * 5;
+  return `${hour}:${String(minute).padStart(2, "0")}`;
+}
+
+function normalizeCleaningVentilationPayload(value: unknown) {
+  const normalized = normalizeCleaningVentilationEntryData(value);
+  const procedures = Object.fromEntries(
+    Object.entries(normalized.procedures).map(([key, times]) => [
+      key,
+      times.map((time) => normalizeChecklistTime(time)).filter(Boolean),
+    ])
+  );
+  return {
+    ...normalized,
+    procedures,
+  };
+}
+
 function normalizeEntryDocumentConfig(templateCode: string, value: unknown, users: EmployeeRecord[]) {
   switch (templateCode) {
     case CLIMATE_DOCUMENT_TEMPLATE_CODE:
@@ -478,6 +505,8 @@ function normalizeEntryPayload(templateCode: string, value: unknown, documentCon
       return normalizePestControlEntryData(value);
     case EQUIPMENT_CLEANING_TEMPLATE_CODE:
       return normalizeEquipmentCleaningPayload(value);
+    case CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE:
+      return normalizeCleaningVentilationPayload(value);
     default:
       return value;
   }
