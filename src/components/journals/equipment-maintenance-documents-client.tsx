@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -202,7 +202,7 @@ export function EquipmentMaintenanceDocumentsClient({
                     <Ellipsis className="size-5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent forceMount align="end" className="w-[280px] rounded-2xl border-0 p-3 shadow-xl">
+                <DropdownMenuContent align="end" className="w-[280px] rounded-2xl border-0 p-3 shadow-xl">
                   {doc.status === "active" && (
                     <>
                       <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => setEditingDoc(doc)}>

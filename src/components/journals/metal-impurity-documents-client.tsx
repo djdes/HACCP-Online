@@ -530,7 +530,7 @@ export function MetalImpurityDocumentsClient({
                         <Ellipsis className="size-6" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent forceMount
+                    <DropdownMenuContent
                       align="end"
                       className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
                     >

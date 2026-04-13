@@ -467,7 +467,7 @@ export function PestControlDocumentsClient(props: Props) {
                       <Ellipsis className="size-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent forceMount
+                  <DropdownMenuContent
                     align="end"
                     className="w-[220px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg"
                   >

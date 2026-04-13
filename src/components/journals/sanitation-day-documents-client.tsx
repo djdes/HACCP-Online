@@ -643,7 +643,7 @@ export function SanitationDayDocumentsClient({
                     </button>
                   </DropdownMenuTrigger>
 
-                  <DropdownMenuContent forceMount align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
                     {document.status === "active" ? (
                       <>
                         <DropdownMenuItem

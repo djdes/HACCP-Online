@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -512,7 +512,7 @@ export function IncomingControlDocumentsClient({
                         <Ellipsis className="size-6" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent forceMount
+                    <DropdownMenuContent
                       align="end"
                       className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
                     >

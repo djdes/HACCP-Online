@@ -171,7 +171,7 @@ function HealthDocumentRow(props: {
               <Ellipsis className="size-7" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent forceMount align="end" className="w-[300px] rounded-[24px] border-0 p-4 shadow-xl">
+          <DropdownMenuContent align="end" className="w-[300px] rounded-[24px] border-0 p-4 shadow-xl">
             {canManage ? (
               <DropdownMenuItem
                 className="mb-2 h-14 rounded-2xl px-4 text-[18px]"

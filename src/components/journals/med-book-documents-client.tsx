@@ -270,7 +270,7 @@ export function MedBookDocumentsClient({
                       <Ellipsis className="size-6" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent forceMount align="end" className="w-[240px] rounded-2xl p-2">
+                  <DropdownMenuContent align="end" className="w-[240px] rounded-2xl p-2">
                     <DropdownMenuItem
                       className="mb-1 h-12 rounded-xl px-3 text-[16px]"
                       onSelect={() => router.push(`/journals/${templateCode}/documents/${document.id}`)}
