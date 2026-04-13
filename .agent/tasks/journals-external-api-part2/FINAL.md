@@ -1,0 +1,39 @@
+﻿# External API verification
+
+| Code | POST | UI | PDF | Verdict |
+|---|---:|---|---|---|
+| accident_journal | 200 | PASS | PASS | PASS |
+| audit_plan | 200 | PASS | PASS | PASS |
+| audit_protocol | 200 | PASS | PASS | PASS |
+| audit_report | 200 | PASS | PASS | PASS |
+| breakdown_history | 200 | PASS | PASS | PASS |
+| cleaning | 200 | PASS | PASS | PASS |
+| cleaning_ventilation_checklist | 200 | PASS | PASS | PASS |
+| climate_control | 200 | PASS | PASS | PASS |
+| cold_equipment_control | 200 | PASS | PASS | PASS |
+| complaint_register | 200 | PASS | PASS | PASS |
+| disinfectant_usage | 200 | PASS | PASS | PASS |
+| equipment_calibration | 200 | PASS | PASS | PASS |
+| equipment_cleaning | 200 | PASS | PASS | PASS |
+| equipment_maintenance | 200 | PASS | PASS | PASS |
+| finished_product | 200 | PASS | PASS | PASS |
+| fryer_oil | 200 | PASS | PASS | PASS |
+| general_cleaning | 200 | PASS | PASS | PASS |
+| glass_control | 200 | PASS | PASS | PASS |
+| glass_items_list | 200 | PASS | PASS | PASS |
+| health_check | 200 | PASS | PASS | PASS |
+| hygiene | 200 | PASS | PASS | PASS |
+| incoming_control | 200 | PASS | PASS | PASS |
+| incoming_raw_materials_control | 200 | PASS | PASS | PASS |
+| intensive_cooling | 200 | PASS | PASS | PASS |
+| med_books | 200 | PASS | PASS | PASS |
+| metal_impurity | 200 | PASS | PASS | PASS |
+| perishable_rejection | 200 | PASS | PASS | PASS |
+| pest_control | 200 | PASS | PASS | PASS |
+| ppe_issuance | 200 | PASS | PASS | PASS |
+| product_writeoff | 200 | PASS | PASS | PASS |
+| sanitary_day_control | 200 | PASS | PASS | PASS |
+| staff_training | 200 | PASS | PASS | PASS |
+| traceability_test | 200 | PASS | PASS | PASS |
+| training_plan | 200 | PASS | PASS | PASS |
+| uv_lamp_runtime | 200 | PASS | PASS | PASS |

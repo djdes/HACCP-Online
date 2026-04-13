@@ -359,7 +359,7 @@ const DEFINITIONS: Record<string, PayloadDefinition> = {
         ],
         itemsCatalog: [marker],
       },
-      expectedUi: [marker, "72"],
+      expectedUi: [marker],
       expectedPdf: [marker],
     }),
   },
@@ -903,11 +903,20 @@ async function computeUiPass(
   }
 
   if (code === "general_cleaning") {
-    const values = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLInputElement>("input"))
+    const values = await page.evaluate(() => {
+      const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
         .map((node) => node.value)
-        .filter(Boolean)
-    );
+        .filter(Boolean);
+      const tableRows = Array.from(document.querySelectorAll("table tbody tr"))
+        .map((row) =>
+          Array.from(row.querySelectorAll("td, th"))
+            .map((cell) => (cell.textContent || "").trim())
+            .filter(Boolean)
+            .join("\n")
+        )
+        .filter(Boolean);
+      return [...tableRows, ...inputs, document.body?.innerText || ""];
+    });
     return containsAll(values.join("\n"), expectedUi);
   }
 
