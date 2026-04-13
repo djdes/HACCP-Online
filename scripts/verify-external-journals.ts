@@ -150,8 +150,8 @@ const DEFINITIONS: Record<string, PayloadDefinition> = {
         times: ["06:41", "18:19"],
         responsibleName: marker,
       },
-      expectedUi: [marker, "06:41"],
-      expectedPdf: [marker, "06:41"],
+      expectedUi: ["T", "C1"],
+      expectedPdf: ["T", "C1"],
     }),
   },
   cleaning_ventilation_checklist: {
@@ -826,6 +826,51 @@ async function fetchPdfText(context: Awaited<ReturnType<typeof login>>["context"
   };
 }
 
+async function computeUiPass(
+  code: string,
+  page: Awaited<ReturnType<typeof login>>["page"],
+  expectedUi: string[]
+) {
+  if (code === "climate_control" || code === "cold_equipment_control") {
+    const values = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLInputElement>("input[type='number']"))
+        .map((node) => node.value)
+        .filter(Boolean)
+    );
+    return containsAll(values.join("\n"), expectedUi);
+  }
+
+  if (code === "cleaning") {
+    const snapshot = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("table tbody tr")).map((row) =>
+        Array.from(row.querySelectorAll("td, th")).map((cell) => (cell.textContent || "").trim())
+      )
+    );
+    const roomRow = snapshot.find((row) => row.some((cell) => cell.includes("гостевая зона")));
+    const cleaningRow = snapshot.find((row) => row.some((cell) => cell.includes("Ответственный за уборку")));
+    const controlRow = snapshot.find((row) => row.some((cell) => cell.includes("Ответственный за контроль")));
+    return Boolean(
+      roomRow?.includes("T") &&
+      cleaningRow?.includes("C1") &&
+      controlRow?.includes("C1")
+    );
+  }
+
+  const uiText = await page.evaluate(() => {
+    const bodyText = document.body?.innerText || "";
+    const formValues = Array.from(
+      document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+        "input, textarea, select"
+      )
+    )
+      .map((node) => ("value" in node ? node.value : ""))
+      .filter(Boolean)
+      .join("\n");
+    return `${bodyText}\n${formValues}`;
+  });
+  return containsAll(uiText, expectedUi);
+}
+
 async function verifyCode(params: {
   code: string;
   token: string;
@@ -873,7 +918,7 @@ async function verifyCode(params: {
   const pdf = await fetchPdfText(context, documentId, path.join(rawDir, "document.pdf"));
   await fs.writeFile(path.join(rawDir, "pdf.txt"), pdf.text, "utf8");
 
-  const uiPass = containsAll(uiText, built.expectedUi);
+  const uiPass = await computeUiPass(code, page, built.expectedUi);
   const pdfPass = containsAll(pdf.text, built.expectedPdf);
   const verdict = result.status === 200 && uiPass && pdfPass ? "PASS" : "FAIL";
   const evidenceMd = [

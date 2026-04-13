@@ -346,12 +346,13 @@ function normalizeColdEquipmentPayload(value: unknown, documentConfig: unknown) 
   const firstEquipment = config.equipment[0];
 
   const readings = Array.isArray(value.readings) ? value.readings : [];
-  for (const reading of readings) {
+  for (const [index, reading] of readings.entries()) {
     if (!isRecord(reading)) continue;
     const equipment =
       (normalizeText(reading.equipmentId) && config.equipment.find((item) => item.id === normalizeText(reading.equipmentId))) ||
       equipmentBySourceId.get(normalizeText(reading.sourceEquipmentId)) ||
       equipmentByName.get(normalizeText(reading.equipmentName).toLowerCase()) ||
+      config.equipment[index] ||
       firstEquipment;
     if (!equipment) continue;
     result.temperatures[equipment.id] = normalizeNumber(reading.temp ?? reading.temperature);
