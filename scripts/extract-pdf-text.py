@@ -26,7 +26,8 @@ def main() -> int:
       except Exception:
         parts.append("")
 
-    sys.stdout.write("\n".join(parts))
+    output = "\n".join(parts)
+    sys.stdout.buffer.write(output.encode("utf-8", errors="replace"))
     return 0
 
 

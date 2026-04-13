@@ -817,7 +817,20 @@ async function fetchPdfText(context: Awaited<ReturnType<typeof login>>["context"
   const pdfResponse = await context.request.get(`${BASE}/api/journal-documents/${documentId}/pdf`);
   const pdfBuffer = Buffer.from(await pdfResponse.body());
   await fs.writeFile(outPath, pdfBuffer);
-  const { stdout } = await execFileAsync("python", ["scripts/extract-pdf-text.py", outPath], { maxBuffer: 16 * 1024 * 1024 });
+  let stdout = "";
+  if ((pdfResponse.headers()["content-type"] || "").includes("pdf")) {
+    try {
+      const result = await execFileAsync("python", ["scripts/extract-pdf-text.py", outPath], {
+        maxBuffer: 16 * 1024 * 1024,
+        encoding: "utf8",
+      });
+      stdout = result.stdout;
+    } catch (error) {
+      stdout = error instanceof Error ? error.message : String(error);
+    }
+  } else {
+    stdout = pdfBuffer.toString("utf8");
+  }
   return {
     status: pdfResponse.status(),
     contentType: pdfResponse.headers()["content-type"] || "",
@@ -970,9 +983,28 @@ async function main() {
 
   try {
     for (const code of requestedCodes) {
-      const result = await verifyCode({ code, token, page, context });
-      results.push(result);
-      console.log(`[${code}] ${result.verdict} doc=${result.documentId}`);
+      try {
+        const result = await verifyCode({ code, token, page, context });
+        results.push(result);
+        console.log(`[${code}] ${result.verdict} doc=${result.documentId}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        results.push({
+          code,
+          verdict: "FAIL",
+          documentId: "",
+          postStatus: 500,
+          uiPass: false,
+          pdfPass: false,
+        });
+        await fs.mkdir(path.join(OUT_DIR, code), { recursive: true });
+        await fs.writeFile(
+          path.join(OUT_DIR, code, "evidence.md"),
+          `# ${code} вЂ” end-to-end вЂ” ${new Date().toISOString()}\n- POST: ERROR\n- UI rendering: FAIL вЂ” ${message}\n- PDF rendering: FAIL вЂ” ${message}\n- Payload shape used: unknown\n- Problems: ${message}\n- Verdict: FAIL\n`,
+          "utf8"
+        );
+        console.log(`[${code}] FAIL error=${message}`);
+      }
     }
   } finally {
     await browser.close();
