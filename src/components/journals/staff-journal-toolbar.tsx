@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Printer, UserPlus, Users } from "lucide-react";
@@ -387,7 +386,6 @@ export function StaffJournalToolbar({
   users,
   includedEmployeeIds,
   routeCode,
-  organizationName,
   showHeaderActions = false,
   hideHeading = false,
   hidePrint = false,
