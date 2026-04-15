@@ -660,9 +660,9 @@ export function SanitationDayDocumentClient({
               type="button"
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="rounded-2xl border-[#eef0fb] px-7 py-6 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
             >
-              <Settings2 className="size-5" />
+              <Settings2 className="size-4" />
               Настройки журнала
             </Button>
           )}
