@@ -160,10 +160,7 @@ export function GlassListDocumentClient({
       )}
 
       <div className="rounded-[28px] bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center justify-between text-[14px] text-[#73738a]">
-          <div>
-            {organizationName} &nbsp;&gt;&nbsp; {GLASS_LIST_PAGE_TITLE} &nbsp;&gt;&nbsp; {title}
-          </div>
+        <div className="mb-6 flex items-center justify-end gap-3 text-[14px] text-[#73738a]">
           <Button
             type="button"
             variant="outline"
