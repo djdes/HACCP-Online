@@ -17,9 +17,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import {
@@ -81,7 +97,8 @@ function usersForRole(users: UserItem[], roleLabel: string) {
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  if (Number.isNaN(date.getTime()))
+    return new Date().toISOString().slice(0, 10);
   return date.toISOString().slice(0, 10);
 }
 
@@ -153,22 +170,31 @@ function SettingsDialog(props: {
         {activeState ? (
           <div className="space-y-5 px-10 py-8">
             <div className="space-y-2">
-              <Label className="text-[22px] text-[#7a7c8e]">Название документа</Label>
+              <Label className="text-[22px] text-[#7a7c8e]">
+                Название документа
+              </Label>
               <Input
                 value={activeState.title}
-                onChange={(event) => setState({ ...activeState, title: event.target.value })}
+                onChange={(event) =>
+                  setState({ ...activeState, title: event.target.value })
+                }
                 className="h-14 rounded-3xl border-[#d8dae6] px-5 text-[16px] tracking-[-0.02em] sm:h-20 sm:px-7 sm:text-[28px]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[22px] text-[#7a7c8e]">Дата документа</Label>
+              <Label className="text-[22px] text-[#7a7c8e]">
+                Дата документа
+              </Label>
               <div className="relative">
                 <Input
                   type="date"
                   value={activeState.documentDate}
                   onChange={(event) =>
-                    setState({ ...activeState, documentDate: toIsoDate(event.target.value) })
+                    setState({
+                      ...activeState,
+                      documentDate: toIsoDate(event.target.value),
+                    })
                   }
                   className="h-14 rounded-3xl border-[#d8dae6] px-5 pr-12 text-[16px] tracking-[-0.02em] sm:h-20 sm:px-7 sm:pr-14 sm:text-[28px]"
                 />
@@ -178,7 +204,12 @@ function SettingsDialog(props: {
 
             <div className="space-y-2">
               <Label className="text-[22px] text-[#7a7c8e]">Год</Label>
-              <Select value={activeState.year} onValueChange={(value) => setState({ ...activeState, year: value })}>
+              <Select
+                value={activeState.year}
+                onValueChange={(value) =>
+                  setState({ ...activeState, year: value })
+                }
+              >
                 <SelectTrigger className="h-14 rounded-3xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px] sm:h-20 sm:px-7 sm:text-[28px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -196,7 +227,9 @@ function SettingsDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[22px] text-[#7a7c8e]">Должность &quot;Утверждаю&quot;</Label>
+              <Label className="text-[22px] text-[#7a7c8e]">
+                Должность &quot;Утверждаю&quot;
+              </Label>
               <Select
                 value={activeState.approveRole}
                 onValueChange={(value) => {
@@ -205,7 +238,8 @@ function SettingsDialog(props: {
                     ...activeState,
                     approveRole: value,
                     approveEmployeeId: firstUser?.id || "",
-                    approveEmployee: firstUser?.name || activeState.approveEmployee,
+                    approveEmployee:
+                      firstUser?.name || activeState.approveEmployee,
                   });
                 }}
               >
@@ -239,17 +273,21 @@ function SettingsDialog(props: {
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersForRole(props.users, activeState.approveRole).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {buildStaffOptionLabel(user)}
-                    </SelectItem>
-                  ))}
+                  {usersForRole(props.users, activeState.approveRole).map(
+                    (user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {buildStaffOptionLabel(user)}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[22px] text-[#7a7c8e]">Ответственный</Label>
+              <Label className="text-[22px] text-[#7a7c8e]">
+                Ответственный
+              </Label>
               <Select
                 value={activeState.responsibleRole}
                 onValueChange={(value) => {
@@ -258,7 +296,8 @@ function SettingsDialog(props: {
                     ...activeState,
                     responsibleRole: value,
                     responsibleEmployeeId: firstUser?.id || "",
-                    responsibleEmployee: firstUser?.name || activeState.responsibleEmployee,
+                    responsibleEmployee:
+                      firstUser?.name || activeState.responsibleEmployee,
                   });
                 }}
               >
@@ -284,7 +323,8 @@ function SettingsDialog(props: {
                   setState({
                     ...activeState,
                     responsibleEmployeeId: value,
-                    responsibleEmployee: user?.name || activeState.responsibleEmployee,
+                    responsibleEmployee:
+                      user?.name || activeState.responsibleEmployee,
                   });
                 }}
               >
@@ -292,11 +332,13 @@ function SettingsDialog(props: {
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersForRole(props.users, activeState.responsibleRole).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {buildStaffOptionLabel(user)}
-                    </SelectItem>
-                  ))}
+                  {usersForRole(props.users, activeState.responsibleRole).map(
+                    (user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {buildStaffOptionLabel(user)}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -375,13 +417,17 @@ export function SanitationDayDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
-  const [settingsTarget, setSettingsTarget] = useState<SanitationDocumentItem | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<SanitationDocumentItem | null>(null);
+  const [settingsTarget, setSettingsTarget] =
+    useState<SanitationDocumentItem | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<SanitationDocumentItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   async function createDocument(payload: SettingsState) {
     const config = {
-      ...getSanitationDayDefaultConfig(new Date(`${payload.year}-01-01T00:00:00Z`)),
+      ...getSanitationDayDefaultConfig(
+        new Date(`${payload.year}-01-01T00:00:00Z`),
+      ),
       year: Number(payload.year),
       documentDate: payload.documentDate,
       approveRole: payload.approveRole,
@@ -454,7 +500,9 @@ export function SanitationDayDocumentsClient({
   }
 
   async function handleDelete(documentId: string) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
+    const response = await fetch(`/api/journal-documents/${documentId}`, {
+      method: "DELETE",
+    });
     if (!response.ok) {
       toast.error("Не удалось удалить документ");
       return;
@@ -600,39 +648,64 @@ export function SanitationDayDocumentsClient({
           return (
             <div
               key={document.id}
-              className="grid grid-cols-[1.7fr_250px_430px_430px_270px_64px] items-center rounded-[18px] border border-[#eaedf7] bg-white px-8 py-5"
+              className="grid grid-cols-1 gap-4 rounded-[18px] border border-[#eaedf7] bg-white px-5 py-5 sm:grid-cols-[1.7fr_180px_280px_280px_220px_64px] sm:items-center sm:gap-0 sm:px-8"
             >
-              <Link href={href} className="text-[18px] font-semibold tracking-[-0.02em] text-black">
+              <Link
+                href={href}
+                className="text-[18px] font-semibold tracking-[-0.02em] text-black"
+              >
                 {document.title || SANITATION_DAY_DOCUMENT_TITLE}
               </Link>
 
-              <Link href={href} className="border-l border-[#e8ebf5] px-8">
+              <Link
+                href={href}
+                className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0"
+              >
                 <div className="text-[14px] text-[#7c8094]">Год</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">{getSanitationYearLabel(cfg.year)}</div>
-              </Link>
-
-              <Link href={href} className="border-l border-[#e8ebf5] px-8">
-                <div className="text-[14px] text-[#7c8094]">Должность &quot;Утверждаю&quot;</div>
                 <div className="mt-2 text-[18px] font-semibold text-black">
-                  {getSanitationApproveLabel(cfg.approveRole, cfg.approveEmployee)}
+                  {getSanitationYearLabel(cfg.year)}
                 </div>
               </Link>
 
-              <Link href={href} className="border-l border-[#e8ebf5] px-8">
+              <Link
+                href={href}
+                className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0"
+              >
+                <div className="text-[14px] text-[#7c8094]">
+                  Должность &quot;Утверждаю&quot;
+                </div>
+                <div className="mt-2 text-[18px] font-semibold leading-tight text-black">
+                  {getSanitationApproveLabel(
+                    cfg.approveRole,
+                    cfg.approveEmployee,
+                  )}
+                </div>
+              </Link>
+
+              <Link
+                href={href}
+                className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0"
+              >
                 <div className="text-[14px] text-[#7c8094]">Ответственный</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
-                  {getSanitationApproveLabel(cfg.responsibleRole, cfg.responsibleEmployee)}
+                <div className="mt-2 text-[18px] font-semibold leading-tight text-black">
+                  {getSanitationApproveLabel(
+                    cfg.responsibleRole,
+                    cfg.responsibleEmployee,
+                  )}
                 </div>
               </Link>
 
-              <Link href={href} className="border-l border-[#e8ebf5] px-8">
+              <Link
+                href={href}
+                className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0"
+              >
                 <div className="text-[14px] text-[#7c8094]">Дата документа</div>
                 <div className="mt-2 text-[18px] font-semibold text-black">
                   {getSanitationDocumentDateLabel(cfg.documentDate)}
                 </div>
               </Link>
 
-              <div className="flex justify-center">
+              <div className="flex justify-start sm:justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -643,7 +716,10 @@ export function SanitationDayDocumentsClient({
                     </button>
                   </DropdownMenuTrigger>
 
-                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
+                  >
                     {document.status === "active" ? (
                       <>
                         <DropdownMenuItem
@@ -665,7 +741,12 @@ export function SanitationDayDocumentsClient({
 
                     <DropdownMenuItem
                       className="mb-2 h-14 rounded-2xl px-4 text-[18px]"
-                      onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+                      onSelect={() =>
+                        window.open(
+                          `/api/journal-documents/${document.id}/pdf`,
+                          "_blank",
+                        )
+                      }
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" />
                       Печать
