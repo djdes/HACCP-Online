@@ -491,18 +491,18 @@ export function ComplaintDocumentClient({
                 setEditingRow(null);
                 setRowDialogOpen(true);
               }}
-              className="h-16 rounded-[14px] bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
+              className="h-11 rounded-2xl bg-[#5b66ff] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
             >
-              <Plus className="size-6" />
+              <Plus className="size-5" />
               Добавить
             </Button>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setSettingsOpen(true)}
-                className="h-16 rounded-[14px] border-[#eef0fb] px-8 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+                className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
               >
                 Настройки журнала
               </Button>
@@ -510,7 +510,7 @@ export function ComplaintDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setFinishOpen(true)}
-                className="h-16 rounded-[14px] border-[#eef0fb] px-8 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+                className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
               >
                 Закончить журнал
               </Button>
