@@ -731,14 +731,7 @@ export function GlassControlDocumentClient(props: Props) {
       )}
 
       <div className="rounded-[28px] bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
-        <div className="mb-8 flex items-center justify-between gap-4 print:hidden">
-          <div className="text-sm text-[#7a7f93]">
-            <Link href="/journals" className="hover:text-black">{props.organizationName}</Link> &gt;{" "}
-            <Link href={`/journals/${props.routeCode}`} className="hover:text-black">
-              {GLASS_CONTROL_PAGE_TITLE}
-            </Link>{" "}
-            &gt; {config.documentName}
-          </div>
+        <div className="mb-8 flex items-center justify-end gap-4 print:hidden">
           <Button
             type="button"
             variant="outline"
