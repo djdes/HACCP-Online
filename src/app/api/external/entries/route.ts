@@ -115,7 +115,7 @@ async function logRequest(params: {
 }
 
 export async function POST(request: Request) {
-  const auth = authenticateExternalRequest(request);
+  const auth = await authenticateExternalRequest(request);
   if (!auth.ok) return auth.response;
 
   let body: unknown;
@@ -157,6 +157,14 @@ export async function POST(request: Request) {
 
   const payload = parsed.data;
 
+  // A per-org token pins the target organisation regardless of what the
+  // payload says, preventing a compromised integration from writing into
+  // another customer's data.
+  const organizationId =
+    auth.source === "organization" && auth.organizationId
+      ? auth.organizationId
+      : payload.organizationId;
+
   const entries = normalizeRowsToEntries(payload);
 
   const anchorDate = (() => {
@@ -167,7 +175,7 @@ export async function POST(request: Request) {
   })();
 
   const result = await dispatchExternalEntries({
-    organizationId: payload.organizationId,
+    organizationId,
     journalCode: payload.journalCode,
     entries,
   }).catch((error) => ({
@@ -178,7 +186,7 @@ export async function POST(request: Request) {
 
   if (!result.ok) {
     await logRequest({
-      organizationId: payload.organizationId,
+      organizationId,
       journalCode: payload.journalCode,
       date: anchorDate,
       source: payload.source ?? auth.source,
@@ -192,7 +200,7 @@ export async function POST(request: Request) {
   }
 
   await logRequest({
-    organizationId: payload.organizationId,
+    organizationId,
     journalCode: payload.journalCode,
     date: anchorDate,
     source: payload.source ?? auth.source,

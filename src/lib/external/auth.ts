@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+
+export type ExternalAuthSource = "external" | "sensor" | "organization";
 
 export type ExternalAuthResult =
-  | { ok: true; token: string; source: "external" | "sensor" }
+  | {
+      ok: true;
+      token: string;
+      source: ExternalAuthSource;
+      /** Organisation resolved from the token, when the caller uses a per-org key. */
+      organizationId?: string;
+    }
   | { ok: false; response: NextResponse };
 
 function extractBearer(request: Request): string | null {
@@ -17,23 +26,19 @@ export function tokenHint(token: string | null | undefined): string {
 }
 
 /**
- * Validate Bearer token against EXTERNAL_API_TOKEN and SENSOR_API_TOKEN envs.
- * Returns which bucket the caller belongs to so routes can gate per-source behaviour.
+ * Validate Bearer token. Resolution order:
+ *   1. Per-organisation Organization.externalApiToken (preferred for customer
+ *      integrations — scopes writes to that org automatically).
+ *   2. Shared EXTERNAL_API_TOKEN env (employee-app fallback).
+ *   3. Shared SENSOR_API_TOKEN env (sensor feed).
+ *
+ * Returns the matched source + (for per-org keys) the organizationId so the
+ * route handler can override whatever the payload claimed.
  */
-export function authenticateExternalRequest(request: Request): ExternalAuthResult {
+export async function authenticateExternalRequest(request: Request): Promise<ExternalAuthResult> {
   const token = extractBearer(request);
   const external = process.env.EXTERNAL_API_TOKEN?.trim();
   const sensor = process.env.SENSOR_API_TOKEN?.trim();
-
-  if (!external && !sensor) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { ok: false, error: "External API token not configured on server" },
-        { status: 503 }
-      ),
-    };
-  }
 
   if (!token) {
     return {
@@ -45,11 +50,34 @@ export function authenticateExternalRequest(request: Request): ExternalAuthResul
     };
   }
 
+  // 1. Per-org token lookup. Unique index makes this a single indexed read.
+  try {
+    const org = await db.organization.findUnique({
+      where: { externalApiToken: token },
+      select: { id: true },
+    });
+    if (org) {
+      return { ok: true, token, source: "organization", organizationId: org.id };
+    }
+  } catch {
+    // Fall through to env-token comparison.
+  }
+
   if (external && token === external) {
     return { ok: true, token, source: "external" };
   }
   if (sensor && token === sensor) {
     return { ok: true, token, source: "sensor" };
+  }
+
+  if (!external && !sensor) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { ok: false, error: "External API token not configured on server" },
+        { status: 503 }
+      ),
+    };
   }
 
   return {

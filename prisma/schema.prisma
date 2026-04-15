@@ -21,6 +21,10 @@ model Organization {
   yookassaShopId   String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  /// Per-organisation bearer token for POST /api/external/entries. When set,
+  /// overrides the shared EXTERNAL_API_TOKEN env and resolves the caller's
+  /// organizationId automatically. Keep unique across orgs.
+  externalApiToken String?        @unique
   users            User[]
   areas            Area[]
   journalEntries   JournalEntry[]
