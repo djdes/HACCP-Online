@@ -419,15 +419,6 @@ export function PerishableRejectionDocumentClient({
           )}
           <Button
             type="button"
-            className="bg-[#5b66ff] hover:bg-[#4d58f5]"
-            onClick={() => setAddModalOpen(true)}
-            disabled={readOnly}
-          >
-            <Plus className="size-4" />
-            Добавить изделие
-          </Button>
-          <Button
-            type="button"
             variant="outline"
             onClick={() => setListModalOpen(true)}
             disabled={readOnly}
