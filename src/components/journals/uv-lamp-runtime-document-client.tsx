@@ -1053,18 +1053,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     <div className="space-y-4">
       <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
-      <div className="flex items-center justify-between print:hidden">
-        <h1 className="text-[48px] font-semibold tracking-[-0.03em] text-black">Журнал учета работы</h1>
-        <Link
-          href="#"
-          onClick={(event) => {
-            event.preventDefault();
-            setSettingsOpen(true);
-          }}
-          className="text-[14px] text-[#5b66ff] hover:underline"
+      <div className="flex items-start justify-between gap-4 print:hidden">
+        <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
+          Журнал учета работы УФ бактерицидной установки
+        </h1>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setSettingsOpen(true)}
+          className="h-11 shrink-0 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
         >
-          Настроить журналы
-        </Link>
+          Настройки журнала
+        </Button>
       </div>
 
       {/* Auto-fill toggle */}
