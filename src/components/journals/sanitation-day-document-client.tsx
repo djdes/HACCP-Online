@@ -651,7 +651,7 @@ export function SanitationDayDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href={journalHref} />
+      <DocumentBackLink href={journalHref} documentId={documentId} />
       <div className="flex items-center justify-between gap-4 print:hidden">
         <div />
         <div className="flex items-center gap-3">

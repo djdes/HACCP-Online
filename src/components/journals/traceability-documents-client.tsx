@@ -361,7 +361,7 @@ export function TraceabilityDocumentsClient({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[44px] font-semibold tracking-[-0.04em] text-black lg:text-[62px]">
+          <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
             {heading}
           </h1>
           <div className="mt-5 flex items-center gap-10 border-b border-[#d8dbe6] text-[18px]">

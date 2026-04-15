@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import {
   Archive,
   ChevronLeft,
@@ -348,6 +349,7 @@ export function MedBookDocumentClient({
 
   return (
     <div className="space-y-8">
+      <DocumentBackLink href="/journals/med_books" documentId={documentId} />
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3 text-[15px] text-[#6f7487]">

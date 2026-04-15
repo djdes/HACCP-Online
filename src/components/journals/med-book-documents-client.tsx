@@ -186,7 +186,7 @@ export function MedBookDocumentsClient({
     <div className="space-y-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-[34px] font-semibold tracking-[-0.03em] text-black md:text-[56px]">
+          <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
             Медицинские книжки
           </h1>
         </div>

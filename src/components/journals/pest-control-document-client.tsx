@@ -540,7 +540,7 @@ export function PestControlDocumentClient(props: Props) {
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href={`/journals/${props.routeCode}`} />
+      <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-[52px] font-semibold tracking-[-0.04em] text-black">

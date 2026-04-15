@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Settings2, Trash2, X } from "lucide-react";
+import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -1219,22 +1220,21 @@ export function DisinfectantDocumentClient({
 
   return (
     <div className="space-y-8">
-      {/* Breadcrumbs + Settings */}
-      <div className="flex items-center justify-between">
-        <div className="text-[16px] text-[#6f7282]">
-          {organizationName} <span className="mx-2">&rsaquo;</span>{" "}
-          {DISINFECTANT_HEADING} <span className="mx-2">&rsaquo;</span> {title}
-        </div>
-        {!readOnly && (
-          <Button
-            variant="outline"
-            className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5b66ff]"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 className="size-4" /> Настройки журнала
-          </Button>
-        )}
-      </div>
+      <DocumentPageHeader
+        backHref="/journals/disinfectant_usage"
+        documentId={documentId}
+        rightActions={
+          !readOnly ? (
+            <Button
+              variant="outline"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 className="size-4" /> Настройки журнала
+            </Button>
+          ) : null
+        }
+      />
 
       <h1 className="text-[56px] font-semibold tracking-[-0.04em] text-black">
         {title}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { CalendarDays, Plus, Settings2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -441,6 +442,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1860px] space-y-6 px-6 py-6">
+        <DocumentBackLink href="/journals/breakdown_history" documentId={props.documentId} />
         {/* Page heading */}
         <div className="flex items-center justify-between">
           <h1 className="text-[54px] font-semibold tracking-[-0.04em]">

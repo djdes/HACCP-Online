@@ -143,7 +143,7 @@ export function AuditReportDocumentClient({
   return (
     <>
       <div className="space-y-8">
-        <DocumentBackLink href="/journals/audit_report" />
+        <DocumentBackLink href="/journals/audit_report" documentId={documentId} />
         <div className="flex items-center justify-between print:hidden">
           <div />
           {status === "active" && (

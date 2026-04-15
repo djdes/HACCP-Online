@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -323,9 +324,9 @@ export function PerishableRejectionDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
+      <DocumentBackLink href="/journals/perishable_rejection" documentId={documentId} />
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm text-[#7a7f93]">{organizationName}</div>
           <h1 className="text-[48px] font-semibold tracking-[-0.03em]">
             {title}
           </h1>

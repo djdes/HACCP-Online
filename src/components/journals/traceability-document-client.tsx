@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -594,7 +595,12 @@ export function TraceabilityDocumentClient(props: Props) {
 
   return (
     <div className="space-y-8 pb-8 text-black">
-      {props.routeCode ? <div className="text-[13px] text-[#7c7c93] print:hidden"><Link href={`/journals/${props.routeCode}`} className="hover:underline">{organizationName}</Link>{" > "}<span>{DEFAULT_TITLE}</span>{" > "}<span>{title || DEFAULT_TITLE}</span></div> : null}
+      {props.routeCode ? (
+        <DocumentPageHeader
+          backHref={`/journals/${props.routeCode}`}
+          documentId={props.documentId}
+        />
+      ) : null}
 
       <div className="flex items-start justify-between gap-4">
         <div>

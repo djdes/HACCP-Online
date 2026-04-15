@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -699,6 +700,7 @@ export function GlassControlDocumentClient(props: Props) {
 
   return (
     <div className="space-y-6 text-black">
+      <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
       {selectedCount > 0 && !isClosed && (
         <div className="sticky top-0 z-30 -mx-6 flex items-center gap-4 rounded-[20px] border-b border-[#eef0fb] bg-white/95 px-6 py-3 shadow-sm backdrop-blur">
           <button

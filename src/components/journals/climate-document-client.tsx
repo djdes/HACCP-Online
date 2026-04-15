@@ -1165,7 +1165,7 @@ export function ClimateDocumentClient({
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1840px] px-6 py-8">
-        <DocumentBackLink href="/journals/climate_control" />
+        <DocumentBackLink href="/journals/climate_control" documentId={documentId} />
         <div className="mb-8 flex items-start justify-between gap-6">
           <div>
             <h1 className="mt-2 text-[56px] font-semibold tracking-[-0.04em] text-black">

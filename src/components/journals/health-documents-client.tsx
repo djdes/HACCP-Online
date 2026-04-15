@@ -232,7 +232,7 @@ export function HealthDocumentsClient(props: Props) {
       <div className="space-y-12">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[62px] font-semibold tracking-[-0.04em] text-black">
+            <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
               {heading}
             </h1>
           </div>

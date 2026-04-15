@@ -239,7 +239,7 @@ export function CleaningDocumentClient(props: Props) {
       <div className="space-y-8">
         {!printMode ? (
           <>
-            <DocumentBackLink href="/journals/cleaning" />
+            <DocumentBackLink href="/journals/cleaning" documentId={props.documentId} />
             {props.status === "active" ? (
               <div className="flex justify-end">
                 <DocumentCloseButton

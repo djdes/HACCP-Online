@@ -252,7 +252,7 @@ export function EquipmentCalibrationDocumentClient({
   return (
     <div className="space-y-6 text-black">
       {/* Breadcrumb */}
-      <DocumentBackLink href="/journals/equipment_calibration" />
+      <DocumentBackLink href="/journals/equipment_calibration" documentId={documentId} />
 
       {/* screen header */}
       <div className="flex items-center justify-between print:hidden">

@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -236,10 +237,10 @@ export function StaffTrainingDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
+      <DocumentBackLink href="/journals/staff_training" documentId={documentId} />
       {/* header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm text-[#7a7f93]">{organizationName}</div>
           <h1 className="text-[48px] font-semibold tracking-[-0.03em]">
             {title}
           </h1>

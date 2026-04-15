@@ -599,7 +599,7 @@ export function CleaningVentilationChecklistDocumentClient({
       ) : null}
 
       <div className="space-y-6 rounded-[28px] bg-white p-8 shadow-sm">
-        <DocumentBackLink href={`/journals/${routeCode}`} />
+        <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <h1 className="max-w-[980px] text-[44px] font-semibold tracking-[-0.04em] text-black md:text-[62px]">

@@ -211,7 +211,7 @@ export function HealthDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
-      <DocumentBackLink href="/journals/health_check" />
+      <DocumentBackLink href="/journals/health_check" documentId={documentId} />
       <style jsx global>{`
         @page {
           size: A4 landscape;

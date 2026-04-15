@@ -237,7 +237,7 @@ export function ColdEquipmentDocumentsClient({
       <div className="space-y-14">
         <div className="flex flex-col gap-10 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-[1100px]">
-            <h1 className="text-[68px] font-semibold leading-[1.06] tracking-[-0.05em] text-black">
+            <h1 className="text-[48px] font-semibold leading-[1.06] tracking-[-0.05em] text-black">
               {templateName}
             </h1>
           </div>

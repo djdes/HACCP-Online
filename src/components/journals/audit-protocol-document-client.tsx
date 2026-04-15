@@ -228,7 +228,7 @@ export function AuditProtocolDocumentClient({
           </div>
         )}
 
-        <DocumentBackLink href="/journals/audit_protocol" />
+        <DocumentBackLink href="/journals/audit_protocol" documentId={documentId} />
         <div className="flex items-center justify-between print:hidden">
           <div />
           {status === "active" && (

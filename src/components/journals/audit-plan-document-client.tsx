@@ -659,7 +659,7 @@ export function AuditPlanDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href="/journals/audit_plan" />
+      <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
       <div className="flex items-center justify-between print:hidden">
         <div />
         {!readOnly && (

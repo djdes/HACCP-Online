@@ -775,7 +775,7 @@ export function SanitaryDayChecklistDocumentClient({
 
   return (
     <div className="bg-white text-black">
-      <DocumentBackLink href={`/journals/${routeCode}`} />
+      <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
       <style jsx global>{`
         @page {
           size: A4 portrait;

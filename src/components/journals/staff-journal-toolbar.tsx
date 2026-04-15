@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import {
   getHygienePositionLabel,
   getStaffJournalResponsibleTitleOptions,
@@ -436,19 +437,9 @@ export function StaffJournalToolbar({
   return (
     <>
       <div className="space-y-8">
-        {showHeaderActions && routeCode && organizationName ? (
+        {showHeaderActions && routeCode ? (
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-[14px] text-[#7c7c93]">
-              <Link href={`/journals/${routeCode}`} className="hover:text-black hover:underline">
-                {organizationName}
-              </Link>
-              {" > "}
-              <Link href={`/journals/${routeCode}`} className="hover:text-black hover:underline">
-                {heading}
-              </Link>
-              {" > "}
-              <span className="text-black">{title}</span>
-            </div>
+            <DocumentBackLink href={`/journals/${routeCode}`} className="mb-0" />
             <div className="flex flex-wrap items-center gap-3">
               {!hidePrint && (
                 <Button

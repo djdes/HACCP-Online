@@ -1039,7 +1039,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
   return (
     <div className="space-y-4">
-      <DocumentBackLink href={`/journals/${props.routeCode}`} />
+      <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
       <div className="flex items-center justify-between print:hidden">
         <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">Журнал учета работы</h1>

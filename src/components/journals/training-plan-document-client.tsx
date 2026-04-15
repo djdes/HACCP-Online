@@ -504,7 +504,7 @@ export function TrainingPlanDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href="/journals/training_plan" />
+      <DocumentBackLink href="/journals/training_plan" documentId={documentId} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div />
         <div className="flex items-center gap-3 self-start lg:self-auto">

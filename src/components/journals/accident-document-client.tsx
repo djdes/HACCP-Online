@@ -531,7 +531,7 @@ export function AccidentDocumentClient(props: Props) {
       ) : null}
 
       <div className="mx-auto max-w-[1860px] space-y-8 px-6 py-6">
-        <DocumentBackLink href="/journals/accidentjournal" />
+        <DocumentBackLink href="/journals/accidentjournal" documentId={props.documentId} />
 
 
         <div className="flex items-center justify-between gap-4">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { ChevronDown, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -543,29 +544,25 @@ export function PpeIssuanceDocumentClient(props: Props) {
           </div>
         )}
 
-        <div className="text-[13px] text-[#7c7c93]">
-          <Link href="/journals" className="hover:underline">
-            {props.organizationName || 'ООО "Тест"'}
-          </Link>
-          {" > "}
-          <Link href="/journals/issuancesizjournal" className="hover:underline">
-            {PPE_ISSUANCE_DOCUMENT_TITLE}
-          </Link>
-          {" > "}
-          <span>{title}</span>
-        </div>
+        <DocumentPageHeader
+          backHref="/journals/ppe_issuance"
+          documentId={props.documentId}
+          rightActions={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+            >
+              Настройки журнала
+            </Button>
+          }
+        />
 
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
             {title}
           </h1>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="rounded-[20px] bg-[#f5f6ff] px-8 py-5 text-[14px] text-[#5b66ff]"
-          >
-            Настройки журнала
-          </button>
         </div>
 
         <table className="w-full border-collapse text-[15px]">

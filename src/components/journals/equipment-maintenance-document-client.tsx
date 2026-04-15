@@ -254,7 +254,7 @@ export function EquipmentMaintenanceDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
-      <DocumentBackLink href="/journals/equipment_maintenance" />
+      <DocumentBackLink href="/journals/equipment_maintenance" documentId={documentId} />
       {/* screen header */}
       <div className="flex items-center justify-between">
         <div>

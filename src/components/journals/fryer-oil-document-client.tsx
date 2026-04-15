@@ -261,7 +261,7 @@ export function FryerOilDocumentClient(props: Props) {
       <div className="mx-auto max-w-[1880px] space-y-8 px-6 py-8">
         <div className="flex flex-wrap items-start justify-between gap-6 print:hidden">
           <div className="space-y-3">
-            <DocumentBackLink href={`/journals/${props.routeCode}`} />
+            <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
             <h1 className="text-[54px] font-semibold tracking-[-0.04em]">{title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">

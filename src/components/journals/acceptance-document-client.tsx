@@ -1369,7 +1369,7 @@ export function AcceptanceDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <DocumentBackLink href={`/journals/${routeCode}`} />
+        <DocumentBackLink href={`/journals/${routeCode}`} documentId={props.documentId} />
 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-5">

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,17 +147,24 @@ export function FinishedProductDocumentClient({
   return (
     <div className="space-y-6 text-black">
       <div className="rounded-[28px] bg-white px-8 py-7 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 text-[14px] text-[#6f7282]">
-          <span>{organizationName}</span><ChevronRight className="size-4" />
-          <span>Журнал бракеража готовой пищевой продукции</span><ChevronRight className="size-4" />
-          <span className="text-black">{title}</span>
-        </div>
+        <DocumentPageHeader
+          backHref="/journals/finished_product"
+          documentId={documentId}
+          rightActions={
+            !readOnly ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="size-4" />Настройки журнала
+              </Button>
+            ) : null
+          }
+        />
         <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-[56px] font-semibold tracking-[-0.04em] text-black">{title}</h1>
-          <div className="flex flex-wrap gap-3">
-            <Button type="button" variant="outline" className="h-14 rounded-2xl border-[#e9ecf5] px-5 text-[18px]" onClick={() => window.open(`/api/journal-documents/${documentId}/pdf`, "_blank")}><Printer className="size-5" />Печать</Button>
-            {!readOnly && <Button type="button" variant="outline" className="h-14 rounded-2xl border-0 bg-[#f5f6ff] px-6 text-[18px] text-[#5464ff] hover:bg-[#eceeff]" onClick={() => setSettingsOpen(true)}><Settings2 className="size-5" />Настройки журнала</Button>}
-          </div>
         </div>
       </div>
 

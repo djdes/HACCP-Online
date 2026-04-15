@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -412,6 +413,7 @@ export function ComplaintDocumentClient({
   return (
     <>
       <div className="space-y-8 bg-white text-black">
+        <DocumentBackLink href="/journals/complaint_register" documentId={documentId} />
         {selectedRowIds.length > 0 && status === "active" && (
           <div className="flex items-center gap-4 rounded-[12px] bg-white px-2 py-2">
             <div className="inline-flex h-14 items-center gap-3 rounded-[12px] bg-[#fafbff] px-6 text-[18px] text-[#5b66ff]">

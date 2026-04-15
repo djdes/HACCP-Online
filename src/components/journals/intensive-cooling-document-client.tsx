@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import {
   CalendarDays,
   Plus,
@@ -555,44 +556,28 @@ export function IntensiveCoolingDocumentClient(props: Props) {
       ) : null}
 
       <div className="mx-auto max-w-[1860px] space-y-8 px-6 py-6">
-        <div className="text-sm text-[#444a60]">
-          <Link href="/journals" className="hover:underline">
-            {props.organizationName || 'ООО "Тест"'}
-          </Link>{" "}
-          {" > "}
-          <Link href={`/journals/${props.routeCode}`} className="hover:underline">
-            {INTENSIVE_COOLING_DOCUMENT_TITLE}
-          </Link>{" "}
-          {" > "}
-          <span>{title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}</span>
-        </div>
+        <DocumentPageHeader
+          backHref={`/journals/${props.routeCode}`}
+          documentId={props.documentId}
+          rightActions={
+            isActive ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="size-4" />
+                Настройки журнала
+              </Button>
+            ) : null
+          }
+        />
 
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[56px] font-semibold tracking-[-0.04em]">
             {title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
           </h1>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="flex size-11 items-center justify-center rounded-2xl text-[#5563ff] hover:bg-[#f5f6ff]"
-              onClick={() =>
-                window.open(`/api/journal-documents/${props.documentId}/pdf`, "_blank")
-              }
-            >
-              <Printer className="size-6" />
-            </button>
-            {isActive ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-lg text-[#5b66ff]"
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Settings2 className="size-5" />
-                Настройки журнала
-              </Button>
-            ) : null}
-          </div>
         </div>
 
         <div className="overflow-x-auto">
