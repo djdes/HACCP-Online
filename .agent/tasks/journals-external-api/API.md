@@ -2,18 +2,44 @@
 
 Base URL: `https://wesetup.ru`
 
+## Healthcheck
+
+`GET /api/external/healthz` — anonymous, returns the build sha/time and DB
+status. Call this on startup before issuing any POSTs:
+
+```json
+{
+  "ok": true,
+  "build": { "sha": "abc1234", "time": "2026-04-16T08:00:00Z" },
+  "db": { "reachable": true, "journalTemplates": 35 },
+  "latencyMs": 14,
+  "now": "2026-04-16T08:03:11.000Z"
+}
+```
+
 ## Auth
 
-All requests require `Authorization: Bearer <token>`.
+All write requests require `Authorization: Bearer <token>`.
 
-Two tokens are recognized server-side:
+Token resolution order:
 
-| Env var | Intended caller |
-|---|---|
-| `EXTERNAL_API_TOKEN` | Employee-app integration |
-| `SENSOR_API_TOKEN` | Sensor / mock sensor feed |
+| Mode | Token source | Organisation scope |
+|---|---|---|
+| **Per-org** (recommended) | `Organization.externalApiToken` column | Pinned to that org — the payload's `organizationId` is ignored. |
+| Shared app | `EXTERNAL_API_TOKEN` env | Any org the payload names. |
+| Sensor | `SENSOR_API_TOKEN` env | Any org the payload names. |
 
-Both live only in the server `.env` and must never be committed.
+Per-org tokens are the safe default: even if a token leaks, the attacker
+cannot write into a different tenant.
+
+## Idempotency
+
+Include `Idempotency-Key: <opaque-string>` on retries. The server caches
+the first 200 response for each `(token, key)` and replays it on repeat —
+no double-writes. Keys should be ≤120 characters and unique per logical
+operation (UUID works).
+
+Replayed responses include header `idempotent-replayed: true`.
 
 ## Endpoint
 
