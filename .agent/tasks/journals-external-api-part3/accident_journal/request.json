@@ -1,0 +1,14 @@
+{
+  "organizationId": "cmnm40ikt00002ktseet6fd5y",
+  "journalCode": "accident_journal",
+  "date": "2026-04-15",
+  "source": "employee_app",
+  "data": {
+    "happenedAt": "2026-04-15",
+    "location": "Горячий цех",
+    "description": "Поскользнулся на мокром полу",
+    "injury": "Ушиб локтя",
+    "firstAid": "Обработка, холодный компресс",
+    "measures": "Установлен знак 'Осторожно, мокрый пол'"
+  }
+}

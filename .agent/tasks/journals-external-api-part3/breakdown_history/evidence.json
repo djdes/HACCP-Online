@@ -1,0 +1,25 @@
+{
+  "code": "breakdown_history",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyp94q6004408ts4p69yswq",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "breakdown_history",
+  "elapsedMs": 23,
+  "ranAt": "2026-04-15T17:35:01.198Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "breakdown_history",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "equipmentName": "Холодильник №1",
+      "breakdownType": "Утечка хладагента",
+      "repairAction": "Заменён компрессор",
+      "downtimeHours": 4,
+      "cost": 12000,
+      "note": "Восстановлено в срок"
+    }
+  }
+}

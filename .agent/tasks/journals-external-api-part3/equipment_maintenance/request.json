@@ -1,0 +1,13 @@
+{
+  "organizationId": "cmnm40ikt00002ktseet6fd5y",
+  "journalCode": "equipment_maintenance",
+  "date": "2026-04-15",
+  "source": "employee_app",
+  "data": {
+    "equipmentName": "Пароконвектомат №1",
+    "workType": "Плановое ТО",
+    "result": "Исправно",
+    "technician": "Сервис-инженер",
+    "note": "Следующее ТО — через 3 мес."
+  }
+}

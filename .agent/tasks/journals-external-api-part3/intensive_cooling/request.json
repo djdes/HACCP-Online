@@ -1,0 +1,15 @@
+{
+  "organizationId": "cmnm40ikt00002ktseet6fd5y",
+  "journalCode": "intensive_cooling",
+  "date": "2026-04-15",
+  "source": "employee_app",
+  "data": {
+    "productName": "Гуляш",
+    "startTime": "12:00",
+    "endTime": "13:30",
+    "startTemp": 75,
+    "endTemp": 4,
+    "equipmentName": "Шкаф интенсивного охлаждения",
+    "result": "pass"
+  }
+}

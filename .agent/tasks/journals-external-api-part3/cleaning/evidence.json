@@ -1,0 +1,22 @@
+{
+  "code": "cleaning",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyono7r002z08ts9vf9a6xq",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "cleaning",
+  "elapsedMs": 40,
+  "ranAt": "2026-04-15T17:35:01.247Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "cleaning",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "done": true,
+      "performer": "Повар горячего цеха",
+      "note": "Уборка выполнена по графику"
+    }
+  }
+}

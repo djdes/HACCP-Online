@@ -1,0 +1,25 @@
+{
+  "code": "perishable_rejection",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyodrms007loots94fafpxb",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "perishable_rejection",
+  "elapsedMs": 23,
+  "ranAt": "2026-04-15T17:35:01.924Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "perishable_rejection",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "productName": "Салат оливье",
+      "quantity": 2,
+      "unit": "кг",
+      "reason": "Истёк срок хранения",
+      "action": "утилизация",
+      "result": "reject"
+    }
+  }
+}

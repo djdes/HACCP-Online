@@ -1,0 +1,17 @@
+{
+  "organizationId": "cmnm40ikt00002ktseet6fd5y",
+  "journalCode": "incoming_control",
+  "date": "2026-04-15",
+  "source": "employee_app",
+  "data": {
+    "supplier": "ООО «Мясокомбинат»",
+    "productName": "Курица охлаждённая",
+    "quantity": 15,
+    "unit": "кг",
+    "temperature": 2.5,
+    "packageOk": true,
+    "docsOk": true,
+    "result": "pass",
+    "note": "Приёмка разрешена"
+  }
+}

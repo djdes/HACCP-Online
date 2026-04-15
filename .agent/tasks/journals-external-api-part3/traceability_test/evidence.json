@@ -1,0 +1,27 @@
+{
+  "code": "traceability_test",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyp95s3005j08tsxbo6zjmk",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "traceability_test",
+  "elapsedMs": 25,
+  "ranAt": "2026-04-15T17:35:02.136Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "traceability_test",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "batchCode": "BATCH-2026-04-0001",
+      "productName": "Суп куриный",
+      "supplierChain": [
+        "ООО «Мясокомбинат»",
+        "ООО «Овощебаза»"
+      ],
+      "result": "пройдено",
+      "note": "Прослеживаемость восстановлена за 15 минут"
+    }
+  }
+}

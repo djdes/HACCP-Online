@@ -1,0 +1,29 @@
+{
+  "code": "product_writeoff",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyp95o5005e08ts5dk4ckta",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "product_writeoff",
+  "elapsedMs": 19,
+  "ranAt": "2026-04-15T17:35:02.006Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "product_writeoff",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "productName": "Молоко 3.2%",
+      "quantity": 5,
+      "unit": "л",
+      "reason": "Истёк срок хранения",
+      "commission": [
+        "Управляющий",
+        "Шеф-повар",
+        "Кладовщик"
+      ],
+      "note": "Утилизация по акту"
+    }
+  }
+}

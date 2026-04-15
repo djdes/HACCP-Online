@@ -1,0 +1,28 @@
+{
+  "code": "staff_training",
+  "httpStatus": 200,
+  "ok": true,
+  "documentId": "cmnyodrnb007zootsdgu2bhje",
+  "entriesWritten": 1,
+  "createdDocument": false,
+  "templateCode": "staff_training",
+  "elapsedMs": 29,
+  "ranAt": "2026-04-15T17:35:02.093Z",
+  "payload": {
+    "organizationId": "cmnm40ikt00002ktseet6fd5y",
+    "journalCode": "staff_training",
+    "date": "2026-04-15",
+    "source": "employee_app",
+    "data": {
+      "topic": "Входной инструктаж по СанПиН",
+      "trainerName": "Шеф-повар",
+      "durationHours": 1,
+      "trainees": [
+        "Иванов И.И.",
+        "Петров П.П."
+      ],
+      "signed": true,
+      "note": "Инструктаж проведён"
+    }
+  }
+}
