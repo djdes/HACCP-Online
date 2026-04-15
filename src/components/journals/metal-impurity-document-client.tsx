@@ -1123,23 +1123,23 @@ export function MetalImpurityDocumentClient({
 
         {status === "active" && (
           <div className="flex items-center justify-between gap-4 print:hidden">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
                 onClick={() => {
                   setEditingRow(null);
                   setRowDialogOpen(true);
                 }}
-                className="h-16 rounded-[14px] bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4b57ff]"
+                className="h-11 rounded-2xl bg-[#5b66ff] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
               >
-                <Plus className="size-6" />
+                <Plus className="size-5" />
                 Добавить
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setListsOpen(true)}
-                className="h-16 rounded-[14px] border-[#eef0fb] px-8 text-[18px] text-[#5464ff] shadow-none"
+                className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
               >
                 Редактировать списки
               </Button>
@@ -1148,7 +1148,7 @@ export function MetalImpurityDocumentClient({
               type="button"
               variant="outline"
               onClick={() => setFinishOpen(true)}
-              className="h-16 rounded-[14px] border-[#eef0fb] px-8 text-[18px] text-[#5464ff] shadow-none"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
             >
               Закончить журнал
             </Button>
