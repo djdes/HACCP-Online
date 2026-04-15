@@ -766,7 +766,7 @@ export async function dispatchExternalEntries(params: {
     date: anchorDate,
     createdById: fallbackEmployeeId,
   });
-  let doc = foundDoc;
+  const doc = foundDoc;
   if (!doc) {
     return { ok: false, httpStatus: 500, error: "failed to resolve document" };
   }
