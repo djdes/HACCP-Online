@@ -1446,19 +1446,15 @@ export function AcceptanceDocumentClient(props: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button type="button" className="h-14 rounded-2xl bg-[#5b66ff] px-6 text-[16px]" onClick={() => setIikoOpen(true)}>
-              <Plus className="size-5" /> Добавить из Айко
-            </Button>
-
-            <button type="button" className="text-[16px] text-[#5b66ff] hover:underline" onClick={() => setEditListsOpen(true)}>
+            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]" onClick={() => setEditListsOpen(true)}>
               Редактировать списки
-            </button>
+            </Button>
 
             <div className="flex-1" />
 
-            <button type="button" className="text-[14px] text-[#5b66ff] hover:underline" onClick={() => setFinishOpen(true)}>
+            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]" onClick={() => setFinishOpen(true)}>
               Закончить журнал
-            </button>
+            </Button>
           </div>
         )}
 
