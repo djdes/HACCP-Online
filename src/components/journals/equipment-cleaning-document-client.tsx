@@ -361,9 +361,9 @@ export function EquipmentCleaningDocumentClient({
             type="button"
             onClick={openCreateRow}
             disabled={status !== "active"}
-            className="rounded-2xl bg-[#5b66ff] px-8 py-6 text-[18px] text-white hover:bg-[#4d58f5]"
+            className="h-11 rounded-2xl bg-[#5b66ff] px-4 text-[15px] text-white hover:bg-[#4d58f5]"
           >
-            <Plus className="size-6" />
+            <Plus className="size-5" />
             Добавить
           </Button>
           <Button
