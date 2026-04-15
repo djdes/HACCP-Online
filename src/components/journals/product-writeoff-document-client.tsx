@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 import { Textarea } from "@/components/ui/textarea";
 import {
   createProductWriteoffCommissionMember,
@@ -495,7 +495,10 @@ export function ProductWriteoffDocumentClient({
                 setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, employeeId: event.target.value, employeeName: user?.name || "", role: user ? getUserRoleLabel(user.role) : prev.member.role } }));
               }} className="h-14 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
                 <option value="">Выберите сотрудника</option>
-                {users.map((user) => (
+                {(commissionDialog.member.role
+                  ? getUsersForRoleLabel(users, commissionDialog.member.role)
+                  : users
+                ).map((user) => (
                   <option key={user.id} value={user.id}>{user.name}</option>
                 ))}
               </select>
