@@ -258,7 +258,6 @@ export function EquipmentMaintenanceDocumentClient({
       {/* screen header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm text-[#7a7f93]">{organizationName}</div>
           <h1 className="text-[48px] font-semibold tracking-[-0.03em]">
             {title}
           </h1>
