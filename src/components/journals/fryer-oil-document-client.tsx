@@ -265,7 +265,6 @@ export function FryerOilDocumentClient(props: Props) {
             <h1 className="text-[48px] font-semibold tracking-[-0.04em]">{title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" className="h-14 rounded-2xl border-[#eef0fb] px-6 text-[#5464ff]" onClick={() => { void openDocumentPdf(props.documentId).catch((e) => toast.error(e instanceof Error ? e.message : "Не удалось открыть PDF")); }}><Printer className="size-5" />Печать</Button>
             <Button type="button" variant="outline" className="h-14 rounded-2xl border-[#eef0fb] px-6 text-[#5464ff]" onClick={() => setSettingsOpen(true)}><Settings2 className="size-5" />Настройки журнала</Button>
           </div>
         </div>
