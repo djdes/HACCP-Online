@@ -928,6 +928,7 @@ export default async function JournalDocumentPage({
     return (
       <RegisterDocumentClient
         documentId={document.id}
+        templateCode={document.template.code}
         title={document.title}
         organizationName={organization?.name || 'ООО "Тест"'}
         dateFrom={toDateKey(document.dateFrom)}

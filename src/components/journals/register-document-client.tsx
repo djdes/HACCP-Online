@@ -41,6 +41,7 @@ import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { toast } from "sonner";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -54,6 +55,7 @@ type EquipmentItem = {
 
 type Props = {
   documentId: string;
+  templateCode?: string;
   title: string;
   organizationName: string;
   dateFrom: string;
@@ -410,6 +412,7 @@ function SettingsDialog({
 
 export function RegisterDocumentClient({
   documentId,
+  templateCode,
   title,
   organizationName,
   dateFrom,
@@ -517,10 +520,10 @@ export function RegisterDocumentClient({
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1860px] px-6 py-8">
+        {templateCode ? <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} /> : null}
         <div className="mb-8 flex items-start justify-between gap-6">
           <div>
-            <div className="text-[16px] text-[#7b7d8d]">{organizationName}</div>
-            <h1 className="mt-2 text-[48px] font-semibold tracking-[-0.04em] text-black">
+            <h1 className="text-[48px] font-semibold tracking-[-0.04em] text-black">
               {documentTitle}
             </h1>
             <div className="mt-3 text-[18px] text-[#63667a]">
