@@ -1298,7 +1298,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-14 rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             onClick={() => setAddSubOpen(true)}
           >
             <Plus className="size-5" /> Добавить подразделение
@@ -1483,7 +1483,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-14 rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             onClick={() => setAddRecOpen(true)}
           >
             <Plus className="size-5" /> Добавить поступление
@@ -1594,7 +1594,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-14 rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             onClick={() => setAddConOpen(true)}
           >
             <Plus className="size-5" /> Добавить расход
