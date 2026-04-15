@@ -710,13 +710,17 @@ export function SanitationDayDocumentClient({
           </tbody>
         </table>
 
-        <div className="ml-auto w-[420px] text-right text-[14px] leading-tight">
-          <div className="font-semibold">УТВЕРЖДАЮ</div>
-          <div>{normalized.approveRole}</div>
-          <div className="border-b border-black pb-1">
-            {normalized.approveEmployee}
+        <div className="flex justify-end">
+          <div className="w-[320px] pr-2 text-right text-[12px] leading-snug">
+            <div className="font-semibold">УТВЕРЖДАЮ</div>
+            <div>{normalized.approveRole}</div>
+            <div className="border-b border-black pb-1">
+              {normalized.approveEmployee}
+            </div>
+            <div className="pt-1">
+              {toViewDateLabel(normalized.documentDate)}
+            </div>
           </div>
-          <div className="pt-1">{toViewDateLabel(normalized.documentDate)}</div>
         </div>
 
         <h2 className="text-center text-[28px] font-semibold">
