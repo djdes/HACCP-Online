@@ -322,7 +322,7 @@ export function AuditProtocolDocumentClient({
                             </button>
                           </td>
                           <td className="border border-black/70 px-2 py-2 text-center">
-                            <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "yes" ? "" : "yes" } : item.id === row.id && item.result === "yes" ? item : item.id === row.id ? item : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
+                            <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "yes" ? "" : "yes" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
                           </td>
                           <td className="border border-black/70 px-2 py-2 text-center">
                             <Checkbox checked={row.result === "no"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "no" ? "" : "no" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
