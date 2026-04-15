@@ -42,6 +42,21 @@ import {
   type CleaningVentilationResponsible,
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { isManagementRole } from "@/lib/user-roles";
+
+/**
+ * The Должность select for this journal is a hardcoded "Управляющий / Сотрудник"
+ * bucket, so the Сотрудник list is filtered by that bucket rather than by a
+ * concrete role label.
+ */
+function filterUsersByBucket<T extends { role?: string | null }>(
+  users: T[],
+  bucket: string
+): T[] {
+  if (bucket === "Управляющий") return users.filter((u) => isManagementRole(u.role));
+  if (bucket === "Сотрудник") return users.filter((u) => !isManagementRole(u.role));
+  return users;
+}
 
 import { toast } from "sonner";
 type UserItem = {
@@ -258,7 +273,7 @@ function DocumentSettingsDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {filterUsersByBucket(props.users, state.mainResponsibleTitle).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -348,7 +363,7 @@ function AddResponsibleDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {filterUsersByBucket(props.users, title).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
