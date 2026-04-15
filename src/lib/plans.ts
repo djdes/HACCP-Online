@@ -3,6 +3,8 @@
  * Used in: payments/create, payments/webhook, subscription-manager UI, landing page.
  */
 
+import { JOURNAL_TARIFFS, formatJournalPreview } from "./journal-catalog";
+
 export type PlanId = "starter" | "standard" | "pro";
 
 export interface PlanDefinition {
@@ -14,6 +16,10 @@ export interface PlanDefinition {
   features: string[];
 }
 
+const basicTariff = JOURNAL_TARIFFS.basic;
+const extendedTariff = JOURNAL_TARIFFS.extended;
+const extendedExtraJournals = extendedTariff.extraJournals ?? [];
+
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
@@ -23,7 +29,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: 3,
     features: [
       "До 3 пользователей",
-      "Базовые журналы",
+      `Тариф "${basicTariff.name}": ${basicTariff.journals.length} журналов`,
+      formatJournalPreview(basicTariff.journals),
       "PDF-отчёты",
       "Email-уведомления",
     ],
@@ -36,7 +43,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: 10,
     features: [
       "До 10 пользователей",
-      "Все журналы",
+      `Тариф "${extendedTariff.name}": ${extendedTariff.journals.length} журналов (${extendedTariff.subtitle})`,
+      `Дополнительно: ${formatJournalPreview(extendedExtraJournals)}`,
       "IoT-мониторинг",
       "Telegram-уведомления",
       "Excel-экспорт",
@@ -51,7 +59,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxUsers: null,
     features: [
       "Безлимит пользователей",
-      "Всё из Стандарт",
+      'Всё из тарифа "Стандарт"',
       "Приоритетная поддержка",
       "API-доступ",
       "White-label",
