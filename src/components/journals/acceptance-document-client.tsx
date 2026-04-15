@@ -1383,25 +1383,11 @@ export function AcceptanceDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-14 rounded-2xl border-[#e8ebf8] px-5 text-[16px] text-[#5b66ff] shadow-none"
-              onClick={() =>
-                window.open(
-                  `/api/journal-documents/${props.documentId}/pdf`,
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
-            >
-              <Printer className="size-5" />
-              Печать
-            </Button>
-            <button
-              type="button"
               onClick={() => setSettingsOpen(true)}
-              className="text-[14px] text-[#5b66ff] hover:underline"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
             >
               Настройки журнала
-            </button>
+            </Button>
           </div>
         </div>
 
