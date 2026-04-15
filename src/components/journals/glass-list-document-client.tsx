@@ -164,7 +164,7 @@ export function GlassListDocumentClient({
           <Button
             type="button"
             variant="outline"
-            className="h-12 rounded-2xl border-[#eef0fb] px-5 text-[18px] text-[#5464ff]"
+            className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
             onClick={() => setSettingsOpen(true)}
             disabled={isClosed}
           >
@@ -178,7 +178,7 @@ export function GlassListDocumentClient({
               documentId={documentId}
               title={title}
               variant="outline"
-              className="h-12 rounded-2xl border-[#eef0fb] px-5 text-[18px] text-[#5464ff]"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
             >
               Закончить журнал
             </DocumentCloseButton>
