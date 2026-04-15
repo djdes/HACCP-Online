@@ -224,6 +224,7 @@ import {
   toDateKey,
 } from "@/lib/hygiene-document";
 import {
+  EQUIPMENT_CLEANING_DOCUMENT_TITLE,
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
   getEquipmentCleaningResultLabel,
   normalizeEquipmentCleaningConfig,
@@ -602,7 +603,21 @@ function drawJournalHeader(doc: jsPDF, params: {
 
 function drawTitle(doc: jsPDF, title: string) {
   doc.setFont("JournalUnicode", "normal");
-  doc.setFontSize(26);
+  // Auto-shrink long h1 so titles like "Журнал контроля температурного режима
+  // холодильного и морозильного оборудования" don't get truncated by the right
+  // page edge. We measure the rendered width and pick a font size that fits.
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const maxWidth = pageWidth - 28; // 14mm margin each side
+  const sizes = [26, 22, 18, 16, 14];
+  let chosen = sizes[sizes.length - 1];
+  for (const size of sizes) {
+    doc.setFontSize(size);
+    if (doc.getTextWidth(title) <= maxWidth) {
+      chosen = size;
+      break;
+    }
+  }
+  doc.setFontSize(chosen);
   doc.text(title, 14, 15);
 }
 
@@ -641,6 +656,19 @@ function ensurePlainRows(columnCount: number, minRows = 3): string[][] {
   return Array.from({ length: minRows }, () =>
     Array.from({ length: columnCount }, () => "")
   );
+}
+
+/**
+ * Render a number for table cells without floating-point noise like
+ * "2.300000000000003" or "0.6000000000001%" leaking into the PDF.
+ * Trims trailing zeros and at most 2 decimals.
+ */
+function formatNumberShort(value: unknown, fractionDigits = 2): string {
+  if (value === null || value === undefined || value === "") return "";
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  const fixed = num.toFixed(fractionDigits);
+  return fixed.replace(/\.?0+$/, "");
 }
 
 function formatDateTime(
@@ -1276,9 +1304,7 @@ function drawColdEquipmentPdf(doc: jsPDF, params: {
     return [
       centerCell(getClimateDateLabel(entry.date)),
       ...equipment.map((item) =>
-        centerCell(
-          data.temperatures[item.id] != null ? String(data.temperatures[item.id]) : ""
-        )
+        centerCell(formatNumberShort(data.temperatures[item.id]))
       ),
       centerCell(data.responsibleTitle || ""),
     ];
@@ -1707,16 +1733,35 @@ function drawStaffTrainingPdf(doc: jsPDF, params: {
     body: (params.config.rows.length > 0
       ? params.config.rows
       : [{ date: "", employeeName: "", employeePosition: "", topic: "", trainingType: "", unscheduledReason: "", instructorName: "", attestationResult: "" }]
-    ).map((row) => [
-      row.date || "",
-      row.employeeName || "",
-      row.employeePosition || "",
-      row.topic || "",
-      row.trainingType || "",
-      row.unscheduledReason || "",
-      row.instructorName || "",
-      row.attestationResult === "passed" ? "удовл." : row.attestationResult === "failed" ? "не удовл." : "",
-    ]),
+    ).map((row) => {
+      const trainingTypeMap: Record<string, string> = {
+        primary: "Первичный",
+        repeated: "Повторный",
+        repeat: "Повторный",
+        unscheduled: "Внеплановый",
+      };
+      const topicMap: Record<string, string> = {
+        safety: "Охрана труда",
+        duties: "Должностные обязанности",
+        kkt: "ККТ",
+        sanitation: "Санитария и гигиена",
+        fire: "Пожарная безопасность",
+      };
+      const trainingType = row.trainingType
+        ? (trainingTypeMap[row.trainingType] || row.trainingType)
+        : "";
+      const topic = row.topic ? (topicMap[row.topic] || row.topic) : "";
+      return [
+        row.date || "",
+        row.employeeName || "",
+        row.employeePosition || "",
+        topic,
+        trainingType,
+        row.unscheduledReason || "",
+        row.instructorName || "",
+        row.attestationResult === "passed" ? "удовл." : row.attestationResult === "failed" ? "не удовл." : "",
+      ];
+    }),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -3249,8 +3294,10 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
   fieldVariant: "rinse_temperature" | "rinse_completeness";
 }) {
   const marginX = 14;
-  let currentY = 18;
   const currentFont = doc.getFont().fontName || "helvetica";
+
+  drawTitle(doc, params.title || EQUIPMENT_CLEANING_DOCUMENT_TITLE);
+  let currentY = 22;
 
   doc.setFontSize(11);
   doc.setFont(currentFont, "bold");
@@ -3299,11 +3346,15 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
       `${formatRuDateDash(data.washDate)}\n${data.washTime}`,
       data.equipmentName,
       data.detergentName,
-      data.detergentConcentration,
+      typeof data.detergentConcentration === "number"
+        ? `${formatNumberShort(data.detergentConcentration)}%`
+        : data.detergentConcentration,
       data.disinfectantName,
-      data.disinfectantConcentration,
+      typeof data.disinfectantConcentration === "number"
+        ? `${formatNumberShort(data.disinfectantConcentration)}%`
+        : data.disinfectantConcentration,
       params.fieldVariant === "rinse_temperature"
-        ? data.rinseTemperature || "—"
+        ? formatNumberShort(data.rinseTemperature) || "—"
         : getEquipmentCleaningResultLabel(data.rinseResult),
       data.washerName,
       `${data.controllerPosition}, ${data.controllerName}`,
@@ -3610,7 +3661,7 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
   entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
   users: { id: string; name: string; role: string }[];
 }) {
-  drawTitle(doc, "Журнал учета работы");
+  drawTitle(doc, "Журнал учета работы УФ бактерицидной установки");
   drawClimateMetaTable(doc, {
     organizationName: params.organizationName,
     title: params.title,
@@ -4387,8 +4438,8 @@ function drawFryerOilPdf(doc: jsPDF, params: {
       centerCell(data.productType),
       centerCell(endTimeStr),
       centerCell(qualityEndLabel),
-      centerCell(data.carryoverKg > 0 ? String(data.carryoverKg) : ""),
-      centerCell(data.disposedKg > 0 ? String(data.disposedKg) : ""),
+      centerCell(data.carryoverKg > 0 ? formatNumberShort(data.carryoverKg, 3) : ""),
+      centerCell(data.disposedKg > 0 ? formatNumberShort(data.disposedKg, 3) : ""),
       centerCell(data.controllerName),
     ];
   });

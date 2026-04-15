@@ -1,5 +1,33 @@
+import fs from "fs";
 import type { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+
+const FONT_CANDIDATES = [
+  "C:\\Windows\\Fonts\\arial.ttf",
+  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+  "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+  "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
+];
+
+/**
+ * Default jsPDF helvetica can't render Cyrillic glyphs, so register an OS TTF
+ * (mirrors document-pdf.ts). Without this, all body text in this PDF was
+ * coming out as garbled characters.
+ */
+function ensureUnicodeFont(doc: jsPDF): string {
+  const fontList = doc.getFontList?.() ?? {};
+  if (Object.prototype.hasOwnProperty.call(fontList, "JournalUnicode")) {
+    return "JournalUnicode";
+  }
+  const fontPath = FONT_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+  if (!fontPath) return "helvetica";
+  const base64 = fs.readFileSync(fontPath).toString("base64");
+  doc.addFileToVFS("journal-unicode.ttf", base64);
+  doc.addFont("journal-unicode.ttf", "JournalUnicode", "normal");
+  doc.addFont("journal-unicode.ttf", "JournalUnicode", "bold");
+  doc.addFont("journal-unicode.ttf", "JournalUnicode", "italic");
+  return "JournalUnicode";
+}
 import {
   buildChecklistDateKeys,
   getCleaningVentilationDescriptionLines,
@@ -47,13 +75,16 @@ export function drawCleaningVentilationChecklistPdf(
     ])
   );
 
+  const fontName = ensureUnicodeFont(doc);
+  doc.setFont(fontName, "bold");
   doc.setFontSize(13);
   doc.text(params.title, 14, 14);
+  doc.setFont(fontName, "normal");
 
   autoTable(doc, {
     startY: 20,
     theme: "grid",
-    styles: { fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
+    styles: { font: fontName, fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
     columnStyles: {
       0: { cellWidth: 40, halign: "center", valign: "middle" },
       1: { cellWidth: 85, halign: "center", valign: "middle" },
@@ -90,7 +121,7 @@ export function drawCleaningVentilationChecklistPdf(
       ? (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable!.finalY! + 6
       : 38,
     theme: "grid",
-    styles: { fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 2 },
+    styles: { font: fontName, fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 24, halign: "center", valign: "middle" },
       1: { cellWidth: 86 },
@@ -143,7 +174,7 @@ export function drawCleaningVentilationChecklistPdf(
       ? (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable!.finalY! + 8
       : 100,
     theme: "grid",
-    styles: { fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
+    styles: { font: fontName, fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
     head: [[
       "Дата",
       "Процедура",
