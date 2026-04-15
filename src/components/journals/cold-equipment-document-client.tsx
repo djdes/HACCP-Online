@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DocumentBackLink } from "@/components/journals/document-back-link";
 import {
   ArrowLeft,
   ChevronDown,
@@ -692,6 +693,7 @@ export function ColdEquipmentDocumentClient({
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1880px] px-6 py-8">
+        <DocumentBackLink href="/journals/cold_equipment_control" documentId={documentId} />
         <div className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-[1260px]">
             <h1 className="text-[48px] font-semibold leading-[1.08] tracking-[-0.05em] text-black">
@@ -706,9 +708,9 @@ export function ColdEquipmentDocumentClient({
               onClick={() => {
                 handlePrint().catch(() => undefined);
               }}
-              className="h-18 rounded-[22px] border-[#eef0fb] px-8 text-[22px] text-[#5566f6] shadow-none hover:bg-[#f8f9ff]"
+              className="h-12 rounded-2xl border-[#eef0fb] px-5 text-[17px] text-[#5566f6] shadow-none hover:bg-[#f8f9ff]"
             >
-              <Printer className="size-6" />
+              <Printer className="size-5" />
               Печать
             </Button>
 
