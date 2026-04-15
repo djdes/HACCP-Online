@@ -211,7 +211,7 @@ export function HealthDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
-      <DocumentBackLink href="/journals/health_check" documentId={documentId} />
+      {/* Back-link + Print are rendered by StaffJournalToolbar below. */}
       <style jsx global>{`
         @page {
           size: A4 landscape;
@@ -293,7 +293,6 @@ export function HealthDocumentClient(props: Props) {
             routeCode="health_check"
             organizationName={organizationLabel}
             showHeaderActions
-            hidePrint
             hideAutoFill
             onSettingsClick={() => {
               setSettingsDocTitle(documentTitle);
