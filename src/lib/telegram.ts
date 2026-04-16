@@ -22,24 +22,25 @@ const forceIp = process.env.TELEGRAM_FORCE_IP?.trim() || undefined;
 const tgDispatcher = forceIp
   ? new Agent({
       connect: {
+        // undici's Agent.connect.lookup must call back with LookupAddress[],
+        // not the legacy dns.lookup 3-arg form (err, address, family) —
+        // undici throws "Invalid IP address: undefined" on the 3-arg shape.
         lookup: ((
           hostname: string,
-          options: unknown,
+          options: object,
           callback: (
             err: NodeJS.ErrnoException | null,
-            address: string,
-            family: number
+            addresses: { address: string; family: number }[]
           ) => void
         ) => {
           if (hostname === "api.telegram.org") {
-            callback(null, forceIp, 4);
+            callback(null, [{ address: forceIp, family: 4 }]);
             return;
           }
           // Fall back to system DNS for everything else (grammy only hits
           // api.telegram.org in practice, but be defensive).
           import("node:dns").then(({ lookup }) => {
-            // @ts-expect-error dns.lookup callback overload is 3-arg
-            lookup(hostname, options, callback);
+            lookup(hostname, { ...options, all: true }, callback);
           });
         }) as unknown as undefined,
       },
