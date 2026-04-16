@@ -1328,13 +1328,17 @@ export default async function JournalDocumentsPage({
   });
 
   if (resolvedCode === "hygiene" || resolvedCode === "health_check") {
-    await ensureStaffJournalSampleDocuments({
-      templateCode: resolvedCode,
-      organizationId: session.user.organizationId,
-      templateId: template.id,
-      users: orgUsers,
-      createdById: session.user.id,
-    });
+    // Only seed the sample grid for the demo org. Real customer orgs start
+    // completely empty — the owner creates documents manually.
+    if (shouldNormalizeDemoSamples) {
+      await ensureStaffJournalSampleDocuments({
+        templateCode: resolvedCode,
+        organizationId: session.user.organizationId,
+        templateId: template.id,
+        users: orgUsers,
+        createdById: session.user.id,
+      });
+    }
 
     const documents = await db.journalDocument.findMany({
       where: {
@@ -1435,8 +1439,8 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === MED_BOOK_TEMPLATE_CODE) {
-    // Auto-seed one active sample document if none exist
+  if (shouldNormalizeDemoSamples && resolvedCode === MED_BOOK_TEMPLATE_CODE) {
+    // Auto-seed one active sample document if none exist (demo org only)
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -1562,7 +1566,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === PERISHABLE_REJECTION_TEMPLATE_CODE) {
+  if (shouldNormalizeDemoSamples && resolvedCode === PERISHABLE_REJECTION_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -1646,7 +1650,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-    if (resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -1797,12 +1801,14 @@ export default async function JournalDocumentsPage({
   }
 
   if (resolvedCode === glassControlDocument.GLASS_CONTROL_TEMPLATE_CODE) {
-    await ensureGlassControlSampleDocuments({
-      templateId: template.id,
-      organizationId: session.user.organizationId,
-      createdById: session.user.id,
-      users: orgUsers,
-    });
+    if (shouldNormalizeDemoSamples) {
+      await ensureGlassControlSampleDocuments({
+        templateId: template.id,
+        organizationId: session.user.organizationId,
+        createdById: session.user.id,
+        users: orgUsers,
+      });
+    }
 
     const documents = await db.journalDocument.findMany({
       where: {
@@ -1833,7 +1839,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-    if (resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -1928,7 +1934,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
+  if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -2086,7 +2092,7 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
+  if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
         organizationId: session.user.organizationId,
@@ -2169,18 +2175,23 @@ export default async function JournalDocumentsPage({
       ? (template.fields as TrackedTemplateField[])
       : [];
 
-    await ensureSourceStyleTrackedSampleDocuments({
-      templateCode: resolvedCode,
-      templateId: template.id,
-      organizationId: session.user.organizationId,
-      users: orgUsers,
-      createdById: session.user.id,
-      templateFields: parsedTemplateFields,
-    });
+    // All auto-seeded sample documents below are only for the demo org —
+    // real customer orgs start empty and build their own corpus.
+    if (shouldNormalizeDemoSamples) {
+      await ensureSourceStyleTrackedSampleDocuments({
+        templateCode: resolvedCode,
+        templateId: template.id,
+        organizationId: session.user.organizationId,
+        users: orgUsers,
+        createdById: session.user.id,
+        templateFields: parsedTemplateFields,
+      });
+    }
 
     if (
-      resolvedCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
-      resolvedCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
+      shouldNormalizeDemoSamples &&
+      (resolvedCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+        resolvedCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE)
     ) {
       const existingBasicDocumentCount = await db.journalDocument.count({
         where: {
@@ -2264,7 +2275,7 @@ export default async function JournalDocumentsPage({
       }
     }
 
-    if (resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
       const existingCleaningCount = await db.journalDocument.count({
         where: {
           organizationId: session.user.organizationId,
@@ -2364,7 +2375,7 @@ export default async function JournalDocumentsPage({
       }
     }
 
-    if (resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
       const existingDocument = await db.journalDocument.findFirst({
         where: {
           organizationId: session.user.organizationId,
@@ -2401,7 +2412,7 @@ export default async function JournalDocumentsPage({
       }
     }
 
-    if (resolvedCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE) {
       await ensureTraceabilitySampleDocuments({
         templateId: template.id,
         organizationId: session.user.organizationId,
@@ -2410,7 +2421,7 @@ export default async function JournalDocumentsPage({
       });
     }
 
-    if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
       await ensureIntensiveCoolingSampleDocuments({
         templateId: template.id,
         organizationId: session.user.organizationId,
@@ -2419,7 +2430,7 @@ export default async function JournalDocumentsPage({
       });
     }
 
-    if (resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
       const [products, batches, existingDocuments] = await Promise.all([
         db.product.findMany({
           where: {
@@ -2503,7 +2514,7 @@ export default async function JournalDocumentsPage({
       }
     }
 
-    if (resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
       await ensurePestControlSampleDocuments({
         templateId: template.id,
         organizationId: session.user.organizationId,
@@ -2589,7 +2600,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === SANITATION_DAY_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === SANITATION_DAY_TEMPLATE_CODE) {
       await ensureSanitationDaySampleDocuments({
         templateId: template.id,
         organizationId: session.user.organizationId,
@@ -2716,7 +2727,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
       const existingTP = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
         select: { status: true },
@@ -2794,7 +2805,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === AUDIT_PLAN_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === AUDIT_PLAN_TEMPLATE_CODE) {
       const existingAuditPlans = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
         select: { status: true },
@@ -2935,7 +2946,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
       const [allMetalDocuments, metalUsers, metalProducts, metalSuppliers] = await Promise.all([
         db.journalDocument.findMany({
           where: {
@@ -3201,7 +3212,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
       const existingBH = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
         select: { status: true },
@@ -3261,7 +3272,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
       const existingAccidentDocuments = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
         select: { status: true },
@@ -3344,12 +3355,14 @@ export default async function JournalDocumentsPage({
     }
 
     if (resolvedCode === PPE_ISSUANCE_TEMPLATE_CODE) {
-      await ensurePpeIssuanceSampleDocuments({
-        templateId: template.id,
-        organizationId: session.user.organizationId,
-        createdById: session.user.id,
-        users: orgUsers,
-      });
+      if (shouldNormalizeDemoSamples) {
+        await ensurePpeIssuanceSampleDocuments({
+          templateId: template.id,
+          organizationId: session.user.organizationId,
+          createdById: session.user.id,
+          users: orgUsers,
+        });
+      }
 
       const ppeDocuments = await db.journalDocument.findMany({
         where: {
@@ -3377,7 +3390,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (resolvedCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE) {
       const existingChecklistDocuments = await db.journalDocument.findMany({
         where: { templateId: template.id, organizationId: session.user.organizationId },
         orderBy: { dateFrom: "desc" },
@@ -3563,7 +3576,7 @@ export default async function JournalDocumentsPage({
         );
       }
 
-      if (resolvedCode === FRYER_OIL_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples && resolvedCode === FRYER_OIL_TEMPLATE_CODE) {
         return (
           <FryerOilDocumentsClient
             activeTab={activeTab}
@@ -3610,7 +3623,7 @@ export default async function JournalDocumentsPage({
         );
       }
 
-      if (resolvedCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples && resolvedCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
         return (
           <UvLampRuntimeDocumentsClient
             activeTab={activeTab}
