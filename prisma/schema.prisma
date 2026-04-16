@@ -199,6 +199,42 @@ model AuditLog {
   @@index([entity, entityId])
 }
 
+/// Ephemeral email verification codes used by the multi-step registration
+/// wizard (/register -> /register/verify). `codeHash` is a bcrypt digest of
+/// the 6-digit code; raw code is only present in the outgoing email.
+/// `attempts` blocks brute-force guessing.
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+/// Audit log for every outgoing Telegram message. 30-day retention (cron).
+/// Status transitions:
+///   queued -> sent            (normal path)
+///   queued -> failed          (non-429 Telegram error; `error` populated)
+///   queued -> rate_limited    (429 after max retries)
+model TelegramLog {
+  id        String    @id @default(cuid())
+  userId    String?
+  chatId    String
+  body      String
+  status    String    @default("queued")
+  error     String?
+  attempts  Int       @default(0)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
 model Batch {
   id             String       @id @default(cuid())
   code           String
