@@ -154,7 +154,7 @@ export function PhotoCapture({ onResult }: PhotoCaptureProps) {
               className={`rounded-md border p-3 space-y-2 ${confidenceColor[result.confidence]}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">
+                <span className="text-[13px] font-medium">
                   {confidenceLabel[result.confidence]}
                 </span>
               </div>

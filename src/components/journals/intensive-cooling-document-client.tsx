@@ -299,7 +299,7 @@ function RowDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-base text-white hover:bg-[#4452ee]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
             >
               {submitting
                 ? "Сохранение..."
@@ -384,7 +384,7 @@ function SettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-base text-white hover:bg-[#4452ee]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -435,7 +435,7 @@ function FinishDialog(props: {
             type="button"
             onClick={handleConfirm}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5563ff] px-8 text-base text-white hover:bg-[#4452ee]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
           >
             {submitting ? "Завершение..." : "Закончить"}
           </Button>
@@ -533,7 +533,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
           <div className="mx-auto flex max-w-[1860px] items-center gap-4 px-6 py-5">
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-3 text-lg text-[#5563ff]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-3 text-[15px] text-[#5563ff]"
               onClick={() => setSelectedRowIds([])}
             >
               <X className="size-5" />
@@ -541,7 +541,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#fff4f2] px-4 py-3 text-lg text-[#ff3b30]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#fff4f2] px-4 py-3 text-[15px] text-[#ff3b30]"
               onClick={() => {
                 handleDeleteSelected().catch((error) =>
                   toast.error(error instanceof Error ? error.message : "Ошибка")

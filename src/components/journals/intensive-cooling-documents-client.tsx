@@ -149,7 +149,7 @@ function DocumentDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-10 text-lg text-white hover:bg-[#4452ee]"
+                className="h-11 rounded-2xl bg-[#5563ff] px-10 text-[15px] text-white hover:bg-[#4452ee]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -201,7 +201,7 @@ function DeleteDialog(props: {
             type="button"
             onClick={handleDelete}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5563ff] px-10 text-lg text-white hover:bg-[#4452ee]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-10 text-[15px] text-white hover:bg-[#4452ee]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -295,7 +295,7 @@ export function IntensiveCoolingDocumentsClient({
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="h-12 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-base text-[#5b66ff] shadow-none"
+            className="h-12 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-[15px] text-[#5b66ff] shadow-none"
             asChild
           >
             <Link href="/sanpin">
@@ -305,7 +305,7 @@ export function IntensiveCoolingDocumentsClient({
           </Button>
           {activeTab === "active" ? (
             <Button
-              className="h-12 rounded-2xl bg-[#5563ff] px-8 text-base text-white hover:bg-[#4452ee]"
+              className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="size-5" />

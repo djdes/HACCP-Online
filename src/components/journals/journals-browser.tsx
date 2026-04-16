@@ -272,7 +272,7 @@ function TemplateCard({
           <CardDescription>{template.description}</CardDescription>
         ) : null}
         {!accessible ? (
-          <p className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="mt-2 inline-flex items-center gap-1 text-[13px] text-muted-foreground">
             <Lock className="size-3" /> Доступен на тарифе «Расширенный»
           </p>
         ) : null}

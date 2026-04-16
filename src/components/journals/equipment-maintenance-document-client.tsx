@@ -381,7 +381,7 @@ export function EquipmentMaintenanceDocumentClient({
 
         {/* Legend row */}
         <div className="overflow-x-auto">
-          <table className="mb-2 w-full border-collapse text-xs">
+          <table className="mb-2 w-full border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td className="border border-black p-2 font-semibold">
@@ -447,12 +447,12 @@ export function EquipmentMaintenanceDocumentClient({
                     >
                       <div className="font-medium">{row.equipmentName}</div>
                       {row.workType && (
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-[13px] text-gray-500">
                           {row.workType}
                         </div>
                       )}
                     </td>
-                    <td className="border border-black p-1 text-center text-xs font-medium">
+                    <td className="border border-black p-1 text-center text-[13px] font-medium">
                       Тип
                     </td>
                     {MONTH_KEYS.map((key) => (
@@ -467,7 +467,7 @@ export function EquipmentMaintenanceDocumentClient({
 
                   {/* Sub-row 2: План */}
                   <tr>
-                    <td className="border border-black p-1 text-center text-xs font-medium">
+                    <td className="border border-black p-1 text-center text-[13px] font-medium">
                       План
                     </td>
                     {MONTH_KEYS.map((key) => (
@@ -482,7 +482,7 @@ export function EquipmentMaintenanceDocumentClient({
 
                   {/* Sub-row 3: Факт */}
                   <tr>
-                    <td className="border border-black p-1 text-center text-xs font-medium">
+                    <td className="border border-black p-1 text-center text-[13px] font-medium">
                       Факт
                     </td>
                     {MONTH_KEYS.map((key) => (

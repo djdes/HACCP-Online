@@ -321,7 +321,7 @@ export function DynamicForm({
             </SelectContent>
           </Select>
           {templateCode === "product_writeoff" && selectedCatalogProduct?.storageTemp && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[13px] text-muted-foreground">
               Температура хранения: {selectedCatalogProduct.storageTemp}
             </p>
           )}
@@ -436,7 +436,7 @@ export function DynamicForm({
                             <strong>{sensorInfo.humidity}%</strong>
                           </p>
                         )}
-                        <p className="text-xs text-green-600">
+                        <p className="text-[13px] text-green-600">
                           {new Date(sensorInfo.timestamp).toLocaleString(
                             "ru-RU"
                           )}

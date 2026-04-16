@@ -32,7 +32,7 @@ export function FieldHint({ templateCode, fieldKey }: FieldHintProps) {
         <div className="space-y-2">
           <p>{hint.hint}</p>
           {hint.norm && (
-            <div className="flex items-start gap-1.5 text-xs text-muted-foreground border-t pt-2">
+            <div className="flex items-start gap-1.5 text-[13px] text-muted-foreground border-t pt-2">
               <BookOpen className="size-3 mt-0.5 shrink-0" />
               <span>{hint.norm}</span>
             </div>
@@ -64,7 +64,7 @@ export function FieldWarning({ templateCode, fieldKey, value }: FieldWarningProp
   if (!warning) return null;
 
   return (
-    <div className="flex items-center gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2.5 py-1.5 text-xs text-yellow-800">
+    <div className="flex items-center gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2.5 py-1.5 text-[13px] text-yellow-800">
       <AlertTriangle className="size-3.5 shrink-0 text-yellow-600" />
       <span>{warning}</span>
     </div>
