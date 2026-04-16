@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
-import { requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
 import { HealthDocumentsClient } from "@/components/journals/health-documents-client";
@@ -1295,6 +1296,16 @@ export default async function JournalDocumentsPage({
   });
 
   if (!template) {
+    notFound();
+  }
+
+  // Per-user journal ACL. Root, managers, and unmigrated users bypass;
+  // employees need an explicit UserJournalAccess row. See src/lib/journal-acl.ts.
+  const allowed = await hasJournalAccess(
+    aclActorFromSession(session),
+    resolvedCode
+  );
+  if (!allowed) {
     notFound();
   }
 
