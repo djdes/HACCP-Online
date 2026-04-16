@@ -237,7 +237,7 @@ export function ProductWriteoffDocumentsClient({
               className="grid grid-cols-1 gap-4 rounded-[16px] border border-[#eceef5] bg-white px-5 py-4 sm:grid-cols-[minmax(0,1.8fr)_280px_280px_56px] sm:items-center sm:gap-0 sm:px-7"
             >
               <Link href={`/journals/${templateCode}/documents/${document.id}`} className="min-w-0">
-                <div className="text-[18px] font-semibold tracking-[-0.02em] text-black sm:text-[24px]">{document.listTitle}</div>
+                <div className="text-[17px] font-semibold tracking-[-0.02em] text-black">{document.listTitle}</div>
               </Link>
               <Link
                 href={`/journals/${templateCode}/documents/${document.id}`}

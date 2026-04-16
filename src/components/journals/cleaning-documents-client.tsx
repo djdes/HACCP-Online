@@ -590,7 +590,7 @@ export function CleaningDocumentsClient(props: Props) {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              className="h-16 rounded-[16px] border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"
               asChild
             >
               <Link href="/sanpin">
@@ -602,7 +602,7 @@ export function CleaningDocumentsClient(props: Props) {
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="h-16 rounded-[16px] bg-[#5b66ff] px-8 text-[18px] text-white hover:bg-[#4d58f5]"
+                className="h-11 rounded-2xl bg-[#5b66ff] px-4 text-[15px] text-white hover:bg-[#4d58f5]"
               >
                 <Plus className="size-6" />
                 Создать документ
@@ -612,7 +612,7 @@ export function CleaningDocumentsClient(props: Props) {
         </div>
 
         <div className="border-b border-[#d9dce8]">
-          <div className="flex gap-11 text-[18px]">
+          <div className="flex gap-12 text-[16px]">
             <Link
               href={`/journals/${props.routeCode}`}
               className={`relative pb-6 ${
@@ -662,7 +662,7 @@ export function CleaningDocumentsClient(props: Props) {
                 key={document.id}
                 className="grid grid-cols-1 gap-4 rounded-[18px] border border-[#eaedf7] bg-white px-5 py-5 sm:grid-cols-[minmax(0,1.5fr)_360px_360px_240px_56px] sm:items-center sm:gap-0 sm:px-7"
               >
-                <Link href={href} className="min-w-0 text-[18px] font-semibold text-black sm:text-[24px]">
+                <Link href={href} className="min-w-0 text-[17px] font-semibold text-black">
                   {document.title || CLEANING_DOCUMENT_TITLE}
                 </Link>
                 <Link href={href} className="border-t border-[#eceef5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0">

@@ -144,7 +144,7 @@ function EditDocumentDialog({
           {isStaffDocumentTemplate(templateCode) && templateCode !== "health_check" && (
             <div className="space-y-2 rounded-3xl border border-[#dfe1ec] px-6 py-5">
               <div className="text-[14px] text-[#73738a]">Периодичность контроля</div>
-              <div className="text-lg leading-[1.35] text-black sm:text-[15px]">{HYGIENE_PERIODICITY_TEXT}</div>
+              <div className="text-[15px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
             </div>
           )}
 

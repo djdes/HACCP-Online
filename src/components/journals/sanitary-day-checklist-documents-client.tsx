@@ -127,7 +127,7 @@ function SettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-3xl font-semibold tracking-[-0.03em] text-black sm:text-[42px]">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.title}
             </DialogTitle>
             <button
@@ -377,7 +377,7 @@ export function SanitaryDayChecklistDocumentsClient({
 
       <div className="space-y-4">
         {documents.length === 0 && (
-          <div className="rounded-[18px] border border-[#e9ecf7] bg-white px-4 py-5 text-lg text-[#8a8ea4] sm:px-8 sm:py-8 sm:text-[28px]">
+          <div className="rounded-[18px] border border-[#e9ecf7] bg-white px-6 py-6 text-[15px] text-[#8a8ea4]">
             Документов пока нет
           </div>
         )}
@@ -495,7 +495,7 @@ export function SanitaryDayChecklistDocumentsClient({
           </DialogHeader>
           {archiveTarget && (
             <div className="px-10 py-8 space-y-6">
-              <p className="text-lg text-[#3a3d52] sm:text-[15px]">
+              <p className="text-[15px] text-[#3a3d52]">
                 Перенести в архив документ &quot;{archiveTarget.title || checklistTitle}&quot;?
               </p>
               <div className="flex justify-end gap-3">

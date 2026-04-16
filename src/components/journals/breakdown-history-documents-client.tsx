@@ -106,7 +106,7 @@ function SettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-3xl font-semibold tracking-[-0.03em] text-black sm:text-[42px]">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.dialogTitle}
             </DialogTitle>
             <button
@@ -186,7 +186,7 @@ function DeleteDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-3xl font-semibold tracking-[-0.03em] text-black sm:text-[42px]">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Удаление документа &laquo;{props.title}&raquo;
             </DialogTitle>
             <button
@@ -207,7 +207,7 @@ function DeleteDialog(props: {
               type="button"
               onClick={handleDelete}
               disabled={submitting}
-              className="h-12 rounded-3xl bg-[#ff3b30] px-8 text-[18px] text-white hover:bg-[#e0342a] sm:h-14 sm:px-10 sm:text-[24px]"
+              className="h-11 rounded-2xl bg-[#ff3b30] px-4 text-[15px] text-white hover:bg-[#e0342a]"
             >
               {submitting ? "Удаление..." : "Удалить"}
             </Button>
@@ -345,7 +345,7 @@ export function BreakdownHistoryDocumentsClient({
       {/* Document Cards */}
       <div className="space-y-4">
         {documents.length === 0 && (
-          <div className="rounded-[18px] border border-[#e9ecf7] bg-white px-4 py-5 text-lg text-[#8a8ea4] sm:px-8 sm:py-8 sm:text-[28px]">
+          <div className="rounded-[18px] border border-[#e9ecf7] bg-white px-6 py-6 text-[15px] text-[#8a8ea4]">
             Документов пока нет
           </div>
         )}

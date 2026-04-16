@@ -158,7 +158,7 @@ function GlassListFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, responsibleTitle: event.target.value }))
               }
-              className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
+              className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
             >
               <option value="">- Выберите значение -</option>
               {RESPONSIBLE_TITLES.map((title) => (
@@ -175,7 +175,7 @@ function GlassListFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, responsibleUserId: event.target.value }))
               }
-              className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
+              className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
             >
               <option value="">- Выберите значение -</option>
               {props.users.map((user) => (
@@ -396,7 +396,7 @@ export function GlassListDocumentsClient(props: Props) {
             <Button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="h-16 rounded-[16px] bg-[#5b66ff] px-8 text-[18px] font-medium text-white hover:bg-[#4d58f5]"
+              className="h-11 rounded-2xl bg-[#5b66ff] px-4 text-[15px] font-medium text-white hover:bg-[#4d58f5]"
             >
               <Plus className="size-6" />
               Создать документ
