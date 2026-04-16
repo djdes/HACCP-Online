@@ -743,8 +743,18 @@ async function main() {
     data: { isActive: false },
   });
 
-  console.log("Seeding example areas and equipment...");
-  const organizations = await prisma.organization.findMany({ select: { id: true } });
+  console.log("Seeding example areas and equipment (demo orgs only)...");
+  // Only seed demo data for the demo org (identified by having a user with
+  // DEMO_ADMIN_EMAIL). Real customer orgs start with zero areas / equipment /
+  // products — they configure their own through /settings.
+  const DEMO_ADMIN_EMAIL = "admin@haccp.local";
+  const demoAdminUser = await prisma.user.findFirst({
+    where: { email: DEMO_ADMIN_EMAIL },
+    select: { organizationId: true },
+  });
+  const organizations = demoAdminUser?.organizationId
+    ? [{ id: demoAdminUser.organizationId }]
+    : [];
 
   for (const organization of organizations) {
     const areaNames = ["Холодильный цех", "Горячий цех", "Склад", "Упаковка"];
