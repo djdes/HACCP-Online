@@ -292,7 +292,7 @@ export function GlassListDocumentClient({
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-14 py-10">
-            <DialogTitle className="text-[32px] font-medium text-black">
+            <DialogTitle className="text-[22px] font-medium text-black">
               Настройки документа
             </DialogTitle>
           </DialogHeader>
@@ -406,7 +406,7 @@ export function GlassListDocumentClient({
       >
         <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-14 py-10">
-            <DialogTitle className="text-[32px] font-medium text-black">
+            <DialogTitle className="text-[22px] font-medium text-black">
               {rowDialog.rowIndex === null ? "Добавление новой строки" : "Редактирование строки"}
             </DialogTitle>
           </DialogHeader>

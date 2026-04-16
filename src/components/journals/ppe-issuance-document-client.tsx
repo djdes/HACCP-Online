@@ -182,7 +182,7 @@ function SettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Настройки документа
             </DialogTitle>
             <button type="button" className="rounded-xl p-2 text-[#0b1024]" onClick={() => props.onOpenChange(false)}>
@@ -295,7 +295,7 @@ function RowDialog(props: {
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[720px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.initialRow ? "Редактирование строки" : "Добавление новой строки"}
             </DialogTitle>
             <button type="button" className="rounded-xl p-2 text-[#0b1024]" onClick={() => props.onOpenChange(false)}>

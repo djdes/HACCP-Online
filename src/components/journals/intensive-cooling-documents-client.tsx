@@ -103,7 +103,7 @@ function DocumentDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[720px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-7">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[28px] font-medium text-black">
+            <DialogTitle className="text-[22px] font-medium text-black">
               {props.dialogTitle}
             </DialogTitle>
             <button
@@ -184,7 +184,7 @@ function DeleteDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[720px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-7">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[28px] font-medium text-black">
+            <DialogTitle className="text-[22px] font-medium text-black">
               Удаление документа &quot;{props.title}&quot;
             </DialogTitle>
             <button

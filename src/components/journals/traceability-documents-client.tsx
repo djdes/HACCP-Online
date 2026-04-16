@@ -127,7 +127,7 @@ function TraceabilitySettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[720px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.title}
             </DialogTitle>
             <button
@@ -455,7 +455,7 @@ export function TraceabilityDocumentsClient({
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[620px] rounded-[28px] border-0 p-0">
           <DialogHeader className="border-b px-10 py-8">
             <div className="flex items-center justify-between gap-4">
-              <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+              <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
                 {archiveTarget?.status === "active"
                   ? `Закрыть документ "${archiveTarget?.title || DEFAULT_TITLE}"`
                   : `Восстановить документ "${archiveTarget?.title || DEFAULT_TITLE}"`}
@@ -491,7 +491,7 @@ export function TraceabilityDocumentsClient({
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[620px] rounded-[28px] border-0 p-0">
           <DialogHeader className="border-b px-10 py-8">
             <div className="flex items-center justify-between gap-4">
-              <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+              <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
                 Удаление документа &quot;{deleteTarget?.title || DEFAULT_TITLE}&quot;
               </DialogTitle>
               <button

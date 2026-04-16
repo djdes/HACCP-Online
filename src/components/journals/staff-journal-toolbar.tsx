@@ -228,7 +228,7 @@ function FillFromStaffDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[690px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
-          <DialogTitle className="text-[28px] font-medium leading-[1.2] text-black">
+          <DialogTitle className="text-[22px] font-medium leading-[1.2] text-black">
             Заполнение документа:
             <br />
             &quot;{documentTitle}&quot;
@@ -324,7 +324,7 @@ function JournalSettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[765px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Настройки документа
           </DialogTitle>
         </DialogHeader>

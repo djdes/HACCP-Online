@@ -53,7 +53,7 @@ function SectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[620px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
-          <DialogTitle className="text-[28px] font-semibold text-black">Добавить новый раздел</DialogTitle>
+          <DialogTitle className="text-[22px] font-semibold text-black">Добавить новый раздел</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 px-8 py-6">
           <Input value={value} onChange={(e) => setValue(e.target.value)} className="h-14 rounded-2xl border-[#d8dae6] px-4 text-[20px]" />
@@ -92,7 +92,7 @@ function RowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[700px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
-          <DialogTitle className="text-[28px] font-semibold text-black">
+          <DialogTitle className="text-[22px] font-semibold text-black">
             {row ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
@@ -364,7 +364,7 @@ export function AuditProtocolDocumentClient({
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-w-[760px] rounded-[28px] border-0 p-0">
           <DialogHeader className="border-b px-8 py-6">
-            <DialogTitle className="text-[32px] font-semibold text-black">Настройки документа</DialogTitle>
+            <DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 px-8 py-6">
             <div className="space-y-2">

@@ -124,7 +124,7 @@ function AddPositionDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[660px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Добавление новой должности
             </DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}>
@@ -194,7 +194,7 @@ function AddTopicDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[660px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Добавление новой темы
             </DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}>
@@ -247,7 +247,7 @@ function DocumentSettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Настройки документа
             </DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}>

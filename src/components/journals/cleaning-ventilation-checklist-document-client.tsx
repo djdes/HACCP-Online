@@ -190,7 +190,7 @@ function DocumentSettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[840px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-7">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[34px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Настройки документа
             </DialogTitle>
             <button
@@ -328,7 +328,7 @@ function AddResponsibleDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[840px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-7">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[34px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Добавление ответственного лица
             </DialogTitle>
             <button

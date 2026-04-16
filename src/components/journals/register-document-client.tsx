@@ -192,7 +192,7 @@ function RowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[820px] overflow-y-auto rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             {initialRow ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
@@ -340,7 +340,7 @@ function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[860px] overflow-y-auto rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Настройки журнала
           </DialogTitle>
         </DialogHeader>

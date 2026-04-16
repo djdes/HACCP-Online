@@ -182,7 +182,7 @@ function CreateDialog(props: {
       <DialogContent className="max-w-[720px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold text-black">
+            <DialogTitle className="text-[22px] font-semibold text-black">
               Создание документа
             </DialogTitle>
             <button
@@ -290,7 +290,7 @@ function SettingsDialog(props: {
       <DialogContent className="max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold text-black">
+            <DialogTitle className="text-[22px] font-semibold text-black">
               Настройки документа
             </DialogTitle>
             <button

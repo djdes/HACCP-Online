@@ -355,7 +355,7 @@ function ResponsibleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Редактирование ответственного лица
           </DialogTitle>
         </DialogHeader>
@@ -467,7 +467,7 @@ function AddRowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Добавление новой строки
           </DialogTitle>
         </DialogHeader>
@@ -613,7 +613,7 @@ function JournalSettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[860px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Настройки документа
           </DialogTitle>
         </DialogHeader>

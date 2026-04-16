@@ -106,7 +106,7 @@ function GlassListFormDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[720px] rounded-[32px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-14 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             {props.dialogTitle}
           </DialogTitle>
           <button
@@ -222,7 +222,7 @@ function ConfirmDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="flex flex-row items-start justify-between border-b px-14 py-10">
-          <DialogTitle className="pr-12 text-[32px] font-medium leading-[1.15] text-black">
+          <DialogTitle className="pr-12 text-[22px] font-medium leading-[1.15] text-black">
             {props.title}
           </DialogTitle>
           <button

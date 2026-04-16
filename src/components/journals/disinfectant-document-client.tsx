@@ -103,7 +103,7 @@ function AddSubdivisionDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[660px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Добавление новой строки
             </DialogTitle>
             <button
@@ -246,7 +246,7 @@ function EditSubdivisionDialog(props: {
       <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[660px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Редактирование строки
             </DialogTitle>
             <button
@@ -495,7 +495,7 @@ function ReceiptDialog(props: {
       <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[660px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.dialogTitle}
             </DialogTitle>
             <button
@@ -698,7 +698,7 @@ function ConsumptionDialog(props: {
       <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[660px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.dialogTitle}
             </DialogTitle>
             <button
@@ -946,7 +946,7 @@ function DocumentSettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               Настройки документа
             </DialogTitle>
             <button

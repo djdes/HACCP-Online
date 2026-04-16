@@ -90,7 +90,7 @@ function CreateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[720px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Создание документа
           </DialogTitle>
         </DialogHeader>
@@ -188,7 +188,7 @@ function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Настройки документа
           </DialogTitle>
         </DialogHeader>
@@ -270,7 +270,7 @@ function DeleteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-14 py-10">
-          <DialogTitle className="pr-14 text-[32px] font-medium leading-[1.15] text-black">
+          <DialogTitle className="pr-14 text-[22px] font-medium leading-[1.15] text-black">
             {`Удаление документа "${document?.title || COMPLAINT_REGISTER_TITLE}"`}
           </DialogTitle>
         </DialogHeader>

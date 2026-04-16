@@ -177,7 +177,7 @@ function SettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[760px] rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.title}
             </DialogTitle>
             <button

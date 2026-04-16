@@ -186,7 +186,7 @@ function SettingsDialog(props: {
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[700px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">{props.title}</DialogTitle>
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">{props.title}</DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button>
           </div>
         </DialogHeader>
@@ -248,7 +248,7 @@ function ListsDialog(props: {
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[920px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">Редактировать списки</DialogTitle>
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Редактировать списки</DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button>
           </div>
         </DialogHeader>
@@ -369,7 +369,7 @@ function RowDialog(props: {
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[760px] overflow-y-auto rounded-[28px] border-0 p-0">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">{props.initialRow ? "Редактирование строки" : "Добавление новой строки"}</DialogTitle>
+            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">{props.initialRow ? "Редактирование строки" : "Добавление новой строки"}</DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button>
           </div>
         </DialogHeader>
@@ -454,7 +454,7 @@ function ImportDialog(props: {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[760px] overflow-y-auto rounded-[28px] border-0 p-0">
-        <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">Добавление из Excel</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
+        <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Добавление из Excel</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
         <div className="space-y-5 px-8 py-6">
           <div className="rounded-[24px] border border-[#e6e9f5] bg-[#fbfbff] px-5 py-4 text-[15px] leading-7 text-[#505469]"><p>Список должен быть в Excel-файле на первом листе и начинаться с первой строки.</p><p className="mt-3">Столбцы должны быть в фиксированном порядке:</p><ol className="mt-2 space-y-1 pl-5">{TRACEABILITY_IMPORT_COLUMNS.map((column, index) => <li key={column}>{index + 1}-й столбец - {column}</li>)}</ol></div>
           <div className="space-y-2"><Button type="button" variant="outline" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" onClick={() => fileInputRef.current?.click()}><Upload className="size-4" />Выберите файл</Button><div className="text-[15px] text-[#7c7c93]">{file ? file.name : "Файл не выбран"}</div><input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] ?? null); e.currentTarget.value = ""; }} /></div>
@@ -471,7 +471,7 @@ function FinishDialog(props: { open: boolean; onOpenChange: (open: boolean) => v
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[640px] rounded-[28px] border-0 p-0">
-        <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[28px] font-semibold tracking-[-0.03em] text-black">Закончить журнал &quot;{props.title}&quot;</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
+        <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Закончить журнал &quot;{props.title}&quot;</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
         <div className="space-y-4 px-8 py-8"><div className="text-[17px] leading-7 text-[#505469]">Документ станет доступен только для чтения.</div><div className="flex justify-end"><Button type="button" onClick={finish} disabled={loading} className="h-14 rounded-3xl bg-[#5563ff] px-10 text-[20px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Закончить"}</Button></div></div>
       </DialogContent>
     </Dialog>

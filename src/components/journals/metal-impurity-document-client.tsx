@@ -223,7 +223,7 @@ function RowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
-          <DialogTitle className="text-[28px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             {row ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
@@ -468,7 +468,7 @@ function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-10 py-8">
-          <DialogTitle className="text-[28px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             Настройки документа
           </DialogTitle>
         </DialogHeader>
@@ -1296,7 +1296,7 @@ export function MetalImpurityDocumentClient({
       <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
         <DialogContent className="max-w-[680px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-10 py-8">
-            <DialogTitle className="pr-10 text-[28px] font-medium text-black">
+            <DialogTitle className="pr-10 text-[22px] font-medium text-black">
               {`Закончить журнал "${documentTitle}"`}
             </DialogTitle>
           </DialogHeader>

@@ -54,7 +54,7 @@ function FindingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[920px] overflow-y-auto rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">
+          <DialogTitle className="text-[22px] font-medium text-black">
             {finding ? "Редактирование несоответствия" : "Добавить несоответствие"}
           </DialogTitle>
         </DialogHeader>
@@ -284,7 +284,7 @@ export function AuditReportDocumentClient({
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-12 py-10">
-            <DialogTitle className="text-[32px] font-medium text-black">Настройки документа</DialogTitle>
+            <DialogTitle className="text-[22px] font-medium text-black">Настройки документа</DialogTitle>
           </DialogHeader>
           <div className="space-y-5 px-12 py-10">
             <div className="space-y-3">

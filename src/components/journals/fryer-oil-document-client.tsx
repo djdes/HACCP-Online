@@ -90,7 +90,7 @@ function EntryDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-[620px] overflow-y-auto rounded-[24px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[28px] font-semibold">
+          <DialogTitle className="text-[22px] font-semibold">
             {props.initialEntry ? "Редактирование записи" : "Добавление новой строки"}
           </DialogTitle>
           <button type="button" className="rounded-md p-1 hover:bg-black/5" onClick={() => props.onOpenChange(false)}>
@@ -167,7 +167,7 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[620px] rounded-[24px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[28px] font-semibold">Редактировать списки</DialogTitle>
+          <DialogTitle className="text-[22px] font-semibold">Редактировать списки</DialogTitle>
           <button type="button" className="rounded-md p-1 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
         </DialogHeader>
         <div className="px-7 py-6">
@@ -200,7 +200,7 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[560px] rounded-[24px] border-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[28px] font-semibold">Настройки журнала</DialogTitle>
+          <DialogTitle className="text-[22px] font-semibold">Настройки журнала</DialogTitle>
           <button type="button" className="rounded-md p-1 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
         </DialogHeader>
         <div className="space-y-4 px-7 py-6">

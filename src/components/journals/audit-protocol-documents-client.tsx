@@ -73,7 +73,7 @@ function DocumentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] rounded-[32px] border-0 p-0">
         <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[32px] font-medium text-black">{title}</DialogTitle>
+          <DialogTitle className="text-[22px] font-medium text-black">{title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 px-12 py-10">
           <div className="space-y-3">
@@ -364,7 +364,7 @@ export function AuditProtocolDocumentsClient({
       <Dialog open={!!deleteDocument} onOpenChange={(open) => !open && setDeleteDocument(null)}>
         <DialogContent className="max-w-[680px] rounded-[32px] border-0 p-0">
           <DialogHeader className="border-b px-12 py-10">
-            <DialogTitle className="pr-10 text-[32px] font-medium text-black">
+            <DialogTitle className="pr-10 text-[22px] font-medium text-black">
               {`Удалить документ "${deleteDocument?.title || AUDIT_PROTOCOL_DOCUMENT_TITLE}"`}
             </DialogTitle>
           </DialogHeader>
