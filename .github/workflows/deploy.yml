@@ -137,9 +137,17 @@ jobs:
               echo ".env not found, skip seed"
             fi
 
-            echo "=== Restarting PM2 ==="
+            echo "=== Restarting PM2 (web + telegram poller) ==="
             npx pm2 delete haccp-online 2>/dev/null || true
             npx pm2 start npm --name haccp-online --cwd "$(pwd)" -- start --update-env 2>&1 | tail -5
-            npx pm2 status haccp-online --no-color
+
+            # Long-polling daemon for Telegram — runs separately from the
+            # Next.js process, survives webhook blocks. Restart on every
+            # deploy so it picks up code + env changes.
+            npx pm2 delete haccp-telegram-poller 2>/dev/null || true
+            npx pm2 start npx --name haccp-telegram-poller --cwd "$(pwd)" --update-env -- tsx scripts/telegram-poller.ts 2>&1 | tail -5
+
+            npx pm2 save 2>&1 | tail -2
+            npx pm2 status --no-color | grep -E 'haccp|name|---' || true
 
             echo "=== Deploy complete ==="
