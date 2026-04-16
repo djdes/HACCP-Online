@@ -1,16 +1,67 @@
 import { Bot } from "grammy";
+import { Agent } from "undici";
 import crypto from "node:crypto";
 import { escapeHtml } from "@/lib/html-escape";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
-// Initialize bot (only if token is set). In regions where api.telegram.org is
-// blocked (e.g. RU), set TELEGRAM_API_ROOT to a reverse proxy URL, such as a
-// Cloudflare Worker that forwards requests to https://api.telegram.org. Grammy
-// will use that as its API base.
+// Initialize bot (only if token is set).
+//
+// `TELEGRAM_API_ROOT` — optional reverse proxy URL for regions where the
+// primary api.telegram.org is fully blocked (Cloudflare Worker, self-hosted
+// tdlib/telegram-bot-api, etc). Forwarded to grammy as apiRoot.
+//
+// `TELEGRAM_FORCE_IP` — IPv4 that still routes to Telegram's API edge when
+// DNS returns a blocked IP (e.g. Roskomnadzor selectively nulls some of
+// 149.154.160.0/20 but leaves 149.154.167.220 reachable). We install an
+// undici Agent that overrides only api.telegram.org's DNS lookup; TLS SNI
+// stays "api.telegram.org", so the certificate still validates.
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const apiRoot = process.env.TELEGRAM_API_ROOT?.replace(/\/+$/, "") || undefined;
+const forceIp = process.env.TELEGRAM_FORCE_IP?.trim() || undefined;
+
+const tgDispatcher = forceIp
+  ? new Agent({
+      connect: {
+        lookup: ((
+          hostname: string,
+          options: unknown,
+          callback: (
+            err: NodeJS.ErrnoException | null,
+            address: string,
+            family: number
+          ) => void
+        ) => {
+          if (hostname === "api.telegram.org") {
+            callback(null, forceIp, 4);
+            return;
+          }
+          // Fall back to system DNS for everything else (grammy only hits
+          // api.telegram.org in practice, but be defensive).
+          import("node:dns").then(({ lookup }) => {
+            // @ts-expect-error dns.lookup callback overload is 3-arg
+            lookup(hostname, options, callback);
+          });
+        }) as unknown as undefined,
+      },
+    })
+  : undefined;
+
 const bot = token
-  ? new Bot(token, apiRoot ? { client: { apiRoot } } : undefined)
+  ? new Bot(token, {
+      client: {
+        ...(apiRoot ? { apiRoot } : {}),
+        ...(tgDispatcher
+          ? {
+              // grammy types its baseFetchConfig as RequestInit which doesn't
+              // include undici's `dispatcher` extension. Runtime fetch (also
+              // undici) does honour it, so we force-cast.
+              baseFetchConfig: {
+                dispatcher: tgDispatcher,
+              } as unknown as Omit<RequestInit, "method" | "headers" | "body">,
+            }
+          : {}),
+      },
+    })
   : null;
 
 /**
