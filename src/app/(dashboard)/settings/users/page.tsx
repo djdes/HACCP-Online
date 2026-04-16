@@ -1,6 +1,8 @@
-import { Users } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, Users } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -84,6 +86,17 @@ export default async function UsersSettingsPage() {
                   {isManager && (
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                          title="Доступ к журналам"
+                        >
+                          <Link href={`/settings/users/${user.id}/access`}>
+                            <KeyRound className="size-4" />
+                          </Link>
+                        </Button>
                         <EditUserDialog
                           user={user}
                           isSelf={user.id === session.user.id}
