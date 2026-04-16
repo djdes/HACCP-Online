@@ -49,5 +49,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/root/:path*", "/api/root/:path*"],
+  // `/root/:path*` alone does NOT match `/root` itself (no trailing segment),
+  // so the base page would slip past the guard. Listing both forms fixes it.
+  matcher: ["/root", "/root/:path*", "/api/root", "/api/root/:path*"],
 };
