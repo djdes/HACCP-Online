@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import {
   Dialog,
@@ -320,6 +321,7 @@ export function HygieneDocumentsClient({
         </div>
 
         <div className="space-y-6">
+          {documents.length === 0 && <EmptyDocumentsState />}
           {documents.map((document) => (
             <DocumentRow
               key={document.id}

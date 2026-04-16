@@ -22,6 +22,7 @@ import {
 } from "@/lib/complaint-document";
 
 import { toast } from "sonner";
+import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 type ComplaintListDocument = {
   id: string;
   title: string;
@@ -356,7 +357,7 @@ export function ComplaintDocumentsClient({
         </div>
 
         <div className="space-y-3">
-          {documents.length === 0 && <div className="min-h-[280px] rounded-[16px] bg-white" />}
+          {documents.length === 0 && <EmptyDocumentsState />}
 
           {documents.map((document) => (
             <div

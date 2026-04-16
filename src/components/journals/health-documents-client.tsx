@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { toast } from "sonner";
+import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 type HealthListDocument = {
   id: string;
   title: string;
@@ -286,6 +287,7 @@ export function HealthDocumentsClient(props: Props) {
         </div>
 
         <div className="space-y-4">
+          {props.documents.length === 0 && <EmptyDocumentsState />}
           {props.documents.map((document) => (
             <HealthDocumentRow
               key={document.id}

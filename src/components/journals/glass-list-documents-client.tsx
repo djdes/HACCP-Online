@@ -36,6 +36,7 @@ import {
 } from "@/lib/glass-list-document";
 
 import { toast } from "sonner";
+import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 type UserItem = {
   id: string;
   name: string;
@@ -430,7 +431,7 @@ export function GlassListDocumentsClient(props: Props) {
         </div>
 
         <div className="space-y-3">
-          {props.documents.length === 0 && <div className="min-h-[280px] rounded-[16px] bg-white" />}
+          {props.documents.length === 0 && <EmptyDocumentsState />}
 
           {props.documents.map((document) => {
             const href = `/journals/${routeCode}/documents/${document.id}`;
