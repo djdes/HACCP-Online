@@ -39,6 +39,11 @@ export async function getServerSession(
         typeof token.organizationName === "string"
           ? token.organizationName
           : "",
+      isRoot: token.isRoot === true,
+      actingAsOrganizationId:
+        typeof token.actingAsOrganizationId === "string"
+          ? token.actingAsOrganizationId
+          : null,
       name: typeof token.name === "string" ? token.name : null,
       email: typeof token.email === "string" ? token.email : null,
       image: null,

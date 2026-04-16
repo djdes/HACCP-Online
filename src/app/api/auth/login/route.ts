@@ -105,6 +105,8 @@ export async function POST(request: Request) {
         role: user.role,
         organizationId: user.organizationId,
         organizationName: user.organization.name,
+        isRoot: user.isRoot === true,
+        actingAsOrganizationId: null,
       },
     });
 

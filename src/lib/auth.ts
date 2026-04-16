@@ -92,23 +92,37 @@ export const authOptions: NextAuthOptions = {
           role: getPermissionRole(user.role),
           organizationId: user.organizationId,
           organizationName: user.organization.name,
+          isRoot: user.isRoot === true,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         const u = user as {
           id: string;
           role: string;
           organizationId: string;
           organizationName: string;
+          isRoot?: boolean;
         };
         token.id = u.id;
         token.role = u.role;
         token.organizationId = u.organizationId;
         token.organizationName = u.organizationName;
+        token.isRoot = u.isRoot === true;
+        token.actingAsOrganizationId = null;
+      }
+      // Impersonation: root clicks "View as <org>" or "Stop" and the
+      // client calls `update({ actingAsOrganizationId: ... })`. NextAuth v4
+      // routes that through the jwt callback with trigger === "update".
+      if (trigger === "update" && session && typeof session === "object") {
+        if ("actingAsOrganizationId" in session && token.isRoot) {
+          const next = session.actingAsOrganizationId;
+          token.actingAsOrganizationId =
+            typeof next === "string" && next.length > 0 ? next : null;
+        }
       }
       return token;
     },
@@ -118,6 +132,11 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.organizationId = token.organizationId as string;
         session.user.organizationName = token.organizationName as string;
+        session.user.isRoot = token.isRoot === true;
+        session.user.actingAsOrganizationId =
+          typeof token.actingAsOrganizationId === "string"
+            ? token.actingAsOrganizationId
+            : null;
       }
       return session;
     },
