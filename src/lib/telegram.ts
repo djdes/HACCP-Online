@@ -53,18 +53,38 @@ if (forceIp) {
 // global dispatcher. Pass undici's native `fetch` through BotConfig.client.fetch
 // so our setGlobalDispatcher above actually takes effect for grammy calls too.
 // Grammy's shim.node.js pins `node-fetch` hard, which ignores undici's
-// global dispatcher. Pass undici's native `fetch` through BotConfig.client.fetch
-// so our setGlobalDispatcher above actually takes effect for grammy calls too.
-// Types clash between node-fetch's Request and undici's Request — cast via
-// unknown because at runtime both are callable with the same (url, init).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const tgFetch = forceIp ? (undiciFetch as unknown as any) : undefined;
+// global dispatcher. Pass a wrapper over undici's native `fetch` through
+// BotConfig.client.fetch so our setGlobalDispatcher takes effect.
+//
+// Two real-world incompatibilities to handle:
+//   1. Types clash (node-fetch Request vs undici Request) — cast via unknown.
+//   2. Grammy ships an `abort-controller` polyfill whose AbortSignal is NOT
+//      an instanceof the native AbortSignal that undici validates. If we
+//      forward init.signal verbatim, undici throws "Expected signal to be
+//      an instance of AbortSignal". Strip the polyfill signal (loses
+//      grammy's soft-timeout, but undici has its own 300s cap) OR forward
+//      only native signals.
+const tgFetch = forceIp
+  ? async (url: unknown, init: unknown) => {
+      const opts = (init as { signal?: unknown } | undefined) ?? {};
+      const signal = opts.signal;
+      const forwarded =
+        signal && !(signal instanceof AbortSignal)
+          ? { ...(init as object), signal: undefined }
+          : (init as object | undefined);
+      return undiciFetch(
+        url as Parameters<typeof undiciFetch>[0],
+        forwarded as Parameters<typeof undiciFetch>[1]
+      );
+    }
+  : undefined;
 
 const bot = token
   ? new Bot(token, {
       client: {
         ...(apiRoot ? { apiRoot } : {}),
-        ...(tgFetch ? { fetch: tgFetch } : {}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(tgFetch ? { fetch: tgFetch as any } : {}),
       },
     })
   : null;
