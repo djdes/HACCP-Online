@@ -143,7 +143,7 @@ function EditDocumentDialog({
 
           {isStaffDocumentTemplate(templateCode) && templateCode !== "health_check" && (
             <div className="space-y-2 rounded-3xl border border-[#dfe1ec] px-6 py-5">
-              <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+              <div className="text-[14px] text-[#73738a]">Периодичность контроля</div>
               <div className="text-lg leading-[1.35] text-black sm:text-[15px]">{HYGIENE_PERIODICITY_TEXT}</div>
             </div>
           )}
@@ -181,16 +181,16 @@ function DocumentRow({
 
   return (
     <div className="grid grid-cols-[1.8fr_320px_290px_48px] items-center rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-      <Link href={href} className="text-[20px] font-semibold tracking-[-0.02em] text-black">
+      <Link href={href} className="text-[17px] font-semibold tracking-[-0.02em] text-black">
         {document.title}
       </Link>
       <Link href={href} className="border-l border-[#e6e6f0] px-10">
         <div className="text-[14px] text-[#84849a]">Должность ответственного</div>
-        <div className="mt-2 text-[18px] font-semibold text-black">{document.responsibleTitle || ""}</div>
+        <div className="mt-2 text-[14px] font-semibold text-black">{document.responsibleTitle || ""}</div>
       </Link>
       <Link href={href} className="border-l border-[#e6e6f0] px-10">
         <div className="text-[14px] text-[#84849a]">Период</div>
-        <div className="mt-2 text-[18px] font-semibold text-black">{document.periodLabel}</div>
+        <div className="mt-2 text-[14px] font-semibold text-black">{document.periodLabel}</div>
       </Link>
       <div className="flex items-center justify-center text-[#5b66ff]">
         <DropdownMenu>

@@ -479,17 +479,17 @@ export function AuditPlanDocumentsClient({
               </Link>
               <Link href={href} className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0">
                 <div className="text-[14px] text-[#7c8094]">Год</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">{cfg.year}</div>
+                <div className="mt-2 text-[14px] font-semibold text-black">{cfg.year}</div>
               </Link>
               <Link href={href} className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0">
                 <div className="text-[14px] text-[#7c8094]">Должность &quot;Утверждаю&quot;</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
+                <div className="mt-2 text-[14px] font-semibold text-black">
                   {getAuditPlanApproveLabel(cfg.approveRole, cfg.approveEmployee)}
                 </div>
               </Link>
               <Link href={href} className="border-t border-[#e8ebf5] pt-4 sm:border-l sm:border-t-0 sm:px-8 sm:pt-0">
                 <div className="text-[14px] text-[#7c8094]">Дата документа</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
+                <div className="mt-2 text-[14px] font-semibold text-black">
                   {getAuditPlanDocumentDateLabel(cfg.documentDate)}
                 </div>
               </Link>

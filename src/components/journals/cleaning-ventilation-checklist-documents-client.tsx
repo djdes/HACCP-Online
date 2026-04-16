@@ -306,14 +306,14 @@ export function CleaningVentilationChecklistDocumentsClient({
 
               <Link href={href} className="border-l border-[#e8ebf5] px-6">
                 <div className="text-[14px] text-[#7c8094]">Дата начала</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
+                <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateLabel(document.dateFrom)}
                 </div>
               </Link>
 
               <Link href={href} className="border-l border-[#e8ebf5] px-6">
                 <div className="text-[14px] text-[#7c8094]">Статус</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
+                <div className="mt-2 text-[14px] font-semibold text-black">
                   {document.status === "active" ? "Активный" : "Закрытый"}
                 </div>
               </Link>

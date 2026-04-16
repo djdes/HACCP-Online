@@ -207,7 +207,7 @@ function EditTrackedDocumentDialog({
 
           {createMode === "staff" ? (
             <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
-              <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
+              <div className="text-[14px] text-[#73738a]">Периодичность контроля</div>
               <div className="text-[15px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
             </div>
           ) : (

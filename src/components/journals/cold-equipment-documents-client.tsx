@@ -346,7 +346,7 @@ export function ColdEquipmentDocumentsClient({
                     >
                       {document.status === "active" ? (
                         <DropdownMenuItem
-                          className="mb-2 h-15 rounded-2xl px-5 text-[15px]"
+                          className="mb-2 h-11 rounded-2xl px-5 text-[15px]"
                           onSelect={() => setEditingDocument(document)}
                         >
                           <Pencil className="mr-3 size-5 text-[#6f7282]" />
@@ -354,7 +354,7 @@ export function ColdEquipmentDocumentsClient({
                         </DropdownMenuItem>
                       ) : null}
                       <DropdownMenuItem
-                        className="mb-2 h-15 rounded-2xl px-5 text-[15px]"
+                        className="mb-2 h-11 rounded-2xl px-5 text-[15px]"
                         onSelect={() => {
                           handlePrint(document.id).catch(() => undefined);
                         }}
@@ -364,7 +364,7 @@ export function ColdEquipmentDocumentsClient({
                       </DropdownMenuItem>
                       {document.status === "active" ? (
                         <DropdownMenuItem
-                          className="h-15 rounded-2xl px-5 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-11 rounded-2xl px-5 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => handleDelete(document.id, document.title)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

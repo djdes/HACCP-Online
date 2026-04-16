@@ -363,7 +363,7 @@ export function BreakdownHistoryDocumentsClient({
 
               <Link href={href} className="border-l border-[#e8ebf5] px-8">
                 <div className="text-[14px] text-[#7c8094]">Дата начала</div>
-                <div className="mt-2 text-[18px] font-semibold text-black">
+                <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateDMY(document.dateFrom)}
                 </div>
               </Link>
