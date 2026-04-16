@@ -40,26 +40,31 @@ jobs:
       - name: Generate Prisma client for CI build
         run: npx prisma generate
 
-      - name: Build app in CI
+      - name: Write build markers
         run: |
+          # Just timestamps — actual build runs on the prod host so that
+          # .next references the same node_modules that PM2 will load.
           echo "${{ github.sha }}" > .build-sha
           echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .build-time
-          npm run build
 
       - name: Create deploy tarball
         run: |
           tar cf deploy.tar \
             --exclude=node_modules \
+            --exclude=.next \
             --exclude=.git \
             --exclude=.github \
             --exclude=.claude \
             --exclude=.vscode \
+            --exclude=.agent \
             --exclude=_run.py \
             --exclude=_deploy.py \
             --exclude=_seed_remote.py \
             --exclude=haccp-deploy.tar \
             --exclude='*.tar' \
             --exclude='*.tar.gz' \
+            --exclude='*.png' \
+            --exclude='prod-*.png' \
             --exclude=test.txt \
             .
 
@@ -103,12 +108,21 @@ jobs:
             # Restore .env from backup if it exists
             [ -f .env.bak ] && cp .env.bak .env || true
 
-            echo "=== Installing server dependencies ==="
+            echo "=== Installing server dependencies (clean) ==="
+            # Remove stale node_modules + CI-produced .next to prevent
+            # "Cannot find module 'next/dist/compiled/cookie'" desync after
+            # npm ci replaces packages referenced by the bundled CI build.
             [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true
+            rm -rf node_modules .next
             npm ci 2>&1 | tail -5
 
             echo "=== Generating Prisma client ==="
             npx prisma generate 2>&1 | tail -5
+
+            echo "=== Building Next.js on prod ==="
+            # Build on the same host that installed node_modules so paths
+            # inside .next always resolve to the freshly-installed packages.
+            npm run build 2>&1 | tail -10
 
             echo "=== Pushing schema to DB ==="
             npx prisma db push 2>&1 | tail -5
@@ -125,7 +139,7 @@ jobs:
 
             echo "=== Restarting PM2 ==="
             npx pm2 delete haccp-online 2>/dev/null || true
-            npx pm2 start npm --name haccp-online --cwd "$(pwd)" -- start 2>&1 | tail -5
+            npx pm2 start npm --name haccp-online --cwd "$(pwd)" -- start --update-env 2>&1 | tail -5
             npx pm2 status haccp-online --no-color
 
             echo "=== Deploy complete ==="
