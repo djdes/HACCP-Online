@@ -569,7 +569,7 @@ export function TrainingPlanDocumentsClient({
           </DialogHeader>
           <div className="flex justify-end px-8 py-6">
             <Button
-              className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
               onClick={async () => {
                 if (!archiveTarget) return;
                 await moveToStatus(archiveTarget.id, "closed");

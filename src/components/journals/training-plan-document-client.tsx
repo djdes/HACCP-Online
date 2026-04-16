@@ -154,7 +154,7 @@ function AddPositionDialog(props: {
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -214,7 +214,7 @@ function AddTopicDialog(props: {
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -364,7 +364,7 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>

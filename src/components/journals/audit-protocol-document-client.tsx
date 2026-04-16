@@ -58,7 +58,7 @@ function SectionDialog({
         <div className="space-y-4 px-8 py-6">
           <Input value={value} onChange={(e) => setValue(e.target.value)} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
           <div className="flex justify-end">
-            <Button type="button" onClick={async () => { if (!value.trim()) return; await onCreate(value.trim()); onOpenChange(false); setValue(""); }} className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]">
+            <Button type="button" onClick={async () => { if (!value.trim()) return; await onCreate(value.trim()); onOpenChange(false); setValue(""); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
               Добавить
             </Button>
           </div>
@@ -115,7 +115,7 @@ function RowDialog({
             <Textarea value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} className="min-h-[160px] rounded-2xl border-[#d8dae6] px-4 py-3 text-[18px]" />
           </div>
           <div className="flex justify-end">
-            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]">
+            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
               Сохранить
             </Button>
           </div>
@@ -384,7 +384,7 @@ export function AuditProtocolDocumentClient({
               <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
             </div>
             <div className="flex justify-end">
-              <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]">
+              <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
                 Сохранить
               </Button>
             </div>

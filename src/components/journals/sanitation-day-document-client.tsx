@@ -236,7 +236,7 @@ function RoomDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : props.submitText}
             </Button>
@@ -459,7 +459,7 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -511,7 +511,7 @@ function DeleteRowsDialog(props: {
                 setSubmitting(false);
               }
             }}
-            className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>

@@ -321,7 +321,7 @@ function DeleteDialog(props: {
             type="button"
             onClick={handleDelete}
             disabled={submitting}
-            className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>

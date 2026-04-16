@@ -403,7 +403,7 @@ function CloseDialog(props: {
           </div>
         </DialogHeader>
         <div className="flex justify-end px-8 py-6">
-          <Button type="button" onClick={handleConfirm} disabled={submitting} className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[18px] text-white hover:bg-[#4554ff]">
+          <Button type="button" onClick={handleConfirm} disabled={submitting} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
             {submitting ? "Завершение..." : "Закончить"}
           </Button>
         </div>

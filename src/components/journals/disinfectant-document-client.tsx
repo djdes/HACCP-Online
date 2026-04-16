@@ -213,7 +213,7 @@ function AddSubdivisionDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -423,7 +423,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На одну обработку (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[18px]">
+                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
                   {formatNumber(computeNeedPerTreatment(active))}
                 </div>
               </div>
@@ -431,7 +431,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На один месяц (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[18px]">
+                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
                   {formatNumber(computeNeedPerMonth(active))}
                 </div>
               </div>
@@ -439,7 +439,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На один год (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[18px]">
+                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
                   {formatNumber(computeNeedPerYear(active))}
                 </div>
               </div>
@@ -458,7 +458,7 @@ function EditSubdivisionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -520,7 +520,7 @@ function ReceiptDialog(props: {
                   onChange={(e) =>
                     setRow({ ...active, date: toIsoDate(e.target.value) })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[18px]"
+                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -585,7 +585,7 @@ function ReceiptDialog(props: {
                       expiryDate: toIsoDate(e.target.value),
                     })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[18px]"
+                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -661,7 +661,7 @@ function ReceiptDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -901,7 +901,7 @@ function ConsumptionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -1041,7 +1041,7 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[18px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
