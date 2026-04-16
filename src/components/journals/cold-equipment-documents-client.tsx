@@ -143,7 +143,7 @@ function EditDocumentDialog({
               id="cold-document-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-24 rounded-[24px] border-[#d7dbe8] px-8 text-[26px]"
+              className="h-11 rounded-2xl border-[#d7dbe8] px-4 text-[15px]"
             />
           </div>
 
@@ -152,7 +152,7 @@ function EditDocumentDialog({
               Должность ответственного за снятие показателей
             </Label>
             <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-              <SelectTrigger className="h-24 rounded-[24px] border-[#d7dbe8] bg-[#f3f4fb] px-8 text-[24px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#d7dbe8] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
@@ -168,7 +168,7 @@ function EditDocumentDialog({
           <div className="space-y-3">
             <Label className="text-[15px] text-[#8b8fa3]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-24 rounded-[24px] border-[#d7dbe8] bg-[#f3f4fb] px-8 text-[24px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#d7dbe8] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
@@ -186,7 +186,7 @@ function EditDocumentDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || title.trim() === ""}
-              className="h-24 rounded-[24px] bg-[#5566f6] px-14 text-[24px] text-white hover:bg-[#4858eb]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4858eb]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -245,7 +245,7 @@ export function ColdEquipmentDocumentsClient({
           <div className="flex flex-wrap items-center gap-4">
             <Button
               variant="outline"
-              className="h-22 rounded-[22px] border-[#eef0fb] px-8 text-[15px] text-[#5566f6] shadow-none hover:bg-[#f7f8ff]"
+              className="h-11 rounded-2xl border-[#eef0fb] px-4 text-[15px] text-[#5566f6] shadow-none hover:bg-[#f7f8ff]"
               asChild
             >
               <Link href="/sanpin">
@@ -259,7 +259,7 @@ export function ColdEquipmentDocumentsClient({
                 templateCode={templateCode}
                 templateName={templateName}
                 users={users}
-                triggerClassName="h-22 rounded-[22px] bg-[#5566f6] px-9 text-[22px] font-medium text-white hover:bg-[#4959eb]"
+                triggerClassName="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4959eb]"
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className="size-7" />}
               />
@@ -268,7 +268,7 @@ export function ColdEquipmentDocumentsClient({
         </div>
 
         <div className="border-b border-[#d5d8e3]">
-          <div className="flex gap-14 text-[26px]">
+          <div className="flex gap-12 text-[16px]">
             <Link
               href={`/journals/${routeCode}`}
               className={`relative pb-6 ${
@@ -309,23 +309,23 @@ export function ColdEquipmentDocumentsClient({
               >
                 <Link
                   href={href}
-                  className="px-10 py-9 text-[24px] font-medium leading-[1.35] text-black"
+                  className="px-8 py-6 text-[17px] font-medium leading-[1.35] text-black"
                 >
                   {document.title}
                 </Link>
 
-                <Link href={href} className="border-l border-[#e7eaf3] px-10 py-9">
-                  <div className="text-[18px] text-[#8a8fa2]">Ответственный</div>
-                  <div className="mt-2 text-[24px] font-medium text-black">
+                <Link href={href} className="border-l border-[#e7eaf3] px-8 py-6">
+                  <div className="text-[13px] text-[#8a8fa2]">Ответственный</div>
+                  <div className="mt-1 text-[14px] font-medium text-black">
                     {document.responsibleTitle && document.responsibleUserName
                       ? `${document.responsibleTitle}: ${document.responsibleUserName}`
                       : document.responsibleTitle || document.responsibleUserName || "Не назначен"}
                   </div>
                 </Link>
 
-                <Link href={href} className="border-l border-[#e7eaf3] px-10 py-9">
-                  <div className="text-[18px] text-[#8a8fa2]">Период</div>
-                  <div className="mt-2 text-[24px] font-medium text-black">
+                <Link href={href} className="border-l border-[#e7eaf3] px-8 py-6">
+                  <div className="text-[13px] text-[#8a8fa2]">Период</div>
+                  <div className="mt-1 text-[14px] font-medium text-black">
                     {document.periodLabel}
                   </div>
                 </Link>
