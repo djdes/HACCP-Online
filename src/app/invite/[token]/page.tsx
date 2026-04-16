@@ -1,0 +1,64 @@
+import { db } from "@/lib/db";
+import { hashInviteToken } from "@/lib/invite-tokens";
+import { InviteAcceptClient } from "./invite-accept-client";
+
+export const dynamic = "force-dynamic";
+
+type PageProps = { params: Promise<{ token: string }> };
+
+/**
+ * Public landing page for email invite links. Validates the raw token
+ * server-side by hashing + lookup, then passes the status down to a
+ * client component that shows either the set-password form or a rejection
+ * explanation. No session required.
+ */
+export default async function InviteAcceptPage({ params }: PageProps) {
+  const { token } = await params;
+  const raw = (token || "").trim();
+
+  let status: "valid" | "expired" | "used" | "not_found" = "not_found";
+  let invite: { userId: string; expiresAt: Date } | null = null;
+  let user: { name: string; email: string; organization: { name: string } } | null = null;
+
+  if (raw.length > 0) {
+    const tokenHash = hashInviteToken(raw);
+    const row = await db.inviteToken.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            organization: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!row) {
+      status = "not_found";
+    } else if (row.usedAt) {
+      status = "used";
+    } else if (row.expiresAt.getTime() < Date.now()) {
+      status = "expired";
+    } else {
+      status = "valid";
+      invite = { userId: row.userId, expiresAt: row.expiresAt };
+      user = {
+        name: row.user.name,
+        email: row.user.email,
+        organization: { name: row.user.organization.name },
+      };
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f5fb] px-4">
+      <InviteAcceptClient
+        status={status}
+        token={raw}
+        invite={invite}
+        user={user}
+      />
+    </div>
+  );
+}
