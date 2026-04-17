@@ -39,6 +39,7 @@ import {
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
+import { PositionSelectItems } from "@/components/shared/position-select";
 type JournalListDocument = {
   id: string;
   title: string;
@@ -47,11 +48,19 @@ type JournalListDocument = {
   periodLabel: string;
 };
 
+type UserProp = {
+  id: string;
+  name: string;
+  role: string;
+  positionTitle?: string | null;
+  jobPosition?: { name: string; categoryKey: string } | null;
+};
+
 type Props = {
   activeTab: "active" | "closed";
   templateCode: string;
   templateName: string;
-  users: { id: string; name: string; role: string }[];
+  users: UserProp[];
   documents: JournalListDocument[];
 };
 
@@ -59,12 +68,14 @@ function EditDocumentDialog({
   open,
   onOpenChange,
   document,
+  users,
   responsibleOptions,
   templateCode,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   document: JournalListDocument | null;
+  users: UserProp[];
   responsibleOptions: string[];
   templateCode: string;
 }) {
@@ -133,11 +144,7 @@ function EditDocumentDialog({
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {responsibleOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
+                <PositionSelectItems users={users} />
               </SelectContent>
             </Select>
           </div>
@@ -341,6 +348,7 @@ export function HygieneDocumentsClient({
           if (!value) setEditingDocument(null);
         }}
         document={editingDocument}
+        users={users}
         responsibleOptions={responsibleOptions}
         templateCode={templateCode}
       />
