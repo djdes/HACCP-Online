@@ -1,6 +1,29 @@
 # Access-control: open problems
 
-## 1. `src/middleware.ts` matcher не срабатывает на голых `/root` и `/api/root/*`
+## ✅ RESOLVED — `src/middleware.ts` + `requireRoot()` на анонимных пробах
+
+Исправлено двумя коммитами:
+- **`3329cf5 fix(middleware): 404 anonymous /root and /api/root probes`** — заменил matcher на catch-all `["/((?!_next/|favicon\\.ico$).*)"]` с ранним выходом по префиксу в теле.
+- **`e9339a8 fix(auth): requireRoot() notFound()s anonymous callers too`** — убрал из `requireRoot()` вызов `requireAuth()`, теперь он сам тянет сессию и делает `notFound()` для анонимов, не полагаясь на то, что middleware поймает голый `/root` (Next.js 16 Turbopack местами его пропускает).
+
+### Итоговая матрица на build `e9339a8`
+
+| path | anon | non-root auth | root |
+|---|---|---|---|
+| `/garbage-xyz` | 404 | 404 | 404 |
+| `/root` | **404** (было 307) | 404 | 200 |
+| `/root/organizations` | 404 | 404 | 200 |
+| `/api/root` | 404 | 404 | handled |
+| `POST /api/root/impersonate` | **404** (было 405) | 404 | handled |
+| `/login` | 200 | 200 | 200 |
+| `/dashboard` | 307 → /login (ожидаемо) | 200 | 200 |
+
+### Остаточный минимальный лик
+`GET /api/root/impersonate` (только POST) возвращает **405**, не 404, потому что Next.js возвращает Method Not Allowed до прогона middleware. Это поведение **любой** роуты с методом-allowlist, не специфика `/root`. Закрывать отдельным обработчиком `export async function GET() { notFound() }` смысла немного — анонимный пробер всё равно не различает 404 и 405 как "is it hidden".
+
+---
+
+## ~~1. `src/middleware.ts` matcher не срабатывает на голых `/root` и `/api/root/*`~~ *(архивировано)*
 
 ### Симптом
 Анонимный probing проверен `curl`ом с прода:
