@@ -10,8 +10,13 @@
  * also callable via `npx tsx prisma/seed-job-positions.ts`.
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import "dotenv/config";
+import pg from "pg";
 
-const prisma = new PrismaClient();
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 function resolveCategoryKey(role: string | null | undefined): "management" | "staff" {
   const normalised = (role ?? "").toLowerCase();
