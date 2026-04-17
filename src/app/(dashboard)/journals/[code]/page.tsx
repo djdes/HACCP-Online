@@ -3793,51 +3793,104 @@ export default async function JournalDocumentsPage({
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{template.name}</h1>
-          {template.description ? (
-            <p className="mt-1 text-muted-foreground">{template.description}</p>
-          ) : null}
+    <div className="space-y-8">
+      {/* Hero — mirrors /journals index styling for a consistent journey */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 size-[380px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+          <div className="absolute -bottom-32 -right-32 size-[420px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
+          <div className="absolute left-1/3 top-1/2 size-[240px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
         </div>
-        <Link
-          href={`/journals/${resolvedCode}/new`}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="size-4" />
-          Новая запись
-        </Link>
-      </div>
+        <div className="relative z-10 flex flex-col gap-6 p-8 sm:flex-row sm:items-start sm:justify-between md:p-10">
+          <div className="max-w-[640px]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+              Журнал
+            </div>
+            <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.02em]">
+              {template.name}
+            </h1>
+            {template.description ? (
+              <p className="mt-2 text-[15px] leading-[1.55] text-white/70">
+                {template.description}
+              </p>
+            ) : null}
+            <div className="mt-5 inline-flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-2.5 text-[13px] text-white/80 backdrop-blur ring-1 ring-white/10">
+              <span className="text-[22px] font-semibold leading-none tabular-nums">
+                {entries.length}
+              </span>
+              <span className="text-white/60">
+                {entries.length === 1 ? "запись" : "записей"}
+              </span>
+            </div>
+          </div>
+          <Link
+            href={`/journals/${resolvedCode}/new`}
+            className="inline-flex h-11 shrink-0 items-center gap-2 self-start rounded-2xl bg-white px-5 text-[14px] font-medium text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)] transition-colors hover:bg-white/90"
+          >
+            <Plus className="size-4 text-[#5566f6]" />
+            Новая запись
+          </Link>
+        </div>
+      </section>
 
       {entries.length === 0 ? (
-        <div className="rounded-lg border bg-card p-6 text-muted-foreground">
-          Записей пока нет
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
+          <div className="text-[15px] font-medium text-[#0b1024]">
+            Записей пока нет
+          </div>
+          <p className="mx-auto mt-1.5 max-w-[360px] text-[13px] text-[#6f7282]">
+            Первая запись появится здесь сразу после сохранения на
+            странице «Новая запись».
+          </p>
+          <Link
+            href={`/journals/${resolvedCode}/new`}
+            className="mt-5 inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+          >
+            <Plus className="size-4" />
+            Создать запись
+          </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {entries.map((entry) => (
-            <Link
-              key={entry.id}
-              href={`/journals/${resolvedCode}/${entry.id}`}
-              className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="text-sm font-medium">
-                    {entry.createdAt.toLocaleString("ru-RU")}
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {entries.map((entry) => {
+            const statusLabel =
+              entry.status === "submitted"
+                ? "Отправлено"
+                : entry.status === "draft"
+                ? "Черновик"
+                : entry.status === "finalized"
+                ? "Закрыто"
+                : entry.status;
+            return (
+              <li key={entry.id}>
+                <Link
+                  href={`/journals/${resolvedCode}/${entry.id}`}
+                  className="group flex h-full flex-col gap-3 rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/40 hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
+                        {entry.createdAt.toLocaleString("ru-RU", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div className="mt-1.5 text-[13px] text-[#6f7282]">
+                        Заполнил: {entry.filledBy?.name || "—"}
+                      </div>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-[#3848c7]">
+                      {statusLabel}
+                    </span>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Заполнил: {entry.filledBy?.name || "—"}
-                  </div>
-                </div>
-                <div className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                  {entry.status}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

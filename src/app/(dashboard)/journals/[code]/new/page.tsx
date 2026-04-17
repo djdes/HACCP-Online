@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, NotebookPen } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
@@ -85,21 +87,52 @@ export default async function NewJournalEntryPage({
   }>;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Новая запись</h1>
-        <p className="mt-1 text-muted-foreground">{template.name}</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Link
+        href={`/journals/${resolvedCode}`}
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+      >
+        <ArrowLeft className="size-4" />
+        К журналу
+      </Link>
 
-      <DynamicForm
-        templateCode={resolvedCode}
-        templateName={template.name}
-        fields={fields}
-        areas={areas}
-        equipment={equipment}
-        employees={employees}
-        products={products}
-      />
+      {/* Hero */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+          <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
+        </div>
+        <div className="relative z-10 flex items-start gap-4 p-8 md:p-10">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
+            <NotebookPen className="size-6" />
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+              Новая запись
+            </div>
+            <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+              {template.name}
+            </h1>
+            {template.description ? (
+              <p className="mt-2 max-w-[560px] text-[14px] leading-[1.5] text-white/70">
+                {template.description}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
+        <DynamicForm
+          templateCode={resolvedCode}
+          templateName={template.name}
+          fields={fields}
+          areas={areas}
+          equipment={equipment}
+          employees={employees}
+          products={products}
+        />
+      </div>
     </div>
   );
 }
