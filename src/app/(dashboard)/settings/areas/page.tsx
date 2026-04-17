@@ -1,22 +1,18 @@
-import { Building2 } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import Link from "next/link";
+import { ArrowLeft, Building2, MapPin, Wrench } from "lucide-react";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { AreaDialog } from "@/components/settings/area-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AreasSettingsPage() {
   const session = await requireAuth();
+  const orgId = getActiveOrgId(session);
 
   const areas = await db.area.findMany({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: orgId },
     orderBy: { name: "asc" },
     include: {
       _count: { select: { equipment: true } },
@@ -27,46 +23,89 @@ export default async function AreasSettingsPage() {
   const canDelete = session.user.role === "owner";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Цеха и участки</h1>
-          <p className="mt-1 text-muted-foreground">
-            Управление производственными зонами
-          </p>
+          <Link
+            href="/settings"
+            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
+          >
+            <ArrowLeft className="size-4" />
+            Настройки
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+              <Building2 className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+                Цеха и участки
+              </h1>
+              <p className="mt-0.5 text-[14px] text-[#6f7282]">
+                Производственные зоны вашей организации
+              </p>
+            </div>
+          </div>
         </div>
         {canManage && <AreaDialog />}
       </div>
 
+      {/* Content */}
       {areas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <Building2 className="size-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">Цехов пока нет</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Добавьте первый цех или участок
-          </p>
-        </div>
+        <EmptyState canManage={canManage} />
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead>Описание</TableHead>
-                <TableHead>Оборудование</TableHead>
-                {canManage && <TableHead className="w-[100px]">Действия</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <table className="w-full text-[15px]">
+            <thead className="bg-[#f8f9fc] text-[13px] text-[#6f7282]">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium">Название</th>
+                <th className="px-6 py-3 text-left font-medium">Описание</th>
+                <th className="px-6 py-3 text-center font-medium">
+                  Оборудование
+                </th>
+                {canManage && (
+                  <th className="w-[100px] px-6 py-3 text-right font-medium">
+                    Действия
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
               {areas.map((area) => (
-                <TableRow key={area.id}>
-                  <TableCell className="font-medium">{area.name}</TableCell>
-                  <TableCell>{area.description ?? "—"}</TableCell>
-                  <TableCell>{area._count.equipment}</TableCell>
+                <tr
+                  key={area.id}
+                  className="border-t border-[#f0f1f8] transition-colors hover:bg-[#fafbff]"
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-[#f5f6ff] text-[#5566f6]">
+                        <MapPin className="size-4" />
+                      </div>
+                      <span className="font-medium text-[#0b1024]">
+                        {area.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-[#6f7282]">
+                    {area.description || "—"}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f6ff] px-3 py-1 text-[13px] font-medium text-[#5566f6]">
+                      <Wrench className="size-3" />
+                      {area._count.equipment}
+                    </span>
+                  </td>
                   {canManage && (
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <AreaDialog area={{ id: area.id, name: area.name, description: area.description }} />
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-1">
+                        <AreaDialog
+                          area={{
+                            id: area.id,
+                            name: area.name,
+                            description: area.description,
+                          }}
+                        />
                         {canDelete && (
                           <DeleteButton
                             id={area.id}
@@ -75,14 +114,32 @@ export default async function AreasSettingsPage() {
                           />
                         )}
                       </div>
-                    </TableCell>
+                    </td>
                   )}
-                </TableRow>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ canManage }: { canManage: boolean }) {
+  return (
+    <div className="rounded-2xl border border-[#ececf4] bg-white px-8 py-16 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#eef1ff]">
+        <Building2 className="size-7 text-[#5566f6]" />
+      </div>
+      <h3 className="mt-5 text-[17px] font-semibold text-[#0b1024]">
+        Цехов пока нет
+      </h3>
+      <p className="mt-2 text-[14px] text-[#6f7282]">
+        {canManage
+          ? "Добавьте первый цех или участок кнопкой выше."
+          : "Администратор ещё не добавил ни одного цеха."}
+      </p>
     </div>
   );
 }
