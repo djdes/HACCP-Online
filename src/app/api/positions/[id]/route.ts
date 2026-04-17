@@ -86,8 +86,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Должность не найдена" }, { status: 404 });
   }
 
+  // "Active" in this context = both flags set to their active values. Legacy
+  // DELETE /api/users/[id] only flips isActive=false without touching
+  // archivedAt, so we OR'd the archive check and ended up refusing to clean
+  // up positions after soft-deletes.
   const linked = await db.user.count({
-    where: { jobPositionId: position.id, archivedAt: null },
+    where: {
+      jobPositionId: position.id,
+      archivedAt: null,
+      isActive: true,
+    },
   });
   if (linked > 0) {
     return NextResponse.json(
