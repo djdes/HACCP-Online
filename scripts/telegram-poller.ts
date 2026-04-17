@@ -220,41 +220,15 @@ function isDocumentTemplate(code: string): boolean {
   return DOCUMENT_TEMPLATE_CODES.has(code);
 }
 
-// ---------------------------------------------------------------------------
-// Field model
-// ---------------------------------------------------------------------------
-
-type FieldDef = {
-  key: string;
-  label: string;
-  type: string;
-  required?: boolean;
-  options?: Array<{ value: string; label: string }>;
-  step?: number;
-};
-
-function parseFields(raw: unknown): FieldDef[] {
-  if (!Array.isArray(raw)) return [];
-  const out: FieldDef[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const f = item as Record<string, unknown>;
-    if (typeof f.key !== "string" || typeof f.type !== "string") continue;
-    out.push({
-      key: f.key,
-      label: typeof f.label === "string" ? f.label : f.key,
-      type: f.type,
-      required: f.required === true,
-      options: Array.isArray(f.options)
-        ? (f.options as Array<{ value: string; label: string }>).filter(
-            (o) => o && typeof o.value === "string" && typeof o.label === "string"
-          )
-        : undefined,
-      step: typeof f.step === "number" ? f.step : undefined,
-    });
-  }
-  return out;
-}
+// Field model + validation helpers shared with the tsx test runner.
+import {
+  type FieldDef,
+  findMissingRequired,
+  parseDateInput,
+  parseFields,
+  parseNumberInput,
+  pluralFields,
+} from "../src/lib/bot-wizard";
 
 // ---------------------------------------------------------------------------
 // In-memory wizard state. Keyed by chat id — one wizard per chat.
@@ -527,15 +501,6 @@ async function startWizard(ctx: Context, code: string) {
   await askCurrentField(ctx);
 }
 
-function pluralFields(n: number): string {
-  const last = n % 10;
-  const lastTwo = n % 100;
-  if (lastTwo >= 11 && lastTwo <= 14) return "полей";
-  if (last === 1) return "поле";
-  if (last >= 2 && last <= 4) return "поля";
-  return "полей";
-}
-
 async function askCurrentField(ctx: Context) {
   if (!ctx.chat) return;
   const w = wizards.get(ctx.chat.id);
@@ -547,13 +512,20 @@ async function askCurrentField(ctx: Context) {
   const f = w.fields[w.index];
   const head = `Поле ${w.index + 1} из ${w.fields.length}\n<b>${escapeHtml(f.label)}</b>${f.required ? " <i>(обязательное)</i>" : ""}`;
 
+  // «Пропустить» is only offered for non-required fields; required ones
+  // must be filled, so the only escape is /cancel or the Отмена button.
+  const appendSkipCancel = (kb: InlineKeyboard) => {
+    if (!f.required) kb.text("Пропустить", "w:skip");
+    kb.text("Отмена", "w:cancel");
+    return kb;
+  };
+
   if (f.type === "boolean") {
     const kb = new InlineKeyboard()
       .text("Да", "w:bool:1")
       .text("Нет", "w:bool:0")
-      .row()
-      .text("Пропустить", "w:skip")
-      .text("Отмена", "w:cancel");
+      .row();
+    appendSkipCancel(kb);
     await ctx.reply(head, { parse_mode: "HTML", reply_markup: kb });
     return;
   }
@@ -562,7 +534,7 @@ async function askCurrentField(ctx: Context) {
     f.options.forEach((o, i) => {
       kb.text(o.label, `w:sel:${i}`).row();
     });
-    kb.text("Пропустить", "w:skip").text("Отмена", "w:cancel");
+    appendSkipCancel(kb);
     await ctx.reply(head, { parse_mode: "HTML", reply_markup: kb });
     return;
   }
@@ -593,7 +565,7 @@ async function askCurrentField(ctx: Context) {
       const label = it.name.length > 50 ? it.name.slice(0, 49) + "…" : it.name;
       kb.text(label, `w:ref:${i}`).row();
     });
-    kb.text("Пропустить", "w:skip").text("Отмена", "w:cancel");
+    appendSkipCancel(kb);
     // Stash the list on the state so the callback knows which to pick.
     (w as WizardState & { _refList?: typeof items })._refList = items;
     await ctx.reply(head, { parse_mode: "HTML", reply_markup: kb });
@@ -604,11 +576,10 @@ async function askCurrentField(ctx: Context) {
     f.type === "number"
       ? "\n\nОтправьте число."
       : f.type === "date"
-      ? "\n\nОтправьте дату в формате ДД.ММ.ГГГГ (или «сегодня»)."
+      ? "\n\nОтправьте дату в формате ДД.ММ.ГГГГ, ГГГГ-ММ-ДД или «сегодня» / «вчера»."
       : "\n\nОтправьте текстом.";
-  const kb = new InlineKeyboard()
-    .text("Пропустить", "w:skip")
-    .text("Отмена", "w:cancel");
+  const kb = new InlineKeyboard();
+  appendSkipCancel(kb);
   await ctx.reply(head + hint, { parse_mode: "HTML", reply_markup: kb });
 }
 
@@ -627,16 +598,18 @@ async function handleWizardText(ctx: Context, text: string) {
 
   let value: unknown = text.trim();
   if (f.type === "number") {
-    const n = Number(text.replace(",", ".").trim());
-    if (!Number.isFinite(n)) {
+    const n = parseNumberInput(text);
+    if (n == null) {
       await ctx.reply("Не похоже на число. Попробуйте ещё раз.");
       return;
     }
     value = n;
   } else if (f.type === "date") {
-    const parsed = parseDateInput(text.trim());
+    const parsed = parseDateInput(text);
     if (!parsed) {
-      await ctx.reply("Не распознал дату. Формат: ДД.ММ.ГГГГ или «сегодня».");
+      await ctx.reply(
+        "Не распознал дату. Формат: ДД.ММ.ГГГГ, ГГГГ-ММ-ДД или «сегодня» / «вчера»."
+      );
       return;
     }
     value = parsed;
@@ -647,34 +620,34 @@ async function handleWizardText(ctx: Context, text: string) {
   await askCurrentField(ctx);
 }
 
-function parseDateInput(s: string): string | null {
-  const v = s.toLowerCase();
-  if (v === "сегодня" || v === "today") {
-    return new Date().toISOString().slice(0, 10);
-  }
-  const m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
-  if (m) {
-    const [, d, mo, y] = m;
-    const dt = new Date(Number(y), Number(mo) - 1, Number(d));
-    if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
-  }
-  const iso = v.match(/^\d{4}-\d{2}-\d{2}$/);
-  if (iso) return v;
-  return null;
-}
-
 async function showWizardSummary(ctx: Context, w: WizardState) {
+  const missing = findMissingRequired(w.fields, w.data);
   const lines = w.fields.map((f, i) => {
     const raw = w.data[f.key];
-    return `${i + 1}. <b>${escapeHtml(f.label)}:</b> ${escapeHtml(fmtValue(f, raw))}`;
+    const val = fmtValue(f, raw);
+    const missingMark =
+      f.required && (raw === undefined || raw === null || val === "—")
+        ? " <i>— не заполнено</i>"
+        : "";
+    return `${i + 1}. <b>${escapeHtml(f.label)}:</b> ${escapeHtml(val)}${missingMark}`;
   });
-  const kb = new InlineKeyboard()
-    .text("💾 Сохранить", "w:save")
-    .text("❌ Отмена", "w:cancel");
+
+  const kb = new InlineKeyboard();
+  if (missing.length === 0) {
+    kb.text("💾 Сохранить", "w:save").text("❌ Отмена", "w:cancel");
+  } else {
+    kb.text("🔁 Заполнить заново", "w:restart").text("❌ Отмена", "w:cancel");
+  }
+  const tail =
+    missing.length > 0
+      ? `\n\n⚠️ Не заполнены обязательные поля: <b>${missing
+          .map(escapeHtml)
+          .join(", ")}</b>.`
+      : "\n\nСохранить?";
   await ctx.reply(
     `<b>Новая запись — ${escapeHtml(w.templateName)}</b>\n\n` +
       lines.join("\n") +
-      "\n\nСохранить?",
+      tail,
     { parse_mode: "HTML", reply_markup: kb }
   );
 }
@@ -683,6 +656,15 @@ async function saveWizard(ctx: Context) {
   if (!ctx.chat) return;
   const w = wizards.get(ctx.chat.id);
   if (!w) return;
+  const missing = findMissingRequired(w.fields, w.data);
+  if (missing.length > 0) {
+    await ctx.reply(
+      `⚠️ Сохранение невозможно: не заполнены обязательные поля — ${missing.join(
+        ", "
+      )}. Нажмите «Заполнить заново».`
+    );
+    return;
+  }
   try {
     const entry = await prisma.journalEntry.create({
       data: {
@@ -866,6 +848,13 @@ bot.on("callback_query:data", async (ctx) => {
     if (data === "w:save") {
       await ctx.answerCallbackQuery();
       await saveWizard(ctx);
+      return;
+    }
+    if (data === "w:restart") {
+      await ctx.answerCallbackQuery();
+      w.index = 0;
+      w.data = {};
+      await askCurrentField(ctx);
       return;
     }
     const boolMatch = data.match(/^w:bool:(0|1)$/);

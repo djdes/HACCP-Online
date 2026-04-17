@@ -137,6 +137,8 @@ jobs:
               npx tsx prisma/seed-job-positions.ts 2>&1 | tail -5
               echo "=== Seeding blog articles (idempotent) ==="
               npx tsx prisma/seed-articles.ts 2>&1 | tail -5
+              echo "=== Running bot wizard tests ==="
+              npx tsx scripts/test-bot-wizard.ts 2>&1 | tail -40 || echo "[warn] bot wizard tests failed — deploy continues"
             else
               echo ".env not found, skip seed"
             fi
