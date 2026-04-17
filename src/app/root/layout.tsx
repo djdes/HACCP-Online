@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { LayoutDashboard, ScrollText, Settings2 } from "lucide-react";
+import {
+  LayoutDashboard,
+  MessageSquareText,
+  ScrollText,
+  Settings2,
+} from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +38,13 @@ export default async function RootAreaLayout({
             >
               <LayoutDashboard className="size-4" />
               Организации
+            </Link>
+            <Link
+              href="/root/feedback"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <MessageSquareText className="size-4" />
+              Обратная связь
             </Link>
             <Link
               href="/root/telegram-logs"

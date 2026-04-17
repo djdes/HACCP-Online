@@ -123,6 +123,57 @@ export async function sendWelcomeEmail(params: {
   await sendEmail(to, subject, layout("Добро пожаловать!", body));
 }
 
+export async function sendFeedbackAdminEmail(params: {
+  to: string;
+  type: "bug" | "suggestion";
+  message: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  organizationName?: string | null;
+  phone?: string | null;
+  submittedAt?: Date;
+}) {
+  const {
+    to,
+    type,
+    message,
+    userName,
+    userEmail,
+    organizationName,
+    phone,
+    submittedAt,
+  } = params;
+  const typeLabel = type === "bug" ? "Ошибка" : "Предложение";
+  const typeColor = type === "bug" ? "#dc2626" : "#5566f6";
+  const typeBg = type === "bug" ? "#fef2f2" : "#eef1ff";
+  const typeBorder = type === "bug" ? "#fecaca" : "#c7ccea";
+  const whenLabel = (submittedAt ?? new Date()).toLocaleString("ru-RU", {
+    timeZone: "Europe/Moscow",
+  });
+  const subject = `[Feedback · ${typeLabel}] ${userName ?? userEmail ?? "Анонимно"}`;
+
+  const row = (label: string, value: string | null | undefined) =>
+    value
+      ? `<tr><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#71717a;font-size:13px;width:140px">${escapeHtml(label)}</td><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#18181b">${escapeHtml(value)}</td></tr>`
+      : "";
+
+  const body = `
+    <div style="background:${typeBg};border:1px solid ${typeBorder};border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:${typeColor}">${typeLabel}</p>
+      <p style="margin:0;white-space:pre-wrap;color:#18181b;font-size:14px;line-height:1.55">${escapeHtml(message)}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
+      ${row("Отправитель", userName)}
+      ${row("Email", userEmail)}
+      ${row("Организация", organizationName)}
+      ${row("Телефон для ответа", phone)}
+      <tr><td style="padding:8px 0;color:#71717a;font-size:13px">Время</td><td style="padding:8px 0;color:#18181b">${whenLabel}</td></tr>
+    </table>
+    <a href="${APP_URL}/root/feedback" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть панель обращений</a>`;
+
+  await sendEmail(to, subject, layout(`Обратная связь — ${typeLabel}`, body));
+}
+
 export async function sendDeviationAlertEmail(params: {
   to: string;
   journalName: string;
