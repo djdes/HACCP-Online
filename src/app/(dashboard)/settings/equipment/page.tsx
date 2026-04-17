@@ -1,88 +1,71 @@
-import { Wrench, Wifi, WifiOff, AlertTriangle } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
-import { db } from "@/lib/db";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AlertTriangle,
+  ArrowLeft,
+  MapPin,
+  Thermometer,
+  Wifi,
+  WifiOff,
+  Wrench,
+} from "lucide-react";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
 import { EquipmentDialog } from "@/components/settings/equipment-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
 
-const equipmentTypeLabels: Record<string, string> = {
+export const dynamic = "force-dynamic";
+
+const TYPE_LABELS: Record<string, string> = {
   refrigerator: "Холодильник",
   freezer: "Морозильник",
   oven: "Печь",
   dishwasher: "Посудомоечная машина",
   scale: "Весы",
   thermometer: "Термометр",
+  sensor: "Датчик",
   other: "Другое",
 };
 
-function formatTempRange(
-  tempMin: number | null,
-  tempMax: number | null
-): string {
-  if (tempMin !== null && tempMax !== null) {
-    return `${tempMin}°C ... ${tempMax}°C`;
-  }
-  if (tempMin !== null) {
-    return `от ${tempMin}°C`;
-  }
-  if (tempMax !== null) {
-    return `до ${tempMax}°C`;
-  }
+function tempRange(min: number | null, max: number | null): string {
+  if (min !== null && max !== null) return `${min}°C … ${max}°C`;
+  if (min !== null) return `от ${min}°C`;
+  if (max !== null) return `до ${max}°C`;
   return "—";
 }
 
 export default async function EquipmentSettingsPage() {
   const session = await requireAuth();
+  const orgId = getActiveOrgId(session);
 
-  const equipment = await db.equipment.findMany({
-    where: {
-      area: { organizationId: session.user.organizationId },
-    },
-    orderBy: { name: "asc" },
-    include: {
-      area: { select: { id: true, name: true } },
-    },
-  });
+  const [equipment, areas] = await Promise.all([
+    db.equipment.findMany({
+      where: { area: { organizationId: orgId } },
+      orderBy: { name: "asc" },
+      include: { area: { select: { id: true, name: true } } },
+    }),
+    db.area.findMany({
+      where: { organizationId: orgId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
-  const areas = await db.area.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
-
-  // Get last IoT reading for each equipment with Tuya device
-  const iotEquipmentIds = equipment
-    .filter((e) => e.tuyaDeviceId)
-    .map((e) => e.id);
-
-  const lastReadings: Record<string, { temp: number; time: Date }> = {};
-  if (iotEquipmentIds.length > 0) {
-    for (const eqId of iotEquipmentIds) {
-      const lastEntry = await db.journalEntry.findFirst({
-        where: {
-          equipmentId: eqId,
-          data: { path: ["source"], string_contains: "tuya" },
-        },
-        orderBy: { createdAt: "desc" },
-        select: { data: true, createdAt: true },
-      });
-      if (lastEntry && lastEntry.data && typeof lastEntry.data === "object") {
-        const d = lastEntry.data as Record<string, unknown>;
-        if (d.temperature != null) {
-          lastReadings[eqId] = {
-            temp: Number(d.temperature),
-            time: lastEntry.createdAt,
-          };
-        }
-      }
+  // IoT readings
+  const iotIds = equipment.filter((e) => e.tuyaDeviceId).map((e) => e.id);
+  const readings: Record<string, { temp: number; time: Date }> = {};
+  for (const eqId of iotIds) {
+    const entry = await db.journalEntry.findFirst({
+      where: {
+        equipmentId: eqId,
+        data: { path: ["source"], string_contains: "tuya" },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { data: true, createdAt: true },
+    });
+    if (entry?.data && typeof entry.data === "object") {
+      const d = entry.data as Record<string, unknown>;
+      if (d.temperature != null)
+        readings[eqId] = { temp: Number(d.temperature), time: entry.createdAt };
     }
   }
 
@@ -90,126 +73,182 @@ export default async function EquipmentSettingsPage() {
   const canDelete = session.user.role === "owner";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Оборудование</h1>
-          <p className="mt-1 text-muted-foreground">
-            Управление оборудованием организации
-          </p>
+          <Link
+            href="/settings"
+            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
+          >
+            <ArrowLeft className="size-4" />
+            Настройки
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#f0edff] text-[#7a5cff]">
+              <Wrench className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+                Оборудование
+              </h1>
+              <p className="mt-0.5 text-[14px] text-[#6f7282]">
+                Холодильники, датчики, печи — по цехам
+              </p>
+            </div>
+          </div>
         </div>
         {canManage && <EquipmentDialog areas={areas} />}
       </div>
 
+      {/* Content */}
       {equipment.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <Wrench className="size-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">Оборудования пока нет</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Добавьте первое оборудование
+        <div className="rounded-2xl border border-[#ececf4] bg-white px-8 py-16 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#f0edff]">
+            <Wrench className="size-7 text-[#7a5cff]" />
+          </div>
+          <h3 className="mt-5 text-[17px] font-semibold text-[#0b1024]">
+            Оборудования пока нет
+          </h3>
+          <p className="mt-2 text-[14px] text-[#6f7282]">
+            {canManage
+              ? "Сначала добавьте цех, потом оборудование в нём."
+              : "Администратор ещё не добавил оборудование."}
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>Цех</TableHead>
-                <TableHead>Температурный диапазон</TableHead>
-                <TableHead>Серийный номер</TableHead>
-                <TableHead>IoT</TableHead>
-                {canManage && <TableHead className="w-[100px]">Действия</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {equipment.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>
-                    {equipmentTypeLabels[item.type] ?? item.type}
-                  </TableCell>
-                  <TableCell>{item.area.name}</TableCell>
-                  <TableCell>
-                    {formatTempRange(item.tempMin, item.tempMax)}
-                  </TableCell>
-                  <TableCell>{item.serialNumber ?? "—"}</TableCell>
-                  <TableCell>
-                    {item.tuyaDeviceId ? (() => {
-                      const reading = lastReadings[item.id];
-                      if (!reading) {
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <WifiOff className="size-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Нет данных</span>
+        <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <table className="w-full text-[15px]">
+            <thead className="bg-[#f8f9fc] text-[13px] text-[#6f7282]">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium">Название</th>
+                <th className="px-6 py-3 text-left font-medium">Тип</th>
+                <th className="px-6 py-3 text-left font-medium">Цех</th>
+                <th className="px-6 py-3 text-left font-medium">T° диапазон</th>
+                <th className="px-6 py-3 text-center font-medium">IoT</th>
+                {canManage && (
+                  <th className="w-[100px] px-6 py-3 text-right font-medium">
+                    Действия
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {equipment.map((item) => {
+                const reading = readings[item.id];
+                const minutesAgo = reading
+                  ? Math.round(
+                      (Date.now() - reading.time.getTime()) / 60000
+                    )
+                  : null;
+                const online =
+                  minutesAgo !== null && minutesAgo <= 120;
+                const outOfRange =
+                  reading &&
+                  ((item.tempMin != null && reading.temp < item.tempMin) ||
+                    (item.tempMax != null && reading.temp > item.tempMax));
+
+                return (
+                  <tr
+                    key={item.id}
+                    className="border-t border-[#f0f1f8] transition-colors hover:bg-[#fafbff]"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center rounded-lg bg-[#f5f3ff] text-[#7a5cff]">
+                          <Thermometer className="size-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-[#0b1024]">
+                            {item.name}
                           </div>
-                        );
-                      }
-                      const minutesAgo = Math.round((Date.now() - reading.time.getTime()) / 60000);
-                      const isOnline = minutesAgo <= 120; // 2 hours = online
-                      const isOutOfRange =
-                        (item.tempMin != null && reading.temp < item.tempMin) ||
-                        (item.tempMax != null && reading.temp > item.tempMax);
-                      return (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            {isOnline ? (
-                              <Wifi className="size-3 text-green-600" />
+                          {item.serialNumber && (
+                            <div className="text-[12px] text-[#9b9fb3]">
+                              S/N {item.serialNumber}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-[#6f7282]">
+                      {TYPE_LABELS[item.type] ?? item.type}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 text-[14px] text-[#6f7282]">
+                        <MapPin className="size-3" />
+                        {item.area.name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-[14px] text-[#0b1024]">
+                      {tempRange(item.tempMin, item.tempMax)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {item.tuyaDeviceId ? (
+                        <div className="inline-flex flex-col items-center gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                              online
+                                ? "bg-[#ecfdf5] text-[#136b2a]"
+                                : "bg-[#fff4f2] text-[#d2453d]"
+                            }`}
+                          >
+                            {online ? (
+                              <Wifi className="size-3" />
                             ) : (
-                              <WifiOff className="size-3 text-red-500" />
+                              <WifiOff className="size-3" />
                             )}
-                            <Badge variant={isOnline ? "secondary" : "destructive"} className="text-[10px] px-1.5 py-0 h-4">
-                              {isOnline ? "Online" : "Offline"}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {isOutOfRange && <AlertTriangle className="size-3 text-red-500" />}
-                            <span className={`text-xs font-mono font-semibold ${isOutOfRange ? "text-red-600" : "text-green-700"}`}>
+                            {online ? "Online" : "Offline"}
+                          </span>
+                          {reading && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[13px] font-semibold tabular-nums ${
+                                outOfRange
+                                  ? "text-[#d2453d]"
+                                  : "text-[#136b2a]"
+                              }`}
+                            >
+                              {outOfRange && (
+                                <AlertTriangle className="size-3" />
+                              )}
                               {reading.temp}°C
                             </span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">
-                            {minutesAgo < 60
-                              ? `${minutesAgo} мин назад`
-                              : minutesAgo < 1440
-                                ? `${Math.floor(minutesAgo / 60)} ч назад`
-                                : `${Math.floor(minutesAgo / 1440)} д назад`}
-                          </span>
+                          )}
                         </div>
-                      );
-                    })() : "—"}
-                  </TableCell>
-                  {canManage && (
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <EquipmentDialog
-                          areas={areas}
-                          equipment={{
-                            id: item.id,
-                            name: item.name,
-                            type: item.type,
-                            areaId: item.area.id,
-                            serialNumber: item.serialNumber,
-                            tempMin: item.tempMin,
-                            tempMax: item.tempMax,
-                            tuyaDeviceId: item.tuyaDeviceId ?? null,
-                          }}
-                        />
-                        {canDelete && (
-                          <DeleteButton
-                            id={item.id}
-                            endpoint="/api/equipment"
-                            entityName={`оборудование "${item.name}"`}
+                      ) : (
+                        <span className="text-[13px] text-[#c7ccea]">—</span>
+                      )}
+                    </td>
+                    {canManage && (
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-1">
+                          <EquipmentDialog
+                            areas={areas}
+                            equipment={{
+                              id: item.id,
+                              name: item.name,
+                              type: item.type,
+                              areaId: item.area.id,
+                              serialNumber: item.serialNumber,
+                              tempMin: item.tempMin,
+                              tempMax: item.tempMax,
+                              tuyaDeviceId: item.tuyaDeviceId ?? null,
+                            }}
                           />
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          {canDelete && (
+                            <DeleteButton
+                              id={item.id}
+                              endpoint="/api/equipment"
+                              entityName={`оборудование "${item.name}"`}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
