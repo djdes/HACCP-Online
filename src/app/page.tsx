@@ -9,14 +9,20 @@ import {
   Clock,
   Cloud,
   Flame,
+  Handshake,
   HelpCircle,
+  ImageIcon,
   Leaf,
   Network,
   NotebookText,
   Plug,
+  Quote,
   Rocket,
+  Send,
   ShieldCheck,
+  Smartphone,
   Sparkles,
+  Star,
   Store,
   Timer,
   UserCheck,
@@ -488,6 +494,160 @@ export default async function LandingPage() {
                 <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
                   {a.text}
                 </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PARTNERSHIP */}
+      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white px-8 py-10 md:px-12">
+          <div className="relative z-10 flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-5">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+                <Handshake className="size-6" />
+              </div>
+              <div className="max-w-[620px]">
+                <h3 className="text-[22px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
+                  Работаете с общепитом? Станьте партнёром.
+                </h3>
+                <p className="mt-2 text-[14px] leading-[1.55] text-[#6f7282]">
+                  Консалтинг по ХАССП, интеграторы учётных систем, поставщики
+                  оборудования — расскажем, как подключить ваших клиентов и
+                  зарабатывать на продлениях.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://t.me/wesetupbot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Написать в Telegram
+              <ArrowRight className="size-4 text-[#5566f6]" />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* MOBILE + TELEGRAM SCREENSHOTS — placeholder carousel */}
+      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Smartphone className="size-4" />
+            Мобильный доступ
+          </div>
+          <h2 className="text-[36px] font-semibold leading-tight tracking-[-0.02em]">
+            Журналы с планшета повара и бота в Telegram
+          </h2>
+          <p className="mt-4 text-[15px] text-[#6f7282]">
+            Повар заполняет на планшете прямо в цехе, управляющий видит
+            статус в Telegram, руководитель — полную картину на компьютере.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            {
+              icon: Smartphone,
+              label: "Планшет на кухне",
+              caption: "Гигиена / температура в один тап",
+            },
+            {
+              icon: Send,
+              label: "Telegram-бот",
+              caption: "Напоминания и алерты о нарушениях",
+            },
+            {
+              icon: ImageIcon,
+              label: "Компьютер руководителя",
+              caption: "Отчёты и PDF для Роспотребнадзора",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="group flex aspect-[3/4] flex-col items-center justify-center rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-6 text-center transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-white text-[#5566f6] shadow-[0_0_0_1px_rgba(220,223,237,1)]">
+                <item.icon className="size-7" />
+              </div>
+              <div className="mt-5 text-[15px] font-semibold text-[#0b1024]">
+                {item.label}
+              </div>
+              <div className="mt-1 text-[13px] text-[#6f7282]">
+                {item.caption}
+              </div>
+              <div className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[#9b9fb3]">
+                Скриншот скоро
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CLIENTS — placeholder logo wall */}
+      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <div className="mb-8 text-center">
+          <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            С нами работают
+          </div>
+          <h2 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+            Кафе, пекарни, сетевые рестораны и цеха
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] text-[11px] uppercase tracking-[0.16em] text-[#9b9fb3]"
+            >
+              Логотип
+            </div>
+          ))}
+        </div>
+        <p className="mt-5 text-center text-[12px] text-[#9b9fb3]">
+          Место для логотипов клиентов — добавим после согласования с ними.
+        </p>
+      </section>
+
+      {/* TESTIMONIALS — placeholder */}
+      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Quote className="size-4" />
+            Отзывы
+          </div>
+          <h2 className="text-[36px] font-semibold leading-tight tracking-[-0.02em]">
+            Что говорят клиенты
+          </h2>
+          <p className="mt-3 text-[14px] text-[#9b9fb3]">
+            Собираем первые отзывы — добавим сразу после письменного
+            согласия клиентов.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-col rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-6"
+            >
+              <div className="flex gap-0.5 text-[#dcdfed]">
+                {Array.from({ length: 5 }).map((_, s) => (
+                  <Star key={s} className="size-4 fill-current" />
+                ))}
+              </div>
+              <div className="mt-5 space-y-2">
+                <div className="h-3 w-full rounded-full bg-[#ececf4]" />
+                <div className="h-3 w-11/12 rounded-full bg-[#ececf4]" />
+                <div className="h-3 w-9/12 rounded-full bg-[#ececf4]" />
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <div className="size-10 rounded-full bg-[#ececf4]" />
+                <div className="flex flex-col gap-1">
+                  <div className="h-2.5 w-24 rounded-full bg-[#ececf4]" />
+                  <div className="h-2 w-16 rounded-full bg-[#f1f2f9]" />
+                </div>
               </div>
             </div>
           ))}
