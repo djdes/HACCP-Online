@@ -7,12 +7,12 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BookOpen,
-  Check,
   ChevronDown,
   Pencil,
   Plus,
   Trash2,
   UserPlus,
+  Users as UsersIcon,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -55,7 +55,12 @@ function formatDayCell(iso: string) {
   const dayNames = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return { top: `${dd}.${mm}`, bottom: dayNames[d.getUTCDay()] + "." };
+  const dayNum = d.getUTCDay();
+  return {
+    top: `${dd}.${mm}`,
+    bottom: dayNames[dayNum] + ".",
+    isWeekend: dayNum === 0 || dayNum === 6,
+  };
 }
 
 function formatRange(fromIso: string, toIso: string) {
@@ -246,25 +251,29 @@ export function StaffPageClient(props: StaffPageProps) {
   async function tryBulkDelete() {
     if (!anySelected) return;
     const ids = Array.from(selected);
-    // We don't have a hard-delete endpoint — using DELETE /api/users/[id].
-    let ok = 0;
-    let blocked = 0;
+    let deleted = 0;
+    let blockedEmployee: StaffEmployee | null = null;
     for (const id of ids) {
       try {
-        const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
-        if (res.ok) ok++;
-        else blocked++;
+        const res = await fetch(`/api/staff/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          deleted++;
+        } else if (res.status === 409) {
+          // Show the "delete blocked" dialog for the first journal-linked
+          // employee and stop iterating — keeps the UX identical to the
+          // reference design, where deletion pauses on the first conflict.
+          if (!blockedEmployee) {
+            blockedEmployee =
+              props.employees.find((e) => e.id === id) ?? null;
+          }
+        }
       } catch {
-        blocked++;
+        /* swallow, continue */
       }
     }
-    if (blocked > 0) {
-      // Show the "blocked because referenced in journals" modal for the first
-      // blocked employee, matching the reference screen.
-      const first = props.employees.find((e) => selected.has(e.id));
-      if (first) setDlg({ kind: "delete-blocked", employee: first });
-    } else {
-      toast.success(`Удалено: ${ok}`);
+    if (deleted > 0) toast.success(`Удалено: ${deleted}`);
+    if (blockedEmployee) {
+      setDlg({ kind: "delete-blocked", employee: blockedEmployee });
     }
     clearSelection();
     startTransition(() => router.refresh());
@@ -318,31 +327,77 @@ export function StaffPageClient(props: StaffPageProps) {
     ? props.employees.find((e) => selected.has(e.id)) ?? null
     : null;
 
+  const totalEmployees = props.employees.length;
+  const totalPositions = props.positions.length;
+  const activeVacations = props.vacations.filter((v) => {
+    const today = new Date().toISOString().slice(0, 10);
+    return v.dateFrom <= today && today <= v.dateTo;
+  }).length;
+  const activeSickLeaves = props.sickLeaves.filter((s) => {
+    const today = new Date().toISOString().slice(0, 10);
+    return s.dateFrom <= today && today <= s.dateTo;
+  }).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/settings"
-            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
-          >
-            <ArrowLeft className="size-4" />
-            Настройки
-          </Link>
-          <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
-            Сотрудники
-          </h1>
+      <Link
+        href="/settings"
+        className="inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
+      >
+        <ArrowLeft className="size-4" />
+        Настройки
+      </Link>
+
+      {/* Dark hero, same visual language as login + settings hub */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-10 gap-2 rounded-xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#5566f6] shadow-[0_0_0_1px_rgba(240,240,250,0.45)] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          onClick={() => setDlg({ kind: "instruction" })}
-        >
-          <BookOpen className="size-4" />
-          Инструкция
-        </Button>
-      </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage:
+              "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
+          }}
+        />
+        <div className="relative z-10 p-8 md:p-10">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                <UsersIcon className="size-6" />
+              </div>
+              <div>
+                <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.02em]">
+                  Сотрудники
+                </h1>
+                <p className="mt-1 max-w-[540px] text-[15px] text-white/70">
+                  {props.organization.name} · настройка должностей и графиков
+                  для автозаполнения Гигиенического журнала.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDlg({ kind: "instruction" })}
+              className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-colors hover:bg-white/10"
+            >
+              <BookOpen className="size-4" />
+              Инструкция
+            </button>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <StatPill label="Всего" value={totalEmployees} />
+            <StatPill label="Должностей" value={totalPositions} />
+            <StatPill label="Сейчас в отпуске" value={activeVacations} />
+            <StatPill label="На больничном" value={activeSickLeaves} />
+          </div>
+        </div>
+      </section>
 
       {/* Bulk-action toolbar. */}
       {anySelected ? (
@@ -624,6 +679,17 @@ export function StaffPageClient(props: StaffPageProps) {
   );
 }
 
+function StatPill({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10 backdrop-blur-sm">
+      <div className="text-[26px] font-semibold leading-none tabular-nums">
+        {value}
+      </div>
+      <div className="mt-1.5 text-[12px] text-white/60">{label}</div>
+    </div>
+  );
+}
+
 function CategoryColumn(props: {
   title: string;
   categoryKey: PositionCategory;
@@ -639,15 +705,37 @@ function CategoryColumn(props: {
   onAddEmployee: (position: StaffPosition) => void;
   onEditPosition: (position: StaffPosition) => void;
 }) {
+  const headerAccent =
+    props.categoryKey === "management"
+      ? { color: "#b25f00", bg: "#fff8eb" }
+      : { color: "#5566f6", bg: "#eef1ff" };
+  const totalEmployees = props.positions.reduce(
+    (sum, p) => sum + (props.employeesByPosition.get(p.id)?.length ?? 0),
+    0
+  );
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={props.onToggle}
           className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]"
         >
+          <span
+            className="flex size-7 items-center justify-center rounded-lg"
+            style={{ backgroundColor: headerAccent.bg, color: headerAccent.color }}
+            aria-hidden
+          >
+            <UsersIcon className="size-3.5" />
+          </span>
           {props.title}
+          <span
+            className="inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium"
+            style={{ backgroundColor: headerAccent.bg, color: headerAccent.color }}
+          >
+            {totalEmployees}
+          </span>
           <ChevronDown
             className={cn(
               "size-4 text-[#9b9fb3] transition-transform",
@@ -659,7 +747,7 @@ function CategoryColumn(props: {
           type="button"
           onClick={props.onAddPosition}
           aria-label="Добавить должность"
-          className="inline-flex size-7 items-center justify-center rounded-lg text-[#5566f6] hover:bg-[#eef1ff]"
+          className="inline-flex size-8 items-center justify-center rounded-xl text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
         >
           <Plus className="size-4" />
         </button>
@@ -667,7 +755,7 @@ function CategoryColumn(props: {
       {props.open ? (
         <div className="space-y-2">
           {props.positions.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[#dcdfed] bg-white px-4 py-6 text-center text-[13px] text-[#9b9fb3]">
+            <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-white px-4 py-8 text-center text-[13px] text-[#9b9fb3]">
               Пока нет должностей. Нажмите <b>+</b>, чтобы добавить.
             </p>
           ) : (
@@ -677,28 +765,38 @@ function CategoryColumn(props: {
               return (
                 <div
                   key={p.id}
-                  className="overflow-hidden rounded-xl border border-[#ececf4] bg-white"
+                  className="group/pos overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-shadow hover:shadow-[0_8px_24px_-16px_rgba(85,102,246,0.15)]"
                 >
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => props.onEditPosition(p)}
-                      className="inline-flex size-5 items-center justify-center rounded-full border-2 border-[#d0d4e6] text-transparent hover:border-[#5566f6] hover:text-[#5566f6]"
-                      aria-label="Редактировать должность"
-                    >
-                      <Check className="size-3" />
-                    </button>
+                  <div className="flex items-center gap-2 px-4 py-2.5">
                     <button
                       type="button"
                       onClick={() => props.togglePosition(p.id)}
-                      className="flex flex-1 items-center justify-between gap-2 text-left"
+                      className="flex flex-1 items-center gap-3 text-left"
                     >
                       <span className="text-[14px] font-medium text-[#0b1024]">
                         {p.name}
                       </span>
+                      <span className="inline-flex h-4 items-center rounded-full bg-[#f5f6ff] px-1.5 text-[10px] font-medium text-[#9b9fb3]">
+                        {employees.length}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => props.onEditPosition(p)}
+                      aria-label="Редактировать должность"
+                      className="inline-flex size-7 items-center justify-center rounded-lg text-transparent transition-colors group-hover/pos:text-[#9b9fb3] hover:bg-[#f5f6ff] hover:!text-[#5566f6]"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => props.togglePosition(p.id)}
+                      aria-label="Раскрыть"
+                      className="inline-flex size-7 items-center justify-center rounded-lg text-[#9b9fb3] hover:bg-[#f5f6ff]"
+                    >
                       <ChevronDown
                         className={cn(
-                          "size-4 text-[#9b9fb3] transition-transform",
+                          "size-4 transition-transform",
                           open && "rotate-180"
                         )}
                       />
@@ -706,34 +804,47 @@ function CategoryColumn(props: {
                   </div>
                   {open ? (
                     <div className="border-t border-[#ececf4] bg-[#fafbff]">
-                      {employees.map((e) => (
-                        <div
-                          key={e.id}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 text-[13px] transition-colors",
-                            props.selected.has(e.id) && "bg-[#eef1ff]"
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={props.selected.has(e.id)}
-                            onChange={() => props.toggleSelected(e.id)}
-                            className="size-4 cursor-pointer rounded border-[#d0d4e6] text-[#5566f6] focus:ring-[#5566f6]"
-                          />
-                          <span className="flex-1 text-[#0b1024]">
-                            {e.name}
-                            {e.isSelf ? (
-                              <span className="ml-1 text-[11px] text-[#9b9fb3]">
-                                (вы)
+                      {employees.length === 0 ? (
+                        <p className="px-4 py-3 text-center text-[12px] text-[#9b9fb3]">
+                          Нет сотрудников
+                        </p>
+                      ) : (
+                        employees.map((e) => (
+                          <label
+                            key={e.id}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-3 px-4 py-2.5 text-[13px] transition-colors",
+                              props.selected.has(e.id)
+                                ? "bg-[#eef1ff] text-[#0b1024]"
+                                : "text-[#0b1024] hover:bg-white"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={props.selected.has(e.id)}
+                              onChange={() => props.toggleSelected(e.id)}
+                              className="size-4 cursor-pointer rounded border-[#d0d4e6] text-[#5566f6] focus:ring-[#5566f6]"
+                            />
+                            <span className="flex-1">
+                              {e.name}
+                              {e.isSelf ? (
+                                <span className="ml-1.5 text-[11px] text-[#9b9fb3]">
+                                  (вы)
+                                </span>
+                              ) : null}
+                            </span>
+                            {!e.isActive ? (
+                              <span className="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#9b9fb3]">
+                                неактивен
                               </span>
                             ) : null}
-                          </span>
-                        </div>
-                      ))}
+                          </label>
+                        ))
+                      )}
                       <button
                         type="button"
                         onClick={() => props.onAddEmployee(p)}
-                        className="flex w-full items-center justify-center gap-1 border-t border-[#ececf4] px-3 py-2 text-[13px] font-medium text-[#5566f6] hover:bg-[#eef1ff]"
+                        className="flex w-full items-center justify-center gap-1.5 border-t border-[#ececf4] bg-white px-4 py-2.5 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
                       >
                         <Plus className="size-3.5" />
                         Добавить
@@ -816,14 +927,24 @@ function WorkOffGrid(props: {
                 </th>
                 <th className="px-3 py-2 text-left font-medium">Должность</th>
                 {props.dates.map((iso) => {
-                  const { top, bottom } = formatDayCell(iso);
+                  const { top, bottom, isWeekend } = formatDayCell(iso);
                   return (
                     <th
                       key={iso}
-                      className="min-w-[44px] px-1 py-2 text-center font-normal leading-tight"
+                      className={cn(
+                        "min-w-[44px] px-1 py-2 text-center font-normal leading-tight",
+                        isWeekend && "bg-[#fff5d9]/70 text-[#b25f00]"
+                      )}
                     >
                       <div className="text-[11px]">{top}</div>
-                      <div className="text-[10px] text-[#9b9fb3]">{bottom}</div>
+                      <div
+                        className={cn(
+                          "text-[10px]",
+                          isWeekend ? "font-medium text-[#b25f00]" : "text-[#9b9fb3]"
+                        )}
+                      >
+                        {bottom}
+                      </div>
                     </th>
                   );
                 })}
@@ -842,10 +963,14 @@ function WorkOffGrid(props: {
                     <td className="px-3 py-2 text-[#6f7282]">{positionName}</td>
                     {props.dates.map((iso) => {
                       const checked = props.workOffSet.has(`${e.id}::${iso}`);
+                      const { isWeekend } = formatDayCell(iso);
                       return (
                         <td
                           key={iso}
-                          className="border-l border-[#f0f1f8] px-1 py-1 text-center"
+                          className={cn(
+                            "border-l border-[#f0f1f8] px-1 py-1 text-center",
+                            isWeekend && "bg-[#fff5d9]/40"
+                          )}
                         >
                           <input
                             type="checkbox"
@@ -864,6 +989,11 @@ function WorkOffGrid(props: {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="flex items-center gap-2 text-[12px] text-[#9b9fb3]">
+        <span className="inline-block size-3 rounded-sm bg-[#fff5d9]/80 ring-1 ring-[#ffe2a0]" />
+        Выходные — суббота и воскресенье подсвечены светло-жёлтым
       </div>
     </div>
   );
