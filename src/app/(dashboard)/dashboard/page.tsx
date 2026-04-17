@@ -45,8 +45,7 @@ function formatTime(date: Date): string {
 }
 
 function formatRelativeTime(date: Date): string {
-  const now = now.getTime();
-  const diff = now - date.getTime();
+  const diff = new Date().getTime() - date.getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "только что";
   if (minutes < 60) return `${minutes} мин назад`;
