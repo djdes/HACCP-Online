@@ -1,20 +1,21 @@
-import { Package } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
-import { db } from "@/lib/db";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  ArrowLeft,
+  Barcode,
+  Clock,
+  FileSpreadsheet,
+  Package,
+  Snowflake,
+} from "lucide-react";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
 import { ProductImportDialog } from "@/components/settings/product-import-dialog";
 import { ProductDialog } from "@/components/settings/product-dialog";
 import { DeleteProductButton } from "@/components/settings/delete-product-button";
 
-const unitLabels: Record<string, string> = {
+export const dynamic = "force-dynamic";
+
+const UNIT: Record<string, string> = {
   kg: "кг",
   l: "л",
   pcs: "шт",
@@ -25,25 +26,40 @@ const unitLabels: Record<string, string> = {
 
 export default async function ProductsSettingsPage() {
   const session = await requireAuth();
+  const orgId = getActiveOrgId(session);
   const canManage =
     session.user.role === "owner" || session.user.role === "technologist";
 
   const products = await db.product.findMany({
-    where: {
-      organizationId: session.user.organizationId,
-      isActive: true,
-    },
+    where: { organizationId: orgId, isActive: true },
     orderBy: { name: "asc" },
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Справочник продуктов</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Импортируйте из Excel, iiko или 1С для быстрого заполнения журналов
-          </p>
+          <Link
+            href="/settings"
+            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
+          >
+            <ArrowLeft className="size-4" />
+            Настройки
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#fff8eb] text-[#f59e0b]">
+              <Package className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+                Справочник продуктов
+              </h1>
+              <p className="mt-0.5 text-[14px] text-[#6f7282]">
+                Импорт из Excel, iiko, 1С — или вручную
+              </p>
+            </div>
+          </div>
         </div>
         {canManage && (
           <div className="flex gap-2">
@@ -53,98 +69,155 @@ export default async function ProductsSettingsPage() {
         )}
       </div>
 
+      {/* Content */}
       {products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <Package className="size-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">Продуктов пока нет</h3>
-          <p className="mt-2 text-sm text-muted-foreground max-w-md">
-            Импортируйте справочник из Excel-файла (поддерживаются форматы
-            экспорта из iiko и 1С) или добавьте продукты вручную через журнал
-            входного контроля.
+        <div className="rounded-2xl border border-[#ececf4] bg-white px-8 py-16 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#fff8eb]">
+            <Package className="size-7 text-[#f59e0b]" />
+          </div>
+          <h3 className="mt-5 text-[17px] font-semibold text-[#0b1024]">
+            Продуктов пока нет
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[#6f7282]">
+            {canManage
+              ? "Импортируйте справочник из Excel / iiko / 1С или добавьте продукты вручную."
+              : "Администратор ещё не загрузил справочник продуктов."}
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Наименование</TableHead>
-                <TableHead>Поставщик</TableHead>
-                <TableHead>Штрих-код</TableHead>
-                <TableHead>Ед.</TableHead>
-                <TableHead>Категория</TableHead>
-                <TableHead>Хранение</TableHead>
-                <TableHead>Срок (дн.)</TableHead>
-                {canManage && <TableHead className="w-[100px]">Действия</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <table className="w-full text-[15px]">
+            <thead className="bg-[#f8f9fc] text-[13px] text-[#6f7282]">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium">
+                  Наименование
+                </th>
+                <th className="px-6 py-3 text-left font-medium">Поставщик</th>
+                <th className="px-6 py-3 text-left font-medium">Штрих-код</th>
+                <th className="px-6 py-3 text-center font-medium">Ед.</th>
+                <th className="px-6 py-3 text-left font-medium">Хранение</th>
+                <th className="px-6 py-3 text-center font-medium">
+                  Срок (дн.)
+                </th>
+                {canManage && (
+                  <th className="w-[100px] px-6 py-3 text-right font-medium">
+                    Действия
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
               {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.supplier ?? "—"}</TableCell>
-                  <TableCell>
+                <tr
+                  key={product.id}
+                  className="border-t border-[#f0f1f8] transition-colors hover:bg-[#fafbff]"
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-[#fffbf0] text-[#f59e0b]">
+                        <Package className="size-4" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-[#0b1024]">
+                          {product.name}
+                        </div>
+                        {product.category && (
+                          <div className="text-[12px] text-[#9b9fb3]">
+                            {product.category}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-[14px] text-[#6f7282]">
+                    {product.supplier || "—"}
+                  </td>
+                  <td className="px-6 py-4">
                     {product.barcode ? (
-                      <Badge variant="outline" className="font-mono text-xs">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-[#f3f4f6] px-2 py-0.5 font-mono text-[12px] text-[#6f7282]">
+                        <Barcode className="size-3" />
                         {product.barcode}
-                      </Badge>
+                      </span>
                     ) : (
-                      "—"
+                      <span className="text-[13px] text-[#c7ccea]">—</span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {unitLabels[product.unit] || product.unit}
-                  </TableCell>
-                  <TableCell>{product.category ?? "—"}</TableCell>
-                  <TableCell>{product.storageTemp ?? "—"}</TableCell>
-                  <TableCell>{product.shelfLifeDays ?? "—"}</TableCell>
+                  </td>
+                  <td className="px-6 py-4 text-center text-[14px] text-[#6f7282]">
+                    {UNIT[product.unit] || product.unit}
+                  </td>
+                  <td className="px-6 py-4">
+                    {product.storageTemp ? (
+                      <span className="inline-flex items-center gap-1 text-[13px] text-[#6f7282]">
+                        <Snowflake className="size-3 text-[#0ea5e9]" />
+                        {product.storageTemp}
+                      </span>
+                    ) : (
+                      <span className="text-[13px] text-[#c7ccea]">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {product.shelfLifeDays != null ? (
+                      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-[#0b1024]">
+                        <Clock className="size-3 text-[#6f7282]" />
+                        {product.shelfLifeDays}
+                      </span>
+                    ) : (
+                      <span className="text-[13px] text-[#c7ccea]">—</span>
+                    )}
+                  </td>
                   {canManage && (
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <ProductDialog product={{
-                          id: product.id,
-                          name: product.name,
-                          supplier: product.supplier,
-                          barcode: product.barcode,
-                          unit: product.unit,
-                          category: product.category,
-                          storageTemp: product.storageTemp,
-                          shelfLifeDays: product.shelfLifeDays,
-                        }} />
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-1">
+                        <ProductDialog
+                          product={{
+                            id: product.id,
+                            name: product.name,
+                            supplier: product.supplier,
+                            barcode: product.barcode,
+                            unit: product.unit,
+                            category: product.category,
+                            storageTemp: product.storageTemp,
+                            shelfLifeDays: product.shelfLifeDays,
+                          }}
+                        />
                         {session.user.role === "owner" && (
                           <DeleteProductButton productId={product.id} />
                         )}
                       </div>
-                    </TableCell>
+                    </td>
                   )}
-                </TableRow>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
 
-      <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
-        <p className="font-medium mb-2">Поддерживаемые форматы импорта:</p>
-        <ul className="list-disc pl-5 space-y-1">
+      {/* Import formats */}
+      <section className="rounded-2xl border border-[#f0f1f8] bg-[#fafbff] p-6">
+        <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
+          <FileSpreadsheet className="size-4 text-[#10b981]" />
+          Поддерживаемые форматы импорта
+        </div>
+        <ul className="mt-3 grid gap-2 text-[13px] text-[#6f7282] sm:grid-cols-2">
           <li>
-            <strong>Excel (.xlsx, .xls)</strong> — столбцы: Наименование,
-            Поставщик, Штрих-код, Единица, Категория
+            <strong className="text-[#0b1024]">Excel</strong> (.xlsx, .xls) —
+            Наименование, Поставщик, Штрих-код, Ед., Категория
           </li>
           <li>
-            <strong>iiko</strong> — экспорт номенклатуры (Товар, Контрагент,
-            Ед.изм., Штрихкод)
+            <strong className="text-[#0b1024]">iiko</strong> — экспорт
+            номенклатуры (Товар, Контрагент, Ед.изм., Штрихкод)
           </li>
           <li>
-            <strong>1С</strong> — выгрузка справочника Номенклатура (Номенклатура,
-            Контрагент, Единица измерения)
+            <strong className="text-[#0b1024]">1С</strong> — выгрузка
+            справочника Номенклатура
           </li>
           <li>
-            <strong>CSV</strong> — с разделителем ; или , (первая строка —
-            заголовки)
+            <strong className="text-[#0b1024]">CSV</strong> — разделитель ; или
+            , (первая строка — заголовки)
           </li>
         </ul>
-      </div>
+      </section>
     </div>
   );
 }
