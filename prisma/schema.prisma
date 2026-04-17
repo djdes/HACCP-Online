@@ -38,6 +38,7 @@ model Organization {
   staffCompetencies StaffCompetency[]
   journalDocuments  JournalDocument[]
   jobPositions      JobPosition[]
+  notifications     Notification[]
 }
 
 model User {
@@ -84,6 +85,7 @@ model User {
   vacations             StaffVacation[]
   sickLeaves            StaffSickLeave[]
   dismissal             StaffDismissal?
+  notifications         Notification[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -262,6 +264,41 @@ model FeedbackReport {
 
   @@index([createdAt])
   @@index([type])
+}
+
+/// In-app notifications that surface state-drift hints ("add these new
+/// employees to hygiene journal", etc). Each row is scoped to a recipient
+/// user inside an organisation and carries a typed payload in `items`.
+///
+/// We persist read/dismiss on the same row so the «Прочитанные» tab can
+/// list history without a separate join table. `items` is a JSON array of
+/// small objects that the client renders as a checkbox list — the shape
+/// is typed in src/lib/notifications.ts.
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Domain tag — e.g. "staff.added.journal". Used to dedupe with `key`.
+  kind           String
+  /// Stable dedupe key (e.g. "staff.added.journal:<journalCode>") so
+  /// repeated triggers merge items into the existing open notification
+  /// instead of piling up duplicates.
+  dedupeKey      String
+  title          String
+  /// Optional inline link target, e.g. "/journals/hygiene".
+  linkHref       String?
+  linkLabel      String?
+  items          Json      @default("[]")
+  readAt         DateTime?
+  dismissedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, dismissedAt, readAt])
+  @@index([organizationId])
 }
 
 model JournalTemplate {

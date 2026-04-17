@@ -34,6 +34,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 
 const secondaryNavItems = [
   { label: "Журналы", href: "/journals", icon: ClipboardList },
@@ -279,6 +280,7 @@ export function Header({
 
         {/* Right cluster: feedback + settings shortcut + logout + avatar */}
         <div className="flex items-center gap-2">
+          <NotificationsBell />
           <FeedbackDialog telegramBotUsername={telegramBotUsername} />
 
           <Link

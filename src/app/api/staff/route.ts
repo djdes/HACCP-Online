@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
+import { notifyManagement } from "@/lib/notifications";
 
 /**
  * Minimal "add an employee" endpoint matching the reference-staff screen:
@@ -95,6 +96,77 @@ export async function POST(request: Request) {
       isActive: true,
     },
   });
+
+  // Surface the new hire in the bell panel — managers see it on next refresh
+  // and can navigate straight to the journals they need to populate.
+  const displayLabel = position.name
+    ? `${user.name}, ${position.name}`
+    : user.name;
+  const journalsToPopulate: Array<{
+    href: string;
+    title: string;
+    dedupeKey: string;
+  }> = [
+    {
+      href: "/journals/hygiene",
+      title: "Список фамилий, которые нужно внести в",
+      dedupeKey: "staff.added.journal:hygiene",
+    },
+    {
+      href: "/journals/health_check",
+      title: "Список фамилий, которые нужно внести в",
+      dedupeKey: "staff.added.journal:health_check",
+    },
+    {
+      href: "/journals/staff_training",
+      title: "Список фамилий, которые нужно внести в",
+      dedupeKey: "staff.added.journal:staff_training",
+    },
+  ];
+  const staticLinkLabels: Record<string, string> = {
+    "/journals/hygiene": "гигиенический журнал",
+    "/journals/health_check": "журнал здоровья",
+    "/journals/staff_training": "журнал регистрации инструктажей",
+  };
+  try {
+    await Promise.all(
+      journalsToPopulate.map((j) =>
+        notifyManagement({
+          organizationId: orgId,
+          kind: "staff.added.journal",
+          dedupeKey: j.dedupeKey,
+          title: j.title,
+          linkHref: j.href,
+          linkLabel: staticLinkLabels[j.href] ?? "журнал",
+          items: [
+            {
+              id: user.id,
+              label: displayLabel,
+            },
+          ],
+        })
+      )
+    );
+    // Plus one org-wide reminder for the training plan when a new position
+    // shows up (we dedupe by position id, so re-hiring into the same
+    // position doesn't create noise).
+    await notifyManagement({
+      organizationId: orgId,
+      kind: "position.missing.trainingPlan",
+      dedupeKey: `position.missing.trainingPlan:${position.id}`,
+      title: "Список должностей, которые нужно внести в",
+      linkHref: "/journals/training_plan",
+      linkLabel: "план обучения",
+      items: [
+        {
+          id: position.id,
+          label: position.name,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("[notifications] staff-create fanout failed", err);
+  }
 
   return NextResponse.json({ user });
 }
