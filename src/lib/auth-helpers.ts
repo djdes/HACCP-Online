@@ -27,12 +27,19 @@ export async function requireRole(roles: string[]) {
 /**
  * Hard-404 for any non-root request. Use this on every `/root/*` page and
  * `/api/root/*` handler — NOT `redirect()`, because a 302 back to /dashboard
- * would tell a probe that the URL exists. A plain `notFound()` keeps root
- * endpoints invisible to customer users.
+ * (or a 307 to /login) would tell a probe that the URL exists. A plain
+ * `notFound()` keeps root endpoints invisible to customer users.
+ *
+ * We deliberately do NOT go through `requireAuth()` here: that helper
+ * redirects to /login when there's no session, and the redirect itself leaks
+ * the section's existence to anonymous probers. Next.js 16's middleware
+ * matcher misses the bare `/root` URL for reasons we can't fully pin down,
+ * so we make the page-layer guard the authoritative one — identical 404
+ * regardless of whether the caller is anonymous or a signed-in non-root.
  */
 export async function requireRoot() {
-  const session = await requireAuth();
-  if (!session.user.isRoot) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user.isRoot) {
     notFound();
   }
   return session;
