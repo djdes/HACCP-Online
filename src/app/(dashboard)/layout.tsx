@@ -15,16 +15,20 @@ export default async function DashboardLayout({
 }) {
   const session = await requireAuth();
 
-  // When root is impersonating a customer org, pull its name for the banner.
-  // Cached implicitly via the per-request Next.js data cache.
-  let impersonatedName: string | null = null;
-  if (isImpersonating(session) && session.user.actingAsOrganizationId) {
-    const org = await db.organization.findUnique({
-      where: { id: session.user.actingAsOrganizationId },
-      select: { name: true },
-    });
-    impersonatedName = org?.name ?? null;
-  }
+  const [impersonatedOrg, profile] = await Promise.all([
+    isImpersonating(session) && session.user.actingAsOrganizationId
+      ? db.organization.findUnique({
+          where: { id: session.user.actingAsOrganizationId },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { positionTitle: true },
+    }),
+  ]);
+
+  const impersonatedName = impersonatedOrg?.name ?? null;
 
   return (
     <AuthSessionProvider session={session}>
@@ -36,6 +40,9 @@ export default async function DashboardLayout({
           userName={session.user.name ?? "Пользователь"}
           userEmail={session.user.email ?? ""}
           organizationName={impersonatedName ?? session.user.organizationName ?? ""}
+          userRole={session.user.role ?? ""}
+          positionTitle={profile?.positionTitle ?? ""}
+          isRoot={session.user.isRoot === true}
         />
         <main className="p-4 md:p-6">{children}</main>
       </div>

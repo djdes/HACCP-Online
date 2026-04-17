@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  Building2,
   ClipboardList,
   FileText,
   Settings,
@@ -12,8 +12,10 @@ import {
   Menu,
   Package,
   AlertTriangle,
+  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isManagementRole } from "@/lib/user-roles";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -31,8 +33,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-const navItems = [
-  { label: "Дашборд", href: "/dashboard", icon: LayoutDashboard },
+const secondaryNavItems = [
   { label: "Журналы", href: "/journals", icon: ClipboardList },
   { label: "Партии", href: "/batches", icon: Package },
   { label: "CAPA", href: "/capa", icon: AlertTriangle },
@@ -49,13 +50,38 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+/**
+ * "Волкова Анна Дмитриевна" → "Волкова А. Д."
+ * Preserves single-word names, trims extra whitespace.
+ */
+function shortenPersonName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  const [last, ...rest] = parts;
+  const initials = rest
+    .slice(0, 2)
+    .map((p) => `${p[0].toLocaleUpperCase("ru-RU")}.`)
+    .join(" ");
+  return initials ? `${last} ${initials}` : last;
+}
+
 type HeaderProps = {
   userName: string;
   userEmail: string;
   organizationName: string;
+  userRole: string;
+  positionTitle: string;
+  isRoot: boolean;
 };
 
-export function Header({ userName, userEmail, organizationName }: HeaderProps) {
+export function Header({
+  userName,
+  userEmail,
+  organizationName,
+  userRole,
+  positionTitle,
+  isRoot,
+}: HeaderProps) {
   const pathname = usePathname();
   const [buildInfo, setBuildInfo] = useState({
     buildId: "...",
@@ -108,6 +134,27 @@ export function Header({ userName, userEmail, organizationName }: HeaderProps) {
     window.location.href = "/login";
   };
 
+  // First slot: company name for managers/root, "Фамилия И.О. · должность"
+  // for regular employees. Falls back to "Дашборд" if we somehow lack both.
+  const showsOrg = isRoot || isManagementRole(userRole);
+  const employeeLabelShort = (() => {
+    const name = shortenPersonName(userName);
+    const title = positionTitle.trim();
+    if (name && title) return `${name} · ${title}`;
+    return name || title || "Дашборд";
+  })();
+  const homeLabel = showsOrg
+    ? organizationName || "Дашборд"
+    : employeeLabelShort;
+  const homeTooltip = showsOrg
+    ? organizationName
+    : [userName.trim(), positionTitle.trim()].filter(Boolean).join(" · ");
+  const HomeIcon = showsOrg ? Building2 : UserRound;
+  const navItems = [
+    { label: homeLabel, href: "/dashboard", icon: HomeIcon, tooltip: homeTooltip },
+    ...secondaryNavItems.map((i) => ({ ...i, tooltip: i.label })),
+  ];
+
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
       <div className="flex h-14 items-center gap-4 px-4 md:px-6">
@@ -121,24 +168,27 @@ export function Header({ userName, userEmail, organizationName }: HeaderProps) {
           </span>
         </Link>
 
-        <nav className="hidden flex-1 items-center gap-1 md:flex">
-          {navItems.map((item) => {
+        <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
+          {navItems.map((item, idx) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
+            const isHome = idx === 0;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.tooltip}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  isHome && "min-w-0 max-w-[260px]",
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <item.icon className="size-4" />
-                {item.label}
+                <item.icon className="size-4 shrink-0" />
+                <span className={cn(isHome && "truncate")}>{item.label}</span>
               </Link>
             );
           })}
@@ -178,10 +228,6 @@ export function Header({ userName, userEmail, organizationName }: HeaderProps) {
             </nav>
           </SheetContent>
         </Sheet>
-
-        <span className="hidden text-sm text-muted-foreground lg:inline">
-          {organizationName}
-        </span>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
