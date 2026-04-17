@@ -128,6 +128,27 @@ model Equipment {
   journalEntries JournalEntry[]
 }
 
+/// User-submitted feedback from the in-app "Оставить обратную связь" modal.
+/// Stored without FK relations on purpose: we keep a snapshot of userId /
+/// email / name / org at submission time so reports stay readable after a
+/// user or organisation is later deleted.
+model FeedbackReport {
+  id               String   @id @default(cuid())
+  userId           String?
+  userEmail        String?
+  userName         String?
+  organizationId   String?
+  organizationName String?
+  /// "bug" | "suggestion"
+  type             String
+  message          String
+  phone            String?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+}
+
 model JournalTemplate {
   id                String            @id @default(cuid())
   code              String            @unique

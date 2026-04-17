@@ -14,6 +14,7 @@ import {
   Package,
   AlertTriangle,
   UserRound,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isManagementRole } from "@/lib/user-roles";
@@ -24,7 +25,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -33,13 +33,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 
 const secondaryNavItems = [
   { label: "Журналы", href: "/journals", icon: ClipboardList },
   { label: "Партии", href: "/batches", icon: Package },
   { label: "CAPA", href: "/capa", icon: AlertTriangle },
   { label: "Отчёты", href: "/reports", icon: FileText },
-  { label: "Настройки", href: "/settings", icon: Settings },
+  { label: "Сотрудники", href: "/settings/users", icon: Users },
 ];
 
 function getInitials(name: string): string {
@@ -73,6 +74,7 @@ type HeaderProps = {
   userRole: string;
   positionTitle: string;
   isRoot: boolean;
+  telegramBotUsername: string;
 };
 
 export function Header({
@@ -82,6 +84,7 @@ export function Header({
   userRole,
   positionTitle,
   isRoot,
+  telegramBotUsername,
 }: HeaderProps) {
   const pathname = usePathname();
   const [buildInfo, setBuildInfo] = useState({
@@ -257,34 +260,80 @@ export function Header({
                   </Link>
                 );
               })}
+              <Link
+                href="/settings"
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname === "/settings" || pathname.startsWith("/settings/")
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Settings className="size-4" />
+                Настройки
+              </Link>
             </nav>
           </SheetContent>
         </Sheet>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar>
-                <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{userName}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {userEmail}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 size-4" />
-              Выйти
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Right cluster: feedback + settings shortcut + logout + avatar */}
+        <div className="flex items-center gap-2">
+          <FeedbackDialog telegramBotUsername={telegramBotUsername} />
+
+          <Link
+            href="/settings"
+            aria-label="Настройки"
+            title="Настройки"
+            className={cn(
+              "hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]",
+              (pathname === "/settings" || pathname.startsWith("/settings/")) &&
+                "border-[#dcdfed] bg-[#f5f6ff] text-[#5566f6]"
+            )}
+          >
+            <Settings className="size-4" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Выйти"
+            title="Выйти"
+            className="hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#ffd2cd] hover:bg-[#fff4f2] hover:text-[#d2453d]"
+          >
+            <LogOut className="size-4" />
+          </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="relative h-9 w-9 rounded-full"
+                aria-label="Профиль"
+              >
+                <Avatar>
+                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{userName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {userEmail}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="md:hidden"
+              >
+                <LogOut className="mr-2 size-4" />
+                Выйти
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );
