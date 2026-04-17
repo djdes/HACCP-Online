@@ -221,6 +221,28 @@ model Equipment {
   journalEntries JournalEntry[]
 }
 
+/// Long-form article for the public /blog. Platform-level (not org-scoped)
+/// — edited by ROOT in /root/blog and displayed to any visitor. Body is
+/// structured as a JSON-serialized array of typed blocks
+/// (paragraph / heading / list / quote) so we never have to ship a Markdown
+/// parser or sanitise arbitrary HTML.
+model Article {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  excerpt     String
+  /// ArticleBlock[] — see src/lib/article-blocks.ts
+  body        Json
+  coverIcon   String?
+  tags        String[]  @default([])
+  readMinutes Int       @default(5)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+}
+
 /// User-submitted feedback from the in-app "Оставить обратную связь" modal.
 /// Stored without FK relations on purpose: we keep a snapshot of userId /
 /// email / name / org at submission time so reports stay readable after a

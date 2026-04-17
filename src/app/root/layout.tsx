@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   MessageSquareText,
+  NotebookText,
   ScrollText,
   Settings2,
 } from "lucide-react";
@@ -45,6 +46,13 @@ export default async function RootAreaLayout({
             >
               <MessageSquareText className="size-4" />
               Обратная связь
+            </Link>
+            <Link
+              href="/root/blog"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <NotebookText className="size-4" />
+              Блог
             </Link>
             <Link
               href="/root/telegram-logs"
