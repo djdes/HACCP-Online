@@ -3,14 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, User, MapPin, Wrench, Clock, Wifi, CheckCircle2, XCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { EntryApprovalActions } from "@/components/journals/entry-approval";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 
@@ -134,35 +127,54 @@ export default async function EntryDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/journals/${resolvedCode}`}>
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">{entry.template.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {"\u0417\u0430\u043f\u0438\u0441\u044c \u043e\u0442 "}{entry.createdAt.toLocaleString("ru-RU")}
-          </p>
+      <Link
+        href={`/journals/${resolvedCode}`}
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+      >
+        <ArrowLeft className="size-4" />
+        К журналу
+      </Link>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+          <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <StatusBadge status={entry.status} />
-      </div>
+        <div className="relative z-10 flex flex-col gap-4 p-8 sm:flex-row sm:items-start sm:justify-between md:p-10">
+          <div className="max-w-[640px]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+              \u0417\u0430\u043f\u0438\u0441\u044c
+            </div>
+            <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+              {entry.template.name}
+            </h1>
+            <p className="mt-1.5 text-[14px] text-white/70">
+              {"\u043e\u0442 "}{entry.createdAt.toLocaleString("ru-RU")}
+            </p>
+          </div>
+          <StatusBadge status={entry.status} />
+        </div>
+      </section>
 
       {/* Metadata */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-          <User className="size-4 text-muted-foreground" />
+        <div className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-3 text-sm shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+            <User className="size-4" />
+          </span>
           <div>
-            <div className="text-xs text-muted-foreground">{"\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u043b"}</div>
-            <div className="font-medium">{entry.filledBy.name}</div>
+            <div className="text-[12px] text-[#6f7282]">{"\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u043b"}</div>
+            <div className="font-medium text-[#0b1024]">{entry.filledBy.name}</div>
           </div>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-          <Clock className="size-4 text-muted-foreground" />
+        <div className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-3 text-sm shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+            <Clock className="size-4" />
+          </span>
           <div>
-            <div className="text-xs text-muted-foreground">{"\u0414\u0430\u0442\u0430 \u0438 \u0432\u0440\u0435\u043c\u044f"}</div>
-            <div className="font-medium">
+            <div className="text-[12px] text-[#6f7282]">{"\u0414\u0430\u0442\u0430 \u0438 \u0432\u0440\u0435\u043c\u044f"}</div>
+            <div className="font-medium text-[#0b1024]">
               {entry.createdAt.toLocaleString("ru-RU", {
                 day: "2-digit", month: "2-digit", year: "numeric",
                 hour: "2-digit", minute: "2-digit",
@@ -171,20 +183,24 @@ export default async function EntryDetailPage({
           </div>
         </div>
         {entry.area && (
-          <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-            <MapPin className="size-4 text-muted-foreground" />
+          <div className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-3 text-sm shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+              <MapPin className="size-4" />
+            </span>
             <div>
-              <div className="text-xs text-muted-foreground">{"\u0423\u0447\u0430\u0441\u0442\u043e\u043a"}</div>
-              <div className="font-medium">{entry.area.name}</div>
+              <div className="text-[12px] text-[#6f7282]">{"\u0423\u0447\u0430\u0441\u0442\u043e\u043a"}</div>
+              <div className="font-medium text-[#0b1024]">{entry.area.name}</div>
             </div>
           </div>
         )}
         {entry.equipment && (
-          <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-            <Wrench className="size-4 text-muted-foreground" />
+          <div className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-3 text-sm shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+              <Wrench className="size-4" />
+            </span>
             <div>
-              <div className="text-xs text-muted-foreground">{"\u041e\u0431\u043e\u0440\u0443\u0434\u043e\u0432\u0430\u043d\u0438\u0435"}</div>
-              <div className="font-medium">{entry.equipment.name}</div>
+              <div className="text-[12px] text-[#6f7282]">{"\u041e\u0431\u043e\u0440\u0443\u0434\u043e\u0432\u0430\u043d\u0438\u0435"}</div>
+              <div className="font-medium text-[#0b1024]">{entry.equipment.name}</div>
             </div>
           </div>
         )}
@@ -199,33 +215,38 @@ export default async function EntryDetailPage({
       )}
 
       {/* Entry data */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{"\u0414\u0430\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {displayFields.map(([key, value]) => (
-              <div key={key} className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground mb-1">
-                  {FIELD_LABELS[key] || key}
-                </div>
-                <div className="font-medium text-sm flex items-center gap-1.5">
-                  {typeof value === "boolean" ? (
-                    value ? (
-                      <><CheckCircle2 className="size-4 text-green-600" /> {"\u0414\u0430"}</>
-                    ) : (
-                      <><XCircle className="size-4 text-red-500" /> {"\u041d\u0435\u0442"}</>
-                    )
-                  ) : (
-                    formatValue(value)
-                  )}
-                </div>
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
+        <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          {"\u0414\u0430\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438"}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {displayFields.map(([key, value]) => (
+            <div
+              key={key}
+              className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3"
+            >
+              <div className="text-[12px] text-[#6f7282]">
+                {FIELD_LABELS[key] || key}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-[#0b1024]">
+                {typeof value === "boolean" ? (
+                  value ? (
+                    <>
+                      <CheckCircle2 className="size-4 text-[#116b2a]" /> {"\u0414\u0430"}
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="size-4 text-[#a13a32]" /> {"\u041d\u0435\u0442"}
+                    </>
+                  )
+                ) : (
+                  formatValue(value)
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Approval actions */}
       <EntryApprovalActions
