@@ -163,7 +163,8 @@ export function Header({
     <header className="sticky top-0 z-30 border-b bg-white">
       <div className="flex h-14 items-center gap-4 px-4 md:px-6">
         <Link href="/dashboard" className="shrink-0 flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-primary">HACCP-Online</span>
+          <span className="hidden sm:inline text-lg font-bold text-primary">WeSetup</span>
+          <span className="sm:hidden text-lg font-bold text-primary">W</span>
           <span
             className="text-[10px] font-mono text-muted-foreground/60"
             title={`Build: ${buildInfo.buildTime}`}
