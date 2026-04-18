@@ -290,10 +290,9 @@ export default async function LandingPage() {
           </Link>
           <Link
             href="/register"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#0b1024] px-4 text-[14px] font-medium text-white transition-colors hover:bg-[#1a1f3a]"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
           >
-            <span className="hidden sm:inline">Начать</span>
-            <span className="sm:hidden">Начать</span>
+            Начать
             <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -337,7 +336,7 @@ export default async function LandingPage() {
           </div>
 
           {/* Headline */}
-          <h1 className="mx-auto mt-8 max-w-[980px] text-[44px] font-semibold leading-[0.98] tracking-[-0.035em] text-[#0b1024] sm:text-[72px] md:text-[88px]">
+          <h1 className="mx-auto mt-8 max-w-[920px] text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-[#0b1024] sm:text-[56px] md:text-[72px]">
             Электронные журналы
             <br />
             <span className="relative inline-block">
@@ -360,7 +359,7 @@ export default async function LandingPage() {
           <div className="mt-10 flex flex-col items-center gap-3">
             <Link
               href="/register"
-              className="group inline-flex h-[58px] items-center gap-2 rounded-full bg-[#0b1024] px-9 text-[16px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(11,16,36,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#1a1f3a] hover:shadow-[0_24px_55px_-18px_rgba(11,16,36,0.6)]"
+              className="group inline-flex h-[56px] items-center gap-2 rounded-2xl bg-[#5566f6] px-8 text-[16px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)]"
             >
               Начать
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />

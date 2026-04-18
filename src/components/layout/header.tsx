@@ -163,11 +163,16 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
       <div className="flex h-14 items-center gap-4 px-4 md:px-6">
-        <Link href="/dashboard" className="shrink-0 flex items-baseline gap-1.5">
-          <span className="hidden sm:inline text-lg font-bold text-primary">WeSetup</span>
-          <span className="sm:hidden text-lg font-bold text-primary">W</span>
+        <Link
+          href="/dashboard"
+          className="shrink-0 flex items-baseline gap-2"
+          aria-label="WESETUP — на дашборд"
+        >
+          <span className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]">
+            WESETUP
+          </span>
           <span
-            className="text-[10px] font-mono text-muted-foreground/60"
+            className="hidden text-[10px] font-mono text-[#9b9fb3] sm:inline"
             title={`Build: ${buildInfo.buildTime}`}
           >
             {buildInfo.buildId}

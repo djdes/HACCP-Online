@@ -56,14 +56,17 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Primary — brand indigo #5566f6. Replaces shadcn's default black so
+     every Button / Tab / active pill that uses `bg-primary` / `text-primary`
+     automatically reads as WeSetup instead of looking like a stock template. */
+  --primary: oklch(0.605 0.196 265);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.97 0.01 265);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0.008 265);
+  --muted-foreground: oklch(0.52 0.012 265);
+  --accent: oklch(0.96 0.012 265);
+  --accent-foreground: oklch(0.35 0.08 265);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -75,12 +78,12 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.605 0.196 265);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.96 0.012 265);
+  --sidebar-accent-foreground: oklch(0.35 0.08 265);
+  --sidebar-border: oklch(0.93 0.008 265);
+  --sidebar-ring: oklch(0.605 0.196 265);
 }
 
 .dark {
