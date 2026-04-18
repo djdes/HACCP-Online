@@ -32,6 +32,7 @@ import {
 import { db } from "@/lib/db";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
 import { PublicFooter } from "@/components/public/public-chrome";
+import { ScreenshotFan } from "@/components/public/screenshot-fan";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -127,6 +128,21 @@ const STEPS = [
     title: "Ведение журналов",
     text: "Смена за сменой — сервис напоминает, подставляет автозначения, хранит историю для проверок.",
   },
+];
+
+const AUDIENCE_CHIPS: string[] = [
+  "Рестораны",
+  "Кафе",
+  "Пекарни",
+  "Кондитерские",
+  "Столовые",
+  "Отели",
+  "Фуд-корты",
+  "Кейтеринг",
+  "Школьные кухни",
+  "Производственные цеха",
+  "Тёмные кухни",
+  "Сети общепита",
 ];
 
 const AUDIENCE = [
@@ -246,17 +262,14 @@ export default async function LandingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* NAV */}
-      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-5">
+      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-[18px] font-semibold tracking-tight"
+          className="text-[17px] font-semibold tracking-[0.22em] text-[#0b1024]"
         >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-[#5566f6] text-white ring-1 ring-white/20">
-            <ShieldCheck className="size-5" />
-          </span>
-          <span className="text-[#0b1024]">WeSetup</span>
+          WESETUP
         </Link>
-        <div className="flex items-center gap-2 sm:gap-5">
+        <div className="flex items-center gap-2 sm:gap-6">
           <Link
             href="/journals-info"
             className="hidden text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024] sm:inline"
@@ -277,81 +290,99 @@ export default async function LandingPage() {
           </Link>
           <Link
             href="/register"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#0b1024] px-4 text-[14px] font-medium text-white transition-colors hover:bg-[#1a1f3a]"
           >
-            <span className="hidden sm:inline">Попробовать бесплатно</span>
-            <span className="sm:hidden">Попробовать</span>
+            <span className="hidden sm:inline">Начать</span>
+            <span className="sm:hidden">Начать</span>
             <ArrowRight className="size-4" />
           </Link>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="mx-auto max-w-[1200px] px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-6 py-16 text-white md:px-12 md:py-24">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-24 -top-24 size-[520px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-            <div className="absolute -bottom-40 -right-32 size-[560px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-            <div className="absolute left-1/3 top-1/2 size-[340px] rounded-full bg-[#3d4efc] opacity-30 blur-[100px]" />
-          </div>
+      {/* HERO — centered stack, megaplan-inspired */}
+      <section className="relative overflow-hidden">
+        {/* Soft ambient gradient wash */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-0"
+          aria-hidden="true"
+        >
+          <div className="absolute left-[10%] top-[-8%] size-[720px] rounded-full bg-[#5566f6] opacity-[0.08] blur-[140px]" />
+          <div className="absolute right-[5%] top-[40%] size-[620px] rounded-full bg-[#7a5cff] opacity-[0.07] blur-[140px]" />
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            className="absolute inset-0 opacity-[0.35]"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
+                "radial-gradient(circle at 1px 1px, rgba(11,16,36,0.10) 1px, transparent 0)",
+              backgroundSize: "28px 28px",
               maskImage:
-                "radial-gradient(ellipse at 40% 40%, black 40%, transparent 70%)",
+                "radial-gradient(ellipse at 50% 40%, black 30%, transparent 75%)",
             }}
           />
-          <div className="relative z-10 max-w-[720px]">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/70 backdrop-blur">
-              <span className="size-1.5 rounded-full bg-[#7cf5c0]" />
-              34 журнала СанПиН и ХАССП — бесплатно
-            </div>
-            <h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[56px]">
-              Электронные журналы
-              <br />
-              <span className="text-[#7cf5c0]">бесплатно</span> — платите
-              только за сотрудников
-            </h1>
-            <p className="mt-6 max-w-[540px] text-[17px] leading-[1.55] text-white/75">
-              До 5 сотрудников — все 34 журнала, Telegram-бот и PDF для
-              проверок навсегда бесплатно. Нужно больше рабочих мест или
-              IoT-датчиков — добавляете пакетами.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/register"
-                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
-              >
-                Начать бесплатно навсегда
-                <ArrowRight className="size-4" />
-              </Link>
-              <a
-                href="https://t.me/wesetupbot"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-6 text-[15px] font-medium text-white backdrop-blur transition-colors hover:bg-white/10"
-              >
-                Написать в Telegram
-                <ArrowRight className="size-4" />
-              </a>
-            </div>
+        </div>
 
-            <ul className="mt-10 grid max-w-[520px] grid-cols-1 gap-x-6 gap-y-3 text-[14px] text-white/80 sm:grid-cols-2">
-              {[
-                "35 журналов СанПиН / ХАССП",
-                "Синхронизация с iiko и 1С",
-                "Напоминания в Telegram",
-                "PDF для Роспотребнадзора",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-[#7cf5c0]" />
-                  <span>{item}</span>
-                </li>
+        <div className="relative mx-auto max-w-[1100px] px-6 pt-8 text-center sm:pt-16">
+          {/* Registry badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
+            <ShieldCheck className="size-3.5" />
+            В реестре отечественного ПО
+            <span className="text-[#9b9fb3]">·</span>
+            <span className="text-[#6f7282]">заявка №27419</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="mx-auto mt-8 max-w-[980px] text-[44px] font-semibold leading-[0.98] tracking-[-0.035em] text-[#0b1024] sm:text-[72px] md:text-[88px]">
+            Электронные журналы
+            <br />
+            <span className="relative inline-block">
+              <span className="relative z-10">для вашей кухни</span>
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-[0.08em] -z-0 h-[0.28em] bg-[#5566f6]/15"
+              />
+            </span>
+          </h1>
+
+          {/* Subhead */}
+          <p className="mx-auto mt-7 max-w-[640px] text-[16px] leading-[1.6] text-[#3c4053] sm:text-[18px]">
+            СанПиН и ХАССП в одной системе. Заполняете с планшета на кухне
+            или из Telegram, PDF для Роспотребнадзора — в один клик.
+            Бесплатно навсегда до 5 сотрудников.
+          </p>
+
+          {/* Single big CTA */}
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <Link
+              href="/register"
+              className="group inline-flex h-[58px] items-center gap-2 rounded-full bg-[#0b1024] px-9 text-[16px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(11,16,36,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#1a1f3a] hover:shadow-[0_24px_55px_-18px_rgba(11,16,36,0.6)]"
+            >
+              Начать
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <div className="text-[12px] text-[#9b9fb3]">
+              Без карты · Всё включено на бесплатном тарифе
+            </div>
+          </div>
+
+          {/* Audience chips */}
+          <div className="mx-auto mt-14 max-w-[860px]">
+            <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9b9fb3]">
+              Подходит для
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {AUDIENCE_CHIPS.map((a) => (
+                <span
+                  key={a}
+                  className="inline-flex items-center rounded-full border border-[#ececf4] bg-white px-4 py-2 text-[13px] font-medium text-[#3c4053] shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+                >
+                  {a}
+                </span>
               ))}
-            </ul>
+            </div>
+          </div>
+
+          {/* Screenshot fan */}
+          <div className="relative mx-auto mt-20 h-[380px] max-w-[1100px] sm:h-[520px] md:h-[580px]">
+            <ScreenshotFan />
           </div>
         </div>
       </section>
