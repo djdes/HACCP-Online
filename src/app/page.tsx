@@ -35,6 +35,14 @@ import { PricingCalculator } from "@/components/public/pricing-calculator";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title:
+    "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+  description:
+    "34 электронных журнала для общепита и пищевых производств. Гигиена, температура, бракераж, уборка, дезинфекция. Автозаполнение, Telegram-бот, PDF для Роспотребнадзора. Бесплатно до 5 сотрудников.",
+  alternates: { canonical: "https://wesetup.ru/" },
+};
+
 const FEATURES = [
   {
     icon: Plug,
@@ -186,8 +194,56 @@ export default async function LandingPage() {
     },
   });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://wesetup.ru/#org",
+        name: "WeSetup",
+        url: "https://wesetup.ru",
+        logo: "https://wesetup.ru/icon.png",
+        sameAs: ["https://t.me/wesetupbot"],
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://wesetup.ru/#website",
+        url: "https://wesetup.ru",
+        name: "WeSetup",
+        publisher: { "@id": "https://wesetup.ru/#org" },
+        inLanguage: "ru-RU",
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "WeSetup",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web, iOS, Android",
+        description:
+          "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 34 журнала, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "RUB",
+          description: "Бесплатный тариф до 5 сотрудников",
+        },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQ.map((item) => ({
+          "@type": "Question",
+          name: item.q,
+          acceptedAnswer: { "@type": "Answer", text: item.a },
+        })),
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* NAV */}
       <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-5">
         <Link

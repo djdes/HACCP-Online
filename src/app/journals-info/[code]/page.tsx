@@ -13,6 +13,7 @@ import {
   JOURNAL_INFO,
   JOURNAL_CATEGORY_LABEL,
 } from "@/content/journal-info";
+import { JOURNAL_SEO } from "@/content/journal-seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,9 +26,26 @@ export async function generateMetadata({
   const { code } = await params;
   const info = JOURNAL_INFO[code];
   if (!info) return { title: "Журнал не найден — WeSetup" };
+  const seo = JOURNAL_SEO[code];
+  const canonical = `https://wesetup.ru/journals-info/${code}`;
   return {
-    title: `${info.tagline} — WeSetup`,
-    description: info.why,
+    title: seo?.title ?? `${info.tagline} — WeSetup`,
+    description: seo?.description ?? info.why,
+    keywords: seo?.keywords,
+    alternates: { canonical },
+    openGraph: {
+      title: seo?.title ?? `${info.tagline} — WeSetup`,
+      description: seo?.description ?? info.why,
+      url: canonical,
+      type: "article",
+      locale: "ru_RU",
+      siteName: "WeSetup",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo?.title ?? `${info.tagline} — WeSetup`,
+      description: seo?.description ?? info.why,
+    },
   };
 }
 
@@ -39,13 +57,35 @@ export default async function JournalInfoDetailPage({
   const { code } = await params;
   const info = JOURNAL_INFO[code];
   if (!info) notFound();
+  const seo = JOURNAL_SEO[code];
 
   const related = Object.values(JOURNAL_INFO)
     .filter((j) => j.category === info.category && j.code !== info.code)
     .slice(0, 4);
 
+  const canonical = `https://wesetup.ru/journals-info/${code}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: seo?.title ?? info.tagline,
+    description: seo?.description ?? info.why,
+    url: canonical,
+    inLanguage: "ru-RU",
+    keywords: seo?.keywords?.join(", "),
+    mainEntityOfPage: canonical,
+    publisher: {
+      "@type": "Organization",
+      name: "WeSetup",
+      url: "https://wesetup.ru",
+    },
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <PublicHeader activeSection="journals-info" />
 
       <section className="mx-auto max-w-[1200px] px-6">
@@ -75,6 +115,19 @@ export default async function JournalInfoDetailPage({
           </div>
         </div>
       </section>
+
+      {seo?.seoIntro ? (
+        <section className="mx-auto max-w-[1200px] px-6 pt-10">
+          <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-7 md:p-8">
+            <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Что это за журнал
+            </div>
+            <p className="text-[16px] leading-[1.7] text-[#3c4053]">
+              {seo.seoIntro}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto max-w-[1200px] px-6 py-12">
         <div className="grid gap-6 md:grid-cols-[1fr_320px]">
