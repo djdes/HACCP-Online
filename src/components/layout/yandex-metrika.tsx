@@ -1,14 +1,15 @@
 import Script from "next/script";
 
 /**
- * Yandex.Metrika counter. Mounts in the root layout ONLY when the env
- * variable `NEXT_PUBLIC_YANDEX_METRIKA_ID` is set — an 8-digit counter
- * id from metrika.yandex.ru. Until then, renders nothing, so CI builds
+ * Yandex.Metrika counter. Mounts in the root layout only when the env
+ * variable `NEXT_PUBLIC_YANDEX_METRIKA_ID` is set (numeric counter id
+ * from metrika.yandex.ru). Until then, renders nothing, so CI builds
  * and preview deploys don't ship a zero-id tracker.
  *
  * Uses next/script with `strategy="afterInteractive"` so the counter
- * doesn't block first paint. Webvisor is enabled by default because it
- * makes the Yandex dashboard actually useful for debugging sessions.
+ * doesn't block first paint. Settings match the stock snippet from
+ * the Metrika dashboard: webvisor, clickmap, accurate bounce,
+ * ecommerce dataLayer, manual referrer + url for SPA navigations.
  */
 export function YandexMetrika() {
   const id = process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID;
@@ -27,13 +28,17 @@ export function YandexMetrika() {
             m[i].l=1*new Date();
             for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
             k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-            (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+            (window, document, "script", "https://mc.yandex.ru/metrika/tag.js?id=${Number(id)}", "ym");
 
             ym(${counterId}, "init", {
+                ssr: true,
+                webvisor: true,
                 clickmap: true,
-                trackLinks: true,
+                ecommerce: "dataLayer",
+                referrer: document.referrer,
+                url: location.href,
                 accurateTrackBounce: true,
-                webvisor: true
+                trackLinks: true
             });
           `,
         }}
