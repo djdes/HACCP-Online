@@ -27,6 +27,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import {
+  JOURNAL_DIALOG_BODY_CLASS,
+  JOURNAL_DIALOG_GRID_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DOCUMENT_ACTIONS_CLASS,
+  JOURNAL_DOCUMENT_HEADER_CLASS,
+  JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
+  JOURNAL_DOCUMENT_SHELL_CLASS,
+  JOURNAL_TABLE_VIEWPORT_CLASS,
+} from "@/components/journals/journal-responsive";
 import { PestControlDocumentClient } from "@/components/journals/pest-control-document-client";
 import {
   isPestControlDocumentFields,
@@ -301,7 +311,7 @@ function TrackedDocumentClientImpl({
   return (
     <div className="space-y-8">
       {status === "active" && selectedRowIds.length > 0 ? (
-        <div className="sticky top-0 z-30 -mx-6 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-6 py-3 backdrop-blur">
+        <div className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}>
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-2 text-[15px] text-[#5563ff]"
@@ -326,25 +336,25 @@ function TrackedDocumentClientImpl({
       ) : null}
 
       <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
-      <div className="rounded-[32px] border border-[#eceef5] bg-white px-8 py-7 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-wrap items-start justify-between gap-5">
+      <div className={JOURNAL_DOCUMENT_SHELL_CLASS}>
+        <div className={JOURNAL_DOCUMENT_HEADER_CLASS}>
           <div>
-            <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024] sm:text-[32px]">
               {title}
             </h1>
-            <div className="mt-2 text-[16px] text-[#84849a]">
+            <div className="mt-2 text-[14px] text-[#84849a] sm:text-[16px]">
               Период: {formatDateLabel(dateFrom)} - {formatDateLabel(dateTo)}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className={JOURNAL_DOCUMENT_ACTIONS_CLASS}>
             {status === "active" && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     disabled={isCreating || employees.length === 0}
-                    className="h-12 rounded-2xl bg-[#5566f6] px-5 text-[16px] text-white hover:bg-[#4d58f5]"
+                    className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
                   >
                     <Plus className="size-5" />
                     Добавить
@@ -386,7 +396,7 @@ function TrackedDocumentClientImpl({
                     toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
                   )
                 }
-                className="h-12 rounded-2xl border-[#ffd7d3] px-5 text-[16px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                className="h-11 w-full rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
               >
                 <Trash2 className="size-5" />
                 Удалить ({selectedRowIds.length})
@@ -397,7 +407,7 @@ function TrackedDocumentClientImpl({
               type="button"
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none"
+              className="h-11 w-full rounded-2xl border-[#e6e9f5] px-4 text-[15px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
             >
               <Settings2 className="size-5" />
               Настройки
@@ -409,7 +419,7 @@ function TrackedDocumentClientImpl({
               onClick={() =>
                 window.open(`/api/journal-documents/${documentId}/pdf`, "_blank")
               }
-              className="h-12 rounded-2xl border-[#e6e9f5] px-5 text-[16px] text-black shadow-none"
+              className="h-11 w-full rounded-2xl border-[#e6e9f5] px-4 text-[15px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
             >
               <Printer className="size-5" />
               Печать
@@ -418,7 +428,7 @@ function TrackedDocumentClientImpl({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[26px] border border-[#eceef5] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+      <div className={JOURNAL_TABLE_VIEWPORT_CLASS}>
         <table className="min-w-[1200px] w-full border-collapse text-[15px]">
           <thead>
             <tr className="bg-[#f7f8fd]">
@@ -649,13 +659,13 @@ function TrackedDocumentClientImpl({
 
       <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[760px] overflow-y-auto rounded-[32px] border-0 p-0">
-          <DialogHeader className="border-b px-12 py-10">
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className="text-[22px] font-medium text-black">
               Добавить строку
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-7 px-12 py-10">
+          <div className={JOURNAL_DIALOG_BODY_CLASS}>
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Р”Р°С‚Р°</Label>
               <Input
@@ -704,13 +714,13 @@ function TrackedDocumentClientImpl({
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[860px] overflow-y-auto rounded-[32px] border-0 p-0">
-          <DialogHeader className="border-b px-14 py-12">
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className="text-[22px] font-medium text-black">
               Настройки журнала
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-8 px-14 py-12">
+          <div className={JOURNAL_DIALOG_BODY_CLASS}>
             <div className="space-y-3">
               <Label htmlFor="journal-title" className="text-[14px] text-[#73738a]">
                 Название журнала
@@ -723,7 +733,7 @@ function TrackedDocumentClientImpl({
               />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className={JOURNAL_DIALOG_GRID_CLASS}>
               <div className="space-y-3">
                 <Label className="text-[14px] text-[#73738a]">Ответственный</Label>
                 <Select
@@ -806,10 +816,3 @@ export function TrackedDocumentClient(props: Props) {
 
   return <TrackedDocumentClientImpl {...props} />;
 }
-
-
-
-
-
-
-

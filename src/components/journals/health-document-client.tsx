@@ -325,7 +325,8 @@ export function HealthDocumentClient(props: Props) {
           )}
         </div>
 
-        <div className="mx-auto max-w-[1860px]">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
+        <div className="mx-auto min-w-[1100px] max-w-[1860px] sm:min-w-0">
           <div className="mb-10">
             <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
           </div>
@@ -469,6 +470,7 @@ export function HealthDocumentClient(props: Props) {
             ))}
             <p className="font-semibold">{HEALTH_REGISTER_REMINDER}</p>
           </div>
+        </div>
         </div>
       </div>
 

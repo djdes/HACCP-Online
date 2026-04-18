@@ -42,6 +42,17 @@ import { toast } from "sonner";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import {
+  JOURNAL_DIALOG_BODY_CLASS,
+  JOURNAL_DIALOG_GRID_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  REGISTER_DOCUMENT_ACTIONS_CLASS,
+  REGISTER_DOCUMENT_HEADER_CLASS,
+  REGISTER_DOCUMENT_PAGE_CLASS,
+  REGISTER_DOCUMENT_SUMMARY_CLASS,
+  REGISTER_DOCUMENT_SUMMARY_ROW_CLASS,
+  REGISTER_DOCUMENT_SUMMARY_STATS_CLASS,
+} from "@/components/journals/journal-responsive";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -191,14 +202,14 @@ function RowDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[820px] overflow-y-auto rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-12 py-10">
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <DialogTitle className="text-[22px] font-medium text-black">
             {initialRow ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 px-12 py-10">
-          <div className="text-[18px] text-[#73738a]">{title}</div>
+        <div className={JOURNAL_DIALOG_BODY_CLASS}>
+          <div className="text-[16px] text-[#73738a] sm:text-[18px]">{title}</div>
 
           <div className="grid gap-5">
             {visibleFields.map((field) => {
@@ -339,13 +350,13 @@ function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[860px] overflow-y-auto rounded-[32px] border-0 p-0">
-        <DialogHeader className="border-b px-14 py-12">
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <DialogTitle className="text-[22px] font-medium text-black">
             Настройки журнала
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-14 py-12">
+          <div className={JOURNAL_DIALOG_BODY_CLASS}>
           <div className="space-y-3">
             <Label htmlFor="register-title" className="sr-only">
               Название журнала
@@ -358,7 +369,7 @@ function SettingsDialog({
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+            <div className={JOURNAL_DIALOG_GRID_CLASS}>
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Ответственный по умолчанию</Label>
               <Select
@@ -423,6 +434,7 @@ export function RegisterDocumentClient({
   users,
   equipment,
 }: Props) {
+  void organizationName;
   const router = useRouter();
   const [config, setConfig] = useState(() =>
     normalizeRegisterDocumentConfig(initialConfig, fields)
@@ -519,24 +531,24 @@ export function RegisterDocumentClient({
 
   return (
     <div className="bg-white text-black">
-      <div className="mx-auto max-w-[1860px] px-6 py-8">
+      <div className={REGISTER_DOCUMENT_PAGE_CLASS}>
         {templateCode ? <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} /> : null}
-        <div className="mb-8 flex items-start justify-between gap-6">
+        <div className={REGISTER_DOCUMENT_HEADER_CLASS}>
           <div>
-            <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024] sm:text-[32px]">
               {documentTitle}
             </h1>
-            <div className="mt-3 text-[18px] text-[#63667a]">
+            <div className="mt-2 text-[14px] text-[#63667a] sm:mt-3 sm:text-[18px]">
               Период: {formatDate(dateFrom)} - {formatDate(dateTo)}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className={REGISTER_DOCUMENT_ACTIONS_CLASS}>
             <Button
               type="button"
               variant="outline"
               onClick={() => window.open(`/api/journal-documents/${documentId}/pdf`, "_blank")}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
             >
               <Printer className="size-6" />
               Печать
@@ -547,7 +559,7 @@ export function RegisterDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setSettingsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               >
                 <Settings2 className="size-6" />
                 Настройки журнала
@@ -556,7 +568,7 @@ export function RegisterDocumentClient({
                 documentId={documentId}
                 title={documentTitle}
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               >
                 Закончить журнал
               </DocumentCloseButton>
@@ -565,13 +577,13 @@ export function RegisterDocumentClient({
           </div>
         </div>
 
-        <div className="mb-10 rounded-[24px] bg-[#f3f4fe] px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="rounded-2xl bg-white/70 px-5 py-3 text-[18px] text-black shadow-sm">
+        <div className={REGISTER_DOCUMENT_SUMMARY_CLASS}>
+          <div className={REGISTER_DOCUMENT_SUMMARY_ROW_CLASS}>
+            <div className={REGISTER_DOCUMENT_SUMMARY_STATS_CLASS}>
+              <div className="rounded-2xl bg-white/70 px-4 py-3 text-[15px] text-black shadow-sm sm:px-5 sm:text-[18px]">
                 Строк в журнале: <span className="font-semibold">{config.rows.length}</span>
               </div>
-              <div className="rounded-2xl bg-white/70 px-5 py-3 text-[18px] text-black shadow-sm">
+              <div className="rounded-2xl bg-white/70 px-4 py-3 text-[15px] text-black shadow-sm sm:px-5 sm:text-[18px]">
                 Ответственный по умолчанию:{" "}
                 <span className="font-semibold">
                   {users.find((user) => user.id === config.defaultResponsibleUserId)?.name || "Не задан"}
@@ -582,7 +594,7 @@ export function RegisterDocumentClient({
             <button
               type="button"
               onClick={() => setSummaryOpen((value) => !value)}
-              className="flex size-11 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
+              className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-[#5566f6] hover:bg-white/70 lg:self-auto"
             >
               {summaryOpen ? <ChevronUp className="size-7" /> : <ChevronDown className="size-7" />}
             </button>
@@ -591,9 +603,9 @@ export function RegisterDocumentClient({
           {summaryOpen && (
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {visibleFields.map((field) => (
-                <div key={field.key} className="rounded-2xl bg-white/70 px-5 py-4 shadow-sm">
-                  <div className="text-[15px] text-[#70738a]">{field.label}</div>
-                  <div className="mt-2 text-[18px] font-medium text-black">
+                <div key={field.key} className="rounded-2xl bg-white/70 px-4 py-4 shadow-sm sm:px-5">
+                  <div className="text-[14px] text-[#70738a] sm:text-[15px]">{field.label}</div>
+                  <div className="mt-2 text-[16px] font-medium text-black sm:text-[18px]">
                     {config.rows[0]
                       ? resolveDisplayValue(field, config.rows[0].values[field.key] || "", users, equipment) || "—"
                       : "—"}

@@ -41,6 +41,13 @@ import {
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_TAB_RAIL_CLASS,
+  JOURNAL_TAB_VIEWPORT_CLASS,
+} from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 type JournalListDocument = {
   id: string;
@@ -316,11 +323,11 @@ function TrackedDocumentsClientImpl({
     <>
       <div className="space-y-10">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">{heading}</h1>
-          <div className="flex items-center gap-3">
+          <h1 className={JOURNAL_LIST_HEADING_CLASS}>{heading}</h1>
+          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
               <Link href="/sanpin">
@@ -333,7 +340,7 @@ function TrackedDocumentsClientImpl({
                 templateCode={templateCode}
                 templateName={templateName}
                 users={users}
-                triggerClassName="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+                triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className="size-4" />}
               />
@@ -342,7 +349,8 @@ function TrackedDocumentsClientImpl({
         </div>
 
         <div className="border-b border-[#d9dce8]">
-          <div className="flex gap-12 text-[16px]">
+          <div className={JOURNAL_TAB_VIEWPORT_CLASS}>
+            <div className={JOURNAL_TAB_RAIL_CLASS}>
             <Link
               href={`/journals/${templateCode}`}
               className={`relative pb-4 ${
@@ -363,6 +371,7 @@ function TrackedDocumentsClientImpl({
             >
               Закрытые
             </Link>
+            </div>
           </div>
         </div>
 
@@ -377,25 +386,25 @@ function TrackedDocumentsClientImpl({
             return (
               <div
                 key={document.id}
-                className="grid grid-cols-[1.8fr_320px_290px_48px] items-center rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+                className={JOURNAL_LIST_CARD_CLASS}
               >
-                <Link href={href} className="text-[17px] font-semibold tracking-[-0.02em] text-black">
+                <Link href={href} className="text-[16px] font-semibold tracking-[-0.02em] text-black sm:text-[17px]">
                   {document.title}
                 </Link>
 
-                <Link href={href} className="border-l border-[#e6e6f0] px-10">
+                <Link href={href} className="border-t border-[#e6e6f0] pt-3 sm:border-l sm:border-t-0 sm:px-10 sm:pt-0">
                   <div className="text-[14px] text-[#84849a]">Ответственный</div>
                   <div className="mt-2 text-[14px] font-semibold text-black">
                     {getResponsibleCardValue(document)}
                   </div>
                 </Link>
 
-                <Link href={href} className="border-l border-[#e6e6f0] px-10">
+                <Link href={href} className="border-t border-[#e6e6f0] pt-3 sm:border-l sm:border-t-0 sm:px-10 sm:pt-0">
                   <div className="text-[14px] text-[#84849a]">{document.metaLabel}</div>
                   <div className="mt-2 text-[14px] font-semibold text-black">{document.metaValue}</div>
                 </Link>
 
-                <div className="flex justify-center">
+                <div className="flex justify-end pt-1 sm:justify-center sm:pt-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button

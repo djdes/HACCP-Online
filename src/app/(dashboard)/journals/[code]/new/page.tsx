@@ -87,7 +87,7 @@ export default async function NewJournalEntryPage({
   }>;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
       <Link
         href={`/journals/${resolvedCode}`}
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
@@ -102,7 +102,7 @@ export default async function NewJournalEntryPage({
           <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
           <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <div className="relative z-10 flex items-start gap-4 p-8 md:p-10">
+        <div className="relative z-10 flex items-start gap-3 p-5 sm:gap-4 sm:p-8 md:p-10">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
             <NotebookPen className="size-6" />
           </div>
@@ -110,11 +110,11 @@ export default async function NewJournalEntryPage({
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               Новая запись
             </div>
-            <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="mt-3 text-[24px] font-semibold leading-tight tracking-[-0.02em] sm:text-[28px]">
               {template.name}
             </h1>
             {template.description ? (
-              <p className="mt-2 max-w-[560px] text-[14px] leading-[1.5] text-white/70">
+              <p className="mt-2 max-w-[560px] text-[13px] leading-[1.5] text-white/70 sm:text-[14px]">
                 {template.description}
               </p>
             ) : null}
@@ -122,7 +122,7 @@ export default async function NewJournalEntryPage({
         </div>
       </section>
 
-      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6 md:p-8">
         <DynamicForm
           templateCode={resolvedCode}
           templateName={template.name}

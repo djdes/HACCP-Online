@@ -260,9 +260,26 @@ export function Header({
               <span className="sr-only">Меню</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="top" className="p-4">
+          {/*
+            Mobile nav drawer. Originally `side="top"` with `h-auto` — this
+            left the bottom ~60% of the viewport as a dim overlay with no
+            content, which read as "half the screen is white, half dark" on
+            phones. Switching to `side="right"` + full height gives the
+            familiar edge-drawer behaviour of every modern mobile app and
+            eliminates the split-screen artefact. Width is clamped so it
+            doesn't cover everything on tablets.
+          */}
+          <SheetContent
+            side="right"
+            className="flex w-[86%] max-w-[360px] flex-col gap-0 border-l border-[#ececf4] bg-white p-0"
+          >
             <SheetTitle className="sr-only">Навигация</SheetTitle>
-            <nav className="flex flex-col gap-1">
+            <div className="flex items-center justify-between border-b border-[#ececf4] px-5 py-4">
+              <span className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#0b1024]">
+                Меню
+              </span>
+            </div>
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3">
               {navItems.map((item) => {
                 const isActive =
                   pathname === item.href || pathname.startsWith(item.href + "/");
@@ -272,14 +289,19 @@ export function Header({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium transition-colors",
                       isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-[#f5f6ff] text-[#5566f6]"
+                        : "text-[#3c4053] hover:bg-[#fafbff]"
                     )}
                   >
-                    <item.icon className="size-4" />
-                    {item.label}
+                    <item.icon
+                      className={cn(
+                        "size-5 shrink-0",
+                        isActive ? "text-[#5566f6]" : "text-[#6f7282]"
+                      )}
+                    />
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 );
               })}
@@ -287,17 +309,33 @@ export function Header({
                 <Link
                   href="/settings"
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium transition-colors",
                     pathname === "/settings" || pathname.startsWith("/settings/")
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-[#f5f6ff] text-[#5566f6]"
+                      : "text-[#3c4053] hover:bg-[#fafbff]"
                   )}
                 >
-                  <Settings className="size-4" />
+                  <Settings
+                    className={cn(
+                      "size-5 shrink-0",
+                      pathname === "/settings" ||
+                        pathname.startsWith("/settings/")
+                        ? "text-[#5566f6]"
+                        : "text-[#6f7282]"
+                    )}
+                  />
                   Настройки
                 </Link>
               ) : null}
             </nav>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-3 border-t border-[#ececf4] px-5 py-4 text-[14px] font-medium text-[#a13a32] transition-colors hover:bg-[#fff4f2]"
+            >
+              <LogOut className="size-5 shrink-0" />
+              Выйти
+            </button>
           </SheetContent>
         </Sheet>
 

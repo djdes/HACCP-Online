@@ -36,12 +36,12 @@ export function DocumentPageHeader({
     <div
       className={
         className ??
-        "mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden"
+        "mb-6 flex flex-col gap-3 print:hidden sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
       }
     >
       <DocumentBackLink href={backHref} label={backLabel} className="mb-0" />
       {hasActions ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
           {hasPrint ? (
             <Button
               type="button"
@@ -53,7 +53,7 @@ export function DocumentPageHeader({
                   "noopener,noreferrer"
                 )
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 w-full rounded-2xl border-[#dfe1ec] px-4 text-[15px] sm:w-auto"
             >
               <Printer className="size-4" />
               Печать
