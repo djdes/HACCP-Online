@@ -5,16 +5,17 @@ import {
   BellRing,
   Building2,
   CheckCircle2,
-  ClipboardList,
   Clock,
   Cloud,
-  Flame,
+  Gauge,
+  Gift,
   Handshake,
   HelpCircle,
   ImageIcon,
   Leaf,
   Network,
   NotebookText,
+  Package,
   Plug,
   Quote,
   Rocket,
@@ -24,6 +25,7 @@ import {
   Sparkles,
   Star,
   Store,
+  Thermometer,
   Timer,
   UserCheck,
   Users,
@@ -116,6 +118,43 @@ const STEPS = [
   {
     title: "Ведение журналов",
     text: "Смена за сменой — сервис напоминает, подставляет автозначения, хранит историю для проверок.",
+  },
+];
+
+const DEVICES: Array<{
+  icon: typeof Thermometer;
+  title: string;
+  text: string;
+  price: string;
+  unit: string;
+}> = [
+  {
+    icon: Thermometer,
+    title: "Датчик температуры",
+    text: "Для холодильных и морозильных камер. Пишет температуру каждые 5 минут, журнал заполняется сам.",
+    price: "3 490 ₽",
+    unit: "за датчик",
+  },
+  {
+    icon: Gauge,
+    title: "Термогигрометр",
+    text: "Для зала и цеха. Температура + влажность на одном экране, связан с журналом климата.",
+    price: "2 890 ₽",
+    unit: "за устройство",
+  },
+  {
+    icon: Smartphone,
+    title: "Планшет для кухни",
+    text: "10 дюймов, защитный чехол, стартовый профиль уже настроен. Клеится к стене в цехе.",
+    price: "12 900 ₽",
+    unit: "за планшет",
+  },
+  {
+    icon: UserCheck,
+    title: "NFC-брелоки для смены",
+    text: "Вход в журналы в один тап — не нужно вводить пароль на кухне мокрыми руками.",
+    price: "490 ₽",
+    unit: "за брелок",
   },
 ];
 
@@ -249,17 +288,18 @@ export default async function LandingPage() {
           <div className="relative z-10 max-w-[720px]">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/70 backdrop-blur">
               <span className="size-1.5 rounded-full bg-[#7cf5c0]" />
-              СанПиН 2.3/2.4.3590-20 · 35 журналов
+              34 журнала СанПиН и ХАССП — бесплатно
             </div>
             <h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[56px]">
               Электронные журналы
               <br />
-              для общепита и производства
+              <span className="text-[#7cf5c0]">бесплатно</span> — платите
+              только за сотрудников
             </h1>
             <p className="mt-6 max-w-[540px] text-[17px] leading-[1.55] text-white/75">
-              WeSetup переносит бумажные журналы Роспотребнадзора и ХАССП в
-              браузер: автозаполнение, напоминания, уведомления о нарушениях,
-              готовый PDF для проверок.
+              До 5 сотрудников — все 34 журнала, Telegram-бот и PDF для
+              проверок навсегда бесплатно. Нужно больше рабочих мест или
+              IoT-датчиков — добавляете пакетами.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -406,46 +446,137 @@ export default async function LandingPage() {
 
       {/* PRICING */}
       <section className="mx-auto max-w-[1200px] px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+        <div className="mb-10 max-w-[720px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Gift className="size-4" />
             Тарифы
           </div>
           <h2 className="text-[36px] font-semibold leading-tight tracking-[-0.02em]">
-            Два понятных плана, без скрытых доплат
+            Платите только за сотрудников. Журналы — бесплатно.
           </h2>
+          <p className="mt-4 text-[15px] text-[#6f7282]">
+            Функционал одинаковый на всех планах — разница только в
+            количестве рабочих мест. Устройства покупаются отдельно и
+            навсегда: монтируете датчик один раз, подписку на него не
+            платите.
+          </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-3">
           <PricingCard
-            kind="basic"
-            name="Базовый"
-            from="от 1400 ₽"
-            period="в месяц"
-            description="Ежедневные журналы санитарной безопасности и ХАССП — гигиена, температуры, уборки, приёмка, бракераж, фритюр, медкнижки."
+            kind="free"
+            name="Старт"
+            from="0 ₽"
+            period="навсегда"
+            description="Для одного заведения с небольшой сменой. Все журналы, все напоминания, бот и PDF — без оплаты."
             points={[
-              "13 журналов СанПиН",
-              "Автозаполнение гигиены",
-              "Синхронизация iiko / 1С",
-              "Telegram-уведомления",
+              "До 5 сотрудников",
+              "Все 34 журнала СанПиН + ХАССП",
+              "Telegram-бот с wizard заполнения",
+              "PDF для проверок Роспотребнадзора",
             ]}
-            ctaLabel="Попробовать"
+            ctaLabel="Начать бесплатно"
             ctaHref="/register"
           />
           <PricingCard
-            kind="extended"
-            name="Расширенный"
-            from="от 1750 ₽"
+            kind="team"
+            name="Команда"
+            from="990 ₽"
             period="в месяц"
-            description="Всё из Базового плюс обучение, аудиты, поверки, прослеживаемость, обслуживание оборудования, учёт жалоб и СИЗ."
+            description="Полноценная смена: официанты, повара, кондитеры, управляющий — всё под контролем."
             points={[
-              "35 журналов СанПиН + ХАССП",
-              "Все модули Базового тарифа",
-              "Обучение персонала и план аудитов",
-              "Подключение IoT-датчиков",
+              "До 15 сотрудников",
+              "Всё из тарифа «Старт»",
+              "Приоритетная поддержка в Telegram",
+              "Синхронизация с iiko / 1С",
+            ]}
+            ctaLabel="Попробовать 14 дней"
+            ctaHref="/register"
+            highlighted
+            badge="Популярный"
+          />
+          <PricingCard
+            kind="network"
+            name="Сеть"
+            from="2 990 ₽"
+            period="в месяц"
+            description="Для сетей и крупных цехов: неограниченно сотрудников и точек, персональный технолог на запуск."
+            points={[
+              "Неограниченно сотрудников и точек",
+              "Всё из тарифа «Команда»",
+              "Персональный технолог на запуск",
+              "Корпоративный API + SLA по аварийности",
             ]}
             ctaLabel="Записаться на демо"
             ctaHref="https://t.me/wesetupbot"
-            highlighted
           />
+        </div>
+        <div className="mt-4 text-center text-[13px] text-[#9b9fb3]">
+          Годовая оплата — −20% на любом платном тарифе.
+        </div>
+      </section>
+
+      {/* DEVICES */}
+      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <div className="mb-10 max-w-[720px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Package className="size-4" />
+            Устройства
+          </div>
+          <h2 className="text-[36px] font-semibold leading-tight tracking-[-0.02em]">
+            Железо — разовая покупка, без подписки
+          </h2>
+          <p className="mt-4 text-[15px] text-[#6f7282]">
+            Работает всё и без датчиков — журналы заполняются руками или
+            через Telegram-бот. Но с датчиками смена экономит по 20 минут в
+            день: температура пишется сама, бракераж собирается за секунду.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {DEVICES.map((d) => (
+            <div
+              key={d.title}
+              className="flex flex-col rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+            >
+              <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+                <d.icon className="size-6" />
+              </div>
+              <div className="text-[16px] font-semibold text-[#0b1024]">
+                {d.title}
+              </div>
+              <p className="mt-1.5 flex-1 text-[13px] leading-[1.55] text-[#6f7282]">
+                {d.text}
+              </p>
+              <div className="mt-5 flex items-baseline gap-1.5">
+                <span className="text-[22px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+                  {d.price}
+                </span>
+                <span className="text-[12px] text-[#9b9fb3]">{d.unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-6 md:p-7">
+          <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-[520px]">
+              <div className="text-[15px] font-semibold text-[#0b1024]">
+                Не уверены, что нужно?
+              </div>
+              <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
+                Напишите, сколько у вас холодильников и типов заведения —
+                соберём минимальный набор под ваш формат, без «продадим
+                побольше».
+              </p>
+            </div>
+            <a
+              href="https://t.me/wesetupbot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              Подобрать комплект
+              <ArrowRight className="size-4" />
+            </a>
+          </div>
         </div>
       </section>
 
@@ -845,8 +976,9 @@ function PricingCard({
   ctaLabel,
   ctaHref,
   highlighted,
+  badge,
 }: {
-  kind: "basic" | "extended";
+  kind: "free" | "team" | "network";
   name: string;
   from: string;
   period: string;
@@ -855,8 +987,10 @@ function PricingCard({
   ctaLabel: string;
   ctaHref: string;
   highlighted?: boolean;
+  badge?: string;
 }) {
-  const Icon = kind === "extended" ? Flame : ClipboardList;
+  const Icon =
+    kind === "free" ? Gift : kind === "network" ? Building2 : Users;
   return (
     <div
       className={
@@ -885,9 +1019,9 @@ function PricingCard({
           <div className="text-[20px] font-semibold tracking-[-0.01em]">
             {name}
           </div>
-          {highlighted && (
+          {badge && (
             <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#7cf5c0]/20 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-[#7cf5c0]">
-              ХАССП
+              {badge}
             </span>
           )}
         </div>
