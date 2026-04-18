@@ -4,15 +4,19 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  AlertTriangle,
   Building2,
+  CalendarRange,
   ChevronDown,
   ClipboardList,
   FileText,
-  Settings,
+  GitBranch,
+  GraduationCap,
   LogOut,
   Menu,
   Package,
-  AlertTriangle,
+  Settings,
+  TrendingDown,
   UserRound,
   Users,
 } from "lucide-react";
@@ -39,6 +43,10 @@ import { NotificationsBell } from "@/components/layout/notifications-bell";
 const secondaryNavItems = [
   { label: "Журналы", href: "/journals", icon: ClipboardList },
   { label: "Партии", href: "/batches", icon: Package },
+  { label: "Производственный план", href: "/plans", icon: CalendarRange },
+  { label: "Изменения", href: "/changes", icon: GitBranch },
+  { label: "Потери", href: "/losses", icon: TrendingDown },
+  { label: "Компетенции", href: "/competencies", icon: GraduationCap },
   { label: "CAPA", href: "/capa", icon: AlertTriangle },
   { label: "Отчёты", href: "/reports", icon: FileText },
   { label: "Сотрудники", href: "/settings/users", icon: Users },
