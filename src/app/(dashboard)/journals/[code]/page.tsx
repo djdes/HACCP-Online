@@ -3801,12 +3801,12 @@ export default async function JournalDocumentsPage({
           <div className="absolute -bottom-32 -right-32 size-[420px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
           <div className="absolute left-1/3 top-1/2 size-[240px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
         </div>
-        <div className="relative z-10 flex flex-col gap-6 p-8 sm:flex-row sm:items-start sm:justify-between md:p-10">
+        <div className="relative z-10 flex flex-col gap-6 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-8 md:p-10">
           <div className="max-w-[640px]">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               Журнал
             </div>
-            <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="mt-4 text-[26px] font-semibold leading-tight tracking-[-0.02em] sm:text-[32px]">
               {template.name}
             </h1>
             {template.description ? (
@@ -3825,7 +3825,7 @@ export default async function JournalDocumentsPage({
           </div>
           <Link
             href={`/journals/${resolvedCode}/new`}
-            className="inline-flex h-11 shrink-0 items-center gap-2 self-start rounded-2xl bg-white px-5 text-[14px] font-medium text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)] transition-colors hover:bg-white/90"
+            className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-[14px] font-medium text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(255,255,255,0.35)] transition-colors hover:bg-white/90 sm:w-auto sm:self-start sm:justify-start"
           >
             <Plus className="size-4 text-[#5566f6]" />
             Новая запись
@@ -3834,7 +3834,7 @@ export default async function JournalDocumentsPage({
       </section>
 
       {entries.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-14 text-center sm:px-6">
           <div className="text-[15px] font-medium text-[#0b1024]">
             Записей пока нет
           </div>
