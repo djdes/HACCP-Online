@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { getPermissionRole } from "@/lib/user-roles";
+import { verifyTelegramInitData } from "@/lib/telegram-init-data";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -85,6 +86,47 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Неверный email или пароль");
         }
 
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: getPermissionRole(user.role),
+          organizationId: user.organizationId,
+          organizationName: user.organization.name,
+          isRoot: user.isRoot === true,
+        };
+      },
+    }),
+    // Second CredentialsProvider: Telegram Mini App sign-in. The client sends
+    // the raw `window.Telegram.WebApp.initData` string as the sole credential;
+    // we verify its HMAC against TELEGRAM_BOT_TOKEN and map the TG user id to
+    // an existing User via `telegramChatId`. No auto-provisioning — the bot's
+    // `/start inv_<token>` handler is the only place that binds new users.
+    CredentialsProvider({
+      id: "telegram",
+      name: "Telegram",
+      credentials: {
+        initData: { label: "initData", type: "text" },
+      },
+      async authorize(credentials) {
+        const initData = credentials?.initData;
+        if (!initData) {
+          throw new Error("Не найдены данные Telegram");
+        }
+        const verified = verifyTelegramInitData(initData);
+        if (!verified.ok) {
+          throw new Error("Неверная подпись Telegram");
+        }
+        const chatIdStr = String(verified.data.user.id);
+        const user = await db.user.findFirst({
+          where: { telegramChatId: chatIdStr, isActive: true },
+          include: { organization: true },
+        });
+        if (!user) {
+          throw new Error(
+            "Аккаунт не связан с Telegram. Получите приглашение у руководителя."
+          );
+        }
         return {
           id: user.id,
           email: user.email,

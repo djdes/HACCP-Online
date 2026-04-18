@@ -39,6 +39,7 @@ model Organization {
   journalDocuments  JournalDocument[]
   jobPositions      JobPosition[]
   notifications     Notification[]
+  botInviteTokens   BotInviteToken[]
 }
 
 model User {
@@ -81,6 +82,7 @@ model User {
   journalEntries        JournalEntry[]
   journalAccess         UserJournalAccess[]
   inviteToken           InviteToken?
+  botInviteToken        BotInviteToken?
   workOffDays           StaffWorkOffDay[]
   vacations             StaffVacation[]
   sickLeaves            StaffSickLeave[]
@@ -179,6 +181,26 @@ model InviteToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
+  @@index([expiresAt])
+}
+
+/// Invite tokens for the Telegram-first onboarding flow (Mini App Stage 1).
+/// Separate from `InviteToken` because semantics differ: `InviteToken` means
+/// "set a password on the site", this one means "bind your Telegram identity".
+/// Consumed by the grammy `/start inv_<token>` handler, which resolves the
+/// token, writes `telegramChatId` on the matching User and activates them.
+model BotInviteToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
   @@index([expiresAt])
 }
 
