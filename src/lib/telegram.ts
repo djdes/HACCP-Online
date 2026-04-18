@@ -199,6 +199,101 @@ export async function sendTelegramMessage(
 
 export type NotificationType = "temperature" | "deviations" | "compliance" | "expiry";
 
+/**
+ * DM a specific employee with an optional Mini App button.
+ *
+ * Unlike `notifyOrganization` (which fans out to management roles on
+ * temperature/deviation events), this one is targeted: cron jobs use it
+ * for per-worker morning digests and per-worker pre-deadline reminders.
+ * Returns silently if the user has no `telegramChatId` on file — callers
+ * aren't expected to filter the list themselves.
+ */
+export async function notifyEmployee(
+  userId: string,
+  text: string,
+  action?: { label: string; miniAppUrl: string }
+): Promise<void> {
+  const { db } = await import("./db");
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, telegramChatId: true, isActive: true },
+  });
+  if (!user || !user.isActive || !user.telegramChatId) {
+    return;
+  }
+
+  const log = await db.telegramLog.create({
+    data: {
+      chatId: user.telegramChatId,
+      body: text,
+      userId: user.id,
+      status: "queued",
+      attempts: 0,
+    },
+  });
+
+  if (!bot) {
+    await db.telegramLog.update({
+      where: { id: log.id },
+      data: { status: "failed", error: "bot not configured" },
+    });
+    return;
+  }
+
+  const replyMarkup = action
+    ? {
+        inline_keyboard: [
+          [
+            {
+              text: action.label,
+              web_app: { url: action.miniAppUrl },
+            },
+          ],
+        ],
+      }
+    : undefined;
+
+  let attempt = 0;
+  let lastError: unknown = null;
+
+  while (attempt < MAX_RETRIES) {
+    attempt += 1;
+    try {
+      await bot.api.sendMessage(user.telegramChatId, text, {
+        parse_mode: "HTML",
+        reply_markup: replyMarkup,
+      });
+      await db.telegramLog.update({
+        where: { id: log.id },
+        data: { status: "sent", attempts: attempt, sentAt: new Date() },
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      const retryAfter = extractRetryAfterSeconds(error);
+      if (retryAfter === null || attempt >= MAX_RETRIES) break;
+      await sleep(retryAfter * 1000);
+    }
+  }
+
+  const rateLimited = extractRetryAfterSeconds(lastError) !== null;
+  const errorText =
+    lastError instanceof Error
+      ? lastError.message
+      : typeof lastError === "string"
+        ? lastError
+        : JSON.stringify(lastError);
+  await db.telegramLog.update({
+    where: { id: log.id },
+    data: {
+      status: rateLimited ? "rate_limited" : "failed",
+      error: errorText?.slice(0, 500) ?? "unknown",
+      attempts: attempt,
+    },
+  });
+  console.error("Telegram employee notification error:", lastError);
+}
+
 // Send notification to all owners/technologists of an organization
 export async function notifyOrganization(
   organizationId: string,

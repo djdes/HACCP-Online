@@ -230,6 +230,13 @@ import {
   pluralFields,
 } from "../src/lib/bot-wizard";
 
+// Bot-invite token helpers for the Mini App TG-first onboarding flow
+// (see src/app/api/users/invite/tg and docs/superpowers/specs/2026-04-18-...).
+import {
+  hashBotInviteToken,
+  stripBotInvitePrefix,
+} from "../src/lib/bot-invite-tokens";
+
 // ---------------------------------------------------------------------------
 // In-memory wizard state. Keyed by chat id — one wizard per chat.
 // Bot restart clears state; users just rerun the wizard.
@@ -769,6 +776,84 @@ bot.command("start", async (ctx) => {
     await showMainMenu(ctx);
     return;
   }
+
+  // Bot-invite branch: tokens prefixed `inv_` come from the Mini App
+  // TG-first onboarding. Different table (BotInviteToken), different
+  // semantics (one-shot activation), different reply (Web App button
+  // instead of the journals menu). Kept before the legacy parseLinkToken
+  // path because a valid bot-invite token will never satisfy the HMAC
+  // format, so the order is safe.
+  if (stripBotInvitePrefix(token)) {
+    const tokenHash = hashBotInviteToken(token);
+    const fromId = ctx.from?.id;
+    if (!fromId) {
+      await ctx.reply("Не удалось определить ваш Telegram-аккаунт.");
+      return;
+    }
+
+    const invite = await prisma.botInviteToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+    if (!invite) {
+      await ctx.reply(
+        "Приглашение не найдено или уже использовано. Попросите руководителя выдать новую ссылку."
+      );
+      return;
+    }
+    if (invite.consumedAt) {
+      await ctx.reply("Это приглашение уже использовано.");
+      return;
+    }
+    if (invite.expiresAt.getTime() < Date.now()) {
+      await ctx.reply("Срок действия приглашения истёк. Попросите новую ссылку.");
+      return;
+    }
+
+    const chatIdStr = String(fromId);
+    const collision = await prisma.user.findFirst({
+      where: { telegramChatId: chatIdStr, id: { not: invite.userId } },
+      select: { id: true },
+    });
+    if (collision) {
+      await ctx.reply(
+        "Этот Telegram уже привязан к другому сотруднику. Используйте другой аккаунт."
+      );
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: invite.userId },
+        data: { telegramChatId: chatIdStr, isActive: true },
+      }),
+      prisma.botInviteToken.update({
+        where: { id: invite.id },
+        data: { consumedAt: new Date() },
+      }),
+    ]);
+
+    const miniBase =
+      process.env.MINI_APP_BASE_URL || `${WEB_BASE.replace(/\/+$/, "")}/mini`;
+
+    await ctx.reply(
+      `Готово, ${invite.user.name}! Откройте рабочий кабинет кнопкой ниже.`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Открыть кабинет",
+                web_app: { url: miniBase },
+              },
+            ],
+          ],
+        },
+      }
+    );
+    return;
+  }
+
   const parsed = parseLinkToken(token);
   if (!parsed) {
     await ctx.reply(

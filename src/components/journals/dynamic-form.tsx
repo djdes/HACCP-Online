@@ -70,6 +70,12 @@ interface DynamicFormProps {
   equipment: EquipmentItem[];
   employees?: EmployeeItem[];
   products?: ProductItem[];
+  /**
+   * Root of the journal URL space for post-save + cancel navigation. Defaults
+   * to `/journals` (the dashboard surface). Mini App callers pass
+   * `/mini/journals` so the redirect stays inside the Mini App shell.
+   */
+  journalsBasePath?: string;
 }
 
 export function DynamicForm({
@@ -80,6 +86,7 @@ export function DynamicForm({
   equipment,
   employees = [],
   products = [],
+  journalsBasePath = "/journals",
 }: DynamicFormProps) {
   void _templateName;
   const router = useRouter();
@@ -253,7 +260,7 @@ export function DynamicForm({
         throw new Error(result.error || "Ошибка при сохранении");
       }
 
-      router.push(`/journals/${templateCode}`);
+      router.push(`${journalsBasePath}/${templateCode}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при сохранении");
@@ -532,7 +539,7 @@ export function DynamicForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push(`/journals/${templateCode}`)}
+          onClick={() => router.push(`${journalsBasePath}/${templateCode}`)}
           disabled={isSubmitting}
         >
           Отмена

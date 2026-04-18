@@ -1,0 +1,107 @@
+import { NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { getServerSession } from "@/lib/server-session";
+import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { isDocumentTemplate } from "@/lib/journal-document-helpers";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/mini/journals/[code]/entries
+ *
+ * Last 7 days of entries for the Mini App journal detail screen. Scoped
+ * to the caller's active org; falls back to 401/403/404 in that order.
+ * The payload intentionally strips sensitive fields: only the entry shell
+ * + the JSON `data` blob + filler name are returned.
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  const { code } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  }
+
+  const actor = aclActorFromSession({
+    user: {
+      id: session.user.id,
+      role: session.user.role,
+      isRoot: session.user.isRoot === true,
+    },
+  });
+  const allowed = await hasJournalAccess(actor, code);
+  if (!allowed) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+
+  const template = await db.journalTemplate.findUnique({
+    where: { code },
+    select: { id: true, name: true, description: true },
+  });
+  if (!template) {
+    return NextResponse.json({ error: "Шаблон не найден" }, { status: 404 });
+  }
+
+  const orgId = getActiveOrgId(session);
+  const isDocument = isDocumentTemplate(code);
+
+  if (isDocument) {
+    // Document-based journals live in JournalDocument / JournalDocumentEntry.
+    // Mini App v1 doesn't ship a full grid renderer — we surface the 5 most
+    // recent documents + a deep-link to the existing dashboard grid so the
+    // line worker can still fill hygiene / cold-equipment / etc. today.
+    const documents = await db.journalDocument.findMany({
+      where: { templateId: template.id, organizationId: orgId },
+      orderBy: [{ status: "asc" }, { dateFrom: "desc" }],
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        dateFrom: true,
+        dateTo: true,
+      },
+    });
+    return NextResponse.json({
+      template: {
+        code,
+        name: template.name,
+        description: template.description,
+      },
+      isDocument: true,
+      documents,
+      entries: [],
+    });
+  }
+
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+
+  const entries = await db.journalEntry.findMany({
+    where: {
+      templateId: template.id,
+      organizationId: orgId,
+      createdAt: { gte: since },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      createdAt: true,
+      status: true,
+      data: true,
+      filledBy: { select: { name: true } },
+    },
+  });
+
+  return NextResponse.json({
+    template: { code, name: template.name, description: template.description },
+    isDocument: false,
+    entries,
+  });
+}
