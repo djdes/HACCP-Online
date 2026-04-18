@@ -1,23 +1,15 @@
 import Link from "next/link";
-import { GitBranch, Plus } from "lucide-react"; // Link is still used by "Новое изменение" button below
+import { GitBranch, Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 
-// NOTE: detail page /changes/[id] is not yet implemented — show title as plain
-// text instead of a link so clicks don't land on a 404.
-
-const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  requested: { label: "Заявка", variant: "outline" },
-  risk_review: { label: "Оценка рисков", variant: "secondary" },
-  testing: { label: "Тестирование", variant: "secondary" },
-  approved: { label: "Одобрено", variant: "default" },
-  rejected: { label: "Отклонено", variant: "destructive" },
-  implemented: { label: "Внедрено", variant: "default" },
+const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
+  requested: { label: "Заявка", bg: "#eef1ff", fg: "#3848c7" },
+  risk_review: { label: "Оценка рисков", bg: "#fff8eb", fg: "#b25f00" },
+  testing: { label: "Тестирование", bg: "#f5f0ff", fg: "#5d3ab3" },
+  approved: { label: "Одобрено", bg: "#ecfdf5", fg: "#116b2a" },
+  rejected: { label: "Отклонено", bg: "#fff4f2", fg: "#a13a32" },
+  implemented: { label: "Внедрено", bg: "#ecfdf5", fg: "#116b2a" },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -39,61 +31,92 @@ export default async function ChangesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <GitBranch className="size-6 text-muted-foreground" />
-            <h1 className="text-2xl font-bold">Управление изменениями</h1>
+          <div className="flex items-center gap-2 text-[#5566f6]">
+            <GitBranch className="size-5" />
+            <span className="text-[12px] font-medium uppercase tracking-[0.16em]">
+              Change control
+            </span>
           </div>
-          <p className="mt-1 text-muted-foreground">Change Control: рецептуры, процессы, упаковка</p>
+          <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Управление изменениями
+          </h1>
+          <p className="mt-1.5 text-[14px] text-[#6f7282]">
+            Рецептуры, процессы, упаковка, поставщики и оборудование
+          </p>
         </div>
-        <Button asChild>
-          <Link href="/changes/new">
-            <Plus className="size-4" />
-            Новое изменение
-          </Link>
-        </Button>
+        <Link
+          href="/changes/new"
+          className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+        >
+          <Plus className="size-4" />
+          Новое изменение
+        </Link>
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>v.</TableHead>
-              <TableHead>Название</TableHead>
-              <TableHead>Тип</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Дата</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {changes.map((c: (typeof changes)[number]) => {
-              const sInfo = STATUS_LABELS[c.status] || { label: c.status, variant: "outline" as const };
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="font-mono text-muted-foreground">#{c.version}</TableCell>
-                  <TableCell>
-                    <span className="font-medium">{c.title}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{TYPE_LABELS[c.changeType] || c.changeType}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={sInfo.variant}>{sInfo.label}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{c.createdAt.toLocaleDateString("ru-RU")}</TableCell>
-                </TableRow>
-              );
-            })}
-            {changes.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Изменений пока нет
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[14px]">
+            <thead>
+              <tr className="border-b border-[#ececf4] bg-[#fafbff] text-left text-[12px] uppercase tracking-wider text-[#6f7282]">
+                <th className="px-5 py-3 font-medium">v.</th>
+                <th className="px-5 py-3 font-medium">Название</th>
+                <th className="px-5 py-3 font-medium">Тип</th>
+                <th className="px-5 py-3 font-medium">Статус</th>
+                <th className="px-5 py-3 font-medium">Дата</th>
+              </tr>
+            </thead>
+            <tbody>
+              {changes.map((c: (typeof changes)[number]) => {
+                const sInfo = STATUS_INFO[c.status] ?? {
+                  label: c.status,
+                  bg: "#f5f6ff",
+                  fg: "#6f7282",
+                };
+                return (
+                  <tr
+                    key={c.id}
+                    className="border-b border-[#ececf4] last:border-b-0 hover:bg-[#fafbff]"
+                  >
+                    <td className="px-5 py-3 font-mono text-[12px] text-[#9b9fb3]">
+                      #{c.version}
+                    </td>
+                    <td className="px-5 py-3 font-medium text-[#0b1024]">
+                      {c.title}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center rounded-full border border-[#ececf4] bg-white px-2.5 py-0.5 text-[12px] text-[#3c4053]">
+                        {TYPE_LABELS[c.changeType] || c.changeType}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium"
+                        style={{ backgroundColor: sInfo.bg, color: sInfo.fg }}
+                      >
+                        {sInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-[13px] text-[#6f7282]">
+                      {c.createdAt.toLocaleDateString("ru-RU")}
+                    </td>
+                  </tr>
+                );
+              })}
+              {changes.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-5 py-10 text-center text-[14px] text-[#9b9fb3]"
+                  >
+                    Изменений пока нет
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

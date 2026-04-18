@@ -1,40 +1,29 @@
 import Link from "next/link";
-import { Package, Plus, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-    received: { label: "Принята", variant: "secondary" },
-    in_production: { label: "В производстве", variant: "default" },
-    finished: { label: "Готова", variant: "default" },
-    shipped: { label: "Отгружена", variant: "outline" },
-    expired: { label: "Просрочена", variant: "destructive" },
-    written_off: { label: "Списана", variant: "destructive" },
-  };
-  const info = map[status] || { label: status, variant: "outline" as const };
-  return <Badge variant={info.variant}>{info.label}</Badge>;
-}
+const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
+  received: { label: "Принята", bg: "#eef1ff", fg: "#3848c7" },
+  in_production: { label: "В производстве", bg: "#f5f6ff", fg: "#5566f6" },
+  finished: { label: "Готова", bg: "#ecfdf5", fg: "#116b2a" },
+  shipped: { label: "Отгружена", bg: "#fafbff", fg: "#6f7282" },
+  expired: { label: "Просрочена", bg: "#fff4f2", fg: "#a13a32" },
+  written_off: { label: "Списана", bg: "#fff4f2", fg: "#a13a32" },
+};
 
-function daysUntilExpiry(date: Date | null): number | null {
+const FILTER_LABELS: Record<string, string> = {
+  all: "Все",
+  received: "Принято",
+  in_production: "В работе",
+  finished: "Готово",
+  shipped: "Отгружено",
+  expired: "Просрочено",
+};
+
+function daysUntilExpiry(date: Date | null, now: Date): number | null {
   if (!date) return null;
-  return Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default async function BatchesPage({
@@ -44,6 +33,7 @@ export default async function BatchesPage({
 }) {
   const filters = await searchParams;
   const session = await requireAuth();
+  const now = new Date();
 
   const where: Record<string, unknown> = {
     organizationId: session.user.organizationId,
@@ -53,18 +43,26 @@ export default async function BatchesPage({
   }
 
   const [batches, stats] = await Promise.all([
-    db.batch.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
+    db.batch.findMany({ where, orderBy: { createdAt: "desc" }, take: 100 }),
     Promise.all([
-      db.batch.count({ where: { organizationId: session.user.organizationId, status: "received" } }),
-      db.batch.count({ where: { organizationId: session.user.organizationId, status: "in_production" } }),
       db.batch.count({
         where: {
           organizationId: session.user.organizationId,
-          expiryDate: { lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+          status: "received",
+        },
+      }),
+      db.batch.count({
+        where: {
+          organizationId: session.user.organizationId,
+          status: "in_production",
+        },
+      }),
+      db.batch.count({
+        where: {
+          organizationId: session.user.organizationId,
+          expiryDate: {
+            lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+          },
           status: { notIn: ["expired", "written_off", "shipped"] },
         },
       }),
@@ -72,129 +70,197 @@ export default async function BatchesPage({
   ]);
 
   const [receivedCount, inProductionCount, expiringCount] = stats;
+  const activeFilter = filters.status ?? "all";
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Партии</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Партии
+          </h1>
+          <p className="mt-1.5 text-[14px] text-[#6f7282]">
             Партионный учёт и прослеживаемость
           </p>
         </div>
-        <Button asChild>
-          <Link href="/batches/new">
-            <Plus className="size-4" />
-            Новая партия
-          </Link>
-        </Button>
+        <Link
+          href="/batches/new"
+          className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+        >
+          <Plus className="size-4" />
+          Новая партия
+        </Link>
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">На складе</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{receivedCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">В производстве</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProductionCount}</div>
-          </CardContent>
-        </Card>
-        <Card className={expiringCount > 0 ? "border-red-300 bg-red-50" : ""}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Истекает ≤3 дня</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${expiringCount > 0 ? "text-red-600" : ""}`}>
-              {expiringCount}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="На складе" value={receivedCount} />
+        <StatCard label="В производстве" value={inProductionCount} />
+        <StatCard
+          label="Истекает ≤3 дня"
+          value={expiringCount}
+          tone={expiringCount > 0 ? "warn" : "default"}
+        />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2">
-        {["all", "received", "in_production", "finished", "shipped", "expired"].map((s) => (
-          <Button
-            key={s}
-            variant={(!filters.status && s === "all") || filters.status === s ? "default" : "outline"}
-            size="sm"
-            asChild
-          >
-            <Link href={s === "all" ? "/batches" : `/batches?status=${s}`}>
-              {s === "all" ? "Все" : s === "received" ? "Принято" : s === "in_production" ? "В работе" : s === "finished" ? "Готово" : s === "shipped" ? "Отгружено" : "Просрочено"}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(FILTER_LABELS).map(([key, label]) => {
+          const isActive = activeFilter === key;
+          return (
+            <Link
+              key={key}
+              href={key === "all" ? "/batches" : `/batches?status=${key}`}
+              className={
+                isActive
+                  ? "inline-flex h-9 items-center rounded-2xl bg-[#0b1024] px-4 text-[13px] font-medium text-white"
+                  : "inline-flex h-9 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              }
+            >
+              {label}
             </Link>
-          </Button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Код</TableHead>
-              <TableHead>Продукт</TableHead>
-              <TableHead>Поставщик</TableHead>
-              <TableHead>Кол-во</TableHead>
-              <TableHead>Срок годности</TableHead>
-              <TableHead>Статус</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {batches.map((batch: (typeof batches)[number]) => {
-              const days = daysUntilExpiry(batch.expiryDate);
-              const isExpiring = days !== null && days <= 3 && days >= 0;
-              const isExpired = days !== null && days < 0;
+      <div className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[840px] border-collapse text-[14px]">
+            <thead>
+              <tr className="border-b border-[#ececf4] bg-[#fafbff] text-left text-[12px] uppercase tracking-wider text-[#6f7282]">
+                <th className="px-5 py-3 font-medium">Код</th>
+                <th className="px-5 py-3 font-medium">Продукт</th>
+                <th className="px-5 py-3 font-medium">Поставщик</th>
+                <th className="px-5 py-3 font-medium">Кол-во</th>
+                <th className="px-5 py-3 font-medium">Срок годности</th>
+                <th className="px-5 py-3 font-medium">Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((batch: (typeof batches)[number]) => {
+                const days = daysUntilExpiry(batch.expiryDate, now);
+                const isExpiring = days !== null && days <= 3 && days >= 0;
+                const isExpired = days !== null && days < 0;
+                const status = STATUS_INFO[batch.status] ?? {
+                  label: batch.status,
+                  bg: "#f5f6ff",
+                  fg: "#6f7282",
+                };
+                const rowTint = isExpired
+                  ? "bg-[#fff4f2]"
+                  : isExpiring
+                  ? "bg-[#fff8eb]"
+                  : "";
 
-              return (
-                <TableRow key={batch.id} className={isExpiring ? "bg-yellow-50" : isExpired ? "bg-red-50" : ""}>
-                  <TableCell>
-                    <Link href={`/batches/${batch.id}`} className="font-mono font-medium text-primary hover:underline">
-                      {batch.code}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">{batch.productName}</TableCell>
-                  <TableCell>{batch.supplier || "—"}</TableCell>
-                  <TableCell>{batch.quantity} {batch.unit}</TableCell>
-                  <TableCell>
-                    {batch.expiryDate ? (
-                      <div className="flex items-center gap-1.5">
-                        {(isExpiring || isExpired) && <AlertTriangle className="size-3.5 text-red-500" />}
-                        <span className={isExpired ? "text-red-600 font-medium" : isExpiring ? "text-yellow-700 font-medium" : ""}>
-                          {batch.expiryDate.toLocaleDateString("ru-RU")}
-                        </span>
-                        {days !== null && (
-                          <span className="text-xs text-muted-foreground">
-                            ({days > 0 ? `${days} дн` : days === 0 ? "сегодня" : "просрочена"})
+                return (
+                  <tr
+                    key={batch.id}
+                    className={`border-b border-[#ececf4] last:border-b-0 hover:bg-[#fafbff] ${rowTint}`}
+                  >
+                    <td className="px-5 py-3">
+                      <Link
+                        href={`/batches/${batch.id}`}
+                        className="font-mono text-[13px] font-medium text-[#3848c7] hover:underline"
+                      >
+                        {batch.code}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3 font-medium text-[#0b1024]">
+                      {batch.productName}
+                    </td>
+                    <td className="px-5 py-3 text-[13px] text-[#6f7282]">
+                      {batch.supplier || "—"}
+                    </td>
+                    <td className="px-5 py-3 tabular-nums text-[#0b1024]">
+                      {batch.quantity} {batch.unit}
+                    </td>
+                    <td className="px-5 py-3">
+                      {batch.expiryDate ? (
+                        <div className="flex items-center gap-1.5 text-[13px]">
+                          {(isExpiring || isExpired) && (
+                            <AlertTriangle className="size-3.5 text-[#a13a32]" />
+                          )}
+                          <span
+                            className={
+                              isExpired
+                                ? "font-medium text-[#a13a32]"
+                                : isExpiring
+                                ? "font-medium text-[#b25f00]"
+                                : "text-[#0b1024]"
+                            }
+                          >
+                            {batch.expiryDate.toLocaleDateString("ru-RU")}
                           </span>
-                        )}
-                      </div>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={batch.status} />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {batches.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Партий пока нет
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                          {days !== null && (
+                            <span className="text-[11px] text-[#9b9fb3]">
+                              (
+                              {days > 0
+                                ? `${days} дн`
+                                : days === 0
+                                ? "сегодня"
+                                : "просрочена"}
+                              )
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium"
+                        style={{ backgroundColor: status.bg, color: status.fg }}
+                      >
+                        {status.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {batches.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-[14px] text-[#9b9fb3]"
+                  >
+                    Партий пока нет
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "warn";
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] ${
+        tone === "warn"
+          ? "border-[#ffd2cd] bg-[#fff4f2]"
+          : "border-[#ececf4] bg-white"
+      }`}
+    >
+      <div className="text-[12px] font-medium text-[#6f7282]">{label}</div>
+      <div
+        className={`mt-1 text-[28px] font-semibold tabular-nums ${
+          tone === "warn" ? "text-[#a13a32]" : "text-[#0b1024]"
+        }`}
+      >
+        {value}
       </div>
     </div>
   );

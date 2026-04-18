@@ -261,42 +261,44 @@ export default async function LandingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* NAV */}
-      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-6">
-        <Link
-          href="/"
-          className="text-[17px] font-semibold tracking-[0.22em] text-[#0b1024]"
-        >
-          WESETUP
-        </Link>
-        <div className="flex items-center gap-2 sm:gap-6">
+      {/* NAV — solid white, sticky so hero blobs don't bleed through on scroll */}
+      <div className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
           <Link
-            href="/journals-info"
-            className="hidden text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024] sm:inline"
+            href="/"
+            className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024] sm:text-[17px]"
           >
-            Журналы
+            WESETUP
           </Link>
-          <Link
-            href="/blog"
-            className="hidden text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024] sm:inline"
-          >
-            Блог
-          </Link>
-          <Link
-            href="/login"
-            className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
-          >
-            Войти
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-          >
-            Начать
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </nav>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <Link
+              href="/journals-info"
+              className="hidden text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024] sm:inline"
+            >
+              Журналы
+            </Link>
+            <Link
+              href="/blog"
+              className="hidden text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024] sm:inline"
+            >
+              Блог
+            </Link>
+            <Link
+              href="/login"
+              className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+            >
+              Войти
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+            >
+              Начать
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        </nav>
+      </div>
 
       {/* HERO — centered stack, megaplan-inspired */}
       {/* overflow-x-clip contains the tilted phones horizontally, but lets
@@ -326,7 +328,7 @@ export default async function LandingPage() {
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-white" />
         </div>
 
-        <div className="relative mx-auto max-w-[1100px] px-6 pt-8 text-center sm:pt-16">
+        <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
           {/* Registry badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
             <ShieldCheck className="size-3.5" />
@@ -386,17 +388,18 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Screenshot fan — min-h sized to the tallest child (phone
-              ≈480px + shadow + top offset). h-auto lets natural height
-              win so phones never clip. */}
-          <div className="relative mx-auto mt-20 min-h-[540px] max-w-[1100px] sm:min-h-[620px] md:min-h-[680px]">
+          {/* Screenshot fan — single mobile phone needs ~420px, fan with
+              two tilted phones + desktop mockup needs ~680px. Height scales
+              down aggressively on <sm so the hero isn't 90% whitespace on
+              a phone. */}
+          <div className="relative mx-auto mt-14 min-h-[420px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section className="mx-auto max-w-[1200px] px-6 py-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20">
         <div className="mb-12 max-w-[720px]">
           <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             Что внутри
@@ -431,7 +434,7 @@ export default async function LandingPage() {
       </section>
 
       {/* TRIAL BANNER */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-8 py-14 text-white md:px-16">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -top-24 right-0 size-[400px] rounded-full bg-[#7cf5c0] opacity-20 blur-[120px]" />
@@ -460,7 +463,7 @@ export default async function LandingPage() {
       </section>
 
       {/* JOURNALS CATALOG */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
           <div className="max-w-[640px]">
             <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
@@ -503,7 +506,7 @@ export default async function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[720px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Gift className="size-4" />
@@ -519,7 +522,7 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {/* Free tier */}
           <PricingCard
             kind="free"
@@ -581,7 +584,7 @@ export default async function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             Как подключиться
@@ -613,7 +616,7 @@ export default async function LandingPage() {
       </section>
 
       {/* AUDIENCE */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             Кому полезно
@@ -645,7 +648,7 @@ export default async function LandingPage() {
       </section>
 
       {/* PARTNERSHIP */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white px-8 py-10 md:px-12">
           <div className="relative z-10 flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-5">
@@ -677,7 +680,7 @@ export default async function LandingPage() {
       </section>
 
       {/* MOBILE + TELEGRAM SCREENSHOTS — placeholder carousel */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Smartphone className="size-4" />
@@ -731,7 +734,7 @@ export default async function LandingPage() {
       </section>
 
       {/* CLIENTS — placeholder logo wall */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-8 text-center">
           <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             С нами работают
@@ -756,7 +759,7 @@ export default async function LandingPage() {
       </section>
 
       {/* TESTIMONIALS — placeholder */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Quote className="size-4" />
@@ -800,7 +803,7 @@ export default async function LandingPage() {
 
       {/* BLOG */}
       {latestArticles.length > 0 && (
-        <section className="mx-auto max-w-[1200px] px-6 pb-20">
+        <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
           <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
             <div className="max-w-[640px]">
               <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
@@ -860,7 +863,7 @@ export default async function LandingPage() {
       )}
 
       {/* FAQ */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <HelpCircle className="size-4" />
@@ -898,7 +901,7 @@ export default async function LandingPage() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="mx-auto max-w-[1200px] px-6 pb-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="rounded-3xl border border-[#ececf4] bg-[#f5f6ff] p-10 text-center md:p-14">
           <div className="mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl bg-[#5566f6] text-white shadow-[0_14px_36px_-14px_rgba(85,102,246,0.6)]">
             <Sparkles className="size-7" />

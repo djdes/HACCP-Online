@@ -22,23 +22,25 @@ import {
 export function ScreenshotFan() {
   return (
     <div className="absolute inset-0">
-      {/* DESKTOP DASHBOARD — centre, flat */}
-      <div className="absolute left-1/2 top-0 hidden w-[760px] max-w-[92%] -translate-x-1/2 sm:block">
+      {/* DESKTOP DASHBOARD — centre, only shown sm+; hard-capped to
+          container so narrow tablets don't horizontal-scroll */}
+      <div className="absolute left-1/2 top-0 hidden w-[min(760px,100%)] -translate-x-1/2 sm:block">
         <DesktopMockup />
       </div>
 
-      {/* Mobile — show the desktop only on sm+, phones centre-only */}
-      <div className="absolute left-1/2 top-0 block w-[240px] -translate-x-1/2 sm:hidden">
+      {/* Mobile variant — only one phone, centred; smaller width so it
+          fits under the hero chips on 320px devices */}
+      <div className="absolute left-1/2 top-0 block w-[min(200px,72vw)] -translate-x-1/2 sm:hidden">
         <TelegramMockup />
       </div>
 
-      {/* TELEGRAM BOT PHONE — left, tilted -9deg */}
-      <div className="absolute left-[2%] bottom-0 hidden w-[220px] -rotate-[8deg] sm:block md:left-[6%] md:w-[240px]">
+      {/* TELEGRAM BOT PHONE — left, tilted -8° (sm+ only) */}
+      <div className="absolute left-[2%] bottom-0 hidden w-[min(220px,22vw)] -rotate-[8deg] sm:block md:left-[6%] md:w-[240px]">
         <TelegramMockup />
       </div>
 
-      {/* PDF PHONE — right, tilted +9deg */}
-      <div className="absolute right-[2%] bottom-0 hidden w-[220px] rotate-[8deg] sm:block md:right-[6%] md:w-[240px]">
+      {/* PDF PHONE — right, tilted +8° (sm+ only) */}
+      <div className="absolute right-[2%] bottom-0 hidden w-[min(220px,22vw)] rotate-[8deg] sm:block md:right-[6%] md:w-[240px]">
         <PdfMockup />
       </div>
     </div>

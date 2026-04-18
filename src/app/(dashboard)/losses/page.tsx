@@ -1,15 +1,7 @@
 import Link from "next/link";
-import { TrendingDown, Plus } from "lucide-react";
+import { Plus, TrendingDown } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 
 const CATEGORY_LABELS: Record<string, string> = {
   overweight: "Перевес",
@@ -26,7 +18,8 @@ export default async function LossesPage() {
   const session = await requireAuth();
   const orgId = session.user.organizationId;
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const [records, weekRecords] = await Promise.all([
     db.lossRecord.findMany({
@@ -39,103 +32,151 @@ export default async function LossesPage() {
     }),
   ]);
 
-  // Weekly summary by category
-  const weekByCategory: Record<string, { count: number; totalQty: number; totalCost: number }> = {};
+  const weekByCategory: Record<
+    string,
+    { count: number; totalQty: number; totalCost: number }
+  > = {};
   for (const r of weekRecords) {
-    if (!weekByCategory[r.category]) weekByCategory[r.category] = { count: 0, totalQty: 0, totalCost: 0 };
-    weekByCategory[r.category].count++;
+    if (!weekByCategory[r.category])
+      weekByCategory[r.category] = { count: 0, totalQty: 0, totalCost: 0 };
+    weekByCategory[r.category].count += 1;
     weekByCategory[r.category].totalQty += r.quantity;
     weekByCategory[r.category].totalCost += r.costRub || 0;
   }
-
-  const totalWeekCost = weekRecords.reduce((sum, r) => sum + (r.costRub || 0), 0);
+  const totalWeekCost = weekRecords.reduce(
+    (sum, r) => sum + (r.costRub || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Учёт потерь</h1>
-          <p className="mt-1 text-muted-foreground">7 источников потерь на производстве</p>
+          <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Учёт потерь
+          </h1>
+          <p className="mt-1.5 text-[14px] text-[#6f7282]">
+            7 источников потерь на производстве
+          </p>
         </div>
-        <Button asChild>
-          <Link href="/losses/new">
-            <Plus className="size-4" />
-            Записать потерю
-          </Link>
-        </Button>
+        <Link
+          href="/losses/new"
+          className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+        >
+          <Plus className="size-4" />
+          Записать потерю
+        </Link>
       </div>
 
-      {/* Weekly summary */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingDown className="size-5 text-red-500" />
-              Потери за неделю
-            </CardTitle>
-            {totalWeekCost > 0 && (
-              <span className="text-lg font-bold text-red-600">
-                {totalWeekCost.toLocaleString("ru-RU")} руб
-              </span>
-            )}
+      {/* Weekly summary card */}
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[#fff4f2] text-[#a13a32]">
+              <TrendingDown className="size-4" />
+            </span>
+            <div>
+              <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-[#6f7282]">
+                За неделю
+              </div>
+              <div className="text-[15px] font-semibold text-[#0b1024]">
+                Потери и списания
+              </div>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {Object.entries(weekByCategory).sort(([, a], [, b]) => b.totalCost - a.totalCost).map(([cat, data]) => (
-              <div key={cat} className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">{CATEGORY_LABELS[cat] || cat}</p>
-                <p className="text-lg font-bold">{data.count}</p>
-                <p className="text-xs text-muted-foreground">
+          {totalWeekCost > 0 && (
+            <div className="text-[20px] font-semibold tabular-nums text-[#a13a32]">
+              {totalWeekCost.toLocaleString("ru-RU")} ₽
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Object.entries(weekByCategory)
+            .sort(([, a], [, b]) => b.totalCost - a.totalCost)
+            .map(([cat, data]) => (
+              <div
+                key={cat}
+                className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3"
+              >
+                <p className="text-[12px] text-[#6f7282]">
+                  {CATEGORY_LABELS[cat] || cat}
+                </p>
+                <p className="mt-0.5 text-[20px] font-semibold tabular-nums text-[#0b1024]">
+                  {data.count}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#9b9fb3]">
                   {data.totalQty.toFixed(1)} ед.
-                  {data.totalCost > 0 && ` / ${data.totalCost.toLocaleString("ru-RU")} руб`}
+                  {data.totalCost > 0 &&
+                    ` · ${data.totalCost.toLocaleString("ru-RU")} ₽`}
                 </p>
               </div>
             ))}
-            {Object.keys(weekByCategory).length === 0 && (
-              <p className="col-span-full text-sm text-muted-foreground text-center py-4">
-                За неделю потерь не зафиксировано
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          {Object.keys(weekByCategory).length === 0 && (
+            <div className="col-span-full rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-5 text-center text-[13px] text-[#9b9fb3]">
+              За неделю потерь не зафиксировано
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Records table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Дата</TableHead>
-              <TableHead>Категория</TableHead>
-              <TableHead>Продукт</TableHead>
-              <TableHead>Кол-во</TableHead>
-              <TableHead>Стоимость</TableHead>
-              <TableHead>Причина</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.date.toLocaleDateString("ru-RU")}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{CATEGORY_LABELS[r.category] || r.category}</Badge>
-                </TableCell>
-                <TableCell className="font-medium">{r.productName}</TableCell>
-                <TableCell>{r.quantity} {r.unit}</TableCell>
-                <TableCell>{r.costRub ? `${r.costRub.toLocaleString("ru-RU")} руб` : "—"}</TableCell>
-                <TableCell className="text-sm">{r.cause || "—"}</TableCell>
-              </TableRow>
-            ))}
-            {records.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Записей пока нет
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse text-[14px]">
+            <thead>
+              <tr className="border-b border-[#ececf4] bg-[#fafbff] text-left text-[12px] uppercase tracking-wider text-[#6f7282]">
+                <th className="px-5 py-3 font-medium">Дата</th>
+                <th className="px-5 py-3 font-medium">Категория</th>
+                <th className="px-5 py-3 font-medium">Продукт</th>
+                <th className="px-5 py-3 font-medium">Кол-во</th>
+                <th className="px-5 py-3 font-medium">Стоимость</th>
+                <th className="px-5 py-3 font-medium">Причина</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-[#ececf4] last:border-b-0 hover:bg-[#fafbff]"
+                >
+                  <td className="px-5 py-3 text-[13px] text-[#6f7282]">
+                    {r.date.toLocaleDateString("ru-RU")}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="inline-flex items-center rounded-full border border-[#ececf4] bg-white px-2.5 py-0.5 text-[12px] text-[#3c4053]">
+                      {CATEGORY_LABELS[r.category] || r.category}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 font-medium text-[#0b1024]">
+                    {r.productName}
+                  </td>
+                  <td className="px-5 py-3 tabular-nums text-[#0b1024]">
+                    {r.quantity} {r.unit}
+                  </td>
+                  <td className="px-5 py-3 tabular-nums text-[#0b1024]">
+                    {r.costRub
+                      ? `${r.costRub.toLocaleString("ru-RU")} ₽`
+                      : "—"}
+                  </td>
+                  <td className="px-5 py-3 text-[13px] text-[#6f7282]">
+                    {r.cause || "—"}
+                  </td>
+                </tr>
+              ))}
+              {records.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-[14px] text-[#9b9fb3]"
+                  >
+                    Записей пока нет
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

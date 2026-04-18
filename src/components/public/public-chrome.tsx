@@ -27,31 +27,33 @@ export function PublicHeader({
   );
 
   return (
-    <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-5">
-      <Link
-        href="/"
-        className="text-[17px] font-semibold tracking-[0.22em] text-[#0b1024]"
-      >
-        WESETUP
-      </Link>
-      <div className="flex items-center gap-4 sm:gap-5">
-        {link("journals-info", "Журналы", "/journals-info")}
-        {link("blog", "Блог", "/blog")}
+    <div className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
         <Link
-          href="/login"
-          className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+          href="/"
+          className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024] sm:text-[17px]"
         >
-          Войти
+          WESETUP
         </Link>
-        <Link
-          href="/register"
-          className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-        >
-          Начать
-          <ArrowRight className="size-4" />
-        </Link>
-      </div>
-    </nav>
+        <div className="flex items-center gap-3 sm:gap-5">
+          {link("journals-info", "Журналы", "/journals-info")}
+          {link("blog", "Блог", "/blog")}
+          <Link
+            href="/login"
+            className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+          >
+            Войти
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+          >
+            Начать
+            <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </nav>
+    </div>
   );
 }
 
