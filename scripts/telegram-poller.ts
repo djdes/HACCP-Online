@@ -414,6 +414,58 @@ async function showRecent(ctx: Context, code: string) {
   });
   if (!template) return;
 
+  // Document-based journals live in JournalDocument, not JournalEntry —
+  // reading from the wrong table made the bot show "пусто", even though
+  // the same organisation had 100+ documents on the web. Same DB, just
+  // different table; listing here closes the feedback loop so a document
+  // created on the site appears in the bot immediately.
+  if (isDocumentTemplate(code)) {
+    const docs = await prisma.journalDocument.findMany({
+      where: {
+        templateId: template.id,
+        organizationId: linked.organizationId,
+      },
+      orderBy: [{ status: "asc" }, { dateFrom: "desc" }],
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        dateFrom: true,
+        dateTo: true,
+      },
+    });
+    if (docs.length === 0) {
+      await ctx.reply(
+        `<b>${escapeHtml(template.name)}</b>\n\nПока нет документов. Создайте первый на сайте — он появится здесь.`,
+        { parse_mode: "HTML" }
+      );
+      return;
+    }
+    const fmtDate = (d: Date) =>
+      new Date(d).toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    const kb = new InlineKeyboard();
+    docs.forEach((d) => {
+      const statusTag = d.status === "closed" ? " · закрыт" : "";
+      const label =
+        `${fmtDate(d.dateFrom)}–${fmtDate(d.dateTo)}${statusTag}`.slice(
+          0,
+          60
+        );
+      kb.url(label, `${WEB_BASE}/journals/${code}/documents/${d.id}`).row();
+    });
+    await ctx.reply(
+      `<b>${escapeHtml(template.name)}</b>\n\n<i>Документов всего: ${docs.length > 4 ? "5+" : docs.length}</i>. База общая с сайтом — изменения синхронизируются сразу.`,
+      { parse_mode: "HTML", reply_markup: kb }
+    );
+    return;
+  }
+
+  // Field-based journals → JournalEntry.
   const entries = await prisma.journalEntry.findMany({
     where: {
       templateId: template.id,
@@ -427,11 +479,13 @@ async function showRecent(ctx: Context, code: string) {
   });
 
   if (entries.length === 0) {
-    await ctx.reply(`<b>${escapeHtml(template.name)}</b>\n\nПока нет записей.`, {
-      parse_mode: "HTML",
-    });
+    await ctx.reply(
+      `<b>${escapeHtml(template.name)}</b>\n\nПока нет записей. Нажмите «➕ Новая запись» — она появится и здесь, и на сайте.`,
+      { parse_mode: "HTML" }
+    );
     return;
   }
+  const kb = new InlineKeyboard();
   const lines = entries.map((e, i) => {
     const d = new Date(e.createdAt).toLocaleString("ru-RU", {
       day: "2-digit",
@@ -440,11 +494,17 @@ async function showRecent(ctx: Context, code: string) {
       hour: "2-digit",
       minute: "2-digit",
     });
+    kb.url(
+      `${i + 1}. ${d}`.slice(0, 60),
+      `${WEB_BASE}/journals/${code}/${e.id}`
+    ).row();
     return `${i + 1}. ${d} — ${escapeHtml(e.filledBy?.name ?? "—")}`;
   });
   await ctx.reply(
-    `<b>${escapeHtml(template.name)}</b>\n\n` + lines.join("\n"),
-    { parse_mode: "HTML" }
+    `<b>${escapeHtml(template.name)}</b>\n\n` +
+      lines.join("\n") +
+      `\n\n<i>База общая с сайтом — запись появилась в вебе сразу.</i>`,
+    { parse_mode: "HTML", reply_markup: kb }
   );
 }
 
