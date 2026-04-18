@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isManagementRole } from "@/lib/user-roles";
+import { getWebHomeHref, hasFullWorkspaceAccess } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -96,6 +97,7 @@ export function Header({
   telegramBotUsername,
 }: HeaderProps) {
   const pathname = usePathname();
+  const fullAccess = hasFullWorkspaceAccess({ role: userRole, isRoot });
   const [buildInfo, setBuildInfo] = useState({
     buildId: "...",
     buildTime: "",
@@ -163,16 +165,18 @@ export function Header({
     ? organizationName
     : [userName.trim(), positionTitle.trim()].filter(Boolean).join(" · ");
   const HomeIcon = showsOrg ? Building2 : UserRound;
+  const homeHref = getWebHomeHref({ role: userRole, isRoot });
+  const visibleSecondaryNavItems = fullAccess ? secondaryNavItems : [];
   const navItems = [
-    { label: homeLabel, href: "/dashboard", icon: HomeIcon, tooltip: homeTooltip },
-    ...secondaryNavItems.map((i) => ({ ...i, tooltip: i.label })),
+    { label: homeLabel, href: homeHref, icon: HomeIcon, tooltip: homeTooltip },
+    ...visibleSecondaryNavItems.map((i) => ({ ...i, tooltip: i.label })),
   ];
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
       <div className="flex h-14 items-center gap-2 px-3 md:gap-4 md:px-6">
         <Link
-          href="/dashboard"
+          href={homeHref}
           className="shrink-0 flex items-baseline gap-2"
           aria-label="WESETUP — на дашборд"
         >
@@ -197,49 +201,53 @@ export function Header({
         <div className="hidden min-w-0 flex-1 items-center md:flex">
           <div className="group/nav relative">
             <Link
-              href="/dashboard"
+              href={homeHref}
               title={homeTooltip}
               className={cn(
                 "relative z-10 flex min-w-0 max-w-[280px] items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                pathname === "/dashboard"
+                pathname === homeHref
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground group-hover/nav:bg-accent group-hover/nav:text-accent-foreground group-focus-within/nav:bg-accent group-focus-within/nav:text-accent-foreground"
               )}
             >
               <HomeIcon className="size-4 shrink-0" />
               <span className="truncate">{homeLabel}</span>
-              <ChevronDown
-                className="size-3.5 shrink-0 opacity-60 transition-transform duration-150 group-hover/nav:rotate-180 group-focus-within/nav:rotate-180"
-                aria-hidden
-              />
+              {visibleSecondaryNavItems.length > 0 ? (
+                <ChevronDown
+                  className="size-3.5 shrink-0 opacity-60 transition-transform duration-150 group-hover/nav:rotate-180 group-focus-within/nav:rotate-180"
+                  aria-hidden
+                />
+              ) : null}
             </Link>
 
-            <div
-              role="menu"
-              className="pointer-events-none invisible absolute left-0 top-full z-20 w-[260px] translate-y-[-4px] rounded-xl border bg-white p-1.5 opacity-0 shadow-[0_10px_32px_-12px_rgba(11,16,36,0.18)] transition-[opacity,transform] duration-150 group-hover/nav:pointer-events-auto group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-focus-within/nav:pointer-events-auto group-focus-within/nav:visible group-focus-within/nav:translate-y-0 group-focus-within/nav:opacity-100"
-            >
-              {secondaryNavItems.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(item.href + "/");
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    role="menuitem"
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none"
-                    )}
-                  >
-                    <item.icon className="size-4 shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
+            {visibleSecondaryNavItems.length > 0 ? (
+              <div
+                role="menu"
+                className="pointer-events-none invisible absolute left-0 top-full z-20 w-[260px] translate-y-[-4px] rounded-xl border bg-white p-1.5 opacity-0 shadow-[0_10px_32px_-12px_rgba(11,16,36,0.18)] transition-[opacity,transform] duration-150 group-hover/nav:pointer-events-auto group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-focus-within/nav:pointer-events-auto group-focus-within/nav:visible group-focus-within/nav:translate-y-0 group-focus-within/nav:opacity-100"
+              >
+                {visibleSecondaryNavItems.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      role="menuitem"
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none"
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
           <div className="flex-1" />
         </div>
@@ -275,18 +283,20 @@ export function Header({
                   </Link>
                 );
               })}
-              <Link
-                href="/settings"
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname === "/settings" || pathname.startsWith("/settings/")
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <Settings className="size-4" />
-                Настройки
-              </Link>
+              {fullAccess ? (
+                <Link
+                  href="/settings"
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                    pathname === "/settings" || pathname.startsWith("/settings/")
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <Settings className="size-4" />
+                  Настройки
+                </Link>
+              ) : null}
             </nav>
           </SheetContent>
         </Sheet>
@@ -296,18 +306,20 @@ export function Header({
           <NotificationsBell />
           <FeedbackDialog telegramBotUsername={telegramBotUsername} />
 
-          <Link
-            href="/settings"
-            aria-label="Настройки"
-            title="Настройки"
-            className={cn(
-              "hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]",
-              (pathname === "/settings" || pathname.startsWith("/settings/")) &&
-                "border-[#dcdfed] bg-[#f5f6ff] text-[#5566f6]"
-            )}
-          >
-            <Settings className="size-4" />
-          </Link>
+          {fullAccess ? (
+            <Link
+              href="/settings"
+              aria-label="Настройки"
+              title="Настройки"
+              className={cn(
+                "hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]",
+                (pathname === "/settings" || pathname.startsWith("/settings/")) &&
+                  "border-[#dcdfed] bg-[#f5f6ff] text-[#5566f6]"
+              )}
+            >
+              <Settings className="size-4" />
+            </Link>
+          ) : null}
 
           <button
             type="button"

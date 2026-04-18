@@ -1,0 +1,11 @@
+node --import tsx --test src/lib/role-access.test.ts src/lib/staff-telegram-invite.test.ts src/lib/staff-telegram-management.test.ts
+PASS
+
+npm run lint -- "src/lib/role-access.ts" "src/lib/role-access.test.ts" "src/middleware.ts" "src/components/layout/header.tsx" "src/app/(dashboard)/settings/page.tsx" "src/app/(dashboard)/dashboard/page.tsx" "src/app/mini/page.tsx" "src/app/mini/me/page.tsx" "src/app/mini/shift/page.tsx" "src/lib/bot/handlers/start.ts" "src/components/staff/staff-page-client.tsx"
+PASS
+
+npx tsc --noEmit --pretty false
+PASS
+
+npm run build
+PASS

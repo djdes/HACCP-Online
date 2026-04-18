@@ -1,0 +1,90 @@
+{
+  "taskId": "role-access-split-2026-04-18",
+  "status": "PASS",
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": [
+        "src/components/staff/staff-page-client.tsx fixes readable unlink labels"
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": [
+        "src/lib/role-access.ts",
+        "src/middleware.ts",
+        "src/components/layout/header.tsx",
+        "src/app/(dashboard)/dashboard/page.tsx",
+        "src/app/(dashboard)/settings/page.tsx"
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": [
+        "src/lib/role-access.ts",
+        "src/components/layout/header.tsx"
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": [
+        "src/app/mini/page.tsx",
+        "src/app/mini/me/page.tsx",
+        "src/app/mini/shift/page.tsx",
+        "src/lib/bot/handlers/start.ts"
+      ]
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": [
+        "src/lib/role-access.ts",
+        "src/app/mini/page.tsx",
+        "src/lib/bot/handlers/start.ts"
+      ]
+    }
+  ],
+  "verification": [
+    {
+      "command": "node --import tsx --test src/lib/role-access.test.ts src/lib/staff-telegram-invite.test.ts src/lib/staff-telegram-management.test.ts",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run lint -- \"src/lib/role-access.ts\" \"src/lib/role-access.test.ts\" \"src/middleware.ts\" \"src/components/layout/header.tsx\" \"src/app/(dashboard)/settings/page.tsx\" \"src/app/(dashboard)/dashboard/page.tsx\" \"src/app/mini/page.tsx\" \"src/app/mini/me/page.tsx\" \"src/app/mini/shift/page.tsx\" \"src/lib/bot/handlers/start.ts\" \"src/components/staff/staff-page-client.tsx\"",
+      "status": "PASS"
+    },
+    {
+      "command": "npx tsc --noEmit --pretty false",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run build",
+      "status": "PASS"
+    }
+  ],
+  "changes": {
+    "modified": [
+      "src/app/(dashboard)/dashboard/page.tsx",
+      "src/app/(dashboard)/settings/page.tsx",
+      "src/app/mini/me/page.tsx",
+      "src/app/mini/page.tsx",
+      "src/app/mini/shift/page.tsx",
+      "src/components/layout/header.tsx",
+      "src/components/staff/staff-page-client.tsx",
+      "src/lib/bot/handlers/start.ts",
+      "src/middleware.ts"
+    ],
+    "created": [
+      "src/lib/role-access.ts",
+      "src/lib/role-access.test.ts"
+    ]
+  },
+  "notes": [
+    "Browser verification was not run because separate employee/manager authenticated sessions were not available.",
+    "Unrelated repository changes were left untouched."
+  ]
+}

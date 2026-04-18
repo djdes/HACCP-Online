@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
 import { MiniCard } from "./_components/mini-card";
 
@@ -39,7 +40,6 @@ export default function MiniHomePage() {
     const webApp = getTelegramWebApp();
     if (!webApp || !webApp.initData) {
       signInStarted.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalState({ kind: "no-telegram" });
       return;
     }
@@ -115,6 +115,10 @@ export default function MiniHomePage() {
   }
 
   const displayName = session?.user?.name ?? home.user.name;
+  const fullAccess = hasFullWorkspaceAccess({
+    role: session?.user?.role,
+    isRoot: session?.user?.isRoot,
+  });
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-24">
@@ -180,20 +184,24 @@ export default function MiniHomePage() {
           href="/mini"
           className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-900"
         >
-          Главная
+          {fullAccess ? "Главная" : "Журналы"}
         </Link>
-        <Link
-          href="/mini/shift"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-        >
-          Смена
-        </Link>
-        <Link
-          href="/mini/me"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-        >
-          Профиль
-        </Link>
+        {fullAccess ? (
+          <>
+            <Link
+              href="/mini/shift"
+              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
+            >
+              Смена
+            </Link>
+            <Link
+              href="/mini/me"
+              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
+            >
+              Профиль
+            </Link>
+          </>
+        ) : null}
       </nav>
     </div>
   );

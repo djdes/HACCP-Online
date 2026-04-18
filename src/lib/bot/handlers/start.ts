@@ -4,6 +4,7 @@ import {
   hashBotInviteToken,
   stripBotInvitePrefix,
 } from "@/lib/bot-invite-tokens";
+import { getBotMiniAppLabel } from "@/lib/role-access";
 
 /**
  * Handle `/start <payload>` messages.
@@ -115,7 +116,10 @@ export function registerStartHandler(composer: Composer<Context>): void {
           inline_keyboard: [
             [
               {
-                text: "Открыть кабинет",
+                text: getBotMiniAppLabel({
+                  role: token.user.role,
+                  isRoot: false,
+                }),
                 web_app: { url: miniBase },
               },
             ],

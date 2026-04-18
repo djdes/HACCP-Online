@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +90,9 @@ function getEntryData(data: unknown): EntryData {
 
 export default async function DashboardPage() {
   const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) {
+    redirect("/journals");
+  }
   const organizationId = session.user.organizationId;
 
   const now = new Date();

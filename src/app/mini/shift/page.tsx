@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { getServerSession } from "@/lib/server-session";
 import { getUserRoleLabel } from "@/lib/user-roles";
 
@@ -18,6 +19,7 @@ import { getUserRoleLabel } from "@/lib/user-roles";
 export default async function MiniShiftPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/mini");
+  if (!hasFullWorkspaceAccess(session.user)) redirect("/mini");
 
   const orgId = getActiveOrgId(session);
   const coworkers = await db.user.findMany({

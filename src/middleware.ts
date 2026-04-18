@@ -4,6 +4,30 @@ import {
   CUSTOM_SESSION_COOKIE,
   LEGACY_SESSION_COOKIES,
 } from "@/lib/auth-cookies";
+import { canAccessWebPath, hasFullWorkspaceAccess } from "@/lib/role-access";
+
+const STAFF_RESTRICTED_WEB_PREFIXES = [
+  "/dashboard",
+  "/settings",
+  "/reports",
+  "/plans",
+  "/changes",
+  "/losses",
+  "/batches",
+  "/competencies",
+  "/capa",
+  "/sanpin",
+] as const;
+
+function matchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function isStaffRestrictedWebPath(pathname: string): boolean {
+  return STAFF_RESTRICTED_WEB_PREFIXES.some((prefix) =>
+    matchesPrefix(pathname, prefix)
+  );
+}
 
 /**
  * Global middleware.
@@ -21,9 +45,6 @@ import {
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith("/root") && !pathname.startsWith("/api/root")) {
-    return NextResponse.next();
-  }
 
   const rawToken =
     req.cookies.get(CUSTOM_SESSION_COOKIE)?.value ??
@@ -32,20 +53,41 @@ export async function middleware(req: NextRequest) {
     );
 
   if (!rawToken) {
-    return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+    if (pathname.startsWith("/root") || pathname.startsWith("/api/root")) {
+      return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+    }
+    return NextResponse.next();
   }
 
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
   if (!secret) {
-    return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+    if (pathname.startsWith("/root") || pathname.startsWith("/api/root")) {
+      return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+    }
+    return NextResponse.next();
   }
 
   const token = await decode({ token: rawToken, secret }).catch(() => null);
-  if (!token || token.isRoot !== true) {
-    return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+  if (pathname.startsWith("/root") || pathname.startsWith("/api/root")) {
+    if (!token || token.isRoot !== true) {
+      return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
+    }
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  if (!token || !isStaffRestrictedWebPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const actor = {
+    role: typeof token.role === "string" ? token.role : null,
+    isRoot: token.isRoot === true,
+  };
+  if (hasFullWorkspaceAccess(actor) || canAccessWebPath(actor, pathname)) {
+    return NextResponse.next();
+  }
+
+  return NextResponse.redirect(new URL("/journals", req.url));
 }
 
 export const config = {

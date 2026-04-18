@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Bell,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +96,9 @@ const settingsCards = [
 
 export default async function SettingsPage() {
   const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) {
+    redirect("/journals");
+  }
   const orgId = getActiveOrgId(session);
 
   const [areaCount, equipmentCount, userCount, productCount] =

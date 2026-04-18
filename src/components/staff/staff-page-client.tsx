@@ -541,7 +541,7 @@ export function StaffPageClient(props: StaffPageProps) {
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#ffd2cd] bg-[#fff4f2] px-3 text-[13px] font-medium text-[#d2453d] hover:bg-[#ffecea]"
                   >
                     <Unlink className="size-4" />
-                    РћС‚РІСЏР·Р°С‚СЊ TG
+                    Отвязать TG
                   </button>
                 </>
               ) : null}
@@ -1029,7 +1029,7 @@ function CategoryColumn(props: {
                                     className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#ffd2cd] bg-[#fff4f2] px-2 text-[11px] font-medium text-[#d2453d] hover:bg-[#ffecea]"
                                   >
                                     <Unlink className="size-3.5" />
-                                    РћС‚РІСЏР·Р°С‚СЊ
+                                    Отвязать
                                   </button>
                                 </>
                               ) : null}

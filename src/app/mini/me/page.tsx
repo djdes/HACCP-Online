@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ArrowLeft, LogOut, Unlink } from "lucide-react";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 /**
  * Profile screen for the Mini App.
@@ -16,9 +18,23 @@ import { ArrowLeft, LogOut, Unlink } from "lucide-react";
  *     the user must re-accept a fresh invite.
  */
 export default function MiniMePage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [busy, setBusy] = useState<"none" | "signout" | "unlink">("none");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      status === "authenticated" &&
+      !hasFullWorkspaceAccess(session.user)
+    ) {
+      router.replace("/mini");
+    }
+  }, [router, session, status]);
+
+  if (status === "authenticated" && !hasFullWorkspaceAccess(session.user)) {
+    return null;
+  }
 
   if (status !== "authenticated") {
     return (
