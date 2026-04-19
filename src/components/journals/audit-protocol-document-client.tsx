@@ -29,6 +29,15 @@ import {
 } from "@/lib/audit-protocol-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 type Props = {
@@ -213,6 +222,52 @@ export function AuditProtocolDocumentClient({
   );
 
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
+  const { mobileView, switchMobileView } = useMobileView("audit_protocol");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
+    const section = config.sections.find((s) => s.id === row.sectionId);
+    const resultLabel =
+      row.result === "yes" ? "Да (+)" : row.result === "no" ? "Нет (−)" : "";
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${row.text || "—"}`,
+      subtitle: section?.title || undefined,
+      badge: row.result ? (
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            row.result === "yes"
+              ? "bg-[#e6f8ec] text-[#1f7a3c]"
+              : "bg-[#fff2f1] text-[#d2453d]"
+          }`}
+        >
+          {resultLabel}
+        </span>
+      ) : undefined,
+      leading: status === "active" ? (
+        <Checkbox
+          checked={selectedRowIds.includes(row.id)}
+          onCheckedChange={(checked) =>
+            setSelectedRowIds((current) =>
+              checked === true
+                ? [...new Set([...current, row.id])]
+                : current.filter((id) => id !== row.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "Результат", value: resultLabel, hideIfEmpty: true },
+        { label: "Примечания", value: row.note, hideIfEmpty: true },
+      ],
+      onClick: status === "active"
+        ? () => {
+            setEditingRow(row);
+            setRowOpen(true);
+          }
+        : undefined,
+    };
+  });
 
   return (
     <>
@@ -277,7 +332,15 @@ export function AuditProtocolDocumentClient({
             </div>
           )}
 
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className="sm:hidden print:hidden">
+            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+          </div>
+
+          {mobileView === "cards" ? (
+            <RecordCardsView items={cardItems} emptyLabel="Пунктов протокола пока нет." />
+          ) : null}
+
+          <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
               <thead>
                 <tr>
@@ -340,7 +403,7 @@ export function AuditProtocolDocumentClient({
                 ))}
               </tbody>
             </table>
-          </div>
+          </MobileViewTableWrapper>
 
           <div className="space-y-3 pt-6">
             <div className="text-[20px] font-semibold">Подписи</div>
