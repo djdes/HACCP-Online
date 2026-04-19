@@ -50,13 +50,26 @@ type DocumentRollup = {
   filled: boolean;
 };
 
+/**
+ * UTC-midnight of `now`'s calendar date. Entries are stored with their
+ * `date` field at UTC-midnight (see /api/journal-documents/[id]/entries
+ * — `new Date("YYYY-MM-DD")` parses as UTC midnight). We must compare
+ * against UTC-today, otherwise a server that runs in a non-UTC
+ * timezone produces a date-key off by one day.
+ */
+function utcDayStart(now: Date): Date {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+}
+
 async function rollupDocumentForDay(
   documentId: string,
   todayStart: Date,
   todayEnd: Date
 ): Promise<DocumentRollup> {
   const lookbackStart = new Date(todayStart);
-  lookbackStart.setDate(lookbackStart.getDate() - 30);
+  lookbackStart.setUTCDate(lookbackStart.getUTCDate() - 30);
 
   const entries = await db.journalDocumentEntry.findMany({
     where: {
@@ -114,10 +127,9 @@ export async function getTemplatesFilledToday(
   now: Date = new Date(),
   allTemplates?: Array<{ id: string; code: string }>
 ): Promise<Set<string>> {
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = utcDayStart(now);
   const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
+  todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
 
   const [legacyEntries, activeDocuments] = await Promise.all([
     db.journalEntry.findMany({
@@ -218,10 +230,9 @@ export async function getTemplateTodaySummary(
   templateCode: string | null = null,
   now: Date = new Date()
 ): Promise<TemplateTodaySummary> {
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = utcDayStart(now);
   const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
+  todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
 
   // Aperiodic journals are treated as filled — no daily obligation.
   if (templateCode && !DAILY_JOURNAL_CODES.has(templateCode)) {
