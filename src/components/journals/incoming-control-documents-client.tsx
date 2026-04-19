@@ -35,6 +35,8 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 
@@ -413,13 +415,13 @@ export function IncomingControlDocumentsClient({
     <>
       <div className="space-y-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="max-w-[1100px] text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {heading}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-12 rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none"
+              className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none sm:w-auto"
               asChild
             >
               <Link href="/sanpin">
@@ -431,7 +433,7 @@ export function IncomingControlDocumentsClient({
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="h-12 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+                className="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               >
                 <Plus className="size-4" />
                 Создать документ

@@ -44,6 +44,8 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -294,15 +296,15 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {props.activeTab === "closed"
             ? "Журнал учета работы УФ бактерицидной установки (Закрытые!!!)"
             : "Журнал учета работы УФ бактерицидной установки"}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
           <Button
             variant="outline"
-            className="h-12 rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
             asChild
           >
             <Link href="/sanpin">
@@ -315,7 +317,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
               templateCode={props.templateCode}
               templateName={props.templateName}
               users={props.users}
-              triggerClassName="h-12 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+              triggerClassName="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               triggerLabel="Создать документ"
               triggerIcon={<Plus className="size-4" />}
             />

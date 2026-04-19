@@ -28,6 +28,7 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
 } from "@/components/journals/journal-responsive";
 type HealthListDocument = {
   id: string;
@@ -243,10 +244,10 @@ export function HealthDocumentsClient(props: Props) {
               {heading}
             </h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
               <Link href="/sanpin">
@@ -259,7 +260,7 @@ export function HealthDocumentsClient(props: Props) {
                 templateCode={props.templateCode}
                 templateName={props.templateName}
                 users={props.users}
-                triggerClassName="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+                triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className="size-7" />}
               />

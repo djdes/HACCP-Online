@@ -42,6 +42,7 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 type UserItem = {
@@ -393,14 +394,14 @@ export function GlassListDocumentsClient(props: Props) {
     <>
       <div className="space-y-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {GLASS_LIST_PAGE_TITLE}
           </h1>
           {props.activeTab === "active" && (
             <Button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4d58f5]"
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4d58f5] sm:w-auto"
             >
               <Plus className="size-6" />
               Создать документ

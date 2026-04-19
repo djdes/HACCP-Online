@@ -42,6 +42,8 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 type UserItem = {
   id: string;
@@ -296,13 +298,13 @@ export function IntensiveCoolingDocumentsClient({
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="max-w-[980px] text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {INTENSIVE_COOLING_DOCUMENT_TITLE}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
           <Button
             variant="outline"
-            className="h-12 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-[15px] text-[#5566f6] shadow-none"
+            className="h-12 w-full rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-[15px] text-[#5566f6] shadow-none sm:w-auto"
             asChild
           >
             <Link href="/sanpin">
@@ -312,7 +314,7 @@ export function IntensiveCoolingDocumentsClient({
           </Button>
           {activeTab === "active" ? (
             <Button
-              className="h-12 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee] sm:w-auto"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="size-5" />

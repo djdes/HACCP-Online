@@ -49,6 +49,8 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 
@@ -576,13 +578,13 @@ export function CleaningDocumentsClient(props: Props) {
     <>
       <div className="space-y-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {CLEANING_PAGE_TITLE}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
               <Link href="/sanpin">
@@ -594,7 +596,7 @@ export function CleaningDocumentsClient(props: Props) {
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5]"
+                className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5] sm:w-auto"
               >
                 <Plus className="size-6" />
                 Создать документ

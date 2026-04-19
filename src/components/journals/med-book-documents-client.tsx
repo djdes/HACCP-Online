@@ -32,7 +32,10 @@ import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
-import { JOURNAL_CARD_TITLE_CLASS } from "@/components/journals/journal-responsive";
+import {
+  JOURNAL_CARD_TITLE_CLASS,
+  JOURNAL_LIST_ACTIONS_CLASS,
+} from "@/components/journals/journal-responsive";
 type MedBookListDocument = {
   id: string;
   title: string;
@@ -192,12 +195,12 @@ export function MedBookDocumentsClient({
             Медицинские книжки
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
           <Button
             asChild
             type="button"
             variant="ghost"
-            className="h-11 rounded-2xl border border-[#edf0ff] bg-[#fafbff] px-7 text-[18px] font-medium text-[#5863f8] hover:bg-[#f3f5ff] hover:text-[#5863f8]"
+            className="h-11 w-full rounded-2xl border border-[#edf0ff] bg-[#fafbff] px-7 text-[18px] font-medium text-[#5863f8] hover:bg-[#f3f5ff] hover:text-[#5863f8] sm:w-auto"
           >
             <Link href={firstDocumentLink}>
               <BookOpenText className="size-5" />
@@ -210,7 +213,7 @@ export function MedBookDocumentsClient({
             users={users}
             triggerLabel="Создать документ"
             triggerIcon={<Plus className="size-5" />}
-            triggerClassName="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+            triggerClassName="h-11 w-full rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3] sm:w-auto"
           />
         </div>
       </div>

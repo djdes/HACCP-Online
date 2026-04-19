@@ -398,7 +398,7 @@ export function TraceabilityDocumentsClient({
           <Button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"
+            className="h-11 w-full rounded-2xl bg-[#5563ff] px-4 text-[15px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb] sm:w-auto"
           >
             <Plus className="size-6" />
             Создать документ
