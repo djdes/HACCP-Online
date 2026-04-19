@@ -35,6 +35,15 @@ import {
 } from "@/lib/equipment-calibration-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -103,6 +112,53 @@ export function EquipmentCalibrationDocumentClient({
 
   const isClosed = status === "closed";
   const organizationLabel = organizationName || 'ООО "Тест"';
+  const { mobileView, switchMobileView } = useMobileView("equipment_calibration");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
+    const nextDate = calculateNextCalibrationDate(
+      row.lastCalibrationDate,
+      row.calibrationInterval
+    );
+    const overdue = isCalibrationOverdue(
+      row.lastCalibrationDate,
+      row.calibrationInterval
+    );
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${row.equipmentName || "—"}`,
+      subtitle:
+        [row.equipmentNumber, row.location].filter(Boolean).join(" · ") || undefined,
+      badge: overdue ? (
+        <span className="rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-semibold text-[#ff3b30]">
+          Просрочено
+        </span>
+      ) : undefined,
+      leading: !isClosed ? (
+        <Checkbox
+          checked={selectedRows.includes(row.id)}
+          onCheckedChange={(checked) => toggleRow(row.id, checked === true)}
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "Назначение", value: row.purpose, hideIfEmpty: true },
+        { label: "Диапазон измерений", value: row.measurementRange, hideIfEmpty: true },
+        { label: "Межповерочный интервал", value: `${row.calibrationInterval} мес.` },
+        { label: "Последняя поверка", value: formatCalibrationDate(row.lastCalibrationDate) },
+        { label: "Очередная поверка", value: formatCalibrationDate(nextDate) },
+        { label: "Примечание", value: row.note, hideIfEmpty: true },
+      ],
+      actions: !isClosed ? (
+        <button
+          type="button"
+          onClick={() => openEditRow(row.id)}
+          className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5563ff] px-4 text-[14px] font-medium text-white hover:bg-[#4452ee]"
+        >
+          Редактировать
+        </button>
+      ) : null,
+    };
+  });
 
   /* ---------- persistence ---------- */
 
@@ -367,7 +423,15 @@ export function EquipmentCalibrationDocumentClient({
         )}
 
         {/* Main table */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Средств измерений пока не внесено." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="w-full min-w-[1100px] border-collapse text-sm">
             <thead>
               <tr className="bg-[#f2f2f2]">
@@ -480,7 +544,7 @@ export function EquipmentCalibrationDocumentClient({
               </tr>
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       {/* ---------- Add Row Dialog ---------- */}

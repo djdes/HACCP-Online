@@ -41,6 +41,15 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -76,6 +85,7 @@ export function StaffTrainingDocumentClient({
     normalizeStaffTrainingConfig(initialConfig)
   );
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const { mobileView, switchMobileView } = useMobileView("staff_training");
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -98,6 +108,38 @@ export function StaffTrainingDocumentClient({
   );
 
   const isClosed = status === "closed";
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
+    const trainingLabel =
+      TRAINING_TYPES.find((t) => t.value === row.trainingType)?.label ||
+      row.trainingType;
+    const attestLabel =
+      ATTESTATION_RESULTS.find((a) => a.value === row.attestationResult)?.label ||
+      row.attestationResult;
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${row.employeeName || "—"}`,
+      subtitle: `${row.date || "—"} · ${row.employeePosition || "—"}`,
+      leading: !isClosed ? (
+        <Checkbox
+          checked={selectedRows.includes(row.id)}
+          onCheckedChange={(checked) => toggleRow(row.id, checked === true)}
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "Тема обучения", value: row.topic, hideIfEmpty: true },
+        { label: "Вид инструктажа", value: trainingLabel, hideIfEmpty: true },
+        {
+          label: "Причина (внеплановый)",
+          value: row.unscheduledReason,
+          hideIfEmpty: true,
+        },
+        { label: "Инструктирующий", value: row.instructorName, hideIfEmpty: true },
+        { label: "Результат аттестации", value: attestLabel, hideIfEmpty: true },
+      ],
+    };
+  });
 
   /* ---------- persistence ---------- */
 
@@ -342,8 +384,16 @@ export function StaffTrainingDocumentClient({
           </div>
         )}
 
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Нет записей обучения." />
+        ) : null}
+
         {/* main table */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[1600px] w-full border-collapse text-sm">
             <thead>
               <tr>
@@ -450,7 +500,7 @@ export function StaffTrainingDocumentClient({
               )}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       {/* ---------- Add Row Dialog ---------- */}

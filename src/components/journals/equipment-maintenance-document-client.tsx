@@ -37,6 +37,15 @@ import {
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -110,6 +119,46 @@ export function EquipmentMaintenanceDocumentClient({
 
   const isClosed = status === "closed";
   const organizationLabel = organizationName || 'ООО "Тест"';
+  const { mobileView, switchMobileView } = useMobileView("equipment_maintenance");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
+    const planSummary = MONTH_KEYS.map((k) => `${MONTH_LABELS[k]}:${row.plan[k] || "—"}`)
+      .filter((s) => !s.endsWith(":-"))
+      .join(" · ");
+    const factSummary = MONTH_KEYS.map((k) => `${MONTH_LABELS[k]}:${row.fact[k] || "—"}`)
+      .filter((s) => !s.endsWith(":—"))
+      .join(" · ");
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${row.equipmentName || "—"}`,
+      subtitle: row.workType || undefined,
+      badge: (
+        <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
+          Тип {row.maintenanceType}
+        </span>
+      ),
+      leading: !isClosed ? (
+        <Checkbox
+          checked={selectedRows.includes(row.id)}
+          onCheckedChange={(checked) => toggleRow(row.id, checked === true)}
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "План по месяцам", value: planSummary, hideIfEmpty: true },
+        { label: "Факт по месяцам", value: factSummary, hideIfEmpty: true },
+      ],
+      actions: !isClosed ? (
+        <button
+          type="button"
+          onClick={() => openEditRow(row.id)}
+          className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5563ff] px-4 text-[14px] font-medium text-white hover:bg-[#4452ee]"
+        >
+          Редактировать
+        </button>
+      ) : null,
+    };
+  });
 
   /* ---------- persistence ---------- */
 
@@ -380,8 +429,16 @@ export function EquipmentMaintenanceDocumentClient({
           </div>
         )}
 
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Оборудование не внесено." />
+        ) : null}
+
         {/* Legend row */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="mb-2 w-full border-collapse text-[13px]">
             <tbody>
               <tr>
@@ -549,7 +606,7 @@ export function EquipmentMaintenanceDocumentClient({
               </tr>
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       {/* ---------- Add Row Dialog ---------- */}

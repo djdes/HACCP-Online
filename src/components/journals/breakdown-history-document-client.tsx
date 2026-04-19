@@ -29,6 +29,15 @@ import {
   type BreakdownHistoryDocumentConfig,
   type BreakdownRow,
 } from "@/lib/breakdown-history-document";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
@@ -381,9 +390,56 @@ export function BreakdownHistoryDocumentClient(props: Props) {
   const [finishOpen, setFinishOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<BreakdownRow | null>(null);
+  const { mobileView, switchMobileView } = useMobileView("breakdown_history");
   const rows = useMemo(() => config.rows, [config.rows]);
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
   const isActive = props.status === "active";
+
+  const cardItems: RecordCardItem[] = rows.map((row, index) => ({
+    id: row.id,
+    title: `№${index + 1} · ${formatDateLabel(row.startDate)} ${formatTime(
+      row.startHour,
+      row.startMinute
+    )}`,
+    subtitle: row.equipmentName || "—",
+    leading: (
+      <Checkbox
+        checked={selectedRowIds.includes(row.id)}
+        onCheckedChange={(checked) =>
+          setSelectedRowIds((current) =>
+            checked === true
+              ? [...new Set([...current, row.id])]
+              : current.filter((item) => item !== row.id)
+          )
+        }
+        disabled={!isActive}
+        className="size-5"
+      />
+    ),
+    fields: [
+      { label: "Описание поломки", value: row.breakdownDescription, hideIfEmpty: true },
+      { label: "Выполненный ремонт", value: row.repairPerformed, hideIfEmpty: true },
+      { label: "Замена частей", value: row.partsReplaced, hideIfEmpty: true },
+      {
+        label: "Окончание работ",
+        value: `${formatDateLabel(row.endDate)} ${formatTime(row.endHour, row.endMinute)}`,
+      },
+      { label: "Часы простоя", value: row.downtimeHours, hideIfEmpty: true },
+      { label: "Ответственный", value: row.responsiblePerson, hideIfEmpty: true },
+    ],
+    actions: isActive ? (
+      <button
+        type="button"
+        onClick={() => {
+          setEditingRow(row);
+          setRowDialogOpen(true);
+        }}
+        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5563ff] px-4 text-[14px] font-medium text-white hover:bg-[#4452ee]"
+      >
+        Редактировать
+      </button>
+    ) : null,
+  }));
 
   /* Persist helper */
   async function persist(
@@ -552,8 +608,17 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           </StickyActionBar>
         )}
 
+        {/* View toggle + cards/table */}
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Карточки поломок пока не добавлены." />
+        ) : null}
+
         {/* Data table */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
           <table className="min-w-[1600px] w-full border-collapse text-[14px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
@@ -648,7 +713,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               )}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       {/* Dialogs */}
