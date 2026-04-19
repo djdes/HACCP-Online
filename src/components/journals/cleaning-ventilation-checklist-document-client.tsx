@@ -867,7 +867,18 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="bg-[#f8f9fc]">
-                <th className="w-[58px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black" />
+                <th className="w-[58px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black">
+                  <div className="flex justify-center">
+                    <Checkbox
+                      checked={rows.length > 0 && selection.length === rows.length}
+                      onCheckedChange={(checked) =>
+                        setSelection(Boolean(checked) ? rows.map((r) => r.dateKey) : [])
+                      }
+                      disabled={!isActive}
+                      className="size-5 rounded-[8px]"
+                    />
+                  </div>
+                </th>
                 <th className="w-[140px] border-b border-r border-[#d9dceb] px-4 py-4 text-left text-[15px] font-semibold text-black">
                   Дата
                 </th>
