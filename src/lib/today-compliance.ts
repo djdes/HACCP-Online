@@ -88,21 +88,32 @@ async function rollupDocumentForDay(
   const todayKey = todayStart.toISOString().slice(0, 10);
   const todayCount = byDay.get(todayKey) ?? 0;
 
-  let priorMax = 0;
-  for (const [dayKey, count] of byDay.entries()) {
-    if (dayKey === todayKey) continue;
-    if (count > priorMax) priorMax = count;
+  // Use the most-recent prior day with any entries as the "expected"
+  // roster size. This reflects the current roster (e.g. if an employee
+  // was removed yesterday, expected drops right away) while skipping
+  // weekend gaps and empty days. Max-over-30-days was too rigid — one
+  // unusually-large prior day would keep today "not filled" forever.
+  const priorDayKeys = [...byDay.keys()]
+    .filter((dayKey) => dayKey !== todayKey)
+    .sort();
+  let expectedCount = 0;
+  for (let i = priorDayKeys.length - 1; i >= 0; i--) {
+    const count = byDay.get(priorDayKeys[i]) ?? 0;
+    if (count > 0) {
+      expectedCount = count;
+      break;
+    }
   }
 
   // No history → one entry is enough (first day of a brand-new document).
-  if (priorMax === 0) {
+  if (expectedCount === 0) {
     return { todayCount, expectedCount: 0, filled: todayCount > 0 };
   }
 
   return {
     todayCount,
-    expectedCount: priorMax,
-    filled: todayCount >= priorMax,
+    expectedCount,
+    filled: todayCount >= expectedCount,
   };
 }
 
