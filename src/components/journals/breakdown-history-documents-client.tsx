@@ -360,7 +360,7 @@ export function BreakdownHistoryDocumentsClient({
                 {document.title || BREAKDOWN_HISTORY_DOCUMENT_TITLE}
               </Link>
 
-              <Link href={href} className="border-l border-[#e6e6f0] px-8">
+              <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-8">
                 <div className="text-[14px] text-[#84849a]">Дата начала</div>
                 <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateDMY(document.dateFrom)}
@@ -377,7 +377,7 @@ export function BreakdownHistoryDocumentsClient({
                       <Ellipsis className="size-8" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"

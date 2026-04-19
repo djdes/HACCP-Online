@@ -303,14 +303,14 @@ export function CleaningVentilationChecklistDocumentsClient({
                 </div>
               </Link>
 
-              <Link href={href} className="border-l border-[#e6e6f0] px-6">
+              <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-6">
                 <div className="text-[14px] text-[#84849a]">Дата начала</div>
                 <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateLabel(document.dateFrom)}
                 </div>
               </Link>
 
-              <Link href={href} className="border-l border-[#e6e6f0] px-6">
+              <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-6">
                 <div className="text-[14px] text-[#84849a]">Статус</div>
                 <div className="mt-2 text-[14px] font-semibold text-black">
                   {document.status === "active" ? "Активный" : "Закрытый"}
@@ -327,7 +327,7 @@ export function CleaningVentilationChecklistDocumentsClient({
                       <Ellipsis className="size-8" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                  <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                     <DropdownMenuItem
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
                       onSelect={() => setSettingsTarget(document)}

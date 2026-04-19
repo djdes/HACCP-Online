@@ -489,7 +489,7 @@ export function PpeIssuanceDocumentsClient({
               >
                 {document.title || PPE_ISSUANCE_DOCUMENT_TITLE}
               </Link>
-              <Link href={href} className="border-l border-[#e6e6f0] px-8">
+              <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-8">
                 <div className="text-[14px] text-[#84849a]">Дата начала</div>
                 <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateLabel(document.dateFrom)}

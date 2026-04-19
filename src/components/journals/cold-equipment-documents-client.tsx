@@ -310,7 +310,7 @@ export function ColdEquipmentDocumentsClient({
                   {document.title}
                 </Link>
 
-                <Link href={href} className="border-l border-[#e6e6f0] px-10">
+                <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-10">
                   <div className="text-[14px] text-[#84849a]">Ответственный</div>
                   <div className="mt-1 text-[14px] font-medium text-black">
                     {document.responsibleTitle && document.responsibleUserName
@@ -319,7 +319,7 @@ export function ColdEquipmentDocumentsClient({
                   </div>
                 </Link>
 
-                <Link href={href} className="border-l border-[#e6e6f0] px-10">
+                <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-10">
                   <div className="text-[14px] text-[#84849a]">Период</div>
                   <div className="mt-1 text-[14px] font-medium text-black">
                     {document.periodLabel}

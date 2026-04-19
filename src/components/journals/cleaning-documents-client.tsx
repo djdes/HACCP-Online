@@ -679,7 +679,7 @@ export function CleaningDocumentsClient(props: Props) {
                         <Ellipsis className="size-8" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                    <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
                         onSelect={() => setArchiveDocument(document)}

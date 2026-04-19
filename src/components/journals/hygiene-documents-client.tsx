@@ -192,11 +192,11 @@ function DocumentRow({
       <Link href={href} className="text-[17px] font-semibold tracking-[-0.02em] text-black">
         {document.title}
       </Link>
-      <Link href={href} className="border-l border-[#e6e6f0] px-10">
+      <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-10">
         <div className="text-[14px] text-[#84849a]">Должность ответственного</div>
         <div className="mt-2 text-[14px] font-semibold text-black">{document.responsibleTitle || ""}</div>
       </Link>
-      <Link href={href} className="border-l border-[#e6e6f0] px-10">
+      <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-10">
         <div className="text-[14px] text-[#84849a]">Период</div>
         <div className="mt-2 text-[14px] font-semibold text-black">{document.periodLabel}</div>
       </Link>
@@ -210,7 +210,7 @@ function DocumentRow({
               <Ellipsis className="size-8" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-6 shadow-xl">
+          <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-6 shadow-xl sm:w-[320px]">
             {canManage && (
               <DropdownMenuItem
                 className="mb-3 h-11 rounded-2xl px-4 text-[15px]"

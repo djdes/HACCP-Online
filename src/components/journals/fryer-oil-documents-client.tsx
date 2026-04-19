@@ -255,7 +255,7 @@ export function FryerOilDocumentsClient(props: Props) {
                 {document.title}
               </Link>
 
-              <Link href={href} className="border-l border-[#e6e6f0] px-10">
+              <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-10">
                 <div className="text-[14px] text-[#84849a]">Дата начала</div>
                 <div className="mt-2 text-[14px] font-semibold text-black">
                   {formatDateDash(document.dateFrom)}

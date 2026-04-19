@@ -447,13 +447,13 @@ export function GlassListDocumentsClient(props: Props) {
                 <Link href={href} className="min-w-0 text-[17px] font-semibold text-black">
                   {config.documentName || document.title || props.templateName}
                 </Link>
-                <Link href={href} className="border-l border-[#e6e6f0] px-8">
+                <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-8">
                   <div className="text-[14px] text-[#84849a]">Место расположения</div>
                   <div className="mt-2 text-[14px] font-semibold text-black">
                     {config.location || "—"}
                   </div>
                 </Link>
-                <Link href={href} className="border-l border-[#e6e6f0] px-8">
+                <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-8">
                   <div className="text-[14px] text-[#84849a]">Должность</div>
                   <div className="mt-2 text-[14px] font-semibold text-black">
                     {responsibleUser
@@ -461,7 +461,7 @@ export function GlassListDocumentsClient(props: Props) {
                       : responsibleTitle}
                   </div>
                 </Link>
-                <Link href={href} className="border-l border-[#e6e6f0] px-8">
+                <Link href={href} className="sm:border-l sm:border-[#e6e6f0] sm:px-8">
                   <div className="text-[14px] text-[#84849a]">Дата документа</div>
                   <div className="mt-2 text-[14px] font-semibold text-black">
                     {formatGlassListDate(config.documentDate || document.dateFrom)}
@@ -477,7 +477,7 @@ export function GlassListDocumentsClient(props: Props) {
                         <Ellipsis className="size-8" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl">
+                    <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
                         onSelect={() => setSettingsDocument(document)}
