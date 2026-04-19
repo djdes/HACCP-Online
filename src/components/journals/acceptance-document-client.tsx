@@ -1374,7 +1374,7 @@ export function AcceptanceDocumentClient(props: Props) {
 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-5">
-            <h1 className="text-[32px] font-semibold tracking-[-0.02em]">{documentTitle}</h1>
+            <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px]">{documentTitle}</h1>
             <label className="flex items-center gap-4 rounded-[18px] bg-[#f3f4fe] px-5 py-4 text-[16px]">
               <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
               <span>Сортировать по сроку годности</span>

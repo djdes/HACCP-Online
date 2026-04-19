@@ -257,7 +257,7 @@ export function EquipmentCalibrationDocumentClient({
 
       {/* screen header */}
       <div className="flex items-start justify-between gap-4 print:hidden">
-        <h1 className="text-[32px] font-semibold tracking-[-0.02em]">{title}</h1>
+        <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px]">{title}</h1>
         <Button
           type="button"
           variant="outline"

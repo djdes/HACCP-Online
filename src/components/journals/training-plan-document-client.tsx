@@ -526,7 +526,7 @@ export function TrainingPlanDocumentClient({
         </div>
       </div>
 
-      <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
+      <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">{title}</h1>
 
       {selectedRowIds.length > 0 && !readOnly && (
         <div className="sticky top-0 z-30 -mx-6 flex items-center gap-4 rounded-2xl border-b border-[#dcdfed] bg-white/95 px-6 py-3 backdrop-blur">

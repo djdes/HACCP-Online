@@ -610,7 +610,7 @@ export function CleaningVentilationChecklistDocumentClient({
         <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <h1 className="max-w-[980px] text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="max-w-[980px] text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">
             {docTitle}
           </h1>
           <div className="flex items-center gap-3">

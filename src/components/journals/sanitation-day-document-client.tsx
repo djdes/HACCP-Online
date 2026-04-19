@@ -662,7 +662,7 @@ export function SanitationDayDocumentClient({
         </div>
       </div>
 
-      <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024] print:hidden">
+      <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024] print:hidden">
         {title}
       </h1>
 

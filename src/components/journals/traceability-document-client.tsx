@@ -604,7 +604,7 @@ export function TraceabilityDocumentClient(props: Props) {
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">{title || DEFAULT_TITLE}</h1>
+          <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">{title || DEFAULT_TITLE}</h1>
           <div className="mt-3 flex items-center gap-3"><span className={cn("inline-flex rounded-full px-3 py-1 text-[13px] font-medium", isClosed ? "bg-[#fff2f1] text-[#d2453d]" : "bg-[#eef1ff] text-[#5563ff]")}>{isClosed ? "Закрыт" : "Активен"}</span><span className="text-[15px] text-[#6f7282]">Начат {formatDashDate(dateFrom)}</span></div>
         </div>
       </div>

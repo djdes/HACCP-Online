@@ -290,7 +290,7 @@ export function IntensiveCoolingDocumentsClient({
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <h1 className="max-w-[980px] text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className="max-w-[980px] text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">
           {INTENSIVE_COOLING_DOCUMENT_TITLE}
         </h1>
         <div className="flex items-center gap-3">
