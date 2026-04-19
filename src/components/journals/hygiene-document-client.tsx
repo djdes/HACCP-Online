@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronDown, LayoutGrid, Rows3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
@@ -170,10 +170,37 @@ export function HygieneDocumentClient({
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
+  // Mobile-only view preference: 'cards' (default) vs 'table' (horizontal
+  // scroll of the full sheet). Stored in localStorage so the choice sticks
+  // per-device. Desktop / print always render the table — the toggle is
+  // hidden on sm+ via Tailwind (`sm:hidden`), but we keep the state in
+  // sync either way for consistency.
+  const [mobileView, setMobileView] = useState<"cards" | "table">("cards");
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     setEntryMap(buildEntryMap(initialEntries));
   }, [initialEntries]);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("hygiene-mobile-view");
+      if (saved === "table" || saved === "cards") setMobileView(saved);
+    } catch {
+      /* localStorage blocked — fall back to default 'cards' */
+    }
+  }, []);
+
+  function switchMobileView(next: "cards" | "table") {
+    setMobileView(next);
+    try {
+      window.localStorage.setItem("hygiene-mobile-view", next);
+    } catch {
+      /* ignore */
+    }
+  }
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
@@ -367,46 +394,248 @@ export function HygieneDocumentClient({
         }
       `}</style>
 
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="hygiene-sheet mx-auto min-w-[1100px] max-w-[1720px] px-8 py-6 sm:min-w-0">
-        <div className="screen-only mb-10 space-y-8">
-          <StaffJournalToolbar
-            documentId={documentId}
-            heading="Гигиенический журнал"
-            title={documentTitle}
-            status={status}
-            autoFill={autoFill}
-            responsibleTitle={responsibleTitle}
-            users={employees}
-            includedEmployeeIds={includedEmployeeIds}
-            routeCode={routeCode}
-            organizationName={organizationLabel}
-            showHeaderActions
-          />
+      {/*
+        Toolbar + selection actions sit OUTSIDE the horizontally-scrolling
+        hygiene-sheet wrapper. That matters on mobile: the sheet has
+        `min-w-[1100px]` so the physical journal stays printable-wide, but
+        anything inside that wrapper also gets stretched to 1100px — which
+        would force the toolbar off-screen. Pulling it up into normal
+        document flow keeps the toolbar tap-friendly regardless of view.
+      */}
+      <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
+        <StaffJournalToolbar
+          documentId={documentId}
+          heading="Гигиенический журнал"
+          title={documentTitle}
+          status={status}
+          autoFill={autoFill}
+          responsibleTitle={responsibleTitle}
+          users={employees}
+          includedEmployeeIds={includedEmployeeIds}
+          routeCode={routeCode}
+          organizationName={organizationLabel}
+          showHeaderActions
+        />
 
-          {isActive && selectedCount > 0 ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedEmployeeIds([])}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-              >
-                Выбрано: {selectedCount}
-                <X className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeleteSelected}
-                disabled={isDeleting}
-                className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
-              >
-                {isDeleting ? "Удаление..." : "Удалить"}
-              </Button>
+        {isActive && selectedCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSelectedEmployeeIds([])}
+              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            >
+              Выбрано: {selectedCount}
+              <X className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDeleteSelected}
+              disabled={isDeleting}
+              className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+            >
+              {isDeleting ? "Удаление..." : "Удалить"}
+            </Button>
+          </div>
+        ) : null}
+
+        {/* Mobile-only view toggle. Cards is the default — vertical list
+            of employees with day-by-day accordion — far more usable on a
+            phone than a 1100-px-wide table behind horizontal scroll. */}
+        <div
+          role="tablist"
+          aria-label="Режим отображения"
+          className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileView === "cards"}
+            onClick={() => switchMobileView("cards")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
+              mobileView === "cards"
+                ? "bg-[#f5f6ff] text-[#5566f6]"
+                : "text-[#6f7282]"
+            }`}
+          >
+            <LayoutGrid className="size-4" />
+            Карточки
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileView === "table"}
+            onClick={() => switchMobileView("table")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
+              mobileView === "table"
+                ? "bg-[#f5f6ff] text-[#5566f6]"
+                : "text-[#6f7282]"
+            }`}
+          >
+            <Rows3 className="size-4" />
+            Таблица
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile cards view — rendered outside the scroll wrapper so it
+          respects the viewport width naturally. Hidden on sm+ and in
+          print (both always use the table). */}
+      {mobileView === "cards" ? (
+        <div className="mb-6 space-y-2 sm:hidden print:hidden">
+          {printableEmployees
+            .filter((employee) => employee.name)
+            .map((employee) => {
+              const expanded = expandedEmployeeId === employee.id;
+              const filledCount = dateKeys.reduce((acc, dk) => {
+                const entry = normalizeHygieneEntryData(
+                  entryMap[makeCellKey(employee.id, dk)]
+                );
+                return acc + (entry.status ? 1 : 0);
+              }, 0);
+              const isSelected = selectedEmployeeIds.includes(employee.id);
+
+              return (
+                <div
+                  key={employee.id}
+                  className="rounded-2xl border border-[#ececf4] bg-white"
+                >
+                  <div className="flex items-center gap-3 px-3 py-3">
+                    <span
+                      onClick={(event) => event.stopPropagation()}
+                      className="shrink-0"
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (!isActive) return;
+                          toggleEmployee(employee.id, Boolean(checked));
+                        }}
+                        disabled={!isActive}
+                        className="size-5"
+                      />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedEmployeeId(expanded ? null : employee.id)
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14px] font-medium text-[#0b1024]">
+                          {employee.name}
+                        </div>
+                        <div className="truncate text-[12px] text-[#6f7282]">
+                          {employee.position || "—"}
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
+                        {filledCount}/{dateKeys.length}
+                      </span>
+                      <ChevronDown
+                        className={`size-4 shrink-0 text-[#6f7282] transition-transform ${
+                          expanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {expanded ? (
+                    <div className="space-y-1.5 border-t border-[#ececf4] p-3">
+                      {dateKeys.map((dateKey) => {
+                        const key = makeCellKey(employee.id, dateKey);
+                        const entry = normalizeHygieneEntryData(
+                          entryMap[key]
+                        );
+                        const statusMeta = getStatusMeta(entry.status);
+                        const tempLabel = getTemperatureLabel(entry);
+                        const isSaving = savingCellKey === key;
+                        const dayNum = getDayNumber(dateKey);
+
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center gap-2 rounded-xl px-1 py-1.5 ${
+                              isSaving ? "bg-[#f7f8ff]" : ""
+                            }`}
+                          >
+                            <span className="w-8 shrink-0 text-center text-[13px] font-medium text-[#6f7282]">
+                              {dayNum}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isActive) return;
+                                handleStatusClick(
+                                  employee.id,
+                                  dateKey
+                                ).catch(() => {});
+                              }}
+                              disabled={!isActive}
+                              className="min-w-0 flex-1 rounded-lg border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-left text-[12px] font-medium text-[#0b1024] hover:bg-[#f5f6ff] disabled:opacity-60"
+                            >
+                              {statusMeta?.code ? (
+                                <>
+                                  <span className="font-semibold">
+                                    {statusMeta.code}
+                                  </span>
+                                  <span className="ml-1.5 text-[#6f7282]">
+                                    {statusMeta.label}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[#9b9fb3]">— не заполнено</span>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isActive) return;
+                                handleTemperatureClick(
+                                  employee.id,
+                                  dateKey
+                                ).catch(() => {});
+                              }}
+                              disabled={!isActive}
+                              title="Температура >37°C"
+                              className="shrink-0 rounded-lg border border-[#ececf4] bg-[#fafbff] px-2 py-2 text-[12px] text-[#6f7282] hover:bg-[#f5f6ff] disabled:opacity-60"
+                            >
+                              T°: {tempLabel || "—"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {isActive ? (
+                        <div className="pt-1 text-[11px] text-[#6f7282]">
+                          Тап по статусу перебирает{" "}
+                          {HYGIENE_STATUS_OPTIONS.map((item) => item.code).join(
+                            " / "
+                          )}
+                          . T° — между «нет» и «да».
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          {printableEmployees.filter((employee) => employee.name).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
+              В документе пока нет сотрудников. Добавьте их через «+ Новая
+              строка» в меню документа.
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      <div
+        className={`${
+          mobileView === "cards" ? "hidden sm:block print:block" : ""
+        }`}
+      >
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
+        <div className="hygiene-sheet mx-auto min-w-[1100px] max-w-[1720px] px-8 py-6 sm:min-w-0">
 
         <div className="hygiene-page">
           <div className="mx-auto max-w-[1380px]">
@@ -589,6 +818,7 @@ export function HygieneDocumentClient({
             ) : null}
           </div>
         </div>
+      </div>
       </div>
       </div>
     </div>
