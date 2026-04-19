@@ -78,7 +78,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
 
       <div className="rounded-2xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="mb-4 text-[18px] font-semibold">Подписка</div>
-        <dl className="grid grid-cols-3 gap-6 text-[14px]">
+        <dl className="grid grid-cols-1 gap-4 text-[14px] sm:grid-cols-3 sm:gap-6">
           <div>
             <dt className="text-[#8a8ea4]">Тариф</dt>
             <dd className="mt-1 font-semibold text-black">{org.subscriptionPlan}</dd>

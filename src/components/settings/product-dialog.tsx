@@ -123,7 +123,7 @@ export function ProductDialog({ product }: ProductDialogProps) {
               <Input id="prod-barcode" value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="4600000000000" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="prod-unit">Единица</Label>
               <Input id="prod-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg" />
