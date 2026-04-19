@@ -1,5 +1,8 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import {
+  ALL_DAILY_JOURNAL_CODES,
+  COUNTS_UNBOUNDED_CODES,
+} from "@/lib/daily-journal-codes";
 
 /**
  * Top-of-page banner for a journal's documents list. Tells staff at a
@@ -30,7 +33,14 @@ export function TodayPendingBanner({
   if (!isMandatory) return null;
   if (!ALL_DAILY_JOURNAL_CODES.has(templateCode)) return null;
 
+  const countsAreBounded = !COUNTS_UNBOUNDED_CODES.has(templateCode);
+
   if (filled) {
+    const greenDetail = countsAreBounded && expectedCount > 0
+      ? ` (${todayCount} из ${expectedCount} строк)`
+      : todayCount > 0
+        ? ` (${todayCount} ${todayCount === 1 ? "запись" : todayCount < 5 ? "записи" : "записей"})`
+        : "";
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] px-4 py-3 sm:px-5 sm:py-4">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#d9f4e1] text-[#136b2a]">
@@ -41,11 +51,8 @@ export function TodayPendingBanner({
             Сегодня записи уже есть
           </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#136b2a]/80">
-            {templateName} заполнен за сегодняшнее число
-            {expectedCount > 0
-              ? ` (${todayCount} из ${expectedCount} строк)`
-              : ""}
-            . Можно открыть документ, чтобы проверить или дополнить записи.
+            {templateName} заполнен за сегодняшнее число{greenDetail}.
+            Можно открыть документ, чтобы проверить или дополнить записи.
           </p>
         </div>
       </div>
@@ -53,12 +60,14 @@ export function TodayPendingBanner({
   }
 
   // Tailor the body copy to the state — no doc, partial fill, or empty.
-  const partialFill = todayCount > 0 && expectedCount > 0;
+  const partialFill = countsAreBounded && todayCount > 0 && expectedCount > 0;
   const description = noActiveDocument
     ? "Активного документа на сегодня нет. Создайте новый документ кнопкой «Создать документ» сверху и начните заполнять записи за текущий день."
     : partialFill
       ? `За сегодня заполнено ${todayCount} из ${expectedCount} строк. Откройте активный документ и внесите оставшиеся — как только все обязательные строки будут готовы, этот блок исчезнет.`
-      : "За сегодня ещё нет записей. Откройте активный документ и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет.";
+      : countsAreBounded
+        ? "За сегодня ещё нет записей. Откройте активный документ и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет."
+        : "За сегодня ещё нет ни одной записи. Откройте активный документ и внесите данные по событиям текущего дня.";
 
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:px-5 sm:py-4">

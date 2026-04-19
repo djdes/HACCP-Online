@@ -43,6 +43,17 @@ export const CONFIG_DAILY_CODES = new Set<string>([
 ]);
 
 /**
+ * Journals where the "expected count" isn't a fixed roster — every row
+ * is an event (a batch inspection, a delivery acceptance). The UI
+ * should treat these as «at least one row for today» instead of the
+ * normal «X из Y». Subset of CONFIG_DAILY_CODES.
+ */
+export const COUNTS_UNBOUNDED_CODES = new Set<string>([
+  "finished_product",
+  "perishable_rejection",
+]);
+
+/**
  * Union of all daily codes — used wherever UI just needs to know
  * «does this journal have a daily obligation?» (dashboard tile
  * badges, banner visibility gating).

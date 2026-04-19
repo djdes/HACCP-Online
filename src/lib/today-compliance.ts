@@ -197,10 +197,13 @@ function rollupConfigDocumentForDay(
 
 /**
  * Returns the set of JournalTemplate IDs considered "filled today"
- * (organization-scoped). See module-level docstring for the rules.
- * Aperiodic journals (not in `DAILY_JOURNAL_CODES`) are always
+ * (organization-scoped). Aperiodic journals (not in
+ * `DAILY_JOURNAL_CODES` and not in `CONFIG_DAILY_CODES`) are always
  * treated as filled and returned whenever the caller provides their
- * template codes via `allTemplates`.
+ * template codes via `allTemplates`. Daily journals have their
+ * filled-ness computed from either `JournalDocumentEntry` rows
+ * (DAILY_JOURNAL_CODES) or inline config rows (CONFIG_DAILY_CODES)
+ * — see module-level docstring for the exact rules.
  */
 export async function getTemplatesFilledToday(
   organizationId: string,
