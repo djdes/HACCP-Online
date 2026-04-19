@@ -94,7 +94,7 @@ function SettingsDialog(props: {
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
         <DialogHeader className="border-b px-8 py-7">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <DialogTitle className="text-[22px] font-medium text-black">
               {props.dialogTitle}
             </DialogTitle>
@@ -172,7 +172,7 @@ function DeleteDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
         <DialogHeader className="border-b px-8 py-7">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <DialogTitle className="text-[22px] font-medium text-black">
               Удаление документа &quot;{props.title}&quot;
             </DialogTitle>
@@ -272,7 +272,7 @@ export function AccidentDocumentsClient({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">
           {ACCIDENT_DOCUMENT_HEADING}
         </h1>

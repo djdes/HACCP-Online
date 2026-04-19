@@ -185,7 +185,7 @@ export function FryerOilDocumentsClient(props: Props) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">
           {pageTitle}
         </h1>

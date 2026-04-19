@@ -98,10 +98,18 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const fullAccess = hasFullWorkspaceAccess({ role: userRole, isRoot });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [buildInfo, setBuildInfo] = useState({
     buildId: "...",
     buildTime: "",
   });
+
+  // Close the mobile nav drawer automatically when the route changes —
+  // иначе после тапа на пункт меню Sheet остаётся открытым и перекрывает
+  // новую страницу. Reacts on `pathname` from usePathname().
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,7 +261,7 @@ export function Header({
         </div>
 
         <div className="flex-1 md:hidden" />
-        <Sheet>
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="size-5" />

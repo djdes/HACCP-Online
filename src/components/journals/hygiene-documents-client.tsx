@@ -273,12 +273,12 @@ export function HygieneDocumentsClient({
 
   return (
     <>
-      <div className="space-y-14">
-        <div className="flex items-center justify-between">
+      <div className="space-y-8 sm:space-y-14">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[32px] text-[#0b1024]">
             {getJournalDocumentHeading(templateCode, activeTab === "closed")}
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <Button
               variant="outline"
               className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
