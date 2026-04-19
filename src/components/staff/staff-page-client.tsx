@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Pencil,
   Plus,
+  RefreshCcw,
   Send,
   Trash2,
   Unlink,
@@ -982,17 +983,19 @@ function CategoryColumn(props: {
                                 </span>
                               ) : null}
                             </span>
-                            <span className="flex shrink-0 items-center gap-1">
+                            <span className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                               {e.telegramLinked && props.telegramBotUrl ? (
                                 <Link
                                   href={props.telegramBotUrl}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(event) => event.stopPropagation()}
+                                  title="Открыть TG"
+                                  aria-label="Открыть TG"
                                   className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#dcdfed] bg-white px-2 text-[11px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
                                 >
                                   <ExternalLink className="size-3.5" />
-                                  Открыть TG
+                                  <span className="hidden sm:inline">Открыть TG</span>
                                 </Link>
                               ) : (
                                 <button
@@ -1002,10 +1005,12 @@ function CategoryColumn(props: {
                                     event.stopPropagation();
                                     props.onInviteTelegram(e);
                                   }}
+                                  title="Пригласить в TG"
+                                  aria-label="Пригласить в TG"
                                   className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#dbe1ff] bg-[#eef1ff] px-2 text-[11px] font-medium text-[#4054d8] hover:bg-[#e5e9ff]"
                                 >
                                   <Send className="size-3.5" />
-                                  Пригласить в TG
+                                  <span className="hidden sm:inline">Пригласить в TG</span>
                                 </button>
                               )}
                               {e.telegramLinked ? (
@@ -1017,9 +1022,12 @@ function CategoryColumn(props: {
                                     event.stopPropagation();
                                     props.onRebindTelegram(e);
                                   }}
-                                  className="inline-flex h-7 items-center rounded-lg border border-[#dcdfed] bg-white px-2 text-[11px] font-medium text-[#6f7282] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+                                  title="Перепривязать"
+                                  aria-label="Перепривязать"
+                                  className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#dcdfed] bg-white px-2 text-[11px] font-medium text-[#6f7282] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#0b1024]"
                                 >
-                                  Перепривязать
+                                  <RefreshCcw className="size-3.5" />
+                                  <span className="hidden sm:inline">Перепривязать</span>
                                   </button>
                                   <button
                                     type="button"
@@ -1028,10 +1036,12 @@ function CategoryColumn(props: {
                                       event.stopPropagation();
                                       props.onUnlinkTelegram(e);
                                     }}
+                                    title="Отвязать"
+                                    aria-label="Отвязать"
                                     className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#ffd2cd] bg-[#fff4f2] px-2 text-[11px] font-medium text-[#d2453d] hover:bg-[#ffecea]"
                                   >
                                     <Unlink className="size-3.5" />
-                                    Отвязать
+                                    <span className="hidden sm:inline">Отвязать</span>
                                   </button>
                                 </>
                               ) : null}

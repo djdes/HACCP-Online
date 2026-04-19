@@ -237,6 +237,46 @@ import {
   stripBotInvitePrefix,
 } from "../src/lib/bot-invite-tokens";
 
+// Shared reply builder — keeps poller (long-polling) in sync with the
+// webhook flow in src/lib/bot/handlers/start.ts so both produce the same
+// «Открыть кабинет» Web App button instead of the old Журналы/Профиль
+// menu (removed per 2026-04-19 product decision).
+import {
+  buildTelegramLinkedStartReply,
+  buildTelegramUnlinkedStartReply,
+  TELEGRAM_COMMANDS,
+} from "../src/lib/bot/start-response";
+
+function miniAppUrl(): string {
+  return (
+    process.env.MINI_APP_BASE_URL || `${WEB_BASE.replace(/\/+$/, "")}/mini`
+  );
+}
+
+async function replyLinkedStart(
+  ctx: Context,
+  actor: { name: string; role: string; isRoot: boolean }
+) {
+  const reply = buildTelegramLinkedStartReply(actor, miniAppUrl());
+  await ctx.reply(
+    reply.text,
+    reply.buttonLabel && reply.buttonUrl
+      ? {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: reply.buttonLabel,
+                  web_app: { url: reply.buttonUrl },
+                },
+              ],
+            ],
+          },
+        }
+      : undefined
+  );
+}
+
 // ---------------------------------------------------------------------------
 // In-memory wizard state. Keyed by chat id — one wizard per chat.
 // Bot restart clears state; users just rerun the wizard.
@@ -773,7 +813,28 @@ bot.use(async (ctx, next) => {
 bot.command("start", async (ctx) => {
   const token = ctx.match?.trim();
   if (!token) {
-    await showMainMenu(ctx);
+    const fromId = ctx.from?.id;
+    if (!fromId) {
+      await ctx.reply("Не удалось определить ваш Telegram-аккаунт.");
+      return;
+    }
+    const linkedUser = await prisma.user.findFirst({
+      where: {
+        telegramChatId: String(fromId),
+        isActive: true,
+        archivedAt: null,
+      },
+      select: { name: true, role: true, isRoot: true },
+    });
+    if (!linkedUser) {
+      await ctx.reply(buildTelegramUnlinkedStartReply().text);
+      return;
+    }
+    await replyLinkedStart(ctx, {
+      name: linkedUser.name,
+      role: linkedUser.role,
+      isRoot: linkedUser.isRoot === true,
+    });
     return;
   }
 
@@ -833,35 +894,25 @@ bot.command("start", async (ctx) => {
       }),
     ]);
 
-    const miniBase =
-      process.env.MINI_APP_BASE_URL || `${WEB_BASE.replace(/\/+$/, "")}/mini`;
-
-    await ctx.reply(
-      `Готово, ${invite.user.name}! Откройте рабочий кабинет кнопкой ниже.`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Открыть кабинет",
-                web_app: { url: miniBase },
-              },
-            ],
-          ],
-        },
-      }
-    );
+    await replyLinkedStart(ctx, {
+      name: invite.user.name,
+      role: invite.user.role,
+      isRoot: invite.user.isRoot === true,
+    });
     return;
   }
 
   const parsed = parseLinkToken(token);
   if (!parsed) {
     await ctx.reply(
-      "Неверная ссылка привязки. Попробуйте получить новую ссылку в настройках WeSetup."
+      "Неверная ссылка привязки. Попросите руководителя создать новую."
     );
     return;
   }
-  const user = await prisma.user.findUnique({ where: { id: parsed.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: parsed.userId },
+    select: { id: true, name: true, role: true, isRoot: true },
+  });
   if (!user) {
     await ctx.reply("Пользователь не найден. Проверьте ссылку привязки.");
     return;
@@ -871,8 +922,11 @@ bot.command("start", async (ctx) => {
     where: { id: parsed.userId },
     data: { telegramChatId: chatId },
   });
-  await ctx.reply("✅ Аккаунт успешно привязан!");
-  await showMainMenu(ctx);
+  await replyLinkedStart(ctx, {
+    name: user.name,
+    role: user.role,
+    isRoot: user.isRoot === true,
+  });
 });
 
 bot.command("stop", async (ctx) => {
@@ -895,162 +949,38 @@ bot.command("stop", async (ctx) => {
   );
 });
 
-bot.command("menu", showMainMenu);
-bot.command("journals", (ctx) => showJournalsList(ctx, 0));
+// Removed 2026-04-19 per product decision:
+//   - /menu and /journals commands (chat-native journal wizard is gone)
+//   - all callback_query handlers (nav / wizard state)
+//   - message:text fallthrough that re-opened the menu
+// Bot now answers /start (with or without a payload) with a single
+// «Открыть кабинет» Web App button pointing at the Mini App, and /stop.
+// Any other input is silently ignored — the Mini App is the only UX.
 
-bot.command("cancel", async (ctx) => {
-  if (ctx.chat && wizards.has(ctx.chat.id)) {
-    wizards.delete(ctx.chat.id);
-    await ctx.reply("Заполнение отменено.");
-  } else {
-    await ctx.reply("Нечего отменять.");
-  }
-});
-
-bot.on("callback_query:data", async (ctx) => {
-  const data = ctx.callbackQuery.data || "";
-  try {
-    if (data === "noop") {
-      await ctx.answerCallbackQuery();
-      return;
-    }
-    if (data === "nav:menu") {
-      await ctx.answerCallbackQuery();
-      await showMainMenu(ctx);
-      return;
-    }
-    if (data === "nav:profile") {
-      await ctx.answerCallbackQuery();
-      const linked = await getLinkedUser(ctx);
-      if (!linked) {
-        await ctx.reply("Вы не привязаны. /start");
-        return;
-      }
-      const kb = new InlineKeyboard()
-        .url("⚙️ Настройки в вебе", `${WEB_BASE}/settings/notifications`)
-        .row()
-        .text("Отвязать", "profile:unlink");
-      await ctx.reply(
-        `<b>${escapeHtml(linked.name || "")}</b>\nРоль: ${escapeHtml(linked.role || "—")}`,
-        { parse_mode: "HTML", reply_markup: kb }
-      );
-      return;
-    }
-    if (data === "profile:unlink") {
-      await ctx.answerCallbackQuery();
-      const linked = await getLinkedUser(ctx);
-      if (linked) {
-        await prisma.user.update({
-          where: { id: linked.id },
-          data: { telegramChatId: null },
-        });
-        await ctx.reply("Аккаунт отвязан.");
-      }
-      return;
-    }
-    const pageMatch = data.match(/^nav:journals:(\d+)$/);
-    if (pageMatch) {
-      await ctx.answerCallbackQuery();
-      await showJournalsList(ctx, Number(pageMatch[1]));
-      return;
-    }
-    const cardMatch = data.match(/^j:([a-z0-9_]+)$/);
-    if (cardMatch) {
-      await ctx.answerCallbackQuery();
-      await showJournalCard(ctx, cardMatch[1]);
-      return;
-    }
-    const newMatch = data.match(/^j:([a-z0-9_]+):new$/);
-    if (newMatch) {
-      await ctx.answerCallbackQuery();
-      await startWizard(ctx, newMatch[1]);
-      return;
-    }
-    const recentMatch = data.match(/^j:([a-z0-9_]+):recent$/);
-    if (recentMatch) {
-      await ctx.answerCallbackQuery();
-      await showRecent(ctx, recentMatch[1]);
-      return;
-    }
-    // Wizard callbacks
-    if (!ctx.chat || !wizards.has(ctx.chat.id)) {
-      await ctx.answerCallbackQuery({ text: "Сессия истекла" });
-      return;
-    }
-    const w = wizards.get(ctx.chat.id)!;
-    if (data === "w:cancel") {
-      await ctx.answerCallbackQuery({ text: "Отменено" });
-      wizards.delete(ctx.chat.id);
-      await ctx.reply("Заполнение отменено.");
-      return;
-    }
-    if (data === "w:skip") {
-      await ctx.answerCallbackQuery();
-      w.index += 1;
-      await askCurrentField(ctx);
-      return;
-    }
-    if (data === "w:save") {
-      await ctx.answerCallbackQuery();
-      await saveWizard(ctx);
-      return;
-    }
-    if (data === "w:restart") {
-      await ctx.answerCallbackQuery();
-      w.index = 0;
-      w.data = {};
-      await askCurrentField(ctx);
-      return;
-    }
-    const boolMatch = data.match(/^w:bool:(0|1)$/);
-    if (boolMatch) {
-      await ctx.answerCallbackQuery();
-      const f = w.fields[w.index];
-      w.data[f.key] = boolMatch[1] === "1";
-      w.index += 1;
-      await askCurrentField(ctx);
-      return;
-    }
-    const selMatch = data.match(/^w:sel:(\d+)$/);
-    if (selMatch) {
-      await ctx.answerCallbackQuery();
-      const f = w.fields[w.index];
-      const idx = Number(selMatch[1]);
-      const opt = f.options?.[idx];
-      if (opt) w.data[f.key] = opt.value;
-      w.index += 1;
-      await askCurrentField(ctx);
-      return;
-    }
-    const refMatch = data.match(/^w:ref:(\d+)$/);
-    if (refMatch) {
-      await ctx.answerCallbackQuery();
-      const f = w.fields[w.index];
-      const list = (w as WizardState & {
-        _refList?: Array<{ id: string; name: string }>;
-      })._refList;
-      const idx = Number(refMatch[1]);
-      const item = list?.[idx];
-      if (item) w.data[f.key] = item.id;
-      w.index += 1;
-      await askCurrentField(ctx);
-      return;
-    }
-    await ctx.answerCallbackQuery();
-  } catch (err) {
-    console.error("[cb] error", err);
-    await ctx.answerCallbackQuery({ text: "Ошибка" }).catch(() => {});
-  }
-});
-
+// Stray non-/start messages: ignore silently. Previously fell through
+// to showMainMenu which is gone.
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text || "";
   if (text.startsWith("/")) return;
-  if (ctx.chat && wizards.has(ctx.chat.id)) {
-    await handleWizardText(ctx, text);
+  const fromId = ctx.from?.id;
+  if (!fromId) return;
+  const linkedUser = await prisma.user.findFirst({
+    where: {
+      telegramChatId: String(fromId),
+      isActive: true,
+      archivedAt: null,
+    },
+    select: { name: true, role: true, isRoot: true },
+  });
+  if (!linkedUser) {
+    await ctx.reply(buildTelegramUnlinkedStartReply().text);
     return;
   }
-  await showMainMenu(ctx);
+  await replyLinkedStart(ctx, {
+    name: linkedUser.name,
+    role: linkedUser.role,
+    isRoot: linkedUser.isRoot === true,
+  });
 });
 
 bot.catch((err) => {
@@ -1063,6 +993,14 @@ async function main() {
     console.log("[poller] webhook cleared, starting long polling");
   } catch (err) {
     console.error("[poller] deleteWebhook failed", err);
+  }
+  try {
+    // Show only /start in the native Telegram command menu. Without this
+    // Telegram remembers the old /menu, /journals, /cancel entries set by
+    // previous versions of the bot.
+    await bot.api.setMyCommands([...TELEGRAM_COMMANDS]);
+  } catch (err) {
+    console.error("[poller] setMyCommands failed", err);
   }
   await bot.start({
     onStart: (me) => console.log(`[poller] @${me.username} listening`),
