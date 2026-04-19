@@ -141,12 +141,12 @@ export default async function EntryDetailPage({
           <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
           <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <div className="relative z-10 flex flex-col gap-4 p-8 sm:flex-row sm:items-start sm:justify-between md:p-10">
+        <div className="relative z-10 flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-8 md:p-10">
           <div className="max-w-[640px]">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               \u0417\u0430\u043f\u0438\u0441\u044c
             </div>
-            <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.02em] sm:text-[28px]">
               {entry.template.name}
             </h1>
             <p className="mt-1.5 text-[14px] text-white/70">
