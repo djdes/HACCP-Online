@@ -217,6 +217,9 @@ export type TemplateTodaySummary = {
   /** Sum of expected rows across all active documents for today. 0 when
    * the template has no documents (or all are brand-new without history). */
   expectedCount: number;
+  /** True when there isn't a single active `JournalDocument` covering
+   * today — the user has nothing to fill into and needs to create one. */
+  noActiveDocument: boolean;
 };
 
 /**
@@ -236,7 +239,13 @@ export async function getTemplateTodaySummary(
 
   // Aperiodic journals are treated as filled — no daily obligation.
   if (templateCode && !DAILY_JOURNAL_CODES.has(templateCode)) {
-    return { filled: true, aperiodic: true, todayCount: 0, expectedCount: 0 };
+    return {
+      filled: true,
+      aperiodic: true,
+      todayCount: 0,
+      expectedCount: 0,
+      noActiveDocument: false,
+    };
   }
 
   const [legacyCount, activeDocuments] = await Promise.all([
@@ -265,10 +274,17 @@ export async function getTemplateTodaySummary(
       aperiodic: false,
       todayCount: legacyCount,
       expectedCount: legacyCount,
+      noActiveDocument: false,
     };
   }
   if (activeDocuments.length === 0) {
-    return { filled: false, aperiodic: false, todayCount: 0, expectedCount: 0 };
+    return {
+      filled: false,
+      aperiodic: false,
+      todayCount: 0,
+      expectedCount: 0,
+      noActiveDocument: true,
+    };
   }
 
   const rollups = await Promise.all(
@@ -281,7 +297,13 @@ export async function getTemplateTodaySummary(
   const expectedCount = rollups.reduce((sum, r) => sum + r.expectedCount, 0);
   const filled = rollups.every((r) => r.filled);
 
-  return { filled, aperiodic: false, todayCount, expectedCount };
+  return {
+    filled,
+    aperiodic: false,
+    todayCount,
+    expectedCount,
+    noActiveDocument: false,
+  };
 }
 
 // Kept for future consumers (e.g. analytics) — intentionally unused now.

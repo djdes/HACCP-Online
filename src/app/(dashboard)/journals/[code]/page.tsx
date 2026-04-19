@@ -1337,6 +1337,7 @@ export default async function JournalDocumentsPage({
       templateName={template.name}
       todayCount={todaySummary.todayCount}
       expectedCount={todaySummary.expectedCount}
+      noActiveDocument={todaySummary.noActiveDocument}
     />
   );
   function withBanner(children: React.ReactNode) {

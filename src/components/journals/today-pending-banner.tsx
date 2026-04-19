@@ -17,6 +17,7 @@ export function TodayPendingBanner({
   templateName,
   todayCount = 0,
   expectedCount = 0,
+  noActiveDocument = false,
 }: {
   filled: boolean;
   isMandatory: boolean;
@@ -24,6 +25,7 @@ export function TodayPendingBanner({
   templateName: string;
   todayCount?: number;
   expectedCount?: number;
+  noActiveDocument?: boolean;
 }) {
   if (!isMandatory) return null;
   if (!DAILY_JOURNAL_CODES.has(templateCode)) return null;
@@ -50,12 +52,13 @@ export function TodayPendingBanner({
     );
   }
 
-  // Tailor the body copy to whether some rows are already filled or none
-  // at all. Both paths land in the same red banner.
+  // Tailor the body copy to the state — no doc, partial fill, or empty.
   const partialFill = todayCount > 0 && expectedCount > 0;
-  const description = partialFill
-    ? `За сегодня заполнено ${todayCount} из ${expectedCount} строк. Откройте активный документ и внесите оставшиеся — как только все обязательные строки будут готовы, этот блок исчезнет.`
-    : "За сегодня ещё нет записей. Откройте активный документ и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет.";
+  const description = noActiveDocument
+    ? "Активного документа на сегодня нет. Создайте новый документ кнопкой «Создать документ» сверху и начните заполнять записи за текущий день."
+    : partialFill
+      ? `За сегодня заполнено ${todayCount} из ${expectedCount} строк. Откройте активный документ и внесите оставшиеся — как только все обязательные строки будут готовы, этот блок исчезнет.`
+      : "За сегодня ещё нет записей. Откройте активный документ и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет.";
 
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:px-5 sm:py-4">
