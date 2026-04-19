@@ -15,11 +15,15 @@ export function TodayPendingBanner({
   isMandatory,
   templateCode,
   templateName,
+  todayCount = 0,
+  expectedCount = 0,
 }: {
   filled: boolean;
   isMandatory: boolean;
   templateCode: string;
   templateName: string;
+  todayCount?: number;
+  expectedCount?: number;
 }) {
   if (!isMandatory) return null;
   if (!DAILY_JOURNAL_CODES.has(templateCode)) return null;
@@ -35,13 +39,23 @@ export function TodayPendingBanner({
             Сегодня записи уже есть
           </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#136b2a]/80">
-            {templateName} заполнен за сегодняшнее число. Можно открыть документ,
-            чтобы проверить или дополнить записи.
+            {templateName} заполнен за сегодняшнее число
+            {expectedCount > 0
+              ? ` (${todayCount} из ${expectedCount} строк)`
+              : ""}
+            . Можно открыть документ, чтобы проверить или дополнить записи.
           </p>
         </div>
       </div>
     );
   }
+
+  // Tailor the body copy to whether some rows are already filled or none
+  // at all. Both paths land in the same red banner.
+  const partialFill = todayCount > 0 && expectedCount > 0;
+  const description = partialFill
+    ? `За сегодня заполнено ${todayCount} из ${expectedCount} строк. Откройте активный документ и внесите оставшиеся — как только все обязательные строки будут готовы, этот блок исчезнет.`
+    : "За сегодня ещё нет записей. Откройте активный документ и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет.";
 
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:px-5 sm:py-4">
@@ -53,9 +67,7 @@ export function TodayPendingBanner({
           Нужно заполнить за сегодняшнее число
         </div>
         <p className="mt-0.5 text-[13px] leading-snug text-[#d2453d]/85">
-          За сегодня заполнены ещё не все строки. Откройте активный документ и
-          внесите данные по каждой строке за текущий день — как только все
-          обязательные записи будут внесены, этот блок исчезнет.
+          {description}
         </p>
       </div>
     </div>

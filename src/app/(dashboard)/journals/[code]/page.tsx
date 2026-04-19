@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
 import { HealthDocumentsClient } from "@/components/journals/health-documents-client";
 import { TodayPendingBanner } from "@/components/journals/today-pending-banner";
-import { isTemplateFilledToday } from "@/lib/today-compliance";
+import { getTemplateTodaySummary } from "@/lib/today-compliance";
 import {
   buildDateKeys,
   buildExampleHygieneEntryMap,
@@ -1322,7 +1322,7 @@ export default async function JournalDocumentsPage({
     select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
-  const isFilledToday = await isTemplateFilledToday(
+  const todaySummary = await getTemplateTodaySummary(
     session.user.organizationId,
     template.id,
     template.code
@@ -1331,10 +1331,12 @@ export default async function JournalDocumentsPage({
     template.isMandatorySanpin || template.isMandatoryHaccp;
   const todayBanner = (
     <TodayPendingBanner
-      filled={isFilledToday}
+      filled={todaySummary.filled}
       isMandatory={isMandatoryTemplate}
       templateCode={template.code}
       templateName={template.name}
+      todayCount={todaySummary.todayCount}
+      expectedCount={todaySummary.expectedCount}
     />
   );
   function withBanner(children: React.ReactNode) {

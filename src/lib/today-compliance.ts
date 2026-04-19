@@ -60,11 +60,17 @@ type DayRollup = {
   count: number;
 };
 
-async function isDocumentFilledForDay(
+type DocumentRollup = {
+  todayCount: number;
+  expectedCount: number;
+  filled: boolean;
+};
+
+async function rollupDocumentForDay(
   documentId: string,
   todayStart: Date,
   todayEnd: Date
-): Promise<boolean> {
+): Promise<DocumentRollup> {
   const lookbackStart = new Date(todayStart);
   lookbackStart.setDate(lookbackStart.getDate() - 30);
 
@@ -84,7 +90,6 @@ async function isDocumentFilledForDay(
 
   const todayKey = todayStart.toISOString().slice(0, 10);
   const todayCount = byDay.get(todayKey) ?? 0;
-  if (todayCount === 0) return false;
 
   let priorMax = 0;
   for (const [dayKey, count] of byDay.entries()) {
@@ -93,9 +98,24 @@ async function isDocumentFilledForDay(
   }
 
   // No history → one entry is enough (first day of a brand-new document).
-  if (priorMax === 0) return true;
+  if (priorMax === 0) {
+    return { todayCount, expectedCount: 0, filled: todayCount > 0 };
+  }
 
-  return todayCount >= priorMax;
+  return {
+    todayCount,
+    expectedCount: priorMax,
+    filled: todayCount >= priorMax,
+  };
+}
+
+async function isDocumentFilledForDay(
+  documentId: string,
+  todayStart: Date,
+  todayEnd: Date
+): Promise<boolean> {
+  const rollup = await rollupDocumentForDay(documentId, todayStart, todayEnd);
+  return rollup.filled;
 }
 
 /**
@@ -181,13 +201,48 @@ export async function isTemplateFilledToday(
   templateCode: string | null = null,
   now: Date = new Date()
 ): Promise<boolean> {
+  const summary = await getTemplateTodaySummary(
+    organizationId,
+    templateId,
+    templateCode,
+    now
+  );
+  return summary.filled;
+}
+
+export type TemplateTodaySummary = {
+  filled: boolean;
+  /** True when the template has no daily obligation. UI may want to hide
+   * progress bars in that case. */
+  aperiodic: boolean;
+  /** Sum of `JournalDocumentEntry` rows across all active documents for
+   * today (across the template). 0 when only legacy entries exist. */
+  todayCount: number;
+  /** Sum of expected rows across all active documents for today. 0 when
+   * the template has no documents (or all are brand-new without history). */
+  expectedCount: number;
+};
+
+/**
+ * Detailed per-template summary for today. Powers the per-journal banner
+ * — the banner uses `todayCount`/`expectedCount` to render «X из Y
+ * строк за сегодня заполнено».
+ */
+export async function getTemplateTodaySummary(
+  organizationId: string,
+  templateId: string,
+  templateCode: string | null = null,
+  now: Date = new Date()
+): Promise<TemplateTodaySummary> {
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
   // Aperiodic journals are treated as filled — no daily obligation.
-  if (templateCode && !DAILY_JOURNAL_CODES.has(templateCode)) return true;
+  if (templateCode && !DAILY_JOURNAL_CODES.has(templateCode)) {
+    return { filled: true, aperiodic: true, todayCount: 0, expectedCount: 0 };
+  }
 
   const [legacyCount, activeDocuments] = await Promise.all([
     db.journalEntry.count({
@@ -209,15 +264,29 @@ export async function isTemplateFilledToday(
     }),
   ]);
 
-  if (legacyCount > 0) return true;
-  if (activeDocuments.length === 0) return false;
+  if (legacyCount > 0) {
+    return {
+      filled: true,
+      aperiodic: false,
+      todayCount: legacyCount,
+      expectedCount: legacyCount,
+    };
+  }
+  if (activeDocuments.length === 0) {
+    return { filled: false, aperiodic: false, todayCount: 0, expectedCount: 0 };
+  }
 
-  const checks = await Promise.all(
+  const rollups = await Promise.all(
     activeDocuments.map((doc) =>
-      isDocumentFilledForDay(doc.id, todayStart, todayEnd)
+      rollupDocumentForDay(doc.id, todayStart, todayEnd)
     )
   );
-  return checks.every((ok) => ok);
+
+  const todayCount = rollups.reduce((sum, r) => sum + r.todayCount, 0);
+  const expectedCount = rollups.reduce((sum, r) => sum + r.expectedCount, 0);
+  const filled = rollups.every((r) => r.filled);
+
+  return { filled, aperiodic: false, todayCount, expectedCount };
 }
 
 // Kept for future consumers (e.g. analytics) — intentionally unused now.
