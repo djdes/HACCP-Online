@@ -325,7 +325,7 @@ export function EquipmentCleaningDocumentClient({
         </Button>
       </div>
 
-      <div className="space-y-6 rounded-[20px] border bg-white p-6">
+      <div className="space-y-6 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         <table className="w-full border-collapse">
           <tbody>
             <tr>

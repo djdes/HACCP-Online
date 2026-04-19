@@ -730,7 +730,7 @@ export function GlassControlDocumentClient(props: Props) {
         </div>
       )}
 
-      <div className="rounded-[28px] bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
+      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="mb-8 flex items-center justify-end gap-4 print:hidden">
           <Button
             type="button"

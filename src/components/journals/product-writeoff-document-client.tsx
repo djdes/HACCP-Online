@@ -248,7 +248,7 @@ export function ProductWriteoffDocumentClient({
         </div>
       )}
 
-      <div className="rounded-[28px] bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
+      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="flex items-center justify-end gap-3 print:hidden">
           <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
             Настройки журнала

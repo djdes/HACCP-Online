@@ -259,7 +259,7 @@ export function StaffTrainingDocumentClient({
       </div>
 
       {/* HACCP block */}
-      <div className="space-y-4 rounded-[20px] border bg-white p-6">
+      <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         <table className="w-full border-collapse">
           <tbody>
             <tr>

@@ -146,7 +146,7 @@ export function FinishedProductDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
-      <div className="rounded-[28px] bg-white px-8 py-7 shadow-sm">
+      <div className="rounded-[28px] bg-white px-4 py-5 shadow-sm sm:px-8 sm:py-7">
         <DocumentPageHeader
           backHref="/journals/finished_product"
           documentId={documentId}
@@ -181,22 +181,24 @@ export function FinishedProductDocumentClient({
         </div>
       ) : null}
 
-      <div className="space-y-5 rounded-[20px] border bg-white p-6">
-        <table className="w-full border-collapse">
-          <tbody>
-            <tr>
-              <td rowSpan={2} className="w-[18%] border border-black p-3 text-center font-semibold">{organizationName}</td>
-              <td className="border border-black p-2 text-center">СИСТЕМА ХАССП</td>
-              <td className="w-[20%] border border-black p-2">Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
-            </tr>
-            <tr>
-              <td className="border border-black p-2 text-center text-sm uppercase italic">ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
-              <td className="border border-black p-2">Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="space-y-5 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+          <table className="w-full min-w-[640px] border-collapse sm:min-w-0">
+            <tbody>
+              <tr>
+                <td rowSpan={2} className="w-[18%] border border-black p-3 text-center font-semibold">{organizationName}</td>
+                <td className="border border-black p-2 text-center">СИСТЕМА ХАССП</td>
+                <td className="w-[20%] border border-black p-2">Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
+              </tr>
+              <tr>
+                <td className="border border-black p-2 text-center text-sm uppercase italic">ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
+                <td className="border border-black p-2">Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <h2 className="text-center text-[30px] font-semibold uppercase">Журнал бракеража готовой пищевой продукции</h2>
+        <h2 className="text-center text-[20px] font-semibold uppercase leading-tight sm:text-[30px]">Журнал бракеража готовой пищевой продукции</h2>
 
         {!readOnly && <div className="flex flex-wrap gap-3">
           <DropdownMenu>
@@ -244,8 +246,8 @@ export function FinishedProductDocumentClient({
         <div className="text-[18px] underline">{config.footerNote}</div>
       </div>
 
-      <section className="space-y-4 rounded-[20px] border bg-white p-6">
-        <h3 className="text-[24px] font-semibold">Рекомендации по организации контроля за доброкачественностью готовой пищи</h3>
+      <section className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
+        <h3 className="text-[18px] font-semibold leading-tight sm:text-[24px]">Рекомендации по организации контроля за доброкачественностью готовой пищи</h3>
         {QUALITY_GUIDELINES.map((item) => <p key={item} className="text-[18px] leading-8">{item}</p>)}
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[900px] w-full border-collapse text-[18px]"><thead><tr><th className="border border-black p-3">Группа</th><th className="border border-black p-3">Наименование продукта</th><th className="border border-black p-3">°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className="border border-black p-3 text-center font-semibold">{group}</td><td className="border border-black p-3">{name}</td><td className="border border-black p-3 text-center font-semibold">{temperature}</td></tr>)}</tbody></table>

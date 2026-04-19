@@ -160,7 +160,7 @@ export function GlassListDocumentClient({
         </div>
       )}
 
-      <div className="rounded-[28px] bg-white p-8 shadow-sm">
+      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center justify-end gap-3 text-[14px] text-[#73738a]">
           <Button
             type="button"
