@@ -967,8 +967,8 @@ function PricingCard({
     <div
       className={
         highlighted
-          ? "relative overflow-hidden rounded-3xl bg-[#0b1024] p-8 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]"
-          : "relative rounded-3xl border border-[#ececf4] bg-white p-8 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+          ? "relative overflow-hidden rounded-3xl bg-[#0b1024] p-5 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8"
+          : "relative rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
       }
     >
       {highlighted && (
