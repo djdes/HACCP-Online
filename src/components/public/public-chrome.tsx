@@ -80,33 +80,36 @@ export function PublicFooter() {
           <div>ОГРН 1235000105306</div>
           <div>141065, Московская область, г. Королёв, ул. Ленина, д. 10/6</div>
           <div className="mt-2">
-            <a href="tel:+79996341612" className="hover:text-[#0b1024]">
+            <a
+              href="tel:+79996341612"
+              className="inline-flex min-h-[36px] items-center transition-colors hover:text-[#0b1024]"
+            >
               +7 (999) 634-16-12
             </a>
           </div>
           <div>
             <a
               href="mailto:magazinlenina@gmail.com"
-              className="hover:text-[#0b1024]"
+              className="inline-flex min-h-[36px] items-center break-all transition-colors hover:text-[#0b1024]"
             >
               magazinlenina@gmail.com
             </a>
           </div>
         </div>
 
-        <div className="flex flex-col flex-wrap gap-2 text-[13px] text-[#6f7282] md:items-end">
+        <div className="flex flex-col flex-wrap text-[13px] text-[#6f7282] md:items-end">
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3] md:text-right">
             Разделы
           </div>
-          <Link href="/blog" className="hover:text-[#0b1024]">Блог</Link>
-          <Link href="/journals-info" className="hover:text-[#0b1024]">Журналы</Link>
-          <Link href="/login" className="hover:text-[#0b1024]">Войти</Link>
-          <Link href="/register" className="hover:text-[#0b1024]">Регистрация</Link>
+          <Link href="/blog" className="py-2.5 transition-colors hover:text-[#0b1024]">Блог</Link>
+          <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
+          <Link href="/login" className="py-2.5 transition-colors hover:text-[#0b1024]">Войти</Link>
+          <Link href="/register" className="py-2.5 transition-colors hover:text-[#0b1024]">Регистрация</Link>
           <a
             href="https://t.me/wesetupbot"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#0b1024]"
+            className="py-2.5 transition-colors hover:text-[#0b1024]"
           >
             Telegram
           </a>
