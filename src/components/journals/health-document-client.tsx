@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronDown, LayoutGrid, Rows3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -136,6 +136,33 @@ export function HealthDocumentClient(props: Props) {
   const [emptyRows, setEmptyRows] = useState(String(printEmptyRows));
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Mobile-only view preference: 'cards' (default) vs 'table'. See
+  // hygiene-document-client.tsx for the full rationale — a 1100-px-wide
+  // grid behind horizontal scroll is unusable on a phone, so by default
+  // we collapse the journal into an accordion per employee. Print and
+  // sm+ viewports always use the table.
+  const [mobileView, setMobileView] = useState<"cards" | "table">("cards");
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("health-mobile-view");
+      if (saved === "table" || saved === "cards") setMobileView(saved);
+    } catch {
+      /* localStorage blocked — fall back to default 'cards' */
+    }
+  }, []);
+
+  function switchMobileView(next: "cards" | "table") {
+    setMobileView(next);
+    try {
+      window.localStorage.setItem("health-mobile-view", next);
+    } catch {
+      /* ignore */
+    }
+  }
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
@@ -279,8 +306,8 @@ export function HealthDocumentClient(props: Props) {
         }
       `}</style>
 
-      <div className="health-sheet mx-auto max-w-[1720px] px-8 py-6">
-        <div className="screen-only mb-10 space-y-10">
+      <div className="health-sheet mx-auto max-w-[1720px] px-4 py-4 sm:px-8 sm:py-6">
+        <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
           <StaffJournalToolbar
             documentId={documentId}
             heading="Журнал Здоровья"
@@ -323,8 +350,166 @@ export function HealthDocumentClient(props: Props) {
               </Button>
             </div>
           )}
+
+          {/* Mobile-only view toggle. Cards = accordion per employee (a
+              lot easier to read on a 320-px phone than a 1100-px grid
+              behind horizontal scroll). */}
+          <div
+            role="tablist"
+            aria-label="Режим отображения"
+            className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileView === "cards"}
+              onClick={() => switchMobileView("cards")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
+                mobileView === "cards"
+                  ? "bg-[#f5f6ff] text-[#5566f6]"
+                  : "text-[#6f7282]"
+              }`}
+            >
+              <LayoutGrid className="size-4" />
+              Карточки
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileView === "table"}
+              onClick={() => switchMobileView("table")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
+                mobileView === "table"
+                  ? "bg-[#f5f6ff] text-[#5566f6]"
+                  : "text-[#6f7282]"
+              }`}
+            >
+              <Rows3 className="size-4" />
+              Таблица
+            </button>
+          </div>
         </div>
 
+        {/* Mobile Cards view — hidden on sm+ and in print. Read-only
+            display of each employee's per-day sign-off and measures. */}
+        {mobileView === "cards" ? (
+          <div className="mb-6 space-y-2 sm:hidden print:hidden">
+            {printableEmployees
+              .filter((employee) => employee.name)
+              .map((employee) => {
+                const expanded = expandedEmployeeId === employee.id;
+                const signedCount = dateKeys.reduce((acc, dk) => {
+                  const d = entryMap[makeCellKey(employee.id, dk)];
+                  return acc + (d?.signed ? 1 : 0);
+                }, 0);
+                const isSelected = selectedEmployeeIds.includes(employee.id);
+                const measures = getHealthMeasures(
+                  employee.id,
+                  dateKeys,
+                  entryMap
+                );
+
+                return (
+                  <div
+                    key={employee.id}
+                    className="rounded-2xl border border-[#ececf4] bg-white"
+                  >
+                    <div className="flex items-center gap-3 px-3 py-3">
+                      <span
+                        onClick={(event) => event.stopPropagation()}
+                        className="shrink-0"
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (status !== "active") return;
+                            toggleEmployee(employee.id, Boolean(checked));
+                          }}
+                          disabled={status !== "active"}
+                          className="size-5"
+                        />
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedEmployeeId(expanded ? null : employee.id)
+                        }
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14px] font-medium text-[#0b1024]">
+                            {employee.name}
+                          </div>
+                          <div className="truncate text-[12px] text-[#6f7282]">
+                            {employee.position ||
+                              getHygienePositionLabel("operator")}
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
+                          {signedCount}/{dateKeys.length}
+                        </span>
+                        <ChevronDown
+                          className={`size-4 shrink-0 text-[#6f7282] transition-transform ${
+                            expanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {expanded ? (
+                      <div className="space-y-1.5 border-t border-[#ececf4] p-3">
+                        {dateKeys.map((dateKey) => {
+                          const d = entryMap[makeCellKey(employee.id, dateKey)];
+                          const signed = Boolean(d?.signed);
+                          return (
+                            <div
+                              key={`${employee.id}:${dateKey}`}
+                              className="flex items-center gap-2 rounded-xl px-1 py-1.5"
+                            >
+                              <span className="w-12 shrink-0 text-center text-[13px] font-medium text-[#6f7282]">
+                                {getDayNumber(dateKey)}{" "}
+                                {getWeekdayShort(dateKey)}.
+                              </span>
+                              <span
+                                className={`min-w-0 flex-1 rounded-lg px-3 py-2 text-[12px] font-medium ${
+                                  signed
+                                    ? "bg-[#f5f6ff] text-[#5566f6]"
+                                    : "bg-[#fafbff] text-[#9b9fb3]"
+                                }`}
+                              >
+                                {signed ? "Подпись есть" : "— не заполнено"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {measures.length > 0 ? (
+                          <div className="mt-2 rounded-xl border border-[#ececf4] bg-[#fafbff] p-3 text-[13px] leading-5 text-[#3c4053]">
+                            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
+                              Принятые меры
+                            </div>
+                            {measures.map((item) => (
+                              <div key={`${employee.id}:m:${item}`}>{item}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            {printableEmployees.filter((employee) => employee.name).length ===
+            0 ? (
+              <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
+                В документе пока нет сотрудников.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div
+          className={`${
+            mobileView === "cards" ? "hidden sm:block print:block" : ""
+          }`}
+        >
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto min-w-[1100px] max-w-[1860px] sm:min-w-0">
           <div className="mb-10">
@@ -470,6 +655,7 @@ export function HealthDocumentClient(props: Props) {
             ))}
             <p className="font-semibold">{HEALTH_REGISTER_REMINDER}</p>
           </div>
+        </div>
         </div>
         </div>
       </div>
