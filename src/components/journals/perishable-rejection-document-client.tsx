@@ -32,6 +32,15 @@ import {
 } from "@/lib/perishable-rejection-document";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { PositionNativeOptions } from "@/components/shared/position-select";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 type Props = {
   documentId: string;
@@ -87,6 +96,40 @@ export function PerishableRejectionDocumentClient({
     normalizePerishableRejectionConfig(initialConfig)
   );
   const readOnly = status === "closed";
+  const { mobileView, switchMobileView } = useMobileView("perishable_rejection");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
+    id: row.id,
+    title: `№${index + 1} · ${row.productName || "—"}`,
+    subtitle:
+      [row.arrivalDate, row.arrivalTime].filter(Boolean).join(" ") || undefined,
+    leading: !readOnly ? (
+      <Checkbox
+        checked={selectedRows.includes(row.id)}
+        onCheckedChange={(checked) => toggleRow(row.id, checked === true)}
+        className="size-5"
+      />
+    ) : null,
+    fields: [
+      { label: "Дата выработки", value: row.productionDate, hideIfEmpty: true },
+      { label: "Изготовитель/поставщик", value: row.manufacturer, hideIfEmpty: true },
+      { label: "Количество", value: row.quantity, hideIfEmpty: true },
+      { label: "Документ безопасности", value: row.documentNumber, hideIfEmpty: true },
+      {
+        label: "Органолептика",
+        value: ORGANOLEPTIC_LABELS[row.organolepticResult] || row.organolepticResult,
+        hideIfEmpty: true,
+      },
+      {
+        label: "Условия хранения",
+        value: STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition,
+        hideIfEmpty: true,
+      },
+      { label: "Реализовано", value: `${row.actualSaleDate || ""} ${row.actualSaleTime || ""}`.trim(), hideIfEmpty: true },
+      { label: "Ответственный", value: row.responsiblePerson, hideIfEmpty: true },
+      { label: "Примечание", value: row.note, hideIfEmpty: true },
+    ],
+  }));
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [listModalOpen, setListModalOpen] = useState(false);
@@ -445,8 +488,17 @@ export function PerishableRejectionDocumentClient({
           </Button>
         </div>
 
+        {/* View toggle */}
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />
+        ) : null}
+
         {/* Main data table */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[2200px] w-full border-collapse text-sm">
             <thead>
               <tr>
@@ -635,7 +687,7 @@ export function PerishableRejectionDocumentClient({
               ))}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       {/* Add Row Dialog */}

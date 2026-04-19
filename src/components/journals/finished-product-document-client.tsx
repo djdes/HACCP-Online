@@ -26,6 +26,15 @@ import {
   type FinishedProductDocumentRow,
 } from "@/lib/finished-product-document";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 type Props = {
@@ -107,6 +116,42 @@ export function FinishedProductDocumentClient({
   const [newItemName, setNewItemName] = useState("");
   const [draftRow, setDraftRow] = useState<FinishedProductDocumentRow>(() => createDraft(users));
   const readOnly = status === "closed";
+  const { mobileView, switchMobileView } = useMobileView("finished_product");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
+    id: row.id,
+    title: `№${index + 1} · ${row.productName || "—"}`,
+    subtitle: row.productionDateTime || undefined,
+    leading: !readOnly ? (
+      <Checkbox
+        checked={selectedRows.includes(row.id)}
+        onCheckedChange={(value) =>
+          setSelectedRows((prev) =>
+            value === true
+              ? [...new Set([...prev, row.id])]
+              : prev.filter((item) => item !== row.id)
+          )
+        }
+        className="size-5"
+      />
+    ) : null,
+    fields: [
+      { label: "Время снятия бракеража", value: row.rejectionTime, hideIfEmpty: true },
+      { label: "Органолептика", value: row.organoleptic, hideIfEmpty: true },
+      config.showProductTemp
+        ? { label: "T°C внутри продукта", value: row.productTemp, hideIfEmpty: true }
+        : null,
+      config.showCorrectiveAction
+        ? { label: "Корректирующие действия", value: row.correctiveAction, hideIfEmpty: true }
+        : null,
+      { label: "Разрешение к реализации", value: row.releasePermissionTime, hideIfEmpty: true },
+      config.showCourierTime
+        ? { label: "Передача курьеру", value: row.courierTransferTime, hideIfEmpty: true }
+        : null,
+      { label: "Исполнитель", value: row.responsiblePerson, hideIfEmpty: true },
+      { label: "Провёл бракераж", value: row.inspectorName, hideIfEmpty: true },
+    ].filter((f): f is { label: string; value: string; hideIfEmpty: boolean } => f !== null),
+  }));
 
   const productOptions = useMemo(() => Array.from(new Set(config.itemsCatalog)).filter(Boolean), [config.itemsCatalog]);
   const personOptions = useMemo(() => users.map((item) => item.name), [users]);
@@ -216,7 +261,15 @@ export function FinishedProductDocumentClient({
           <Button type="button" onClick={() => saveConfig()} disabled={isSaving || isPending}><Save className="size-4" />{isSaving ? "Сохранение..." : "Сохранить"}</Button>
         </div>}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Бракеража пока не зарегистрировано." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[1650px] w-full border-collapse text-sm">
             <thead><tr>
               <th className="w-10 border p-2" /><th className="border p-2">Дата, время изготовления</th><th className="border p-2">Время снятия бракеража</th><th className="border p-2">{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className="border p-2">Органолептическая оценка</th>
@@ -242,7 +295,7 @@ export function FinishedProductDocumentClient({
           </table>
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>
-        </div>
+        </MobileViewTableWrapper>
         <div className="text-[18px] underline">{config.footerNote}</div>
       </div>
 
