@@ -128,7 +128,30 @@ export function StaffTrainingDocumentClient({
         />
       ) : null,
       fields: [
-        { label: "Тема обучения", value: row.topic },
+        {
+          label: "Дата",
+          value: row.date,
+          warnIfEmpty: true,
+          onClick: !isClosed ? () => openCellEdit(row.id, "date") : undefined,
+        },
+        {
+          label: "Ф.И.О. сотрудника",
+          value: row.employeeName,
+          warnIfEmpty: true,
+          onClick: !isClosed ? () => openCellEdit(row.id, "employeeName") : undefined,
+        },
+        {
+          label: "Должность",
+          value: row.employeePosition,
+          warnIfEmpty: true,
+          onClick: !isClosed ? () => openCellEdit(row.id, "employeePosition") : undefined,
+        },
+        {
+          label: "Тема обучения",
+          value: row.topic,
+          warnIfEmpty: true,
+          onClick: !isClosed ? () => openCellEdit(row.id, "topic") : undefined,
+        },
         {
           label: "Вид инструктажа",
           value: trainingLabel,
@@ -138,7 +161,6 @@ export function StaffTrainingDocumentClient({
         {
           label: "Причина (внеплановый)",
           value: row.unscheduledReason,
-          hideIfEmpty: !isClosed ? false : true,
           onClick: !isClosed ? () => openCellEdit(row.id, "unscheduledReason") : undefined,
         },
         {
@@ -247,6 +269,14 @@ export function StaffTrainingDocumentClient({
   function getCellEditLabel(): string {
     if (!editingCell) return "";
     switch (editingCell.field) {
+      case "date":
+        return "Дата инструктажа";
+      case "employeeName":
+        return "Ф.И.О. инструктируемого";
+      case "employeePosition":
+        return "Должность инструктируемого";
+      case "topic":
+        return "Тема инструктажа / обучения";
       case "attestationResult":
         return "Результат аттестации";
       case "trainingType":
@@ -460,14 +490,30 @@ export function StaffTrainingDocumentClient({
                         />
                       )}
                     </td>
-                    <td className="border p-1 align-top whitespace-nowrap">
-                      {row.date}
+                    <td
+                      className={`border p-1 align-top whitespace-nowrap ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      onClick={() => !isClosed && openCellEdit(row.id, "date")}
+                    >
+                      {row.date || <span className="text-gray-300">---</span>}
                     </td>
-                    <td className="border p-1 align-top">{row.employeeName}</td>
-                    <td className="border p-1 align-top">
-                      {row.employeePosition}
+                    <td
+                      className={`border p-1 align-top ${emptyCellClass(row.employeeName)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      onClick={() => !isClosed && openCellEdit(row.id, "employeeName")}
+                    >
+                      {row.employeeName || <span className="text-gray-300">---</span>}
                     </td>
-                    <td className="border p-1 align-top">{row.topic}</td>
+                    <td
+                      className={`border p-1 align-top ${emptyCellClass(row.employeePosition)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      onClick={() => !isClosed && openCellEdit(row.id, "employeePosition")}
+                    >
+                      {row.employeePosition || <span className="text-gray-300">---</span>}
+                    </td>
+                    <td
+                      className={`border p-1 align-top ${emptyCellClass(row.topic)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      onClick={() => !isClosed && openCellEdit(row.id, "topic")}
+                    >
+                      {row.topic || <span className="text-gray-300">---</span>}
+                    </td>
                     <td
                       className={`border p-1 align-top cursor-pointer ${emptyCellClass(row.trainingType)}`}
                       onClick={() => openCellEdit(row.id, "trainingType")}
@@ -678,6 +724,53 @@ export function StaffTrainingDocumentClient({
           </DialogHeader>
           <div className="space-y-4">
             <Label>{getCellEditLabel()}</Label>
+
+            {editingCell?.field === "date" && (
+              <Input
+                type="date"
+                value={cellEditValue}
+                onChange={(e) => setCellEditValue(e.target.value)}
+              />
+            )}
+
+            {editingCell?.field === "employeeName" && (
+              <Select
+                value={cellEditValue || "__custom__"}
+                onValueChange={(value) => setCellEditValue(value === "__custom__" ? "" : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите сотрудника -" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__custom__">Без привязки (ввести вручную ниже)</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.name}>
+                      {buildStaffOptionLabel({ id: u.id, name: u.name, role: u.role })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {editingCell?.field === "employeePosition" && (
+              <Select value={cellEditValue || "__empty__"} onValueChange={(value) => setCellEditValue(value === "__empty__" ? "" : value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите должность -" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__empty__">— не указана —</SelectItem>
+                  <PositionSelectItems users={users} />
+                </SelectContent>
+              </Select>
+            )}
+
+            {editingCell?.field === "topic" && (
+              <Input
+                value={cellEditValue}
+                onChange={(e) => setCellEditValue(e.target.value)}
+                placeholder="Например: Санитария и гигиена"
+              />
+            )}
 
             {editingCell?.field === "attestationResult" && (
               <div className="flex items-center gap-4 text-sm">
