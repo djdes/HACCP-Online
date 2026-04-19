@@ -40,6 +40,15 @@ import {
   type PpeIssuanceRow,
 } from "@/lib/ppe-issuance-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 type UserItem = {
@@ -429,6 +438,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
   const rows = config.rows;
   const isClosed = props.status === "closed";
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
+  const { mobileView, switchMobileView } = useMobileView("ppe_issuance");
 
   const columns = useMemo(
     () =>
@@ -647,7 +657,61 @@ export function PpeIssuanceDocumentClient(props: Props) {
           </div>
         )}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView
+            items={rows.map((row, index) => ({
+              id: row.id,
+              title: `№${index + 1} · ${formatPpeIssuanceDate(row.issueDate) || "—"}`,
+              subtitle: getPpeIssuanceRecipientLabel(row, props.users) || undefined,
+              leading: !isClosed ? (
+                <Checkbox
+                  checked={selectedRowIds.includes(row.id)}
+                  onCheckedChange={(value) =>
+                    setSelectedRowIds((current) =>
+                      value === true
+                        ? [...new Set([...current, row.id])]
+                        : current.filter((item) => item !== row.id)
+                    )
+                  }
+                  className="size-5"
+                />
+              ) : null,
+              fields: [
+                ...columns
+                  .filter((c) => c.visible)
+                  .map((c) => ({
+                    label: c.label,
+                    value: String(row[c.key as keyof PpeIssuanceRow] ?? ""),
+                    hideIfEmpty: true,
+                  })),
+                {
+                  label: "Выдал СИЗ",
+                  value: getPpeIssuanceIssuerLabel(row, props.users),
+                  hideIfEmpty: true,
+                },
+              ],
+              actions: !isClosed ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRow(row);
+                    setRowDialogOpen(true);
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5863f8] px-4 text-[14px] font-medium text-white hover:bg-[#4752e6]"
+                >
+                  Редактировать
+                </button>
+              ) : null,
+            }))}
+            emptyLabel="Выдач СИЗ пока не зарегистрировано."
+          />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[1450px] w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
@@ -727,7 +791,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
               </tr>
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       <SettingsDialog

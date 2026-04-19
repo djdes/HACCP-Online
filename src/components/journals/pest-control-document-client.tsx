@@ -33,6 +33,15 @@ import {
   type PestControlEntryData,
 } from "@/lib/pest-control-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 type UserItem = {
   id: string;
@@ -439,6 +448,51 @@ export function PestControlDocumentClient(props: Props) {
   );
   const readOnly = props.status === "closed";
   const allSelected = entries.length > 0 && selectedIds.length === entries.length;
+  const { mobileView, switchMobileView } = useMobileView("pest_control");
+
+  const cardItems: RecordCardItem[] = entries.map((entry, index) => {
+    const acceptedUser = userMap[entry.data.acceptedEmployeeId];
+    const dateTime = formatPestControlDateTime(entry.data);
+    return {
+      id: entry.id,
+      title: `№${index + 1} · ${dateTime.dateLabel || "—"}`,
+      subtitle: entry.data.event || undefined,
+      leading: !readOnly ? (
+        <Checkbox
+          checked={selectedIds.includes(entry.id)}
+          onCheckedChange={(checked) =>
+            setSelectedIds((current) =>
+              checked === true
+                ? [...new Set([...current, entry.id])]
+                : current.filter((id) => id !== entry.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "Время", value: dateTime.timeLabel, hideIfEmpty: true },
+        { label: "Площадь/объём", value: entry.data.areaOrVolume, hideIfEmpty: true },
+        { label: "Средство обработки", value: entry.data.treatmentProduct, hideIfEmpty: true },
+        { label: "Примечание", value: entry.data.note, hideIfEmpty: true },
+        { label: "Кем проведено", value: entry.data.performedBy, hideIfEmpty: true },
+        {
+          label: "Принявший",
+          value: [entry.data.acceptedRole, acceptedUser?.name].filter(Boolean).join(", "),
+          hideIfEmpty: true,
+        },
+      ],
+      actions: !readOnly ? (
+        <button
+          type="button"
+          onClick={() => setEditing({ id: entry.id, data: entry.data })}
+          className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5863f8] px-4 text-[14px] font-medium text-white hover:bg-[#4752e6]"
+        >
+          Редактировать
+        </button>
+      ) : null,
+    };
+  });
 
   async function createEntry(data: PestControlEntryData) {
     const response = await fetch(
@@ -615,6 +669,15 @@ export function PestControlDocumentClient(props: Props) {
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Мероприятий пока не проводилось." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView}>
         <table className="min-w-full border-collapse border border-black bg-white text-[14px]">
           <thead>
             <tr className="bg-[#fafafa]">
@@ -689,6 +752,7 @@ export function PestControlDocumentClient(props: Props) {
             })}
           </tbody>
         </table>
+        </MobileViewTableWrapper>
       </div>
 
       <DocumentSettingsDialog

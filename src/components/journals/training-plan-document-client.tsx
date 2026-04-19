@@ -29,6 +29,15 @@ import {
   type TrainingPlanConfig,
 } from "@/lib/training-plan-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -494,6 +503,43 @@ export function TrainingPlanDocumentClient({
   }
 
   const allSelected = normalized.rows.length > 0 && selectedRowIds.length === normalized.rows.length;
+  const { mobileView, switchMobileView } = useMobileView("training_plan");
+
+  const cardItems: RecordCardItem[] = normalized.rows.map((row, index) => {
+    const required = normalized.topics
+      .map((topic) => {
+        const cell = row.cells[topic.id] || { required: false, date: "" };
+        if (!cell.required) return null;
+        return cell.date ? `${topic.name} (${cell.date})` : topic.name;
+      })
+      .filter((x): x is string => x !== null);
+
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${row.positionName}`,
+      subtitle: `Тем для обучения: ${required.length}`,
+      leading: !readOnly ? (
+        <Checkbox
+          checked={selectedRowIds.includes(row.id)}
+          onCheckedChange={(checked) =>
+            setSelectedRowIds((current) =>
+              checked === true
+                ? [...new Set([...current, row.id])]
+                : current.filter((id) => id !== row.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        {
+          label: "Темы обучения",
+          value: required.length > 0 ? required.join(" · ") : "",
+          hideIfEmpty: true,
+        },
+      ],
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -588,7 +634,15 @@ export function TrainingPlanDocumentClient({
           </div>
         )}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Должностей не добавлено." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
             <thead>
               <tr>
@@ -694,7 +748,7 @@ export function TrainingPlanDocumentClient({
               </tr>
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </section>
 
       <AddPositionDialog
