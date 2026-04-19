@@ -62,7 +62,7 @@ function FindingDialog({
           <Textarea value={draft.nonConformity} onChange={(e) => setDraft({ ...draft, nonConformity: e.target.value })} placeholder="Описание несоответствия" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" />
           <Textarea value={draft.correctionActions} onChange={(e) => setDraft({ ...draft, correctionActions: e.target.value })} placeholder="Коррекция, описание действий" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" />
           <Textarea value={draft.correctiveActions} onChange={(e) => setDraft({ ...draft, correctiveActions: e.target.value })} placeholder="Корректирующие действия" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" />
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
             <Input value={draft.responsibleName} onChange={(e) => setDraft({ ...draft, responsibleName: e.target.value })} placeholder="ФИО ответственного" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
             <Input value={draft.responsiblePosition} onChange={(e) => setDraft({ ...draft, responsiblePosition: e.target.value })} placeholder="Должность ответственного" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
             <Input type="date" value={draft.dueDatePlan} onChange={(e) => setDraft({ ...draft, dueDatePlan: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
@@ -293,7 +293,7 @@ export function AuditReportDocumentClient({
               <Label className="text-[14px] text-[#73738a]">Название документа</Label>
               <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
             </div>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
               <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
               <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
                 <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f5f6fb] px-4 text-[15px]"><SelectValue /></SelectTrigger>

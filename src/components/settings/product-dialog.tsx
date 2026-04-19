@@ -113,7 +113,7 @@ export function ProductDialog({ product }: ProductDialogProps) {
             <Label htmlFor="prod-name">Наименование <span className="text-destructive">*</span></Label>
             <Input id="prod-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Молоко 3.2%" required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="prod-supplier">Поставщик</Label>
               <Input id="prod-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="ООО «Поставщик»" />

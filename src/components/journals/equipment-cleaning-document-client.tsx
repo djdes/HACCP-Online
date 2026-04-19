@@ -477,7 +477,7 @@ export function EquipmentCleaningDocumentClient({
                   value={draft.data.washDate}
                   onChange={(e) => updateDraft({ washDate: e.target.value })}
                 />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Select
                     value={draftTime.hour}
                     onValueChange={(hour) =>

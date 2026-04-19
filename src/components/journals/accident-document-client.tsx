@@ -125,7 +125,7 @@ function RowDialog(props: {
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Select
                 value={row.accidentHour}
                 onValueChange={(value) => setValue("accidentHour", value)}
@@ -203,7 +203,7 @@ function RowDialog(props: {
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Select
                 value={row.resolvedHour}
                 onValueChange={(value) => setValue("resolvedHour", value)}

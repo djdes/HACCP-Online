@@ -75,7 +75,7 @@ export function CapaForm({ users }: Props) {
         <Textarea id="description" name="description" placeholder="Подробное описание: что произошло, где, когда" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         <div className="space-y-2">
           <Label>Приоритет</Label>
           <Select value={priority} onValueChange={setPriority}>
@@ -105,7 +105,7 @@ export function CapaForm({ users }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         <div className="space-y-2">
           <Label>SLA (часов)</Label>
           <Select value={slaHours} onValueChange={setSlaHours}>
