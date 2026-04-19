@@ -12,10 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import {
-  BASIC_TARIFF_JOURNALS,
-  EXTENDED_ONLY_TARIFF_JOURNALS,
-} from "@/lib/journal-catalog";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 
 const organizationTypes = [
   { value: "restaurant", label: "Ресторан / кафе" },
@@ -26,12 +23,11 @@ const organizationTypes = [
   { value: "other", label: "Другое" },
 ];
 
-type Step = "details" | "verify" | "plan";
+type Step = "details" | "verify";
 
 const STEPS: { id: Step; label: string; helper: string }[] = [
   { id: "details", label: "Компания", helper: "название, email, пароль" },
   { id: "verify", label: "Код", helper: "из письма" },
-  { id: "plan", label: "Тариф", helper: "базовый / расширенный" },
 ];
 
 export default function RegisterPage() {
@@ -48,7 +44,6 @@ export default function RegisterPage() {
     phone: "",
     password: "",
     code: "",
-    plan: "basic" as "basic" | "extended",
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -153,25 +148,25 @@ export default function RegisterPage() {
             Зарегистрируйте компанию за 2 минуты
           </h1>
           <p className="mt-5 max-w-[440px] text-[16px] leading-[1.6] text-white/70">
-            Подтвердите email, выберите набор журналов — и вся рутина ХАССП уже
-            работает за вас. Приглашайте сотрудников, раздавайте доступ,
-            собирайте подписи, печатайте в Роспотребнадзор.
+            Подтвердите email — и вся рутина ХАССП уже работает за вас.
+            Приглашайте сотрудников, раздавайте доступ, собирайте подписи,
+            печатайте в Роспотребнадзор.
           </p>
 
           <div className="mt-10 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
             <div className="text-[12px] uppercase tracking-[0.2em] text-white/60">
-              Базовый тариф включает
+              Что внутри — бесплатно
             </div>
             <ul className="grid grid-cols-1 gap-2 text-[14px] text-white/80">
-              {BASIC_TARIFF_JOURNALS.slice(0, 6).map((j) => (
+              {ACTIVE_JOURNAL_CATALOG.slice(0, 6).map((j) => (
                 <li key={j.code} className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#7cf5c0]" />
                   <span className="truncate">{j.name}</span>
                 </li>
               ))}
               <li className="pl-6 text-[13px] text-white/50">
-                …и ещё {BASIC_TARIFF_JOURNALS.length - 6} обязательных журналов
-                СанПиН
+                …и ещё {ACTIVE_JOURNAL_CATALOG.length - 6} журналов
+                СанПиН и ХАССП
               </li>
             </ul>
           </div>
@@ -216,7 +211,6 @@ export default function RegisterPage() {
           <h2 className="mt-8 text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
             {step === "details" && "Создание компании"}
             {step === "verify" && "Подтверждение email"}
-            {step === "plan" && "Выбор тарифа"}
           </h2>
           <p className="mt-2 text-[14px] text-[#6f7282]">
             {step === "details" &&
@@ -225,11 +219,10 @@ export default function RegisterPage() {
               <>
                 Мы отправили код на{" "}
                 <span className="font-medium text-[#0b1024]">{form.email}</span>
-                . Проверьте почту.
+                . После подтверждения откроется доступ ко всем журналам —
+                бесплатно.
               </>
             )}
-            {step === "plan" &&
-              "Можно будет изменить позже в настройках подписки."}
           </p>
 
           {error && (
@@ -317,13 +310,12 @@ export default function RegisterPage() {
           {step === "verify" && (
             <form
               onSubmit={(e) => {
-                e.preventDefault();
-                setError(null);
                 if (form.code.length !== 6) {
+                  e.preventDefault();
                   setError("Введите 6-значный код");
                   return;
                 }
-                setStep("plan");
+                void finishRegistration(e);
               }}
               className="mt-8 space-y-5"
             >
@@ -357,41 +349,6 @@ export default function RegisterPage() {
                 >
                   <ArrowLeft className="size-4" />
                   Изменить данные
-                </SecondaryButton>
-                <PrimaryButton type="submit" loading={false}>
-                  Далее
-                </PrimaryButton>
-              </div>
-            </form>
-          )}
-
-          {step === "plan" && (
-            <form onSubmit={finishRegistration} className="mt-8 space-y-4">
-              <PlanCard
-                selected={form.plan === "basic"}
-                badge="13 журналов"
-                title="Базовый"
-                price="от 0 ₽ · пробный период"
-                description="Всё обязательное по СанПиН для кафе / ресторана / производства."
-                onSelect={() => update("plan", "basic")}
-              />
-              <PlanCard
-                selected={form.plan === "extended"}
-                badge={`${BASIC_TARIFF_JOURNALS.length + EXTENDED_ONLY_TARIFF_JOURNALS.length} журналов`}
-                title="Расширенный"
-                price="рекомендуем"
-                description={`Базовый + ещё ${EXTENDED_ONLY_TARIFF_JOURNALS.length} журналов (обучение, дезинфектанты, санитарный день и пр.)`}
-                onSelect={() => update("plan", "extended")}
-                highlight
-              />
-
-              <div className="flex items-center gap-3 pt-2">
-                <SecondaryButton
-                  type="button"
-                  onClick={() => setStep("verify")}
-                >
-                  <ArrowLeft className="size-4" />
-                  Назад
                 </SecondaryButton>
                 <PrimaryButton type="submit" loading={loading}>
                   {loading ? "Создание…" : "Создать аккаунт"}
@@ -588,71 +545,3 @@ function SecondaryButton({
   );
 }
 
-function PlanCard({
-  selected,
-  title,
-  badge,
-  price,
-  description,
-  onSelect,
-  highlight,
-}: {
-  selected: boolean;
-  title: string;
-  badge: string;
-  price: string;
-  description: string;
-  onSelect: () => void;
-  highlight?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`relative w-full overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
-        selected
-          ? "border-[#5566f6] bg-gradient-to-br from-[#f5f6ff] to-[#fafbff] shadow-[0_12px_32px_-16px_rgba(85,102,246,0.4)]"
-          : "border-[#ececf4] bg-white hover:border-[#c7ccea]"
-      }`}
-    >
-      {highlight && !selected && (
-        <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#5566f6]">
-          <Sparkles className="size-3" />
-          рекомендуем
-        </span>
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[17px] font-semibold tracking-tight text-[#0b1024]">
-            {title}
-          </div>
-          <div className="mt-1 text-[13px] text-[#6f7282]">{price}</div>
-        </div>
-        <div
-          className={`rounded-full px-3 py-1 text-[12px] font-semibold tabular-nums ${
-            selected
-              ? "bg-[#5566f6] text-white"
-              : "bg-[#eef1ff] text-[#5566f6]"
-          }`}
-        >
-          {badge}
-        </div>
-      </div>
-      <p className="mt-3 text-[13px] leading-[1.55] text-[#6f7282]">
-        {description}
-      </p>
-      <div className="mt-4 flex items-center gap-2 text-[12px] font-medium text-[#5566f6]">
-        <span
-          className={`flex size-4 items-center justify-center rounded-full border-2 transition-all ${
-            selected
-              ? "border-[#5566f6] bg-[#5566f6]"
-              : "border-[#c7ccea] bg-white"
-          }`}
-        >
-          {selected && <span className="size-1.5 rounded-full bg-white" />}
-        </span>
-        {selected ? "Выбран" : "Выбрать тариф"}
-      </div>
-    </button>
-  );
-}

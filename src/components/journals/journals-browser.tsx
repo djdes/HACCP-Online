@@ -12,19 +12,18 @@ import {
   CalendarClock,
   ClipboardCheck,
   ClipboardList,
-  Crown,
   Droplets,
   Eye,
   Fan,
   FileText,
   Flame,
   Gauge,
+  Gift,
   GraduationCap,
   HandHeart,
   HardHat,
   HeartPulse,
   Lightbulb,
-  Lock,
   Magnet,
   MessageSquareWarning,
   NotebookPen,
@@ -46,14 +45,6 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  JOURNAL_TARIFF_DESCRIPTIONS,
-  JOURNAL_TARIFF_LABELS,
-  JOURNAL_TARIFF_ORDER,
-  canAccessTariff,
-  type JournalTariff,
-} from "@/lib/journal-tariffs";
 
 type JournalTemplateListItem = {
   id: string;
@@ -62,12 +53,10 @@ type JournalTemplateListItem = {
   description: string | null;
   isMandatorySanpin: boolean;
   isMandatoryHaccp: boolean;
-  tariff: JournalTariff;
 };
 
 type JournalsBrowserProps = {
   templates: JournalTemplateListItem[];
-  subscriptionPlan: string | null | undefined;
 };
 
 const JOURNAL_ICONS: Record<string, LucideIcon> = {
@@ -108,42 +97,11 @@ const JOURNAL_ICONS: Record<string, LucideIcon> = {
   pest_control: Bug,
 };
 
-const TARIFF_THEME: Record<
-  JournalTariff,
-  { bg: string; color: string; tileBg: string; tileColor: string; Icon: LucideIcon }
-> = {
-  basic: {
-    bg: "#eef1ff",
-    color: "#5566f6",
-    tileBg: "#f5f6ff",
-    tileColor: "#5566f6",
-    Icon: Sparkles,
-  },
-  extended: {
-    bg: "#fff8eb",
-    color: "#b25f00",
-    tileBg: "#fff4dc",
-    tileColor: "#b25f00",
-    Icon: Crown,
-  },
-};
-
 function normalizeSearchValue(value: string) {
   return value.toLocaleLowerCase("ru-RU").trim();
 }
 
-function resolvePlanLabel(plan: string | null | undefined) {
-  const normalized = (plan || "trial").toLowerCase();
-  if (normalized === "extended" || normalized === "pro" || normalized === "enterprise") {
-    return { label: "Расширенный", tone: "extended" as const };
-  }
-  if (normalized === "basic") {
-    return { label: "Базовый", tone: "basic" as const };
-  }
-  return { label: "Пробный", tone: "trial" as const };
-}
-
-export function JournalsBrowser({ templates, subscriptionPlan }: JournalsBrowserProps) {
+export function JournalsBrowser({ templates }: JournalsBrowserProps) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearchValue(deferredQuery);
@@ -158,31 +116,12 @@ export function JournalsBrowser({ templates, subscriptionPlan }: JournalsBrowser
     });
   }, [templates, normalizedQuery]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<JournalTariff, JournalTemplateListItem[]>();
-    for (const tariff of JOURNAL_TARIFF_ORDER) map.set(tariff, []);
-    for (const t of filteredTemplates) {
-      const arr = map.get(t.tariff) ?? [];
-      arr.push(t);
-      map.set(t.tariff, arr);
-    }
-    return map;
-  }, [filteredTemplates]);
-
   const totalCount = templates.length;
-  const basicCount = templates.filter((t) => t.tariff === "basic").length;
-  const extendedCount = templates.filter((t) => t.tariff === "extended").length;
   const mandatoryCount = templates.filter(
     (t) => t.isMandatorySanpin || t.isMandatoryHaccp
   ).length;
-
-  const plan = resolvePlanLabel(subscriptionPlan);
-  const planDotColor =
-    plan.tone === "extended"
-      ? "bg-[#7cf5c0]"
-      : plan.tone === "basic"
-        ? "bg-[#9fb3ff]"
-        : "bg-[#ffd466]";
+  const sanpinCount = templates.filter((t) => t.isMandatorySanpin).length;
+  const haccpCount = templates.filter((t) => t.isMandatoryHaccp).length;
 
   const hasResults = filteredTemplates.length > 0;
 
@@ -215,23 +154,23 @@ export function JournalsBrowser({ templates, subscriptionPlan }: JournalsBrowser
                   Журналы
                 </h1>
                 <p className="mt-1 max-w-[540px] text-[15px] text-white/70">
-                  Электронные журналы СанПиН и ХАССП. Выберите журнал, чтобы посмотреть
-                  записи, создать новые или распечатать отчёт.
+                  Электронные журналы СанПиН и ХАССП. Выберите журнал, чтобы
+                  посмотреть записи, создать новые или распечатать отчёт.
                 </p>
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              <span className={cn("size-1.5 rounded-full", planDotColor)} />
-              План: {plan.label}
+            <div className="inline-flex items-center gap-2 self-start rounded-full border border-[#7cf5c0]/40 bg-[#7cf5c0]/10 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-[#7cf5c0] backdrop-blur">
+              <Gift className="size-3.5" />
+              Все журналы бесплатно
             </div>
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             <StatPill label="Всего" value={totalCount} />
-            <StatPill label="Базовых" value={basicCount} />
-            <StatPill label="Расширенных" value={extendedCount} />
             <StatPill label="Обязательных" value={mandatoryCount} />
+            <StatPill label="СанПиН" value={sanpinCount} />
+            <StatPill label="ХАССП" value={haccpCount} />
           </div>
         </div>
       </section>
@@ -268,25 +207,10 @@ export function JournalsBrowser({ templates, subscriptionPlan }: JournalsBrowser
       {!hasResults ? (
         <EmptyState onReset={() => setQuery("")} />
       ) : (
-        <div className="space-y-10">
-          {JOURNAL_TARIFF_ORDER.map((tariff) => {
-            const list = grouped.get(tariff) ?? [];
-            if (list.length === 0) return null;
-            const accessible = canAccessTariff(subscriptionPlan, tariff);
-
-            return (
-              <TariffSection
-                key={tariff}
-                tariff={tariff}
-                templates={list}
-                totalInTariff={
-                  tariff === "basic" ? basicCount : extendedCount
-                }
-                accessible={accessible}
-                filtered={Boolean(normalizedQuery)}
-              />
-            );
-          })}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredTemplates.map((template) => (
+            <TemplateCard key={template.id} template={template} />
+          ))}
         </div>
       )}
     </div>
@@ -304,96 +228,13 @@ function StatPill({ label, value }: { label: string; value: number }) {
   );
 }
 
-function TariffSection({
-  tariff,
-  templates,
-  totalInTariff,
-  accessible,
-  filtered,
-}: {
-  tariff: JournalTariff;
-  templates: JournalTemplateListItem[];
-  totalInTariff: number;
-  accessible: boolean;
-  filtered: boolean;
-}) {
-  const theme = TARIFF_THEME[tariff];
-  const HeaderIcon = theme.Icon;
-
-  return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: theme.bg, color: theme.color }}
-            aria-hidden="true"
-          >
-            <HeaderIcon className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[18px] font-semibold text-[#0b1024]">
-                Тариф «{JOURNAL_TARIFF_LABELS[tariff]}»
-              </h2>
-              <span
-                className="inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium"
-                style={{ backgroundColor: theme.bg, color: theme.color }}
-              >
-                {filtered
-                  ? `${templates.length} / ${totalInTariff}`
-                  : `${templates.length}`}
-              </span>
-              {!accessible ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] font-medium text-[#b25f00]">
-                  <Lock className="size-3" />
-                  Требуется апгрейд
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-1 max-w-[720px] text-[13px] leading-relaxed text-[#6f7282]">
-              {JOURNAL_TARIFF_DESCRIPTIONS[tariff]}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {templates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            accessible={accessible}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function TemplateCard({
-  template,
-  accessible,
-}: {
-  template: JournalTemplateListItem;
-  accessible: boolean;
-}) {
-  const theme = TARIFF_THEME[template.tariff];
+function TemplateCard({ template }: { template: JournalTemplateListItem }) {
   const Icon = JOURNAL_ICONS[template.code] ?? NotebookPen;
 
   return (
     <Link href={`/journals/${template.code}`} className="group block focus:outline-none">
-      <div
-        className={cn(
-          "flex h-full items-start gap-4 rounded-2xl border border-[#ececf4] bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:border-[#d6d9ee] hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] group-focus-visible:border-[#5566f6] group-focus-visible:ring-4 group-focus-visible:ring-[#5566f6]/15",
-          !accessible && "opacity-[0.88]"
-        )}
-      >
-        <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
-          style={{ backgroundColor: theme.tileBg, color: theme.tileColor }}
-          aria-hidden="true"
-        >
+      <div className="flex h-full items-start gap-4 rounded-2xl border border-[#ececf4] bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:border-[#d6d9ee] hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] group-focus-visible:border-[#5566f6] group-focus-visible:ring-4 group-focus-visible:ring-[#5566f6]/15">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f5f6ff] text-[#5566f6] transition-transform group-hover:scale-105">
           <Icon className="size-5" />
         </div>
 
@@ -421,12 +262,6 @@ function TemplateCard({
               <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
                 <ShieldAlert className="size-3" />
                 ХАССП
-              </span>
-            ) : null}
-            {!accessible ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] font-medium text-[#b25f00]">
-                <Lock className="size-3" />
-                Премиум
               </span>
             ) : null}
             <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
