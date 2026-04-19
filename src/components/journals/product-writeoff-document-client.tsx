@@ -24,6 +24,15 @@ import {
 } from "@/lib/product-writeoff-document";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { PositionNativeOptions } from "@/components/shared/position-select";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 type UserItem = { id: string; name: string; role: string };
 
@@ -87,6 +96,7 @@ export function ProductWriteoffDocumentClient({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isClosed = status === "closed";
+  const { mobileView, switchMobileView } = useMobileView("product_writeoff");
   const [config, setConfig] = useState(() => normalizeProductWriteoffConfig(initialConfig));
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -232,6 +242,42 @@ export function ProductWriteoffDocumentClient({
     }
   }
 
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
+    id: row.id,
+    title: `№${index + 1} · ${row.productName || "—"}`,
+    subtitle: [row.batchNumber, row.productionDate].filter(Boolean).join(" · ") || undefined,
+    leading: !isClosed ? (
+      <Checkbox
+        checked={selectedRows.includes(row.id)}
+        onCheckedChange={(checked) =>
+          setSelectedRows((prev) =>
+            checked === true
+              ? [...new Set([...prev, row.id])]
+              : prev.filter((id) => id !== row.id)
+          )
+        }
+        className="size-5"
+      />
+    ) : null,
+    fields: [
+      { label: "Количество", value: row.quantity, hideIfEmpty: true },
+      { label: "Несоответствие", value: row.discrepancyDescription, hideIfEmpty: true },
+      { label: "Действия с ТМЦ", value: row.action, hideIfEmpty: true },
+    ],
+    actions: !isClosed ? (
+      <button
+        type="button"
+        onClick={() => {
+          setRowDialog({ open: true, index, row, newProductName: "" });
+          setRowDialogProductOptions(productOptions);
+        }}
+        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white hover:bg-[#4b57ff]"
+      >
+        Редактировать
+      </button>
+    ) : null,
+  }));
+
   return (
     <div className="space-y-6 text-black">
       <DocumentBackLink href="/journals/product_writeoff" documentId={documentId} />
@@ -327,7 +373,16 @@ export function ProductWriteoffDocumentClient({
             <p>Комиссия постановила выполнить в отношении выявленных ТМЦ следующие действия:</p>
           </div>
 
-          <table className="w-full border-collapse text-[16px]">
+          <div className="sm:hidden print:hidden">
+            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+          </div>
+
+          {mobileView === "cards" ? (
+            <RecordCardsView items={cardItems} emptyLabel="Списаний пока не зарегистрировано." />
+          ) : null}
+
+          <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[640px] border-collapse text-[16px] sm:min-w-0">
             <thead>
               <tr>
                 {!isClosed && <th className="w-[34px] border border-black p-2 print:hidden" />}
@@ -367,6 +422,7 @@ export function ProductWriteoffDocumentClient({
               </tr>
             </tbody>
           </table>
+          </MobileViewTableWrapper>
 
           <div className="space-y-2 pt-8 text-[18px]">
             <div>Подписи членов комиссии:</div>

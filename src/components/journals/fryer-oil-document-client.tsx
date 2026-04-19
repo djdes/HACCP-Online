@@ -14,6 +14,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 import {
   formatDateRu,
   formatTime,
@@ -238,6 +247,68 @@ export function FryerOilDocumentClient(props: Props) {
   const [listsOpen, setListsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = status === "active";
+  const { mobileView, switchMobileView } = useMobileView("fryer_oil");
+
+  const cardItems: RecordCardItem[] = entries.map((entry, index) => ({
+    id: entry.id,
+    title: `№${index + 1} · ${formatDateRu(entry.data.startDate)} ${formatTime(
+      entry.data.startHour,
+      entry.data.startMinute
+    )}`,
+    subtitle: entry.data.fatType || undefined,
+    leading: isActive ? (
+      <Checkbox
+        checked={selectedIds.includes(entry.id)}
+        onCheckedChange={() =>
+          setSelectedIds((v) =>
+            v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id]
+          )
+        }
+        className="size-5"
+      />
+    ) : null,
+    fields: [
+      {
+        label: "Оценка на начало",
+        value: QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart,
+        hideIfEmpty: true,
+      },
+      { label: "Оборудование", value: entry.data.equipmentType, hideIfEmpty: true },
+      { label: "Продукция", value: entry.data.productType, hideIfEmpty: true },
+      {
+        label: "Окончание жарки",
+        value: formatTime(entry.data.endHour, entry.data.endMinute),
+      },
+      {
+        label: "Оценка по окончании",
+        value: QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd,
+        hideIfEmpty: true,
+      },
+      {
+        label: "Переходящий остаток",
+        value: entry.data.carryoverKg > 0 ? `${entry.data.carryoverKg} кг` : "",
+        hideIfEmpty: true,
+      },
+      {
+        label: "Утилизировано",
+        value: entry.data.disposedKg > 0 ? `${entry.data.disposedKg} кг` : "",
+        hideIfEmpty: true,
+      },
+      { label: "Контролер", value: entry.data.controllerName, hideIfEmpty: true },
+    ],
+    actions: isActive ? (
+      <button
+        type="button"
+        onClick={() => {
+          setEntryItem(entry);
+          setEntryOpen(true);
+        }}
+        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5863f8] px-4 text-[14px] font-medium text-white hover:bg-[#4752e6]"
+      >
+        Редактировать
+      </button>
+    ) : null,
+  }));
 
   async function saveEntry(payload: { id?: string; data: FryerOilEntryData }) {
     const response = await fetch(`/api/journal-documents/${props.documentId}/fryer-oil`, { method: payload.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -291,10 +362,14 @@ export function FryerOilDocumentClient(props: Props) {
             </div>
             <div className="py-10 text-center text-[26px] font-semibold uppercase">Журнал учета использования фритюрных жиров</div>
             {isActive ? <div className="mb-5 flex flex-wrap items-center gap-3 print:hidden"><Button type="button" className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" />Добавить</Button><Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[#ff3b30]" onClick={() => { if (window.confirm(`Удалить выбранные строки (${selectedIds.length})?`)) { void deleteEntries(selectedIds).catch((e) => toast.error(e instanceof Error ? e.message : "Не удалось удалить записи")); } }}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
+            <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
+            {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
+            <MobileViewTableWrapper mobileView={mobileView}>
             <table className="w-full border-collapse text-[14px]">
               <thead><tr className="bg-[#f2f2f2]">{isActive ? <th rowSpan={2} className="w-[52px] border border-black px-2 py-3 print:hidden"><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className="border border-black px-3 py-3">Дата, время начала использования фритюрного жира</th><th rowSpan={2} className="border border-black px-3 py-3">Вид фритюрного жира</th><th rowSpan={2} className="border border-black px-3 py-3">Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className="border border-black px-3 py-3">Тип жарочного оборудования</th><th rowSpan={2} className="border border-black px-3 py-3">Вид продукции</th><th rowSpan={2} className="border border-black px-3 py-3">Время окончания фритюрной жарки</th><th rowSpan={2} className="border border-black px-3 py-3">Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className="border border-black px-3 py-3">Использование оставшегося жира</th><th rowSpan={2} className="border border-black px-3 py-3">Должность, ФИО контролера</th></tr><tr className="bg-[#f2f2f2]"><th className="border border-black px-3 py-3">Переходящий остаток, кг</th><th className="border border-black px-3 py-3">Утилизированный, кг</th></tr></thead>
               <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className="border border-black px-6 py-10 text-center text-[#6f7282]">Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} className={selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""}>{isActive ? <td className="border border-black px-2 py-3 text-center print:hidden"><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className="border border-black px-3 py-3"><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={() => { if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className="border border-black px-3 py-3">{entry.data.fatType || "-"}</td><td className="border border-black px-3 py-3 text-center">{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className="border border-black px-3 py-3">{entry.data.equipmentType || "-"}</td><td className="border border-black px-3 py-3">{entry.data.productType || "-"}</td><td className="border border-black px-3 py-3 text-center">{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className="border border-black px-3 py-3 text-center">{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className="border border-black px-3 py-3 text-center">{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className="border border-black px-3 py-3 text-center">{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className="border border-black px-3 py-3">{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
+            </MobileViewTableWrapper>
             <Appendix />
           </div>
         </div>

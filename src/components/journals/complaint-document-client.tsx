@@ -31,6 +31,15 @@ import {
   type RegisterDocumentConfig,
   type RegisterDocumentRow,
 } from "@/lib/register-document";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 type EmployeeItem = {
@@ -346,6 +355,45 @@ export function ComplaintDocumentClient({
 
   const allSelected =
     config.rows.length > 0 && selectedRowIds.length === config.rows.length;
+  const { mobileView, switchMobileView } = useMobileView("complaint_register");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
+    id: row.id,
+    title: `№${index + 1} · ${row.values.applicantName || "—"}`,
+    subtitle: formatComplaintDate(row.values.receiptDate || "") || undefined,
+    leading: (
+      <Checkbox
+        checked={selectedRowIds.includes(row.id)}
+        onCheckedChange={(checked) =>
+          setSelectedRowIds((current) =>
+            checked === true
+              ? [...new Set([...current, row.id])]
+              : current.filter((id) => id !== row.id)
+          )
+        }
+        disabled={status !== "active"}
+        className="size-5"
+      />
+    ),
+    fields: [
+      { label: "Форма поступления", value: row.values.complaintReceiptForm, hideIfEmpty: true },
+      { label: "Реквизиты заявителя", value: row.values.applicantDetails, hideIfEmpty: true },
+      { label: "Содержание жалобы", value: row.values.complaintContent, hideIfEmpty: true },
+      { label: "Решение", value: getComplaintDecisionCell(row), hideIfEmpty: true },
+    ],
+    actions: status === "active" ? (
+      <button
+        type="button"
+        onClick={() => {
+          setEditingRow(row);
+          setRowDialogOpen(true);
+        }}
+        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white hover:bg-[#4b57ff]"
+      >
+        Редактировать
+      </button>
+    ) : null,
+  }));
 
   async function persist(nextTitle: string, nextConfig: ComplaintDocumentConfig, patch?: Record<string, unknown>) {
     const response = await fetch(`/api/journal-documents/${documentId}`, {
@@ -518,7 +566,15 @@ export function ComplaintDocumentClient({
           </div>
         )}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Жалоб пока не зарегистрировано." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="min-w-[1520px] w-full border-collapse text-[16px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
@@ -595,7 +651,7 @@ export function ComplaintDocumentClient({
               )}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       <ComplaintRowDialog
