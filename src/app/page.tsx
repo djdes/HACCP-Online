@@ -496,7 +496,7 @@ export default async function LandingPage() {
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f5f6ff] text-[12px] font-semibold text-[#5566f6]">
                 {String(idx + 1).padStart(2, "0")}
               </span>
-              <span className="min-w-0 flex-1 truncate group-hover:text-[#3848c7]">
+              <span className="min-w-0 flex-1 leading-snug group-hover:text-[#3848c7]">
                 {j.name}
               </span>
               <ArrowRight className="size-4 shrink-0 text-[#5566f6] opacity-0 transition-opacity group-hover:opacity-100" />
