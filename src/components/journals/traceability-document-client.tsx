@@ -36,6 +36,15 @@ import {
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 type PersonItem = { id: string; name: string; role?: string | null };
 type TraceabilitySettingsDraft = { title: string; dateFrom: string; showShockTempField: boolean; showShipmentBlock: boolean };
 type TraceabilityRowDraft = {
@@ -501,6 +510,52 @@ export function TraceabilityDocumentClient(props: Props) {
   const employees = props.employees ?? props.users ?? [];
   const organizationName = props.organizationName || 'ООО "Тест"';
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
+  const { mobileView, switchMobileView } = useMobileView("traceability_test");
+
+  const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
+    const incomingQty = row.incoming.quantityKg ?? row.incoming.quantityPieces;
+    const outgoingQty = row.outgoing.quantityPacksKg ?? row.outgoing.quantityPacksPieces;
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${formatDashDate(row.date) || "—"}`,
+      subtitle: row.incoming.rawMaterialName || undefined,
+      leading: !isClosed ? (
+        <Checkbox
+          checked={selectedRowIds.includes(row.id)}
+          onCheckedChange={(checked) =>
+            setSelectedRowIds((current) =>
+              checked === true
+                ? [...new Set([...current, row.id])]
+                : current.filter((id) => id !== row.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "№ партии / дата фасовки", value: [row.incoming.batchNumber, row.incoming.packagingDate].filter(Boolean).join(" · "), hideIfEmpty: true },
+        { label: "Кол-во сырья", value: incomingQty != null ? formatTraceabilityQuantity(incomingQty) : "", hideIfEmpty: true },
+        { label: "Наименование ПФ", value: row.outgoing.productName, hideIfEmpty: true },
+        { label: "Кол-во фасовок", value: outgoingQty != null ? formatTraceabilityQuantity(outgoingQty) : "", hideIfEmpty: true },
+        config.showShockTempField
+          ? { label: "T°C после шока", value: row.outgoing.shockTemp != null ? String(row.outgoing.shockTemp) : "", hideIfEmpty: true }
+          : null,
+        { label: "Ответственный", value: [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", "), hideIfEmpty: true },
+      ].filter((f): f is { label: string; value: string; hideIfEmpty: boolean } => f !== null),
+      actions: !isClosed ? (
+        <button
+          type="button"
+          onClick={() => {
+            setEditingRow(row);
+            setRowOpen(true);
+          }}
+          className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5563ff] px-4 text-[14px] font-medium text-white hover:bg-[#4554ff]"
+        >
+          Редактировать
+        </button>
+      ) : null,
+    };
+  });
   const headerSettings = useMemo(() => defaultSettings(config, title, dateFrom), [config, dateFrom, title]);
   const rowById = useMemo(() => new Map(config.rows.map((row) => [row.id, row])), [config.rows]);
 
@@ -625,7 +680,15 @@ export function TraceabilityDocumentClient(props: Props) {
 
         {selectedRowIds.length > 0 && !isClosed && <div className="sticky top-0 z-30 -mx-4 flex items-center gap-3 rounded-[18px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 print:hidden"><button type="button" className="text-[#6f7282] hover:text-black" onClick={() => setSelectedRowIds([])}><X className="size-5" /></button><span className="text-[15px]">Выбрано: {selectedRowIds.length}</span><Button type="button" variant="outline" className="h-10 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => { deleteSelected().catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")); }}><Trash2 className="size-4" />Удалить</Button></div>}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#1f1f1f] bg-white">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView items={cardItems} emptyLabel="Записей по прослеживаемости нет." />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#1f1f1f] bg-white">
           <table className="min-w-[980px] w-full border-collapse text-[14px] sm:min-w-[1480px]">
             <thead>
               <tr className="bg-[#efefef]">
@@ -665,7 +728,7 @@ export function TraceabilityDocumentClient(props: Props) {
               }) : <tr><td colSpan={isClosed ? 8 : config.showShockTempField ? 9 : 8} className="border border-black px-4 py-10 text-center text-[15px] text-[#6f7282]">Строк пока нет</td></tr>}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
 
         {isClosed && <div className="rounded-[18px] border border-[#e6e9f5] bg-[#fbfbff] px-4 py-3 text-[15px] text-[#6f7282] print:hidden">Журнал закрыт и доступен только для чтения.</div>}
       </div>

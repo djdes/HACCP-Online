@@ -46,6 +46,15 @@ import {
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { useMobileView } from "@/lib/use-mobile-view";
+import {
+  MobileViewToggle,
+  MobileViewTableWrapper,
+} from "@/components/journals/mobile-view-toggle";
+import {
+  RecordCardsView,
+  type RecordCardItem,
+} from "@/components/journals/record-cards-view";
 type UserItem = {
   id: string;
   name: string;
@@ -458,6 +467,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
 
   const rows = useMemo(() => config.rows, [config.rows]);
   const isActive = props.status === "active";
+  const { mobileView, switchMobileView } = useMobileView("intensive_cooling");
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
 
   async function persist(
@@ -646,7 +656,54 @@ export function IntensiveCoolingDocumentClient(props: Props) {
           ) : null}
         </div>
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
+        {mobileView === "cards" ? (
+          <RecordCardsView
+            items={rows.map((row, index) => ({
+              id: row.id,
+              title: `№${index + 1} · ${formatIntensiveCoolingDateTime(row)}`,
+              subtitle: row.dishName || undefined,
+              leading: isActive ? (
+                <Checkbox
+                  checked={selectedRowIds.includes(row.id)}
+                  onCheckedChange={(checked) =>
+                    setSelectedRowIds((current) =>
+                      checked === true
+                        ? [...current, row.id]
+                        : current.filter((item) => item !== row.id)
+                    )
+                  }
+                  className="size-5"
+                />
+              ) : null,
+              fields: [
+                { label: "T° в начале", value: formatTemperatureLabel(row.startTemperature), hideIfEmpty: true },
+                { label: "T° через час", value: formatTemperatureLabel(row.endTemperature), hideIfEmpty: true },
+                { label: "Корректирующие действия", value: row.correctiveAction, hideIfEmpty: true },
+                { label: "Комментарий", value: row.comment, hideIfEmpty: true },
+                { label: "Контроль осуществлял", value: getResponsibleLabel(row, props.users), hideIfEmpty: true },
+              ],
+              actions: isActive ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRow(row);
+                    setRowDialogOpen(true);
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5863f8] px-4 text-[14px] font-medium text-white hover:bg-[#4752e6]"
+                >
+                  Редактировать
+                </button>
+              ) : null,
+            }))}
+            emptyLabel="Записей по интенсивному охлаждению нет."
+          />
+        ) : null}
+
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <table className="w-full min-w-[1650px] border-collapse text-[14px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
@@ -744,7 +801,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
               ) : null}
             </tbody>
           </table>
-        </div>
+        </MobileViewTableWrapper>
       </div>
 
       <SettingsDialog
