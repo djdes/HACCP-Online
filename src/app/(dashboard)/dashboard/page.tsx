@@ -23,10 +23,8 @@ import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
-import {
-  DAILY_JOURNAL_CODES,
-  getTemplatesFilledToday,
-} from "@/lib/today-compliance";
+import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -185,7 +183,7 @@ export default async function DashboardPage() {
   const mandatoryDailyTemplates = templates.filter(
     (t) =>
       (t.isMandatorySanpin || t.isMandatoryHaccp) &&
-      DAILY_JOURNAL_CODES.has(t.code)
+      ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
   const complianceItems = mandatoryDailyTemplates.map((t) => ({
     id: t.id,

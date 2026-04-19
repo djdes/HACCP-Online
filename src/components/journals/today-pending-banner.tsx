@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 
 /**
  * Top-of-page banner for a journal's documents list. Tells staff at a
@@ -28,7 +28,7 @@ export function TodayPendingBanner({
   noActiveDocument?: boolean;
 }) {
   if (!isMandatory) return null;
-  if (!DAILY_JOURNAL_CODES.has(templateCode)) return null;
+  if (!ALL_DAILY_JOURNAL_CODES.has(templateCode)) return null;
 
   if (filled) {
     return (

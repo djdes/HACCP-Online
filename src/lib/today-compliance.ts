@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
-import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import {
+  DAILY_JOURNAL_CODES,
+  CONFIG_DAILY_CODES,
+} from "@/lib/daily-journal-codes";
 
-export { DAILY_JOURNAL_CODES };
+export { DAILY_JOURNAL_CODES, CONFIG_DAILY_CODES };
 
 /**
  * "Filled today" check for a journal template. Not every mandatory
@@ -127,6 +130,72 @@ async function isDocumentFilledForDay(
 }
 
 /**
+ * Per-template-code rollup for journals that store rows inside
+ * `JournalDocument.config` instead of `JournalDocumentEntry`. Returns
+ * null if the template isn't recognized — callers then fall back to
+ * the entry-based rollup or treat the template as aperiodic.
+ */
+function rollupConfigDocumentForDay(
+  templateCode: string,
+  config: unknown,
+  todayKey: string
+): DocumentRollup | null {
+  if (!config || typeof config !== "object") return null;
+  const cfg = config as Record<string, unknown>;
+
+  if (templateCode === "cleaning") {
+    // matrix[roomId][dateKey] — one mark per room per day. Expected
+    // count = # of rooms; todayCount = rooms with a non-empty mark
+    // for today. Skip-weekends documents only count weekdays; here
+    // we just check "has any value" because the room list is finite.
+    const matrix =
+      cfg.matrix && typeof cfg.matrix === "object"
+        ? (cfg.matrix as Record<string, Record<string, unknown>>)
+        : {};
+    const rooms = Array.isArray(cfg.rooms) ? cfg.rooms : [];
+    let todayCount = 0;
+    for (const room of rooms) {
+      const roomId = (room as { id?: string })?.id;
+      if (!roomId) continue;
+      const cell = matrix[roomId]?.[todayKey];
+      if (cell !== undefined && cell !== "" && cell !== null) {
+        todayCount += 1;
+      }
+    }
+    const expectedCount = rooms.length;
+    if (expectedCount === 0) {
+      return { todayCount, expectedCount: 0, filled: todayCount > 0 };
+    }
+    return {
+      todayCount,
+      expectedCount,
+      filled: todayCount >= expectedCount,
+    };
+  }
+
+  if (templateCode === "finished_product" || templateCode === "perishable_rejection") {
+    // Each row is an aperiodic event inspection (a batch, a delivery).
+    // No fixed roster — we can only say "has any row for today".
+    const rows = Array.isArray(cfg.rows) ? cfg.rows : [];
+    const dateField =
+      templateCode === "finished_product" ? "productionDateTime" : "arrivalDate";
+    let todayCount = 0;
+    for (const row of rows) {
+      const raw = (row as Record<string, unknown>)[dateField];
+      if (typeof raw !== "string") continue;
+      if (raw.slice(0, 10) === todayKey) todayCount += 1;
+    }
+    return {
+      todayCount,
+      expectedCount: todayCount > 0 ? todayCount : 1,
+      filled: todayCount > 0,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Returns the set of JournalTemplate IDs considered "filled today"
  * (organization-scoped). See module-level docstring for the rules.
  * Aperiodic journals (not in `DAILY_JOURNAL_CODES`) are always
@@ -160,7 +229,12 @@ export async function getTemplatesFilledToday(
         dateFrom: { lte: todayStart },
         dateTo: { gte: todayStart },
       },
-      select: { id: true, templateId: true, template: { select: { code: true } } },
+      select: {
+        id: true,
+        templateId: true,
+        config: true,
+        template: { select: { code: true } },
+      },
     }),
   ]);
 
@@ -171,7 +245,34 @@ export async function getTemplatesFilledToday(
   // to do today unless an event (accident, complaint…) happens.
   if (allTemplates) {
     for (const tpl of allTemplates) {
-      if (!DAILY_JOURNAL_CODES.has(tpl.code)) filled.add(tpl.id);
+      if (!DAILY_JOURNAL_CODES.has(tpl.code) && !CONFIG_DAILY_CODES.has(tpl.code)) {
+        filled.add(tpl.id);
+      }
+    }
+  }
+
+  const todayKey = todayStart.toISOString().slice(0, 10);
+
+  // Config-stored daily journals — cleaning, finished_product, perishable.
+  // These don't write JournalDocumentEntry rows, so we inspect the
+  // document's `config` JSON directly.
+  const configDocs = activeDocuments.filter((doc) =>
+    CONFIG_DAILY_CODES.has(doc.template.code)
+  );
+  const configDocsByTemplate = new Map<string, boolean[]>();
+  for (const doc of configDocs) {
+    const rollup = rollupConfigDocumentForDay(
+      doc.template.code,
+      doc.config,
+      todayKey
+    );
+    const list = configDocsByTemplate.get(doc.templateId) ?? [];
+    list.push(rollup?.filled ?? false);
+    configDocsByTemplate.set(doc.templateId, list);
+  }
+  for (const [templateId, results] of configDocsByTemplate.entries()) {
+    if (results.length > 0 && results.every((ok) => ok)) {
+      filled.add(templateId);
     }
   }
 
@@ -204,8 +305,6 @@ export async function getTemplatesFilledToday(
     }
     docMap.set(dayKey, row._count._all);
   }
-
-  const todayKey = todayStart.toISOString().slice(0, 10);
 
   function documentFilled(documentId: string): boolean {
     const byDay = byDocument.get(documentId) ?? new Map();
@@ -290,7 +389,11 @@ export async function getTemplateTodaySummary(
   todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
 
   // Aperiodic journals are treated as filled — no daily obligation.
-  if (templateCode && !DAILY_JOURNAL_CODES.has(templateCode)) {
+  if (
+    templateCode &&
+    !DAILY_JOURNAL_CODES.has(templateCode) &&
+    !CONFIG_DAILY_CODES.has(templateCode)
+  ) {
     return {
       filled: true,
       aperiodic: true,
@@ -316,7 +419,7 @@ export async function getTemplateTodaySummary(
         dateFrom: { lte: todayStart },
         dateTo: { gte: todayStart },
       },
-      select: { id: true },
+      select: { id: true, config: true },
     }),
   ]);
 
@@ -336,6 +439,32 @@ export async function getTemplateTodaySummary(
       todayCount: 0,
       expectedCount: 0,
       noActiveDocument: true,
+    };
+  }
+
+  // Config-stored journals — inspect the document config directly.
+  if (templateCode && CONFIG_DAILY_CODES.has(templateCode)) {
+    const todayKey = todayStart.toISOString().slice(0, 10);
+    const configRollups = activeDocuments.map(
+      (doc) =>
+        rollupConfigDocumentForDay(templateCode, doc.config, todayKey) ?? {
+          todayCount: 0,
+          expectedCount: 0,
+          filled: false,
+        }
+    );
+    const todayCount = configRollups.reduce((sum, r) => sum + r.todayCount, 0);
+    const expectedCount = configRollups.reduce(
+      (sum, r) => sum + r.expectedCount,
+      0
+    );
+    const filled = configRollups.every((r) => r.filled);
+    return {
+      filled,
+      aperiodic: false,
+      todayCount,
+      expectedCount,
+      noActiveDocument: false,
     };
   }
 

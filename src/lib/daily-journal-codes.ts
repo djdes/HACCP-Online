@@ -27,3 +27,27 @@ export const DAILY_JOURNAL_CODES = new Set<string>([
   "uv_lamp_runtime",
   "fryer_oil",
 ]);
+
+/**
+ * Daily journals that store rows inside `JournalDocument.config` JSON
+ * instead of `JournalDocumentEntry`. today-compliance.ts inspects the
+ * config directly for these (see `rollupConfigDocumentForDay`).
+ *
+ * Keep distinct from `DAILY_JOURNAL_CODES` so the two code paths can
+ * be reasoned about separately.
+ */
+export const CONFIG_DAILY_CODES = new Set<string>([
+  "cleaning",
+  "finished_product",
+  "perishable_rejection",
+]);
+
+/**
+ * Union of all daily codes — used wherever UI just needs to know
+ * «does this journal have a daily obligation?» (dashboard tile
+ * badges, banner visibility gating).
+ */
+export const ALL_DAILY_JOURNAL_CODES = new Set<string>([
+  ...DAILY_JOURNAL_CODES,
+  ...CONFIG_DAILY_CODES,
+]);

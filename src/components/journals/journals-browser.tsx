@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import {
   AlertCircle,
   ArrowRight,
@@ -131,7 +131,7 @@ export function JournalsBrowser({ templates }: JournalsBrowserProps) {
   // daily obligation and should neither tug the progress bar nor show up
   // as «pending today».
   const dailyMandatoryTemplates = mandatoryTemplates.filter((t) =>
-    DAILY_JOURNAL_CODES.has(t.code)
+    ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
   const dailyMandatoryCount = dailyMandatoryTemplates.length;
   const filledTodayCount = dailyMandatoryTemplates.filter((t) => t.filledToday).length;
@@ -301,7 +301,7 @@ function StatPill({
 function TemplateCard({ template }: { template: JournalTemplateListItem }) {
   const Icon = JOURNAL_ICONS[template.code] ?? NotebookPen;
   const isMandatory = template.isMandatorySanpin || template.isMandatoryHaccp;
-  const isDaily = DAILY_JOURNAL_CODES.has(template.code);
+  const isDaily = ALL_DAILY_JOURNAL_CODES.has(template.code);
   const needsAttentionToday = isMandatory && isDaily && !template.filledToday;
   const readyToday = isMandatory && isDaily && template.filledToday;
 
