@@ -214,7 +214,7 @@ export function MedBookDocumentsClient({
         </div>
       </div>
 
-      <div className="flex gap-8 border-b border-[#d8dbea]">
+      <div className="flex gap-5 border-b border-[#d8dbea] sm:gap-8">
         <button
           type="button"
           className={`relative pb-4 text-[18px] ${

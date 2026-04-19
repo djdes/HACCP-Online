@@ -164,7 +164,7 @@ export function NotificationSettings({
               "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
           }}
         />
-        <div className="relative z-10 grid gap-8 p-8 md:grid-cols-[1.4fr_1fr] md:p-10">
+        <div className="relative z-10 grid gap-6 p-5 sm:gap-8 sm:p-8 md:grid-cols-[1.4fr_1fr] md:p-10">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] uppercase tracking-[0.18em] text-white/70 backdrop-blur">
               <span

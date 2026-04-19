@@ -365,7 +365,7 @@ export function TraceabilityDocumentsClient({
           <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
             {heading}
           </h1>
-          <div className="mt-5 flex items-center gap-10 border-b border-[#d8dbe6] text-[18px]">
+          <div className="mt-5 flex items-center gap-5 border-b border-[#d8dbe6] text-[15px] sm:gap-10 sm:text-[18px]">
             <Link
               href={`/journals/${routeCode}`}
               className={cn(

@@ -60,7 +60,7 @@ export function PublicHeader({
 export function PublicFooter() {
   return (
     <footer className="border-t border-[#ececf4]">
-      <div className="mx-auto grid max-w-[1200px] gap-10 px-6 py-12 md:grid-cols-[1.4fr_auto_auto]">
+      <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 sm:py-12 md:gap-10 md:grid-cols-[1.4fr_auto_auto]">
         <div>
           <div className="text-[16px] font-semibold tracking-[0.22em] text-[#0b1024]">
             WESETUP
