@@ -126,7 +126,7 @@ function TraceabilitySettingsDialog(props: {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
               {props.title}
@@ -141,7 +141,7 @@ function TraceabilitySettingsDialog(props: {
           </div>
         </DialogHeader>
         {activeState && (
-          <div className="space-y-5 px-10 py-8">
+          <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
             <div className="space-y-2">
               <Label className="text-[14px] text-[#7a7c8e]">Название документа</Label>
               <Input
@@ -452,7 +452,7 @@ export function TraceabilityDocumentsClient({
 
       <Dialog open={!!archiveTarget} onOpenChange={(open) => !open && setArchiveTarget(null)}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[620px]">
-          <DialogHeader className="border-b px-10 py-8">
+          <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
                 {archiveTarget?.status === "active"
@@ -488,7 +488,7 @@ export function TraceabilityDocumentsClient({
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[620px]">
-          <DialogHeader className="border-b px-10 py-8">
+          <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
                 Удаление документа &quot;{deleteTarget?.title || DEFAULT_TITLE}&quot;

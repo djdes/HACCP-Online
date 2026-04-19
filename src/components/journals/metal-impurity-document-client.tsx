@@ -223,12 +223,12 @@ function RowDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <DialogTitle className="text-[22px] font-medium text-black">
             {row ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-10 py-8">
+        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Дата</Label>
             <div className="relative">
@@ -464,12 +464,12 @@ function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <DialogTitle className="text-[22px] font-medium text-black">
             Настройки документа
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-10 py-8">
+        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Название документа</Label>
             <Input
@@ -1288,12 +1288,12 @@ export function MetalImpurityDocumentClient({
 
       <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
         <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[680px]">
-          <DialogHeader className="border-b px-10 py-8">
+          <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
             <DialogTitle className="pr-10 text-[22px] font-medium text-black">
               {`Закончить журнал "${documentTitle}"`}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex justify-end px-10 py-8">
+          <div className="flex justify-end px-5 py-6 sm:px-10 sm:py-8">
             <Button
               type="button"
               onClick={() =>

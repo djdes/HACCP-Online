@@ -125,12 +125,12 @@ function AddEmployeeDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[670px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <DialogTitle className="text-[30px] font-medium text-black">
             Добавление новой строки
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-10 py-8">
+        <div className="space-y-6 px-5 py-6 sm:px-10 sm:py-8">
           <p className="text-[18px] text-black">
             Выберите соответствующую должность и сотрудника.
           </p>
@@ -226,14 +226,14 @@ function FillFromStaffDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[690px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <DialogTitle className="text-[22px] font-medium leading-[1.2] text-black">
             Заполнение документа:
             <br />
             &quot;{documentTitle}&quot;
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-10 py-8">
+        <div className="space-y-6 px-5 py-6 sm:px-10 sm:py-8">
           <div className="text-[18px] text-black">Добавить из категории:</div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность</Label>

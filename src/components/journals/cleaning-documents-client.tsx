@@ -127,7 +127,7 @@ function ConfirmDialog(props: {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-start justify-between gap-6">
             <DialogTitle className="text-[22px] font-semibold leading-[1.2] text-black">
               {props.title}
@@ -141,7 +141,7 @@ function ConfirmDialog(props: {
             </button>
           </div>
         </DialogHeader>
-        <div className="flex justify-end px-10 py-8">
+        <div className="flex justify-end px-5 py-6 sm:px-10 sm:py-8">
           <Button
             type="button"
             disabled={submitting}
@@ -182,7 +182,7 @@ function CreateDialog(props: {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold text-black">
               Создание документа
@@ -196,7 +196,7 @@ function CreateDialog(props: {
             </button>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-10 py-8">
+        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
           <div className="space-y-2">
             <Label className="text-[16px] text-[#73738a]">Введите название документа</Label>
             <Input
@@ -282,7 +282,7 @@ function SettingsDialog(props: {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-10 py-8">
+        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold text-black">
               Настройки документа
@@ -296,7 +296,7 @@ function SettingsDialog(props: {
             </button>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-10 py-8">
+        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
           <div className="space-y-2">
             <Label className="text-[16px] text-[#73738a]">Название документа</Label>
             <Input
