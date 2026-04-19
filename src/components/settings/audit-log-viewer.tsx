@@ -82,9 +82,9 @@ export function AuditLogViewer() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Все сущности" />
           </SelectTrigger>
           <SelectContent>
@@ -95,7 +95,7 @@ export function AuditLogViewer() {
           </SelectContent>
         </Select>
         <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Все действия" />
           </SelectTrigger>
           <SelectContent>
