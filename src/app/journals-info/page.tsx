@@ -35,8 +35,8 @@ export default function JournalsInfoListPage() {
       <PublicHeader activeSection="journals-info" />
 
       {/* HERO */}
-      <section className="mx-auto max-w-[1200px] px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-6 py-16 text-white md:px-12 md:py-20">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6">
+        <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-5 py-10 text-white sm:px-6 sm:py-14 md:px-12 md:py-20">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
             <div className="absolute -bottom-32 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
@@ -59,7 +59,7 @@ export default function JournalsInfoListPage() {
       </section>
 
       {/* CATEGORIES */}
-      <section className="mx-auto max-w-[1200px] px-6 py-16">
+      <section className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-16">
         {grouped.map((group) => (
           <div key={group.category} className="mb-14">
             <div className="flex items-center gap-3">
@@ -76,9 +76,9 @@ export default function JournalsInfoListPage() {
                 <Link
                   key={j.code}
                   href={`/journals-info/${j.code}`}
-                  className="group flex flex-col rounded-2xl border border-[#ececf4] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/40 hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
+                  className="group flex min-w-0 flex-col rounded-2xl border border-[#ececf4] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/40 hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
                 >
-                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#6f7282]">
+                  <div className="break-all text-[11px] font-medium uppercase tracking-[0.14em] text-[#6f7282]">
                     {j.code}
                   </div>
                   <div className="mt-1 text-[17px] font-semibold leading-snug group-hover:text-[#3848c7]">

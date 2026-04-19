@@ -118,7 +118,7 @@ export default async function JournalInfoDetailPage({
       </section>
 
       {seo?.seoIntro ? (
-        <section className="mx-auto max-w-[1200px] px-6 pt-10">
+        <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-10">
           <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-7 md:p-8">
             <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
               Что это за журнал
@@ -133,14 +133,14 @@ export default async function JournalInfoDetailPage({
       {/* Live screenshot of the authenticated journal page, captured by
           scripts/capture-screenshots.ts nightly. Falls back to a neutral
           skeleton when the file isn't on disk yet. */}
-      <section className="mx-auto max-w-[1200px] px-6 pt-10">
+      <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-10">
         <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
           Как это выглядит в системе
         </div>
         <JournalScreenshot code={code} label={info.tagline} />
       </section>
 
-      <section className="mx-auto max-w-[1200px] px-6 py-12">
+      <section className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12">
         <div className="grid gap-6 md:grid-cols-[1fr_320px]">
           {/* MAIN */}
           <div className="space-y-8">

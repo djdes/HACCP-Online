@@ -40,7 +40,7 @@ export default async function BlogListPage() {
       <PublicHeader activeSection="blog" />
 
       {/* HERO */}
-      <section className="mx-auto max-w-[1200px] px-6">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6">
         <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-6 py-16 text-white md:px-12 md:py-20">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
@@ -62,7 +62,7 @@ export default async function BlogListPage() {
       </section>
 
       {/* LIST */}
-      <section className="mx-auto max-w-[1200px] px-6 py-16">
+      <section className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-16">
         {articles.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-16 text-center text-[15px] text-[#6f7282]">
             Пока нет опубликованных статей. Загляните позже.

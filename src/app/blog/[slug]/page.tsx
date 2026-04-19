@@ -123,7 +123,7 @@ export default async function BlogArticlePage({
       </article>
 
       {related.length > 0 && (
-        <section className="mx-auto max-w-[1200px] px-6 pb-16">
+        <section className="mx-auto max-w-[1200px] px-4 pb-10 sm:px-6 sm:pb-16">
           <div className="text-[13px] font-medium uppercase tracking-[0.18em] text-[#6f7282]">
             Читать дальше
           </div>

@@ -86,7 +86,7 @@ export default async function FeatureDetailPage({
       </nav>
 
       {/* HERO */}
-      <section className="mx-auto max-w-[1200px] px-6">
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6">
         <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-6 py-14 text-white md:px-12 md:py-16">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 -top-24 size-[380px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
@@ -107,7 +107,7 @@ export default async function FeatureDetailPage({
       </section>
 
       {/* BODY */}
-      <section className="mx-auto max-w-[1200px] px-6 py-12">
+      <section className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12">
         <div className="grid gap-8 md:grid-cols-[1fr_320px]">
           <div className="min-w-0">
             <ArticleRenderer blocks={info.body} />
