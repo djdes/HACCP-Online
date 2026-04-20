@@ -15,6 +15,7 @@
  */
 
 import type { TasksFlowIntegration } from "@prisma/client";
+import type { TaskFormSchema, TaskFormValues } from "./task-form";
 
 /** Recurring schedule for a TasksFlow task. */
 export type TaskSchedule = {
@@ -112,7 +113,27 @@ export type JournalAdapter = {
     rowKey: string;
     completed: boolean;
     todayKey: string;
+    /**
+     * Structured form values collected from the employee via
+     * TaskFormSchema. Undefined for cleaning's pure tick-mark flow.
+     */
+    values?: TaskFormValues;
   }): Promise<boolean>;
+
+  /**
+   * Optional: when present, TasksFlow renders a form (dropdown, number,
+   * text, etc.) on the employee's task screen. Employee fills the form,
+   * payload flies back to `applyRemoteCompletion(values)`. When absent,
+   * TasksFlow shows a plain «Выполнено» button — cleaning-style.
+   *
+   * `documentId` and `rowKey` are the exact pair the task was bound to
+   * — lets adapters tailor the form per row (e.g. different employee's
+   * name in the intro text).
+   */
+  getTaskForm?(input: {
+    documentId: string;
+    rowKey: string;
+  }): Promise<TaskFormSchema | null>;
 };
 
 export type JournalSyncReport = {

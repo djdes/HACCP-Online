@@ -13,9 +13,10 @@
  * No other endpoints need to know about the new code.
  */
 import { cleaningAdapter } from "./cleaning";
+import { hygieneAdapter } from "./hygiene";
 import type { JournalAdapter } from "./types";
 
-const ADAPTERS: JournalAdapter[] = [cleaningAdapter];
+const ADAPTERS: JournalAdapter[] = [cleaningAdapter, hygieneAdapter];
 
 const ADAPTERS_BY_CODE = new Map<string, JournalAdapter>(
   ADAPTERS.map((a) => [a.meta.templateCode, a])

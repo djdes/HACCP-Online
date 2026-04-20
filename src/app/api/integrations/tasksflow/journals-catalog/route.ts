@@ -233,6 +233,29 @@ export async function GET(request: Request) {
         };
       });
 
+      // Form schema preview for the admin create-task screen. One
+      // representative form per journal — specific row intros are
+      // resolved later at completion time via
+      // `/api/integrations/tasksflow/task-form?taskId=…`.
+      let taskFormPreview = null;
+      if (adapter?.getTaskForm && (adapterDocsById?.size ?? 0) > 0) {
+        const firstDoc = journalDocs[0];
+        const firstRow = adapterDocsById!.get(firstDoc.id)?.[0];
+        if (firstRow) {
+          try {
+            taskFormPreview = await adapter.getTaskForm({
+              documentId: firstDoc.id,
+              rowKey: firstRow.rowKey,
+            });
+          } catch (err) {
+            console.error(
+              `[journals-catalog] ${template.code} getTaskForm failed`,
+              err
+            );
+          }
+        }
+      }
+
       return {
         templateCode: template.code,
         label: template.name,
@@ -242,6 +265,9 @@ export async function GET(request: Request) {
          *  this to show «реальный round-trip» badge vs the lighter
          *  «свободная задача» path. */
         hasAdapter: Boolean(adapter),
+        /** Declarative form the employee fills on completion. Null for
+         *  journals without an adapter — those use free-text tasks. */
+        taskForm: taskFormPreview,
         ui: buildTasksflowJournalUi({
           code: template.code,
           label: template.name,

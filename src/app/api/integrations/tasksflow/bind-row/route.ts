@@ -14,38 +14,52 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Generic bind: TasksFlow asks WeSetup to attach a journal entity to a
- * remote task. Two flavours:
+ * Batched bind: TasksFlow asks WeSetup to attach one or many journal
+ * entities to new remote tasks. Works in three modes:
  *
- *   1. **Adapter row** — `rowKey` is provided. We resolve it via the
- *      registered adapter (e.g. cleaning's responsiblePair). Worker is
- *      derived from row.responsibleUserId. Title/schedule/description
- *      come from the adapter.
+ *   1. **Single adapter row** — `{journalCode, documentId, rowKey}`
+ *   2. **Batch adapter rows** — `{journalCode, documentId, rowKeys: [...]}`
+ *      (one task per row)
+ *   3. **Free-text / batch free-text** — no rowKey(s); instead
+ *      `{journalCode, documentId, workerUserId(s), title}`. One task
+ *      per selected worker.
  *
- *   2. **Free-text task** — no `rowKey`. The admin types a title +
- *      picks a worker. We mint a synthetic `rowKey = freetask:<uuid>`
- *      and store everything in the TaskLink. On completion the
- *      generic handler appends a JournalDocumentEntry on the bound
- *      document so the journal shows the audit trail.
- *
- * Auth: Bearer key resolved against integration's encrypted secret.
+ * The response is always an array of per-slot results so the caller
+ * can show a toast like «3 создано, 1 уже есть, 1 ошибка». Even a
+ * single-slot call comes back wrapped in the same shape.
  */
 const bodySchema = z
   .object({
     journalCode: z.string().min(1),
     documentId: z.string().min(1),
     rowKey: z.string().optional(),
+    rowKeys: z.array(z.string().min(1)).optional(),
     title: z.string().trim().max(255).optional(),
     workerUserId: z.string().optional(),
+    workerUserIds: z.array(z.string().min(1)).optional(),
     weekDays: z.array(z.number().int().min(0).max(6)).optional(),
   })
   .refine(
-    (v) => Boolean(v.rowKey) || (Boolean(v.workerUserId) && Boolean(v.title)),
+    (v) =>
+      Boolean(v.rowKey) ||
+      (v.rowKeys && v.rowKeys.length > 0) ||
+      (Boolean(v.workerUserId) && Boolean(v.title)) ||
+      (v.workerUserIds && v.workerUserIds.length > 0 && Boolean(v.title)),
     {
       message:
-        "Нужен либо rowKey (адаптер), либо workerUserId+title (свободная задача)",
+        "Нужны rowKey(s) или workerUserId(s)+title (свободная задача)",
     }
   );
+
+type SlotResult = {
+  /** For adapter rows — row label; for free-text — worker name. */
+  label: string;
+  rowKey: string;
+  tasksflowTaskId?: number;
+  created?: boolean;
+  skipped?: "already-linked" | "no-worker" | "no-user-link";
+  error?: string;
+};
 
 export async function POST(request: Request) {
   const auth = request.headers.get("authorization") ?? "";
@@ -87,7 +101,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  // Document must exist + belong to this org + be the right template.
   const doc = await db.journalDocument.findUnique({
     where: { id: payload.documentId },
     include: { template: true },
@@ -104,174 +117,212 @@ export async function POST(request: Request) {
   }
 
   const adapter = getAdapter(payload.journalCode);
-  const isFreeText = !payload.rowKey;
+  const client = tasksflowClientFor(integration);
 
-  let title: string;
-  let description: string | undefined;
-  let weekDays: number[];
-  let monthDay: number | null;
-  let workerWeSetupId: string;
-  let storedRowKey: string;
+  // Normalize into a flat work list of slots. Each slot becomes one
+  // TasksFlow task + one TaskLink.
+  type Slot =
+    | { kind: "row"; rowKey: string }
+    | { kind: "free"; workerUserId: string };
+  const slots: Slot[] = [];
+  const explicitRowKeys =
+    payload.rowKeys ?? (payload.rowKey ? [payload.rowKey] : []);
+  for (const rk of explicitRowKeys) {
+    slots.push({ kind: "row", rowKey: rk });
+  }
+  const explicitWorkers =
+    payload.workerUserIds ??
+    (payload.workerUserId ? [payload.workerUserId] : []);
+  for (const wid of explicitWorkers) {
+    slots.push({ kind: "free", workerUserId: wid });
+  }
 
-  if (isFreeText) {
-    // Free-text path — no adapter row. Validate the worker exists +
-    // is linked to TasksFlow. Title required.
-    if (!payload.workerUserId || !payload.title) {
-      return NextResponse.json(
-        { error: "title и workerUserId обязательны для свободной задачи" },
-        { status: 400 }
-      );
-    }
-    const worker = await db.user.findFirst({
-      where: {
-        id: payload.workerUserId,
-        organizationId: integration.organizationId,
-        isActive: true,
-      },
-      select: { id: true, name: true },
-    });
-    if (!worker) {
-      return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
-    }
-    workerWeSetupId = worker.id;
-    title = payload.title;
-    description = `Свободная задача из TasksFlow\nЖурнал: ${doc.template.name ?? payload.journalCode}\nДокумент: ${doc.title}`;
-    weekDays =
-      payload.weekDays && payload.weekDays.length > 0
+  const adapterDocs = adapter
+    ? await adapter.listDocumentsForOrg(integration.organizationId)
+    : [];
+  const adapterDoc = adapterDocs.find((d) => d.documentId === doc.id);
+  const rowByKey = new Map(
+    (adapterDoc?.rows ?? []).map((r) => [r.rowKey, r])
+  );
+
+  const results: SlotResult[] = [];
+  for (const slot of slots) {
+    let label: string;
+    let storedRowKey: string;
+    let workerWeSetupId: string | null;
+    let title: string;
+    let description: string | undefined;
+    let weekDays: number[];
+    let monthDay: number | null;
+
+    if (slot.kind === "row") {
+      const row = rowByKey.get(slot.rowKey);
+      if (!adapter || !adapterDoc || !row) {
+        results.push({
+          label: slot.rowKey,
+          rowKey: slot.rowKey,
+          error: "Row not found",
+        });
+        continue;
+      }
+      workerWeSetupId = row.responsibleUserId;
+      label = row.label;
+      storedRowKey = row.rowKey;
+      title =
+        payload.title?.trim() ||
+        adapter.titleForRow?.(row, adapterDoc) ||
+        row.label;
+      description = adapter.descriptionForRow?.(row, adapterDoc);
+      const sched = adapter.scheduleForRow(row, adapterDoc);
+      weekDays = payload.weekDays?.length ? payload.weekDays : sched.weekDays;
+      monthDay = sched.monthDay ?? null;
+    } else {
+      if (!payload.title) {
+        results.push({
+          label: slot.workerUserId,
+          rowKey: slot.workerUserId,
+          error: "title обязательный для свободной задачи",
+        });
+        continue;
+      }
+      const worker = await db.user.findFirst({
+        where: {
+          id: slot.workerUserId,
+          organizationId: integration.organizationId,
+          isActive: true,
+        },
+        select: { id: true, name: true },
+      });
+      if (!worker) {
+        results.push({
+          label: slot.workerUserId,
+          rowKey: slot.workerUserId,
+          error: "Сотрудник не найден",
+        });
+        continue;
+      }
+      workerWeSetupId = worker.id;
+      label = worker.name;
+      title = payload.title;
+      description = `Свободная задача из TasksFlow\nЖурнал: ${
+        doc.template.name ?? payload.journalCode
+      }\nДокумент: ${doc.title}`;
+      weekDays = payload.weekDays?.length
         ? payload.weekDays
         : [0, 1, 2, 3, 4, 5, 6];
-    monthDay = null;
-    storedRowKey = `freetask:${crypto.randomBytes(8).toString("base64url")}`;
-  } else {
-    // Adapter path — must have a registered adapter for this journal.
-    if (!adapter) {
-      return NextResponse.json(
-        {
-          error: `Журнал «${payload.journalCode}» не имеет адаптера. Используйте свободную задачу.`,
-        },
-        { status: 400 }
-      );
+      monthDay = null;
+      storedRowKey = `freetask:${crypto.randomBytes(8).toString("base64url")}`;
     }
-    const adapterDocs = await adapter.listDocumentsForOrg(
-      integration.organizationId
-    );
-    const adapterDoc = adapterDocs.find((d) => d.documentId === doc.id);
-    const row = adapterDoc?.rows.find((r) => r.rowKey === payload.rowKey);
-    if (!adapterDoc || !row) {
-      return NextResponse.json({ error: "Row not found" }, { status: 404 });
-    }
-    if (!row.responsibleUserId) {
-      return NextResponse.json(
-        { error: "У этой строки журнала не назначен ответственный" },
-        { status: 400 }
-      );
-    }
-    workerWeSetupId = row.responsibleUserId;
-    title =
-      payload.title?.trim() ||
-      adapter.titleForRow?.(row, adapterDoc) ||
-      row.label;
-    description = adapter.descriptionForRow?.(row, adapterDoc);
-    const sched = adapter.scheduleForRow(row, adapterDoc);
-    weekDays = sched.weekDays;
-    monthDay = sched.monthDay ?? null;
-    storedRowKey = payload.rowKey!;
-  }
 
-  const userLink = await db.tasksFlowUserLink.findFirst({
-    where: {
-      integrationId: integration.id,
-      wesetupUserId: workerWeSetupId,
-    },
-  });
-  if (!userLink?.tasksflowUserId) {
-    return NextResponse.json(
-      {
-        error:
-          "Сотрудник ещё не связан с TasksFlow. Откройте /settings/integrations/tasksflow и нажмите «Синхронизировать».",
+    if (!workerWeSetupId) {
+      results.push({ label, rowKey: storedRowKey, skipped: "no-worker" });
+      continue;
+    }
+    const userLink = await db.tasksFlowUserLink.findFirst({
+      where: {
+        integrationId: integration.id,
+        wesetupUserId: workerWeSetupId,
       },
-      { status: 400 }
-    );
-  }
-
-  // Idempotent: if (integration, doc, rowKey) already linked → reuse.
-  const existing = await db.tasksFlowTaskLink.findFirst({
-    where: {
-      integrationId: integration.id,
-      journalDocumentId: doc.id,
-      rowKey: storedRowKey,
-    },
-  });
-  if (existing) {
-    return NextResponse.json({
-      tasksflowTaskId: existing.tasksflowTaskId,
-      created: false,
     });
-  }
-
-  const journalLink = JSON.stringify({
-    kind: `wesetup-${payload.journalCode}`,
-    baseUrl: new URL(request.url).origin,
-    integrationId: integration.id,
-    documentId: doc.id,
-    rowKey: storedRowKey,
-    label: title,
-    isFreeText,
-  });
-
-  const client = tasksflowClientFor(integration);
-  let created;
-  try {
-    created = await client.createTask({
-      title,
-      workerId: userLink.tasksflowUserId,
-      requiresPhoto: false,
-      isRecurring: true,
-      weekDays,
-      monthDay,
-      category: `WeSetup · ${doc.template.name ?? payload.journalCode}`,
-      description: description ?? "",
-    });
-  } catch (err) {
-    if (err instanceof TasksFlowError) {
-      return NextResponse.json(
-        { error: `TasksFlow ${err.status}: ${err.message}` },
-        { status: 502 }
-      );
+    if (!userLink?.tasksflowUserId) {
+      results.push({ label, rowKey: storedRowKey, skipped: "no-user-link" });
+      continue;
     }
-    return NextResponse.json(
-      { error: "Не удалось создать задачу в TasksFlow" },
-      { status: 502 }
-    );
-  }
-  // Smuggle journalLink so TasksFlow UI can show a chip.
-  try {
-    await client.updateTask(created.id, { journalLink } as never);
-  } catch (err) {
-    console.error("[bind-row] journalLink update failed", err);
-  }
 
-  await db.tasksFlowTaskLink.create({
-    data: {
+    const existing = await db.tasksFlowTaskLink.findFirst({
+      where: {
+        integrationId: integration.id,
+        journalDocumentId: doc.id,
+        rowKey: storedRowKey,
+      },
+    });
+    if (existing) {
+      results.push({
+        label,
+        rowKey: storedRowKey,
+        tasksflowTaskId: existing.tasksflowTaskId,
+        created: false,
+        skipped: "already-linked",
+      });
+      continue;
+    }
+
+    const journalLink = JSON.stringify({
+      kind: `wesetup-${payload.journalCode}`,
+      baseUrl: new URL(request.url).origin,
       integrationId: integration.id,
-      journalCode: payload.journalCode,
-      journalDocumentId: doc.id,
+      documentId: doc.id,
+      rowKey: storedRowKey,
+      label: title,
+      isFreeText: slot.kind === "free",
+    });
+
+    let created;
+    try {
+      created = await client.createTask({
+        title,
+        workerId: userLink.tasksflowUserId,
+        requiresPhoto: false,
+        isRecurring: true,
+        weekDays,
+        monthDay,
+        category: `WeSetup · ${doc.template.name ?? payload.journalCode}`,
+        description: description ?? "",
+      });
+    } catch (err) {
+      results.push({
+        label,
+        rowKey: storedRowKey,
+        error:
+          err instanceof TasksFlowError
+            ? `TasksFlow ${err.status}: ${err.message}`
+            : err instanceof Error
+            ? err.message
+            : "Не удалось создать",
+      });
+      continue;
+    }
+    try {
+      await client.updateTask(created.id, { journalLink } as never);
+    } catch (err) {
+      console.error("[bind-row] journalLink update failed", err);
+    }
+    await db.tasksFlowTaskLink.create({
+      data: {
+        integrationId: integration.id,
+        journalCode: payload.journalCode,
+        journalDocumentId: doc.id,
+        rowKey: storedRowKey,
+        tasksflowTaskId: created.id,
+        remoteStatus: created.isCompleted ? "completed" : "active",
+        lastDirection: "push",
+      },
+    });
+    results.push({
+      label,
       rowKey: storedRowKey,
       tasksflowTaskId: created.id,
-      remoteStatus: created.isCompleted ? "completed" : "active",
-      lastDirection: "push",
-    },
-  });
-  await db.tasksFlowIntegration.update({
-    where: { id: integration.id },
-    data: { lastSyncAt: new Date() },
-  });
+      created: true,
+    });
+  }
 
+  if (results.some((r) => r.created === true || r.skipped || r.error)) {
+    await db.tasksFlowIntegration.update({
+      where: { id: integration.id },
+      data: { lastSyncAt: new Date() },
+    });
+  }
+
+  const summary = {
+    created: results.filter((r) => r.created === true).length,
+    alreadyLinked: results.filter((r) => r.skipped === "already-linked").length,
+    skipped: results.filter((r) => r.skipped && r.skipped !== "already-linked")
+      .length,
+    errors: results.filter((r) => Boolean(r.error)).length,
+  };
   return NextResponse.json({
-    tasksflowTaskId: created.id,
-    created: true,
-    isFreeText,
-    rowKey: storedRowKey,
+    results,
+    summary,
     todayKey: toDateKey(new Date()),
   });
 }
