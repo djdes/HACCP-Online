@@ -7,45 +7,46 @@ datasource db {
 }
 
 model Organization {
-  id                String            @id @default(cuid())
-  name              String
-  type              String
-  inn               String?
-  address           String?
-  phone             String?
-  subscriptionPlan  String            @default("trial")
-  subscriptionEnd   DateTime?
-  locale            String            @default("ru")
-  brandColor        String?
-  logoUrl           String?
-  yookassaShopId    String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                   String            @id @default(cuid())
+  name                 String
+  type                 String
+  inn                  String?
+  address              String?
+  phone                String?
+  subscriptionPlan     String            @default("trial")
+  subscriptionEnd      DateTime?
+  locale               String            @default("ru")
+  brandColor           String?
+  logoUrl              String?
+  yookassaShopId       String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
   /// Per-organisation bearer token for POST /api/external/entries. When set,
   /// overrides the shared EXTERNAL_API_TOKEN env and resolves the caller's
   /// organizationId automatically. Keep unique across orgs.
-  externalApiToken  String?           @unique
+  externalApiToken     String?           @unique
   /// Journal template codes the organization has chosen NOT to keep. Empty
   /// by default (= all 35 journals enabled). Toggled from /settings/journals
   /// so different production profiles (кафе, мясокомбинат, пекарня…) can
   /// hide the journals that don't apply. Disabled journals are muted in
   /// the browser and excluded from dashboard compliance counts.
-  disabledJournalCodes Json            @default("[]")
-  users             User[]
-  areas             Area[]
-  journalEntries    JournalEntry[]
-  products          Product[]
-  auditLogs         AuditLog[]
-  batches           Batch[]
-  capaTickets       CapaTicket[]
-  lossRecords       LossRecord[]
-  productionPlans   ProductionPlan[]
-  changeRequests    ChangeRequest[]
-  staffCompetencies StaffCompetency[]
-  journalDocuments  JournalDocument[]
-  jobPositions      JobPosition[]
-  notifications     Notification[]
-  botInviteTokens   BotInviteToken[]
+  disabledJournalCodes Json              @default("[]")
+  users                User[]
+  areas                Area[]
+  journalEntries       JournalEntry[]
+  products             Product[]
+  auditLogs            AuditLog[]
+  batches              Batch[]
+  capaTickets          CapaTicket[]
+  lossRecords          LossRecord[]
+  productionPlans      ProductionPlan[]
+  changeRequests       ChangeRequest[]
+  staffCompetencies    StaffCompetency[]
+  journalDocuments     JournalDocument[]
+  jobPositions         JobPosition[]
+  notifications        Notification[]
+  botInviteTokens      BotInviteToken[]
+  journalObligations   JournalObligation[]
 }
 
 model User {
@@ -94,6 +95,7 @@ model User {
   sickLeaves            StaffSickLeave[]
   dismissal             StaffDismissal?
   notifications         Notification[]
+  journalObligations    JournalObligation[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -329,18 +331,45 @@ model Notification {
   @@index([organizationId])
 }
 
+model JournalObligation {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       JournalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  journalCode    String
+  kind           String          @default("daily-journal")
+  dateKey        DateTime
+  status         String          @default("pending")
+  targetPath     String
+  source         String          @default("daily-journal-sync")
+  dedupeKey      String
+  openedAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, dateKey, status])
+  @@index([organizationId, dateKey, status])
+  @@index([templateId])
+}
+
 model JournalTemplate {
-  id                String            @id @default(cuid())
-  code              String            @unique
-  name              String
-  description       String?
-  fields            Json
-  isActive          Boolean           @default(true)
-  sortOrder         Int               @default(0)
-  isMandatorySanpin Boolean           @default(false)
-  isMandatoryHaccp  Boolean           @default(false)
-  entries           JournalEntry[]
-  documents         JournalDocument[]
+  id                 String            @id @default(cuid())
+  code               String            @unique
+  name               String
+  description        String?
+  fields             Json
+  isActive           Boolean           @default(true)
+  sortOrder          Int               @default(0)
+  isMandatorySanpin  Boolean           @default(false)
+  isMandatoryHaccp   Boolean           @default(false)
+  entries            JournalEntry[]
+  documents          JournalDocument[]
+  journalObligations JournalObligation[]
 }
 
 model Product {
