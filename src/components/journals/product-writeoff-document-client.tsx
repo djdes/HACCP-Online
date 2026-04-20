@@ -481,22 +481,25 @@ export function ProductWriteoffDocumentClient({
         setRowDialog({ open: false, index: null, row: emptyRow(), newProductName: "" });
         setRowDialogProductOptions([]);
       }}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
-          <DialogHeader className="border-b px-8 py-6">
-            <DialogTitle className="text-[24px] font-medium text-black">{rowDialog.index === null ? "Добавление новой строки" : "Редактирование строки"}</DialogTitle>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              {rowDialog.index === null ? "Добавление новой строки" : "Редактирование строки"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 px-8 py-6">
+
+          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
             <div className="space-y-2">
-              <Label>Наименование ТМЦ</Label>
-              <select value={rowDialog.row.productName} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productName: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-white px-5 text-[18px]">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Наименование ТМЦ</Label>
+              <select value={rowDialog.row.productName} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productName: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
                 <option value="">Выберите из списка</option>
                 {(rowDialogProductOptions.length > 0 ? rowDialogProductOptions : productOptions).map((item) => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>
-              <div className="flex gap-3">
-                <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Добавить название новых ТМЦ" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-                <Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-5 text-[15px] text-white" onClick={() => {
+              <div className="flex gap-2">
+                <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Добавить название новых ТМЦ" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+                <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]" onClick={() => {
                   const item = rowDialog.newProductName.trim();
                   if (!item) return;
                   setRowDialogProductOptions((current) => (
@@ -506,73 +509,122 @@ export function ProductWriteoffDocumentClient({
                   ));
                   setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productName: item }, newProductName: "" }));
                 }}>
-                  <Plus className="size-6" />
+                  <Plus className="size-5" />
                 </Button>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">№ партии</Label>
+                <Input value={rowDialog.row.batchNumber} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, batchNumber: event.target.value } }))} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Дата выработки</Label>
+                <Input value={rowDialog.row.productionDate} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productionDate: event.target.value } }))} placeholder="02.04.2025" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label>№ партии</Label>
-              <Input value={rowDialog.row.batchNumber} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, batchNumber: event.target.value } }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Label className="text-[13px] font-medium text-[#3c4053]">Количество (кг, шт)</Label>
+              <Input value={rowDialog.row.quantity} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, quantity: event.target.value } }))} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
             </div>
+
             <div className="space-y-2">
-              <Label>Дата выработки</Label>
-              <Input value={rowDialog.row.productionDate} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productionDate: event.target.value } }))} placeholder="02.04.2025" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Label className="text-[13px] font-medium text-[#3c4053]">Описание несоответствия</Label>
+              <Textarea value={rowDialog.row.discrepancyDescription} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, discrepancyDescription: event.target.value } }))} className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" rows={4} />
             </div>
+
             <div className="space-y-2">
-              <Label>Количество (кг, шт)</Label>
-              <Input value={rowDialog.row.quantity} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, quantity: event.target.value } }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Label className="text-[13px] font-medium text-[#3c4053]">Действия с ТМЦ</Label>
+              <Textarea value={rowDialog.row.action} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, action: event.target.value } }))} className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" rows={3} />
             </div>
-            <div className="space-y-2">
-              <Label>Описание несоответствия</Label>
-              <Textarea value={rowDialog.row.discrepancyDescription} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, discrepancyDescription: event.target.value } }))} className="min-h-[140px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]" />
-            </div>
-            <div className="space-y-2">
-              <Label>Действия с ТМЦ</Label>
-              <Textarea value={rowDialog.row.action} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, action: event.target.value } }))} className="min-h-[120px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]" />
-            </div>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => saveRow().catch(() => undefined)} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
-                {saving ? "Сохранение..." : rowDialog.index === null ? "Добавить" : "Сохранить"}
-              </Button>
-            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              onClick={() => setRowDialog({ open: false, index: null, row: emptyRow(), newProductName: "" })}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              onClick={() => saveRow().catch(() => undefined)}
+              disabled={saving}
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+            >
+              {saving ? "Сохранение..." : rowDialog.index === null ? "Добавить" : "Сохранить"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={commissionDialog.open} onOpenChange={(open) => !open && setCommissionDialog({ open: false, index: null, member: emptyCommissionMember() })}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[620px]">
-          <DialogHeader className="border-b px-8 py-6">
-            <DialogTitle className="text-[24px] font-medium text-black">Редактирование строки</DialogTitle>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              Редактирование строки
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 px-8 py-6">
-            <div className="space-y-2">
-              <Label>Должность</Label>
-              <select value={commissionDialog.member.role} onChange={(event) => setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, role: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
-                <PositionNativeOptions users={users} />
-              </select>
+
+          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Должность</Label>
+                <select value={commissionDialog.member.role} onChange={(event) => setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, role: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
+                  <option value="">— выберите —</option>
+                  <PositionNativeOptions users={users} />
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
+                <select value={commissionDialog.member.employeeId} onChange={(event) => {
+                  const user = users.find((item) => item.id === event.target.value);
+                  setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, employeeId: event.target.value, employeeName: user?.name || "", role: user ? getUserRoleLabel(user.role) : prev.member.role } }));
+                }} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
+                  <option value="">Выберите сотрудника</option>
+                  {(commissionDialog.member.role
+                    ? getUsersForRoleLabel(users, commissionDialog.member.role)
+                    : users
+                  ).map((user) => (
+                    <option key={user.id} value={user.id}>{user.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Сотрудник</Label>
-              <select value={commissionDialog.member.employeeId} onChange={(event) => {
-                const user = users.find((item) => item.id === event.target.value);
-                setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, employeeId: event.target.value, employeeName: user?.name || "", role: user ? getUserRoleLabel(user.role) : prev.member.role } }));
-              }} className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]">
-                <option value="">Выберите сотрудника</option>
-                {(commissionDialog.member.role
-                  ? getUsersForRoleLabel(users, commissionDialog.member.role)
-                  : users
-                ).map((user) => (
-                  <option key={user.id} value={user.id}>{user.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-between pt-2">
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               {commissionDialog.index !== null ? (
-                <Button type="button" variant="outline" className="h-12 rounded-2xl border-[#ffd7d3] px-5 text-[18px] text-[#ff3b30]" onClick={() => deleteCommissionMember(commissionDialog.index ?? 0).catch(() => undefined)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full rounded-2xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff3b30] shadow-none hover:bg-[#fff4f2] sm:w-auto"
+                  onClick={() => deleteCommissionMember(commissionDialog.index ?? 0).catch(() => undefined)}
+                >
                   Удалить
                 </Button>
-              ) : <span />}
-              <Button type="button" onClick={() => saveCommissionMember().catch(() => undefined)} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
+              ) : null}
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+                onClick={() => setCommissionDialog({ open: false, index: null, member: emptyCommissionMember() })}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="button"
+                onClick={() => saveCommissionMember().catch(() => undefined)}
+                disabled={saving}
+                className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              >
                 {saving ? "Сохранение..." : "Сохранить"}
               </Button>
             </div>
