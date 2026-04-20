@@ -6,6 +6,7 @@ import { ChevronDown, LayoutGrid, Rows3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
@@ -17,6 +18,7 @@ import {
   getHygieneDefaultResponsibleTitle,
   getStatusMeta,
   normalizeHygieneEntryData,
+  toDateKey,
   type HygieneEntryData,
   type HygieneStatus,
 } from "@/lib/hygiene-document";
@@ -312,6 +314,7 @@ export function HygieneDocumentClient({
 
   return (
     <div className="bg-white text-black">
+      <FocusTodayScroller />
       <style jsx global>{`
         @page {
           size: A4 landscape;
@@ -693,6 +696,7 @@ export function HygieneDocumentClient({
                   {dateKeys.map((dateKey) => (
                     <th
                       key={dateKey}
+                      data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
                       className="w-[58px] border border-black p-2 text-center font-semibold"
                     >
                       {getDayNumber(dateKey)}

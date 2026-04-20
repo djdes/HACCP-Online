@@ -42,6 +42,7 @@ import {
 } from "@/lib/climate-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -1163,6 +1164,7 @@ export function ClimateDocumentClient({
 
   return (
     <div className="bg-white text-black">
+      <FocusTodayScroller />
       <div className="mx-auto max-w-[1840px] px-4 py-4 sm:px-6 sm:py-8">
         <DocumentBackLink href="/journals/climate_control" documentId={documentId} />
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -1484,8 +1486,9 @@ export function ClimateDocumentClient({
             <tbody>
               {rows.map((row) => {
                 const employee = employeeMap[row.employeeId];
+                const isToday = row.date === new Date().toISOString().slice(0, 10);
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
                     <td className="border border-black p-2 text-center">
                       <Checkbox
                         checked={selectedRowIds.includes(row.id)}
