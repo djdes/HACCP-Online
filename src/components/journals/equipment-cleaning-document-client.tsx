@@ -16,13 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   emptyEquipmentCleaningRow,
   EQUIPMENT_CLEANING_VARIANT_LABELS,
   formatEquipmentCleaningDate,
@@ -43,7 +36,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import { PositionNativeOptions } from "@/components/shared/position-select";
 type UserItem = {
   id: string;
   name: string;
@@ -517,64 +510,49 @@ export function EquipmentCleaningDocumentClient({
       </div>
 
       <Dialog open={rowModalOpen} onOpenChange={setRowModalOpen}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[24px] font-medium text-black">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
               {draft.id ? "Редактирование строки" : "Добавление новой строки"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 px-6 py-5">
-            <div className="rounded-[20px] border border-[#dfe1ec] p-4">
-              <div className="mb-3 text-[18px] font-semibold text-black">Дата и время мойки</div>
-              <div className="space-y-3">
+
+          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время мойки</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
                 <Input
                   type="date"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                   value={draft.data.washDate}
                   onChange={(e) => updateDraft({ washDate: e.target.value })}
                 />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Select
-                    value={draftTime.hour}
-                    onValueChange={(hour) =>
-                      updateDraft({ washTime: mergeTime(hour, draftTime.minute) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Часы" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOUR_OPTIONS.map((hour) => (
-                        <SelectItem key={hour} value={hour}>
-                          {hour}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={draftTime.minute}
-                    onValueChange={(minute) =>
-                      updateDraft({ washTime: mergeTime(draftTime.hour, minute) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Минуты" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MINUTE_OPTIONS.map((minute) => (
-                        <SelectItem key={minute} value={minute}>
-                          {minute}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draftTime.hour}
+                  onChange={(e) => updateDraft({ washTime: mergeTime(e.target.value, draftTime.minute) })}
+                >
+                  {HOUR_OPTIONS.map((hour) => (
+                    <option key={hour} value={hour}>{hour} ч</option>
+                  ))}
+                </select>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draftTime.minute}
+                  onChange={(e) => updateDraft({ washTime: mergeTime(draftTime.hour, e.target.value) })}
+                >
+                  {MINUTE_OPTIONS.map((minute) => (
+                    <option key={minute} value={minute}>{minute} мин</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Наименование оборудования</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Наименование оборудования</Label>
               <Input
                 list="equipment-cleaning-options"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 value={draft.data.equipmentName}
                 onChange={(e) => updateDraft({ equipmentName: e.target.value })}
                 placeholder="Введите наименование оборудования"
@@ -586,36 +564,40 @@ export function EquipmentCleaningDocumentClient({
               </datalist>
             </div>
 
-            <div className="space-y-3">
-              <Label>Наименование моющего раствора</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Наименование моющего раствора</Label>
               <Input
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 value={draft.data.detergentName}
                 onChange={(e) => updateDraft({ detergentName: e.target.value })}
                 placeholder="Введите наименование моющего раствора"
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Концентрация моющего раствора, %</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Концентрация моющего раствора, %</Label>
               <Input
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 value={draft.data.detergentConcentration}
                 onChange={(e) => updateDraft({ detergentConcentration: e.target.value })}
                 placeholder="Введите концентрацию моющего раствора, %"
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Наименование дезинфицирующего раствора</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Наименование дезинфицирующего раствора</Label>
               <Input
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 value={draft.data.disinfectantName}
                 onChange={(e) => updateDraft({ disinfectantName: e.target.value })}
                 placeholder="Введите наименование дезинфицирующего раствора"
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Концентрация дезинфицирующего раствора, %</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Концентрация дезинфицирующего раствора, %</Label>
               <Input
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 value={draft.data.disinfectantConcentration}
                 onChange={(e) => updateDraft({ disinfectantConcentration: e.target.value })}
                 placeholder="Введите концентрацию дезинфицирующего раствора, %"
@@ -623,157 +605,174 @@ export function EquipmentCleaningDocumentClient({
             </div>
 
             {fieldVariant === "rinse_temperature" ? (
-              <div className="space-y-3">
-                <Label>Ополаскивание, °C</Label>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Ополаскивание, °C</Label>
                 <Input
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                   value={draft.data.rinseTemperature || ""}
                   onChange={(e) => updateDraft({ rinseTemperature: e.target.value })}
                   placeholder="Введите температуру ополаскивания"
                 />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="text-[18px] font-semibold text-black">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">
                   Полнота смываемости дез. ср-ва
-                </div>
-                <div className="flex flex-wrap gap-6 text-[18px]">
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      checked={draft.data.rinseResult !== "non_compliant"}
-                      onChange={() => updateDraft({ rinseResult: "compliant" })}
-                      className="size-5 accent-[#5566f6]"
-                    />
-                    Соответствует
-                  </label>
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      checked={draft.data.rinseResult === "non_compliant"}
-                      onChange={() => updateDraft({ rinseResult: "non_compliant" })}
-                      className="size-5 accent-[#5566f6]"
-                    />
-                    Не соответствует
-                  </label>
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["compliant", "Соответствует", "#136b2a", "#ecfdf5"],
+                      ["non_compliant", "Не соответствует", "#d2453d", "#fff4f2"],
+                    ] as const
+                  ).map(([value, label, fg, bg]) => {
+                    const active = value === "non_compliant"
+                      ? draft.data.rinseResult === "non_compliant"
+                      : draft.data.rinseResult !== "non_compliant";
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateDraft({ rinseResult: value })}
+                        className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                          active
+                            ? "border-transparent text-white"
+                            : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                        }`}
+                        style={
+                          active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }
+                        }
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            <div className="space-y-3">
-              <Label>Мойщик</Label>
-              <Select
-                value={draft.data.washerPosition}
-                onValueChange={(value) => {
-                  const candidates = getUsersForRoleLabel(users, value);
-                  const currentId = draft.data.washerUserId || "";
-                  const stillValid = candidates.some((u) => u.id === currentId);
-                  updateDraft({
-                    washerPosition: value,
-                    ...(stillValid
-                      ? {}
-                      : { washerUserId: "", washerName: "" }),
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Мойщик" />
-                </SelectTrigger>
-                <SelectContent>
-                  <PositionSelectItems users={users} />
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Сотрудник</Label>
-              <Select
-                value={draft.data.washerUserId || ""}
-                onValueChange={(value) => {
-                  const user = users.find((item) => item.id === value);
-                  updateDraft({
-                    washerUserId: value,
-                    washerName: user?.name || "",
-                    ...(!draft.data.washerPosition && user
-                      ? { washerPosition: getUserRoleLabel(user.role) }
-                      : {}),
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Сотрудник" />
-                </SelectTrigger>
-                <SelectContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Мойщик</Label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draft.data.washerPosition}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const candidates = getUsersForRoleLabel(users, value);
+                    const currentId = draft.data.washerUserId || "";
+                    const stillValid = candidates.some((u) => u.id === currentId);
+                    updateDraft({
+                      washerPosition: value,
+                      ...(stillValid
+                        ? {}
+                        : { washerUserId: "", washerName: "" }),
+                    });
+                  }}
+                >
+                  <option value="">— выберите —</option>
+                  <PositionNativeOptions users={users} />
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draft.data.washerUserId || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const user = users.find((item) => item.id === value);
+                    updateDraft({
+                      washerUserId: value,
+                      washerName: user?.name || "",
+                      ...(!draft.data.washerPosition && user
+                        ? { washerPosition: getUserRoleLabel(user.role) }
+                        : {}),
+                    });
+                  }}
+                >
+                  <option value="">— выберите —</option>
                   {(draft.data.washerPosition
                     ? getUsersForRoleLabel(users, draft.data.washerPosition)
                     : users).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <option key={user.id} value={user.id}>
                       {user.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Должность лица, проводившего контроль</Label>
-              <Select
-                value={draft.data.controllerPosition}
-                onValueChange={(value) => {
-                  const candidates = getUsersForRoleLabel(users, value);
-                  const currentId = draft.data.controllerUserId || "";
-                  const stillValid = candidates.some((u) => u.id === currentId);
-                  updateDraft({
-                    controllerPosition: value,
-                    ...(stillValid
-                      ? {}
-                      : { controllerUserId: "", controllerName: "" }),
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Должность" />
-                </SelectTrigger>
-                <SelectContent>
-                  <PositionSelectItems users={users} />
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Сотрудник</Label>
-              <Select
-                value={draft.data.controllerUserId || ""}
-                onValueChange={(value) => {
-                  const user = users.find((item) => item.id === value);
-                  updateDraft({
-                    controllerUserId: value,
-                    controllerName: user?.name || "",
-                    ...(!draft.data.controllerPosition && user
-                      ? { controllerPosition: getUserRoleLabel(user.role) }
-                      : {}),
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Сотрудник" />
-                </SelectTrigger>
-                <SelectContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Должность лица, проводившего контроль</Label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draft.data.controllerPosition}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const candidates = getUsersForRoleLabel(users, value);
+                    const currentId = draft.data.controllerUserId || "";
+                    const stillValid = candidates.some((u) => u.id === currentId);
+                    updateDraft({
+                      controllerPosition: value,
+                      ...(stillValid
+                        ? {}
+                        : { controllerUserId: "", controllerName: "" }),
+                    });
+                  }}
+                >
+                  <option value="">— выберите —</option>
+                  <PositionNativeOptions users={users} />
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  value={draft.data.controllerUserId || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const user = users.find((item) => item.id === value);
+                    updateDraft({
+                      controllerUserId: value,
+                      controllerName: user?.name || "",
+                      ...(!draft.data.controllerPosition && user
+                        ? { controllerPosition: getUserRoleLabel(user.role) }
+                        : {}),
+                    });
+                  }}
+                >
+                  <option value="">— выберите —</option>
                   {(draft.data.controllerPosition
                     ? getUsersForRoleLabel(users, draft.data.controllerPosition)
                     : users).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <option key={user.id} value={user.id}>
                       {user.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+              </div>
             </div>
+          </div>
 
-            <div className="flex justify-end">
-              <Button onClick={saveRow} disabled={isSaving} className="bg-[#5566f6] text-white hover:bg-[#4d58f5]">
-                {isSaving ? "Сохранение..." : draft.id ? "Сохранить" : "Добавить"}
-              </Button>
-            </div>
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              onClick={() => setRowModalOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              onClick={saveRow}
+              disabled={isSaving}
+            >
+              {isSaving ? "Сохранение..." : draft.id ? "Сохранить" : "Добавить"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
