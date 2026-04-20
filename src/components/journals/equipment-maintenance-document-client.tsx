@@ -620,114 +620,153 @@ export function EquipmentMaintenanceDocumentClient({
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[620px]">
-          <DialogHeader>
-            <DialogTitle>Добавление новой строки</DialogTitle>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              Добавление новой строки
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3">
-            <Label>Название оборудования</Label>
-            <Textarea
-              value={draftEquipmentName}
-              onChange={(e) => setDraftEquipmentName(e.target.value)}
-              placeholder="Название оборудования"
-              rows={2}
-            />
 
-            <Label>Вид работ по обслуживанию</Label>
-            <Textarea
-              value={draftWorkType}
-              onChange={(e) => setDraftWorkType(e.target.value)}
-              placeholder="Вид работ"
-              rows={2}
-            />
-
-            <Label>Тип обслуживания</Label>
-            <div className="flex items-center gap-6 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="maintenanceType"
-                  checked={draftMaintenanceType === "A"}
-                  onChange={() => setDraftMaintenanceType("A")}
-                />
-                <span className="font-bold">A</span> = Ежемесячно
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="maintenanceType"
-                  checked={draftMaintenanceType === "B"}
-                  onChange={() => setDraftMaintenanceType("B")}
-                />
-                <span className="font-bold">B</span> = Ежегодно
-              </label>
+          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Название оборудования</Label>
+              <Textarea
+                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+                value={draftEquipmentName}
+                onChange={(e) => setDraftEquipmentName(e.target.value)}
+                placeholder="Название оборудования"
+                rows={2}
+              />
             </div>
 
-            <Label className="mt-2">Плановые дни по месяцам</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {MONTH_KEYS.map((key) => (
-                <div key={key} className="flex items-center gap-2">
-                  <span className="w-20 text-sm">{MONTH_FULL_LABELS[key]}</span>
-                  <Select
-                    value={draftPlan[key]}
-                    onValueChange={(val) =>
-                      setDraftPlan((prev) => ({ ...prev, [key]: val }))
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Вид работ по обслуживанию</Label>
+              <Textarea
+                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+                value={draftWorkType}
+                onChange={(e) => setDraftWorkType(e.target.value)}
+                placeholder="Вид работ"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Тип обслуживания</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["A", "A = Ежемесячно"],
+                  ["B", "B = Ежегодно"],
+                ] as const).map(([value, label]) => {
+                  const active = draftMaintenanceType === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setDraftMaintenanceType(value)}
+                      className={`flex h-11 items-center justify-center rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                        active
+                          ? "border-[#5566f6] bg-[#5566f6] text-white"
+                          : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Плановые дни по месяцам</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {MONTH_KEYS.map((key) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="w-20 text-[13px] text-[#3c4053]">{MONTH_FULL_LABELS[key]}</span>
+                    <select
+                      className="h-10 flex-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024]"
+                      value={draftPlan[key]}
+                      onChange={(e) =>
+                        setDraftPlan((prev) => ({ ...prev, [key]: e.target.value }))
+                      }
+                    >
                       {DAY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
+                        <option key={opt} value={opt}>{opt}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
 
-            <div className="flex justify-end pt-2">
-              <Button onClick={saveDraftRow} disabled={!draftEquipmentName.trim()}>
-                Добавить
-              </Button>
-            </div>
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              onClick={() => setAddModalOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              onClick={saveDraftRow}
+              disabled={!draftEquipmentName.trim()}
+            >
+              Добавить
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* ---------- Edit Row Dialog ---------- */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Редактирование строки</DialogTitle>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              Редактирование строки
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Label>Название оборудования</Label>
-            <Textarea
-              value={editEquipmentName}
-              onChange={(e) => setEditEquipmentName(e.target.value)}
-              rows={2}
-            />
 
-            <Label>Вид работ по обслуживанию</Label>
-            <Textarea
-              value={editWorkType}
-              onChange={(e) => setEditWorkType(e.target.value)}
-              rows={2}
-            />
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setEditModalOpen(false)}
-              >
-                Отмена
-              </Button>
-              <Button onClick={saveEditRow}>Сохранить</Button>
+          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Название оборудования</Label>
+              <Textarea
+                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+                value={editEquipmentName}
+                onChange={(e) => setEditEquipmentName(e.target.value)}
+                rows={2}
+              />
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Вид работ по обслуживанию</Label>
+              <Textarea
+                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+                value={editWorkType}
+                onChange={(e) => setEditWorkType(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              onClick={() => setEditModalOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              onClick={saveEditRow}
+            >
+              Сохранить
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
