@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/integration-crypto";
 import { getAdapter } from "@/lib/tasksflow-adapters";
 import { toDateKey } from "@/lib/hygiene-document";
+import { buildTasksflowJournalUi } from "@/lib/tasksflow-journal-ui";
 import { getUserDisplayTitle } from "@/lib/user-roles";
 
 export const runtime = "nodejs";
@@ -241,6 +242,11 @@ export async function GET(request: Request) {
          *  this to show «реальный round-trip» badge vs the lighter
          *  «свободная задача» path. */
         hasAdapter: Boolean(adapter),
+        ui: buildTasksflowJournalUi({
+          code: template.code,
+          label: template.name,
+          hasAdapter: Boolean(adapter),
+        }),
         documents,
       };
     })

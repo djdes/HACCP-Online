@@ -1,0 +1,67 @@
+{
+  "taskId": "tasksflow-journal-composer-2026-04-20",
+  "status": "PASS",
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": "TasksFlow journal mode rendered as collapsible step cards."
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": "Wesetup journals catalog now returns per-journal ui metadata used by TasksFlow."
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": "Row-backed journals are grouped by document and shown in collapsible blocks."
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": "Free-mode journaling keeps any journal/document flow and uses journal-specific wording in form + review."
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": "TasksFlow test/build/check and Wesetup helper test/typecheck passed."
+    }
+  ],
+  "verification": [
+    {
+      "repo": "C:\\www\\TasksFlow",
+      "command": "npm test -- wesetup-journal-mode.test.ts",
+      "status": "PASS",
+      "raw": "raw/tasksflow-vitest.txt"
+    },
+    {
+      "repo": "C:\\www\\TasksFlow",
+      "command": "npm run build",
+      "status": "PASS",
+      "raw": "raw/tasksflow-build.txt"
+    },
+    {
+      "repo": "C:\\www\\TasksFlow",
+      "command": "npm run check",
+      "status": "PASS",
+      "raw": "raw/tasksflow-check.txt"
+    },
+    {
+      "repo": "C:\\www\\Wesetup.ru",
+      "command": "node --import tsx --test src/lib/tasksflow-journal-ui.test.ts",
+      "status": "PASS",
+      "raw": "raw/wesetup-journal-ui-test.txt"
+    },
+    {
+      "repo": "C:\\www\\Wesetup.ru",
+      "command": "npx tsc --noEmit --pretty false",
+      "status": "PASS",
+      "raw": "raw/wesetup-tsc.txt"
+    }
+  ],
+  "notes": [
+    "No push performed.",
+    "TaskViewDialog.tsx received a one-line compile fix so TasksFlow check could pass."
+  ]
+}
