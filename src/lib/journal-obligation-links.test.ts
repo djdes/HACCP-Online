@@ -17,6 +17,16 @@ test("resolveJournalObligationTargetPath sends entry journals to the mini new pa
   );
 });
 
+test("resolveJournalObligationTargetPath rejects entry journals with an active document id", () => {
+  assert.throws(() =>
+    resolveJournalObligationTargetPath({
+      journalCode: "cleaning",
+      isDocument: false,
+      activeDocumentId: "doc-1",
+    } as never)
+  );
+});
+
 test("resolveJournalObligationTargetPath keeps document journals on the journal page", () => {
   assert.equal(
     resolveJournalObligationTargetPath({

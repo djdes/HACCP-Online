@@ -1,14 +1,24 @@
-export type TargetArgs = {
+type EntryTargetArgs = {
   journalCode: string;
-  isDocument: boolean;
+  isDocument: false;
+  activeDocumentId: null;
+};
+
+type DocumentTargetArgs = {
+  journalCode: string;
+  isDocument: true;
   activeDocumentId: string | null;
 };
+
+export type TargetArgs = EntryTargetArgs | DocumentTargetArgs;
 
 export function resolveJournalObligationTargetPath(
   args: TargetArgs
 ): string {
   const { journalCode, isDocument, activeDocumentId } = args;
-  void activeDocumentId;
+  if (!isDocument && activeDocumentId !== null) {
+    throw new Error("Entry journal targets cannot include activeDocumentId");
+  }
 
   const basePath = `/mini/journals/${journalCode}`;
   return isDocument ? basePath : `${basePath}/new`;
