@@ -120,6 +120,7 @@ export default async function DashboardPage() {
     expiringBatches,
     iotEquipment,
     templates,
+    org,
   ] = await Promise.all([
     db.journalEntry.count({
       where: { organizationId, createdAt: { gte: todayStart } },
@@ -172,12 +173,12 @@ export default async function DashboardPage() {
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
     }),
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { disabledJournalCodes: true },
+    }),
   ]);
 
-  const org = await db.organization.findUnique({
-    where: { id: organizationId },
-    select: { disabledJournalCodes: true },
-  });
   const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
 
   const filledTodayIds = await getTemplatesFilledToday(
