@@ -1,0 +1,236 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  getJournalObligationById,
+  getManagerObligationSummary,
+  listOpenJournalObligationsForUser,
+  markJournalObligationOpened,
+  syncDailyJournalObligationsForOrganization,
+  syncDailyJournalObligationsForUser,
+} from "@/lib/journal-obligations";
+
+test("syncDailyJournalObligationsForUser creates obligations only for allowed daily journals", async () => {
+  const writes: Array<Record<string, unknown>> = [];
+
+  const obligations = await syncDailyJournalObligationsForUser(
+    {
+      userId: "user_1",
+      organizationId: "org_1",
+      now: new Date("2026-04-20T08:00:00.000Z"),
+    },
+    {
+      getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      getAllowedJournalCodes: async () => [
+        "incoming_control",
+        "hygiene",
+        "accident_journal",
+      ],
+      getDisabledJournalCodes: async () => new Set<string>(),
+      listTemplates: async () => [
+        {
+          id: "tpl_in",
+          code: "incoming_control",
+          name: "Incoming control",
+          description: null,
+          isDocument: false,
+        },
+        {
+          id: "tpl_hy",
+          code: "hygiene",
+          name: "Hygiene",
+          description: null,
+          isDocument: true,
+        },
+        {
+          id: "tpl_acc",
+          code: "accident_journal",
+          name: "Accidents",
+          description: null,
+          isDocument: false,
+        },
+      ],
+      getTemplateTodaySummary: async (_organizationId, templateId) => ({
+        filled: templateId === "tpl_in",
+        aperiodic: false,
+        todayCount: templateId === "tpl_in" ? 1 : 0,
+        expectedCount: 1,
+        noActiveDocument: false,
+        activeDocumentId: templateId === "tpl_hy" ? "doc_7" : null,
+      }),
+      saveDailyObligations: async (rows) => {
+        writes.push(...rows);
+        return rows;
+      },
+    }
+  );
+
+  assert.equal(obligations.length, 2);
+  assert.deepEqual(
+    writes.map((row) => [row.journalCode, row.status, row.targetPath]),
+    [
+      ["incoming_control", "done", "/mini/journals/incoming_control/new"],
+      ["hygiene", "pending", "/mini/journals/hygiene"],
+    ]
+  );
+});
+
+test("syncDailyJournalObligationsForUser sends incoming_control to the entry form even when template metadata says document", async () => {
+  const obligations = await syncDailyJournalObligationsForUser(
+    {
+      userId: "user_1",
+      organizationId: "org_1",
+      now: new Date("2026-04-20T08:00:00.000Z"),
+    },
+    {
+      getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      getAllowedJournalCodes: async () => ["incoming_control"],
+      getDisabledJournalCodes: async () => new Set<string>(),
+      listTemplates: async () => [
+        {
+          id: "tpl_in",
+          code: "incoming_control",
+          name: "Incoming control",
+          description: null,
+          isDocument: true,
+        },
+      ],
+      getTemplateTodaySummary: async () => ({
+        filled: false,
+        aperiodic: false,
+        todayCount: 0,
+        expectedCount: 1,
+        noActiveDocument: false,
+        activeDocumentId: "doc_7",
+      }),
+      saveDailyObligations: async (rows) => rows,
+    }
+  );
+
+  assert.equal(obligations[0]?.targetPath, "/mini/journals/incoming_control/new");
+});
+
+test("listOpenJournalObligationsForUser scopes to UTC day start", async () => {
+  const calls: Array<{ userId: string; dateKey: Date }> = [];
+
+  const rows = await listOpenJournalObligationsForUser(
+    "user_1",
+    new Date("2026-04-20T09:12:00.000Z"),
+    {
+      listOpenRows: async (args) => {
+        calls.push(args);
+        return [
+          {
+            id: "obl_1",
+            journalCode: "hygiene",
+            targetPath: "/mini/journals/hygiene",
+            template: { name: "Hygiene", description: null },
+          },
+        ];
+      },
+    }
+  );
+
+  assert.equal(calls[0]?.userId, "user_1");
+  assert.equal(calls[0]?.dateKey.toISOString(), "2026-04-20T00:00:00.000Z");
+  assert.equal(rows.length, 1);
+});
+
+test("getJournalObligationById returns only the caller-owned obligation", async () => {
+  const obligation = await getJournalObligationById("obl_1", "user_1", {
+    findObligationById: async (id, userId) =>
+      id === "obl_1" && userId === "user_1"
+        ? {
+            id,
+            userId,
+            targetPath: "/mini/journals/hygiene",
+            openedAt: null,
+          }
+        : null,
+  });
+
+  assert.equal(obligation?.targetPath, "/mini/journals/hygiene");
+});
+
+test("markJournalObligationOpened delegates to the injected marker", async () => {
+  const calls: Array<[string, string]> = [];
+
+  await markJournalObligationOpened("obl_1", "user_1", {
+    markOpened: async (id, userId) => {
+      calls.push([id, userId]);
+    },
+  });
+
+  assert.deepEqual(calls, [["obl_1", "user_1"]]);
+});
+
+test("syncDailyJournalObligationsForOrganization syncs each active staff user", async () => {
+  const calls: Array<{ userId: string; organizationId: string }> = [];
+
+  await syncDailyJournalObligationsForOrganization(
+    "org_1",
+    new Date("2026-04-20T08:00:00.000Z"),
+    {
+      listActiveStaffUsers: async () => [
+        { id: "user_1", organizationId: "org_1" },
+        { id: "user_2", organizationId: "org_1" },
+      ],
+      getUserActor: async (userId) => ({ id: userId, role: "cook", isRoot: false }),
+      getAllowedJournalCodes: async () => ["hygiene"],
+      getDisabledJournalCodes: async () => new Set<string>(),
+      listTemplates: async () => [
+        {
+          id: "tpl_hy",
+          code: "hygiene",
+          name: "Hygiene",
+          description: null,
+          isDocument: true,
+        },
+      ],
+      getTemplateTodaySummary: async () => ({
+        filled: false,
+        aperiodic: false,
+        todayCount: 0,
+        expectedCount: 1,
+        noActiveDocument: false,
+        activeDocumentId: "doc_7",
+      }),
+      saveDailyObligations: async (rows) => {
+        calls.push({
+          userId: String(rows[0]?.userId),
+          organizationId: String(rows[0]?.organizationId),
+        });
+        return rows;
+      },
+    }
+  );
+
+  assert.deepEqual(
+    calls.sort((a, b) => a.userId.localeCompare(b.userId)),
+    [
+      { userId: "user_1", organizationId: "org_1" },
+      { userId: "user_2", organizationId: "org_1" },
+    ]
+  );
+});
+
+test("getManagerObligationSummary counts pending rows and distinct employees", async () => {
+  const summary = await getManagerObligationSummary(
+    "org_1",
+    new Date("2026-04-20T11:00:00.000Z"),
+    {
+      listSummaryRows: async () => [
+        { userId: "user_1", status: "pending" },
+        { userId: "user_1", status: "done" },
+        { userId: "user_2", status: "pending" },
+      ],
+    }
+  );
+
+  assert.deepEqual(summary, {
+    total: 3,
+    pending: 2,
+    done: 1,
+    employeesWithPending: 2,
+  });
+});
