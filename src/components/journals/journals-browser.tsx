@@ -365,7 +365,7 @@ function TemplateCard({ template }: { template: JournalTemplateListItem }) {
               Отключён
             </span>
             <Link
-              href="/settings/journals"
+              href={`/settings/journals#journal-${template.code}`}
               className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6] hover:bg-[#eef1ff]"
             >
               Включить

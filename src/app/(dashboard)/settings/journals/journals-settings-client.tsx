@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,6 +33,26 @@ export function JournalsSettingsClient({ items }: { items: Item[] }) {
     Object.fromEntries(items.map((item) => [item.code, item.enabled]))
   );
   const [saving, setSaving] = useState(false);
+  const [highlightCode, setHighlightCode] = useState<string | null>(null);
+
+  // Anchor-deep-link from disabled-card "Включить" buttons:
+  //   /settings/journals#journal-<code>
+  // Scrolls the matching card into view and flashes a ring around it so
+  // the user immediately sees which switch to flip on small screens where
+  // the list is long.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#journal-")) return;
+    const code = hash.slice("#journal-".length);
+    if (!code) return;
+    const target = document.getElementById(`journal-${code}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightCode(code);
+    const t = window.setTimeout(() => setHighlightCode(null), 2400);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const enabledCount = useMemo(
     () => Object.values(state).filter(Boolean).length,
@@ -160,15 +180,21 @@ export function JournalsSettingsClient({ items }: { items: Item[] }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
           const enabled = state[item.code];
+          const isHighlighted = highlightCode === item.code;
           return (
             <button
               key={item.code}
+              id={`journal-${item.code}`}
               type="button"
               onClick={() => toggle(item.code)}
-              className={`flex h-full items-start gap-4 rounded-2xl border bg-white px-5 py-5 text-left shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
+              className={`flex h-full scroll-mt-24 items-start gap-4 rounded-2xl border bg-white px-5 py-5 text-left shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
                 enabled
                   ? "border-[#ececf4] hover:border-[#d6d9ee]"
                   : "border-[#ececf4] opacity-60 hover:opacity-90"
+              } ${
+                isHighlighted
+                  ? "ring-2 ring-[#5566f6] ring-offset-2 ring-offset-white"
+                  : ""
               }`}
             >
               <Switch
