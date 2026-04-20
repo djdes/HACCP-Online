@@ -670,8 +670,19 @@ export function RegisterDocumentClient({
             </thead>
             <tbody>
               {config.rows.map((row, index) => (
-                <tr key={row.id}>
-                  <td className="border border-black p-2 text-center">
+                <tr
+                  key={row.id}
+                  className={status === "active" ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}
+                  onClick={() => {
+                    if (status !== "active") return;
+                    setEditingRow(row);
+                    setRowDialogOpen(true);
+                  }}
+                >
+                  <td
+                    className="border border-black p-2 text-center"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selectedRowIds.includes(row.id)}
                       onCheckedChange={(checked) =>
@@ -693,17 +704,10 @@ export function RegisterDocumentClient({
                     return (
                       <td key={`${row.id}:${field.key}`} className="border border-black p-2 align-top">
                         {fieldIndex === 0 && status === "active" ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingRow(row);
-                              setRowDialogOpen(true);
-                            }}
-                            className="flex w-full items-start justify-between gap-3 text-left hover:text-[#3848c7]"
-                          >
+                          <div className="flex w-full items-start justify-between gap-3 text-left hover:text-[#3848c7]">
                             <span>{cellValue || "—"}</span>
                             <Pencil className="mt-1 size-4 shrink-0" />
-                          </button>
+                          </div>
                         ) : (
                           cellValue || "—"
                         )}

@@ -1572,8 +1572,16 @@ export function AcceptanceDocumentClient(props: Props) {
             </thead>
             <tbody>
               {displayedRows.map((row) => (
-                <tr key={row.id}>
-                  <td className="border border-black p-2 text-center">
+                <tr
+                  key={row.id}
+                  className={!isClosed ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}
+                  onClick={() => {
+                    if (isClosed) return;
+                    setEditingRow(row);
+                    setRowDialogOpen(true);
+                  }}
+                >
+                  <td className="border border-black p-2 text-center" onClick={(event) => event.stopPropagation()}>
                     <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(c) => setSelectedRowIds((cur) => c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id))} disabled={isClosed} />
                   </td>
                   <td className="border border-black p-2 text-center whitespace-pre-line">
@@ -1581,9 +1589,9 @@ export function AcceptanceDocumentClient(props: Props) {
                     {row.deliveryHour ? `\n${row.deliveryHour}:${row.deliveryMinute || "00"}` : ""}
                   </td>
                   <td className="border border-black p-2">
-                    <button type="button" className="text-left hover:text-[#5566f6]" onClick={() => { if (isClosed) return; setEditingRow(row); setRowDialogOpen(true); }}>
+                    <div className="text-left hover:text-[#5566f6]">
                       {row.productName || "—"}
-                    </button>
+                    </div>
                   </td>
                   <td className="border border-black p-2 text-center">{row.manufacturer || "—"}</td>
                   <td className="border border-black p-2 text-center">{row.supplier || "—"}</td>

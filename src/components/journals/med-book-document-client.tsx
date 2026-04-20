@@ -544,7 +544,8 @@ export function MedBookDocumentClient({
                     </button>
                   </td>
                   <td
-                    className={`border border-black px-3 py-3 text-center ${cellBg(!row.data.positionTitle)}`}
+                    className={`border border-black px-3 py-3 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                    onClick={() => !isClosed && setEditId(row.id)}
                   >
                     {row.data.positionTitle}
                   </td>
@@ -718,10 +719,16 @@ export function MedBookDocumentClient({
                       <td className="border border-black px-2 py-3 text-center">
                         {index + 1}
                       </td>
-                      <td className="border border-black px-3 py-3 text-center">
+                      <td
+                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        onClick={() => !isClosed && setEditId(row.id)}
+                      >
                         {row.name}
                       </td>
-                      <td className="border border-black px-3 py-3 text-center">
+                      <td
+                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        onClick={() => !isClosed && setEditId(row.id)}
+                      >
                         {row.data.positionTitle}
                       </td>
                       {vaccColumns.map((column) => {
@@ -759,7 +766,10 @@ export function MedBookDocumentClient({
                           </td>
                         );
                       })}
-                      <td className="border border-black px-3 py-3 text-center">
+                      <td
+                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        onClick={() => !isClosed && setEditId(row.id)}
+                      >
                         {row.data.note || ""}
                       </td>
                     </tr>
