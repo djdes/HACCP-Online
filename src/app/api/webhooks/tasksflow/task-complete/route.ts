@@ -79,6 +79,7 @@ export async function POST(request: Request) {
   const changed = await applyRemoteCompletion({
     documentId: found.link.journalDocumentId,
     rowKey: found.link.rowKey,
+    journalCode: found.link.journalCode,
     completed: parsed.isCompleted,
   });
 

@@ -22,8 +22,8 @@ import {
   normalizeJournalDocumentStaffState,
   normalizeJournalStaffBoundConfig,
 } from "@/lib/journal-staff-binding";
-import { CLEANING_DOCUMENT_TEMPLATE_CODE } from "@/lib/cleaning-document";
-import { syncCleaningDocumentToTasksFlow } from "@/lib/tasksflow-sync";
+import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
+import { isJournalSupported } from "@/lib/tasksflow-adapters";
 
 function isValidDate(value: Date) {
   return Number.isFinite(value.getTime());
@@ -216,22 +216,22 @@ export async function PATCH(
 
   const updated = await db.journalDocument.update({ where: { id }, data });
 
-  // Fire-and-forget TasksFlow sync for cleaning documents. Sync runs
+  // Fire-and-forget TasksFlow sync for journals whose adapter is
+  // registered (see src/lib/tasksflow-adapters/index.ts). Sync runs
   // after the local save completes, so a TasksFlow outage never blocks
   // the user's edit. Errors are surfaced through the integration log
-  // (see lastSyncAt + the report this returns); we don't await the
-  // result on the response path because the cleaning UI auto-refreshes
-  // and a second blocking call to a third party would tank the perceived
-  // save latency.
+  // (see lastSyncAt + the report). We don't await the result on the
+  // response path because the journal UI auto-refreshes and a blocking
+  // third-party call would tank the perceived save latency.
   if (
-    template?.code === CLEANING_DOCUMENT_TEMPLATE_CODE &&
-    body.config !== undefined
+    body.config !== undefined &&
+    isJournalSupported(template?.code)
   ) {
-    void syncCleaningDocumentToTasksFlow({
+    void syncDocumentToTasksFlow({
       documentId: id,
       organizationId: session.user.organizationId,
     }).catch((err) => {
-      console.error("[tasksflow-sync] cleaning patch hook failed", err);
+      console.error("[tasksflow-sync] patch hook failed", err);
     });
   }
 

@@ -1,0 +1,132 @@
+/**
+ * Adapter contract for plugging a WeSetup journal into the TasksFlow
+ * integration. One adapter = one journal type. Add a new adapter →
+ * register it in `index.ts` → it shows up in:
+ *   • GET /api/integrations/tasksflow/journals-catalog
+ *   • POST /api/integrations/tasksflow/bind-row
+ *   • PATCH /api/journal-documents/[id] auto-sync
+ *   • POST /api/integrations/tasksflow/sync-tasks (pull completions)
+ *
+ * Without doubling-up code per journal.
+ *
+ * **Mental model:** TasksFlow tasks are recurring (weekly cron-ish).
+ * Adapters expose «assignable things» (rows) and translate completion
+ * events back to the journal's native cell/entry model.
+ */
+
+import type { TasksFlowIntegration } from "@prisma/client";
+
+/** Recurring schedule for a TasksFlow task. */
+export type TaskSchedule = {
+  weekDays: number[]; // 0=Sun ... 6=Sat (matches TasksFlow schema.ts)
+  monthDay?: number | null;
+};
+
+/** A single «thing that can be assigned» surfaced in the picker. */
+export type AdapterRow = {
+  /** Stable per-document id used as the join key in TaskLink.rowKey. */
+  rowKey: string;
+  /** Short human label (top line in picker, also task title fallback). */
+  label: string;
+  /** Optional sublabel (role / role title / date). */
+  sublabel?: string;
+  /** WeSetup user id of the cleaner / responsible person. Drives the
+   *  TasksFlow workerId via the integration's user-link table. */
+  responsibleUserId: string | null;
+  /** Optional badge (e.g. "СанПиН", "ХАССП") rendered in picker. */
+  badge?: string;
+};
+
+/** A journal document grouping rows. */
+export type AdapterDocument = {
+  documentId: string;
+  documentTitle: string;
+  period: { from: string; to: string };
+  rows: AdapterRow[];
+};
+
+/**
+ * Static metadata shown in the picker even before any rows load —
+ * lets the TasksFlow UI render journal tabs / icons immediately.
+ */
+export type AdapterMeta = {
+  templateCode: string;
+  /** Human title shown as the tab label in TasksFlow picker. */
+  label: string;
+  /** Short description rendered under the tab name. */
+  description?: string;
+  /** Lucide icon name (lowercase) for the TasksFlow tab. */
+  iconName?: string;
+};
+
+export type JournalAdapter = {
+  meta: AdapterMeta;
+
+  /**
+   * Default recurring schedule for a row. Implementations may inspect
+   * the row to tune (e.g. skip weekends if document config says so).
+   */
+  scheduleForRow(row: AdapterRow, doc: AdapterDocument): TaskSchedule;
+
+  /**
+   * Build the title shown in TasksFlow for a row's task.
+   * Defaults to row.label if not implemented.
+   */
+  titleForRow?(row: AdapterRow, doc: AdapterDocument): string;
+
+  /**
+   * Build a multi-line description rendered in TasksFlow task view.
+   * Optional — adapters that don't need it can return undefined.
+   */
+  descriptionForRow?(
+    row: AdapterRow,
+    doc: AdapterDocument
+  ): string | undefined;
+
+  /**
+   * Walk the org's active journal documents of this template and
+   * return the assignable rows. Pure read — no mutations.
+   */
+  listDocumentsForOrg(organizationId: string): Promise<AdapterDocument[]>;
+
+  /**
+   * Diff existing TaskLinks against the current document state and
+   * decide which TasksFlow tasks to create / update / delete. Called
+   * by the PATCH hook after a journal save and by the manual sync.
+   * Returns the same `CleaningSyncReport` shape (renamed sync report).
+   */
+  syncDocument(input: {
+    integration: TasksFlowIntegration;
+    documentId: string;
+  }): Promise<JournalSyncReport>;
+
+  /**
+   * Apply a remote completion to the journal's native model. For
+   * cleaning this writes a cell in the matrix; for transactional
+   * journals (equipment_cleaning, etc.) it could append a new entry.
+   *
+   * Returns true when the document was actually modified.
+   */
+  applyRemoteCompletion(input: {
+    documentId: string;
+    rowKey: string;
+    completed: boolean;
+    todayKey: string;
+  }): Promise<boolean>;
+};
+
+export type JournalSyncReport = {
+  created: number;
+  updated: number;
+  deleted: number;
+  skippedNoLink: string[];
+  errors: Array<{ rowKey: string; message: string }>;
+};
+
+export const EMPTY_SYNC_REPORT: JournalSyncReport = {
+  created: 0,
+  updated: 0,
+  deleted: 0,
+  skippedNoLink: [],
+  errors: [],
+};

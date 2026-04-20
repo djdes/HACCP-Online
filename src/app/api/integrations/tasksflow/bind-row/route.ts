@@ -1,39 +1,40 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import {
-  CLEANING_DOCUMENT_TEMPLATE_CODE,
-  type CleaningDocumentConfig,
-  normalizeCleaningDocumentConfig,
-} from "@/lib/cleaning-document";
-import { toDateKey } from "@/lib/hygiene-document";
 import { decryptSecret } from "@/lib/integration-crypto";
 import {
   TasksFlowError,
   tasksflowClientFor,
 } from "@/lib/tasksflow-client";
+import { getAdapter } from "@/lib/tasksflow-adapters";
+import { toDateKey } from "@/lib/hygiene-document";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Called by TasksFlow when an admin creates a task in «Журнальный» mode.
+ * Generic bind: TasksFlow asks us to attach a journal row to a remote
+ * task. Works for any journal whose adapter is registered in
+ * `src/lib/tasksflow-adapters/index.ts`.
  *
- * Request:
  *   POST /api/integrations/tasksflow/bind-row
  *   Headers: Authorization: Bearer tfk_…
- *   Body:    { documentId: string, rowKey: string, title?: string }
+ *   Body:
+ *     {
+ *       "journalCode": "cleaning",
+ *       "documentId":  "cmo7…",
+ *       "rowKey":      "cleaning-pair-…",
+ *       "title":       "..."   // optional override
+ *     }
  *
- * On success creates the TasksFlow task on behalf of the linked cleaner
- * AND registers a `TasksFlowTaskLink` row, so the existing pull /
- * webhook flow mirrors completion back into the journal cell. If the
- * row was already bound, returns the existing taskId without
- * duplicating.
+ * Response:
+ *   { "tasksflowTaskId": 14, "created": true|false }
  *
- * Auth is the same Bearer-key resolution as the catalog endpoint —
- * symmetric secret, no second credential.
+ * Idempotent: existing TaskLink for the same (integration, doc, row)
+ * → returns the existing task id instead of duplicating.
  */
 const bodySchema = z.object({
+  journalCode: z.string().min(1),
   documentId: z.string().min(1),
   rowKey: z.string().min(1),
   title: z.string().trim().max(255).optional(),
@@ -79,7 +80,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  // 1. Ensure document is a cleaning doc owned by the integration's org.
+  const adapter = getAdapter(payload.journalCode);
+  if (!adapter) {
+    return NextResponse.json(
+      { error: `Журнал "${payload.journalCode}" не поддерживается` },
+      { status: 400 }
+    );
+  }
+
+  // Verify document is owned by the integration's org and matches the
+  // declared journalCode. Adapter listing then gives us the canonical
+  // row metadata (label, responsibleUserId).
   const doc = await db.journalDocument.findUnique({
     where: { id: payload.documentId },
     include: { template: true },
@@ -87,33 +98,31 @@ export async function POST(request: Request) {
   if (
     !doc ||
     doc.organizationId !== integration.organizationId ||
-    doc.template.code !== CLEANING_DOCUMENT_TEMPLATE_CODE
+    doc.template.code !== payload.journalCode
   ) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
   if (doc.status === "closed") {
-    return NextResponse.json(
-      { error: "Documento already closed" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Document already closed" }, { status: 400 });
   }
 
-  // 2. Locate the pair + linked TasksFlow user.
-  const config = normalizeCleaningDocumentConfig(doc.config) as CleaningDocumentConfig;
-  const pair = (config.responsiblePairs ?? []).find((p) => p.id === payload.rowKey);
-  if (!pair) {
+  const adapterDocs = await adapter.listDocumentsForOrg(integration.organizationId);
+  const adapterDoc = adapterDocs.find((d) => d.documentId === doc.id);
+  const row = adapterDoc?.rows.find((r) => r.rowKey === payload.rowKey);
+  if (!adapterDoc || !row) {
     return NextResponse.json({ error: "Row not found" }, { status: 404 });
   }
-  if (!pair.cleaningUserId) {
+  if (!row.responsibleUserId) {
     return NextResponse.json(
       { error: "У этой строки журнала не назначен ответственный" },
       { status: 400 }
     );
   }
+
   const userLink = await db.tasksFlowUserLink.findFirst({
     where: {
       integrationId: integration.id,
-      wesetupUserId: pair.cleaningUserId,
+      wesetupUserId: row.responsibleUserId,
     },
   });
   if (!userLink?.tasksflowUserId) {
@@ -126,12 +135,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3. Idempotency: existing TaskLink for this row → return as-is.
+  // Idempotent: already bound → return existing.
   const existing = await db.tasksFlowTaskLink.findFirst({
     where: {
       integrationId: integration.id,
       journalDocumentId: doc.id,
-      rowKey: pair.id,
+      rowKey: row.rowKey,
     },
   });
   if (existing) {
@@ -141,49 +150,35 @@ export async function POST(request: Request) {
     });
   }
 
-  // 4. Create the TasksFlow task. journalLink lets TasksFlow render
-  //    «Уборка · Имя» with a chip pointing back at the journal row.
-  const client = tasksflowClientFor(integration);
-  const dateFromIso = toDateKey(doc.dateFrom);
-  const dateToIso = toDateKey(doc.dateTo);
-  const weekDays = config.skipWeekends ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
+  const schedule = adapter.scheduleForRow(row, adapterDoc);
+  const title =
+    payload.title?.trim() ||
+    adapter.titleForRow?.(row, adapterDoc) ||
+    row.label;
+  const description = adapter.descriptionForRow?.(row, adapterDoc) ?? undefined;
 
   const journalLink = JSON.stringify({
-    kind: "wesetup-cleaning",
+    kind: `wesetup-${payload.journalCode}`,
     baseUrl: new URL(request.url).origin,
     integrationId: integration.id,
     documentId: doc.id,
-    rowKey: pair.id,
-    label: `Уборка · ${pair.cleaningUserName || pair.cleaningTitle}`,
+    rowKey: row.rowKey,
+    label: title,
   });
-  const taskTitle =
-    payload.title?.trim() ||
-    `Уборка · ${pair.cleaningUserName || pair.cleaningTitle}`;
 
+  const client = tasksflowClientFor(integration);
   let created;
   try {
     created = await client.createTask({
-      title: taskTitle,
+      title,
       workerId: userLink.tasksflowUserId,
       requiresPhoto: false,
       isRecurring: true,
-      weekDays,
-      category: "WeSetup · Уборка",
-      description: [
-        `Журнал: ${doc.title}`,
-        `Период: ${dateFromIso} — ${dateToIso}`,
-        pair.controlUserName
-          ? `Контроль: ${pair.controlUserName} (${pair.controlTitle})`
-          : null,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      // Custom field: smuggle journalLink via update right after
-      // create. createTask shape doesn't include it, so we do a
-      // follow-up updateTask. TasksFlow's PUT accepts arbitrary fields
-      // from insertTaskSchema.partial() including journalLink (added
-      // in the corresponding TasksFlow patch).
-    } as never);
+      weekDays: schedule.weekDays,
+      monthDay: schedule.monthDay ?? null,
+      category: `WeSetup · ${adapter.meta.label}`,
+      description: description ?? "",
+    });
   } catch (err) {
     if (err instanceof TasksFlowError) {
       return NextResponse.json(
@@ -196,21 +191,20 @@ export async function POST(request: Request) {
       { status: 502 }
     );
   }
-  // Set journalLink in a follow-up PUT so we don't have to widen the
-  // typed createTask signature in tasksflow-client just for this.
+  // Smuggle the journalLink via follow-up PUT (createTask shape doesn't
+  // expose it). Non-fatal — task exists either way.
   try {
     await client.updateTask(created.id, { journalLink } as never);
   } catch (err) {
     console.error("[bind-row] journalLink update failed", err);
-    // Non-fatal — task exists, just lacks the link metadata for UI.
   }
 
   await db.tasksFlowTaskLink.create({
     data: {
       integrationId: integration.id,
-      journalCode: CLEANING_DOCUMENT_TEMPLATE_CODE,
+      journalCode: payload.journalCode,
       journalDocumentId: doc.id,
-      rowKey: pair.id,
+      rowKey: row.rowKey,
       tasksflowTaskId: created.id,
       remoteStatus: created.isCompleted ? "completed" : "active",
       lastDirection: "push",
@@ -224,5 +218,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     tasksflowTaskId: created.id,
     created: true,
+    todayKey: toDateKey(new Date()),
   });
 }
