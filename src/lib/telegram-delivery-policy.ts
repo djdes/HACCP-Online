@@ -1,4 +1,5 @@
 export type TelegramDeliveryMetadata = {
+  organizationId?: string | null;
   kind?: string | null;
   dedupeKey?: string | null;
 };
@@ -11,6 +12,8 @@ export type TelegramDeliveryPolicyOptions = {
 
 type TelegramDeliveryLookupArgs = {
   userId: string;
+  organizationId: string | null;
+  allowLegacyOrganizationlessMatch: boolean;
   kind: string;
   dedupeKey: string;
   since: Date;
@@ -18,23 +21,31 @@ type TelegramDeliveryLookupArgs = {
 };
 
 type TelegramDeliveryPolicyDeps = {
-  findRecentDelivery: (args: TelegramDeliveryLookupArgs) => Promise<{ id: string } | null>;
+  findRecentDelivery: (
+    args: TelegramDeliveryLookupArgs
+  ) => Promise<{ id: string } | null>;
 };
 
 const DEFAULT_LOOKBACK_MS = 36 * 60 * 60 * 1000;
 const RERUN_SKIP_STATUSES = ["queued", "sent", "rate_limited"] as const;
 
+function normalizeNullableText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
 function normalizeDeliveryMetadata(
   delivery: TelegramDeliveryMetadata | null | undefined
-): { kind: string; dedupeKey: string } | null {
-  const kind = delivery?.kind?.trim();
-  const dedupeKey = delivery?.dedupeKey?.trim();
+): { organizationId: string | null; kind: string; dedupeKey: string } | null {
+  const organizationId = normalizeNullableText(delivery?.organizationId);
+  const kind = normalizeNullableText(delivery?.kind);
+  const dedupeKey = normalizeNullableText(delivery?.dedupeKey);
 
   if (!kind || !dedupeKey) {
     return null;
   }
 
-  return { kind, dedupeKey };
+  return { organizationId, kind, dedupeKey };
 }
 
 function defaultDeps(): TelegramDeliveryPolicyDeps {
@@ -44,6 +55,16 @@ function defaultDeps(): TelegramDeliveryPolicyDeps {
       return db.telegramLog.findFirst({
         where: {
           userId: args.userId,
+          ...(args.organizationId
+            ? {
+                OR: [
+                  { organizationId: args.organizationId },
+                  ...(args.allowLegacyOrganizationlessMatch
+                    ? [{ organizationId: null }]
+                    : []),
+                ],
+              }
+            : {}),
           kind: args.kind,
           dedupeKey: args.dedupeKey,
           status: { in: args.statuses },
@@ -65,7 +86,7 @@ export async function shouldSkipTelegramDelivery(
   },
   overrides?: Partial<TelegramDeliveryPolicyDeps>
 ): Promise<boolean> {
-  const userId = args.userId?.trim();
+  const userId = normalizeNullableText(args.userId);
   const delivery = normalizeDeliveryMetadata(args.delivery);
 
   if (!userId || !delivery) {
@@ -77,6 +98,8 @@ export async function shouldSkipTelegramDelivery(
   const deps = { ...defaultDeps(), ...overrides };
   const existing = await deps.findRecentDelivery({
     userId,
+    organizationId: delivery.organizationId,
+    allowLegacyOrganizationlessMatch: delivery.organizationId !== null,
     kind: delivery.kind,
     dedupeKey: delivery.dedupeKey,
     since: new Date(now.getTime() - lookbackMs),

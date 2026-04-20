@@ -453,6 +453,7 @@ model EmailVerification {
 model TelegramLog {
   id        String    @id @default(cuid())
   userId    String?
+  organizationId String?
   chatId    String
   body      String
   kind      String?
@@ -464,7 +465,7 @@ model TelegramLog {
   createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
-  @@index([userId, kind, dedupeKey, createdAt])
+  @@index([userId, organizationId, kind, dedupeKey, createdAt])
   @@index([status, createdAt])
 }
 

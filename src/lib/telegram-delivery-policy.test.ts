@@ -54,6 +54,8 @@ test("shouldSkipTelegramDelivery returns false when metadata is incomplete", asy
 test("shouldSkipTelegramDelivery checks recent queued or sent deliveries by user kind and key", async () => {
   const calls: Array<{
     userId: string;
+    organizationId: string | null;
+    allowLegacyOrganizationlessMatch: boolean;
     kind: string;
     dedupeKey: string;
     since: Date;
@@ -64,6 +66,7 @@ test("shouldSkipTelegramDelivery checks recent queued or sent deliveries by user
     {
       userId: "user_1",
       delivery: {
+        organizationId: "org_1",
         kind: "digest.staff",
         dedupeKey: "org_1:2026-04-20:user_1",
       },
@@ -81,11 +84,40 @@ test("shouldSkipTelegramDelivery checks recent queued or sent deliveries by user
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], {
     userId: "user_1",
+    organizationId: "org_1",
+    allowLegacyOrganizationlessMatch: true,
     kind: "digest.staff",
     dedupeKey: "org_1:2026-04-20:user_1",
     since: new Date("2026-04-18T20:00:00.000Z"),
     statuses: ["queued", "sent", "rate_limited"],
   });
+});
+
+test("shouldSkipTelegramDelivery treats organization metadata as a first-class lookup field", async () => {
+  let capturedOrganizationId: string | null | undefined;
+  let allowLegacyOrganizationlessMatch = false;
+
+  await shouldSkipTelegramDelivery(
+    {
+      userId: "user_1",
+      delivery: {
+        organizationId: "org_42",
+        kind: "digest.manager",
+        dedupeKey: "telegram-digest:manager:2026-04-20:org_42",
+      },
+      now: new Date("2026-04-20T08:00:00.000Z"),
+    },
+    {
+      findRecentDelivery: async (args) => {
+        capturedOrganizationId = args.organizationId;
+        allowLegacyOrganizationlessMatch = args.allowLegacyOrganizationlessMatch;
+        return null;
+      },
+    }
+  );
+
+  assert.equal(capturedOrganizationId, "org_42");
+  assert.equal(allowLegacyOrganizationlessMatch, true);
 });
 
 test("shouldSkipTelegramDelivery ignores logs outside the configured lookback window", async () => {
