@@ -41,7 +41,9 @@ import {
   type CleaningVentilationChecklistEntryData,
   type CleaningVentilationResponsible,
 } from "@/lib/cleaning-ventilation-checklist-document";
+import { toDateKey } from "@/lib/hygiene-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { isManagementRole } from "@/lib/user-roles";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -591,6 +593,7 @@ export function CleaningVentilationChecklistDocumentClient({
 
   return (
     <div className="space-y-8">
+      <FocusTodayScroller />
       {selection.length > 0 ? (
         <div className="flex items-center gap-5 rounded-[22px] bg-white px-7 py-5 shadow-sm">
           <button
@@ -961,7 +964,13 @@ export function CleaningVentilationChecklistDocumentClient({
                   const selected = selection.includes(row.dateKey);
                   const responsibleName = userMap[procedure.responsibleUserId]?.name || "";
                   return (
-                    <tr key={`${row.dateKey}-${procedure.id}`} className="bg-white">
+                    <tr
+                      key={`${row.dateKey}-${procedure.id}`}
+                      data-focus-today={
+                        index === 0 && row.dateKey === toDateKey(new Date()) ? "" : undefined
+                      }
+                      className="bg-white"
+                    >
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}

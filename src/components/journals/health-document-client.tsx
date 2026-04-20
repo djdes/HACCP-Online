@@ -24,9 +24,11 @@ import {
   getHygienePositionLabel,
   getWeekdayShort,
   normalizeHealthEntryData,
+  toDateKey,
   type HealthEntryData,
 } from "@/lib/hygiene-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import { toast } from "sonner";
 type Props = {
@@ -238,6 +240,7 @@ export function HealthDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
+      <FocusTodayScroller />
       {/* Back-link + Print are rendered by StaffJournalToolbar below. */}
       <style jsx global>{`
         @page {
@@ -574,6 +577,7 @@ export function HealthDocumentClient(props: Props) {
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
+                    data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
                     className="w-[58px] border border-black p-2 text-center font-semibold"
                   >
                     <div>{getDayNumber(dateKey)}</div>

@@ -44,6 +44,8 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { toDateKey } from "@/lib/hygiene-document";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -1062,8 +1064,12 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     router.refresh();
   }
 
+  const todayKey = toDateKey(new Date());
+  const todayFocusRowIndex = rows.findIndex((row) => row.date === todayKey);
+
   return (
     <div className="space-y-4">
+      <FocusTodayScroller />
       <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
@@ -1249,10 +1255,14 @@ export function UvLampRuntimeDocumentClient(props: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {rows.map((row, rowIndex) => {
               const duration = calculateDurationMinutes(row.data.startTime, row.data.endTime);
               return (
-                <tr key={row.id} className="hover:bg-[#fafbff] print:hover:bg-transparent">
+                <tr
+                  key={row.id}
+                  data-focus-today={rowIndex === todayFocusRowIndex ? "" : undefined}
+                  className="hover:bg-[#fafbff] print:hover:bg-transparent"
+                >
                   {props.status === "active" && (
                     <td className="border border-[#eceef5] p-2 text-center print:hidden">
                       <Checkbox

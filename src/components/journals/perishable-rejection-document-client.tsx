@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -366,8 +367,12 @@ export function PerishableRejectionDocumentClient({
   const arrivalHM = parseTimeToHM(draftRow.arrivalTime);
   const saleHM = parseTimeToHM(draftRow.actualSaleTime);
 
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayFocusRowId = config.rows.find((row) => row.arrivalDate === todayKey)?.id;
+
   return (
     <div className="space-y-6 text-black">
+      <FocusTodayScroller />
       <DocumentBackLink href="/journals/perishable_rejection" documentId={documentId} />
       <div className="flex items-center justify-between">
         <div>
@@ -532,7 +537,7 @@ export function PerishableRejectionDocumentClient({
             </thead>
             <tbody>
               {config.rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
                   <td className="border p-2 align-top">
                     <Checkbox
                       checked={selectedRows.includes(row.id)}

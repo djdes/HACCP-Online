@@ -50,9 +50,11 @@ import {
   getHygienePositionLabel,
   getWeekdayShort,
   isWeekend,
+  toDateKey,
 } from "@/lib/hygiene-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -715,6 +717,7 @@ export function ColdEquipmentDocumentClient({
 
   return (
     <div className="bg-white text-black">
+      <FocusTodayScroller />
       <div className="mx-auto max-w-[1880px] px-6 py-8">
         <DocumentBackLink href="/journals/cold_equipment_control" documentId={documentId} />
         <div className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
@@ -1064,6 +1067,7 @@ export function ColdEquipmentDocumentClient({
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
+                    data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
                     className={`w-[66px] border border-black p-2 text-center font-semibold ${
                       isWeekend(dateKey) ? "bg-[#eceffd]" : ""
                     }`}

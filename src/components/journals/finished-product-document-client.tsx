@@ -26,6 +26,7 @@ import {
   type FinishedProductDocumentRow,
 } from "@/lib/finished-product-document";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -189,8 +190,12 @@ export function FinishedProductDocumentClient({
     setAddModalOpen(false);
   }
 
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayFocusRowId = config.rows.find((row) => row.productionDateTime.slice(0, 10) === todayKey)?.id;
+
   return (
     <div className="space-y-6 text-black">
+      <FocusTodayScroller />
       <div className="rounded-[28px] bg-white px-4 py-5 shadow-sm sm:px-8 sm:py-7">
         <DocumentPageHeader
           backHref="/journals/finished_product"
@@ -279,7 +284,7 @@ export function FinishedProductDocumentClient({
               {config.showCourierTime && <th className="border p-2">Время передачи блюд курьеру</th>}
               <th className="border p-2">Ответственный исполнитель</th><th className="border p-2">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
             </tr></thead>
-            <tbody>{config.rows.map((row) => <tr key={row.id}>
+            <tbody>{config.rows.map((row) => <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
               <td className="border p-2 align-top"><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
               <td className="border p-1 align-top"><Input value={row.productionDateTime} onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
               <td className="border p-1 align-top"><Input value={row.rejectionTime} onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
