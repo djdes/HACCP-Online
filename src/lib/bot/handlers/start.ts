@@ -3,10 +3,11 @@ import {
   hashBotInviteToken,
   stripBotInvitePrefix,
 } from "@/lib/bot-invite-tokens";
+import { loadTelegramStartHome } from "@/lib/bot/start-home";
 import {
   buildTelegramLinkedStartReply,
   buildTelegramUnlinkedStartReply,
-  type TelegramStartActor,
+  type TelegramLinkedStartState,
 } from "@/lib/bot/start-response";
 import { db } from "@/lib/db";
 
@@ -21,9 +22,10 @@ function getMiniAppBaseUrl(): string | null {
 
 async function replyWithLinkedStart(
   ctx: Context,
-  actor: TelegramStartActor
+  state: TelegramLinkedStartState,
+  buttonUrl: string | null
 ): Promise<void> {
-  const reply = buildTelegramLinkedStartReply(actor, getMiniAppBaseUrl());
+  const reply = buildTelegramLinkedStartReply(state, buttonUrl);
   await ctx.reply(
     reply.text,
     reply.buttonLabel && reply.buttonUrl
@@ -40,6 +42,49 @@ async function replyWithLinkedStart(
           },
         }
       : undefined
+  );
+}
+
+async function replyWithLoadedStartHome(
+  ctx: Context,
+  fromId: string
+): Promise<void> {
+  const home = await loadTelegramStartHome({
+    chatId: fromId,
+    miniAppBaseUrl: getMiniAppBaseUrl(),
+  });
+
+  if (home.kind === "unlinked") {
+    await ctx.reply(buildTelegramUnlinkedStartReply().text);
+    return;
+  }
+
+  if (home.kind === "manager") {
+    await replyWithLinkedStart(
+      ctx,
+      {
+        name: home.actor.name,
+        role: home.actor.role,
+        isRoot: home.actor.isRoot,
+        kind: "manager",
+        pendingCount: home.summary.pending,
+        employeesWithPending: home.summary.employeesWithPending,
+      },
+      home.buttonUrl
+    );
+    return;
+  }
+
+  await replyWithLinkedStart(
+    ctx,
+    {
+      name: home.actor.name,
+      role: home.actor.role,
+      isRoot: home.actor.isRoot,
+      kind: "staff",
+      nextActionLabel: home.nextAction?.label ?? null,
+    },
+    home.buttonUrl
   );
 }
 
@@ -65,25 +110,7 @@ export function registerStartHandler(composer: Composer<Context>): void {
         return;
       }
 
-      const linkedUser = await db.user.findFirst({
-        where: {
-          telegramChatId: String(fromId),
-          isActive: true,
-          archivedAt: null,
-        },
-        select: {
-          name: true,
-          role: true,
-          isRoot: true,
-        },
-      });
-
-      if (!linkedUser) {
-        await ctx.reply(buildTelegramUnlinkedStartReply().text);
-        return;
-      }
-
-      await replyWithLinkedStart(ctx, linkedUser);
+      await replyWithLoadedStartHome(ctx, String(fromId));
       return;
     }
 
@@ -155,10 +182,6 @@ export function registerStartHandler(composer: Composer<Context>): void {
       }),
     ]);
 
-    await replyWithLinkedStart(ctx, {
-      name: token.user.name,
-      role: token.user.role,
-      isRoot: token.user.isRoot,
-    });
+    await replyWithLoadedStartHome(ctx, chatIdStr);
   });
 }

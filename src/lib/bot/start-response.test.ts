@@ -7,32 +7,57 @@ import {
   buildTelegramUnlinkedStartReply,
 } from "@/lib/bot/start-response";
 
-test("buildTelegramLinkedStartReply returns CTA for staff", () => {
+test("buildTelegramLinkedStartReply mentions the next action for staff", () => {
   const reply = buildTelegramLinkedStartReply(
     {
       name: "Иван",
       role: "cook",
       isRoot: false,
+      kind: "staff",
+      nextActionLabel: "Входной контроль",
     },
-    "https://example.com/mini"
+    "https://wesetup.ru/mini/o/obl_1"
   );
 
-  assert.equal(reply.text, "Готово, Иван! Откройте Wesetup кнопкой ниже.");
-  assert.equal(reply.buttonLabel, "Открыть журналы");
-  assert.equal(reply.buttonUrl, "https://example.com/mini");
+  assert.match(reply.text, /Следующее действие: Входной контроль/);
+  assert.equal(reply.buttonLabel, "Открыть задачу");
+  assert.equal(reply.buttonUrl, "https://wesetup.ru/mini/o/obl_1");
 });
 
-test("buildTelegramLinkedStartReply returns CTA for management", () => {
+test("buildTelegramLinkedStartReply returns completed-today copy for staff without next action", () => {
+  const reply = buildTelegramLinkedStartReply(
+    {
+      name: "Анна",
+      role: "waiter",
+      isRoot: false,
+      kind: "staff",
+      nextActionLabel: null,
+    },
+    "https://wesetup.ru/mini"
+  );
+
+  assert.match(reply.text, /На сегодня обязательные журналы уже закрыты/);
+  assert.equal(reply.buttonLabel, "Открыть журналы");
+  assert.equal(reply.buttonUrl, "https://wesetup.ru/mini");
+});
+
+test("buildTelegramLinkedStartReply includes a manager summary", () => {
   const reply = buildTelegramLinkedStartReply(
     {
       name: "Ольга",
       role: "manager",
       isRoot: false,
+      kind: "manager",
+      pendingCount: 4,
+      employeesWithPending: 2,
     },
-    "https://example.com/mini"
+    "https://wesetup.ru/mini"
   );
 
+  assert.match(reply.text, /Открыто задач: 4/);
+  assert.match(reply.text, /Сотрудников с открытыми задачами: 2/);
   assert.equal(reply.buttonLabel, "Открыть кабинет");
+  assert.equal(reply.buttonUrl, "https://wesetup.ru/mini");
 });
 
 test("buildTelegramLinkedStartReply falls back when mini app is unavailable", () => {
@@ -41,6 +66,8 @@ test("buildTelegramLinkedStartReply falls back when mini app is unavailable", ()
       name: "Анна",
       role: "waiter",
       isRoot: false,
+      kind: "staff",
+      nextActionLabel: "Гигиена",
     },
     null
   );
