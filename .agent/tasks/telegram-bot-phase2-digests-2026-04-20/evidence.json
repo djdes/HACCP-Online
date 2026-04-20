@@ -1,0 +1,70 @@
+{
+  "task_id": "telegram-bot-phase2-digests-2026-04-20",
+  "date": "2026-04-20",
+  "status": "PASS",
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": [
+        "prisma/schema.prisma",
+        "src/lib/telegram.ts",
+        "src/lib/telegram-delivery-policy.ts"
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": [
+        "src/lib/telegram-delivery-policy.ts",
+        "src/lib/telegram-delivery-policy.test.ts"
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": [
+        "src/app/api/cron/mini-digest/route.ts",
+        "src/lib/telegram-obligation-digests.ts",
+        "src/app/api/cron/mini-digest/route.test.ts"
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": [
+        "src/app/api/cron/mini-digest/route.ts",
+        "src/app/api/cron/mini-digest/route.test.ts"
+      ]
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "verification": {
+        "tests": {
+          "command": "node --import tsx --test src/lib/telegram-delivery-policy.test.ts src/lib/telegram-obligation-digests.test.ts src/app/api/cron/mini-digest/route.test.ts src/lib/journal-obligations.test.ts src/lib/bot/start-home.test.ts src/lib/bot/start-response.test.ts",
+          "status": "PASS",
+          "artifact": "raw/tests.txt"
+        },
+        "lint": {
+          "command": "npm run lint -- src/lib/telegram-delivery-policy.ts src/lib/telegram-delivery-policy.test.ts src/lib/telegram-obligation-digests.ts src/lib/telegram-obligation-digests.test.ts src/lib/telegram.ts src/app/api/cron/mini-digest/route.ts src/app/api/cron/mini-digest/route.test.ts",
+          "status": "PASS",
+          "artifact": "raw/lint.txt"
+        },
+        "tsc": {
+          "command": "npx tsc --noEmit --pretty false",
+          "status": "PASS",
+          "artifact": "raw/tsc.txt"
+        },
+        "build": {
+          "command": "npm run build",
+          "status": "PASS",
+          "artifact": "raw/build.txt"
+        }
+      }
+    }
+  ],
+  "residual_risks": [
+    "skipOnRerun remains best-effort under truly parallel cron invocations because delivery reservation is not atomic"
+  ]
+}
