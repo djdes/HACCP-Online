@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, Pencil, Plus, Rows3, Trash2, UserPlus, X } from "lucide-react";
+import { ChevronDown, LayoutGrid, Pencil, Plus, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -155,6 +155,69 @@ export function CleaningDocumentClient(props: Props) {
   ], [config]);
 
   useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
+
+  // TasksFlow round-trip:
+  //   1. On mount, if the org has the integration, ask the server to
+  //      pull task statuses from TasksFlow. If anything is newly
+  //      completed, the server has already written the cell — we just
+  //      router.refresh() to re-render.
+  //   2. The action button calls the same endpoint with explicit toast
+  //      so the user can force a refresh after closing a task in the
+  //      cleaner's app without leaving the page.
+  // Guarded by `hasTasksFlowIntegration` so orgs without integration
+  // pay zero cost.
+  const [tasksFlowSyncing, setTasksFlowSyncing] = useState(false);
+  async function syncFromTasksFlow(opts?: { silent?: boolean }) {
+    if (!props.hasTasksFlowIntegration || tasksFlowSyncing) return;
+    setTasksFlowSyncing(true);
+    try {
+      const response = await fetch(
+        "/api/integrations/tasksflow/sync-tasks",
+        { method: "POST" }
+      );
+      if (!response.ok) {
+        if (!opts?.silent) {
+          toast.error("Не удалось обновить статусы из TasksFlow");
+        }
+        return;
+      }
+      const data = (await response.json()) as {
+        checked: number;
+        newlyCompleted: number;
+        reopened: number;
+        errors: number;
+      };
+      if (data.newlyCompleted > 0 || data.reopened > 0) {
+        router.refresh();
+      }
+      if (!opts?.silent) {
+        if (data.newlyCompleted > 0) {
+          toast.success(
+            `Из TasksFlow подтянуто выполненных: ${data.newlyCompleted}`
+          );
+        } else if (data.checked === 0) {
+          toast.info("Связанных задач в TasksFlow пока нет");
+        } else {
+          toast.info("Все задачи уже актуальны");
+        }
+      }
+    } catch (error) {
+      if (!opts?.silent) {
+        toast.error(
+          error instanceof Error ? error.message : "Ошибка обновления"
+        );
+      }
+    } finally {
+      setTasksFlowSyncing(false);
+    }
+  }
+  useEffect(() => {
+    if (!props.hasTasksFlowIntegration) return;
+    void syncFromTasksFlow({ silent: true });
+    // Intentionally fires once per mount; do not re-run on every props
+    // change or we'd hammer TasksFlow on every save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   async function patchDocument(nextConfig: CleaningDocumentConfig, overrides?: Record<string, unknown>) {
     setSaving(true);
     try {
@@ -273,6 +336,21 @@ export function CleaningDocumentClient(props: Props) {
           <>
             <DocumentBackLink href="/journals/cleaning" documentId={props.documentId} />
             <div className="flex flex-wrap items-center justify-end gap-3">
+              {props.hasTasksFlowIntegration ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={tasksFlowSyncing}
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                  onClick={() => syncFromTasksFlow()}
+                  title="Подтянуть отметки выполнения из TasksFlow"
+                >
+                  <RefreshCw
+                    className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
+                  />
+                  {tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow"}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
