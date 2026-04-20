@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function JournalsPage() {
   const session = await requireAuth();
+  const isManager = hasFullWorkspaceAccess(session.user);
 
   const allowedCodes = await getAllowedJournalCodes(
     aclActorFromSession(session)
@@ -30,14 +32,22 @@ export default async function JournalsPage() {
 
   const disabledCodes = parseDisabledCodes(organization?.disabledJournalCodes);
 
+  // Employees (cooks, waiters) don't need to see disabled journals —
+  // they can't navigate to settings to re-enable them, so showing the
+  // «Отключённые» section would be a dead end. Managers still see the
+  // full picture so they can toggle things back.
+  const visibleTemplates = isManager
+    ? templates
+    : templates.filter((t) => !disabledCodes.has(t.code));
+
   const filledTodayIds = await getTemplatesFilledToday(
     session.user.organizationId,
     new Date(),
-    templates.map((t) => ({ id: t.id, code: t.code })),
+    visibleTemplates.map((t) => ({ id: t.id, code: t.code })),
     disabledCodes
   );
 
-  const items = templates.map((template) => ({
+  const items = visibleTemplates.map((template) => ({
     id: template.id,
     code: template.code,
     name: template.name,
