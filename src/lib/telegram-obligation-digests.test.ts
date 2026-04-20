@@ -52,7 +52,10 @@ test("buildStaffObligationDigest builds a morning payload with the next exact ac
   });
   assert.match(digest?.body ?? "", /Доброе утро, Ivan!/);
   assert.match(digest?.body ?? "", /Открыто задач: 2/);
-  assert.match(digest?.body ?? "", /Следующее действие: Входной контроль/);
+  assert.match(
+    digest?.body ?? "",
+    /Следующее действие: Входной контроль/
+  );
   assert.match(digest?.body ?? "", /• Входной контроль/);
   assert.match(digest?.body ?? "", /• Журнал гигиены/);
 });
@@ -87,4 +90,45 @@ test("buildManagerObligationDigest builds a summary payload with cabinet CTA and
   assert.match(digest.body, /Доброе утро, Kitchen 21!/);
   assert.match(digest.body, /Открыто: 4 · Выполнено: 6/);
   assert.match(digest.body, /Сотрудников с открытыми задачами: 2/);
+});
+
+test("digest builders escape HTML-sensitive dynamic labels", () => {
+  const staffDigest = buildStaffObligationDigest({
+    userId: "user_1",
+    staffName: "Ivan <admin>",
+    openObligations: [
+      {
+        id: "obl_1",
+        journalCode: "incoming_control",
+        targetPath: "/mini/journals/incoming_control/new",
+        template: {
+          name: "Incoming <check>",
+          description: "Shift & cleanup",
+        },
+      },
+    ],
+    miniAppBaseUrl: "https://wesetup.ru/mini",
+    now: new Date("2026-04-20T06:30:00.000Z"),
+  });
+  const managerDigest = buildManagerObligationDigest({
+    organizationId: "org_1",
+    organizationName: "Kitchen <21> & Co",
+    summary: {
+      total: 4,
+      pending: 1,
+      done: 3,
+      employeesWithPending: 1,
+    },
+    cabinetUrl: "https://wesetup.ru/mini",
+    now: new Date("2026-04-20T06:30:00.000Z"),
+  });
+
+  assert.ok(staffDigest);
+  assert.match(staffDigest?.body ?? "", /Ivan &lt;admin&gt;/);
+  assert.match(staffDigest?.body ?? "", /Incoming &lt;check&gt;/);
+  assert.match(staffDigest?.body ?? "", /Shift &amp; cleanup/);
+  assert.equal(staffDigest?.body.includes("<admin>"), false);
+  assert.equal(staffDigest?.body.includes("<check>"), false);
+  assert.match(managerDigest.body, /Kitchen &lt;21&gt; &amp; Co/);
+  assert.equal(managerDigest.body.includes("<21>"), false);
 });

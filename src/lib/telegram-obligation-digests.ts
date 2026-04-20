@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { buildMiniObligationEntryUrl } from "@/lib/journal-obligation-links";
 import type { OpenJournalObligation } from "@/lib/journal-obligations";
 
@@ -50,12 +51,16 @@ function normalizeUrl(url: string | null | undefined): string | null {
   return trimmed.replace(/\/+$/, "");
 }
 
+function escapeTelegramText(value: string | null | undefined): string {
+  return escapeHtml(value ?? "");
+}
+
 function formatObligationList(openObligations: OpenJournalObligation[]): string[] {
   const preview = openObligations.slice(0, 5).map((obligation) => {
     const suffix = obligation.template.description
-      ? ` (${obligation.template.description})`
+      ? ` (${escapeTelegramText(obligation.template.description)})`
       : "";
-    return `• ${obligation.template.name}${suffix}`;
+    return `• ${escapeTelegramText(obligation.template.name)}${suffix}`;
   });
 
   if (openObligations.length > preview.length) {
@@ -95,11 +100,11 @@ export function buildStaffObligationDigest(args: {
         : null;
 
   const body = [
-    `Доброе утро, ${args.staffName}!`,
+    `Доброе утро, ${escapeTelegramText(args.staffName)}!`,
     "",
     `Открыто задач: ${args.openObligations.length}`,
     nextObligation
-      ? `Следующее действие: ${nextObligation.template.name}`
+      ? `Следующее действие: ${escapeTelegramText(nextObligation.template.name)}`
       : "Следующее действие пока не найдено.",
     "",
     "На сегодня:",
@@ -129,7 +134,7 @@ export function buildManagerObligationDigest(args: {
   return {
     kind: "manager",
     body: [
-      `Доброе утро, ${args.organizationName}!`,
+      `Доброе утро, ${escapeTelegramText(args.organizationName)}!`,
       "",
       `Открыто: ${args.summary.pending} · Выполнено: ${args.summary.done}`,
       `Всего обязательств: ${args.summary.total}`,

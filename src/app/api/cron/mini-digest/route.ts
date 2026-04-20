@@ -1,32 +1,328 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import {
+  getManagerObligationSummary,
+  listOpenJournalObligationsForUser,
+  syncDailyJournalObligationsForOrganization,
+} from "@/lib/journal-obligations";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { notifyEmployee } from "@/lib/telegram";
-import { getDbRoleValuesWithLegacy, type UserRole } from "@/lib/user-roles";
+import {
+  buildManagerObligationDigest,
+  buildStaffObligationDigest,
+} from "@/lib/telegram-obligation-digests";
 
-/**
- * Mini App morning digest cron.
- *
- * Runs once per day (externally scheduled — see ops docs). Sends each
- * bound line worker a Telegram DM listing today's journals that they
- * still need to fill, with a Web App button to open the Mini App
- * directly at the journal entry form.
- *
- * Scope filter: role in { cook, waiter, operator } — i.e. line-worker
- * roles. Managers already get `notifyOrganization` alerts and don't
- * need a digest. Users without `telegramChatId` are skipped silently.
- *
- * Authentication: `?secret=<CRON_SECRET>` query param. Exactly the
- * same shape as the existing `/api/cron/compliance` endpoint so one
- * cron configuration slot covers both.
- */
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
-// "operator" is a legacy DB role value that pre-dates the canonical set.
-// Use the canonical UserRole tuple for type safety; getDbRoleValuesWithLegacy
-// expands each to include its pre-migration aliases (e.g. cook → cook+operator).
-const LINE_ROLES: readonly UserRole[] = ["cook", "waiter"] as const;
-
 export const dynamic = "force-dynamic";
+
+type LinkedTelegramUser = {
+  id: string;
+  name: string | null;
+  role: string;
+  isRoot: boolean;
+  organizationId: string;
+};
+
+type LinkedOrganization = {
+  id: string;
+  name: string;
+};
+
+type MiniDigestDeps = {
+  listLinkedTelegramUsers: () => Promise<LinkedTelegramUser[]>;
+  listOrganizationsByIds: (
+    organizationIds: string[]
+  ) => Promise<LinkedOrganization[]>;
+  syncDailyJournalObligationsForOrganization: typeof syncDailyJournalObligationsForOrganization;
+  listOpenJournalObligationsForUser: typeof listOpenJournalObligationsForUser;
+  getManagerObligationSummary: typeof getManagerObligationSummary;
+  notifyEmployee: typeof notifyEmployee;
+  hasFullWorkspaceAccess: typeof hasFullWorkspaceAccess;
+};
+
+type RunMiniDigestArgs = {
+  miniAppBaseUrl: string | null;
+  now?: Date;
+};
+
+function resolveMiniBaseUrl(): string {
+  return (
+    process.env.MINI_APP_BASE_URL ||
+    (process.env.NEXTAUTH_URL
+      ? `${process.env.NEXTAUTH_URL.replace(/\/+$/, "")}/mini`
+      : "https://wesetup.ru/mini")
+  );
+}
+
+function createDefaultDeps(): MiniDigestDeps {
+  return {
+    async listLinkedTelegramUsers() {
+      return db.user.findMany({
+        where: {
+          isActive: true,
+          archivedAt: null,
+          telegramChatId: { not: null },
+        },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          isRoot: true,
+          organizationId: true,
+        },
+        orderBy: [{ organizationId: "asc" }, { name: "asc" }],
+      });
+    },
+    async listOrganizationsByIds(organizationIds) {
+      if (organizationIds.length === 0) {
+        return [];
+      }
+
+      return db.organization.findMany({
+        where: {
+          id: {
+            in: organizationIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    },
+    syncDailyJournalObligationsForOrganization,
+    listOpenJournalObligationsForUser,
+    getManagerObligationSummary,
+    notifyEmployee,
+    hasFullWorkspaceAccess,
+  };
+}
+
+function resolveDeps(overrides?: Partial<MiniDigestDeps>): MiniDigestDeps {
+  return {
+    ...createDefaultDeps(),
+    ...overrides,
+  };
+}
+
+function toAction(
+  cta: { label: string; url: string } | null
+): { label: string; miniAppUrl: string } | undefined {
+  if (!cta) {
+    return undefined;
+  }
+
+  return {
+    label: cta.label,
+    miniAppUrl: cta.url,
+  };
+}
+
+function uniqueOrganizationIds(users: LinkedTelegramUser[]): string[] {
+  return [...new Set(users.map((user) => user.organizationId))];
+}
+
+export async function runMiniDigestCron(
+  args: RunMiniDigestArgs,
+  overrides?: Partial<MiniDigestDeps>
+): Promise<{
+  ok: true;
+  checkedUsers: number;
+  organizationsChecked: number;
+  notifiedStaff: number;
+  notifiedManagers: number;
+  notified: number;
+}> {
+  const deps = resolveDeps(overrides);
+  const requestNow = args.now ?? new Date();
+  const linkedUsers = await deps.listLinkedTelegramUsers();
+  const organizationIds = uniqueOrganizationIds(linkedUsers);
+  const organizations = await deps.listOrganizationsByIds(organizationIds);
+  const organizationNameById = new Map(
+    organizations.map((organization) => [organization.id, organization.name])
+  );
+
+  const readyOrganizationIds = new Set<string>();
+  const syncResults = await Promise.allSettled(
+    organizationIds.map(async (organizationId) => {
+      await deps.syncDailyJournalObligationsForOrganization(
+        organizationId,
+        requestNow
+      );
+      return organizationId;
+    })
+  );
+
+  for (const result of syncResults) {
+    if (result.status === "fulfilled") {
+      readyOrganizationIds.add(result.value);
+      continue;
+    }
+
+    console.error("[cron/mini-digest] organization sync failed", {
+      error: result.reason,
+    });
+  }
+
+  const staffUsers = linkedUsers.filter(
+    (user) =>
+      !deps.hasFullWorkspaceAccess({
+        role: user.role,
+        isRoot: user.isRoot === true,
+      })
+  );
+  const managerUsers = linkedUsers.filter((user) =>
+    deps.hasFullWorkspaceAccess({
+      role: user.role,
+      isRoot: user.isRoot === true,
+    })
+  );
+
+  let notifiedStaff = 0;
+  for (const user of staffUsers) {
+    if (!readyOrganizationIds.has(user.organizationId)) {
+      continue;
+    }
+
+    let openObligations;
+    try {
+      openObligations = await deps.listOpenJournalObligationsForUser(
+        user.id,
+        requestNow
+      );
+    } catch (error) {
+      console.error("[cron/mini-digest] staff lookup failed", {
+        userId: user.id,
+        organizationId: user.organizationId,
+        error,
+      });
+      continue;
+    }
+
+    const digest = buildStaffObligationDigest({
+      userId: user.id,
+      staffName: user.name?.trim() || "Сотрудник",
+      openObligations,
+      miniAppBaseUrl: args.miniAppBaseUrl,
+      now: requestNow,
+    });
+
+    if (!digest) {
+      continue;
+    }
+
+    try {
+      await deps.notifyEmployee(
+        user.id,
+        digest.body,
+        toAction(digest.primaryCta),
+        {
+          delivery: {
+            organizationId: user.organizationId,
+            kind: "digest.staff",
+            dedupeKey: digest.dedupeKey,
+          },
+          policy: {
+            skipOnRerun: true,
+            now: requestNow,
+          },
+        }
+      );
+      notifiedStaff += 1;
+    } catch (error) {
+      console.error("[cron/mini-digest] staff digest failed", {
+        userId: user.id,
+        organizationId: user.organizationId,
+        error,
+      });
+    }
+  }
+
+  const managerDigestByOrganizationId = new Map<
+    string,
+    ReturnType<typeof buildManagerObligationDigest> | null
+  >();
+  for (const organizationId of organizationIds) {
+    if (!readyOrganizationIds.has(organizationId)) {
+      managerDigestByOrganizationId.set(organizationId, null);
+      continue;
+    }
+
+    try {
+      const summary = await deps.getManagerObligationSummary(
+        organizationId,
+        requestNow
+      );
+
+      if (summary.total === 0) {
+        managerDigestByOrganizationId.set(organizationId, null);
+        continue;
+      }
+
+      managerDigestByOrganizationId.set(
+        organizationId,
+        buildManagerObligationDigest({
+          organizationId,
+          organizationName:
+            organizationNameById.get(organizationId) || "Организация",
+          summary,
+          cabinetUrl: args.miniAppBaseUrl,
+          now: requestNow,
+        })
+      );
+    } catch (error) {
+      console.error("[cron/mini-digest] manager summary failed", {
+        organizationId,
+        error,
+      });
+      managerDigestByOrganizationId.set(organizationId, null);
+    }
+  }
+
+  let notifiedManagers = 0;
+  for (const user of managerUsers) {
+    const digest = managerDigestByOrganizationId.get(user.organizationId);
+    if (!digest) {
+      continue;
+    }
+
+    try {
+      await deps.notifyEmployee(
+        user.id,
+        digest.body,
+        toAction(digest.primaryCta),
+        {
+          delivery: {
+            organizationId: user.organizationId,
+            kind: "digest.manager",
+            dedupeKey: digest.dedupeKey,
+          },
+          policy: {
+            skipOnRerun: true,
+            now: requestNow,
+          },
+        }
+      );
+      notifiedManagers += 1;
+    } catch (error) {
+      console.error("[cron/mini-digest] manager digest failed", {
+        userId: user.id,
+        organizationId: user.organizationId,
+        error,
+      });
+    }
+  }
+
+  return {
+    ok: true,
+    checkedUsers: linkedUsers.length,
+    organizationsChecked: organizationIds.length,
+    notifiedStaff,
+    notifiedManagers,
+    notified: notifiedStaff + notifiedManagers,
+  };
+}
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -34,90 +330,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const miniBase =
-    process.env.MINI_APP_BASE_URL ||
-    (process.env.NEXTAUTH_URL
-      ? `${process.env.NEXTAUTH_URL.replace(/\/+$/, "")}/mini`
-      : "https://wesetup.ru/mini");
-
-  const workers = await db.user.findMany({
-    where: {
-      role: { in: getDbRoleValuesWithLegacy(LINE_ROLES) },
-      isActive: true,
-      archivedAt: null,
-      telegramChatId: { not: null },
-    },
-    select: {
-      id: true,
-      name: true,
-      organizationId: true,
-    },
+  const result = await runMiniDigestCron({
+    miniAppBaseUrl: resolveMiniBaseUrl(),
+    now: new Date(),
   });
 
-  const results: Array<{ userId: string; notified: boolean; pending: number }> =
-    [];
-
-  for (const worker of workers) {
-    const [templates, org] = await Promise.all([
-      db.journalTemplate.findMany({
-        where: { isActive: true },
-        select: { id: true, code: true, name: true },
-      }),
-      db.organization.findUnique({
-        where: { id: worker.organizationId },
-        select: { disabledJournalCodes: true },
-      }),
-    ]);
-
-    const disabledCodes = Array.isArray(org?.disabledJournalCodes)
-      ? new Set(org?.disabledJournalCodes as string[])
-      : new Set<string>();
-
-    const todaysEntries = await db.journalEntry.findMany({
-      where: {
-        filledById: worker.id,
-        createdAt: { gte: startOfDay },
-      },
-      select: { templateId: true },
-    });
-    const filled = new Set(todaysEntries.map((e) => e.templateId));
-    const pending = templates.filter(
-      (t) => !filled.has(t.id) && !disabledCodes.has(t.code)
-    );
-
-    if (pending.length === 0) {
-      results.push({ userId: worker.id, notified: false, pending: 0 });
-      continue;
-    }
-
-    const listed = pending.slice(0, 5).map((t) => `• ${t.name}`).join("\n");
-    const tail = pending.length > 5 ? `\n…и ещё ${pending.length - 5}` : "";
-    const body =
-      `<b>Доброе утро, ${worker.name}!</b>\n\n` +
-      `Сегодня нужно заполнить:\n${listed}${tail}\n\n` +
-      `Откройте кабинет кнопкой ниже.`;
-
-    try {
-      await notifyEmployee(worker.id, body, {
-        label: "Открыть кабинет",
-        miniAppUrl: miniBase,
-      });
-      results.push({ userId: worker.id, notified: true, pending: pending.length });
-    } catch (err) {
-      console.error("[cron/mini-digest] notifyEmployee failed", {
-        userId: worker.id,
-        err,
-      });
-      results.push({ userId: worker.id, notified: false, pending: pending.length });
-    }
-  }
-
-  return NextResponse.json({
-    ok: true,
-    checked: workers.length,
-    notified: results.filter((r) => r.notified).length,
-  });
+  return NextResponse.json(result);
 }

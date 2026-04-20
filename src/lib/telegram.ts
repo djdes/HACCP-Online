@@ -133,11 +133,17 @@ type TelegramSendOptions = {
 
 function normalizeTelegramDeliveryMetadata(
   delivery: TelegramDeliveryMetadata | null | undefined
-): { kind: string | null; dedupeKey: string | null } {
+): {
+  organizationId: string | null;
+  kind: string | null;
+  dedupeKey: string | null;
+} {
+  const organizationId = delivery?.organizationId?.trim();
   const kind = delivery?.kind?.trim();
   const dedupeKey = delivery?.dedupeKey?.trim();
 
   return {
+    organizationId: organizationId || null,
     kind: kind || null,
     dedupeKey: dedupeKey || null,
   };
@@ -183,6 +189,7 @@ export async function sendTelegramMessage(
       chatId,
       body: text,
       userId: opts?.userId ?? null,
+      organizationId: delivery.organizationId,
       kind: delivery.kind,
       dedupeKey: delivery.dedupeKey,
       status: "queued",
@@ -284,6 +291,7 @@ export async function notifyEmployee(
       chatId: user.telegramChatId,
       body: text,
       userId: user.id,
+      organizationId: delivery.organizationId,
       kind: delivery.kind,
       dedupeKey: delivery.dedupeKey,
       status: "queued",
@@ -390,6 +398,7 @@ export async function sendTelegramInviteLinkMessage(args: {
       chatId: args.chatId,
       body: text,
       userId: args.userId,
+      organizationId: delivery.organizationId,
       kind: delivery.kind,
       dedupeKey: delivery.dedupeKey,
       status: "queued",
