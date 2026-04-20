@@ -9,6 +9,7 @@ import {
   CreditCard,
   KeyRound,
   Package,
+  Plug,
   ScrollText,
   Settings2,
   Users,
@@ -100,6 +101,14 @@ const settingsCards = [
     icon: KeyRound,
     color: "#8b5cf6",
     bg: "#f5f3ff",
+  },
+  {
+    title: "TasksFlow",
+    description: "Автозадачи уборщикам через tasksflow.ru",
+    href: "/settings/integrations/tasksflow",
+    icon: Plug,
+    color: "#0ea5e9",
+    bg: "#e8f7ff",
   },
 ];
 

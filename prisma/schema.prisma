@@ -639,3 +639,94 @@ model JournalExternalLog {
   @@index([organizationId, createdAt])
   @@index([journalCode, createdAt])
 }
+
+/// Per-organization integration with TasksFlow (https://tasksflow.ru).
+/// Stores the encrypted bearer key + base URL so WeSetup can push journal
+/// rows as recurring tasks and receive completion events.
+///
+/// Encryption: `apiKeyEncrypted` is AES-256-GCM with INTEGRATION_KEY_SECRET.
+/// `apiKeyPrefix` keeps the first 12 chars of the plaintext for UI display
+/// ("tfk_abc123…") without exposing the secret.
+///
+/// One row per Organization — `organizationId @unique` enforces it.
+model TasksFlowIntegration {
+  id                  String    @id @default(cuid())
+  organizationId      String    @unique
+  baseUrl             String
+  /// AES-256-GCM ciphertext: `iv(base64).tag(base64).ciphertext(base64)`.
+  apiKeyEncrypted     String
+  /// First 12 chars of the original plaintext, for UI ("tfk_abc12345").
+  apiKeyPrefix        String
+  /// TasksFlow companyId resolved during connect (`whoami` or first task call).
+  /// Null means we haven't been able to resolve it yet.
+  tasksflowCompanyId  Int?
+  /// HMAC secret for the inbound webhook, generated on connect.
+  webhookSecret       String
+  enabled             Boolean   @default(true)
+  lastSyncAt          DateTime?
+  /// Free-form notes set by the integrator (e.g. "Test key", "Production").
+  label               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  links               TasksFlowUserLink[]
+  taskLinks           TasksFlowTaskLink[]
+
+  @@index([organizationId])
+}
+
+/// Mapping between WeSetup `User` and a TasksFlow user (= worker). The
+/// natural key is the phone number — TasksFlow logs in by phone, and we
+/// auto-link any WeSetup user whose `phone` matches a TasksFlow user.
+///
+/// `tasksflowUserId` is nullable because we may have a phone match in
+/// WeSetup before the cleaner has been imported into TasksFlow.
+model TasksFlowUserLink {
+  id                String                @id @default(cuid())
+  integrationId     String
+  integration       TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  /// WeSetup user (employee). Cascade-deleted when the user is removed.
+  wesetupUserId     String
+  /// Normalized phone (`+7XXXXXXXXX`). Stored lowercase, no spaces, so we
+  /// can match against TasksFlow regardless of how either side typed it.
+  phone             String
+  tasksflowUserId   Int?
+  tasksflowWorkerId Int?
+  /// "auto" = matched by phone on sync; "manual" = pinned by an admin
+  /// (don't overwrite during the next auto-sync).
+  source            String                @default("auto")
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@unique([integrationId, wesetupUserId])
+  @@index([integrationId, phone])
+}
+
+/// Records every task we created in TasksFlow on behalf of a WeSetup
+/// journal row. Lets us update / delete / mark-complete the right
+/// remote task without re-discovering it, and survives a journal row
+/// edit (we update the existing TasksFlow task instead of orphaning it).
+///
+/// `journalDocumentId` + `rowKey` is the natural composite key on the
+/// WeSetup side — `rowKey` is the journal-specific row identifier
+/// (e.g. cleaning row id, or "<roomId>:<dateKey>" for matrix cells).
+model TasksFlowTaskLink {
+  id                  String                @id @default(cuid())
+  integrationId       String
+  integration         TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  journalCode         String
+  journalDocumentId   String
+  rowKey              String
+  tasksflowTaskId     Int
+  /// Last status received from TasksFlow ("active" | "completed").
+  remoteStatus        String                @default("active")
+  /// When TasksFlow reported completion (mirrored back to journal cell).
+  completedAt         DateTime?
+  /// Last sync direction: "push" (WeSetup → TasksFlow) or "pull" (the
+  /// other way). Pure observability, doesn't change behaviour.
+  lastDirection       String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@unique([integrationId, journalDocumentId, rowKey])
+  @@index([tasksflowTaskId])
+}
