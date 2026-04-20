@@ -53,6 +53,13 @@ type Props = {
   users: UserItem[];
   config: CleaningDocumentConfig;
   initialEntries: EntryItem[];
+  /**
+   * True when the org has connected TasksFlow. Reserved for the upcoming
+   * auto-poll on mount + manual «Sync from TasksFlow» button. Optional
+   * so existing callers (no integration) keep compiling without
+   * touching every render site.
+   */
+  hasTasksFlowIntegration?: boolean;
 };
 type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
 type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string; generalScope: string };

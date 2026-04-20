@@ -199,38 +199,49 @@ export default async function JournalDocumentPage({
   const query = await searchParams;
   const session = await requireAuth();
 
-  const [document, organization, employees, equipment] = await Promise.all([
-    db.journalDocument.findUnique({
-      where: { id: docId },
-      include: {
-        template: true,
-        entries: {
-          orderBy: [{ employeeId: "asc" }, { date: "asc" }],
+  const [document, organization, employees, equipment, tasksFlowIntegration] =
+    await Promise.all([
+      db.journalDocument.findUnique({
+        where: { id: docId },
+        include: {
+          template: true,
+          entries: {
+            orderBy: [{ employeeId: "asc" }, { date: "asc" }],
+          },
         },
-      },
-    }),
-    db.organization.findUnique({
-      where: { id: session.user.organizationId },
-      select: { name: true, disabledJournalCodes: true },
-    }),
-    db.user.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-        isActive: true,
-      },
-      select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
-      orderBy: [{ role: "asc" }, { name: "asc" }],
-    }),
-    db.equipment.findMany({
-      where: {
-        area: {
+      }),
+      db.organization.findUnique({
+        where: { id: session.user.organizationId },
+        select: { name: true, disabledJournalCodes: true },
+      }),
+      db.user.findMany({
+        where: {
           organizationId: session.user.organizationId,
+          isActive: true,
         },
-      },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+        select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
+        orderBy: [{ role: "asc" }, { name: "asc" }],
+      }),
+      db.equipment.findMany({
+        where: {
+          area: {
+            organizationId: session.user.organizationId,
+          },
+        },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      // Lightweight integration check — only exposed to journals that
+      // actually integrate with TasksFlow (cleaning today; we'll widen
+      // it as more journals get hooks). The cleaning client uses this
+      // to decide whether to auto-poll for completions and whether to
+      // render the «Sync from TasksFlow» button.
+      db.tasksFlowIntegration.findUnique({
+        where: { organizationId: session.user.organizationId },
+        select: { enabled: true },
+      }),
+    ]);
+  const hasTasksFlowIntegration = Boolean(tasksFlowIntegration?.enabled);
 
   const demoEmployees = getHygieneDemoTeamUsers(employees);
   const enrichedEmployees =
@@ -931,6 +942,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeCleaningEntryData(entry.data),
         }))}
+        hasTasksFlowIntegration={hasTasksFlowIntegration}
       />
     );
   }
