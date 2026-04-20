@@ -130,6 +130,122 @@ async function isDocumentFilledForDay(
 }
 
 /**
+ * Per-template rollup for daily journals that store ONE entry per date
+ * but pack many sub-values inside `entry.data`. Counting entries alone
+ * would mark «1 entry = filled» even if only 1 fridge out of 10 had a
+ * temperature recorded. We look inside `entry.data` and compare the
+ * count of non-null sub-values to the document's configured roster.
+ *
+ * Returns null for template codes that don't need the deep inspection
+ * (hygiene, health_check, fryer_oil, uv_lamp_runtime,
+ * cleaning_ventilation_checklist), letting the caller fall back to the
+ * entry-count rollup.
+ */
+async function rollupEntryDataDocumentForDay(
+  templateCode: string,
+  documentId: string,
+  config: unknown,
+  todayStart: Date,
+  todayEnd: Date
+): Promise<DocumentRollup | null> {
+  if (!config || typeof config !== "object") return null;
+  const cfg = config as Record<string, unknown>;
+
+  if (templateCode === "cold_equipment_control") {
+    // data = { temperatures: { equipmentId: number|null } }
+    const equipment = Array.isArray(cfg.equipment) ? cfg.equipment : [];
+    const equipmentIds = equipment
+      .map((item) => (item as { id?: string })?.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    const expectedCount = equipmentIds.length;
+    if (expectedCount === 0) {
+      return { todayCount: 0, expectedCount: 0, filled: false };
+    }
+    const entries = await db.journalDocumentEntry.findMany({
+      where: { documentId, date: { gte: todayStart, lt: todayEnd } },
+      select: { data: true },
+    });
+    const recordedIds = new Set<string>();
+    for (const entry of entries) {
+      const temps =
+        (entry.data as { temperatures?: Record<string, unknown> } | null)
+          ?.temperatures;
+      if (!temps || typeof temps !== "object") continue;
+      for (const [equipId, value] of Object.entries(temps)) {
+        if (value !== null && value !== undefined && value !== "") {
+          recordedIds.add(equipId);
+        }
+      }
+    }
+    const todayCount = equipmentIds.filter((id) => recordedIds.has(id)).length;
+    return {
+      todayCount,
+      expectedCount,
+      filled: todayCount >= expectedCount,
+    };
+  }
+
+  if (templateCode === "climate_control") {
+    // data = { measurements: { roomId: { time: { temperature?, humidity? } } } }
+    const rooms = Array.isArray(cfg.rooms) ? cfg.rooms : [];
+    const controlTimes = Array.isArray(cfg.controlTimes) ? cfg.controlTimes : [];
+    type ClimateRoom = {
+      id?: string;
+      temperature?: { enabled?: boolean };
+      humidity?: { enabled?: boolean };
+    };
+    let expectedCount = 0;
+    const expectedSlots: Array<{ roomId: string; time: string; kind: "temperature" | "humidity" }> = [];
+    for (const raw of rooms) {
+      const room = raw as ClimateRoom;
+      const roomId = room?.id;
+      if (!roomId) continue;
+      for (const rawTime of controlTimes) {
+        const time = typeof rawTime === "string" ? rawTime : null;
+        if (!time) continue;
+        if (room.temperature?.enabled) {
+          expectedSlots.push({ roomId, time, kind: "temperature" });
+          expectedCount += 1;
+        }
+        if (room.humidity?.enabled) {
+          expectedSlots.push({ roomId, time, kind: "humidity" });
+          expectedCount += 1;
+        }
+      }
+    }
+    if (expectedCount === 0) {
+      return { todayCount: 0, expectedCount: 0, filled: false };
+    }
+    const entries = await db.journalDocumentEntry.findMany({
+      where: { documentId, date: { gte: todayStart, lt: todayEnd } },
+      select: { data: true },
+    });
+    let todayCount = 0;
+    for (const { roomId, time, kind } of expectedSlots) {
+      for (const entry of entries) {
+        const measurements = (
+          entry.data as {
+            measurements?: Record<string, Record<string, Record<string, unknown>>>;
+          } | null
+        )?.measurements;
+        const value = measurements?.[roomId]?.[time]?.[kind];
+        if (value !== null && value !== undefined && value !== "") {
+          todayCount += 1;
+          break;
+        }
+      }
+    }
+    return {
+      todayCount,
+      expectedCount,
+      filled: todayCount >= expectedCount,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Per-template-code rollup for journals that store rows inside
  * `JournalDocument.config` instead of `JournalDocumentEntry`. Returns
  * null if the template isn't recognized — callers then fall back to
@@ -279,8 +395,40 @@ export async function getTemplatesFilledToday(
     }
   }
 
-  const dailyDocs = activeDocuments.filter((doc) =>
-    DAILY_JOURNAL_CODES.has(doc.template.code)
+  // Templates that pack many sub-values into `entry.data` need
+  // per-template inspection. Handle them one-by-one and add to `filled`.
+  const deepInspectCodes = new Set(["cold_equipment_control", "climate_control"]);
+  const deepDocs = activeDocuments.filter((doc) =>
+    deepInspectCodes.has(doc.template.code)
+  );
+  if (deepDocs.length > 0) {
+    const deepResults = new Map<string, boolean[]>();
+    await Promise.all(
+      deepDocs.map(async (doc) => {
+        const rollup = await rollupEntryDataDocumentForDay(
+          doc.template.code,
+          doc.id,
+          doc.config,
+          todayStart,
+          todayEnd
+        );
+        const ok = rollup?.filled ?? false;
+        const list = deepResults.get(doc.templateId) ?? [];
+        list.push(ok);
+        deepResults.set(doc.templateId, list);
+      })
+    );
+    for (const [templateId, results] of deepResults.entries()) {
+      if (results.length > 0 && results.every((ok) => ok)) {
+        filled.add(templateId);
+      }
+    }
+  }
+
+  const dailyDocs = activeDocuments.filter(
+    (doc) =>
+      DAILY_JOURNAL_CODES.has(doc.template.code) &&
+      !deepInspectCodes.has(doc.template.code)
   );
   if (dailyDocs.length === 0) return filled;
 
@@ -472,9 +620,19 @@ export async function getTemplateTodaySummary(
   }
 
   const rollups = await Promise.all(
-    activeDocuments.map((doc) =>
-      rollupDocumentForDay(doc.id, todayStart, todayEnd)
-    )
+    activeDocuments.map(async (doc) => {
+      // Templates with packed entry.data (cold_equipment, climate) need
+      // per-template inspection — counting entries isn't enough.
+      const deep = await rollupEntryDataDocumentForDay(
+        templateCode ?? "",
+        doc.id,
+        doc.config,
+        todayStart,
+        todayEnd
+      );
+      if (deep) return deep;
+      return rollupDocumentForDay(doc.id, todayStart, todayEnd);
+    })
   );
 
   const todayCount = rollups.reduce((sum, r) => sum + r.todayCount, 0);
