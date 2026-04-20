@@ -4,6 +4,22 @@ import {
   COUNTS_UNBOUNDED_CODES,
 } from "@/lib/daily-journal-codes";
 
+// Russian plural pick: `pluralRu(1,2,5)(count)` for the three grammatical
+// forms. Handles teens (11-14 always 3rd form) and 21/31/41/... (1st form)
+// correctly — keeps banner copy readable even for big row counts.
+function pluralRu(one: string, few: string, many: string) {
+  return (count: number) => {
+    const abs = Math.abs(count) % 100;
+    const lastDigit = abs % 10;
+    if (abs > 10 && abs < 20) return many;
+    if (lastDigit === 1) return one;
+    if (lastDigit >= 2 && lastDigit <= 4) return few;
+    return many;
+  };
+}
+
+const recordWord = pluralRu("запись", "записи", "записей");
+
 /**
  * Top-of-page banner for a journal's documents list. Tells staff at a
  * glance whether the day's record has been entered yet. Read-only —
@@ -39,7 +55,7 @@ export function TodayPendingBanner({
     const greenDetail = countsAreBounded && expectedCount > 0
       ? ` (${todayCount} из ${expectedCount} строк)`
       : todayCount > 0
-        ? ` (${todayCount} ${todayCount === 1 ? "запись" : todayCount < 5 ? "записи" : "записей"})`
+        ? ` (${todayCount} ${recordWord(todayCount)})`
         : "";
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] px-4 py-3 sm:px-5 sm:py-4">
