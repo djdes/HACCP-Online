@@ -73,14 +73,9 @@ function buildForm(
     } — выполнено`,
     defaultValue: true,
   }));
-  fields.push({
-    type: "text",
-    key: "comment",
-    label: "Комментарий (необязательно)",
-    multiline: true,
-    maxLength: 300,
-    placeholder: "Например: поставлена новая лампа, всё в норме",
-  });
+  // No free-text «Комментарий» here — CleaningVentilationChecklistEntryData
+  // has no slot for it and the journal viewer doesn't render one, so the
+  // worker's input would be silently dropped. Keep the form minimal.
   return {
     intro:
       (employeeName ? `${employeeName}, ` : "") +
