@@ -28,6 +28,8 @@ import { pestControlAdapter } from "./pest-control";
 import { intensiveCoolingAdapter } from "./intensive-cooling";
 import { equipmentCleaningAdapter } from "./equipment-cleaning";
 import { finishedProductAdapter } from "./finished-product";
+import { climateAdapter } from "./climate";
+import { perishableRejectionAdapter } from "./perishable-rejection";
 import { buildGenericAdapter } from "./generic";
 import type { JournalAdapter } from "./types";
 
@@ -42,6 +44,8 @@ const SPECIFIC_ADAPTERS: JournalAdapter[] = [
   intensiveCoolingAdapter,
   equipmentCleaningAdapter,
   finishedProductAdapter,
+  climateAdapter,
+  perishableRejectionAdapter,
 ];
 
 const SPECIFIC_BY_CODE = new Map<string, JournalAdapter>(

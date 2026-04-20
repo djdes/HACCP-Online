@@ -20,6 +20,9 @@ export type PerishableRejectionRow = {
   actualSaleTime: string;
   responsiblePerson: string;
   note: string;
+  /** TaskLink.rowKey of the TasksFlow task that produced this row, if
+   *  any. The adapter uses it to update-in-place on re-completion. */
+  sourceRowKey?: string;
 };
 
 export type PerishableRejectionConfig = {
@@ -67,6 +70,9 @@ export function createPerishableRejectionRow(
     actualSaleTime: normalizeText(overrides.actualSaleTime),
     responsiblePerson: normalizeText(overrides.responsiblePerson),
     note: normalizeText(overrides.note),
+    ...(overrides.sourceRowKey
+      ? { sourceRowKey: normalizeText(overrides.sourceRowKey) }
+      : {}),
   };
 }
 
