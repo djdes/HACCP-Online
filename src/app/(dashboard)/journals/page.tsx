@@ -5,6 +5,8 @@ import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 
+export const dynamic = "force-dynamic";
+
 export default async function JournalsPage() {
   const session = await requireAuth();
 
