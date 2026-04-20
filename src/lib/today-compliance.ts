@@ -130,6 +130,17 @@ async function isDocumentFilledForDay(
 }
 
 /**
+ * Templates whose entries pack many sub-values into `entry.data` and
+ * need per-template inspection instead of entry-count. Keep in sync
+ * with the branches inside `rollupEntryDataDocumentForDay`.
+ */
+const DEEP_INSPECT_CODES = new Set([
+  "cold_equipment_control",
+  "climate_control",
+  "cleaning_ventilation_checklist",
+]);
+
+/**
  * Per-template rollup for daily journals that store ONE entry per date
  * but pack many sub-values inside `entry.data`. Counting entries alone
  * would mark «1 entry = filled» even if only 1 fridge out of 10 had a
@@ -441,13 +452,8 @@ export async function getTemplatesFilledToday(
 
   // Templates that pack many sub-values into `entry.data` need
   // per-template inspection. Handle them one-by-one and add to `filled`.
-  const deepInspectCodes = new Set([
-    "cold_equipment_control",
-    "climate_control",
-    "cleaning_ventilation_checklist",
-  ]);
   const deepDocs = activeDocuments.filter((doc) =>
-    deepInspectCodes.has(doc.template.code)
+    DEEP_INSPECT_CODES.has(doc.template.code)
   );
   if (deepDocs.length > 0) {
     const deepResults = new Map<string, boolean[]>();
@@ -476,7 +482,7 @@ export async function getTemplatesFilledToday(
   const dailyDocs = activeDocuments.filter(
     (doc) =>
       DAILY_JOURNAL_CODES.has(doc.template.code) &&
-      !deepInspectCodes.has(doc.template.code)
+      !DEEP_INSPECT_CODES.has(doc.template.code)
   );
   if (dailyDocs.length === 0) return filled;
 
