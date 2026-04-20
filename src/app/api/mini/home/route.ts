@@ -22,6 +22,7 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
+  const requestNow = new Date();
 
   const actor = aclActorFromSession({
     user: {
@@ -58,8 +59,14 @@ export async function GET() {
   };
 
   if (fullAccess) {
-    await syncDailyJournalObligationsForOrganization(session.user.organizationId);
-    const summary = await getManagerObligationSummary(session.user.organizationId);
+    await syncDailyJournalObligationsForOrganization(
+      session.user.organizationId,
+      requestNow
+    );
+    const summary = await getManagerObligationSummary(
+      session.user.organizationId,
+      requestNow
+    );
 
     return NextResponse.json({
       user,
@@ -77,8 +84,12 @@ export async function GET() {
   await syncDailyJournalObligationsForUser({
     userId: session.user.id,
     organizationId: session.user.organizationId,
+    now: requestNow,
   });
-  const now = await listOpenJournalObligationsForUser(session.user.id);
+  const now = await listOpenJournalObligationsForUser(
+    session.user.id,
+    requestNow
+  );
   const openJournalCodes = new Set(now.map((row) => row.journalCode));
 
   return NextResponse.json({
