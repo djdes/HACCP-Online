@@ -1,51 +1,28 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/integration-crypto";
-import { listAdapters } from "@/lib/tasksflow-adapters";
+import { getAdapter } from "@/lib/tasksflow-adapters";
+import { toDateKey } from "@/lib/hygiene-document";
+import { getUserDisplayTitle } from "@/lib/user-roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Generic catalog: every journal that has a registered adapter is
- * exposed here so the TasksFlow «Журнальный» mode picker can render
- * tabs / search across all of them. Adapter registry is the single
- * source of truth — adding a new journal in
- * `src/lib/tasksflow-adapters/index.ts` automatically appears here.
+ * Universal catalog: every active journal in the org is exposed so
+ * TasksFlow's «Журнальный» mode can offer all 35.
  *
- * Auth: same Bearer-key resolution as the legacy cleaning-catalog —
- * symmetric secret with the WeSetup integration row.
+ * Two flavours per journal:
+ *   1. **Adapter-rich** — the journal has a registered adapter
+ *      (`src/lib/tasksflow-adapters/`). Catalog returns adapter rows
+ *      (e.g. cleaning's responsiblePairs) so the picker shows existing
+ *      assignable things.
+ *   2. **Generic / free-text** — no adapter yet. Catalog still lists
+ *      the journal + its active documents so the admin can create a
+ *      «свободная задача» (free-text title + chosen worker). Such
+ *      tasks land as JournalDocumentEntry on completion.
  *
- *   GET /api/integrations/tasksflow/journals-catalog
- *   Headers: Authorization: Bearer tfk_…
- *
- * Response:
- *   {
- *     "journals": [
- *       {
- *         "templateCode": "cleaning",
- *         "label": "Журнал уборки",
- *         "description": "...",
- *         "iconName": "spray-can",
- *         "documents": [
- *           {
- *             "documentId": "cmo7…",
- *             "documentTitle": "Журнал уборки",
- *             "period": { "from": "2026-04-16", "to": "2026-04-30" },
- *             "rows": [
- *               {
- *                 "rowKey": "cleaning-pair-…",
- *                 "label": "Громов Илья Павлович",
- *                 "sublabel": "Контроль: m,m,m",
- *                 "responsibleUserId": "cmnyodrhl0005…",
- *                 "existingTasksflowTaskId": 14
- *               }
- *             ]
- *           }
- *         ]
- *       }
- *     ]
- *   }
+ * Auth: Bearer key resolved against integration's encrypted secret.
  */
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization") ?? "";
@@ -79,9 +56,59 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid key" }, { status: 401 });
   }
 
-  // Pre-load every TaskLink for this integration so we can mark
-  // already-bound rows in the picker — avoids the picker letting
-  // an admin double-create a task for the same row.
+  // What the org actually wants to see (disabledJournalCodes is the
+  // opt-out set chosen on /settings/journals).
+  const org = await db.organization.findUnique({
+    where: { id: resolved.organizationId },
+    select: { disabledJournalCodes: true },
+  });
+  const disabledRaw = (org?.disabledJournalCodes ?? []) as unknown;
+  const disabled = new Set<string>(
+    Array.isArray(disabledRaw)
+      ? disabledRaw.filter((x): x is string => typeof x === "string")
+      : []
+  );
+
+  const templates = await db.journalTemplate.findMany({
+    where: { isActive: true },
+    select: { code: true, name: true, description: true, sortOrder: true },
+    orderBy: { sortOrder: "asc" },
+  });
+  const usableTemplates = templates.filter((t) => !disabled.has(t.code));
+
+  // All active documents for the org, grouped by templateCode → docs.
+  const docs = await db.journalDocument.findMany({
+    where: {
+      organizationId: resolved.organizationId,
+      status: "active",
+    },
+    select: {
+      id: true,
+      title: true,
+      dateFrom: true,
+      dateTo: true,
+      template: { select: { code: true } },
+    },
+    orderBy: { dateFrom: "desc" },
+  });
+  const docsByJournal = new Map<
+    string,
+    Array<{ id: string; title: string; dateFrom: Date; dateTo: Date }>
+  >();
+  for (const d of docs) {
+    const code = d.template.code;
+    const list = docsByJournal.get(code) ?? [];
+    list.push({
+      id: d.id,
+      title: d.title,
+      dateFrom: d.dateFrom,
+      dateTo: d.dateTo,
+    });
+    docsByJournal.set(code, list);
+  }
+
+  // Pre-load TaskLinks once so we can mark «уже привязано» rows in
+  // the UI without a per-document round trip.
   const taskLinks = await db.tasksFlowTaskLink.findMany({
     where: { integrationId: resolved.id },
     select: {
@@ -106,34 +133,118 @@ export async function GET(request: Request) {
     perDoc.set(tl.rowKey, tl.tasksflowTaskId);
   }
 
-  // Walk every registered adapter in parallel — at the time of writing
-  // this is just one (`cleaning`), but the structure is ready to fan
-  // out across N adapters without code changes.
-  const adapters = listAdapters();
-  const journalChunks = await Promise.all(
-    adapters.map(async (adapter) => {
-      const docs = await adapter.listDocumentsForOrg(resolved!.organizationId);
-      const perJournal = takenByJournal.get(adapter.meta.templateCode);
+  const userLinks = await db.tasksFlowUserLink.findMany({
+    where: {
+      integrationId: resolved.id,
+      tasksflowUserId: { not: null },
+    },
+    select: {
+      wesetupUserId: true,
+      tasksflowUserId: true,
+    },
+  });
+  const linkedWesetupUserIds = userLinks.map((link) => link.wesetupUserId);
+  const linkedUsers = linkedWesetupUserIds.length
+    ? await db.user.findMany({
+        where: {
+          id: { in: linkedWesetupUserIds },
+          organizationId: resolved.organizationId,
+          isActive: true,
+          archivedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          positionTitle: true,
+          jobPosition: {
+            select: { name: true },
+          },
+        },
+      })
+    : [];
+  const linkedUsersById = new Map(linkedUsers.map((user) => [user.id, user]));
+  const assignableUsers: Array<{
+    userId: string;
+    name: string;
+    positionTitle: string | null;
+    tasksflowUserId: number;
+  }> = [];
+  for (const link of userLinks) {
+    const user = linkedUsersById.get(link.wesetupUserId);
+    if (!user || !link.tasksflowUserId) continue;
+    assignableUsers.push({
+      userId: user.id,
+      name: user.name,
+      positionTitle: getUserDisplayTitle(user),
+      tasksflowUserId: link.tasksflowUserId,
+    });
+  }
+  assignableUsers.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+  const journals = await Promise.all(
+    usableTemplates.map(async (template) => {
+      const adapter = getAdapter(template.code);
+      const journalDocs = docsByJournal.get(template.code) ?? [];
+      const perJournalTaken = takenByJournal.get(template.code);
+
+      // Adapter rows (if any) per document.
+      let adapterDocsById: Map<
+        string,
+        Awaited<
+          ReturnType<typeof adapter extends infer A
+            ? A extends { listDocumentsForOrg: (...args: never) => infer R }
+              ? () => R
+              : never
+            : never>
+        >[number]["rows"]
+      > | null = null;
+      if (adapter) {
+        try {
+          const adapterDocs = await adapter.listDocumentsForOrg(
+            resolved!.organizationId
+          );
+          adapterDocsById = new Map(
+            adapterDocs.map((d) => [d.documentId, d.rows])
+          );
+        } catch (err) {
+          console.error(
+            `[journals-catalog] adapter ${template.code} failed`,
+            err
+          );
+        }
+      }
+
+      const documents = journalDocs.map((d) => {
+        const taken = perJournalTaken?.get(d.id) ?? new Map<string, number>();
+        const rows = (adapterDocsById?.get(d.id) ?? []).map((row) => ({
+          ...row,
+          existingTasksflowTaskId: taken.get(row.rowKey) ?? null,
+        }));
+        return {
+          documentId: d.id,
+          documentTitle: d.title,
+          period: {
+            from: toDateKey(d.dateFrom),
+            to: toDateKey(d.dateTo),
+          },
+          rows,
+        };
+      });
+
       return {
-        templateCode: adapter.meta.templateCode,
-        label: adapter.meta.label,
-        description: adapter.meta.description ?? null,
-        iconName: adapter.meta.iconName ?? null,
-        documents: docs.map((doc) => {
-          const taken = perJournal?.get(doc.documentId) ?? new Map<string, number>();
-          return {
-            documentId: doc.documentId,
-            documentTitle: doc.documentTitle,
-            period: doc.period,
-            rows: doc.rows.map((row) => ({
-              ...row,
-              existingTasksflowTaskId: taken.get(row.rowKey) ?? null,
-            })),
-          };
-        }),
+        templateCode: template.code,
+        label: template.name,
+        description: template.description ?? null,
+        iconName: adapter?.meta.iconName ?? null,
+        /** True if a registered adapter handles this journal. UI uses
+         *  this to show «реальный round-trip» badge vs the lighter
+         *  «свободная задача» path. */
+        hasAdapter: Boolean(adapter),
+        documents,
       };
     })
   );
 
-  return NextResponse.json({ journals: journalChunks });
+  return NextResponse.json({ journals, assignableUsers });
 }
