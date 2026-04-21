@@ -88,17 +88,33 @@ export async function syncTasksflowUsers(args: {
 
     let remote = remoteByPhone.get(phone) ?? null;
     if (!remote) {
-      const nextRemote = await args.createRemoteUser({
-        name: user.name?.trim() || undefined,
-        phone,
-      });
-      remote = {
-        id: nextRemote.id,
-        name: nextRemote.name ?? null,
-        phone: normalizeRussianPhone(nextRemote.phone) ?? phone,
-      };
-      remoteByPhone.set(phone, remote);
-      createdRemote += 1;
+      // Try to create the missing worker in TasksFlow. Fails graceful-
+      // ly: production TasksFlow allows POST /api/users only for admin
+      // session cookies, not Bearer keys — and /api/users/register is
+      // public but requires SMS. Either way, a 4xx here just means
+      // «leave this user unlinked», not «abort the whole sync».
+      let nextRemote: RemoteSyncUser | null = null;
+      try {
+        nextRemote = await args.createRemoteUser({
+          name: user.name?.trim() || undefined,
+          phone,
+        });
+      } catch (err) {
+        // Swallow — caller logs via the outer try/catch in route.ts.
+        console.warn(
+          `[tf-sync] createRemoteUser failed for ${phone}:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+      if (nextRemote) {
+        remote = {
+          id: nextRemote.id,
+          name: nextRemote.name ?? null,
+          phone: normalizeRussianPhone(nextRemote.phone) ?? phone,
+        };
+        remoteByPhone.set(phone, remote);
+        createdRemote += 1;
+      }
     }
 
     if (!remote) {
