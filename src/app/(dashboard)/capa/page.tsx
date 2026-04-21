@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { CapaAutoDetectButton } from "@/components/capa/auto-detect-button";
 
 const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
   open: { label: "Открыто", bg: "#fff4f2", fg: "#a13a32" },
@@ -78,13 +79,16 @@ export default async function CapaPage() {
             Корректирующие и предупреждающие действия
           </p>
         </div>
-        <Link
-          href="/capa/new"
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:w-auto sm:justify-start sm:self-start"
-        >
-          <Plus className="size-4" />
-          Новый CAPA
-        </Link>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-start">
+          <CapaAutoDetectButton />
+          <Link
+            href="/capa/new"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:w-auto sm:justify-start sm:self-start"
+          >
+            <Plus className="size-4" />
+            Новый CAPA
+          </Link>
+        </div>
       </div>
 
       {/* Stats row */}

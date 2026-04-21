@@ -4,6 +4,11 @@ import { getDeviceTemperature } from "@/lib/tuya";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendTemperatureAlertEmail } from "@/lib/email";
 import { getDbRoleValuesWithLegacy, MANAGER_ROLES, MANAGEMENT_ROLES } from "@/lib/user-roles";
+import {
+  autofillColdEquipmentReading,
+  autofillClimateReading,
+} from "@/lib/iot-auto-fill";
+import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +52,7 @@ export async function POST(request: Request) {
       temperature: number;
       humidity: number | null;
       entryId: string;
+      docsTouched?: number;
       alert: boolean;
     }> = [];
     const errors: Array<{ equipmentId: string; error: string }> = [];
@@ -97,12 +103,40 @@ export async function POST(request: Request) {
           },
         });
 
+        // Mirror the reading into the modern grid journals so the
+        // today-compliance ring picks it up and workers don't have to
+        // hand-copy values from Tuya into the cold-equipment document.
+        // Failures here are non-fatal — the legacy JournalEntry above
+        // is already committed and notifications still fire.
+        let docsTouched = 0;
+        try {
+          docsTouched += await autofillColdEquipmentReading({
+            organizationId: equip.area.organizationId,
+            equipmentId: equip.id,
+            temperature,
+            systemUserId: systemUser.id,
+          });
+          docsTouched += await autofillClimateReading({
+            organizationId: equip.area.organizationId,
+            equipmentId: equip.id,
+            temperature,
+            humidity,
+            systemUserId: systemUser.id,
+          });
+        } catch (err) {
+          console.error(
+            `[tuya/collect] doc auto-fill failed for ${equip.id}`,
+            err
+          );
+        }
+
         results.push({
           equipmentId: equip.id,
           equipmentName: equip.name,
           temperature,
           humidity,
           entryId: entry.id,
+          docsTouched,
           alert: isOutOfRange,
         });
 
@@ -158,11 +192,45 @@ export async function POST(request: Request) {
       }
     }
 
+    // After collecting readings, scan each org that had any violation
+    // today for 3-consecutive-day patterns and open CAPA tickets.
+    // Grouped by org so each org gets at most one detector sweep.
+    const orgsWithAlerts = new Set<string>();
+    for (const equip of equipmentList) {
+      const resultForEquip = results.find((r) => r.equipmentId === equip.id);
+      if (resultForEquip?.alert) {
+        orgsWithAlerts.add(equip.area.organizationId);
+      }
+    }
+    const capaSummaries: Array<{
+      organizationId: string;
+      created: number;
+      skippedExisting: number;
+      candidates: number;
+    }> = [];
+    for (const orgId of orgsWithAlerts) {
+      try {
+        const capa = await detectTemperatureCapas({ organizationId: orgId });
+        capaSummaries.push({
+          organizationId: orgId,
+          created: capa.created,
+          skippedExisting: capa.skippedExisting,
+          candidates: capa.candidates,
+        });
+      } catch (err) {
+        console.error(
+          `[tuya/collect] CAPA detect failed for org ${orgId}`,
+          err
+        );
+      }
+    }
+
     return NextResponse.json({
       collected: results.length,
       errors: errors.length,
       results,
       errorDetails: errors,
+      capa: capaSummaries,
     });
   } catch (error) {
     console.error("Tuya collect error:", error);
