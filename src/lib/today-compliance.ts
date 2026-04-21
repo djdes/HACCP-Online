@@ -444,18 +444,32 @@ export async function getTemplatesFilledToday(
   const filled = new Set<string>();
   for (const entry of legacyEntries) filled.add(entry.templateId);
 
-  // Aperiodic journals are always considered filled — there's nothing
-  // to do today unless an event (accident, complaint…) happens.
-  // Disabled journals (toggled off in /settings/journals) are also added
-  // to `filled` so they don't drag the compliance ring down — the caller
-  // should filter them out of the displayed list separately.
+  // Только aperiodic-журналы, у которых есть хотя бы один активный
+  // документ на сегодня, считаются «готовыми по умолчанию». До этого
+  // было «все aperiodic автоматически filled» — что приводило к
+  // 71% готовности у свежезарегистрированной компании с нулевым
+  // настройкой: 25 из 35 журналов — aperiodic, они все зеленые,
+  // менеджер думает «что-то уже сделано», хотя ещё ничего не
+  // настроено. Теперь журнал идёт в числитель ring'a только когда
+  // менеджер реально его ведёт (документ активен).
+  const activeByTemplate = new Map<string, number>();
+  for (const doc of activeDocuments) {
+    activeByTemplate.set(
+      doc.templateId,
+      (activeByTemplate.get(doc.templateId) ?? 0) + 1
+    );
+  }
+
   if (allTemplates) {
     for (const tpl of allTemplates) {
       if (disabledCodes?.has(tpl.code)) {
         filled.add(tpl.id);
         continue;
       }
-      if (!DAILY_JOURNAL_CODES.has(tpl.code) && !CONFIG_DAILY_CODES.has(tpl.code)) {
+      const isAperiodic =
+        !DAILY_JOURNAL_CODES.has(tpl.code) &&
+        !CONFIG_DAILY_CODES.has(tpl.code);
+      if (isAperiodic && (activeByTemplate.get(tpl.id) ?? 0) > 0) {
         filled.add(tpl.id);
       }
     }

@@ -189,6 +189,25 @@ export default async function DashboardPage() {
   });
   const hasTasksflowIntegration = Boolean(tfIntegration);
 
+  // Какие templates реально ведутся (есть активный doc, покрывающий
+  // сегодня). Нужен чтобы отфильтровать compliance-ring: показывать
+  // только журналы, которые admin уже запустил — остальные «не
+  // настроены», они не должны ни зеленеть, ни красниться.
+  const activeTemplateIds = new Set<string>(
+    (
+      await db.journalDocument.findMany({
+        where: {
+          organizationId,
+          status: "active",
+          dateFrom: { lte: now },
+          dateTo: { gte: now },
+        },
+        select: { templateId: true },
+        distinct: ["templateId"],
+      })
+    ).map((d) => d.templateId)
+  );
+
   const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
 
   const [filledTodayIds, weeklyTails] = await Promise.all([
@@ -203,14 +222,17 @@ export default async function DashboardPage() {
 
   const totalTodayEntries = todayEntries + todayDocumentEntries;
 
-  // Compliance covers EVERY mandatory ENABLED journal — daily ones get a
-  // real «all rows filled» check, aperiodic ones (accidents, complaints,
-  // audits…) count as filled by default. Disabled journals are skipped
-  // entirely so they don't drag the ring down.
+  // Compliance ring показывает только MANDATORY + ENABLED + «журнал
+  // реально ведётся» (есть активный документ покрывающий сегодня). До
+  // этого в ring попадали ВСЕ обязательные по СанПиН/ХАССП, из-за
+  // чего фреш-организация видела 71% готовности (aperiodic считались
+  // filled автоматом) — обман. Теперь ring отражает реальность: что
+  // admin уже настроил и как оно идёт сегодня.
   const mandatoryEnabledTemplates = templates.filter(
     (t) =>
       (t.isMandatorySanpin || t.isMandatoryHaccp) &&
-      !disabledCodes.has(t.code)
+      !disabledCodes.has(t.code) &&
+      activeTemplateIds.has(t.id)
   );
   const complianceItems = mandatoryEnabledTemplates.map((t) => ({
     id: t.id,
@@ -322,14 +344,14 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-[20px] font-semibold text-[#0b1024]">
                 {complianceItems.length === 0
-                  ? "Сегодня нечего заполнять"
+                  ? "Журналы ещё не настроены"
                   : unfilledCount === 0
                     ? "Все ежедневные журналы начаты"
                     : `Не начинали заполняться: ${unfilledCount}`}
               </h2>
               <p className="mt-0.5 text-[13px] text-[#6f7282]">
                 {complianceItems.length === 0
-                  ? "Ежедневные журналы (гигиена, температура и т.п.) пока не настроены."
+                  ? "Создайте первый документ в /journals — после этого журнал попадёт в готовность сегодня."
                   : unfilledCount === 0
                     ? "Отличная работа — в каждом журнале есть хотя бы одна запись за сегодня."
                     : "Нажмите на карточку, чтобы открыть журнал и внести первую запись за сегодня."}
