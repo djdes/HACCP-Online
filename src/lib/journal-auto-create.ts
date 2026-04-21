@@ -14,6 +14,7 @@
  * отчёте «уже был».
  */
 import type { PrismaClient } from "@prisma/client";
+import { resolveJournalPeriod } from "@/lib/journal-period";
 
 export type CreateReport = {
   code: string;
@@ -22,22 +23,6 @@ export type CreateReport = {
   documentId: string;
   reason?: string;
 };
-
-function monthBounds(now: Date): { from: Date; to: Date } {
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  return {
-    from: new Date(Date.UTC(y, m, 1)),
-    to: new Date(Date.UTC(y, m + 1, 0)),
-  };
-}
-
-function monthLabel(now: Date): string {
-  return now.toLocaleDateString("ru-RU", {
-    month: "long",
-    year: "numeric",
-  });
-}
 
 export async function ensureActiveDocument(
   db: PrismaClient,
@@ -82,14 +67,14 @@ export async function ensureActiveDocument(
     };
   }
 
-  const bounds = monthBounds(now);
+  const period = resolveJournalPeriod(args.templateCode, now);
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
       templateId: template.id,
-      title: `${template.name} · ${monthLabel(now)}`,
-      dateFrom: bounds.from,
-      dateTo: bounds.to,
+      title: `${template.name} · ${period.label}`,
+      dateFrom: period.dateFrom,
+      dateTo: period.dateTo,
       status: "active",
       config: {},
     },

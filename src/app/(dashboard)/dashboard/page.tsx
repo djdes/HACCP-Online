@@ -25,6 +25,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { getWeeklyTails } from "@/lib/weekly-tails";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
@@ -222,17 +223,18 @@ export default async function DashboardPage() {
 
   const totalTodayEntries = todayEntries + todayDocumentEntries;
 
-  // Compliance ring показывает только MANDATORY + ENABLED + «журнал
-  // реально ведётся» (есть активный документ покрывающий сегодня). До
-  // этого в ring попадали ВСЕ обязательные по СанПиН/ХАССП, из-за
-  // чего фреш-организация видела 71% готовности (aperiodic считались
-  // filled автоматом) — обман. Теперь ring отражает реальность: что
-  // admin уже настроил и как оно идёт сегодня.
+  // Compliance ring показывает только MANDATORY + ENABLED + DAILY
+  // (ежедневные/конфиг-ежедневные) + «реально ведётся». Aperiodic
+  // журналы (годовые, событийные — медкнижки, аудит, авария) НЕ
+  // попадают в знаменатель: у них нет понятия «готовность на
+  // сегодня», и включение их ломало цифру — после bulk-create 25
+  // журналов ring прыгал на 70%, хотя реально ничего не заполняли.
   const mandatoryEnabledTemplates = templates.filter(
     (t) =>
       (t.isMandatorySanpin || t.isMandatoryHaccp) &&
       !disabledCodes.has(t.code) &&
-      activeTemplateIds.has(t.id)
+      activeTemplateIds.has(t.id) &&
+      ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
   const complianceItems = mandatoryEnabledTemplates.map((t) => ({
     id: t.id,

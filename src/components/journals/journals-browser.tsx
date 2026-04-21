@@ -139,8 +139,16 @@ export function JournalsBrowser({
   const disabledTemplates = templates.filter((t) => t.disabled);
   const enabledCount = enabledTemplates.length;
   const disabledCount = disabledTemplates.length;
+  // Compliance ring считает только ежедневные/конфиг-ежедневные
+  // mandatory-журналы. Aperiodic (годовые, событийные — медкнижки,
+  // аудиты, аварии) не имеют понятия «готовность на сегодня» и не
+  // попадают в знаменатель — иначе создание документа событийного
+  // журнала мгновенно сдвигает ring, хотя ничего фактически не
+  // заполнено.
   const mandatoryEnabledTemplates = enabledTemplates.filter(
-    (t) => t.isMandatorySanpin || t.isMandatoryHaccp
+    (t) =>
+      (t.isMandatorySanpin || t.isMandatoryHaccp) &&
+      ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
   const filledTodayCount = mandatoryEnabledTemplates.filter(
     (t) => t.filledToday
