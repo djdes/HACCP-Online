@@ -47,6 +47,24 @@ export default async function JournalsPage() {
     disabledCodes
   );
 
+  // Которые журналы УЖЕ имеют активный документ на сегодня — их
+  // bulk-create-кнопка не трогает. Используем для UI-бейджа «есть
+  // документ» и для default-фильтра selection.
+  const activeTemplateIds = new Set<string>(
+    (
+      await db.journalDocument.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          status: "active",
+          dateFrom: { lte: new Date() },
+          dateTo: { gte: new Date() },
+        },
+        select: { templateId: true },
+        distinct: ["templateId"],
+      })
+    ).map((d) => d.templateId)
+  );
+
   const items = visibleTemplates.map((template) => ({
     id: template.id,
     code: template.code,
@@ -56,7 +74,8 @@ export default async function JournalsPage() {
     isMandatoryHaccp: template.isMandatoryHaccp,
     filledToday: filledTodayIds.has(template.id),
     disabled: disabledCodes.has(template.code),
+    hasActiveDocumentToday: activeTemplateIds.has(template.id),
   }));
 
-  return <JournalsBrowser templates={items} />;
+  return <JournalsBrowser templates={items} canBulkCreate={isManager} />;
 }

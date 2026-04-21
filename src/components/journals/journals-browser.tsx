@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import {
   AlertCircle,
@@ -60,10 +63,12 @@ type JournalTemplateListItem = {
   isMandatoryHaccp: boolean;
   filledToday: boolean;
   disabled: boolean;
+  hasActiveDocumentToday?: boolean;
 };
 
 type JournalsBrowserProps = {
   templates: JournalTemplateListItem[];
+  canBulkCreate?: boolean;
 };
 
 const JOURNAL_ICONS: Record<string, LucideIcon> = {
@@ -108,8 +113,14 @@ function normalizeSearchValue(value: string) {
   return value.toLocaleLowerCase("ru-RU").trim();
 }
 
-export function JournalsBrowser({ templates }: JournalsBrowserProps) {
+export function JournalsBrowser({
+  templates,
+  canBulkCreate = false,
+}: JournalsBrowserProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearchValue(deferredQuery);
 
@@ -143,6 +154,65 @@ export function JournalsBrowser({ templates }: JournalsBrowserProps) {
   const filteredEnabled = filteredTemplates.filter((t) => !t.disabled);
   const filteredDisabled = filteredTemplates.filter((t) => t.disabled);
   const hasResults = filteredTemplates.length > 0;
+
+  // Candidate for bulk-create = no active doc covering today AND not
+  // disabled. If a template already has an active document, creating
+  // again would be a no-op, so we don't offer a checkbox for it.
+  const bulkCandidateCodes = useMemo(
+    () =>
+      enabledTemplates
+        .filter((t) => !t.hasActiveDocumentToday)
+        .map((t) => t.code),
+    [enabledTemplates]
+  );
+  const bulkCandidateSet = useMemo(
+    () => new Set(bulkCandidateCodes),
+    [bulkCandidateCodes]
+  );
+  const selectedCount = selectedCodes.size;
+  const canBulkSelectAll = bulkCandidateCodes.length > 0;
+
+  function toggleSelect(code: string) {
+    setSelectedCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }
+  function selectAllCandidates() {
+    setSelectedCodes(new Set(bulkCandidateCodes));
+  }
+  function clearSelection() {
+    setSelectedCodes(new Set());
+  }
+  async function runBulkCreate() {
+    if (bulkBusy || selectedCount === 0) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/journal-documents/bulk-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codes: [...selectedCodes] }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error ?? "Не удалось создать документы");
+        return;
+      }
+      toast.success(
+        `Создано: ${data.created ?? 0}${
+          data.skipped ? ` · пропущено: ${data.skipped}` : ""
+        }`
+      );
+      clearSelection();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -255,6 +325,57 @@ export function JournalsBrowser({ templates }: JournalsBrowserProps) {
         </div>
       </div>
 
+      {canBulkCreate && canBulkSelectAll ? (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white/95 px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] backdrop-blur sm:px-5">
+          <div className="flex items-center gap-2 text-[13px] text-[#3c4053]">
+            <Sparkles className="size-4 text-[#5566f6]" />
+            <span>
+              {selectedCount === 0
+                ? `К созданию доступно: ${bulkCandidateCodes.length}`
+                : `Выбрано: ${selectedCount} из ${bulkCandidateCodes.length}`}
+            </span>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {selectedCount < bulkCandidateCodes.length ? (
+              <button
+                type="button"
+                onClick={selectAllCandidates}
+                className="rounded-full border border-[#dcdfed] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                Выбрать все
+              </button>
+            ) : null}
+            {selectedCount > 0 ? (
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-full border border-[#dcdfed] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                Снять выбор
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={runBulkCreate}
+              disabled={bulkBusy || selectedCount === 0}
+              className="inline-flex h-9 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:bg-[#c8cbe0] disabled:shadow-none"
+              title={
+                selectedCount === 0
+                  ? "Отметьте хотя бы один журнал"
+                  : "Создать документы для выбранных журналов"
+              }
+            >
+              <CheckCircle2 className="size-4" />
+              {bulkBusy
+                ? "Создаём…"
+                : `Создать выбранные${
+                    selectedCount > 0 ? ` (${selectedCount})` : ""
+                  }`}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {!hasResults ? (
         <EmptyState onReset={() => setQuery("")} />
       ) : (
@@ -262,7 +383,15 @@ export function JournalsBrowser({ templates }: JournalsBrowserProps) {
           {filteredEnabled.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredEnabled.map((template) => (
-                <TemplateCard key={template.id} template={template} />
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  bulkSelectable={
+                    canBulkCreate && bulkCandidateSet.has(template.code)
+                  }
+                  bulkSelected={selectedCodes.has(template.code)}
+                  onBulkToggle={toggleSelect}
+                />
               ))}
             </div>
           ) : null}
@@ -332,7 +461,17 @@ function StatPill({
   );
 }
 
-function TemplateCard({ template }: { template: JournalTemplateListItem }) {
+function TemplateCard({
+  template,
+  bulkSelectable = false,
+  bulkSelected = false,
+  onBulkToggle,
+}: {
+  template: JournalTemplateListItem;
+  bulkSelectable?: boolean;
+  bulkSelected?: boolean;
+  onBulkToggle?: (code: string) => void;
+}) {
   const Icon = JOURNAL_ICONS[template.code] ?? NotebookPen;
   const isMandatory = template.isMandatorySanpin || template.isMandatoryHaccp;
   const isDaily = ALL_DAILY_JOURNAL_CODES.has(template.code);
@@ -380,15 +519,38 @@ function TemplateCard({ template }: { template: JournalTemplateListItem }) {
   }
 
   return (
-    <Link href={`/journals/${template.code}`} className="group block focus:outline-none">
+    <div className="relative">
+      {bulkSelectable ? (
+        <label
+          className="absolute left-2 top-2 z-10 flex size-7 cursor-pointer items-center justify-center rounded-full bg-white/95 shadow-[0_0_0_1px_rgba(220,223,237,0.9)] backdrop-blur hover:shadow-[0_0_0_1px_rgba(85,102,246,0.6)]"
+          onClick={(event) => event.stopPropagation()}
+          title={
+            bulkSelected
+              ? "Убрать из bulk-создания"
+              : "Добавить в bulk-создание"
+          }
+        >
+          <Checkbox
+            checked={bulkSelected}
+            onCheckedChange={() => onBulkToggle?.(template.code)}
+            aria-label={`Выбрать «${template.name}» для массового создания`}
+          />
+        </label>
+      ) : null}
+      <Link
+        href={`/journals/${template.code}`}
+        className="group block focus:outline-none"
+      >
       <div
         className={cn(
           "flex h-full items-start gap-4 rounded-2xl border bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] group-focus-visible:border-[#5566f6] group-focus-visible:ring-4 group-focus-visible:ring-[#5566f6]/15",
-          needsAttentionToday
-            ? "border-[#ffd2cd] hover:border-[#ff8d7d]"
-            : readyToday
-              ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
-              : "border-[#ececf4] hover:border-[#d6d9ee]"
+          bulkSelected
+            ? "border-[#5566f6] ring-2 ring-[#5566f6]/25"
+            : needsAttentionToday
+              ? "border-[#ffd2cd] hover:border-[#ff8d7d]"
+              : readyToday
+                ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
+                : "border-[#ececf4] hover:border-[#d6d9ee]"
         )}
       >
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f5f6ff] text-[#5566f6] transition-transform group-hover:scale-105">
@@ -438,7 +600,8 @@ function TemplateCard({ template }: { template: JournalTemplateListItem }) {
           </div>
         </div>
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 

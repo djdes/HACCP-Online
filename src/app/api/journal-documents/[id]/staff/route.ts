@@ -20,7 +20,15 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  if (!["owner", "technologist"].includes(session.user.role)) {
+  // Modern (manager / head_chef) + legacy (owner / technologist) — те
+  // же management-роли, просто разные словари. Раньше в allow-list был
+  // только legacy, из-за чего свежерегистрировавшийся manager получал
+  // 403 на «Добавить всех» в гигиене/здоровье.
+  if (
+    !["manager", "head_chef", "owner", "technologist"].includes(
+      session.user.role
+    )
+  ) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 

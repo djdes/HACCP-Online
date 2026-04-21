@@ -31,6 +31,11 @@ model Organization {
   /// hide the journals that don't apply. Disabled journals are muted in
   /// the browser and excluded from dashboard compliance counts.
   disabledJournalCodes Json              @default("[]")
+  /// Journal template codes enabled for auto document creation. Every
+  /// day a cron checks for codes in this list and ensures there is an
+  /// active JournalDocument covering today; creates a month-long doc if
+  /// missing. Manages via /settings/auto-journals.
+  autoJournalCodes     Json              @default("[]")
   users                User[]
   areas                Area[]
   journalEntries       JournalEntry[]

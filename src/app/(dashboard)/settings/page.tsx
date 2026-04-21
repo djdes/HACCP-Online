@@ -10,6 +10,7 @@ import {
   KeyRound,
   Package,
   Phone,
+  Sparkles,
   Plug,
   ScrollText,
   Settings2,
@@ -69,6 +70,14 @@ const settingsCards = [
     href: "/settings/phone",
     icon: Phone,
     color: "#3848c7",
+    bg: "#eef1ff",
+  },
+  {
+    title: "Автосоздание журналов",
+    description: "Чтобы каждый месяц не заводить вручную",
+    href: "/settings/auto-journals",
+    icon: Sparkles,
+    color: "#5566f6",
     bg: "#eef1ff",
   },
   {
