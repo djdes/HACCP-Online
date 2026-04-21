@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { VoiceNumberInput } from "@/components/ui/voice-number-input";
 import {
   Select,
   SelectContent,
@@ -996,21 +997,40 @@ export function ColdEquipmentDocumentClient({
                               {getWeekdayShort(dateKey)}.
                             </span>
                             {status === "active" ? (
-                              <Input
-                                type="number"
-                                inputMode="decimal"
-                                step="0.1"
-                                defaultValue={value ?? ""}
-                                onBlur={(event) =>
-                                  handleTemperatureBlur(
-                                    dateKey,
-                                    item.id,
-                                    event.target.value
-                                  )
-                                }
-                                placeholder="°C"
-                                className="h-10 min-w-0 flex-1 rounded-lg border-[#dcdfed] px-3 text-[14px]"
-                              />
+                              <>
+                                <Input
+                                  id={`temp-${item.id}-${dateKey}`}
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.1"
+                                  defaultValue={value ?? ""}
+                                  onBlur={(event) =>
+                                    handleTemperatureBlur(
+                                      dateKey,
+                                      item.id,
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder="°C"
+                                  className="h-10 min-w-0 flex-1 rounded-lg border-[#dcdfed] px-3 text-[14px]"
+                                />
+                                <VoiceNumberInput
+                                  value={value ?? ""}
+                                  inputId={`temp-${item.id}-${dateKey}`}
+                                  onChange={(n) => {
+                                    if (n === null) return;
+                                    const input = document.getElementById(
+                                      `temp-${item.id}-${dateKey}`
+                                    ) as HTMLInputElement | null;
+                                    if (input) input.value = String(n);
+                                    handleTemperatureBlur(
+                                      dateKey,
+                                      item.id,
+                                      String(n)
+                                    );
+                                  }}
+                                />
+                              </>
                             ) : (
                               <span className="flex-1 rounded-lg bg-[#fafbff] px-3 py-2 text-[14px] text-[#0b1024]">
                                 {value ?? "—"}
