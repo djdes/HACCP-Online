@@ -64,12 +64,16 @@ export function TodayPendingBanner({
       ? `/journals/${routeCode}/documents/${activeDocumentId}?focus=today`
       : null;
 
+  const isStrict = templateCode === "hygiene" || templateCode === "health_check";
   if (filled) {
-    const greenDetail = countsAreBounded && expectedCount > 0
+    const greenDetail = isStrict && expectedCount > 0
       ? ` (${todayCount} из ${expectedCount} строк)`
       : todayCount > 0
         ? ` (${todayCount} ${recordWord(todayCount)})`
         : "";
+    const greenBody = isStrict
+      ? `${templateName} заполнен за сегодняшнее число${greenDetail}. Можно открыть документ, чтобы проверить или дополнить записи.`
+      : `${templateName} уже заполнялся за сегодняшнее число${greenDetail}. Можно открыть документ, чтобы продолжить.`;
     return (
       <div className="flex flex-col gap-3 rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4">
         <div className="flex min-w-0 items-start gap-3 sm:flex-1">
@@ -78,11 +82,10 @@ export function TodayPendingBanner({
           </span>
           <div className="min-w-0">
             <div className="text-[14px] font-semibold text-[#136b2a]">
-              Сегодня записи уже есть
+              {isStrict ? "Сегодня журнал заполнен" : "Сегодня журнал уже заполнялся"}
             </div>
             <p className="mt-0.5 text-[13px] leading-snug text-[#136b2a]/80">
-              {templateName} заполнен за сегодняшнее число{greenDetail}.
-              Можно открыть документ, чтобы проверить или дополнить записи.
+              {greenBody}
             </p>
           </div>
         </div>
@@ -99,15 +102,16 @@ export function TodayPendingBanner({
     );
   }
 
-  // Tailor the body copy to the state — no doc, partial fill, or empty.
-  const partialFill = countsAreBounded && todayCount > 0 && expectedCount > 0;
+  // Tailor the body copy to the state — no doc, partial fill (strict
+  // journals only), or completely empty.
+  const partialFill = isStrict && todayCount > 0 && expectedCount > 0;
   const description = noActiveDocument
     ? "Активного документа на сегодня нет. Создайте новый документ кнопкой «Создать документ» сверху и начните заполнять записи за текущий день."
     : partialFill
       ? `За сегодня заполнено ${todayCount} из ${expectedCount} строк. Нажмите «Перейти к сегодня» и внесите оставшиеся — как только все обязательные строки будут готовы, этот блок исчезнет.`
-      : countsAreBounded
-        ? "За сегодня ещё нет записей. Нажмите «Перейти к сегодня» и внесите данные за текущий день — как только все обязательные строки будут готовы, этот блок исчезнет."
-        : "За сегодня ещё нет ни одной записи. Откройте активный документ и внесите данные по событиям текущего дня.";
+      : isStrict
+        ? "За сегодня ещё нет записей. Нажмите «Перейти к сегодня» и отметьте каждого сотрудника — как только все обязательные строки будут готовы, блок исчезнет."
+        : "За сегодня журнал ещё не начинали заполнять. Откройте документ и внесите первую запись за сегодня — блок исчезнет после любой строки с сегодняшней датой.";
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4">
@@ -117,7 +121,7 @@ export function TodayPendingBanner({
         </span>
         <div className="min-w-0">
           <div className="text-[14px] font-semibold text-[#d2453d]">
-            Нужно заполнить за сегодняшнее число
+            {isStrict ? "Нужно заполнить за сегодня" : "Ещё не начинали заполнять"}
           </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#d2453d]/85">
             {description}

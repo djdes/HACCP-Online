@@ -141,6 +141,19 @@ const DEEP_INSPECT_CODES = new Set([
 ]);
 
 /**
+ * Journals we still judge by «все ли из ростера сделали запись» — где
+ * журнал реально ведётся по КАЖДОМУ сотруднику ежедневно, и любая
+ * пропущенная строка — это явный баг (hygiene, health_check).
+ *
+ * Все остальные daily-журналы оцениваются проще: «был ли хоть один
+ * штрих за сегодня» → зелёный. Причина — для замеров холодильников,
+ * уборки, фритюра и т.п. менеджер не всегда знает финальное число
+ * записей (например сколько раз за смену проверят фритюр). Пустое
+ * сегодня = «не начали», любая запись = «пошло».
+ */
+const STRICT_COMPLETENESS_CODES = new Set(["hygiene", "health_check"]);
+
+/**
  * Per-template rollup for daily journals that store ONE entry per date
  * but pack many sub-values inside `entry.data`. Counting entries alone
  * would mark «1 entry = filled» even if only 1 fridge out of 10 had a
@@ -450,9 +463,11 @@ export async function getTemplatesFilledToday(
 
   const todayKey = todayStart.toISOString().slice(0, 10);
 
-  // Config-stored daily journals — cleaning, finished_product, perishable.
-  // These don't write JournalDocumentEntry rows, so we inspect the
-  // document's `config` JSON directly.
+  // Config-stored daily journals (cleaning / finished_product /
+  // perishable_rejection). «Начат сегодня» = хотя бы одна строка с
+  // datom = today в config.rows[] / matrix. Это relaxed-режим —
+  // менеджер просто хочет видеть зелёный, когда сотрудник уже
+  // сделал первую запись.
   const configDocs = activeDocuments.filter((doc) =>
     CONFIG_DAILY_CODES.has(doc.template.code)
   );
@@ -463,55 +478,32 @@ export async function getTemplatesFilledToday(
       doc.config,
       todayKey
     );
+    const started = (rollup?.todayCount ?? 0) > 0;
     const list = configDocsByTemplate.get(doc.templateId) ?? [];
-    list.push(rollup?.filled ?? false);
+    list.push(started);
     configDocsByTemplate.set(doc.templateId, list);
   }
+  // Для config-журналов: «хотя бы один активный doc начат» = filled.
+  // Раньше требовалось every() — но это противоречит spirit-y
+  // «начали заполнять», когда в организации несколько параллельных
+  // документов по одному журналу.
   for (const [templateId, results] of configDocsByTemplate.entries()) {
-    if (results.length > 0 && results.every((ok) => ok)) {
+    if (results.some((ok) => ok)) {
       filled.add(templateId);
     }
   }
 
-  // Templates that pack many sub-values into `entry.data` need
-  // per-template inspection. Handle them one-by-one and add to `filled`.
-  const deepDocs = activeDocuments.filter((doc) =>
-    DEEP_INSPECT_CODES.has(doc.template.code)
-  );
-  if (deepDocs.length > 0) {
-    const deepResults = new Map<string, boolean[]>();
-    await Promise.all(
-      deepDocs.map(async (doc) => {
-        const rollup = await rollupEntryDataDocumentForDay(
-          doc.template.code,
-          doc.id,
-          doc.config,
-          todayStart,
-          todayEnd
-        );
-        const ok = rollup?.filled ?? false;
-        const list = deepResults.get(doc.templateId) ?? [];
-        list.push(ok);
-        deepResults.set(doc.templateId, list);
-      })
-    );
-    for (const [templateId, results] of deepResults.entries()) {
-      if (results.length > 0 && results.every((ok) => ok)) {
-        filled.add(templateId);
-      }
-    }
-  }
-
-  const dailyDocs = activeDocuments.filter(
-    (doc) =>
-      DAILY_JOURNAL_CODES.has(doc.template.code) &&
-      !DEEP_INSPECT_CODES.has(doc.template.code)
+  const dailyDocs = activeDocuments.filter((doc) =>
+    DAILY_JOURNAL_CODES.has(doc.template.code)
   );
   if (dailyDocs.length === 0) return filled;
 
-  // Single grouped query instead of N per-document queries. Pulls all
-  // 30-day rollup counts at once so the dashboard stays snappy even
-  // with many daily documents.
+  // Single grouped query — pulls 30-day rollup counts once for all
+  // daily docs. We derive two things out of the same dataset:
+  //   - «хоть одна запись за сегодня» (для relaxed-журналов)
+  //   - «сегодняшних ≥ предыдущего рабочего дня» (для STRICT журналов
+  //     типа hygiene / health_check, где правило прежнее — каждый
+  //     сотрудник должен отметиться).
   const dailyDocIds = dailyDocs.map((d) => d.id);
   const rollupRows = await db.journalDocumentEntry.groupBy({
     by: ["documentId", "date"],
@@ -521,8 +513,6 @@ export async function getTemplatesFilledToday(
     },
     _count: { _all: true },
   });
-
-  // Group by documentId → Map<dayKey, count>
   const byDocument = new Map<string, Map<string, number>>();
   for (const row of rollupRows) {
     const dayKey = row.date.toISOString().slice(0, 10);
@@ -534,11 +524,14 @@ export async function getTemplatesFilledToday(
     docMap.set(dayKey, row._count._all);
   }
 
-  function documentFilled(documentId: string): boolean {
+  function documentStartedToday(documentId: string): boolean {
+    const byDay = byDocument.get(documentId) ?? new Map();
+    return (byDay.get(todayKey) ?? 0) > 0;
+  }
+  function documentFilledStrict(documentId: string): boolean {
     const byDay = byDocument.get(documentId) ?? new Map();
     const todayCount = byDay.get(todayKey) ?? 0;
     if (todayCount === 0) return false;
-
     const priorDayKeys = [...byDay.keys()]
       .filter((k) => k !== todayKey)
       .sort();
@@ -546,20 +539,25 @@ export async function getTemplatesFilledToday(
       const count = byDay.get(priorDayKeys[i]) ?? 0;
       if (count > 0) return todayCount >= count;
     }
-    return true; // no history → any entry counts
+    return true;
   }
 
-  const documentsByTemplate = new Map<string, string[]>();
+  const documentsByTemplate = new Map<string, { code: string; docIds: string[] }>();
   for (const doc of dailyDocs) {
-    const list = documentsByTemplate.get(doc.templateId) ?? [];
-    list.push(doc.id);
-    documentsByTemplate.set(doc.templateId, list);
+    const entry = documentsByTemplate.get(doc.templateId) ?? {
+      code: doc.template.code,
+      docIds: [],
+    };
+    entry.docIds.push(doc.id);
+    documentsByTemplate.set(doc.templateId, entry);
   }
 
-  for (const [templateId, docIds] of documentsByTemplate.entries()) {
-    if (docIds.length > 0 && docIds.every(documentFilled)) {
-      filled.add(templateId);
-    }
+  for (const [templateId, { code, docIds }] of documentsByTemplate.entries()) {
+    const strict = STRICT_COMPLETENESS_CODES.has(code);
+    const ok = strict
+      ? docIds.every(documentFilledStrict) // все документы целиком заполнены
+      : docIds.some(documentStartedToday); // хотя бы один начат
+    if (ok) filled.add(templateId);
   }
 
   return filled;
@@ -695,7 +693,9 @@ export async function getTemplateTodaySummary(
       (sum, r) => sum + r.expectedCount,
       0
     );
-    const filled = configRollups.every((r) => r.filled);
+    // Relaxed для config-based: «начали = зелёный». Никаких
+    // config-based журналов в STRICT нет.
+    const filled = todayCount > 0;
     return {
       filled,
       aperiodic: false,
@@ -706,25 +706,36 @@ export async function getTemplateTodaySummary(
     };
   }
 
+  const strict =
+    typeof templateCode === "string" && STRICT_COMPLETENESS_CODES.has(templateCode);
+
   const rollups = await Promise.all(
     activeDocuments.map(async (doc) => {
-      // Templates with packed entry.data (cold_equipment, climate) need
-      // per-template inspection — counting entries isn't enough.
-      const deep = await rollupEntryDataDocumentForDay(
-        templateCode ?? "",
-        doc.id,
-        doc.config,
-        todayStart,
-        todayEnd
-      );
-      if (deep) return deep;
-      return rollupDocumentForDay(doc.id, todayStart, todayEnd);
+      if (strict) {
+        // hygiene / health_check продолжают пользоваться строгой
+        // ростер-логикой — по каждому сотруднику за сегодня должна
+        // быть запись. Для deep-inspect-ов эта ветка не нужна — они
+        // все в relaxed-наборе.
+        return rollupDocumentForDay(doc.id, todayStart, todayEnd);
+      }
+      // Relaxed: «начали сегодня». Считаем только todayCount — без
+      // сравнения с предыдущим днём, без inspect'ов equipment/room.
+      const today = await db.journalDocumentEntry.count({
+        where: { documentId: doc.id, date: { gte: todayStart, lt: todayEnd } },
+      });
+      return {
+        todayCount: today,
+        expectedCount: today > 0 ? today : 1,
+        filled: today > 0,
+      };
     })
   );
 
   const todayCount = rollups.reduce((sum, r) => sum + r.todayCount, 0);
   const expectedCount = rollups.reduce((sum, r) => sum + r.expectedCount, 0);
-  const filled = rollups.every((r) => r.filled);
+  const filled = strict
+    ? rollups.every((r) => r.filled)
+    : rollups.some((r) => r.filled);
 
   return {
     filled,

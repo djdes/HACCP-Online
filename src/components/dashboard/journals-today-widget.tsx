@@ -85,12 +85,12 @@ export async function JournalsTodayWidget({ organizationId }: Props) {
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {unfilled.length === 0 ? (
-          <p className="text-muted-foreground">Все активные журналы заполнены сегодня.</p>
+          <p className="text-muted-foreground">Во всех активных журналах уже есть записи за сегодня.</p>
         ) : (
           <>
             <div className="flex items-center gap-2 text-amber-700">
               <ClipboardX className="size-4" />
-              <span>Не заполнено сегодня: {unfilled.length}</span>
+              <span>Не начинали заполняться: {unfilled.length}</span>
             </div>
             <ul className="space-y-1">
               {unfilled.slice(0, 8).map((row) => (
