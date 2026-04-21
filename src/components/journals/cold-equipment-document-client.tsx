@@ -28,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VoiceNumberInput } from "@/components/ui/voice-number-input";
+import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 import {
   Select,
   SelectContent,
@@ -678,16 +679,35 @@ export function ColdEquipmentDocumentClient({
 
     nextData.temperatures[equipmentId] = rawValue === "" ? null : Number(rawValue);
 
-    const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
+    const submit = await submitWithOfflineFallback({
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        employeeId,
-        date: dateKey,
-        data: nextData,
-      }),
+      url: `/api/journal-documents/${documentId}/entries`,
+      body: { employeeId, date: dateKey, data: nextData },
+      label: `Температура · ${dateKey}`,
+      group: "cold_equipment_control",
     });
 
+    if (submit.status === "queued") {
+      toast.info(
+        "Нет сети — запись сохранена локально, отправлю как только появится интернет."
+      );
+      // Optimistic: обновляем UI как будто успешно сохранили.
+      setRows((currentRows) => {
+        const nextRow: EntryRow = {
+          id: `offline-${dateKey}`,
+          employeeId,
+          date: dateKey,
+          data: nextData,
+        };
+        const withoutCurrent = currentRows.filter((row) => row.date !== dateKey);
+        return [...withoutCurrent, nextRow].sort((left, right) =>
+          left.date.localeCompare(right.date)
+        );
+      });
+      return;
+    }
+
+    const response = submit.response;
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) {
       toast.error(result?.error || "Не удалось сохранить значение");

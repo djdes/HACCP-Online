@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/sheet";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
+import { OfflineIndicator } from "@/components/layout/offline-indicator";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
 // отдельной pill-кнопкой в шапке (см. разметку ниже), т.к. это самый
@@ -385,6 +386,7 @@ export function Header({
 
         {/* Right cluster: feedback + settings shortcut + logout + avatar */}
         <div className="flex items-center gap-2">
+          <OfflineIndicator />
           <NotificationsBell />
           <FeedbackDialog telegramBotUsername={telegramBotUsername} />
 
