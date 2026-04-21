@@ -54,5 +54,10 @@ export async function POST(request: Request) {
     console.error("sendVerificationEmail failed", err);
   });
 
-  return NextResponse.json({ ok: true });
+  // В dev (SMTP не настроен) возвращаем код прямо в ответе, чтобы
+  // UI мог показать его inline. Иначе разработчик застревает на шаге
+  // «введите код из письма», а письмо никогда не приходит.
+  const smtpHost = (process.env.SMTP_HOST ?? "").trim();
+  const isDev = !smtpHost || smtpHost === "localhost";
+  return NextResponse.json({ ok: true, ...(isDev ? { devCode: code } : {}) });
 }

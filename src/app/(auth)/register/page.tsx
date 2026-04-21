@@ -35,6 +35,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<Step>("details");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [form, setForm] = useState({
     organizationName: "",
     organizationType: "restaurant",
@@ -60,9 +61,14 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || "Не удалось отправить код");
+        throw new Error(data?.error || "Не удалось отправить код");
+      }
+      if (typeof data?.devCode === "string") {
+        setDevCode(data.devCode);
+      } else {
+        setDevCode(null);
       }
       setStep("verify");
     } catch (err) {
@@ -321,6 +327,19 @@ export default function RegisterPage() {
               }}
               className="mt-8 space-y-5"
             >
+              {devCode ? (
+                <div className="rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] p-4 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#116b2a]">
+                    Dev-режим · SMTP не настроен
+                  </p>
+                  <p className="mt-1 text-[22px] font-semibold tracking-[0.28em] text-[#0f5a22]">
+                    {devCode}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#136b2a]/80">
+                    Письмо не отправлено, код показан здесь. В проде — придёт на email.
+                  </p>
+                </div>
+              ) : null}
               <label htmlFor="code" className="block">
                 <span className="mb-2 block text-[13px] font-medium text-[#0b1024]">
                   Код подтверждения

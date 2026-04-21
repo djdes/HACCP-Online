@@ -41,7 +41,31 @@ function layout(title: string, body: string) {
 </html>`;
 }
 
+/**
+ * Пустой SMTP_HOST (или дефолтный "localhost" без реального relay) =
+ * dev-режим. В этом случае не ломаем регистрацию таймаутом на 127.0.0.1:25,
+ * а просто логируем тело в консоль. Так разработчик видит код/ссылку
+ * приглашения сразу в выводе dev-сервера.
+ */
+function isSmtpConfigured(): boolean {
+  const host = (process.env.SMTP_HOST ?? "").trim();
+  return host.length > 0 && host !== "localhost";
+}
+
 async function sendEmail(to: string, subject: string, html: string) {
+  if (!isSmtpConfigured()) {
+    const stripped = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    console.info(
+      `[email/dev] SMTP не настроен — письмо не отправлено на ${to}.`
+    );
+    console.info(`[email/dev] Subject: ${subject}`);
+    console.info(`[email/dev] Body:    ${stripped}`);
+    return;
+  }
   try {
     await transporter.sendMail({ from: FROM, to, subject, html });
   } catch (error) {
@@ -50,6 +74,11 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 export async function sendVerificationEmail(to: string, code: string) {
+  // Dev-mode explicit code line so it's grep'able in the server log
+  // separately from the long HTML body stripped above.
+  if (!isSmtpConfigured()) {
+    console.info(`[email/dev] Код подтверждения для ${to}: ${code}`);
+  }
   const subject = `Код подтверждения — HACCP-Online`;
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
