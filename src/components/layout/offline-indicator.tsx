@@ -14,12 +14,15 @@ export function OfflineIndicator() {
   const { online, pending, flushNow, busy } = useOfflineQueue();
 
   // Quiet state — ничего лишнего не показываем.
+  // Показываем только от lg+ (1024): на md (768–1023) шапка и так плотная,
+  // «В сети» будет overlap'ить pill «Сотрудники». Проблемные состояния
+  // (offline / pending queue) показываем и на md — их важнее увидеть.
   if (online && pending === 0) {
     return (
       <span
         aria-label="В сети"
         title="В сети, очередь пуста"
-        className="hidden items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 text-[11px] font-medium text-[#116b2a] md:inline-flex"
+        className="hidden items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 text-[11px] font-medium text-[#116b2a] lg:inline-flex"
       >
         <Cloud className="size-3" />
         В сети

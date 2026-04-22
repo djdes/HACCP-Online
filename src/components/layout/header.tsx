@@ -282,7 +282,7 @@ export function Header({
               href={STAFF_NAV_ITEM.href}
               title={STAFF_NAV_ITEM.label}
               className={cn(
-                "ml-1 flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
                 pathname === STAFF_NAV_ITEM.href ||
                   pathname.startsWith(STAFF_NAV_ITEM.href + "/")
                   ? "bg-primary/10 text-primary"
