@@ -12,7 +12,7 @@ import {
   aclActorFromSession,
   getAllowedJournalCodes,
 } from "@/lib/journal-acl";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getUserPermissions } from "@/lib/permissions-server";
 import { getServerSession } from "@/lib/server-session";
 
 export const dynamic = "force-dynamic";
@@ -31,14 +31,19 @@ export async function GET() {
       isRoot: session.user.isRoot === true,
     },
   });
-  const [allowedCodes, disabledCodes] = await Promise.all([
+  const [allowedCodes, disabledCodes, perms] = await Promise.all([
     getAllowedJournalCodes(actor),
     getDisabledJournalCodes(session.user.organizationId),
+    getUserPermissions(session.user.id),
   ]);
-  const fullAccess = hasFullWorkspaceAccess({
-    role: session.user.role,
-    isRoot: session.user.isRoot === true,
-  });
+
+  // Permission-based mode detection (mirrors start-home.ts logic).
+  const isManagerLike =
+    session.user.isRoot === true ||
+    perms.has("dashboard.view") ||
+    perms.has("staff.manage");
+  const canFillJournals =
+    session.user.isRoot === true || perms.has("journals.fill");
 
   const rawTemplates = await db.journalTemplate.findMany({
     where:
@@ -54,17 +59,27 @@ export async function GET() {
     orderBy: { name: "asc" },
   });
 
-  const templates = rawTemplates.filter((template) => !disabledCodes.has(template.code));
+  const templates = rawTemplates.filter(
+    (template) => !disabledCodes.has(template.code)
+  );
   const user = {
     name: session.user.name ?? "",
     organizationName: session.user.organizationName ?? "",
   };
 
-  if (fullAccess) {
-    await syncDailyJournalObligationsForOrganization(
-      session.user.organizationId,
-      requestNow
-    );
+  // Expose resolved permissions so the client can gate UI without
+  // re-implementing the resolve chain.
+  const permissionList = Array.from(perms);
+
+  if (isManagerLike) {
+    try {
+      await syncDailyJournalObligationsForOrganization(
+        session.user.organizationId,
+        requestNow
+      );
+    } catch (syncErr) {
+      console.error("[mini:home] org sync failed:", syncErr);
+    }
     const summary = await getManagerObligationSummary(
       session.user.organizationId,
       requestNow
@@ -73,6 +88,7 @@ export async function GET() {
     return NextResponse.json({
       user,
       mode: "manager",
+      permissions: permissionList,
       summary,
       all: templates.map((template) => ({
         code: template.code,
@@ -83,11 +99,31 @@ export async function GET() {
     });
   }
 
-  await syncDailyJournalObligationsForUser({
-    userId: session.user.id,
-    organizationId: session.user.organizationId,
-    now: requestNow,
-  });
+  if (!canFillJournals) {
+    // Read-only mode: no obligations, just viewable journals.
+    return NextResponse.json({
+      user,
+      mode: "readonly",
+      permissions: permissionList,
+      all: templates.map((template) => ({
+        code: template.code,
+        name: template.name,
+        description: template.description,
+        filled: false,
+      })),
+    });
+  }
+
+  try {
+    await syncDailyJournalObligationsForUser({
+      userId: session.user.id,
+      organizationId: session.user.organizationId,
+      now: requestNow,
+    });
+  } catch (syncErr) {
+    console.error("[mini:home] user sync failed:", syncErr);
+  }
+
   const now = await listOpenJournalObligationsForUser(
     session.user.id,
     requestNow
@@ -97,6 +133,7 @@ export async function GET() {
   return NextResponse.json({
     user,
     mode: "staff",
+    permissions: permissionList,
     now: now.map((row) => ({
       id: row.id,
       code: row.journalCode,

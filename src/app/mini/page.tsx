@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { MiniCard } from "./_components/mini-card";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
 
@@ -29,6 +28,7 @@ type HomeJournal = {
 type StaffHomeData = {
   mode: "staff";
   user: HomeUser;
+  permissions: string[];
   now: Array<{
     id: string;
     code: string;
@@ -42,6 +42,7 @@ type StaffHomeData = {
 type ManagerHomeData = {
   mode: "manager";
   user: HomeUser;
+  permissions: string[];
   summary: {
     total: number;
     pending: number;
@@ -51,7 +52,14 @@ type ManagerHomeData = {
   all: HomeJournal[];
 };
 
-type HomeData = StaffHomeData | ManagerHomeData;
+type ReadonlyHomeData = {
+  mode: "readonly";
+  user: HomeUser;
+  permissions: string[];
+  all: HomeJournal[];
+};
+
+type HomeData = StaffHomeData | ManagerHomeData | ReadonlyHomeData;
 
 export default function MiniHomePage() {
   const { data: session, status } = useSession();
@@ -168,12 +176,12 @@ export default function MiniHomePage() {
   }
 
   const displayName = session?.user?.name ?? home.user.name;
-  const fullAccess = hasFullWorkspaceAccess({
-    role: session?.user?.role,
-    isRoot: session?.user?.isRoot,
-  });
+  const perms = new Set(home.permissions);
+  const canManage =
+    perms.has("dashboard.view") || perms.has("staff.manage");
   const showStaffNow = home.mode === "staff" && home.now.length > 0;
   const showStaffDoneBanner = home.mode === "staff" && home.now.length === 0;
+  const isReadonly = home.mode === "readonly";
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-24">
@@ -187,6 +195,13 @@ export default function MiniHomePage() {
           </p>
         ) : null}
       </header>
+
+      {isReadonly ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-center text-[14px] text-amber-700">
+          У вас режим просмотра. Вы можете ознакомиться с данными, но не
+          заполнять журналы.
+        </section>
+      ) : null}
 
       {showStaffNow ? (
         <section className="space-y-2">
@@ -222,12 +237,38 @@ export default function MiniHomePage() {
           <p className="mt-0.5 text-[13px] text-slate-500">
             Сотрудников с открытыми задачами: {home.summary.employeesWithPending}
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {perms.has("staff.view") ? (
+              <Link
+                href="/mini/staff"
+                className="text-[13px] font-medium text-slate-900 underline underline-offset-2"
+              >
+                Сотрудники →
+              </Link>
+            ) : null}
+            {perms.has("equipment.view") ? (
+              <Link
+                href="/mini/equipment"
+                className="text-[13px] font-medium text-slate-900 underline underline-offset-2"
+              >
+                Оборудование →
+              </Link>
+            ) : null}
+            {perms.has("reports.view") ? (
+              <Link
+                href="/mini/reports"
+                className="text-[13px] font-medium text-slate-900 underline underline-offset-2"
+              >
+                Отчёты →
+              </Link>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
       <section className="space-y-2">
         <h2 className="px-1 text-[13px] font-semibold uppercase tracking-wider text-slate-500">
-          Все мои журналы
+          {isReadonly ? "Доступные журналы" : "Все мои журналы"}
         </h2>
         {home.all.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-[14px] text-slate-500">
@@ -255,15 +296,27 @@ export default function MiniHomePage() {
           href="/mini"
           className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-900"
         >
-          {fullAccess ? "Главная" : "Журналы"}
+          {canManage ? "Главная" : "Журналы"}
         </Link>
-        {fullAccess ? (
+        {canManage ? (
           <>
             <Link
-              href="/mini/shift"
+              href="/mini/staff"
               className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
             >
-              Смена
+              Сотрудники
+            </Link>
+            <Link
+              href="/mini/equipment"
+              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
+            >
+              Оборуд.
+            </Link>
+            <Link
+              href="/mini/reports"
+              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
+            >
+              Отчёты
             </Link>
             <Link
               href="/mini/me"
