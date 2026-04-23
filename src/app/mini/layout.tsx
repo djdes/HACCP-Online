@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
+import { MiniNav } from "./_components/mini-nav";
 
 /**
  * Mini App layout.
@@ -37,9 +38,10 @@ export default function MiniLayout({
         strategy="beforeInteractive"
       />
       <MiniSessionProvider>
-        <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 px-3 pb-6 pt-4 sm:px-4 sm:py-6">
+        <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 px-3 pb-24 pt-4 sm:px-4 sm:pt-6">
           {children}
         </main>
+        <MiniNav />
       </MiniSessionProvider>
     </>
   );

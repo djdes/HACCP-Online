@@ -291,42 +291,7 @@ export default function MiniHomePage() {
         )}
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md justify-around border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
-        <Link
-          href="/mini"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-900"
-        >
-          {canManage ? "Главная" : "Журналы"}
-        </Link>
-        {canManage ? (
-          <>
-            <Link
-              href="/mini/staff"
-              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-            >
-              Сотрудники
-            </Link>
-            <Link
-              href="/mini/equipment"
-              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-            >
-              Оборуд.
-            </Link>
-            <Link
-              href="/mini/reports"
-              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-            >
-              Отчёты
-            </Link>
-            <Link
-              href="/mini/me"
-              className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-            >
-              Профиль
-            </Link>
-          </>
-        ) : null}
-      </nav>
+
     </div>
   );
 }

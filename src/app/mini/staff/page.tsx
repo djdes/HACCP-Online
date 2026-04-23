@@ -237,26 +237,7 @@ export default function MiniStaffPage() {
         )}
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md justify-around border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
-        <Link
-          href="/mini"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-        >
-          Главная
-        </Link>
-        <Link
-          href="/mini/staff"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-900"
-        >
-          Сотрудники
-        </Link>
-        <Link
-          href="/mini/me"
-          className="flex flex-col items-center gap-0.5 text-[11px] font-medium text-slate-500"
-        >
-          Профиль
-        </Link>
-      </nav>
+
     </div>
   );
 }

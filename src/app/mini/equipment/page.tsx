@@ -77,20 +77,7 @@ export default function MiniEquipmentPage() {
         )}
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md justify-around border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
-        <Link href="/mini" className="text-[11px] font-medium text-slate-500">
-          Главная
-        </Link>
-        <Link href="/mini/staff" className="text-[11px] font-medium text-slate-500">
-          Сотрудники
-        </Link>
-        <Link href="/mini/equipment" className="text-[11px] font-medium text-slate-900">
-          Оборудование
-        </Link>
-        <Link href="/mini/me" className="text-[11px] font-medium text-slate-500">
-          Профиль
-        </Link>
-      </nav>
+
     </div>
   );
 }
