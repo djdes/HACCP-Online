@@ -5,6 +5,7 @@ import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getUserPermissions } from "@/lib/permissions-server";
 import { normalizePhone } from "@/lib/phone";
+import { getManagerScope, filterSubordinates } from "@/lib/manager-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET() {
   }
 
   const orgId = getActiveOrgId(session);
-  const [employees, positions] = await Promise.all([
+  const [employees, positions, scope] = await Promise.all([
     db.user.findMany({
       where: { organizationId: orgId, archivedAt: null },
       orderBy: { name: "asc" },
@@ -36,10 +37,17 @@ export async function GET() {
       orderBy: [{ categoryKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, categoryKey: true },
     }),
+    getManagerScope(session.user.id, orgId),
   ]);
 
+  const filteredEmployees = filterSubordinates(
+    employees,
+    scope,
+    session.user.id
+  );
+
   return NextResponse.json({
-    employees: employees.map((u) => ({
+    employees: filteredEmployees.map((u) => ({
       id: u.id,
       name: u.name,
       phone: u.phone,

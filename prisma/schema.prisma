@@ -41,6 +41,7 @@ model Organization {
   journalEntries       JournalEntry[]
   products             Product[]
   auditLogs            AuditLog[]
+  managerScopes        ManagerScope[]
   batches              Batch[]
   capaTickets          CapaTicket[]
   lossRecords          LossRecord[]
@@ -110,6 +111,7 @@ model User {
   workShifts            WorkShift[]
   entryAttachments      JournalEntryAttachment[]
   documentEntries       JournalDocumentEntry[]
+  managerScopes         ManagerScope[]        @relation("ManagerScopes")
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -480,6 +482,27 @@ model JournalEntryAttachment {
   uploadedBy     User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([entryId])
+}
+
+model ManagerScope {
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  managerId            String
+  manager              User         @relation("ManagerScopes", fields: [managerId], references: [id], onDelete: Cascade)
+  /// Visibility mode: "all" = sees everyone, "job_positions" = sees specific job positions, "specific_users" = sees specific users, "none" = sees no one
+  viewMode             String       @default("all")
+  /// Job position IDs visible when viewMode = "job_positions"
+  viewJobPositionIds   String[]
+  /// User IDs visible when viewMode = "specific_users"
+  viewUserIds          String[]
+  /// Journal template codes this manager can assign tasks for. Empty = all journals they have access to.
+  assignableJournalCodes String[]
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@unique([organizationId, managerId])
+  @@index([organizationId])
 }
 
 model AuditLog {

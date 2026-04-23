@@ -68,6 +68,7 @@ test("loadTelegramStartHome gives staff the next open obligation url and reuses 
         employeesWithPending: 0,
       }),
       getUserPermissions: async () => new Set(["journals.fill", "journals.view"]),
+      getManagerScope: async () => null,
     }
   );
 
@@ -128,6 +129,7 @@ test("loadTelegramStartHome gives managers a summary and reuses one request time
       },
       getUserPermissions: async () =>
         new Set(["dashboard.view", "staff.manage", "journals.fill"]),
+      getManagerScope: async () => null,
     }
   );
 
@@ -146,6 +148,65 @@ test("loadTelegramStartHome gives managers a summary and reuses one request time
     employeesWithPending: 2,
   });
   assert.equal(home.buttonUrl, "https://wesetup.ru/mini");
+});
+
+test("loadTelegramStartHome filters obligations by manager scope assignableJournalCodes", async () => {
+  const home = await loadTelegramStartHome(
+    {
+      chatId: "777",
+      miniAppBaseUrl: "https://wesetup.ru/mini",
+    },
+    {
+      findLinkedUserByChatId: async () => ({
+        id: "user_1",
+        name: "Ivan",
+        role: "cook",
+        isRoot: false,
+        organizationId: "org_1",
+        permissionsJson: null,
+        jobPosition: {
+          categoryKey: "staff",
+          permissionsJson: null,
+        },
+      }),
+      syncDailyJournalObligationsForUser: async () => [],
+      listOpenJournalObligationsForUser: async () => [
+        {
+          id: "obl_1",
+          journalCode: "incoming_control",
+          targetPath: "/mini/journals/incoming_control/new",
+          template: { name: "Incoming control", description: null },
+        },
+        {
+          id: "obl_2",
+          journalCode: "hygiene",
+          targetPath: "/mini/journals/hygiene/new",
+          template: { name: "Hygiene", description: null },
+        },
+      ],
+      syncDailyJournalObligationsForOrganization: async () => undefined,
+      getManagerObligationSummary: async () => ({
+        total: 0,
+        pending: 0,
+        done: 0,
+        employeesWithPending: 0,
+      }),
+      getUserPermissions: async () => new Set(["journals.fill", "journals.view"]),
+      getManagerScope: async () => ({
+        id: "scope_1",
+        managerId: "user_1",
+        viewMode: "all" as const,
+        viewJobPositionIds: [],
+        viewUserIds: [],
+        assignableJournalCodes: ["hygiene"],
+      }),
+    }
+  );
+
+  assert.equal(home.kind, "staff");
+  if (home.kind !== "staff") throw new Error("expected staff home");
+  assert.equal(home.nextAction?.journalCode, "hygiene");
+  assert.equal(home.buttonUrl, "https://wesetup.ru/mini/o/obl_2");
 });
 
 test("loadTelegramStartHome gives readonly mode for users without journals.fill", async () => {
@@ -177,6 +238,7 @@ test("loadTelegramStartHome gives readonly mode for users without journals.fill"
         employeesWithPending: 0,
       }),
       getUserPermissions: async () => new Set(["journals.view"]),
+      getManagerScope: async () => null,
     }
   );
 

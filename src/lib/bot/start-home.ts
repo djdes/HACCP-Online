@@ -8,6 +8,7 @@ import {
   type OpenJournalObligation,
 } from "@/lib/journal-obligations";
 import { getUserPermissions } from "@/lib/permissions-server";
+import { getManagerScope, canAssignJournal, type ManagerScope } from "@/lib/manager-scope";
 
 type LinkedTelegramUser = {
   id: string;
@@ -35,6 +36,7 @@ type StartHomeDeps = {
   syncDailyJournalObligationsForOrganization: typeof syncDailyJournalObligationsForOrganization;
   getManagerObligationSummary: typeof getManagerObligationSummary;
   getUserPermissions: typeof getUserPermissions;
+  getManagerScope: (managerId: string, organizationId: string) => Promise<ManagerScope | null>;
 };
 
 type StartHomeActor = {
@@ -97,6 +99,7 @@ function createDefaultDeps(): StartHomeDeps {
     syncDailyJournalObligationsForOrganization,
     getManagerObligationSummary,
     getUserPermissions,
+    getManagerScope,
   };
 }
 
@@ -219,9 +222,19 @@ export async function loadTelegramStartHome(
     );
   }
 
-  const nextAction =
-    (await deps.listOpenJournalObligationsForUser(user.id, requestNow))[0] ??
-    null;
+  const scope = await deps.getManagerScope(user.id, user.organizationId);
+
+  let obligations = await deps.listOpenJournalObligationsForUser(
+    user.id,
+    requestNow
+  );
+  if (scope) {
+    obligations = obligations.filter((o) =>
+      canAssignJournal(scope, o.journalCode)
+    );
+  }
+
+  const nextAction = obligations[0] ?? null;
 
   return {
     kind: "staff",

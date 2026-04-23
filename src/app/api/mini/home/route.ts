@@ -14,6 +14,7 @@ import {
 } from "@/lib/journal-acl";
 import { getUserPermissions } from "@/lib/permissions-server";
 import { getServerSession } from "@/lib/server-session";
+import { getManagerScope, getAssignableJournalCodes } from "@/lib/manager-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export async function GET() {
       isRoot: session.user.isRoot === true,
     },
   });
-  const [allowedCodes, disabledCodes, perms, areas] = await Promise.all([
+  const [allowedCodes, disabledCodes, perms, areas, scope] = await Promise.all([
     getAllowedJournalCodes(actor),
     getDisabledJournalCodes(session.user.organizationId),
     getUserPermissions(session.user.id),
@@ -39,7 +40,10 @@ export async function GET() {
       where: { organizationId: session.user.organizationId, lat: { not: null }, lng: { not: null } },
       select: { id: true, name: true, lat: true, lng: true },
     }),
+    getManagerScope(session.user.id, session.user.organizationId),
   ]);
+
+  const assignableCodes = getAssignableJournalCodes(scope, allowedCodes);
 
   // Permission-based mode detection (mirrors start-home.ts logic).
   const isManagerLike =
@@ -51,9 +55,9 @@ export async function GET() {
 
   const rawTemplates = await db.journalTemplate.findMany({
     where:
-      allowedCodes === null
+      assignableCodes === null
         ? { isActive: true }
-        : { isActive: true, code: { in: allowedCodes } },
+        : { isActive: true, code: { in: assignableCodes } },
     select: {
       id: true,
       code: true,

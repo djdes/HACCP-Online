@@ -18,6 +18,7 @@ import {
   CalendarRange,
   Users,
   Wrench,
+  Network,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -49,6 +50,14 @@ const settingsCards = [
     icon: Users,
     color: "#0ea5e9",
     bg: "#e8f7ff",
+  },
+  {
+    title: "Иерархия управления",
+    description: "Кто каких сотрудников видит и кому назначает",
+    href: "/settings/staff-hierarchy",
+    icon: Network,
+    color: "#f59e0b",
+    bg: "#fff8eb",
   },
   {
     title: "Набор журналов",
