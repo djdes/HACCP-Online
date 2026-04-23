@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
 import { MiniCard } from "./_components/mini-card";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
+import { QrScannerButton } from "./_components/qr-scanner";
+import { GeoReminder } from "./_components/geo-reminder";
 
 type LocalState =
   | { kind: "init" }
@@ -17,6 +19,8 @@ type HomeUser = {
   name: string;
   organizationName: string;
 };
+
+type AreaLoc = { id: string; name: string; lat: number; lng: number };
 
 type HomeJournal = {
   code: string;
@@ -29,6 +33,7 @@ type StaffHomeData = {
   mode: "staff";
   user: HomeUser;
   permissions: string[];
+  areas: AreaLoc[];
   now: Array<{
     id: string;
     code: string;
@@ -49,6 +54,7 @@ type ManagerHomeData = {
     done: number;
     employeesWithPending: number;
   };
+  areas: AreaLoc[];
   all: HomeJournal[];
 };
 
@@ -56,6 +62,7 @@ type ReadonlyHomeData = {
   mode: "readonly";
   user: HomeUser;
   permissions: string[];
+  areas: AreaLoc[];
   all: HomeJournal[];
 };
 
@@ -185,16 +192,21 @@ export default function MiniHomePage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-24">
-      <header className="pt-2">
-        <h1 className="text-[22px] font-semibold text-slate-900">
-          Привет, {displayName}!
-        </h1>
-        {home.user.organizationName ? (
-          <p className="mt-0.5 text-[13px] text-slate-500">
-            {home.user.organizationName}
-          </p>
-        ) : null}
+      <header className="flex items-start justify-between pt-2">
+        <div>
+          <h1 className="text-[22px] font-semibold text-slate-900">
+            Привет, {displayName}!
+          </h1>
+          {home.user.organizationName ? (
+            <p className="mt-0.5 text-[13px] text-slate-500">
+              {home.user.organizationName}
+            </p>
+          ) : null}
+        </div>
+        <QrScannerButton />
       </header>
+
+      {home.areas && home.areas.length > 0 ? <GeoReminder areas={home.areas} /> : null}
 
       {isReadonly ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-center text-[14px] text-amber-700">

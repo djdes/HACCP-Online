@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
+import { OfflineIndicator } from "./_components/offline-indicator";
 
 /**
  * Mini App layout.

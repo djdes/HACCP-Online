@@ -31,10 +31,14 @@ export async function GET() {
       isRoot: session.user.isRoot === true,
     },
   });
-  const [allowedCodes, disabledCodes, perms] = await Promise.all([
+  const [allowedCodes, disabledCodes, perms, areas] = await Promise.all([
     getAllowedJournalCodes(actor),
     getDisabledJournalCodes(session.user.organizationId),
     getUserPermissions(session.user.id),
+    db.area.findMany({
+      where: { organizationId: session.user.organizationId, lat: { not: null }, lng: { not: null } },
+      select: { id: true, name: true, lat: true, lng: true },
+    }),
   ]);
 
   // Permission-based mode detection (mirrors start-home.ts logic).
@@ -90,6 +94,7 @@ export async function GET() {
       mode: "manager",
       permissions: permissionList,
       summary,
+      areas,
       all: templates.map((template) => ({
         code: template.code,
         name: template.name,
@@ -105,6 +110,7 @@ export async function GET() {
       user,
       mode: "readonly",
       permissions: permissionList,
+      areas,
       all: templates.map((template) => ({
         code: template.code,
         name: template.name,
@@ -134,6 +140,7 @@ export async function GET() {
     user,
     mode: "staff",
     permissions: permissionList,
+    areas,
     now: now.map((row) => ({
       id: row.id,
       code: row.journalCode,

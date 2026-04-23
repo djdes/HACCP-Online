@@ -37,6 +37,7 @@ export default function MiniStaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [notifyStatus, setNotifyStatus] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -223,15 +224,58 @@ export default function MiniStaffPage() {
                   {emp.phone ? ` · ${emp.phone}` : ""}
                 </p>
               </div>
-              {emp.telegramLinked ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                  TG
-                </span>
-              ) : (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                  Нет TG
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {emp.telegramLinked ? (
+                  <>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                      TG
+                    </span>
+                    <button
+                      onClick={async () => {
+                        setNotifyStatus((s) => ({ ...s, [emp.id]: "sending" }));
+                        try {
+                          const res = await fetch("/api/mini/notify", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              userId: emp.id,
+                              message: `Напоминание от руководителя: проверьте заполнение журналов.`,
+                              actionLabel: "Открыть Mini App",
+                              actionUrl: `${window.location.origin}/mini`,
+                            }),
+                          });
+                          if (res.ok) {
+                            setNotifyStatus((s) => ({ ...s, [emp.id]: "sent" }));
+                          } else {
+                            setNotifyStatus((s) => ({ ...s, [emp.id]: "error" }));
+                          }
+                        } catch {
+                          setNotifyStatus((s) => ({ ...s, [emp.id]: "error" }));
+                        }
+                        setTimeout(() => {
+                          setNotifyStatus((s) => {
+                            const next = { ...s };
+                            delete next[emp.id];
+                            return next;
+                          });
+                        }, 3000);
+                      }}
+                      disabled={notifyStatus[emp.id] === "sending"}
+                      className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 active:bg-slate-200 disabled:opacity-50"
+                    >
+                      {notifyStatus[emp.id] === "sending"
+                        ? "…"
+                        : notifyStatus[emp.id] === "sent"
+                        ? "✓"
+                        : "🔔"}
+                    </button>
+                  </>
+                ) : (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                    Нет TG
+                  </span>
+                )}
+              </div>
             </div>
           ))
         )}

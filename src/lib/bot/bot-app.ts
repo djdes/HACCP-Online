@@ -2,6 +2,7 @@ import { Bot, Composer, type Context } from "grammy";
 import { Agent, fetch as undiciFetch, setGlobalDispatcher } from "undici";
 import { registerStartHandler } from "./handlers/start";
 import { registerStopHandler } from "./handlers/stop";
+import { registerInlineQueryHandler } from "./handlers/inline";
 import { TELEGRAM_COMMANDS } from "./start-response";
 
 /**
@@ -77,6 +78,7 @@ export function getInboundBot(): Bot | null {
   const composer = new Composer<Context>();
   registerStartHandler(composer);
   registerStopHandler(composer);
+  registerInlineQueryHandler(composer);
   cachedBot.use(composer);
   return cachedBot;
 }

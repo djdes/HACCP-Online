@@ -22,6 +22,9 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: "/mini/staff", label: "Сотрудники", requires: ["staff.view"] },
   { href: "/mini/equipment", label: "Оборуд.", requires: ["equipment.view"] },
   { href: "/mini/reports", label: "Отчёты", requires: ["reports.view"] },
+  { href: "/mini/audit", label: "Аудит", requires: ["dashboard.view"] },
+  { href: "/mini/iot", label: "IoT", requires: ["equipment.view"] },
+  { href: "/mini/shift-handover", label: "Смены" },
   { href: "/mini/me", label: "Профиль" },
 ];
 

@@ -16,6 +16,18 @@ export type TelegramWebApp = {
   colorScheme?: "light" | "dark";
   themeParams?: Record<string, string>;
   close?: () => void;
+  showScanQrPopup(params: { text?: string }, callback: (text: string) => void | true): void;
+  closeScanQrPopup(): void;
+  showPopup(params: {
+    title?: string;
+    message: string;
+    buttons?: Array<{ id?: string; type?: "default" | "ok" | "close" | "cancel" | "destructive"; text: string }>;
+  }, callback?: (buttonId: string) => void): void;
+  showConfirm(message: string, callback: (confirmed: boolean) => void): void;
+  HapticFeedback?: {
+    impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
+    notificationOccurred(type: "error" | "success" | "warning"): void;
+  };
 };
 
 declare global {

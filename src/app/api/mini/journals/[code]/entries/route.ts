@@ -96,6 +96,10 @@ export async function GET(
       status: true,
       data: true,
       filledBy: { select: { name: true } },
+      attachments: {
+        select: { url: true, filename: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 

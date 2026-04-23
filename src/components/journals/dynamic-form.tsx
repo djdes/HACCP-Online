@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhotoCapture, type OcrResult } from "./photo-capture";
+import { VoiceInput } from "./voice-input";
 
 type FieldOption = { value: string; label: string };
 type ShowIfCondition = { field: string; equals: unknown };
@@ -385,10 +386,10 @@ export function DynamicForm({
               </div>
 
               {field.type === "text" && (
-                <Textarea
+                <VoiceInput
                   id={field.key}
                   value={(formData[field.key] as string) ?? ""}
-                  onChange={(e) => updateField(field.key, e.target.value)}
+                  onChange={(v) => updateField(field.key, v)}
                   required={field.required}
                 />
               )}

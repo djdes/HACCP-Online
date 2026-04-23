@@ -108,6 +108,8 @@ model User {
   notifications         Notification[]
   journalObligations    JournalObligation[]
   workShifts            WorkShift[]
+  entryAttachments      JournalEntryAttachment[]
+  documentEntries       JournalDocumentEntry[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -213,6 +215,9 @@ model WorkShift {
   jobPosition    JobPosition? @relation(fields: [jobPositionId], references: [id], onDelete: SetNull)
   /// scheduled | off | vacation | sick
   status         String       @default("scheduled")
+  handoverNotes  String?
+  handoverToId   String?
+  handoverAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -281,6 +286,8 @@ model Area {
   id             String         @id @default(cuid())
   name           String
   description    String?
+  lat            Float?
+  lng            Float?
   organizationId String
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   equipment      Equipment[]
@@ -457,6 +464,22 @@ model JournalEntry {
 
   @@index([organizationId, templateId, createdAt])
   @@index([filledById])
+  attachments    JournalEntryAttachment[]
+}
+
+model JournalEntryAttachment {
+  id             String       @id @default(cuid())
+  entryId        String
+  entry          JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  url            String
+  filename       String
+  mimeType       String       @default("image/jpeg")
+  sizeBytes      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  uploadedById   String?
+  uploadedBy     User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([entryId])
 }
 
 model AuditLog {
@@ -675,6 +698,7 @@ model JournalDocumentEntry {
   documentId String
   document   JournalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   employeeId String
+  employee   User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date       DateTime // the specific day (date-only, truncated to midnight)
   data       Json // template-specific: { healthStatus: "healthy"|"day_off"|..., temperatureAbove37: false }
   createdAt  DateTime        @default(now())

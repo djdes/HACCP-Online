@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
+import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
 
 type EntryItem = {
   id: string;
@@ -10,6 +11,7 @@ type EntryItem = {
   status: string;
   data: Record<string, unknown>;
   filledBy?: { name: string | null } | null;
+  attachments?: { url: string; filename: string }[];
 };
 
 type DocItem = {
@@ -35,6 +37,8 @@ export default function MiniJournalPage({
   const { code } = use(params);
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let aborted = false;
@@ -94,13 +98,48 @@ export default function MiniJournalPage({
         ) : null}
       </header>
 
+      {copyMsg ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
+          {copyMsg}
+        </div>
+      ) : null}
+
       {payload.isDocument ? (
         <DocumentJournalBody
           code={code}
           documents={payload.documents ?? []}
         />
       ) : (
-        <FieldJournalBody code={code} entries={payload.entries} />
+        <FieldJournalBody
+          code={code}
+          entries={payload.entries}
+          copying={copying}
+          onCopyYesterday={async () => {
+            setCopying(true);
+            setCopyMsg(null);
+            try {
+              const res = await fetch(
+                `/api/mini/journals/${code}/bulk-copy-yesterday`,
+                { method: "POST" }
+              );
+              const data = await res.json().catch(() => ({ error: "" }));
+              if (res.ok) {
+                setCopyMsg(`Скопировано ${data.copied} запис(и/ей) из вчерашнего дня`);
+                // Refresh entries
+                const resp = await fetch(`/api/mini/journals/${code}/entries`, {
+                  cache: "no-store",
+                });
+                if (resp.ok) setPayload(await resp.json());
+              } else {
+                setCopyMsg(data.error || "Не удалось скопировать");
+              }
+            } catch {
+              setCopyMsg("Ошибка сети");
+            } finally {
+              setCopying(false);
+            }
+          }}
+        />
       )}
     </div>
   );
@@ -121,12 +160,26 @@ function BackLink() {
 function FieldJournalBody({
   code,
   entries,
+  copying,
+  onCopyYesterday,
 }: {
   code: string;
   entries: EntryItem[];
+  copying?: boolean;
+  onCopyYesterday?: () => void;
 }) {
   return (
     <>
+      {onCopyYesterday ? (
+        <button
+          onClick={onCopyYesterday}
+          disabled={copying}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-medium text-slate-700 shadow-sm active:bg-slate-50 disabled:opacity-50"
+        >
+          {copying ? "Копируем…" : "📋 Заполнить как вчера"}
+        </button>
+      ) : null}
+
       <section className="space-y-2">
         <h2 className="px-1 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
           Последние записи
@@ -178,9 +231,9 @@ function DocumentJournalBody({
           documents.map((d) => {
             const dateRange = formatDateRange(d.dateFrom, d.dateTo);
             return (
-              <a
+              <Link
                 key={d.id}
-                href={`/journals/${code}/documents/${d.id}`}
+                href={`/mini/documents/${d.id}`}
                 className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 active:scale-[0.98] sm:items-center"
               >
                 <div className="min-w-0 flex-1">
@@ -193,7 +246,7 @@ function DocumentJournalBody({
                   </div>
                 </div>
                 <ExternalLink className="mt-0.5 size-4 shrink-0 text-slate-400 sm:mt-0" />
-              </a>
+              </Link>
             );
           })
         )}
@@ -210,6 +263,14 @@ function EntryRow({ entry }: { entry: EntryItem }) {
     minute: "2-digit",
   });
   const preview = entryPreview(entry.data);
+  const [photos, setPhotos] = useState<{ url: string; filename: string }[]>(
+    entry.attachments ?? []
+  );
+
+  const handleUploaded = (photo: PhotoFile) => {
+    setPhotos((prev) => [...prev, { url: photo.url, filename: photo.filename }]);
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -223,6 +284,29 @@ function EntryRow({ entry }: { entry: EntryItem }) {
           {preview}
         </div>
       ) : null}
+      {photos.length > 0 ? (
+        <div className="mt-2 flex gap-2 overflow-x-auto">
+          {photos.map((p, i) => (
+            <a
+              key={i}
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0"
+            >
+              <img
+                src={p.url}
+                alt={p.filename}
+                className="h-16 w-16 rounded-lg object-cover"
+                loading="lazy"
+              />
+            </a>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-2">
+        <PhotoUploader entryId={entry.id} onUploaded={handleUploaded} />
+      </div>
     </div>
   );
 }
