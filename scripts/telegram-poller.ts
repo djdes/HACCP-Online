@@ -1,17 +1,19 @@
 /**
- * Telegram long-polling daemon.
+ * ⚠️  DEPRECATED — Telegram long-polling daemon.
  *
- * Runs as a separate PM2 process (`haccp-telegram-poller`). Handles:
- *   - /start <token>: link Telegram chat to a WeSetup user
- *   - /stop: unlink
- *   - /menu, /journals: interactive journal menu
- *   - Inline-keyboard navigation over the journal catalogue
- *   - Text/number/date/select/boolean wizard for new entries in
- *     field-based journals; document-based journals deep-link to the web
+ * This file is kept for reference but is no longer the active bot entry
+ * point. The webhook handler in `src/app/api/telegram/webhook/route.ts`
+ * + `src/lib/bot/bot-app.ts` is the canonical path.
  *
- * Prisma runs in-process so entries are persisted the same way the web
- * handler does. ACL mirrors src/lib/journal-acl.ts (management + root
- * bypass; otherwise UserJournalAccess.canWrite).
+ * To disable this poller in production, set:
+ *   TELEGRAM_POLLER_DEPRECATED=1
+ * and stop the PM2 process:
+ *   pm2 stop haccp-telegram-poller
+ *
+ * Original description (for archival):
+ *   Runs as a separate PM2 process (`haccp-telegram-poller`). Handles
+ *   /start, /stop, /menu, /journals, inline keyboards, and a text wizard.
+ *   Prisma runs in-process. ACL mirrors src/lib/journal-acl.ts.
  */
 
 import "dotenv/config";
@@ -22,6 +24,17 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import crypto from "node:crypto";
+
+if (process.env.TELEGRAM_POLLER_DEPRECATED === "1") {
+  console.warn(
+    "[DEPRECATED] telegram-poller.ts is disabled. Use the webhook handler (src/app/api/telegram/webhook/route.ts) instead."
+  );
+  process.exit(0);
+}
+
+console.warn(
+  "[DEPRECATED] telegram-poller.ts is running. This is a legacy path. Migrate to the webhook handler and set TELEGRAM_POLLER_DEPRECATED=1 to disable."
+);
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const FORCE_IP = process.env.TELEGRAM_FORCE_IP?.trim();

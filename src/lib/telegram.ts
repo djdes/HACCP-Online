@@ -125,6 +125,54 @@ function extractRetryAfterSeconds(error: unknown): number | null {
   return Math.min(ra, RETRY_HARD_CAP_SECONDS);
 }
 
+/**
+ * Execute a Telegram API send with retry logic and log update.
+ * DRY helper used by sendTelegramMessage, notifyEmployee, etc.
+ */
+async function executeTelegramSend(
+  logId: string,
+  sendFn: () => Promise<unknown>,
+  errorLabel: string
+): Promise<void> {
+  const { db } = await import("./db");
+  let attempt = 0;
+  let lastError: unknown = null;
+
+  while (attempt < MAX_RETRIES) {
+    attempt += 1;
+    try {
+      await sendFn();
+      await db.telegramLog.update({
+        where: { id: logId },
+        data: { status: "sent", attempts: attempt, sentAt: new Date() },
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      const retryAfter = extractRetryAfterSeconds(error);
+      if (retryAfter === null || attempt >= MAX_RETRIES) break;
+      await sleep(retryAfter * 1000);
+    }
+  }
+
+  const rateLimited = extractRetryAfterSeconds(lastError) !== null;
+  const errorText =
+    lastError instanceof Error
+      ? lastError.message
+      : typeof lastError === "string"
+        ? lastError
+        : JSON.stringify(lastError);
+  await db.telegramLog.update({
+    where: { id: logId },
+    data: {
+      status: rateLimited ? "rate_limited" : "failed",
+      error: errorText?.slice(0, 500) ?? "unknown",
+      attempts: attempt,
+    },
+  });
+  console.error(`${errorLabel}:`, lastError);
+}
+
 type TelegramSendOptions = {
   userId?: string | null;
   delivery?: TelegramDeliveryMetadata | null;
@@ -205,48 +253,11 @@ export async function sendTelegramMessage(
     return;
   }
 
-  let attempt = 0;
-  let lastError: unknown = null;
-
-  while (attempt < MAX_RETRIES) {
-    attempt += 1;
-    try {
-      await bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
-      await db.telegramLog.update({
-        where: { id: log.id },
-        data: {
-          status: "sent",
-          attempts: attempt,
-          sentAt: new Date(),
-        },
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const retryAfter = extractRetryAfterSeconds(error);
-      if (retryAfter === null || attempt >= MAX_RETRIES) {
-        break;
-      }
-      await sleep(retryAfter * 1000);
-    }
-  }
-
-  const rateLimited = extractRetryAfterSeconds(lastError) !== null;
-  const errorText =
-    lastError instanceof Error
-      ? lastError.message
-      : typeof lastError === "string"
-        ? lastError
-        : JSON.stringify(lastError);
-  await db.telegramLog.update({
-    where: { id: log.id },
-    data: {
-      status: rateLimited ? "rate_limited" : "failed",
-      error: errorText?.slice(0, 500) ?? "unknown",
-      attempts: attempt,
-    },
-  });
-  console.error("Telegram send error:", lastError);
+  await executeTelegramSend(
+    log.id,
+    () => bot.api.sendMessage(chatId, text, { parse_mode: "HTML" }),
+    "Telegram send error"
+  );
 }
 
 export type NotificationType = "temperature" | "deviations" | "compliance" | "expiry";
@@ -320,45 +331,15 @@ export async function notifyEmployee(
       }
     : undefined;
 
-  let attempt = 0;
-  let lastError: unknown = null;
-
-  while (attempt < MAX_RETRIES) {
-    attempt += 1;
-    try {
-      await bot.api.sendMessage(user.telegramChatId, text, {
+  await executeTelegramSend(
+    log.id,
+    () =>
+      bot.api.sendMessage(user.telegramChatId!, text, {
         parse_mode: "HTML",
         reply_markup: replyMarkup,
-      });
-      await db.telegramLog.update({
-        where: { id: log.id },
-        data: { status: "sent", attempts: attempt, sentAt: new Date() },
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const retryAfter = extractRetryAfterSeconds(error);
-      if (retryAfter === null || attempt >= MAX_RETRIES) break;
-      await sleep(retryAfter * 1000);
-    }
-  }
-
-  const rateLimited = extractRetryAfterSeconds(lastError) !== null;
-  const errorText =
-    lastError instanceof Error
-      ? lastError.message
-      : typeof lastError === "string"
-        ? lastError
-        : JSON.stringify(lastError);
-  await db.telegramLog.update({
-    where: { id: log.id },
-    data: {
-      status: rateLimited ? "rate_limited" : "failed",
-      error: errorText?.slice(0, 500) ?? "unknown",
-      attempts: attempt,
-    },
-  });
-  console.error("Telegram employee notification error:", lastError);
+      }),
+    "Telegram employee notification error"
+  );
 }
 
 /**
@@ -425,45 +406,15 @@ export async function sendTelegramInviteLinkMessage(args: {
     ],
   };
 
-  let attempt = 0;
-  let lastError: unknown = null;
-
-  while (attempt < MAX_RETRIES) {
-    attempt += 1;
-    try {
-      await bot.api.sendMessage(args.chatId, text, {
+  await executeTelegramSend(
+    log.id,
+    () =>
+      bot.api.sendMessage(args.chatId, text, {
         parse_mode: "HTML",
         reply_markup: replyMarkup,
-      });
-      await db.telegramLog.update({
-        where: { id: log.id },
-        data: { status: "sent", attempts: attempt, sentAt: new Date() },
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const retryAfter = extractRetryAfterSeconds(error);
-      if (retryAfter === null || attempt >= MAX_RETRIES) break;
-      await sleep(retryAfter * 1000);
-    }
-  }
-
-  const rateLimited = extractRetryAfterSeconds(lastError) !== null;
-  const errorText =
-    lastError instanceof Error
-      ? lastError.message
-      : typeof lastError === "string"
-        ? lastError
-        : JSON.stringify(lastError);
-  await db.telegramLog.update({
-    where: { id: log.id },
-    data: {
-      status: rateLimited ? "rate_limited" : "failed",
-      error: errorText?.slice(0, 500) ?? "unknown",
-      attempts: attempt,
-    },
-  });
-  console.error("Telegram invite link message error:", lastError);
+      }),
+    "Telegram invite link message error"
+  );
 }
 
 // Send notification to all owners/technologists of an organization

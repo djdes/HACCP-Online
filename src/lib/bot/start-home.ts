@@ -7,7 +7,7 @@ import {
   syncDailyJournalObligationsForUser,
   type OpenJournalObligation,
 } from "@/lib/journal-obligations";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getUserPermissions } from "@/lib/permissions-server";
 
 type LinkedTelegramUser = {
   id: string;
@@ -15,6 +15,11 @@ type LinkedTelegramUser = {
   role: string;
   isRoot: boolean;
   organizationId: string;
+  permissionsJson: unknown;
+  jobPosition: {
+    categoryKey: string | null;
+    permissionsJson: unknown;
+  } | null;
 };
 
 type ManagerSummary = Awaited<
@@ -29,6 +34,7 @@ type StartHomeDeps = {
   listOpenJournalObligationsForUser: typeof listOpenJournalObligationsForUser;
   syncDailyJournalObligationsForOrganization: typeof syncDailyJournalObligationsForOrganization;
   getManagerObligationSummary: typeof getManagerObligationSummary;
+  getUserPermissions: typeof getUserPermissions;
 };
 
 type StartHomeActor = {
@@ -44,15 +50,20 @@ type StartHomeStaffAction = Pick<OpenJournalObligation, "journalCode"> & {
 export type TelegramStartHome =
   | { kind: "unlinked" }
   | {
+      kind: "manager";
+      actor: StartHomeActor;
+      summary: ManagerSummary;
+      buttonUrl: string | null;
+    }
+  | {
       kind: "staff";
       actor: StartHomeActor;
       nextAction: StartHomeStaffAction | null;
       buttonUrl: string | null;
     }
   | {
-      kind: "manager";
+      kind: "readonly";
       actor: StartHomeActor;
-      summary: ManagerSummary;
       buttonUrl: string | null;
     };
 
@@ -71,6 +82,13 @@ function createDefaultDeps(): StartHomeDeps {
           role: true,
           isRoot: true,
           organizationId: true,
+          permissionsJson: true,
+          jobPosition: {
+            select: {
+              categoryKey: true,
+              permissionsJson: true,
+            },
+          },
         },
       });
     },
@@ -78,6 +96,7 @@ function createDefaultDeps(): StartHomeDeps {
     listOpenJournalObligationsForUser,
     syncDailyJournalObligationsForOrganization,
     getManagerObligationSummary,
+    getUserPermissions,
   };
 }
 
@@ -111,6 +130,31 @@ function resolveStaffButtonUrl(
   return buildMiniObligationEntryUrl(miniAppBaseUrl, nextAction.id);
 }
 
+/**
+ * Determine whether a user should see the manager-style home screen.
+ * Uses the full permission resolve chain (user → jobPosition → category defaults).
+ */
+async function isManagerLike(
+  deps: StartHomeDeps,
+  user: LinkedTelegramUser
+): Promise<boolean> {
+  if (user.isRoot === true) return true;
+  const perms = await deps.getUserPermissions(user.id);
+  return perms.has("dashboard.view") || perms.has("staff.manage");
+}
+
+/**
+ * Determine whether a user can fill journals (has active obligations).
+ */
+async function canFillJournals(
+  deps: StartHomeDeps,
+  user: LinkedTelegramUser
+): Promise<boolean> {
+  if (user.isRoot === true) return true;
+  const perms = await deps.getUserPermissions(user.id);
+  return perms.has("journals.fill");
+}
+
 export async function loadTelegramStartHome(
   args: { chatId: string; miniAppBaseUrl: string | null },
   overrides?: Partial<StartHomeDeps>
@@ -123,12 +167,23 @@ export async function loadTelegramStartHome(
 
   const actor = toActor(user);
   const requestNow = new Date();
+  const managerLike = await isManagerLike(deps, user);
 
-  if (hasFullWorkspaceAccess(actor)) {
-    await deps.syncDailyJournalObligationsForOrganization(
-      user.organizationId,
-      requestNow
-    );
+  if (managerLike) {
+    // Sync obligations for the whole org, but don't crash the start reply
+    // if sync fails for one user.
+    try {
+      await deps.syncDailyJournalObligationsForOrganization(
+        user.organizationId,
+        requestNow
+      );
+    } catch (syncErr) {
+      // Degraded mode: still show the home screen with whatever data we have.
+      console.error(
+        "[bot:start-home] syncDailyJournalObligationsForOrganization failed:",
+        syncErr
+      );
+    }
 
     return {
       kind: "manager",
@@ -141,11 +196,29 @@ export async function loadTelegramStartHome(
     };
   }
 
-  await deps.syncDailyJournalObligationsForUser({
-    userId: user.id,
-    organizationId: user.organizationId,
-    now: requestNow,
-  });
+  const canFill = await canFillJournals(deps, user);
+  if (!canFill) {
+    // Read-only user (e.g. auditor, guest) — no obligations, just open the app.
+    return {
+      kind: "readonly",
+      actor,
+      buttonUrl: args.miniAppBaseUrl,
+    };
+  }
+
+  try {
+    await deps.syncDailyJournalObligationsForUser({
+      userId: user.id,
+      organizationId: user.organizationId,
+      now: requestNow,
+    });
+  } catch (syncErr) {
+    console.error(
+      "[bot:start-home] syncDailyJournalObligationsForUser failed:",
+      syncErr
+    );
+  }
+
   const nextAction =
     (await deps.listOpenJournalObligationsForUser(user.id, requestNow))[0] ??
     null;

@@ -19,12 +19,22 @@ export type TelegramLinkedStartState =
       kind: "manager";
       pendingCount: number;
       employeesWithPending: number;
+    }
+  | {
+      name: string;
+      role: string;
+      isRoot: boolean;
+      kind: "readonly";
     };
 
 export const TELEGRAM_COMMANDS = [
   {
     command: "start",
     description: "Открыть Wesetup",
+  },
+  {
+    command: "stop",
+    description: "Отвязать Telegram",
   },
 ] as const;
 
@@ -46,6 +56,14 @@ export function buildTelegramLinkedStartReply(
         `Сотрудников с открытыми задачами: ${state.employeesWithPending}\n\n` +
         `Откройте Wesetup кнопкой ниже.`,
       buttonLabel: "Открыть кабинет",
+      buttonUrl,
+    };
+  }
+
+  if (state.kind === "readonly") {
+    return {
+      text: `Здравствуйте, ${state.name}.\n\nУ вас режим просмотра. Вы можете ознакомиться с данными в приложении.`,
+      buttonLabel: "Открыть приложение",
       buttonUrl,
     };
   }

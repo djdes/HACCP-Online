@@ -33,6 +33,11 @@ test("loadTelegramStartHome gives staff the next open obligation url and reuses 
         role: "cook",
         isRoot: false,
         organizationId: "org_1",
+        permissionsJson: null,
+        jobPosition: {
+          categoryKey: "staff",
+          permissionsJson: null,
+        },
       }),
       syncDailyJournalObligationsForUser: async (args) => {
         if (!args.now) {
@@ -62,6 +67,7 @@ test("loadTelegramStartHome gives staff the next open obligation url and reuses 
         done: 0,
         employeesWithPending: 0,
       }),
+      getUserPermissions: async () => new Set(["journals.fill", "journals.view"]),
     }
   );
 
@@ -94,6 +100,11 @@ test("loadTelegramStartHome gives managers a summary and reuses one request time
         role: "manager",
         isRoot: false,
         organizationId: "org_1",
+        permissionsJson: null,
+        jobPosition: {
+          categoryKey: "management",
+          permissionsJson: null,
+        },
       }),
       syncDailyJournalObligationsForUser: async () => [],
       listOpenJournalObligationsForUser: async () => [],
@@ -115,6 +126,8 @@ test("loadTelegramStartHome gives managers a summary and reuses one request time
           employeesWithPending: 2,
         };
       },
+      getUserPermissions: async () =>
+        new Set(["dashboard.view", "staff.manage", "journals.fill"]),
     }
   );
 
@@ -132,5 +145,44 @@ test("loadTelegramStartHome gives managers a summary and reuses one request time
     done: 6,
     employeesWithPending: 2,
   });
+  assert.equal(home.buttonUrl, "https://wesetup.ru/mini");
+});
+
+test("loadTelegramStartHome gives readonly mode for users without journals.fill", async () => {
+  const home = await loadTelegramStartHome(
+    {
+      chatId: "999",
+      miniAppBaseUrl: "https://wesetup.ru/mini",
+    },
+    {
+      findLinkedUserByChatId: async () => ({
+        id: "user_3",
+        name: "Auditor",
+        role: "cook",
+        isRoot: false,
+        organizationId: "org_1",
+        permissionsJson: ["journals.view"],
+        jobPosition: {
+          categoryKey: "staff",
+          permissionsJson: null,
+        },
+      }),
+      syncDailyJournalObligationsForUser: async () => [],
+      listOpenJournalObligationsForUser: async () => [],
+      syncDailyJournalObligationsForOrganization: async () => undefined,
+      getManagerObligationSummary: async () => ({
+        total: 0,
+        pending: 0,
+        done: 0,
+        employeesWithPending: 0,
+      }),
+      getUserPermissions: async () => new Set(["journals.view"]),
+    }
+  );
+
+  assert.equal(home.kind, "readonly");
+  if (home.kind !== "readonly") {
+    throw new Error("expected readonly home");
+  }
   assert.equal(home.buttonUrl, "https://wesetup.ru/mini");
 });

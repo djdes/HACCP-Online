@@ -75,6 +75,20 @@ async function replyWithLoadedStartHome(
     return;
   }
 
+  if (home.kind === "readonly") {
+    await replyWithLinkedStart(
+      ctx,
+      {
+        name: home.actor.name,
+        role: home.actor.role,
+        isRoot: home.actor.isRoot,
+        kind: "readonly",
+      },
+      home.buttonUrl
+    );
+    return;
+  }
+
   await replyWithLinkedStart(
     ctx,
     {
