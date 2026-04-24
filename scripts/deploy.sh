@@ -95,10 +95,11 @@ $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/n
 echo "==> Running prisma db push + seeds"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; [ -f .env ] && (set -a && . ./.env && set +a); npx prisma db push 2>&1 | tail -5 && npx tsx prisma/seed.ts 2>&1 | tail -5"
 
-echo "==> Restarting PM2"
-# Перед restart — удаляем старый процесс (мог быть запущен с `npm start`
-# и слушать :3000 вместо :3002, из-за чего new start падает EADDRINUSE).
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; (npx pm2 delete haccp-online 2>/dev/null || true) && npx pm2 start 'npx next start -p 3002' --name haccp-online --cwd \"\$(pwd)\" --update-env 2>&1 | tail -3 && (npx pm2 delete haccp-telegram-poller 2>/dev/null || true) && npx pm2 save --force 2>&1 | tail -2"
+echo "==> Restarting PM2 (web + telegram poller)"
+# Перед restart — удаляем старые процессы (web мог быть запущен с
+# `npm start` и слушать :3000 вместо :3002 → EADDRINUSE; poller мог
+# держать старую версию bot-кода).
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; (npx pm2 delete haccp-online 2>/dev/null || true) && npx pm2 start 'npx next start -p 3002' --name haccp-online --cwd \"\$(pwd)\" --update-env 2>&1 | tail -3 && (npx pm2 delete haccp-telegram-poller 2>/dev/null || true) && npx pm2 start 'npx tsx scripts/telegram-poller.ts' --name haccp-telegram-poller --cwd \"\$(pwd)\" --update-env 2>&1 | tail -3 && npx pm2 save --force 2>&1 | tail -2"
 
 echo "==> Probing HTTP"
 sleep 3

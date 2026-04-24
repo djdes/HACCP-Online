@@ -180,13 +180,15 @@ jobs:
             # с EADDRINUSE когда на 3000 висит другое приложение.
             npx pm2 start "npx next start -p 3002" --name haccp-online --cwd "$(pwd)" --update-env 2>&1 | tail -5
 
-            # Poller-daemon был DEPRECATED: Telegram bot теперь висит на
-            # webhook `/api/telegram/webhook` внутри Next.js. Parallel
-            # long-polling процесс при старте через `bot.start()` каждый
-            # раз стирал webhook (grammy защита от конфликта) — поэтому
-            # принудительно удаляем, если где-то остался после старых
-            # deploy-ов. Сам `scripts/telegram-poller.ts` удалён из кода.
+            # Long-polling daemon для Telegram — webhook у прод-nginx
+            # уходит на dead upstream в ~50% случаев (пользователи видят
+            # 503 Tunnel Unavailable), править nginx без sudo нельзя,
+            # так что ходим за апдейтами сами через прямой коннект к
+            # api.telegram.org (с TELEGRAM_FORCE_IP). Grammy автоматом
+            # снимет webhook при bot.start(), так что оба канала не
+            # конкурируют.
             npx pm2 delete haccp-telegram-poller 2>/dev/null || true
+            npx pm2 start "npx tsx scripts/telegram-poller.ts" --name haccp-telegram-poller --cwd "$(pwd)" --update-env 2>&1 | tail -5
 
             npx pm2 save --force 2>&1 | tail -2
             npx pm2 status --no-color | grep -E 'haccp|name|---' || true
