@@ -29,6 +29,7 @@ export type TelegramLinkedStartState =
 
 export const TELEGRAM_COMMANDS = [
   { command: "start", description: "🏠 Открыть WeSetup" },
+  { command: "edit", description: "✏️ Изменить документы журналов" },
   { command: "journals", description: "📋 Мои журналы" },
   { command: "tasks", description: "✅ Задачи на сегодня" },
   { command: "reports", description: "📊 Отчёты и PDF" },

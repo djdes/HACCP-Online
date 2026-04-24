@@ -1,4 +1,5 @@
 import type { Composer, Context } from "grammy";
+import type { InlineKeyboardButton } from "grammy/types";
 import { getMiniAppBaseUrlFromEnv, buildMiniAppUrl } from "@/lib/journal-obligation-links";
 import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 
@@ -32,10 +33,25 @@ async function reply(
 
 export function registerShortcutHandlers(composer: Composer<Context>): void {
   composer.command("journals", async (ctx) => {
-    await reply(
-      ctx,
+    // Даём две дороги: web_app-кнопка на полный список в Mini App
+    // (быстрый привычный путь) и inline-кнопка на bot-навигацию
+    // `/edit` — drill-down по каждому журналу без выхода из чата.
+    const base = getMiniAppBaseUrlFromEnv();
+    const url = base ? buildMiniAppUrl(base, "/mini/journals") : null;
+    const rows: InlineKeyboardButton[][] = [];
+    if (url) {
+      rows.push([{ text: "📋 Открыть в Mini App", web_app: { url } }]);
+    }
+    rows.push([
+      { text: "✏️ Выбрать и изменить документ", callback_data: "edit:home" },
+    ]);
+    await ctx.reply(
       "📋 <b>Мои журналы</b>\nВсе журналы СанПиН и ХАССП прямо в Telegram — клик по ячейке, запись готова.",
-      { miniPath: "/mini/journals", buttonLabel: "Открыть журналы" }
+      {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+        reply_markup: { inline_keyboard: rows },
+      }
     );
   });
 
