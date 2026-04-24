@@ -15,6 +15,7 @@ import {
 import { getUserPermissions } from "@/lib/permissions-server";
 import { getServerSession } from "@/lib/server-session";
 import { getManagerScope, getAssignableJournalCodes } from "@/lib/manager-scope";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,10 @@ export async function GET() {
     }),
     getManagerScope(session.user.id, session.user.organizationId),
   ]);
+  const fullAccess = hasFullWorkspaceAccess({
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  });
 
   const assignableCodes = getAssignableJournalCodes(scope, allowedCodes);
 
@@ -133,7 +138,6 @@ export async function GET() {
   } catch (syncErr) {
     console.error("[mini:home] user sync failed:", syncErr);
   }
-
   const now = await listOpenJournalObligationsForUser(
     session.user.id,
     requestNow
