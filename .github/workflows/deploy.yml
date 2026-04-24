@@ -162,15 +162,20 @@ jobs:
 
             echo "=== Restarting PM2 (web + telegram poller) ==="
             npx pm2 delete haccp-online 2>/dev/null || true
-            npx pm2 start npm --name haccp-online --cwd "$(pwd)" -- start --update-env 2>&1 | tail -5
+            # next start по умолчанию слушает :3000, но nginx проксирует
+            # на :3002 — явно указываем порт, иначе процесс падает
+            # с EADDRINUSE когда на 3000 висит другое приложение.
+            npx pm2 start "npx next start -p 3002" --name haccp-online --cwd "$(pwd)" --update-env 2>&1 | tail -5
 
-            # Long-polling daemon for Telegram — runs separately from the
-            # Next.js process, survives webhook blocks. Restart on every
-            # deploy so it picks up code + env changes.
+            # Poller-daemon был DEPRECATED: Telegram bot теперь висит на
+            # webhook `/api/telegram/webhook` внутри Next.js. Parallel
+            # long-polling процесс при старте через `bot.start()` каждый
+            # раз стирал webhook (grammy защита от конфликта) — поэтому
+            # принудительно удаляем, если где-то остался после старых
+            # deploy-ов. Сам `scripts/telegram-poller.ts` удалён из кода.
             npx pm2 delete haccp-telegram-poller 2>/dev/null || true
-            npx pm2 start npx --name haccp-telegram-poller --cwd "$(pwd)" --update-env -- tsx scripts/telegram-poller.ts 2>&1 | tail -5
 
-            npx pm2 save 2>&1 | tail -2
+            npx pm2 save --force 2>&1 | tail -2
             npx pm2 status --no-color | grep -E 'haccp|name|---' || true
 
             echo "=== Deploy complete ==="

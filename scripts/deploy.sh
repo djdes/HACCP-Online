@@ -96,7 +96,7 @@ echo "==> Running prisma db push + seeds"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; npx prisma db push 2>&1 | tail -5 && set -a && . ./.env && set +a && npx tsx prisma/seed.ts 2>&1 | tail -5"
 
 echo "==> Restarting PM2"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; npx pm2 restart haccp-online --update-env 2>&1 | tail -3 && npx pm2 restart haccp-telegram-poller --update-env 2>&1 | tail -3 && npx pm2 save 2>&1 | tail -2"
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; npx pm2 restart haccp-online --update-env 2>&1 | tail -3 && (npx pm2 delete haccp-telegram-poller 2>/dev/null || true) && npx pm2 save --force 2>&1 | tail -2"
 
 echo "==> Probing HTTP"
 sleep 3
