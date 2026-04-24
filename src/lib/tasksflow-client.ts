@@ -115,11 +115,37 @@ class TasksFlowClient {
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: ctrl.signal,
       });
+      if (res.status === 204) {
+        if (!res.ok) {
+          throw new TasksFlowError(res.status, url, null);
+        }
+        return undefined as T;
+      }
       const contentType = res.headers.get("content-type") || "";
       const isJson = contentType.includes("application/json");
-      const parsed = isJson
-        ? await res.json().catch(() => null)
-        : await res.text().catch(() => "");
+      let parsed: unknown;
+      if (isJson) {
+        try {
+          parsed = await res.json();
+        } catch {
+          throw new TasksFlowError(
+            res.ok ? 502 : res.status,
+            url,
+            null,
+            `TasksFlow returned invalid JSON (${res.status})`
+          );
+        }
+      } else {
+        parsed = await res.text().catch(() => "");
+        if (res.ok) {
+          throw new TasksFlowError(
+            502,
+            url,
+            parsed,
+            `TasksFlow returned non-JSON response (${res.status})`
+          );
+        }
+      }
       if (!res.ok) {
         throw new TasksFlowError(res.status, url, parsed);
       }

@@ -3,8 +3,9 @@
  *
  * Format on disk: `iv.tag.ciphertext`, each part base64url-encoded.
  *
- * Key derivation: SHA-256 of `INTEGRATION_KEY_SECRET`. The env value can be
- * any length; we hash it so plain-text secrets remain valid AES keys.
+ * Key derivation: SHA-256 of `INTEGRATION_KEY_SECRET`. If the dedicated
+ * secret is not present (older production envs), we fall back to the stable
+ * auth secret so integrations don't fail at runtime after a deploy.
  *
  * **Operational note:** If `INTEGRATION_KEY_SECRET` rotates, every stored
  * blob becomes unreadable. Either keep the secret stable for the life of
@@ -16,12 +17,15 @@ const ALGORITHM = "aes-256-gcm";
 const IV_BYTES = 12;
 
 function getKey(): Buffer {
-  const raw = process.env.INTEGRATION_KEY_SECRET;
+  const raw =
+    process.env.INTEGRATION_KEY_SECRET ??
+    process.env.NEXTAUTH_SECRET ??
+    process.env.AUTH_SECRET;
   if (!raw || raw.length < 16) {
     throw new Error(
-      "INTEGRATION_KEY_SECRET is missing or shorter than 16 chars. " +
-        "Set it to a long random string in .env (rotation invalidates " +
-        "previously stored integration keys)."
+      "Integration encryption secret is missing or shorter than 16 chars. " +
+        "Set INTEGRATION_KEY_SECRET or NEXTAUTH_SECRET to a stable long " +
+        "random string (rotation invalidates previously stored keys)."
     );
   }
   return crypto.createHash("sha256").update(raw, "utf8").digest();

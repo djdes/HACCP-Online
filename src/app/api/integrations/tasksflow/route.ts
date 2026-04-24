@@ -10,11 +10,23 @@ import {
 } from "@/lib/integration-crypto";
 import {
   TasksFlowError,
+  type TasksFlowUser,
   tasksflowClient,
 } from "@/lib/tasksflow-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function jsonUnexpectedError(operation: string, error: unknown) {
+  console.error(`[tasksflow integration] ${operation} failed`, error);
+  const message =
+    error instanceof Error &&
+    error.message.includes("Integration encryption secret")
+      ? "На сервере не настроено шифрование ключей интеграций. Укажите INTEGRATION_KEY_SECRET или NEXTAUTH_SECRET."
+      : "Внутренняя ошибка WeSetup при подключении TasksFlow. Попробуйте ещё раз или проверьте логи сервера.";
+
+  return NextResponse.json({ error: message }, { status: 500 });
+}
 
 /**
  * Read-only status of the TasksFlow integration for the active org.
@@ -22,6 +34,14 @@ export const dynamic = "force-dynamic";
  * count for the settings page header.
  */
 export async function GET() {
+  try {
+    return await getIntegrationStatus();
+  } catch (error) {
+    return jsonUnexpectedError("GET", error);
+  }
+}
+
+async function getIntegrationStatus() {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
   const session = auth.session;
@@ -88,6 +108,14 @@ const connectSchema = z.object({
  * Single integration per org (we upsert against `organizationId`).
  */
 export async function POST(request: Request) {
+  try {
+    return await connectIntegration(request);
+  } catch (error) {
+    return jsonUnexpectedError("POST", error);
+  }
+}
+
+async function connectIntegration(request: Request) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
   const session = auth.session;
@@ -111,9 +139,7 @@ export async function POST(request: Request) {
 
   // Strip trailing slash so probe uses the same form we'll persist.
   const baseUrl = payload.baseUrl.replace(/\/+$/, "");
-  let probeUsers: Awaited<
-    ReturnType<ReturnType<typeof tasksflowClient>["ping"]>
-  >;
+  let probeUsers: TasksFlowUser[];
   try {
     probeUsers = await tasksflowClient(baseUrl, payload.apiKey).ping();
   } catch (err) {
@@ -131,6 +157,15 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { error: "Не удалось связаться с TasksFlow" },
+      { status: 502 }
+    );
+  }
+  if (!Array.isArray(probeUsers)) {
+    return NextResponse.json(
+      {
+        error:
+          "TasksFlow вернул неожиданный формат ответа для /api/users. Проверьте URL: он должен вести именно на TasksFlow API.",
+      },
       { status: 502 }
     );
   }
@@ -185,6 +220,14 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  try {
+    return await deleteIntegration();
+  } catch (error) {
+    return jsonUnexpectedError("DELETE", error);
+  }
+}
+
+async function deleteIntegration() {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
   const session = auth.session;
