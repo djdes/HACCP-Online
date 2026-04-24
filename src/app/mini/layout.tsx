@@ -4,6 +4,7 @@ import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
+import "./mini-theme.css";
 
 /**
  * Mini App layout.
@@ -13,6 +14,9 @@ import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
  * thus redirects unauthenticated users). Mini App routes accept anonymous
  * visits because the initData-based sign-in happens client-side inside
  * `/mini` itself.
+ *
+ * Theme: "Dark Kitchen Operator" — editorial dark mode с fraunces-italic
+ * заголовками, lime-accent, зерном на фоне. См. `mini-theme.css`.
  */
 
 export const metadata: Metadata = {
@@ -25,7 +29,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0b1024",
+  themeColor: "#0a0b0f",
 };
 
 export default function MiniLayout({
@@ -39,11 +43,23 @@ export default function MiniLayout({
         src="https://telegram.org/js/telegram-web-app.js"
         strategy="beforeInteractive"
       />
+      {/* Distinctive font stack, loaded once. Display serif для editorial
+          заголовков, mono для температур/кодов, grotesque для body. */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossOrigin="anonymous"
+      />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,300..700,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist+Mono:wght@400;500;600&display=swap"
+      />
       <MiniSessionProvider>
         <MiniTelegramRuntime />
-        <div className="min-h-dvh bg-[#eef1ff] text-[#0b1024]">
+        <div className="mini-root min-h-dvh">
           <MiniTopBar />
-          <main className="mx-auto flex min-h-[calc(100dvh-58px)] w-full max-w-lg flex-col bg-[#fafbff] px-3 pb-28 pt-4 shadow-[0_0_80px_-48px_rgba(85,102,246,0.65)] sm:px-4">
+          <main className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4 pb-28 pt-4">
             {children}
           </main>
           <OfflineIndicator />

@@ -70,8 +70,13 @@ export function MiniNav() {
   }));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[#ececf4] bg-white/95 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_42px_-34px_rgba(11,16,36,0.75)] backdrop-blur">
-      <div className="mx-auto flex w-full max-w-lg gap-1 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav
+      className="mini-nav-rail fixed inset-x-3 z-50 rounded-3xl"
+      style={{
+        bottom: "max(12px, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div className="mx-auto flex w-full max-w-lg items-stretch gap-1 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
           const isActive =
             item.href === "/mini"
@@ -82,13 +87,18 @@ export function MiniNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[10px] font-medium leading-3 transition active:scale-[0.98] ${
-                isActive
-                  ? "bg-[#eef1ff] text-[#3848c7]"
-                  : "text-[#6f7282] hover:bg-[#fafbff] hover:text-[#0b1024]"
-              }`}
+              aria-current={isActive ? "page" : undefined}
+              className="mini-press relative flex min-w-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2"
+              style={{
+                color: isActive ? "var(--mini-bg)" : "var(--mini-text-muted)",
+                background: isActive ? "var(--mini-lime)" : "transparent",
+                fontSize: 10,
+                fontWeight: isActive ? 600 : 500,
+                letterSpacing: "0.02em",
+                transition: "background 0.18s, color 0.18s",
+              }}
             >
-              <Icon className="size-4" />
+              <Icon className="size-[18px]" strokeWidth={isActive ? 2.2 : 1.8} />
               <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );

@@ -1,0 +1,284 @@
+/*
+ * Mini App theme — "Dark Kitchen Operator".
+ *
+ * Shared tokens + global body treatment (warm near-black background с
+ * grain/noise + soft ambient gradients). Scoped к `.mini-root` чтобы
+ * не вытекало в Main-app.
+ */
+
+.mini-root {
+  /* Dark base */
+  --mini-bg: #0a0b0f;
+  --mini-surface-1: #15161b;
+  --mini-surface-2: #1f2128;
+  --mini-surface-3: #2a2d36;
+  --mini-divider: rgba(250, 247, 242, 0.08);
+  --mini-divider-strong: rgba(250, 247, 242, 0.14);
+
+  /* Warm text, лёгкий cream-tint вместо pure white */
+  --mini-text: #faf7f2;
+  --mini-text-muted: #8a8c94;
+  --mini-text-faint: #5a5c66;
+
+  /* Accents — food-inspired */
+  --mini-lime: #c8ff5a;          /* primary action, live, fresh */
+  --mini-lime-soft: rgba(200, 255, 90, 0.14);
+  --mini-amber: #ff9040;         /* temperature, warnings */
+  --mini-amber-soft: rgba(255, 144, 64, 0.16);
+  --mini-ice: #6ab4ff;           /* cold equipment */
+  --mini-ice-soft: rgba(106, 180, 255, 0.14);
+  --mini-crimson: #ff5268;       /* CAPA, critical */
+  --mini-crimson-soft: rgba(255, 82, 104, 0.16);
+  --mini-sage: #9ad3a2;          /* success, done */
+  --mini-sage-soft: rgba(154, 211, 162, 0.14);
+
+  /* Type scales */
+  --mini-font-display: "Fraunces", Georgia, serif;
+  --mini-font-body: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mini-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Monaco, monospace;
+
+  color: var(--mini-text);
+  background-color: var(--mini-bg);
+  font-family: var(--mini-font-body);
+  font-feature-settings: "ss01", "ss02", "cv02";
+}
+
+/* Subtle grain + ambient warm glow — даёт depth, не plain black */
+.mini-root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(200, 255, 90, 0.06), transparent 60%),
+    radial-gradient(ellipse 70% 40% at 100% 100%, rgba(106, 180, 255, 0.04), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, rgba(255, 144, 64, 0.04), transparent 60%);
+}
+
+.mini-root::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  /* Fine grain via SVG noise — inline для простоты */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0.04 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+.mini-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Display heading — editorial italic accent */
+.mini-display {
+  font-family: var(--mini-font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 50, "WONK" 0;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.96;
+}
+
+.mini-display-bold {
+  font-family: var(--mini-font-display);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.mini-eyebrow {
+  font-family: var(--mini-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--mini-text-muted);
+}
+
+.mini-mono {
+  font-family: var(--mini-font-mono);
+  font-feature-settings: "tnum" on, "ss01" on;
+}
+
+/* Glass card — основной контейнер */
+.mini-card {
+  background: linear-gradient(
+    180deg,
+    rgba(250, 247, 242, 0.035) 0%,
+    rgba(250, 247, 242, 0.015) 100%
+  );
+  border: 1px solid var(--mini-divider);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.mini-card-solid {
+  background: var(--mini-surface-1);
+  border: 1px solid var(--mini-divider);
+  border-radius: 20px;
+}
+
+/* Tactile press — отзывается на tap */
+.mini-press {
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1);
+}
+.mini-press:active {
+  transform: scale(0.97);
+}
+
+/* Animated dot — «в сети / online / слушаем температуру» */
+@keyframes miniPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.88); }
+}
+.mini-pulse-dot {
+  animation: miniPulse 2s ease-in-out infinite;
+}
+
+/* Staggered list reveal on mount */
+@keyframes miniReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mini-reveal {
+  animation: miniReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Dotted separator — тактильный, не sterile hr */
+.mini-dotted-sep {
+  border-top: 1px dashed var(--mini-divider-strong);
+}
+
+/* Status pill — single rule for all variants */
+.mini-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mini-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+.mini-pill[data-tone="lime"] { background: var(--mini-lime-soft); color: var(--mini-lime); border-color: rgba(200, 255, 90, 0.2); }
+.mini-pill[data-tone="amber"] { background: var(--mini-amber-soft); color: var(--mini-amber); border-color: rgba(255, 144, 64, 0.2); }
+.mini-pill[data-tone="ice"] { background: var(--mini-ice-soft); color: var(--mini-ice); border-color: rgba(106, 180, 255, 0.2); }
+.mini-pill[data-tone="crimson"] { background: var(--mini-crimson-soft); color: var(--mini-crimson); border-color: rgba(255, 82, 104, 0.2); }
+.mini-pill[data-tone="sage"] { background: var(--mini-sage-soft); color: var(--mini-sage); border-color: rgba(154, 211, 162, 0.2); }
+.mini-pill[data-tone="neutral"] { background: rgba(250, 247, 242, 0.05); color: var(--mini-text-muted); border-color: var(--mini-divider); }
+
+/* Primary / secondary buttons */
+.mini-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: var(--mini-lime);
+  color: #0a0b0f;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  border: none;
+  box-shadow: 0 8px 32px -12px rgba(200, 255, 90, 0.5);
+}
+.mini-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: var(--mini-surface-2);
+  color: var(--mini-text);
+  font-weight: 500;
+  font-size: 15px;
+  border: 1px solid var(--mini-divider-strong);
+}
+.mini-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mini-text-muted);
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+.mini-btn-ghost:hover {
+  background: rgba(250, 247, 242, 0.04);
+  color: var(--mini-text);
+}
+
+/* Bottom nav — floating glass rail */
+.mini-nav-rail {
+  background: rgba(21, 22, 27, 0.88);
+  border: 1px solid var(--mini-divider);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  box-shadow:
+    0 -8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(250, 247, 242, 0.04);
+}
+
+/* Input */
+.mini-input {
+  background: var(--mini-surface-2);
+  border: 1px solid var(--mini-divider);
+  border-radius: 14px;
+  padding: 12px 16px;
+  color: var(--mini-text);
+  font-family: inherit;
+  font-size: 15px;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.mini-input:focus {
+  outline: none;
+  border-color: var(--mini-lime);
+  background: var(--mini-surface-3);
+}
+
+/* Progress ring for compliance */
+.mini-ring-track {
+  stroke: rgba(250, 247, 242, 0.08);
+}
+
+/* Tab scroll row */
+.mini-tab-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.mini-tab-row::-webkit-scrollbar { display: none; }
+.mini-tab-chip {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--mini-surface-2);
+  color: var(--mini-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--mini-divider);
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+.mini-tab-chip[data-active="true"] {
+  background: var(--mini-text);
+  color: var(--mini-bg);
+  border-color: var(--mini-text);
+}

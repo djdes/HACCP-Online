@@ -1,56 +1,92 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 /**
- * Reusable list-style card for Mini App home + journal entries.
- *
- * Large tap target (64–88 px tall), single-row layout, optional status pill
- * on the right. Deliberately not tied to the dashboard's glossy card style —
- * Mini App lives inside TG's own chrome and needs to feel like a list, not
- * a dashboard widget.
+ * Editorial list-card для Mini App — dark theme, mono-index на левом
+ * краю, pill-статус справа, press-haptic scale-down. Использует theme
+ * tokens из `mini-theme.css`.
  */
 export function MiniCard({
   href,
   title,
   subtitle,
   status,
+  index,
 }: {
   href: string;
   title: string;
   subtitle?: string | null;
   status?: { kind: "todo" | "done" | "idle"; label: string };
+  /** 1-based порядковый номер для mono-префикса слева. */
+  index?: number;
 }) {
-  const statusColors =
+  const tone =
     status?.kind === "todo"
-      ? "bg-[#fff4f2] text-[#a13a32] ring-[#ffd9d3]"
+      ? "amber"
       : status?.kind === "done"
-        ? "bg-[#ecfdf5] text-[#116b2a] ring-[#c5f7da]"
-        : "bg-[#f5f6ff] text-[#3848c7] ring-[#dcdfed]";
+        ? "lime"
+        : "neutral";
 
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition active:scale-[0.98] sm:items-center"
+      className="mini-press mini-card group flex items-stretch gap-3 px-3.5 py-3"
     >
-      <div className="min-w-0 flex-1">
-        <div className="text-[15px] font-medium leading-5 text-[#0b1024]">
+      {/* Vertical index numeral — mono */}
+      {typeof index === "number" ? (
+        <div
+          className="flex w-6 shrink-0 items-start pt-0.5"
+          style={{
+            fontFamily: "var(--mini-font-mono)",
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            color: "var(--mini-text-faint)",
+          }}
+        >
+          {String(index).padStart(2, "0")}
+        </div>
+      ) : null}
+
+      <div className="min-w-0 flex-1 py-0.5">
+        <div
+          className="truncate"
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            color: "var(--mini-text)",
+            letterSpacing: "-0.005em",
+          }}
+        >
           {title}
         </div>
         {subtitle ? (
-          <div className="mt-1 text-[12px] leading-4 text-[#6f7282]">
+          <div
+            className="mt-1 line-clamp-2"
+            style={{
+              fontSize: 12,
+              lineHeight: 1.35,
+              color: "var(--mini-text-muted)",
+            }}
+          >
             {subtitle}
           </div>
         ) : null}
       </div>
-      <div className="flex shrink-0 items-start gap-2 self-stretch sm:items-center">
+
+      <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         {status ? (
-          <span
-            className={`max-w-[110px] rounded-full px-2 py-0.5 text-right text-[11px] font-medium leading-4 ring-1 ${statusColors}`}
-          >
+          <span className="mini-pill" data-tone={tone}>
             {status.label}
           </span>
-        ) : null}
-        <ChevronRight className="mt-0.5 size-4 shrink-0 text-[#9b9fb3] transition group-active:translate-x-0.5 sm:mt-0" />
+        ) : (
+          <span />
+        )}
+        <ArrowUpRight
+          className="size-3.5 transition-transform group-active:translate-x-0.5 group-active:-translate-y-0.5"
+          style={{ color: "var(--mini-text-faint)" }}
+          strokeWidth={2}
+        />
       </div>
     </Link>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
 
@@ -18,7 +18,7 @@ const SECTION_TITLES: Array<[string, string]> = [
 ];
 
 function titleForPath(pathname: string): string {
-  if (pathname === "/mini") return "Рабочий кабинет";
+  if (pathname === "/mini") return "Кабинет";
   if (pathname.startsWith("/mini/journals")) return "Журналы";
   if (pathname.startsWith("/mini/documents")) return "Документ";
   if (pathname.startsWith("/mini/o/")) return "Задача";
@@ -33,8 +33,10 @@ export function MiniTelegramRuntime() {
     try {
       tg.ready();
       tg.expand();
-      tg.setHeaderColor?.("#0b1024");
-      tg.setBackgroundColor?.("#fafbff");
+      // Editorial dark theme — синхронизируем header/body чтобы Telegram
+      // не рисовал свою белую полоску поверх dark app.
+      tg.setHeaderColor?.("#0a0b0f");
+      tg.setBackgroundColor?.("#0a0b0f");
       tg.enableClosingConfirmation?.();
     } catch {
       /* Older Telegram clients expose only part of the WebApp API. */
@@ -44,40 +46,109 @@ export function MiniTelegramRuntime() {
   return null;
 }
 
+/**
+ * Живые часы в шапке. Mono-цифры, обновляется раз в секунду. Даёт
+ * ощущение «command deck» — оператор видит текущее время, не теряется.
+ */
+function LiveClock() {
+  const [now, setNow] = useState<string>(() => formatClock(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => setNow(formatClock(new Date())), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span
+      className="mini-mono tabular-nums"
+      style={{
+        fontSize: 11,
+        color: "var(--mini-text-muted)",
+        letterSpacing: "0.08em",
+      }}
+    >
+      {now}
+    </span>
+  );
+}
+
+function formatClock(d: Date): string {
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
 export function MiniTopBar() {
   const pathname = usePathname();
   const title = titleForPath(pathname);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/92 px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-white/78">
+    <header
+      className="sticky top-0 z-40"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(10,11,15,0.92) 0%, rgba(10,11,15,0.72) 100%)",
+        borderBottom: "1px solid var(--mini-divider)",
+        backdropFilter: "blur(24px) saturate(160%)",
+        WebkitBackdropFilter: "blur(24px) saturate(160%)",
+        padding: "14px 16px 12px",
+      }}
+    >
       <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
-        <Link href="/mini" className="min-w-0">
-          <div className="flex items-center gap-2">
+        <Link
+          href="/mini"
+          className="flex min-w-0 items-center gap-3"
+          aria-label="На главный экран"
+        >
+          {/* WS monogram — tactile brand glyph */}
+          <span
+            className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl"
+            style={{
+              background:
+                "linear-gradient(135deg, #15161b 0%, #1f2128 100%)",
+              border: "1px solid var(--mini-divider-strong)",
+              boxShadow:
+                "inset 0 1px 0 rgba(250,247,242,0.06), 0 6px 20px -12px rgba(0,0,0,0.6)",
+            }}
+          >
             <span
-              className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_12px_28px_-18px_rgba(11,16,36,0.85)]"
-              style={{
-                background:
-                  "linear-gradient(135deg, #0b1024 0%, #1a1f45 40%, #5566f6 140%)",
-              }}
+              className="mini-display-bold"
+              style={{ fontSize: 18, color: "var(--mini-lime)" }}
             >
-              <span className="text-[13px] font-bold tracking-[0.14em]">W</span>
-              <span className="pointer-events-none absolute -left-1 -top-1 size-3 rounded-full bg-[#5566f6] opacity-70 blur-[4px]" />
+              W
             </span>
-            <div className="min-w-0">
-              <div className="text-[13px] font-semibold leading-4 tracking-[-0.01em] text-[#0b1024]">
-                WeSetup
-              </div>
-              <div className="truncate text-[11px] leading-4 text-[#6f7282]">
-                {title}
-              </div>
+            {/* Breathing indicator — «live» dot */}
+            <span
+              className="mini-pulse-dot absolute right-1 top-1 size-1.5 rounded-full"
+              style={{ background: "var(--mini-lime)" }}
+            />
+          </span>
+          <div className="min-w-0">
+            <div
+              className="mini-eyebrow"
+              style={{ letterSpacing: "0.28em", fontSize: 9 }}
+            >
+              WESETUP · HACCP
+            </div>
+            <div
+              className="mini-display-bold truncate"
+              style={{ fontSize: 16, marginTop: 2 }}
+            >
+              {title}
             </div>
           </div>
         </Link>
-        <div className="flex items-center gap-1.5">
+
+        <div className="flex items-center gap-2.5">
+          <LiveClock />
           <Link
             href="/mini/me"
-            className="inline-flex size-9 items-center justify-center rounded-2xl border border-[#ececf4] bg-[#fafbff] text-[#3c4053] active:scale-[0.98]"
             aria-label="Профиль"
+            className="mini-press inline-flex size-10 items-center justify-center rounded-2xl"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px solid var(--mini-divider)",
+              color: "var(--mini-text)",
+            }}
           >
             <UserRound className="size-4" />
           </Link>

@@ -164,12 +164,18 @@ export default function MiniHomePage() {
   if (localState.kind === "no-telegram") {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <section className="w-full rounded-3xl border border-[#ececf4] bg-white px-6 py-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-          <ShieldAlert className="mx-auto size-9 text-[#5566f6]" />
-          <h1 className="mt-4 text-[20px] font-semibold text-[#0b1024]">
+        <section className="mini-card-solid w-full px-6 py-8 text-center">
+          <ShieldAlert
+            className="mx-auto size-9"
+            style={{ color: "var(--mini-lime)" }}
+          />
+          <h1 className="mini-display-bold mt-4" style={{ fontSize: 22 }}>
             Откройте внутри Telegram
           </h1>
-          <p className="mt-2 text-[14px] leading-6 text-[#6f7282]">
+          <p
+            className="mt-2 text-[14px] leading-6"
+            style={{ color: "var(--mini-text-muted)" }}
+          >
             Рабочий кабинет сотрудника доступен только как Mini App в Telegram.
             Попросите у руководителя персональную ссылку-приглашение.
           </p>
@@ -180,12 +186,24 @@ export default function MiniHomePage() {
   if (localState.kind === "error") {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <section className="w-full rounded-3xl border border-[#ffd9d3] bg-[#fff4f2] px-6 py-8 text-center">
-          <ShieldAlert className="mx-auto size-9 text-[#a13a32]" />
-          <h1 className="mt-4 text-[20px] font-semibold text-[#0b1024]">
+        <section
+          className="w-full rounded-3xl px-6 py-8 text-center"
+          style={{
+            background: "rgba(255, 82, 104, 0.08)",
+            border: "1px solid rgba(255, 82, 104, 0.24)",
+          }}
+        >
+          <ShieldAlert
+            className="mx-auto size-9"
+            style={{ color: "var(--mini-crimson)" }}
+          />
+          <h1 className="mini-display-bold mt-4" style={{ fontSize: 22 }}>
             Не получилось войти
           </h1>
-          <p className="mt-2 text-[14px] leading-6 text-[#a13a32]">
+          <p
+            className="mt-2 text-[14px] leading-6"
+            style={{ color: "var(--mini-crimson)" }}
+          >
             {localState.message}
           </p>
         </section>
@@ -194,8 +212,14 @@ export default function MiniHomePage() {
   }
   if (status !== "authenticated" || !home) {
     return (
-      <div className="flex flex-1 items-center justify-center text-[14px] text-[#6f7282]">
-        <Loader2 className="mr-2 size-4 animate-spin text-[#5566f6]" />
+      <div
+        className="flex flex-1 items-center justify-center text-[14px]"
+        style={{ color: "var(--mini-text-muted)" }}
+      >
+        <Loader2
+          className="mr-2 size-4 animate-spin"
+          style={{ color: "var(--mini-lime)" }}
+        />
         Загружаем кабинет…
       </div>
     );
@@ -207,60 +231,95 @@ export default function MiniHomePage() {
   const showStaffDoneBanner = home.mode === "staff" && home.now.length === 0;
   const isReadonly = home.mode === "readonly";
 
+  const greeting = timeGreeting();
+  const total = home.all.length;
+  const filled = home.all.filter((j) => j.filled).length;
+  const completion = total === 0 ? 0 : Math.round((filled / total) * 100);
+
   return (
-    <div className="flex flex-1 flex-col gap-5 pb-24">
-      <header className="relative overflow-hidden rounded-3xl border border-[#1b2450] bg-[#0b1024] px-5 py-5 text-white shadow-[0_20px_60px_-36px_rgba(11,16,36,0.85)]">
-        <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#aeb8ff]">
-              Сегодня
-            </p>
-            <h1 className="mt-2 text-[24px] font-semibold leading-tight tracking-[-0.02em]">
-              Привет, {displayName}
+    <div className="flex flex-1 flex-col gap-5 pb-28">
+      {/* Editorial hero — «Сегодня» + progress ring */}
+      <header className="mini-reveal relative">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mini-eyebrow">
+              {greeting} · {formatDateRu()}
+            </div>
+            <h1
+              className="mini-display mt-2"
+              style={{ fontSize: "42px", color: "var(--mini-text)" }}
+            >
+              {firstName(displayName)}
+              <span
+                style={{
+                  color: "var(--mini-lime)",
+                  fontStyle: "italic",
+                  fontWeight: 400,
+                }}
+              >
+                ,
+              </span>
             </h1>
             {home.user.organizationName ? (
-              <p className="mt-1 truncate text-[13px] text-white/70">
+              <p
+                className="mt-1.5 truncate text-[13px]"
+                style={{ color: "var(--mini-text-muted)" }}
+              >
                 {home.user.organizationName}
               </p>
             ) : null}
           </div>
           <QrScannerButton />
         </div>
-        <div className="relative z-10 mt-5 grid grid-cols-2 gap-2">
-          {home.mode === "manager" ? (
-            <>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2">
-                <div className="text-[20px] font-semibold tabular-nums">
-                  {home.summary.pending}
-                </div>
-                <div className="text-[11px] text-white/60">открыто задач</div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2">
-                <div className="text-[20px] font-semibold tabular-nums">
-                  {home.summary.done}
-                </div>
-                <div className="text-[11px] text-white/60">закрыто сегодня</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2">
-                <div className="text-[20px] font-semibold tabular-nums">
-                  {home.mode === "staff" ? home.now.length : home.all.length}
-                </div>
-                <div className="text-[11px] text-white/60">
-                  {home.mode === "staff" ? "к заполнению" : "журналов"}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2">
-                <div className="flex h-7 items-center">
-                  <ClipboardCheck className="size-5 text-[#7cf5c0]" />
-                </div>
-                <div className="text-[11px] text-white/60">смена под рукой</div>
-              </div>
-            </>
-          )}
+
+        {/* Three-stat strip + progress ring */}
+        <div className="mt-5 grid grid-cols-[1fr_auto] gap-4 items-center">
+          <div className="space-y-3">
+            {home.mode === "manager" ? (
+              <>
+                <HeroStat
+                  value={home.summary.pending}
+                  label="открытых задач"
+                  tone={home.summary.pending > 0 ? "amber" : "sage"}
+                />
+                <HeroStat
+                  value={home.summary.employeesWithPending}
+                  label={pluralRu(
+                    home.summary.employeesWithPending,
+                    "сотрудник ждёт",
+                    "сотрудника ждут",
+                    "сотрудников ждут"
+                  )}
+                  tone="ice"
+                />
+              </>
+            ) : (
+              <>
+                <HeroStat
+                  value={home.mode === "staff" ? home.now.length : filled}
+                  label={
+                    home.mode === "staff"
+                      ? pluralRu(
+                          home.now.length,
+                          "журнал к заполнению",
+                          "журнала к заполнению",
+                          "журналов к заполнению"
+                        )
+                      : pluralRu(filled, "заполнен сегодня", "заполнено сегодня", "заполнено сегодня")
+                  }
+                  tone={
+                    home.mode === "staff" && home.now.length > 0 ? "amber" : "lime"
+                  }
+                />
+                <HeroStat
+                  value={total}
+                  label={pluralRu(total, "журнал всего", "журнала всего", "журналов всего")}
+                  tone="neutral"
+                />
+              </>
+            )}
+          </div>
+          <ProgressRing percent={completion} />
         </div>
       </header>
 
@@ -269,71 +328,109 @@ export default function MiniHomePage() {
       ) : null}
 
       {isReadonly ? (
-        <section className="rounded-3xl border border-[#ffe0bd] bg-[#fff8ed] px-4 py-4 text-center text-[14px] leading-6 text-[#9a5a00]">
-          У вас режим просмотра. Вы можете ознакомиться с данными, но не
-          заполнять журналы.
+        <section
+          className="rounded-2xl px-4 py-3 text-[13px] leading-5"
+          style={{
+            background: "var(--mini-amber-soft)",
+            border: "1px solid rgba(255,144,64,0.22)",
+            color: "var(--mini-amber)",
+          }}
+        >
+          Режим просмотра — заполнять журналы нельзя, только листать.
         </section>
       ) : null}
 
       {showStaffNow ? (
         <section className="space-y-2">
-          <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
-            На сейчас · {home.now.length}
-          </h2>
-          {home.now.map((item) => (
-            <MiniCard
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="mini-eyebrow">На сейчас</h2>
+            <span
+              className="mini-mono"
+              style={{
+                fontSize: 11,
+                color: "var(--mini-amber)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {String(home.now.length).padStart(2, "0")} / ОТКРЫТО
+            </span>
+          </div>
+          {home.now.map((item, idx) => (
+            <div
               key={item.id}
-              href={item.href}
-              title={item.name}
-              subtitle={item.description}
-              status={{ kind: "todo", label: "нужно заполнить" }}
-            />
+              className="mini-reveal"
+              style={{ animationDelay: `${idx * 40}ms` }}
+            >
+              <MiniCard
+                href={item.href}
+                title={item.name}
+                subtitle={item.description}
+                status={{ kind: "todo", label: "нужно заполнить" }}
+                index={idx + 1}
+              />
+            </div>
           ))}
         </section>
       ) : null}
 
       {showStaffDoneBanner ? (
-        <section className="flex items-center gap-3 rounded-3xl border border-[#c5f7da] bg-[#ecfdf5] px-4 py-4 text-[14px] leading-6 text-[#116b2a]">
-          <CheckCircle2 className="size-5 shrink-0" />
-          <span>Все журналы на сегодня заполнены. Можно выдохнуть.</span>
+        <section
+          className="flex items-center gap-3 rounded-2xl px-4 py-4 text-[14px] leading-5"
+          style={{
+            background: "var(--mini-lime-soft)",
+            border: "1px solid rgba(200,255,90,0.26)",
+            color: "var(--mini-lime)",
+          }}
+        >
+          <CheckCircle2 className="size-5 shrink-0" strokeWidth={2} />
+          <span style={{ color: "var(--mini-text)" }}>
+            Смена закрыта. Все журналы на сегодня заполнены.
+          </span>
         </section>
       ) : null}
 
       {home.mode === "manager" ? (
-        <section className="rounded-3xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-          <h2 className="text-[15px] font-semibold text-[#0b1024]">
-            Сводка на сегодня
-          </h2>
-          <p className="mt-1 text-[13px] text-[#6f7282]">
-            Открыто: {home.summary.pending} · Выполнено: {home.summary.done}
-          </p>
-          <p className="mt-0.5 text-[13px] text-[#6f7282]">
-            Сотрудников с открытыми задачами:{" "}
-            {home.summary.employeesWithPending}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <section className="mini-card px-4 py-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="mini-eyebrow">Сводка смены</h2>
+            <span
+              className="mini-mono"
+              style={{ fontSize: 11, color: "var(--mini-text-faint)" }}
+            >
+              {formatDateRu()}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <ManagerStat
+              value={home.summary.pending}
+              label="открыто"
+              tone={home.summary.pending > 0 ? "amber" : "sage"}
+            />
+            <ManagerStat
+              value={home.summary.done}
+              label="выполнено"
+              tone="lime"
+            />
+            <ManagerStat
+              value={home.summary.employeesWithPending}
+              label="с задачами"
+              tone="ice"
+            />
+          </div>
+          <div className="mini-dotted-sep mt-4 pt-3 flex flex-wrap gap-2">
             {perms.has("staff.view") ? (
-              <Link
-                href="/mini/staff"
-                className="rounded-full bg-[#f5f6ff] px-3 py-1.5 text-[13px] font-medium text-[#3848c7]"
-              >
-                Сотрудники
+              <Link href="/mini/staff" className="mini-btn-ghost">
+                → Сотрудники
               </Link>
             ) : null}
             {perms.has("equipment.view") ? (
-              <Link
-                href="/mini/equipment"
-                className="rounded-full bg-[#f5f6ff] px-3 py-1.5 text-[13px] font-medium text-[#3848c7]"
-              >
-                Оборудование
+              <Link href="/mini/equipment" className="mini-btn-ghost">
+                → Оборудование
               </Link>
             ) : null}
             {perms.has("reports.view") ? (
-              <Link
-                href="/mini/reports"
-                className="rounded-full bg-[#f5f6ff] px-3 py-1.5 text-[13px] font-medium text-[#3848c7]"
-              >
-                Отчёты
+              <Link href="/mini/reports" className="mini-btn-ghost">
+                → Отчёты
               </Link>
             ) : null}
           </div>
@@ -341,29 +438,251 @@ export default function MiniHomePage() {
       ) : null}
 
       <section className="space-y-2">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
-          {isReadonly ? "Доступные журналы" : "Все мои журналы"}
-        </h2>
+        <div className="flex items-baseline justify-between px-1">
+          <h2 className="mini-eyebrow">
+            {isReadonly ? "Доступно" : "Все мои журналы"}
+          </h2>
+          <span
+            className="mini-mono"
+            style={{
+              fontSize: 11,
+              color: "var(--mini-text-faint)",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {String(home.all.length).padStart(2, "0")} · ЖУРНАЛОВ
+          </span>
+        </div>
         {home.all.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-7 text-center text-[14px] leading-6 text-[#6f7282]">
+          <div
+            className="rounded-2xl px-4 py-7 text-center text-[14px] leading-5"
+            style={{
+              background: "rgba(250,247,242,0.02)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
             Руководитель ещё не дал доступ ни к одному журналу.
           </div>
         ) : (
-          home.all.map((journal) => (
-            <MiniCard
+          home.all.map((journal, idx) => (
+            <div
               key={journal.code}
-              href={`/mini/journals/${journal.code}`}
-              title={journal.name}
-              subtitle={journal.description}
-              status={
-                journal.filled
-                  ? { kind: "done", label: "заполнено" }
-                  : { kind: "idle", label: "—" }
-              }
-            />
+              className="mini-reveal"
+              style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
+            >
+              <MiniCard
+                href={`/mini/journals/${journal.code}`}
+                title={journal.name}
+                subtitle={journal.description}
+                status={
+                  journal.filled
+                    ? { kind: "done", label: "заполнено" }
+                    : { kind: "idle", label: "—" }
+                }
+                index={idx + 1}
+              />
+            </div>
           ))
         )}
       </section>
+    </div>
+  );
+}
+
+function ManagerStat({
+  value,
+  label,
+  tone,
+}: {
+  value: number;
+  label: string;
+  tone: "lime" | "amber" | "ice" | "sage";
+}) {
+  const color =
+    tone === "lime"
+      ? "var(--mini-lime)"
+      : tone === "amber"
+        ? "var(--mini-amber)"
+        : tone === "ice"
+          ? "var(--mini-ice)"
+          : "var(--mini-sage)";
+  return (
+    <div>
+      <div
+        className="mini-mono tabular-nums"
+        style={{
+          fontSize: 28,
+          fontWeight: 500,
+          color,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--mini-text-muted)",
+          marginTop: 4,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          fontFamily: "var(--mini-font-mono)",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- helpers / hero sub-components ------------------ */
+
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Доброе утро";
+  if (h >= 12 && h < 18) return "Добрый день";
+  if (h >= 18 && h < 23) return "Добрый вечер";
+  return "Ночная смена";
+}
+
+function formatDateRu(): string {
+  return new Date()
+    .toLocaleDateString("ru-RU", { day: "numeric", month: "long" })
+    .toUpperCase();
+}
+
+function firstName(full: string): string {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 3) return parts[1];
+  if (parts.length >= 2) return parts[1];
+  return parts[0] ?? "Смена";
+}
+
+function pluralRu(
+  n: number,
+  one: string,
+  few: string,
+  many: string
+): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if ([2, 3, 4].includes(m10) && ![12, 13, 14].includes(m100)) return few;
+  return many;
+}
+
+function HeroStat({
+  value,
+  label,
+  tone,
+}: {
+  value: number;
+  label: string;
+  tone: "lime" | "amber" | "ice" | "crimson" | "sage" | "neutral";
+}) {
+  const color =
+    tone === "lime"
+      ? "var(--mini-lime)"
+      : tone === "amber"
+        ? "var(--mini-amber)"
+        : tone === "ice"
+          ? "var(--mini-ice)"
+          : tone === "crimson"
+            ? "var(--mini-crimson)"
+            : tone === "sage"
+              ? "var(--mini-sage)"
+              : "var(--mini-text)";
+  return (
+    <div className="flex items-baseline gap-3">
+      <span
+        className="mini-mono tabular-nums"
+        style={{
+          fontSize: 26,
+          fontWeight: 500,
+          color,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {value}
+      </span>
+      <span
+        style={{
+          fontSize: 12,
+          color: "var(--mini-text-muted)",
+          lineHeight: 1.3,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function ProgressRing({ percent }: { percent: number }) {
+  const size = 76;
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const off = circ * (1 - Math.max(0, Math.min(100, percent)) / 100);
+  const color =
+    percent >= 90
+      ? "var(--mini-lime)"
+      : percent >= 50
+        ? "var(--mini-amber)"
+        : "var(--mini-crimson)";
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ transform: "rotate(-90deg)" }}
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={stroke}
+          className="mini-ring-track"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={stroke}
+          stroke={color}
+          strokeDasharray={circ}
+          strokeDashoffset={off}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.2,0.8,0.2,1)" }}
+        />
+      </svg>
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center"
+        style={{ color: "var(--mini-text)" }}
+      >
+        <span
+          className="mini-mono tabular-nums"
+          style={{ fontSize: 18, fontWeight: 600, lineHeight: 1 }}
+        >
+          {percent}
+        </span>
+        <span
+          style={{
+            fontSize: 9,
+            color: "var(--mini-text-muted)",
+            letterSpacing: "0.14em",
+          }}
+        >
+          %
+        </span>
+      </div>
     </div>
   );
 }
