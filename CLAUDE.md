@@ -1,29 +1,21 @@
 # CLAUDE.md
 
-This file provides working memory for future coding sessions in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
-## Project
+## Git Workflow
 
-HACCP-Online is a Next.js 16 monolith for electronic HACCP / SanPiN journals at food production facilities.
+**ВАЖНО:**
+- Все сообщения коммитов писать на **русском языке**
+- После каждого коммита автоматически делать `git push origin master`
+- Формат коммита: краткое описание изменений на русском
 
-Stack:
-- Next.js 16 App Router
-- TypeScript
-- Prisma 7 with PostgreSQL
-- NextAuth.js 4
-- shadcn/ui
-- Tailwind CSS 4
-- PM2 on Linux VPS
-
-## Repo
-
-- GitHub repo: `https://github.com/djdes/HACCP-Online`
-- Main branch: `master`
-- Production deploys from pushes to `master`
-- Current real workflow: direct push to `master` is allowed and expected for deploys
+Пример:
+```bash
+git commit -m "Исправлен скролл на мобильных устройствах"
+git push origin master
+```
 
 Common git flow:
-
 ```bash
 git checkout master
 git pull origin master
@@ -34,24 +26,34 @@ git commit -m "feat: short description"
 git push origin master
 ```
 
-If you only need to trigger autodeploy:
-
-```bash
-git commit --allow-empty -m "chore: trigger test deploy"
-git push origin master
-```
-
 Important git notes:
 - Stage specific files whenever possible.
 - Do not sweep local scratch files into commits unless explicitly requested.
 - Local scratch files seen before: `test.txt`, `_seed_remote.py`, `docs/plans/*`.
 - If git reports dubious ownership in this workspace, fix it with:
-
 ```bash
 git config --global --add safe.directory C:/www/Wesetup.ru
 ```
-
 - Git Credential Manager is available on this machine.
+
+## Build & Development Commands
+
+```bash
+npm run dev              # Start dev server (Next.js 16, port 3000)
+npm run build            # Build for production
+npm run lint             # ESLint check
+npm start                # Run production build (PM2 on server)
+npx prisma generate      # Generate Prisma Client
+npx prisma db push       # Push schema changes to DB
+npx tsx prisma/seed.ts   # Seed database with demo data
+```
+
+Useful commands:
+```bash
+npx tsc --noEmit --skipLibCheck   # TypeScript type check
+npx prisma migrate dev             # Create migration (requires working DB)
+npx prisma studio                  # Open Prisma Studio
+```
 
 ## Local Setup
 
@@ -66,188 +68,380 @@ npx tsx prisma/seed.ts
 npm run dev
 ```
 
-Useful commands:
+Local database options:
+- **PGlite** (default dev): `npx @electric-sql/pglite-socket` runs socket server on port 5433
+- **PostgreSQL**: set `DATABASE_URL` to real Postgres instance
 
-```bash
-npm run dev
-npm run build
-npm run lint
-npm start
-npx prisma generate
-npx prisma db push
-npx tsx prisma/seed.ts
+## Architecture Overview
+
+**WeSetup (HACCP-Online)** is a Next.js 16 monolith for electronic HACCP / SanPiN journals at food production facilities. It includes a full dashboard, Telegram Mini App, and TasksFlow integration.
+
+### Project Structure
+
+```
+Wesetup.ru/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/           # Public pages: login, register, invite
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── invite/[token]/page.tsx
+│   │   ├── (dashboard)/       # Protected pages
+│   │   │   ├── dashboard/page.tsx
+│   │   │   ├── journals/page.tsx
+│   │   │   ├── journals/[code]/page.tsx
+│   │   │   ├── journals/[code]/new/page.tsx
+│   │   │   ├── journals/[code]/documents/[docId]/page.tsx
+│   │   │   ├── settings/page.tsx
+│   │   │   ├── settings/users/page.tsx
+│   │   │   ├── settings/schedule/page.tsx
+│   │   │   ├── batches/page.tsx
+│   │   │   ├── capa/page.tsx
+│   │   │   ├── changes/page.tsx
+│   │   │   ├── competencies/page.tsx
+│   │   │   ├── losses/page.tsx
+│   │   │   ├── plans/page.tsx
+│   │   │   ├── reports/page.tsx
+│   │   │   └── settings/integrations/tasksflow/page.tsx
+│   │   ├── (root)/            # ROOT-only platform pages
+│   │   │   ├── root/page.tsx
+│   │   │   ├── root/organizations/page.tsx
+│   │   │   ├── root/telegram-logs/page.tsx
+│   │   │   └── root/blog/page.tsx
+│   │   ├── mini/              # Telegram Mini App
+│   │   │   ├── page.tsx                    # Mini App home
+│   │   │   ├── layout.tsx                  # Mini App shell
+│   │   │   ├── journals/[code]/page.tsx    # Journal entries (cards)
+│   │   │   ├── journals/[code]/new/page.tsx # New entry form
+│   │   │   ├── documents/[id]/page.tsx      # Document journal grid
+│   │   │   └── reports/page.tsx             # Reports list
+│   │   ├── api/               # API routes (App Router)
+│   │   │   ├── auth/[...nextauth]/route.ts   # NextAuth.js
+│   │   │   ├── mini/home/route.ts            # Mini App home data
+│   │   │   ├── mini/journals/[code]/entries/route.ts
+│   │   │   ├── mini/journals/[code]/bulk-copy-yesterday/route.ts
+│   │   │   ├── mini/documents/[id]/entries/route.ts
+│   │   │   ├── journals/route.ts
+│   │   │   ├── journal-documents/route.ts
+│   │   │   ├── integrations/tasksflow/route.ts
+│   │   │   ├── settings/external-token/route.ts
+│   │   │   └── settings/journals/route.ts
+│   │   ├── blog/              # Public blog
+│   │   ├── features/          # Public features pages
+│   │   ├── journals-info/     # Public journal catalog
+│   │   ├── task-fill/         # Task fill page
+│   │   └── equipment-fill/    # Equipment fill page
+│   ├── components/
+│   │   ├── ui/                # shadcn/ui components
+│   │   ├── dashboard/         # Dashboard-specific components
+│   │   ├── journals/          # Journal components
+│   │   │   ├── dynamic-form.tsx        # Universal journal form
+│   │   │   ├── hygiene-document-client.tsx
+│   │   │   └── journal-table.tsx
+│   │   └── landing/           # Landing page sections
+│   ├── lib/
+│   │   ├── db.ts              # Prisma singleton
+│   │   ├── auth.ts            # NextAuth config (JWT strategy)
+│   │   ├── auth-helpers.ts    # requireAuth, requireRole, getActiveOrgId
+│   │   ├── journal-acl.ts     # hasJournalAccess, canWriteJournal (LRU cache)
+│   │   ├── telegram.ts        # sendTelegramMessage, notifyOrganization
+│   │   ├── tasksflow-adapters/ # TasksFlow integration adapters
+│   │   ├── validators.ts      # Zod schemas
+│   │   ├── email.ts           # Email sending (Resend)
+│   │   ├── invite-tokens.ts   # SHA-256 token generation
+│   │   ├── registration.ts    # 6-digit code + bcrypt
+│   │   ├── pdf.ts             # PDF generation
+│   │   └── tuya.ts            # Tuya IoT integration
+│   ├── types/
+│   │   └── next-auth.d.ts     # Extended JWT/session types
+│   ├── content/               # Blog articles (MDX)
+│   └── middleware.ts          # Route protection + org impersonation
+├── prisma/
+│   ├── schema.prisma          # Full Prisma schema (870+ lines)
+│   └── seed.ts                # Demo data seed
+├── public/                    # Static assets, icons
+└── scripts/                   # Utility scripts
 ```
 
-## Secrets and Credentials
+## Detailed File Descriptions
 
-Local / repo:
-- `.env.shared` is used as the shared template
-- production database secrets live on the server `.env`
+### Frontend (src/app/)
 
-Production SSH:
-- Host: `wesetup.ru`
-- User: `wesetupru`
-- Password: `bCQMn~Jy9C-n&9+(`
-- External port: `50222`
-- Local / internal reachable port from current environment: `22`
+#### (dashboard)/journals/[code]/page.tsx
+- Journal detail page (desktop)
+- Shows entries list or document-based table
+- Links to new entry form
 
-Production app:
-- PM2 process: `haccp-online`
-- Internal app port: `3002`
-- Workflow target path: `www/wesetup.ru/app`
-- Resolved server path: `/var/www/wesetupru/data/www/wesetup.ru/app`
+#### (dashboard)/journals/[code]/documents/[docId]/page.tsx
+- Document journal grid (employee × day table)
+- Inline cell editing
+- Used for hygiene logs, temperature checks, etc.
 
-## Deployment
+#### mini/page.tsx
+- Mini App home (SPA entry point)
+- Telegram WebApp auth via `signIn("telegram", ...)`
+- Shows: staff journals / manager summary / all journals list
+- Geo reminders, QR scanner button
 
-Deployment is handled by GitHub Actions.
+#### mini/journals/[code]/page.tsx
+- Mini App journal entries
+- Field-based: card list with "Fill like yesterday" + photo attachments
+- Document-based: list of documents → `/mini/documents/[id]`
+- Fixed bottom "New entry" button
 
-Workflow:
-- file: `.github/workflows/deploy.yml`
-- trigger: push to `master`
+#### mini/journals/[code]/new/page.tsx
+- New entry form inside Mini App
+- Reuses `DynamicForm` with `journalsBasePath="/mini/journals"`
 
-What the deploy workflow does:
-1. Checks out the repo
-2. Writes `.build-sha` and `.build-time`
-3. Creates `deploy.tar`
-4. Uploads it over SSH / SCP using GitHub Secrets
-5. Restores `.env`
-6. Runs `npm install`
-7. Runs `npx prisma generate`
-8. Runs `npx prisma db push`
-9. Runs `npm run build`
-10. Restarts PM2 process `haccp-online`
+#### mini/documents/[id]/page.tsx
+- Document journal grid inside Mini App
+- `EntryCard` with tap-to-edit inline mode
+- No tables — all cards for mobile UX
 
-Deploy exclusions already configured in workflow:
-- `node_modules`
-- `.next`
-- `.git`
-- `.github`
-- `.claude`
-- `.vscode`
-- `_run.py`
-- `_deploy.py`
-- `_seed_remote.py`
-- tarballs
-- `test.txt`
+### Backend (src/app/api/)
 
-Important deploy facts:
-- The deployed app directory is not a git checkout.
-- Do not verify prod with `git status` on the server.
-- Verify prod using `.build-sha`, `.build-time`, PM2, and HTTP checks.
-- Current deploy path on server is under `/var/www/wesetupru/data/...`, not bare `/www/...`.
-- From the current environment, port `50222` returned connection refused, while port `22` worked.
+#### auth/[...nextauth]/route.ts
+- NextAuth.js with JWT strategy
+- Credentials provider (email/password)
+- Telegram provider (Mini App auth)
 
-Useful production checks:
+#### mini/home/route.ts
+- Returns user data, journal templates, obligations
+- Filters by `assignableCodes` vs `allowedCodes` depending on scope
+- Returns mode: "manager" | "staff" | "readonly"
 
-```bash
-# PM2
-plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "pm2 status haccp-online --no-color"
+#### mini/journals/[code]/entries/route.ts
+- GET: entries for a journal (last 7 days)
+- POST: create new entry
 
-# Build markers
-plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "cd /var/www/wesetupru/data/www/wesetup.ru/app && cat .build-sha && cat .build-time"
+#### integrations/tasksflow/route.ts
+- TasksFlow integration settings
+- Sync users, sync tasks
 
-# Local HTTP probe on server
-plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "curl -I -s http://127.0.0.1:3002 | sed -n '1,10p'"
+#### settings/external-token/route.ts
+- External API token management
+
+### Core Library (src/lib/)
+
+#### db.ts
+- Prisma singleton with `$extends` for logging
+
+#### auth.ts / auth-helpers.ts
+- `getActiveOrgId(session)` — returns currently-viewed org
+- `requireAuth()` / `requireRole()` / `requireRoot()`
+- `isImpersonating()` — check if ROOT is acting as another org
+
+#### journal-acl.ts
+- `hasJournalAccess(userId, journalCode)` — LRU-cached (60s)
+- `canWriteJournal()` / `canFinalizeJournal()`
+- `invalidateJournalAcl(userId)` — call after ACL changes
+
+#### telegram.ts
+- `sendTelegramMessage()` with TelegramLog + 429 retry
+- `notifyOrganization()` — bulk send to org subscribers
+- Link-token HMAC verification
+
+#### tasksflow-adapters/index.ts
+- TasksFlow integration data adapters
+
+## Data Flow
+
+### 1. Registration
+```
+/register (3-step wizard)
+  → POST /api/auth/register/request (6-digit email code)
+  → POST /api/auth/register/confirm
+  → Create Organization + manager User + auto-sign-in
 ```
 
-Known current production signals:
-- `haccp-online` is managed by PM2 and has been observed online after deploy
-- app answered `HTTP/1.1 200 OK` on `127.0.0.1:3002`
-- Next.js logs warn about multiple `package-lock.json`
-- this warning is non-fatal, but worth cleaning later
+### 2. Journal Entry (Dashboard)
+```
+/journals/[code]/new
+  → DynamicForm
+  → POST /api/journals
+  → Prisma: JournalEntry.create({ organizationId, data })
+  → redirect /journals/[code]
+```
 
-## Architecture
+### 3. Journal Entry (Mini App)
+```
+/mini/journals/[code]/new
+  → DynamicForm (journalsBasePath="/mini/journals")
+  → POST /api/mini/journals/[code]/entries
+  → router.push(`/mini/journals/${code}`)
+```
 
-Route groups:
-- `(auth)` for public login / register pages
-- `(dashboard)` for protected pages
+### 4. Telegram Notification
+```
+Journal action
+  → notifyOrganization()
+  → sendTelegramMessage()
+  → Telegram Bot API
+  → TelegramLog.create()
+```
 
-Core multi-tenancy rule:
-- all business data is scoped by `organizationId` from the session
-- `session.user.organizationId` is the **home** org, `getActiveOrgId(session)` returns the **currently-viewed** org (different when a ROOT user impersonates a customer). Always use `getActiveOrgId` in server components and API handlers.
+### 5. TasksFlow Sync
+```
+Settings → TasksFlow integration
+  → POST /api/integrations/tasksflow/sync-users
+  → POST /api/integrations/tasksflow/sync-tasks
+  → TasksFlow API (API key auth)
+```
 
-Three-tier access model:
-- **ROOT** (`User.isRoot = true`): platform superadmin, lives in the synthetic `platform` organisation (id `platform`). Sees `/root/*`. Non-root requests to `/root/*` are 404 (via `src/middleware.ts`), not redirected, so existence is not leaked.
-- **Company owner / manager** (`role in {manager, head_chef}` or legacy `owner`/`technologist`): sees every journal + user in their org. Bypasses per-journal ACL.
-- **Employee** (`cook`, `waiter`, or any role when `journalAccessMigrated=true` + no row): only sees journals explicitly granted via `UserJournalAccess`. See `src/lib/journal-acl.ts` for the truth table and 60-second LRU cache.
+## Key Behaviors
+
+### Three-tier Access Model
+- **ROOT** (`User.isRoot = true`): platform superadmin, sees `/root/*`. Synthetic `platform` org.
+- **Company owner / manager** (`role in {manager, head_chef}` or legacy `owner`/`technologist`): sees all journals in org. Bypasses per-journal ACL.
+- **Employee** (`cook`, `waiter`, or any role when `journalAccessMigrated=true` + no row): only sees explicitly granted journals via `UserJournalAccess`.
+
+### Multi-tenancy
+- All business data scoped by `organizationId` from session
+- `getActiveOrgId(session)` returns currently-viewed org (differs when ROOT impersonates)
+- Always use `getActiveOrgId` in server components and API handlers
+
+### Journal Types
+- **Field-based**: `JournalEntry` with JSON `data` field. Flexible form fields.
+- **Document-based**: `JournalDocument` + `JournalDocumentEntry`. Grid (employee × day).
+
+### Mini App Navigation
+- All links use Next.js `Link` with `/mini/*` paths
+- `DynamicForm` receives `journalsBasePath="/mini/journals"` to stay inside Mini App
+- Photos open via inline `PhotoLightbox`, NOT `target="_blank"`
+
+## Path Aliases
+
+```typescript
+@/*          → ./src/*
+```
+
+## Database
+
+PostgreSQL with Prisma ORM. Schema in `prisma/schema.prisma` (870+ lines).
+
+**Key models:**
+- `User` — employees, managers, ROOT
+- `Organization` — multi-tenant scope
+- `JournalTemplate` — journal definitions with JSON `fields`
+- `JournalEntry` — field-based entries
+- `JournalDocument` / `JournalDocumentEntry` — document-based grids
+- `UserJournalAccess` — per-journal ACL
+- `ManagerScope` — manager visibility rules
+- `JournalEntryAttachment` — photo attachments
+- `WorkShift` — shift handover notes
+- `TasksFlowIntegration` / `TasksFlowUserLink` / `TasksFlowTaskLink` — TasksFlow sync
+- `Area` — production areas with lat/lng
+
+**Local dev:**
+- PGlite socket server: `npx @electric-sql/pglite-socket` (port 5433)
+- Prisma may need `?sslmode=disable` for PGlite connection
+
+## Auth
+
+NextAuth.js 4 with JWT strategy.
+- Credentials provider: email + password
+- Telegram provider: Mini App auth via `initData`
+- Session carries: `isRoot`, `actingAsOrganizationId`, `organizationId`
+- Impersonation: ROOT clicks "Войти как X" → `actingAsOrganizationId` in JWT
 
 Roles (legacy-compatible):
 - `owner` / `manager`
 - `technologist` / `head_chef`
 - `operator` / `cook` / `waiter`
 
-Registration + invite:
-- `/register` is a 3-step wizard — details → 6-digit email code (`POST /api/auth/register/request` + `/confirm`) → tariff picker. On confirm we create Organization + manager User + auto-sign-in.
-- Employee invite flow: owner clicks "Пригласить" → `POST /api/users/invite` creates a placeholder User (`isActive=false`, empty `passwordHash`) + `InviteToken` (SHA-256 stored, 7-day TTL) → email with `/invite/<raw>` link → `/invite/[token]` page accepts password and activates.
+## Telegram & Mini App
 
-Impersonation:
-- ROOT clicks "Войти как X" → `POST /api/root/impersonate` writes AuditLog + the client calls `useSession().update({ actingAsOrganizationId })` so the JWT gets the claim. Dashboard shows a red sticky banner with "Выйти" button (`/src/components/dashboard/impersonation-banner.tsx`). No cookie swap.
+- **Bot**: `@wesetupbot`
+- **Webhook**: receives updates from Telegram
+- **Mini App**: opens inside Telegram, auth via `signIn("telegram", ...)`
+- **Link tokens**: HMAC-signed tokens for user-device linking
 
-Common API pattern:
-1. `getServerSession(authOptions)`
-2. role check (`isManagementRole`, `session.user.isRoot`, or `requireRoot()` for platform endpoints)
-3. ACL check via `hasJournalAccess` for journal-bound endpoints
-4. Zod validation
-5. Prisma query (scope by `getActiveOrgId`)
-6. `NextResponse.json()`
+## Deployment
 
-## Key Modules
+Deployment is handled by GitHub Actions (`.github/workflows/deploy.yml`).
 
-Important files in `src/lib/`:
-- `db.ts`: Prisma singleton
-- `auth.ts`: NextAuth config (JWT carries `isRoot`, `actingAsOrganizationId`)
-- `auth-helpers.ts`: `requireAuth()` / `requireRole()` / `requireRoot()` / `getActiveOrgId()` / `isImpersonating()`
-- `journal-acl.ts`: `hasJournalAccess` + `canWriteJournal` + `canFinalizeJournal`, LRU-cached; `invalidateJournalAcl(userId)` on ACL save
-- `invite-tokens.ts`: 32-byte base64url tokens, SHA-256 hash, `buildInviteUrl` helper
-- `registration.ts`: 6-digit code generator + bcrypt compare + TTL config
-- `validators.ts`: Zod schemas
-- `email.ts`: mail sending (`sendVerificationEmail`, `sendInviteTokenEmail`, `sendWelcomeEmail`, alert templates)
-- `telegram.ts`: `sendTelegramMessage` with TelegramLog + 429 retry, `notifyOrganization`, link-token HMAC
-- `tuya.ts`: Tuya integration
-- `pdf.ts`: PDF generation
+Trigger: push to `master`
 
-Required env (for the three-tier model):
-- `PLATFORM_ORG_ID=platform`
-- `ROOT_EMAIL`, `ROOT_PASSWORD_HASH` (seed creates the first root from these; plain `ROOT_PASSWORD` also accepted for dev)
-- `TELEGRAM_BOT_USERNAME`, `TELEGRAM_LINK_TOKEN_SECRET`, `TELEGRAM_WEBHOOK_SECRET`
-- `EMAIL_VERIFICATION_TTL_MIN=10`, `TELEGRAM_LOG_RETENTION_DAYS=30`
+Workflow steps:
+1. Checks out repo
+2. Writes `.build-sha` and `.build-time`
+3. Creates `deploy.tar`
+4. Uploads over SSH/SCP
+5. Restores `.env`
+6. Runs `npm install`, `npx prisma generate`, `npx prisma db push`, `npm run build`
+7. Restarts PM2 process `haccp-online`
 
-## Journal System
+**Production Server:**
+- **URL**: https://wesetup.ru
+- **Path**: `/var/www/wesetupru/data/www/wesetup.ru/app`
+- **PM2 process**: `haccp-online`
+- **Internal port**: `3002`
 
-Journal templates are stored in `JournalTemplate.fields` as JSON arrays.
+**Production SSH:**
+- Host: `wesetup.ru`
+- User: `wesetupru`
+- Password: `bCQMn~Jy9C-n&9+(`
+- External port: `50222`
+- Internal port: `22`
 
-The dynamic journal form supports:
-- text
-- number
-- date
-- boolean
-- select
-- equipment
-- employee
+Useful production checks:
+```bash
+# PM2 status
+plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "pm2 status haccp-online --no-color"
 
-There is now a separate document-based journal layer for grid journals:
-- `JournalDocument`
-- `JournalDocumentEntry`
+# Build markers
+plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "cd /var/www/wesetupru/data/www/wesetup.ru/app && cat .build-sha && cat .build-time"
 
-This is used for employee-by-day printable journals such as hygiene logs.
+# Local HTTP probe
+plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "curl -I -s http://127.0.0.1:3002 | sed -n '1,10p'"
+```
 
-Relevant files:
-- `src/app/api/journal-documents/route.ts`
-- `src/app/api/journal-documents/[id]/route.ts`
-- `src/app/api/journal-documents/[id]/entries/route.ts`
-- `src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx`
-- `src/components/journals/hygiene-document-client.tsx`
-- `src/lib/hygiene-document.ts`
+## Known Issues & Workarounds
 
-## Skills and agents discovery
+### Prisma + PGlite connection (local dev)
+- PGlite runs on port 5433 but Prisma may fail with `P1001 Can't reach database server`
+- Try adding `?sslmode=disable` to `DATABASE_URL`
+- Or use `npx prisma db push` instead of `migrate dev` (PGlite has migration limitations)
+- Alternative: run real PostgreSQL via Docker
+
+### Next.js dev server stability
+- Background tasks may timeout after 900s
+- If port 3000 is occupied, kill the old process and restart `npm run dev`
+
+### Multiple package-lock.json warning
+- Next.js build warns about multiple `package-lock.json`
+- Non-fatal, but worth cleaning later
+
+## Security Features
+
+- **NextAuth.js**: JWT with httpOnly cookies, secure in production
+- **ACL**: per-journal access control with 60-second LRU cache
+- **Invite tokens**: 32-byte base64url, SHA-256 hash stored, 7-day TTL
+- **Registration codes**: 6-digit, bcrypt hashed, 10-min TTL
+- **Telegram link tokens**: HMAC-signed
+- **Rate limiting**: built into Next.js API routes
+
+## Production Features
+
+- **PM2**: process manager with auto-restart
+- **GitHub Actions**: auto-deploy on push to master
+- **Health check**: app answers HTTP 200 on `127.0.0.1:3002`
+- **Build markers**: `.build-sha` and `.build-time` for verification
+- **Telegram logs**: auto-cleanup after 30 days
+
+## Skills and Agents Discovery
 
 At the start of every session, check what's available before acting:
 
-- **Skills** — all `.claude/skills/*` are auto-discovered by the Skill tool. Relevant namespaces in this project: `wesetup-design` (our design system; invoke before any UI edit), `karpathy-guidelines` (coding discipline), `anthropic-*` (claude-api, mcp-builder, skill-creator, webapp-testing, frontend-design), `everything-*` (backend/frontend-patterns, tdd-workflow, security-review, coding-standards, continuous-learning, strategic-compact, verification-loop).
-- **Agents** — all `.claude/agents/*.md` are available via the Agent tool. 140 VoltAgent specialists under bare names (`backend-developer`, `frontend-developer`, `api-designer`, `security-auditor`, etc.) plus 9 `everything-*` prefixed agents (code-reviewer, tdd-guide, refactor-cleaner, etc.) plus 4 `task-*` for the proof-loop.
-- **References** — `.claude/references/prompt-guide/` (ThamJiaHe prompt engineering reference), `.claude/references/awesome-claude-code/` (curated index).
+- **Skills** — all `.claude/skills/*` are auto-discovered by the Skill tool. Relevant namespaces:
+  - `wesetup-design` — our design system (invoke before any UI edit)
+  - `karpathy-guidelines` — coding discipline
+  - `anthropic-*` — claude-api, mcp-builder, skill-creator, webapp-testing, frontend-design
+  - `everything-*` — backend/frontend-patterns, tdd-workflow, security-review, coding-standards
+- **Agents** — all `.claude/agents/*.md` are available via the Agent tool. 140 VoltAgent specialists plus task-proof-loop agents.
+- **References** — `.claude/references/prompt-guide/`, `.claude/references/awesome-claude-code/`
 
-Rule: **invoke relevant skills before acting, not after.** `wesetup-design` before any `.tsx` change on a visible surface. `karpathy-guidelines` before a non-trivial refactor. For new features touching existing code, invoke `superpowers:brainstorming` first to lock scope. Don't name-check skills without using them — if the task matches a skill's description, call it.
+Rule: **invoke relevant skills before acting, not after.** `wesetup-design` before any `.tsx` change on a visible surface. `karpathy-guidelines` before a non-trivial refactor. For new features touching existing code, invoke `superpowers:brainstorming` first to lock scope.
 
 ## Conventions
 
@@ -258,6 +452,47 @@ Rule: **invoke relevant skills before acting, not after.** `wesetup-design` befo
 - Path alias: `@/*` -> `./src/*`
 - Prisma changes should be deployed with `npx prisma db push`
 - The deploy workflow already runs `prisma db push` on the server
+
+## Testing
+
+```bash
+npx tsc --noEmit --skipLibCheck   # TypeScript type check
+npm run lint                       # ESLint
+```
+
+## Required Env Vars
+
+```bash
+# Database
+DATABASE_URL="postgresql://..."
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="..."
+
+# ROOT
+PLATFORM_ORG_ID="platform"
+ROOT_EMAIL="..."
+ROOT_PASSWORD_HASH="..."
+ROOT_PASSWORD="..."  # dev fallback
+
+# Telegram
+TELEGRAM_BOT_USERNAME="..."
+TELEGRAM_BOT_TOKEN="..."
+TELEGRAM_LINK_TOKEN_SECRET="..."
+TELEGRAM_WEBHOOK_SECRET="..."
+
+# Email
+RESEND_API_KEY="..."
+EMAIL_VERIFICATION_TTL_MIN="10"
+
+# TasksFlow
+TASKSFLOW_API_URL="..."
+TASKSFLOW_API_KEY="..."
+
+# Other
+TELEGRAM_LOG_RETENTION_DAYS="30"
+```
 
 <!-- repo-task-proof-loop:start -->
 ## Repo task proof loop
