@@ -63,6 +63,8 @@ jobs:
             --exclude=.claude \
             --exclude=.vscode \
             --exclude=.agent \
+            --exclude=journals \
+            --exclude=tmp-source-journals \
             --exclude=_run.py \
             --exclude=_deploy.py \
             --exclude=_seed_remote.py \
@@ -114,7 +116,7 @@ jobs:
             # extraction so renamed/deleted files (e.g. src/app/(mini) moved
             # to src/app/mini) don't leave orphans that collide with the new
             # tree and break Next.js route resolution.
-            rm -rf src scripts prisma public .github docs
+            rm -rf src scripts prisma public .github docs .agent journals tmp-source-journals
 
             echo "=== Extracting tarball ==="
             tar xf deploy.tar && rm deploy.tar

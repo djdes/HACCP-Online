@@ -63,6 +63,8 @@ $DRY_RUN tar cf deploy.tar \
   --exclude=.claude \
   --exclude=.vscode \
   --exclude=.agent \
+  --exclude=journals \
+  --exclude=tmp-source-journals \
   --exclude=_run.py \
   --exclude=_deploy.py \
   --exclude=_seed_remote.py \
@@ -85,7 +87,7 @@ echo "==> Uploading tarball"
 $DRY_RUN "${PSCP[@]}" deploy.tar "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$DEPLOY_APP_DIR/deploy.tar"
 
 echo "==> Extracting + restoring .env"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && rm -rf src scripts prisma public .github docs && tar xf deploy.tar && rm deploy.tar && [ -f .env.bak ] && cp .env.bak .env || true"
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && rm -rf src scripts prisma public .github docs .agent journals tmp-source-journals && tar xf deploy.tar && rm deploy.tar && [ -f .env.bak ] && cp .env.bak .env || true"
 
 echo "==> Installing deps + building on prod host"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; rm -rf node_modules .next && npm ci 2>&1 | tail -5 && npx prisma generate 2>&1 | tail -5 && npm run build 2>&1 | tail -10"
