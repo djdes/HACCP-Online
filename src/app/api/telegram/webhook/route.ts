@@ -54,11 +54,19 @@ export async function POST(req: NextRequest) {
   // мы снимаем блок: Node сервер (PM2) продолжает выполнять promise
   // после того, как response уже улетел в сеть.
   void (async () => {
+    const uid =
+      (update as { update_id?: number } | null)?.update_id ?? "?";
     try {
+      console.log(`[tg-webhook] update_id=${uid} ensureBotInit starting`);
       await ensureBotInit(bot);
+      console.log(`[tg-webhook] update_id=${uid} ensureBotInit OK, handleUpdate…`);
       await bot.handleUpdate(update as Parameters<typeof bot.handleUpdate>[0]);
+      console.log(`[tg-webhook] update_id=${uid} handleUpdate done`);
     } catch (err) {
-      console.error("Telegram webhook handler failed", err);
+      console.error(
+        `[tg-webhook] update_id=${uid} handler failed:`,
+        err instanceof Error ? `${err.name}: ${err.message}` : err
+      );
     }
   })();
 
