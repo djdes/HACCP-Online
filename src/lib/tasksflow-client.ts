@@ -244,16 +244,25 @@ export type TasksFlowClientType = TasksFlowClient;
 export function normalizeRussianPhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
+
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
     return `+7${digits.slice(1)}`;
   }
+
+  // TasksFlow historically accepts both +7XXXXXXXXX and +7XXXXXXXXXX.
+  // If the user already typed the leading 7 with only 9 subscriber digits,
+  // keep that country code instead of producing a broken +77... number.
+  if (digits.length === 10 && digits.startsWith("7")) {
+    return `+7${digits.slice(1)}`;
+  }
+
   if (digits.length === 10) {
     return `+7${digits}`;
   }
-  // Already-normalized "+7XXXXXXXXXX" passes through (we stripped to digits
-  // then re-prefixed).
-  if (digits.length === 11 && digits.startsWith("7")) {
-    return `+7${digits.slice(1)}`;
+
+  if (digits.length === 9) {
+    return `+7${digits}`;
   }
+
   return null;
 }
