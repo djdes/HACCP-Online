@@ -200,7 +200,7 @@ export default async function SettingsPage() {
               "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
           }}
         />
-        <div className="relative z-10 p-8 md:p-10">
+        <div className="relative z-10 p-5 sm:p-8 md:p-10">
           <div className="flex items-start gap-4">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
               <Settings2 className="size-6" />

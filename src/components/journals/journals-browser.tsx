@@ -240,7 +240,7 @@ export function JournalsBrowser({
             maskImage: "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
           }}
         />
-        <div className="relative z-10 p-8 md:p-10">
+        <div className="relative z-10 p-5 sm:p-8 md:p-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
