@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
+import { PhotoLightbox } from "../../_components/photo-lightbox";
 
 type EntryItem = {
   id: string;
@@ -266,6 +267,7 @@ function EntryRow({ entry }: { entry: EntryItem }) {
   const [photos, setPhotos] = useState<{ url: string; filename: string }[]>(
     entry.attachments ?? []
   );
+  const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
 
   const handleUploaded = (photo: PhotoFile) => {
     setPhotos((prev) => [...prev, { url: photo.url, filename: photo.filename }]);
@@ -287,11 +289,9 @@ function EntryRow({ entry }: { entry: EntryItem }) {
       {photos.length > 0 ? (
         <div className="mt-2 flex gap-2 overflow-x-auto">
           {photos.map((p, i) => (
-            <a
+            <button
               key={i}
-              href={p.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => setLightbox(p)}
               className="shrink-0"
             >
               <img
@@ -300,13 +300,20 @@ function EntryRow({ entry }: { entry: EntryItem }) {
                 className="h-16 w-16 rounded-lg object-cover"
                 loading="lazy"
               />
-            </a>
+            </button>
           ))}
         </div>
       ) : null}
       <div className="mt-2">
         <PhotoUploader entryId={entry.id} onUploaded={handleUploaded} />
       </div>
+      {lightbox ? (
+        <PhotoLightbox
+          url={lightbox.url}
+          filename={lightbox.filename}
+          onClose={() => setLightbox(null)}
+        />
+      ) : null}
     </div>
   );
 }
