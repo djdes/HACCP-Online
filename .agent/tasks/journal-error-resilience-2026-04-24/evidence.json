@@ -1,0 +1,31 @@
+{
+  "taskId": "journal-error-resilience-2026-04-24",
+  "verdict": "PASS",
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": "JournalDocumentPage only enables TasksFlow auto-poll when integration encryption is configured."
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": "TasksFlow sync helpers catch decrypt/sync failures and return safe reports."
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": "Cleaning journal renders a non-blocking toast when TasksFlow sync reports errors."
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": "Global error boundary auto-reloads once for chunk/server-action/client-manifest deployment desync errors."
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": "Targeted eslint, tsc --noEmit, npm run build, crypto-missing smoke, and production journal smoke passed."
+    }
+  ]
+}

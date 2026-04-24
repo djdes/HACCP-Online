@@ -191,7 +191,9 @@ export function CleaningDocumentClient(props: Props) {
         router.refresh();
       }
       if (!opts?.silent) {
-        if (data.newlyCompleted > 0) {
+        if (data.errors > 0) {
+          toast.error("TasksFlow временно недоступен. Журнал продолжает работать.");
+        } else if (data.newlyCompleted > 0) {
           toast.success(
             `Из TasksFlow подтянуто выполненных: ${data.newlyCompleted}`
           );

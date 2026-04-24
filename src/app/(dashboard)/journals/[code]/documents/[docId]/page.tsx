@@ -172,6 +172,7 @@ import {
 } from "@/lib/equipment-cleaning-document";
 import { ComplaintDocumentClient } from "@/components/journals/complaint-document-client";
 import { COMPLAINT_REGISTER_TEMPLATE_CODE, normalizeComplaintConfig } from "@/lib/complaint-document";
+import { isIntegrationCryptoConfigured } from "@/lib/integration-crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -241,7 +242,9 @@ export default async function JournalDocumentPage({
         select: { enabled: true },
       }),
     ]);
-  const hasTasksFlowIntegration = Boolean(tasksFlowIntegration?.enabled);
+  const hasTasksFlowIntegration = Boolean(
+    tasksFlowIntegration?.enabled && isIntegrationCryptoConfigured()
+  );
 
   const demoEmployees = getHygieneDemoTeamUsers(employees);
   const enrichedEmployees =

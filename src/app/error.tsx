@@ -4,6 +4,21 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, RotateCcw, TriangleAlert } from "lucide-react";
 
+const DEPLOYMENT_DESYNC_PATTERNS = [
+  "ChunkLoadError",
+  "Failed to load chunk",
+  "Failed to find Server Action",
+  "older or newer deployment",
+  "React Client Manifest",
+  "client reference manifest",
+  "Could not find the module",
+];
+
+function isDeploymentDesyncError(error: Error & { digest?: string }) {
+  const text = `${error.name} ${error.message} ${error.digest ?? ""}`;
+  return DEPLOYMENT_DESYNC_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
 /**
  * Error boundary для всех роутов внутри приложения. Перехватывает
  * server/client ошибки в рендере и показывает локализованную карточку
@@ -20,11 +35,58 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const shouldReload = isDeploymentDesyncError(error);
+  const buildId = process.env.NEXT_PUBLIC_BUILD_ID || "dev";
+  const errorId = error.digest || error.message.slice(0, 120);
+  const reloadStorageKey = `wesetup:error-reload:${buildId}:${errorId}`;
+  const canAutoReload =
+    shouldReload &&
+    typeof window !== "undefined" &&
+    (() => {
+      try {
+        return window.sessionStorage.getItem(reloadStorageKey) !== "1";
+      } catch {
+        return true;
+      }
+    })();
+
   useEffect(() => {
     if (typeof console !== "undefined") {
       console.error("[app-error]", error);
     }
   }, [error]);
+
+  useEffect(() => {
+    if (!canAutoReload || typeof window === "undefined") return;
+
+    try {
+      window.sessionStorage.setItem(reloadStorageKey, "1");
+    } catch {
+      // If sessionStorage is blocked, a single hard reload is still safer
+      // than leaving the user on a stale deployment/chunk mismatch screen.
+    }
+
+    window.location.reload();
+  }, [canAutoReload, reloadStorageKey]);
+
+  if (canAutoReload) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fafbff] px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl border border-[#ececf4] bg-white p-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
+            <RotateCcw className="size-7 animate-spin" />
+          </div>
+          <h1 className="mt-6 text-[clamp(1.5rem,4vw+1rem,2.25rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Обновляем приложение
+          </h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-[#6f7282]">
+            После деплоя браузер мог держать старый кусок интерфейса. Сейчас
+            загрузим свежую версию автоматически.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#fafbff] px-4 py-10">

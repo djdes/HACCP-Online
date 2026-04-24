@@ -10,6 +10,7 @@
  */
 import { db } from "@/lib/db";
 import { TasksFlowError, tasksflowClientFor } from "@/lib/tasksflow-client";
+import { getIntegrationCryptoErrorMessage } from "@/lib/integration-crypto";
 import { normalizePhone } from "@/lib/phone";
 
 type Args = {
@@ -42,7 +43,15 @@ export async function tryAutolinkTasksflowByPhone(args: Args): Promise<Result> {
     return { ok: true, linked: true, reason: "already-linked" };
   }
 
-  const client = tasksflowClientFor(integration);
+  let client: ReturnType<typeof tasksflowClientFor>;
+  try {
+    client = tasksflowClientFor(integration);
+  } catch (err) {
+    return {
+      ok: false,
+      reason: getIntegrationCryptoErrorMessage(err),
+    };
+  }
   let tfUsers;
   try {
     tfUsers = await client.listUsers();

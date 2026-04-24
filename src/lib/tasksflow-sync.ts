@@ -21,12 +21,25 @@ import {
   type TasksFlowTask,
   tasksflowClientFor,
 } from "@/lib/tasksflow-client";
+import { getIntegrationCryptoErrorMessage } from "@/lib/integration-crypto";
 import {
   getAdapter,
   listAdapters,
   type JournalSyncReport,
 } from "@/lib/tasksflow-adapters";
 import { EMPTY_SYNC_REPORT } from "@/lib/tasksflow-adapters/types";
+
+function failedSyncReport(error: unknown): JournalSyncReport {
+  return {
+    ...EMPTY_SYNC_REPORT,
+    errors: [
+      {
+        rowKey: "*",
+        message: getIntegrationCryptoErrorMessage(error),
+      },
+    ],
+  };
+}
 
 /**
  * Sync a single document to TasksFlow. Routes to the registered
@@ -52,10 +65,16 @@ export async function syncDocumentToTasksFlow(params: {
   });
   if (!integration || !integration.enabled) return EMPTY_SYNC_REPORT;
 
-  const report = await adapter.syncDocument({
-    integration,
-    documentId,
-  });
+  let report: JournalSyncReport;
+  try {
+    report = await adapter.syncDocument({
+      integration,
+      documentId,
+    });
+  } catch (error) {
+    console.error("[tasksflow-sync] document sync failed", error);
+    return failedSyncReport(error);
+  }
   await db.tasksFlowIntegration.update({
     where: { id: integration.id },
     data: { lastSyncAt: new Date() },
@@ -101,7 +120,18 @@ export async function pullCompletionsForOrganization(params: {
     return { checked: 0, newlyCompleted: 0, reopened: 0, errors: 0 };
   }
 
-  const client = tasksflowClientFor(integration);
+  let client: ReturnType<typeof tasksflowClientFor>;
+  try {
+    client = tasksflowClientFor(integration);
+  } catch (error) {
+    console.error("[tasksflow-sync] pull skipped", error);
+    return {
+      checked: taskLinks.length,
+      newlyCompleted: 0,
+      reopened: 0,
+      errors: Math.max(1, taskLinks.length),
+    };
+  }
   let newlyCompleted = 0;
   let reopened = 0;
   let errors = 0;

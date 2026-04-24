@@ -25,6 +25,9 @@ export async function POST() {
   const orgId = getActiveOrgId(session);
   const summary = await pullCompletionsForOrganization({
     organizationId: orgId,
+  }).catch((error) => {
+    console.error("[tasksflow-sync] completion pull failed", error);
+    return { checked: 0, newlyCompleted: 0, reopened: 0, errors: 1 };
   });
   return NextResponse.json(summary);
 }

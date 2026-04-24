@@ -31,6 +31,21 @@ function getKey(): Buffer {
   return crypto.createHash("sha256").update(raw, "utf8").digest();
 }
 
+export function isIntegrationCryptoConfigured(): boolean {
+  try {
+    getKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getIntegrationCryptoErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : "Integration encryption is not configured";
+}
+
 export function encryptSecret(plaintext: string): string {
   const key = getKey();
   const iv = crypto.randomBytes(IV_BYTES);
