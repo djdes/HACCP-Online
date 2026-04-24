@@ -41,7 +41,7 @@ export default async function BlogListPage() {
 
       {/* HERO */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-6 py-16 text-white md:px-12 md:py-20">
+        <div className="relative overflow-hidden rounded-3xl bg-[#0b1024] px-5 py-10 text-white sm:px-6 sm:py-14 md:px-12 md:py-20">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
             <div className="absolute -bottom-32 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
