@@ -174,10 +174,28 @@ export function TasksFlowSettingsClient({
         const data = await readApiJson<{
           integration: Integration;
           probedUserCount?: number;
+          userSync?: SyncResponse;
         }>(response, "Не удалось подключить TasksFlow");
-        toast.success(
-          `TasksFlow подключён. Найдено ${data.probedUserCount ?? 0} сотрудников.`
-        );
+        const sync = data.userSync;
+        if (sync) {
+          const t = sync.totals;
+          const failures = Array.isArray(sync.failures) ? sync.failures : [];
+          setLastFailures(failures);
+          const summary =
+            `TasksFlow подключён. Связано ${t.linked} из ${t.wesetupUsers}. ` +
+            `Создано в TasksFlow: ${t.createdRemote}, без телефона: ${t.withoutPhone}, не связаны: ${t.withoutMatch}.`;
+          if (failures.length > 0) {
+            toast.warning(
+              summary + ` Не удалось создать ${failures.length} — см. детали ниже.`
+            );
+          } else {
+            toast.success(summary);
+          }
+        } else {
+          toast.success(
+            `TasksFlow подключён. Найдено ${data.probedUserCount ?? 0} сотрудников.`
+          );
+        }
         // Re-fetch the full integration via status endpoint so the UI
         // gets all the derived fields (companyId, lastSyncAt, counts).
         const status = await fetch("/api/integrations/tasksflow", {

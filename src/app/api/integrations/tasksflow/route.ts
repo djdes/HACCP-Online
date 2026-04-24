@@ -13,6 +13,7 @@ import {
   type TasksFlowUser,
   tasksflowClient,
 } from "@/lib/tasksflow-client";
+import { syncTasksflowUsers } from "@/lib/tasksflow-user-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -139,9 +140,10 @@ async function connectIntegration(request: Request) {
 
   // Strip trailing slash so probe uses the same form we'll persist.
   const baseUrl = payload.baseUrl.replace(/\/+$/, "");
+  const client = tasksflowClient(baseUrl, payload.apiKey);
   let probeUsers: TasksFlowUser[];
   try {
-    probeUsers = await tasksflowClient(baseUrl, payload.apiKey).ping();
+    probeUsers = await client.ping();
   } catch (err) {
     if (err instanceof TasksFlowError) {
       const status = err.status === 0 ? 502 : err.status;
@@ -213,9 +215,69 @@ async function connectIntegration(request: Request) {
     },
   });
 
+  const [wesetupUsers, existingLinks] = await Promise.all([
+    db.user.findMany({
+      where: { organizationId: orgId, isActive: true, archivedAt: null },
+      select: { id: true, name: true, phone: true, role: true },
+    }),
+    db.tasksFlowUserLink.findMany({
+      where: { integrationId: integration.id },
+      select: { id: true, wesetupUserId: true, source: true },
+    }),
+  ]);
+
+  const userSync = await syncTasksflowUsers({
+    integrationId: integration.id,
+    wesetupUsers,
+    existingLinks,
+    remoteUsers: probeUsers,
+    createRemoteUser: async ({ name, phone }) =>
+      client.createUser({
+        phone,
+        ...(name ? { name } : {}),
+      }),
+    upsertLink: async ({
+      integrationId,
+      wesetupUserId,
+      phone,
+      tasksflowUserId,
+      tasksflowWorkerId,
+      source,
+    }) => {
+      await db.tasksFlowUserLink.upsert({
+        where: {
+          integrationId_wesetupUserId: {
+            integrationId,
+            wesetupUserId,
+          },
+        },
+        create: {
+          integrationId,
+          wesetupUserId,
+          phone,
+          tasksflowUserId,
+          tasksflowWorkerId,
+          source,
+        },
+        update: {
+          phone,
+          tasksflowUserId,
+          tasksflowWorkerId,
+          source,
+        },
+      });
+    },
+  });
+
+  await db.tasksFlowIntegration.update({
+    where: { id: integration.id },
+    data: { lastSyncAt: new Date() },
+  });
+
   return NextResponse.json({
     integration,
     probedUserCount: probeUsers.length,
+    userSync,
   });
 }
 

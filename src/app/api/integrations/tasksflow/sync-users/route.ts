@@ -44,7 +44,7 @@ export async function POST() {
   }
 
   const wesetupUsers = await db.user.findMany({
-    where: { organizationId: orgId, isActive: true },
+    where: { organizationId: orgId, isActive: true, archivedAt: null },
     select: { id: true, name: true, phone: true, role: true },
   });
 
