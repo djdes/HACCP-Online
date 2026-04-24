@@ -128,25 +128,38 @@ jobs:
             # "Cannot find module 'next/dist/compiled/cookie'" desync after
             # npm ci replaces packages referenced by the bundled CI build.
             [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true
-            rm -rf node_modules .next
-            npm ci 2>&1 | tail -5
+            # npm ci падает с ENOTEMPTY когда прошлый build оставил файлы
+            # в node_modules/*/lib-vendor — стараемся вычистить жёстко.
+            # Второй rm-rf покрывает race если первый упал посередине.
+            rm -rf node_modules .next node_modules/.cache 2>/dev/null || true
+            sleep 1
+            rm -rf node_modules .next 2>/dev/null || true
+            npm ci --no-audit --no-fund 2>&1 | tail -5 || (
+              echo "npm ci failed, retrying after deeper clean" && \
+              rm -rf node_modules ~/.npm/_cacache && \
+              npm ci --no-audit --no-fund 2>&1 | tail -5
+            )
 
             echo "=== Generating Prisma client ==="
             npx prisma generate 2>&1 | tail -5
 
             echo "=== Building Next.js on prod ==="
-            # Build on the same host that installed node_modules so paths
-            # inside .next always resolve to the freshly-installed packages.
+            # Build на том же хосте, где устанавливались node_modules,
+            # чтобы пути внутри .next всегда резолвились в свежие пакеты.
             npm run build 2>&1 | tail -10
 
             echo "=== Pushing schema to DB ==="
+            # prisma db push зависит от `dotenv/config` в prisma.config.ts.
+            # В node_modules он есть, но иногда резолвер prisma его не
+            # находит если запустить `npx` без предварительной подгрузки
+            # env. Заранее экспортируем переменные из .env.
+            if [ -f .env ]; then
+              set -a; . ./.env; set +a
+            fi
             npx prisma db push 2>&1 | tail -5
 
             echo "=== Seeding journal templates ==="
             if [ -f .env ]; then
-              set -a
-              . ./.env
-              set +a
               npx tsx prisma/seed.ts 2>&1 | tail -20
               echo "=== Seeding job positions (idempotent) ==="
               npx tsx prisma/seed-job-positions.ts 2>&1 | tail -5

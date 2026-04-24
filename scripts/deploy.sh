@@ -90,13 +90,15 @@ echo "==> Extracting + restoring .env"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && rm -rf src scripts prisma public .github docs .agent journals tmp-source-journals && tar xf deploy.tar && rm deploy.tar && [ -f .env.bak ] && cp .env.bak .env || true"
 
 echo "==> Installing deps + building on prod host"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; rm -rf node_modules .next && npm ci 2>&1 | tail -5 && npx prisma generate 2>&1 | tail -5 && npm run build 2>&1 | tail -10"
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; rm -rf node_modules .next node_modules/.cache 2>/dev/null || true; sleep 1; rm -rf node_modules .next 2>/dev/null || true; npm ci --no-audit --no-fund 2>&1 | tail -5 || (echo 'retry after deep clean' && rm -rf node_modules ~/.npm/_cacache && npm ci --no-audit --no-fund 2>&1 | tail -5); npx prisma generate 2>&1 | tail -5 && npm run build 2>&1 | tail -10"
 
 echo "==> Running prisma db push + seeds"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; npx prisma db push 2>&1 | tail -5 && set -a && . ./.env && set +a && npx tsx prisma/seed.ts 2>&1 | tail -5"
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; [ -f .env ] && (set -a && . ./.env && set +a); npx prisma db push 2>&1 | tail -5 && npx tsx prisma/seed.ts 2>&1 | tail -5"
 
 echo "==> Restarting PM2"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; npx pm2 restart haccp-online --update-env 2>&1 | tail -3 && (npx pm2 delete haccp-telegram-poller 2>/dev/null || true) && npx pm2 save --force 2>&1 | tail -2"
+# Перед restart — удаляем старый процесс (мог быть запущен с `npm start`
+# и слушать :3000 вместо :3002, из-за чего new start падает EADDRINUSE).
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; (npx pm2 delete haccp-online 2>/dev/null || true) && npx pm2 start 'npx next start -p 3002' --name haccp-online --cwd \"\$(pwd)\" --update-env 2>&1 | tail -3 && (npx pm2 delete haccp-telegram-poller 2>/dev/null || true) && npx pm2 save --force 2>&1 | tail -2"
 
 echo "==> Probing HTTP"
 sleep 3
