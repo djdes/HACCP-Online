@@ -45,12 +45,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  try {
-    await ensureBotInit(bot);
-    await bot.handleUpdate(update as Parameters<typeof bot.handleUpdate>[0]);
-  } catch (err) {
-    console.error("Telegram webhook handler failed", err);
-  }
+  // Fire-and-forget: отвечаем 200 сразу, обработку пускаем в фоне.
+  // Telegram ждёт ответа ~10 секунд; `ensureBotInit` на cold-start дёргает
+  // setMyCommands + setChatMenuButton — два внешних вызова в Telegram
+  // API, которые вместе с `bot.handleUpdate()` и сетевой задержкой легко
+  // превышают таймаут → «Connection timed out» + pending_update_count
+  // растёт, на клиенте видно 503 Tunnel Unavailable. Отдавая 200 сразу,
+  // мы снимаем блок: Node сервер (PM2) продолжает выполнять promise
+  // после того, как response уже улетел в сеть.
+  void (async () => {
+    try {
+      await ensureBotInit(bot);
+      await bot.handleUpdate(update as Parameters<typeof bot.handleUpdate>[0]);
+    } catch (err) {
+      console.error("Telegram webhook handler failed", err);
+    }
+  })();
 
   return NextResponse.json({ ok: true });
 }
