@@ -25,7 +25,6 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
-import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { getWeeklyTails } from "@/lib/weekly-tails";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
@@ -190,25 +189,8 @@ export default async function DashboardPage() {
   });
   const hasTasksflowIntegration = Boolean(tfIntegration);
 
-  // Какие templates реально ведутся (есть активный doc, покрывающий
-  // сегодня). Нужен чтобы отфильтровать compliance-ring: показывать
-  // только журналы, которые admin уже запустил — остальные «не
-  // настроены», они не должны ни зеленеть, ни красниться.
-  const activeTemplateIds = new Set<string>(
-    (
-      await db.journalDocument.findMany({
-        where: {
-          organizationId,
-          status: "active",
-          dateFrom: { lte: now },
-          dateTo: { gte: now },
-        },
-        select: { templateId: true },
-        distinct: ["templateId"],
-      })
-    ).map((d) => d.templateId)
-  );
-
+  // Selected journal set comes from organization settings:
+  // active templates minus disabled journal codes.
   const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
 
   const [filledTodayIds, weeklyTails] = await Promise.all([
@@ -216,27 +198,20 @@ export default async function DashboardPage() {
       organizationId,
       now,
       templates.map((t) => ({ id: t.id, code: t.code })),
-      disabledCodes
+      disabledCodes,
+      { treatAperiodicAsFilled: false }
     ),
     getWeeklyTails(organizationId, now, 3),
   ]);
 
   const totalTodayEntries = todayEntries + todayDocumentEntries;
 
-  // Compliance ring показывает только MANDATORY + ENABLED + DAILY
-  // (ежедневные/конфиг-ежедневные) + «реально ведётся». Aperiodic
-  // журналы (годовые, событийные — медкнижки, аудит, авария) НЕ
-  // попадают в знаменатель: у них нет понятия «готовность на
-  // сегодня», и включение их ломало цифру — после bulk-create 25
-  // журналов ring прыгал на 70%, хотя реально ничего не заполняли.
-  const mandatoryEnabledTemplates = templates.filter(
-    (t) =>
-      (t.isMandatorySanpin || t.isMandatoryHaccp) &&
-      !disabledCodes.has(t.code) &&
-      activeTemplateIds.has(t.id) &&
-      ALL_DAILY_JOURNAL_CODES.has(t.code)
+  // Treat every enabled journal as required for today. This keeps the
+  // dashboard and the TasksFlow fan-out on the same selected count.
+  const selectedEnabledTemplates = templates.filter(
+    (t) => !disabledCodes.has(t.code)
   );
-  const complianceItems = mandatoryEnabledTemplates.map((t) => ({
+  const complianceItems = selectedEnabledTemplates.map((t) => ({
     id: t.id,
     name: t.name,
     code: t.code,

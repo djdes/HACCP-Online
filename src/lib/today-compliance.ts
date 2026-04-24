@@ -404,12 +404,18 @@ function rollupConfigDocumentForDay(
  * (DAILY_JOURNAL_CODES) or inline config rows (CONFIG_DAILY_CODES)
  * — see module-level docstring for the exact rules.
  */
+export type TemplatesFilledTodayOptions = {
+  treatAperiodicAsFilled?: boolean;
+};
+
 export async function getTemplatesFilledToday(
   organizationId: string,
   now: Date = new Date(),
   allTemplates?: Array<{ id: string; code: string }>,
-  disabledCodes?: Set<string>
+  disabledCodes?: Set<string>,
+  options: TemplatesFilledTodayOptions = {}
 ): Promise<Set<string>> {
+  const treatAperiodicAsFilled = options.treatAperiodicAsFilled ?? true;
   const todayStart = utcDayStart(now);
   const todayEnd = new Date(todayStart);
   todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
@@ -460,7 +466,7 @@ export async function getTemplatesFilledToday(
     );
   }
 
-  if (allTemplates) {
+  if (allTemplates && treatAperiodicAsFilled) {
     for (const tpl of allTemplates) {
       if (disabledCodes?.has(tpl.code)) {
         filled.add(tpl.id);
@@ -476,14 +482,23 @@ export async function getTemplatesFilledToday(
   }
 
   const todayKey = todayStart.toISOString().slice(0, 10);
+  const eligibleTemplateCodes = allTemplates
+    ? new Set(
+        allTemplates
+          .filter((tpl) => !disabledCodes?.has(tpl.code))
+          .map((tpl) => tpl.code)
+      )
+    : null;
+  const isEligibleDocument = (doc: (typeof activeDocuments)[number]) =>
+    !eligibleTemplateCodes || eligibleTemplateCodes.has(doc.template.code);
 
   // Config-stored daily journals (cleaning / finished_product /
   // perishable_rejection). «Начат сегодня» = хотя бы одна строка с
   // datom = today в config.rows[] / matrix. Это relaxed-режим —
   // менеджер просто хочет видеть зелёный, когда сотрудник уже
   // сделал первую запись.
-  const configDocs = activeDocuments.filter((doc) =>
-    CONFIG_DAILY_CODES.has(doc.template.code)
+  const configDocs = activeDocuments.filter(
+    (doc) => isEligibleDocument(doc) && CONFIG_DAILY_CODES.has(doc.template.code)
   );
   const configDocsByTemplate = new Map<string, boolean[]>();
   for (const doc of configDocs) {
@@ -507,8 +522,11 @@ export async function getTemplatesFilledToday(
     }
   }
 
-  const dailyDocs = activeDocuments.filter((doc) =>
-    DAILY_JOURNAL_CODES.has(doc.template.code)
+  const dailyDocs = activeDocuments.filter(
+    (doc) =>
+      isEligibleDocument(doc) &&
+      (DAILY_JOURNAL_CODES.has(doc.template.code) ||
+        (!treatAperiodicAsFilled && !CONFIG_DAILY_CODES.has(doc.template.code)))
   );
   if (dailyDocs.length === 0) return filled;
 

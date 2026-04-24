@@ -10,17 +10,22 @@ import {
 } from "@/lib/tasksflow-client";
 import { listAdapters } from "@/lib/tasksflow-adapters";
 import {
-  ALL_DAILY_JOURNAL_CODES,
-} from "@/lib/daily-journal-codes";
+  parseStringArray,
+  selectBulkJournalTemplates,
+  selectRowsForBulkAssign,
+} from "@/lib/tasksflow-bulk-assign";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
+import { listOnDutyToday } from "@/lib/work-shifts";
+import { notifyManagement, type NotificationItem } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * «Отправить всем на заполнение» — one-click fan-out that creates a
- * TasksFlow task for every unfilled daily journal for every employee
- * that isn't yet linked to a TF task on today's document.
+ * «Отправить всем на заполнение» — one-click fan-out that creates TasksFlow
+ * tasks for every enabled selected journal that is still unfilled today.
+ * Per-employee journals fan out to staff; normal journals get one task.
  *
  *   POST /api/integrations/tasksflow/bulk-assign-today
  *   Auth: manager/head_chef session
@@ -69,6 +74,14 @@ function monthLabel(now: Date): string {
   });
 }
 
+function dayKey(now: Date): string {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  )
+    .toISOString()
+    .slice(0, 10);
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -92,8 +105,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Which daily journals are NOT filled today? Only those get tasks —
-  // aperiodic and already-green journals are left alone.
+  // The selected set is every active template minus disabled journal codes.
+  // Aperiodic templates are required here too, because this fan-out follows
+  // the organization's journal settings, not the old daily-only subset.
   const [templates, org] = await Promise.all([
     db.journalTemplate.findMany({
       where: { isActive: true },
@@ -105,56 +119,113 @@ export async function POST(request: Request) {
       select: { disabledJournalCodes: true },
     }),
   ]);
-  const disabledRaw = (org?.disabledJournalCodes ?? []) as unknown;
   const disabledCodes = new Set<string>(
-    Array.isArray(disabledRaw)
-      ? disabledRaw.filter((v): v is string => typeof v === "string")
-      : []
+    parseStringArray((org?.disabledJournalCodes ?? []) as unknown)
   );
+  const scope = await getManagerScope(session.user.id, organizationId);
+  const now = new Date();
   const filledTemplateIds = await getTemplatesFilledToday(
     organizationId,
-    new Date(),
+    now,
     templates,
-    disabledCodes
+    disabledCodes,
+    { treatAperiodicAsFilled: false }
   );
 
-  // Daily journals that are ACTIVE (not disabled), are DAILY (not
-  // aperiodic), and are NOT yet filled today.
-  const targetTemplates = templates.filter(
-    (t) =>
-      ALL_DAILY_JOURNAL_CODES.has(t.code) &&
-      !disabledCodes.has(t.code) &&
-      !filledTemplateIds.has(t.id)
-  );
+  const { targets: targetTemplates, skipped: hierarchySkipped } =
+    selectBulkJournalTemplates({
+      templates,
+      disabledCodes,
+      filledTemplateIds,
+      scope,
+    });
+
+  const reports: JournalReport[] = hierarchySkipped.map(({ template, reason }) => ({
+    code: template.code,
+    label: template.name,
+    documentId: null,
+    documentTitle: null,
+    created: 0,
+    alreadyLinked: 0,
+    skipped: 1,
+    errors: 0,
+    skipReason: reason,
+  }));
+  const notificationItems = new Map<string, NotificationItem>();
+  for (const { template, reason } of hierarchySkipped) {
+    notificationItems.set(template.code, {
+      id: template.code,
+      label: template.name,
+      hint: reason,
+    });
+  }
 
   if (targetTemplates.length === 0) {
+    if (notificationItems.size > 0) {
+      await notifyManagement({
+        organizationId,
+        kind: "tasksflow.bulk_assign.skipped",
+        dedupeKey: `tasksflow.bulk_assign.skipped:${dayKey(now)}`,
+        title: "TasksFlow: часть журналов не отправлена",
+        linkHref: "/settings/staff-hierarchy",
+        linkLabel: "Проверить иерархию",
+        items: [...notificationItems.values()],
+      });
+    }
     return NextResponse.json({
       created: 0,
       alreadyLinked: 0,
-      skipped: 0,
+      skipped: reports.reduce((sum, report) => sum + report.skipped, 0),
       errors: 0,
-      byJournal: [],
-      message: "Все ежедневные журналы за сегодня уже заполнены.",
+      documentsCreated: 0,
+      byJournal: reports,
+      message: "Все выбранные журналы за сегодня уже заполнены.",
     });
   }
 
   const adapters = await listAdapters();
   const adapterByCode = new Map(adapters.map((a) => [a.meta.templateCode, a]));
   const client = tasksflowClientFor(integration);
-  const reports: JournalReport[] = [];
   const baseUrl = new URL(request.url).origin;
 
   // Pre-load the org's TF user-link table once — hot loop below does
   // per-worker lookups against this in-memory map.
-  const userLinks = await db.tasksFlowUserLink.findMany({
-    where: { integrationId: integration.id, tasksflowUserId: { not: null } },
-    select: { wesetupUserId: true, tasksflowUserId: true },
-  });
+  const [userLinks, onDutyUsers, activeUsersForScope] = await Promise.all([
+    db.tasksFlowUserLink.findMany({
+      where: { integrationId: integration.id, tasksflowUserId: { not: null } },
+      select: { wesetupUserId: true, tasksflowUserId: true },
+    }),
+    listOnDutyToday(organizationId, now),
+    db.user.findMany({
+      where: { organizationId, isActive: true, archivedAt: null },
+      select: { id: true, jobPositionId: true },
+    }),
+  ]);
   const tfUserIdByWesetup = new Map<string, number>();
   for (const link of userLinks) {
     if (link.tasksflowUserId !== null) {
       tfUserIdByWesetup.set(link.wesetupUserId, link.tasksflowUserId);
     }
+  }
+  const scopedUsers = filterSubordinates(activeUsersForScope, scope, session.user.id);
+  const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
+  const scheduledUserIds = new Set(onDutyUsers.map((user) => user.userId));
+  const candidateUserIds =
+    scheduledUserIds.size > 0
+      ? new Set(
+          [...scheduledUserIds].filter((userId) => scopedUserIds.has(userId))
+        )
+      : scopedUserIds;
+  const linkedUserIds = new Set(tfUserIdByWesetup.keys());
+
+  function markJournalSkipped(report: JournalReport, reason: string) {
+    report.skipReason = reason;
+    report.skipped += 1;
+    notificationItems.set(report.code, {
+      id: report.code,
+      label: report.label,
+      hint: reason,
+    });
   }
 
   for (const tpl of targetTemplates) {
@@ -172,6 +243,14 @@ export async function POST(request: Request) {
     const adapter = adapterByCode.get(tpl.code);
     if (!adapter) {
       report.skipReason = "Адаптер не зарегистрирован";
+      report.skipped += 1;
+      if (report.skipReason) {
+        notificationItems.set(report.code, {
+          id: report.code,
+          label: report.label,
+          hint: report.skipReason,
+        });
+      }
       reports.push(report);
       continue;
     }
@@ -180,7 +259,6 @@ export async function POST(request: Request) {
     // a month-long document so the bulk-assign is actually useful — the
     // whole point of «одним нажатием» is that the manager doesn't have
     // to pre-seed documents for every daily journal.
-    const now = new Date();
     let doc = await db.journalDocument.findFirst({
       where: {
         organizationId,
@@ -219,12 +297,28 @@ export async function POST(request: Request) {
         err
       );
       report.skipReason = "Ошибка адаптера";
+      report.skipped += 1;
+      if (report.skipReason) {
+        notificationItems.set(report.code, {
+          id: report.code,
+          label: report.label,
+          hint: report.skipReason,
+        });
+      }
       reports.push(report);
       continue;
     }
     const adapterDoc = adapterDocs.find((d) => d.documentId === doc.id);
     if (!adapterDoc || adapterDoc.rows.length === 0) {
       report.skipReason = "У журнала нет строк для назначения";
+      report.skipped += 1;
+      if (report.skipReason) {
+        notificationItems.set(report.code, {
+          id: report.code,
+          label: report.label,
+          hint: report.skipReason,
+        });
+      }
       reports.push(report);
       continue;
     }
@@ -237,8 +331,25 @@ export async function POST(request: Request) {
       select: { rowKey: true },
     });
     const takenRowKeys = new Set(existingLinks.map((l) => l.rowKey));
+    const rowSelection = selectRowsForBulkAssign({
+      journalCode: tpl.code,
+      rows: adapterDoc.rows,
+      takenRowKeys,
+      onDutyUserIds: candidateUserIds,
+      linkedUserIds,
+    });
+    report.alreadyLinked += rowSelection.alreadyLinked;
+    if (rowSelection.skipReason) {
+      markJournalSkipped(report, rowSelection.skipReason);
+      reports.push(report);
+      continue;
+    }
+    if (rowSelection.rows.length === 0) {
+      reports.push(report);
+      continue;
+    }
 
-    for (const row of adapterDoc.rows) {
+    for (const row of rowSelection.rows) {
       if (takenRowKeys.has(row.rowKey)) {
         report.alreadyLinked += 1;
         continue;
@@ -344,6 +455,18 @@ export async function POST(request: Request) {
     await db.tasksFlowIntegration.update({
       where: { id: integration.id },
       data: { lastSyncAt: new Date() },
+    });
+  }
+
+  if (notificationItems.size > 0) {
+    await notifyManagement({
+      organizationId,
+      kind: "tasksflow.bulk_assign.skipped",
+      dedupeKey: `tasksflow.bulk_assign.skipped:${dayKey(now)}`,
+      title: "TasksFlow: часть журналов не отправлена",
+      linkHref: "/settings/staff-hierarchy",
+      linkLabel: "Проверить иерархию",
+      items: [...notificationItems.values()],
     });
   }
 

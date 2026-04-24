@@ -1,0 +1,35 @@
+{
+  "task": "tasksflow-selected-journals-bulk-assign-2026-04-24",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "focused bulk assign tests",
+      "command": "npx tsx --test src/lib/tasksflow-bulk-assign.test.ts",
+      "result": "passed",
+      "tests": 7
+    },
+    {
+      "name": "related TasksFlow tests",
+      "command": "npx tsx --test src/lib/tasksflow-bulk-assign.test.ts src/lib/tasksflow-journal-ui.test.ts src/lib/tasksflow-user-sync.test.ts",
+      "result": "passed",
+      "tests": 13
+    },
+    {
+      "name": "eslint touched files",
+      "command": "npx eslint 'src/app/api/integrations/tasksflow/bulk-assign-today/route.ts' 'src/app/(dashboard)/dashboard/page.tsx' 'src/components/dashboard/bulk-assign-today-button.tsx' 'src/lib/today-compliance.ts' 'src/lib/tasksflow-bulk-assign.ts' 'src/lib/tasksflow-bulk-assign.test.ts'",
+      "result": "passed_with_existing_warnings",
+      "errors": 0,
+      "warnings": 3
+    },
+    {
+      "name": "typescript",
+      "command": "npx tsc --noEmit --pretty false",
+      "result": "passed"
+    },
+    {
+      "name": "production build",
+      "command": "npm run build",
+      "result": "passed"
+    }
+  ]
+}

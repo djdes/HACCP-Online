@@ -20,10 +20,9 @@ type BulkAssignResult = {
 };
 
 /**
- * One-click fan-out button: for every daily journal that isn't filled
- * today, creates a TasksFlow task for every responsible employee that
- * doesn't already have one. Idempotent — re-clicking after a new
- * employee was added just creates the missing slots.
+ * One-click fan-out button: creates TasksFlow tasks for selected journals
+ * that are not filled today. Per-employee journals still fan out to staff;
+ * normal journal-per-day templates get a single task.
  */
 export function BulkAssignTodayButton({
   unfilledCount,
@@ -81,7 +80,7 @@ export function BulkAssignTodayButton({
         if (result.alreadyLinked > 0)
           parts.push(`уже назначено: ${result.alreadyLinked}`);
         if (result.skipped > 0)
-          parts.push(`без Telegram: ${result.skipped}`);
+          parts.push(`пропущено: ${result.skipped}`);
         if (result.errors > 0) parts.push(`ошибок: ${result.errors}`);
         if (result.documentsCreated && result.documentsCreated > 0) {
           parts.push(
