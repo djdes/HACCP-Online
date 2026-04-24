@@ -1,0 +1,58 @@
+{
+  "taskId": "landing-motion-2026-04-24",
+  "verdict": "PASS",
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": "Hero elements have staged landing-rise animation classes."
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": "IntersectionObserver toggles data-inview; smoke shows hidden targets reveal after scroll."
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "evidence": "Computed style contentVisibility is auto for landing targets."
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": "Desktop 1440x1100 and mobile 390x844 smoke returned 200 with no overlay or console errors."
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": "Reduced-motion smoke confirmed all targets visible and hero animation disabled."
+    },
+    {
+      "id": "AC6",
+      "status": "PASS",
+      "evidence": "Motion is applied by a client enhancer after SSR content is rendered."
+    },
+    {
+      "id": "AC7",
+      "status": "PASS",
+      "evidence": "eslint, tsc --noEmit, npm run build, Playwright smoke, and git diff --check passed."
+    }
+  ],
+  "commands": [
+    "npx eslint src/app/page.tsx src/components/public/landing-motion.tsx src/components/public/public-chrome.tsx",
+    "npx tsc --noEmit",
+    "npm run build",
+    "Playwright production smoke against next start on 127.0.0.1:3016",
+    "git diff --check"
+  ],
+  "rawArtifacts": [
+    ".agent/tasks/landing-motion-2026-04-24/raw/landing-motion-smoke.json",
+    ".agent/tasks/landing-motion-2026-04-24/raw/landing-motion-desktop.png",
+    ".agent/tasks/landing-motion-2026-04-24/raw/landing-motion-mobile.png",
+    ".agent/tasks/landing-motion-2026-04-24/raw/next-start.out.log",
+    ".agent/tasks/landing-motion-2026-04-24/raw/next-start.err.log"
+  ],
+  "notes": [
+    "Local database 127.0.0.1:5433 was unavailable during smoke; the landing now degrades gracefully by skipping latest articles instead of returning HTTP 500."
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "url": "http://127.0.0.1:3016",
+  "checkedAt": "2026-04-24T13:07:16.423Z",
+  "runs": [
+    {
+      "name": "desktop",
+      "status": 200,
+      "consoleErrors": [],
+      "first": {
+        "bodyTextLength": 2516,
+        "hasOverlay": false,
+        "motionReady": true,
+        "targetCount": 13,
+        "visibleTargets": 0,
+        "hiddenTargets": 13,
+        "contentVisibility": "auto",
+        "heroTitleAnimation": "landing-rise"
+      },
+      "afterScroll": {
+        "scrollY": 6341,
+        "visibleTargets": 4,
+        "hiddenTargets": 9
+      }
+    },
+    {
+      "name": "mobile",
+      "status": 200,
+      "consoleErrors": [],
+      "first": {
+        "bodyTextLength": 1798,
+        "hasOverlay": false,
+        "motionReady": true,
+        "targetCount": 13,
+        "visibleTargets": 0,
+        "hiddenTargets": 13,
+        "contentVisibility": "auto",
+        "heroTitleAnimation": "landing-rise"
+      },
+      "afterScroll": {
+        "scrollY": 8157,
+        "visibleTargets": 3,
+        "hiddenTargets": 10
+      }
+    }
+  ],
+  "reducedMotion": {
+    "status": 200,
+    "consoleErrors": [],
+    "summary": {
+      "status": "HAS_CONTENT",
+      "reducedClass": true,
+      "targetCount": 13,
+      "visibleTargets": 13,
+      "hiddenTargets": 0,
+      "heroTitleAnimation": "none"
+    }
+  }
+}

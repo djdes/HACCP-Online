@@ -33,6 +33,7 @@ import { db } from "@/lib/db";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
 import { PublicFooter } from "@/components/public/public-chrome";
 import { ScreenshotFan } from "@/components/public/screenshot-fan";
+import { LandingMotion } from "@/components/public/landing-motion";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -197,19 +198,25 @@ const FAQ = [
 ];
 
 export default async function LandingPage() {
-  const latestArticles = await db.article.findMany({
-    where: { publishedAt: { not: null } },
-    orderBy: { publishedAt: "desc" },
-    take: 3,
-    select: {
-      slug: true,
-      title: true,
-      excerpt: true,
-      tags: true,
-      readMinutes: true,
-      publishedAt: true,
-    },
-  });
+  const latestArticles = await db.article
+    .findMany({
+      where: { publishedAt: { not: null } },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: {
+        slug: true,
+        title: true,
+        excerpt: true,
+        tags: true,
+        readMinutes: true,
+        publishedAt: true,
+      },
+    })
+    .catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[landing] Failed to load latest articles: ${message}`);
+      return [];
+    });
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -256,13 +263,14 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#0b1024]">
+    <div className="landing-page min-h-screen bg-white text-[#0b1024]">
+      <LandingMotion />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* NAV — solid white, sticky so hero blobs don't bleed through on scroll */}
-      <div className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="landing-nav sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
           <Link
             href="/"
@@ -304,7 +312,7 @@ export default async function LandingPage() {
       {/* overflow-x-clip contains the tilted phones horizontally, but lets
           vertical shadows + natural-height children extend freely so they
           don't get guillotined by the section boundary. */}
-      <section className="relative overflow-x-clip pb-24 sm:pb-32">
+      <section className="landing-hero relative overflow-x-clip pb-24 sm:pb-32">
         {/* Soft ambient gradient wash */}
         <div
           className="pointer-events-none absolute inset-0 -z-0"
@@ -330,7 +338,7 @@ export default async function LandingPage() {
 
         <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
           {/* Registry badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
+          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
             <ShieldCheck className="size-3.5" />
             В реестре отечественного ПО
             <span className="text-[#9b9fb3]">·</span>
@@ -340,7 +348,7 @@ export default async function LandingPage() {
           {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,
               linear in between via clamp() so the headline reads well on
               every viewport width without breakpoint jumps. */}
-          <h1 className="mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="hero-title mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
             Электронные журналы
             <br />
             <span className="relative inline-block">
@@ -353,14 +361,14 @@ export default async function LandingPage() {
           </h1>
 
           {/* Subhead */}
-          <p className="mx-auto mt-7 max-w-[640px] text-[16px] leading-[1.6] text-[#3c4053] sm:text-[18px]">
+          <p className="hero-copy mx-auto mt-7 max-w-[640px] text-[16px] leading-[1.6] text-[#3c4053] sm:text-[18px]">
             СанПиН и ХАССП в одной системе. Заполняете с планшета на кухне
             или из Telegram, PDF для Роспотребнадзора — в один клик.
             Бесплатно навсегда до 5 сотрудников.
           </p>
 
           {/* Single big CTA */}
-          <div className="mt-10 flex flex-col items-center gap-3">
+          <div className="hero-cta mt-10 flex flex-col items-center gap-3">
             <Link
               href="/register"
               className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)] sm:h-[56px] sm:px-8 sm:text-[16px]"
@@ -374,7 +382,7 @@ export default async function LandingPage() {
           </div>
 
           {/* Audience chips */}
-          <div className="mx-auto mt-14 max-w-[860px]">
+          <div className="hero-chips mx-auto mt-14 max-w-[860px]">
             <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9b9fb3]">
               Подходит для
             </div>
@@ -394,7 +402,7 @@ export default async function LandingPage() {
               two tilted phones + desktop mockup needs ~680px. Height scales
               down aggressively on <sm so the hero isn't 90% whitespace on
               a phone. */}
-          <div className="relative mx-auto mt-14 min-h-[420px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
+          <div className="hero-fan relative mx-auto mt-14 min-h-[420px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>

@@ -27,7 +27,7 @@ export function PublicHeader({
   );
 
   return (
-    <div className="sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <div className="public-header sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
         <Link
           href="/"
@@ -59,7 +59,7 @@ export function PublicHeader({
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-[#ececf4]">
+    <footer className="public-footer border-t border-[#ececf4]">
       <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 sm:py-12 md:gap-10 md:grid-cols-[1.4fr_auto_auto]">
         <div>
           <div className="text-[16px] font-semibold tracking-[0.22em] text-[#0b1024]">
