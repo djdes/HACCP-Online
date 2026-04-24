@@ -23,6 +23,7 @@ import {
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -223,6 +224,10 @@ export default async function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Theme — personal setting, живёт отдельным блоком перед сеткой
+          организационных карточек. */}
+      <ThemeSwitcher />
 
       {/* Card grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

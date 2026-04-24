@@ -7,6 +7,11 @@ import {
   Settings2,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
+import {
+  SiteThemeBootstrap,
+  SiteThemeProvider,
+} from "@/components/theme/site-theme";
+import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +26,13 @@ export default async function RootAreaLayout({
   const session = await requireRoot();
 
   return (
-    <div className="min-h-screen bg-[#f4f5fb]">
+    <SiteThemeProvider>
+      <SiteThemeBootstrap />
+      <div
+        className="app-shell min-h-screen bg-[#f4f5fb]"
+        data-app-theme="light"
+        suppressHydrationWarning
+      >
       <header className="border-b border-[#dddfe8] bg-[#11142b] text-white">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           <div className="min-w-0">
@@ -72,7 +83,8 @@ export default async function RootAreaLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-8 sm:py-8">{children}</main>
-    </div>
+        <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+      </div>
+    </SiteThemeProvider>
   );
 }

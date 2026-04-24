@@ -1,0 +1,342 @@
+/*
+ * Site app theme — dual mode for authenticated surfaces only.
+ *
+ * Scope: `.app-shell` — применяется в (dashboard)/layout.tsx и root/layout.tsx.
+ * Лендинг, /login, /register, /blog, /features, /journals-info остаются
+ * в светлой теме всегда.
+ *
+ * Переключение через `data-app-theme="dark"|"light"` на `.app-shell`.
+ * Default — light (текущий дизайн сайта).
+ *
+ * Стратегия: не переписываем каждую .tsx страницу, а перехватываем
+ * частотные Tailwind arbitrary values (bg-[#ffffff], text-[#0b1024],
+ * border-[#ececf4] и т.д.) через CSS-селекторы. Для отдельных
+ * компонентов где такой подход ломает семантику — точечные
+ * data-тhemed-overrides.
+ */
+
+/* ====================================================================
+ * LIGHT — это default, оверрайдов нет (совпадает с текущим дизайном).
+ * ================================================================== */
+
+.app-shell {
+  /* Canonical tokens — одинаковые имена в обеих темах, меняются значения */
+  --app-bg: #fafbff;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #ffffff;
+  --app-surface-muted: #fafbff;
+  --app-soft-surface: #fafbff;
+  --app-tint-indigo: #f5f6ff;
+  --app-tint-indigo-2: #eef1ff;
+  --app-border: #ececf4;
+  --app-border-strong: #dcdfed;
+  --app-text: #0b1024;
+  --app-text-secondary: #3c4053;
+  --app-text-muted: #6f7282;
+  --app-text-faint: #9b9fb3;
+  --app-indigo: #5566f6;
+  --app-indigo-hover: #4a5bf0;
+  --app-indigo-deep: #3848c7;
+  --app-success-bg: #ecfdf5;
+  --app-success-fg: #116b2a;
+  --app-warn-bg: #fff4f2;
+  --app-warn-fg: #a13a32;
+  --app-hero: #0b1024;
+  --app-scrim: rgba(11, 16, 36, 0.04);
+  color-scheme: light;
+}
+
+/* ====================================================================
+ * DARK — «Nocturne Indigo»: тёмный навигационно-индиговый фон,
+ * светлые soft-white тексты, тот же brand-акцент #5566f6 но с лёгким
+ * усилением для контраста. Бренд остаётся — «дизайн тот же, цвет другой».
+ * ================================================================== */
+
+.app-shell[data-app-theme="dark"] {
+  --app-bg: #0b0d1a;
+  --app-surface: #16182a;
+  --app-surface-elevated: #1c1f33;
+  --app-surface-muted: #131526;
+  --app-soft-surface: #0f1121;
+  --app-tint-indigo: rgba(85, 102, 246, 0.12);
+  --app-tint-indigo-2: rgba(85, 102, 246, 0.2);
+  --app-border: rgba(255, 255, 255, 0.08);
+  --app-border-strong: rgba(255, 255, 255, 0.16);
+  --app-text: #f5f6ff;
+  --app-text-secondary: #c1c5d6;
+  --app-text-muted: #8f93a8;
+  --app-text-faint: #686c82;
+  --app-indigo: #7081f8;
+  --app-indigo-hover: #6173f3;
+  --app-indigo-deep: #4857d9;
+  --app-success-bg: rgba(124, 245, 192, 0.12);
+  --app-success-fg: #7cf5c0;
+  --app-warn-bg: rgba(255, 144, 130, 0.12);
+  --app-warn-fg: #ffa899;
+  --app-hero: #0b1024;
+  --app-scrim: rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* Body background follows the shell so sticky header blur doesn't show
+   a stripe of the old color when scrolling on long pages. */
+body:has(.app-shell[data-app-theme="dark"]) {
+  background-color: #0b0d1a;
+}
+
+/* ====================================================================
+ * DARK — override common hardcoded hex utilities.
+ *
+ * Логика: ловим те arbitrary-утилиты, которые встречаются в дашборде
+ * чаще всего (bg-white, bg-[#fafbff], border-[#ececf4], text-[#0b1024]
+ * и т.д.) и переопределяем их в dark. Брендовые индиго-акценты
+ * (bg-[#5566f6], text-[#5566f6], bg-[#eef1ff]) остаются — они
+ * работают на dark тоже.
+ * ================================================================== */
+
+/* --- BACKGROUNDS: whites → dark surface ----------------------------- */
+.app-shell[data-app-theme="dark"] .bg-white,
+.app-shell[data-app-theme="dark"] .bg-\[\#ffffff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#FFFFFF\],
+.app-shell[data-app-theme="dark"] [class*="bg-white/"] {
+  background-color: var(--app-surface);
+}
+
+/* white/90, white/80 etc — translucent overlays. Keep them translucent
+   но основываться на текущей surface. */
+.app-shell[data-app-theme="dark"] .bg-white\/90 { background-color: color-mix(in srgb, var(--app-surface) 90%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/80 { background-color: color-mix(in srgb, var(--app-surface) 80%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/70 { background-color: color-mix(in srgb, var(--app-surface) 70%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/60 { background-color: color-mix(in srgb, var(--app-surface) 60%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/50 { background-color: color-mix(in srgb, var(--app-surface) 50%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/40 { background-color: color-mix(in srgb, var(--app-surface) 40%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/30 { background-color: color-mix(in srgb, var(--app-surface) 30%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/20 { background-color: color-mix(in srgb, var(--app-surface) 20%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/10 { background-color: color-mix(in srgb, var(--app-surface) 10%, transparent); }
+.app-shell[data-app-theme="dark"] .bg-white\/5 { background-color: color-mix(in srgb, var(--app-surface) 5%, transparent); }
+
+/* Soft surfaces / gray-50-ish */
+.app-shell[data-app-theme="dark"] .bg-gray-50,
+.app-shell[data-app-theme="dark"] .bg-\[\#fafbff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#FAFBFF\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f6fa\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f8f9fc\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f7f7fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f2f3f8\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f8\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0f2f7\],
+.app-shell[data-app-theme="dark"] .bg-\[\#eef0f6\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f4f6\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ececec\],
+.app-shell[data-app-theme="dark"] .bg-\[\#efefef\] {
+  background-color: var(--app-soft-surface);
+}
+
+/* Tint-indigo backgrounds (hover / active / icon tile) — стают
+   полупрозрачным индиго на тёмном. Через color-mix чтобы не хардкодить. */
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f6ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#F5F6FF\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0edff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#eceeff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#eceffd\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0f0ff\] {
+  background-color: var(--app-tint-indigo);
+}
+
+.app-shell[data-app-theme="dark"] .bg-\[\#eef1ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#EEF1FF\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e5e9ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#d6d9ee\],
+.app-shell[data-app-theme="dark"] .bg-\[\#d4d8ec\] {
+  background-color: var(--app-tint-indigo-2);
+}
+
+/* Success / warn tints — semantic color, просто темнее */
+.app-shell[data-app-theme="dark"] .bg-\[\#ecfdf5\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e6f8ec\],
+.app-shell[data-app-theme="dark"] .bg-\[\#d9f4e1\],
+.app-shell[data-app-theme="dark"] .bg-\[\#effaf1\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e8f7ff\] {
+  background-color: var(--app-success-bg);
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe2de\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\] {
+  background-color: var(--app-warn-bg);
+}
+
+/* --- BORDERS ------------------------------------------------------- */
+.app-shell[data-app-theme="dark"] .border-\[\#ececf4\],
+.app-shell[data-app-theme="dark"] .border-\[\#ECECF4\],
+.app-shell[data-app-theme="dark"] .border-\[\#ececec\],
+.app-shell[data-app-theme="dark"] .border-\[\#e5e7eb\],
+.app-shell[data-app-theme="dark"] .border-\[\#eceef6\],
+.app-shell[data-app-theme="dark"] .border-\[\#eef0f6\],
+.app-shell[data-app-theme="dark"] .border-\[\#efefef\],
+.app-shell[data-app-theme="dark"] .border-\[\#f0f0f0\],
+.app-shell[data-app-theme="dark"] .border-\[\#f0f1f8\],
+.app-shell[data-app-theme="dark"] .border-gray-200 {
+  border-color: var(--app-border);
+}
+.app-shell[data-app-theme="dark"] .border-\[\#dcdfed\],
+.app-shell[data-app-theme="dark"] .border-\[\#DCDFED\],
+.app-shell[data-app-theme="dark"] .border-\[\#d6d6db\],
+.app-shell[data-app-theme="dark"] .border-\[\#d6d9ee\],
+.app-shell[data-app-theme="dark"] .border-\[\#d4d8ec\],
+.app-shell[data-app-theme="dark"] .border-\[\#dbe0f1\],
+.app-shell[data-app-theme="dark"] .border-\[\#dfe1ec\],
+.app-shell[data-app-theme="dark"] .border-gray-300 {
+  border-color: var(--app-border-strong);
+}
+
+/* --- TEXT ---------------------------------------------------------- */
+.app-shell[data-app-theme="dark"] .text-\[\#0b1024\],
+.app-shell[data-app-theme="dark"] .text-\[\#0B1024\],
+.app-shell[data-app-theme="dark"] .text-black,
+.app-shell[data-app-theme="dark"] .text-gray-900,
+.app-shell[data-app-theme="dark"] .text-slate-900 {
+  color: var(--app-text);
+}
+.app-shell[data-app-theme="dark"] .text-\[\#3c4053\],
+.app-shell[data-app-theme="dark"] .text-\[\#3C4053\],
+.app-shell[data-app-theme="dark"] .text-gray-700,
+.app-shell[data-app-theme="dark"] .text-slate-700 {
+  color: var(--app-text-secondary);
+}
+.app-shell[data-app-theme="dark"] .text-\[\#6f7282\],
+.app-shell[data-app-theme="dark"] .text-\[\#6F7282\],
+.app-shell[data-app-theme="dark"] .text-\[\#73738a\],
+.app-shell[data-app-theme="dark"] .text-muted-foreground,
+.app-shell[data-app-theme="dark"] .text-gray-500,
+.app-shell[data-app-theme="dark"] .text-gray-600,
+.app-shell[data-app-theme="dark"] .text-slate-500,
+.app-shell[data-app-theme="dark"] .text-slate-600 {
+  color: var(--app-text-muted);
+}
+.app-shell[data-app-theme="dark"] .text-\[\#9b9fb3\],
+.app-shell[data-app-theme="dark"] .text-\[\#9B9FB3\],
+.app-shell[data-app-theme="dark"] .text-\[\#c1c5d6\],
+.app-shell[data-app-theme="dark"] .text-gray-400,
+.app-shell[data-app-theme="dark"] .text-slate-400 {
+  color: var(--app-text-faint);
+}
+.app-shell[data-app-theme="dark"] .placeholder\:text-\[\#9b9fb3\]::placeholder,
+.app-shell[data-app-theme="dark"] .placeholder\:text-\[\#c1c5d6\]::placeholder {
+  color: var(--app-text-faint);
+}
+
+/* Success/warn accent text (leave brand indigo as-is) */
+.app-shell[data-app-theme="dark"] .text-\[\#116b2a\],
+.app-shell[data-app-theme="dark"] .text-\[\#0f5a22\] {
+  color: var(--app-success-fg);
+}
+.app-shell[data-app-theme="dark"] .text-\[\#a13a32\],
+.app-shell[data-app-theme="dark"] .text-\[\#d2453d\],
+.app-shell[data-app-theme="dark"] .text-\[\#b83a33\],
+.app-shell[data-app-theme="dark"] .text-\[\#bd392f\] {
+  color: var(--app-warn-fg);
+}
+
+/* --- SHADOWS: на тёмном стандартные shadows почти не видны. Делаем их
+   мягче, но ближе к "свечению" вокруг карточек. */
+.app-shell[data-app-theme="dark"] .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* --- Inputs (shadcn + наши кастомные) ------------------------------ */
+.app-shell[data-app-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.app-shell[data-app-theme="dark"] textarea,
+.app-shell[data-app-theme="dark"] select {
+  background-color: var(--app-surface-elevated);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-shell[data-app-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+.app-shell[data-app-theme="dark"] textarea:focus,
+.app-shell[data-app-theme="dark"] select:focus {
+  border-color: var(--app-indigo);
+}
+
+/* Hover/accent states — Tailwind hover:bg-gray-50 etc. */
+.app-shell[data-app-theme="dark"] .hover\:bg-gray-50:hover,
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#fafbff\]:hover,
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#f5f6ff\]:hover {
+  background-color: var(--app-tint-indigo);
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#eef1ff\]:hover {
+  background-color: var(--app-tint-indigo-2);
+}
+
+/* shadcn Card/Popover/Dialog — они используют bg-popover / bg-card
+   которые мапятся через shadcn CSS var. Переопределяем */
+.app-shell[data-app-theme="dark"] {
+  --card: oklch(0.22 0.015 265);
+  --card-foreground: oklch(0.95 0.01 265);
+  --popover: oklch(0.22 0.015 265);
+  --popover-foreground: oklch(0.95 0.01 265);
+  --muted: oklch(0.27 0.012 265);
+  --muted-foreground: oklch(0.7 0.015 265);
+  --accent: oklch(0.3 0.025 265);
+  --accent-foreground: oklch(0.95 0.01 265);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --secondary: oklch(0.28 0.012 265);
+  --secondary-foreground: oklch(0.95 0.01 265);
+}
+
+/* --- Dark-hero card (`bg-[#0b1024]`) — остаётся тёмным в обоих темах,
+   но в dark theme добавим чуть больше света чтобы отличался от общего
+   bg-а (иначе карточка сливается с фоном). */
+.app-shell[data-app-theme="dark"] .bg-\[\#0b1024\] {
+  background-color: #13172e;
+}
+
+/* Border strip под headers (sticky top-0 border-b bg-white) — должен
+   наследовать dark, иначе белая полоса при скролле */
+.app-shell[data-app-theme="dark"] header.sticky,
+.app-shell[data-app-theme="dark"] .sticky.top-0 {
+  background-color: var(--app-surface);
+}
+
+/* --- Impersonation banner: сохранить красный но приглушить фон --- */
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\].text-\[\#d2453d\] {
+  background-color: rgba(220, 60, 45, 0.14);
+  color: #ff9d95;
+}
+
+/* --- Print-replica journals (hygiene grid, documents-with-paper-look)
+   использует border-black / border-2 border-black как цвет чернил.
+   На dark фоне чёрные линии невидимы — смягчаем до белых-полупрозрачных,
+   сохраняя структуру таблицы. */
+.app-shell[data-app-theme="dark"] .border-black {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.app-shell[data-app-theme="dark"] .divide-black > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Hygiene-grid row header fills (bg-[#f2f2f2]) и подобные "paper gray"
+   зафиксируем как app-soft-surface чтобы отличались от основной
+   карточки но не создавали визуальной "дырки" в таблице. */
+.app-shell[data-app-theme="dark"] .hygiene-sheet {
+  background-color: var(--app-surface);
+}
+
+/* --- Dashboard smooth transition between themes ----------------------- */
+.app-shell,
+.app-shell * {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.18s;
+  transition-timing-function: ease-out;
+}
+/* Disable transitions on transform/filter to avoid flicker on UI updates */
+.app-shell .no-theme-transition,
+.app-shell [data-no-theme-transition] {
+  transition: none !important;
+}
