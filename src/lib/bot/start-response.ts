@@ -28,14 +28,12 @@ export type TelegramLinkedStartState =
     };
 
 export const TELEGRAM_COMMANDS = [
-  {
-    command: "start",
-    description: "Открыть Wesetup",
-  },
-  {
-    command: "stop",
-    description: "Отвязать Telegram",
-  },
+  { command: "start", description: "🏠 Открыть WeSetup" },
+  { command: "journals", description: "📋 Мои журналы" },
+  { command: "tasks", description: "✅ Задачи на сегодня" },
+  { command: "reports", description: "📊 Отчёты и PDF" },
+  { command: "help", description: "❓ Справка и поддержка" },
+  { command: "stop", description: "⛔ Отвязать аккаунт" },
 ] as const;
 
 export function buildTelegramLinkedStartReply(
@@ -44,44 +42,59 @@ export function buildTelegramLinkedStartReply(
 ): TelegramStartReply {
   if (!buttonUrl) {
     return {
-      text: `Готово, ${state.name}. Мини-приложение пока не настроено, свяжитесь с руководителем.`,
+      text: `Готово, ${state.name}. Мини-приложение пока не настроено — попросите руководителя подключить WeSetup.`,
     };
   }
 
   if (state.kind === "manager") {
+    const taskLine = state.pendingCount > 0
+      ? `📬 Открыто задач: <b>${state.pendingCount}</b> · сотрудников с задачами: <b>${state.employeesWithPending}</b>`
+      : `✨ Все задачи на сегодня закрыты. Отличная смена!`;
     return {
       text:
-        `Здравствуйте, ${state.name}.\n\n` +
-        `Открыто задач: ${state.pendingCount}\n` +
-        `Сотрудников с открытыми задачами: ${state.employeesWithPending}\n\n` +
-        `Откройте Wesetup кнопкой ниже.`,
-      buttonLabel: "Открыть кабинет",
+        `👋 Здравствуйте, <b>${escape(state.name)}</b>!\n\n` +
+        `${taskLine}\n\n` +
+        `В Кабинете — журналы, отчёты, сотрудники и график. Нажмите кнопку, чтобы открыть прямо здесь в Telegram.`,
+      buttonLabel: "🏠 Открыть Кабинет",
       buttonUrl,
     };
   }
 
   if (state.kind === "readonly") {
     return {
-      text: `Здравствуйте, ${state.name}.\n\nУ вас режим просмотра. Вы можете ознакомиться с данными в приложении.`,
-      buttonLabel: "Открыть приложение",
+      text:
+        `👋 Здравствуйте, <b>${escape(state.name)}</b>!\n\n` +
+        `У вас режим просмотра: можете открыть журналы, посмотреть отчёты и график смен.\n\n` +
+        `Чтобы получить права на заполнение — обратитесь к руководителю.`,
+      buttonLabel: "📖 Открыть WeSetup",
       buttonUrl,
     };
   }
 
   return {
     text:
-      `Готово, ${state.name}!\n\n` +
+      `👋 <b>${escape(state.name)}</b>, ваш кабинет готов.\n\n` +
       (state.nextActionLabel
-        ? `Следующее действие: ${state.nextActionLabel}\n\n`
-        : `На сегодня обязательные журналы уже закрыты.\n\n`) +
-      `Откройте Wesetup кнопкой ниже.`,
-    buttonLabel: state.nextActionLabel ? "Открыть задачу" : "Открыть журналы",
+        ? `🎯 Следующее действие: <b>${escape(state.nextActionLabel)}</b>\n\n`
+        : `✅ На сегодня обязательные журналы уже закрыты — можно выдохнуть.\n\n`) +
+      `Журналы заполняются в один клик прямо в Telegram — без браузера и бумажек.`,
+    buttonLabel: state.nextActionLabel ? "🎯 Открыть задачу" : "📋 Мои журналы",
     buttonUrl,
   };
 }
 
 export function buildTelegramUnlinkedStartReply(): TelegramStartReply {
   return {
-    text: "Аккаунт пока не привязан. Откройте персональную ссылку из приглашения руководителя.",
+    text:
+      `👋 Привет! Это <b>WeSetup</b> — электронные журналы СанПиН и ХАССП для общепита.\n\n` +
+      `Ваш Telegram ещё не привязан к рабочему аккаунту. Попросите руководителя выслать персональную ссылку-приглашение или сгенерируйте её в разделе «Сотрудники» → «Telegram-приглашение».\n\n` +
+      `После привязки сможете заполнять журналы, видеть задачи и получать уведомления прямо тут.`,
   };
+}
+
+function escape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

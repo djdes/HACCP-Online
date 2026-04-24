@@ -1,5 +1,7 @@
 import { Composer, type Context } from "grammy";
+import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import { db } from "@/lib/db";
+import { buildInlineQueryResults } from "@/lib/bot/inline-results";
 
 export function registerInlineQueryHandler(composer: Composer<Context>): void {
   composer.on("inline_query", async (ctx) => {
@@ -26,7 +28,7 @@ export function registerInlineQueryHandler(composer: Composer<Context>): void {
       return;
     }
 
-    const miniAppBaseUrl = process.env.MINI_APP_BASE_URL ?? "";
+    const miniAppBaseUrl = getMiniAppBaseUrlFromEnv();
 
     // Search journals
     const journals = await db.journalTemplate.findMany({
@@ -48,46 +50,11 @@ export function registerInlineQueryHandler(composer: Composer<Context>): void {
       select: { id: true, name: true, type: true },
     });
 
-    const results = [
-      ...journals.map((j) => ({
-        type: "article" as const,
-        id: `j_${j.code}`,
-        title: j.name,
-        description: j.description ?? "Журнал",
-        input_message_content: {
-          message_text: `Журнал: ${j.name}`,
-        },
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Открыть в Mini App",
-                url: `${miniAppBaseUrl}/mini/journals/${j.code}`,
-              },
-            ],
-          ],
-        },
-      })),
-      ...equipment.map((eq) => ({
-        type: "article" as const,
-        id: `e_${eq.id}`,
-        title: eq.name,
-        description: eq.type,
-        input_message_content: {
-          message_text: `Оборудование: ${eq.name}`,
-        },
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Открыть в Mini App",
-                url: `${miniAppBaseUrl}/mini/equipment`,
-              },
-            ],
-          ],
-        },
-      })),
-    ];
+    const results = buildInlineQueryResults({
+      miniAppBaseUrl,
+      journals,
+      equipment,
+    });
 
     await ctx.answerInlineQuery(results, { cache_time: 10 });
   });

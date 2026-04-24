@@ -89,11 +89,15 @@ test("buildTelegramUnlinkedStartReply keeps start guidance short", () => {
   );
 });
 
-test("TELEGRAM_COMMANDS registers a single start entry", () => {
+test("TELEGRAM_COMMANDS registers the Mini App and unlink commands", () => {
   assert.deepEqual(TELEGRAM_COMMANDS, [
     {
       command: "start",
-      description: "Открыть Wesetup",
+      description: "Открыть WeSetup",
+    },
+    {
+      command: "stop",
+      description: "Отвязать Telegram",
     },
   ]);
 });

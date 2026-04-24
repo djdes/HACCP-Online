@@ -3,7 +3,12 @@ import { Agent, fetch as undiciFetch, setGlobalDispatcher } from "undici";
 import { registerStartHandler } from "./handlers/start";
 import { registerStopHandler } from "./handlers/stop";
 import { registerInlineQueryHandler } from "./handlers/inline";
-import { TELEGRAM_COMMANDS } from "./start-response";
+import { registerShortcutHandlers } from "./handlers/shortcut";
+import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
+import {
+  configureTelegramBotProfile,
+  configureTelegramBotRuntimeMenu,
+} from "./setup";
 
 /**
  * Grammy bot app singleton.
@@ -78,6 +83,7 @@ export function getInboundBot(): Bot | null {
   const composer = new Composer<Context>();
   registerStartHandler(composer);
   registerStopHandler(composer);
+  registerShortcutHandlers(composer);
   registerInlineQueryHandler(composer);
   cachedBot.use(composer);
   return cachedBot;
@@ -97,12 +103,24 @@ export async function ensureBotInit(bot: Bot): Promise<void> {
   await initPromise;
 
   if (!commandsPromise) {
-    commandsPromise = bot.api
-      .setMyCommands([...TELEGRAM_COMMANDS])
+    const miniAppBaseUrl = getMiniAppBaseUrlFromEnv();
+    // Если mini-app base URL настроен — применяем full profile (имя,
+    // описания, команды, menu-button) за один идемпотентный прогон.
+    // Telegram API не даст ошибок при повторной установке одинаковых
+    // значений, так что это безопасно делать на первом cold-start.
+    // Fallback — legacy runtime menu (команды + menu-button), без
+    // name/description, на случай если env неполный.
+    commandsPromise = (miniAppBaseUrl
+      ? configureTelegramBotProfile({ api: bot.api, miniAppBaseUrl })
+      : configureTelegramBotRuntimeMenu({
+          api: bot.api,
+          miniAppBaseUrl: null,
+        })
+    )
       .then(() => undefined)
       .catch((err) => {
         commandsPromise = null;
-        console.error("Telegram setMyCommands error:", err);
+        console.error("Telegram bot profile setup error:", err);
       });
   }
 

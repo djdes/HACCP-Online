@@ -7,6 +7,7 @@ import {
   type TelegramDeliveryMetadata,
   type TelegramDeliveryPolicyOptions,
 } from "@/lib/telegram-delivery-policy";
+import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 // Initialize bot (only if token is set).
@@ -177,6 +178,12 @@ type TelegramSendOptions = {
   userId?: string | null;
   delivery?: TelegramDeliveryMetadata | null;
   policy?: TelegramDeliveryPolicyOptions;
+  /**
+   * Optional inline keyboard — typically a `web_app` button produced by
+   * `buildTelegramWebAppKeyboard()` so the message opens the Mini App
+   * inside Telegram instead of an external browser.
+   */
+  reply_markup?: unknown;
 };
 
 function normalizeTelegramDeliveryMetadata(
@@ -255,7 +262,19 @@ export async function sendTelegramMessage(
 
   await executeTelegramSend(
     log.id,
-    () => bot.api.sendMessage(chatId, text, { parse_mode: "HTML" }),
+    () =>
+      bot.api.sendMessage(chatId, text, {
+        parse_mode: "HTML",
+        ...(opts?.reply_markup
+          ? {
+              reply_markup: opts.reply_markup as Parameters<
+                typeof bot.api.sendMessage
+              >[2] extends { reply_markup?: infer T }
+                ? T
+                : never,
+            }
+          : {}),
+      }),
     "Telegram send error"
   );
 }
@@ -319,16 +338,10 @@ export async function notifyEmployee(
   }
 
   const replyMarkup = action
-    ? {
-        inline_keyboard: [
-          [
-            {
-              text: action.label,
-              web_app: { url: action.miniAppUrl },
-            },
-          ],
-        ],
-      }
+    ? buildTelegramWebAppKeyboard({
+        label: action.label,
+        url: action.miniAppUrl,
+      })
     : undefined;
 
   await executeTelegramSend(
@@ -422,7 +435,8 @@ export async function notifyOrganization(
   organizationId: string,
   message: string,
   roles: string[] = ["owner", "technologist"],
-  type?: NotificationType
+  type?: NotificationType,
+  action?: { label: string; miniAppUrl: string }
 ): Promise<void> {
   // Import db here to avoid circular deps
   const { db } = await import("./db");
@@ -451,10 +465,18 @@ export async function notifyOrganization(
       })
     : users;
 
+  const replyMarkup = action
+    ? buildTelegramWebAppKeyboard({
+        label: action.label,
+        url: action.miniAppUrl,
+      })
+    : undefined;
+
   await Promise.allSettled(
     filtered.map((u) =>
       sendTelegramMessage(u.telegramChatId!, message, {
         userId: (u as { id?: string }).id ?? null,
+        reply_markup: replyMarkup,
       })
     )
   );

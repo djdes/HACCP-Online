@@ -10,14 +10,11 @@ import {
   type TelegramLinkedStartState,
 } from "@/lib/bot/start-response";
 import { db } from "@/lib/db";
+import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
+import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 
 function getMiniAppBaseUrl(): string | null {
-  return (
-    process.env.MINI_APP_BASE_URL ||
-    (process.env.NEXTAUTH_URL
-      ? `${process.env.NEXTAUTH_URL.replace(/\/+$/, "")}/mini`
-      : null)
-  );
+  return getMiniAppBaseUrlFromEnv();
 }
 
 async function replyWithLinkedStart(
@@ -26,23 +23,18 @@ async function replyWithLinkedStart(
   buttonUrl: string | null
 ): Promise<void> {
   const reply = buildTelegramLinkedStartReply(state, buttonUrl);
-  await ctx.reply(
-    reply.text,
-    reply.buttonLabel && reply.buttonUrl
+  await ctx.reply(reply.text, {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    ...(reply.buttonLabel && reply.buttonUrl
       ? {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: reply.buttonLabel,
-                  web_app: { url: reply.buttonUrl },
-                },
-              ],
-            ],
-          },
+          reply_markup: buildTelegramWebAppKeyboard({
+            label: reply.buttonLabel,
+            url: reply.buttonUrl,
+          }),
         }
-      : undefined
-  );
+      : {}),
+  });
 }
 
 async function replyWithLoadedStartHome(
@@ -55,7 +47,10 @@ async function replyWithLoadedStartHome(
   });
 
   if (home.kind === "unlinked") {
-    await ctx.reply(buildTelegramUnlinkedStartReply().text);
+    await ctx.reply(buildTelegramUnlinkedStartReply().text, {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
     return;
   }
 
