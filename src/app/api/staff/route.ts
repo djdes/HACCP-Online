@@ -123,6 +123,7 @@ export async function POST(request: Request) {
     organizationId: orgId,
     weSetupUserId: user.id,
     phone,
+    name: user.name,
   }).catch((err) => {
     console.error("[staff] tasksflow autolink failed", err);
   });

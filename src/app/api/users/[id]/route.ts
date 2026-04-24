@@ -123,6 +123,7 @@ export async function PUT(
         organizationId: session.user.organizationId,
         weSetupUserId: id,
         phone: normalizedPhone,
+        name: updated.name,
       }).catch((err) => {
         console.error("[users/PUT] autolink failed", err);
       });

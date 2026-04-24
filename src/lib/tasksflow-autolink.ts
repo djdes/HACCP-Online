@@ -1,13 +1,12 @@
 /**
- * Best-effort auto-link: when a WeSetup user is created/updated with a
- * phone, check if the org's enabled TasksFlow integration already has a
- * worker with the same (normalised) phone and create
- * `TasksFlowUserLink` on the spot. Manager doesn't have to open the
- * integration page for every new hire.
+ * Best-effort auto-link/provision: when a WeSetup user is created/updated
+ * with a phone, ensure the org's enabled TasksFlow integration has a
+ * worker with the same normalized phone and create `TasksFlowUserLink`.
+ * Manager doesn't have to open the integration page for every new hire.
  *
- * Silent-failure: network hiccup, integration disabled, TF user
- * doesn't exist yet, phone doesn't match. The owner can still link
- * manually; this helper just saves clicks when stars align.
+ * Silent-failure: network hiccup, integration disabled, TF rejects user
+ * creation, phone doesn't match. The owner can still link manually; this
+ * helper just saves clicks when stars align.
  */
 import { db } from "@/lib/db";
 import { TasksFlowError, tasksflowClientFor } from "@/lib/tasksflow-client";
@@ -17,6 +16,7 @@ type Args = {
   organizationId: string;
   weSetupUserId: string;
   phone: string;
+  name?: string | null;
 };
 
 type Result =
@@ -42,9 +42,10 @@ export async function tryAutolinkTasksflowByPhone(args: Args): Promise<Result> {
     return { ok: true, linked: true, reason: "already-linked" };
   }
 
+  const client = tasksflowClientFor(integration);
   let tfUsers;
   try {
-    tfUsers = await tasksflowClientFor(integration).listUsers();
+    tfUsers = await client.listUsers();
   } catch (err) {
     if (err instanceof TasksFlowError) {
       return {
@@ -58,8 +59,35 @@ export async function tryAutolinkTasksflowByPhone(args: Args): Promise<Result> {
     };
   }
 
-  const match = tfUsers.find((u) => normalizePhone(u.phone) === normalized);
-  if (!match) return { ok: true, linked: false, reason: "no-tf-user-with-phone" };
+  let match = tfUsers.find((u) => normalizePhone(u.phone) === normalized);
+  if (!match) {
+    try {
+      match = await client.createUser({
+        phone: normalized,
+        ...(args.name?.trim() ? { name: args.name.trim() } : {}),
+      });
+    } catch (err) {
+      // Race/duplicate fallback: if another request created the user after
+      // our listUsers call, one more read can still link without surfacing
+      // a false failure to the manager.
+      if (err instanceof TasksFlowError && err.status === 400) {
+        const refreshed = await client.listUsers().catch(() => []);
+        match = refreshed.find((u) => normalizePhone(u.phone) === normalized);
+      }
+      if (!match) {
+        if (err instanceof TasksFlowError) {
+          return {
+            ok: false,
+            reason: `tasksflow-create-${err.status}`,
+          };
+        }
+        return {
+          ok: false,
+          reason: err instanceof Error ? err.message : "tasksflow-create-failed",
+        };
+      }
+    }
+  }
 
   // If a link row already exists (e.g. for another user) we can't write
   // — `@@unique([integrationId, wesetupUserId])`. Use upsert by
@@ -75,10 +103,15 @@ export async function tryAutolinkTasksflowByPhone(args: Args): Promise<Result> {
       integrationId: integration.id,
       wesetupUserId: args.weSetupUserId,
       tasksflowUserId: match.id,
+      tasksflowWorkerId: match.id,
       phone: normalized,
       source: "auto",
     },
-    update: { tasksflowUserId: match.id, phone: normalized },
+    update: {
+      tasksflowUserId: match.id,
+      tasksflowWorkerId: match.id,
+      phone: normalized,
+    },
   });
   return { ok: true, linked: true };
 }
