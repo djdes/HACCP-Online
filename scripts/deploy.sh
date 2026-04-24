@@ -54,6 +54,11 @@ echo "$SHA" > .build-sha
 echo "$TIME" > .build-time
 
 echo "==> Creating deploy.tar (excluding node_modules, .next, .git, etc.)"
+# ВАЖНО: `--exclude=journals` (без `./`) матчится любой папкой `journals`
+# в дереве, включая `src/app/(dashboard)/journals/`, `src/app/api/journals/`
+# и `src/app/mini/journals/` — после такого extract на проде пропадали все
+# роуты журналов и сайт отдавал «Страница не найдена». Ставим `./journals`
+# чтобы анкорить на корень репо — исключает только source-data, не код.
 $DRY_RUN tar cf deploy.tar \
   --exclude=node_modules \
   --exclude=.next \
@@ -63,8 +68,8 @@ $DRY_RUN tar cf deploy.tar \
   --exclude=.claude \
   --exclude=.vscode \
   --exclude=.agent \
-  --exclude=journals \
-  --exclude=tmp-source-journals \
+  --exclude=./journals \
+  --exclude=./tmp-source-journals \
   --exclude=_run.py \
   --exclude=_deploy.py \
   --exclude=_seed_remote.py \

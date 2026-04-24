@@ -54,6 +54,12 @@ jobs:
 
       - name: Create deploy tarball
         run: |
+          # ВАЖНО: `--exclude=journals` (без `./`) матчится любой папкой
+          # `journals` в дереве, в т.ч. `src/app/(dashboard)/journals/`,
+          # `src/app/api/journals/`, `src/app/mini/journals/` — после
+          # extract на проде пропадали все роуты журналов и сайт отдавал
+          # «Страница не найдена». Ставим `./journals` чтобы анкорить на
+          # корень репо — исключаются только source-данные, не код.
           tar cf deploy.tar \
             --exclude=node_modules \
             --exclude=.next \
@@ -63,8 +69,8 @@ jobs:
             --exclude=.claude \
             --exclude=.vscode \
             --exclude=.agent \
-            --exclude=journals \
-            --exclude=tmp-source-journals \
+            --exclude=./journals \
+            --exclude=./tmp-source-journals \
             --exclude=_run.py \
             --exclude=_deploy.py \
             --exclude=_seed_remote.py \
