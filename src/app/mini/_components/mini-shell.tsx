@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
+import { useMiniTheme } from "./mini-theme";
 
 const SECTION_TITLES: Array<[string, string]> = [
   ["/mini/staff", "Сотрудники"],
@@ -26,6 +27,8 @@ function titleForPath(pathname: string): string {
 }
 
 export function MiniTelegramRuntime() {
+  const { theme } = useMiniTheme();
+
   useEffect(() => {
     const tg = getTelegramWebApp();
     if (!tg) return;
@@ -33,15 +36,26 @@ export function MiniTelegramRuntime() {
     try {
       tg.ready();
       tg.expand();
-      // Editorial dark theme — синхронизируем header/body чтобы Telegram
-      // не рисовал свою белую полоску поверх dark app.
-      tg.setHeaderColor?.("#0a0b0f");
-      tg.setBackgroundColor?.("#0a0b0f");
       tg.enableClosingConfirmation?.();
     } catch {
       /* Older Telegram clients expose only part of the WebApp API. */
     }
   }, []);
+
+  // Синхронизируем Telegram chrome с текущей темой Mini App. Без этого
+  // при переключении dark↔light у пользователя остаётся старый header
+  // до следующего открытия бота — выглядит как баг.
+  useEffect(() => {
+    const tg = getTelegramWebApp();
+    if (!tg) return;
+    const bg = theme === "dark" ? "#0a0b0f" : "#fafbff";
+    try {
+      tg.setHeaderColor?.(bg);
+      tg.setBackgroundColor?.(bg);
+    } catch {
+      /* old client — silent */
+    }
+  }, [theme]);
 
   return null;
 }
@@ -83,10 +97,8 @@ export function MiniTopBar() {
 
   return (
     <header
-      className="sticky top-0 z-40"
+      className="mini-topbar sticky top-0 z-40"
       style={{
-        background:
-          "linear-gradient(180deg, rgba(10,11,15,0.92) 0%, rgba(10,11,15,0.72) 100%)",
         borderBottom: "1px solid var(--mini-divider)",
         backdropFilter: "blur(24px) saturate(160%)",
         WebkitBackdropFilter: "blur(24px) saturate(160%)",
@@ -101,13 +113,9 @@ export function MiniTopBar() {
         >
           {/* WS monogram — tactile brand glyph */}
           <span
-            className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl"
+            className="mini-monogram relative flex size-10 shrink-0 items-center justify-center rounded-2xl"
             style={{
-              background:
-                "linear-gradient(135deg, #15161b 0%, #1f2128 100%)",
               border: "1px solid var(--mini-divider-strong)",
-              boxShadow:
-                "inset 0 1px 0 rgba(250,247,242,0.06), 0 6px 20px -12px rgba(0,0,0,0.6)",
             }}
           >
             <span

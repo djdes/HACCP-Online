@@ -1,13 +1,33 @@
 /*
- * Mini App theme — "Dark Kitchen Operator".
+ * Mini App theme — Dual mode "Kitchen Operator".
  *
- * Shared tokens + global body treatment (warm near-black background с
- * grain/noise + soft ambient gradients). Scoped к `.mini-root` чтобы
- * не вытекало в Main-app.
+ * Две темы, обе distinctive и editorial: dark-charcoal (по умолчанию) и
+ * light-linen (тёплый off-white + lime accent). Переключается через
+ * `data-theme="light"` или `data-theme="dark"` на `.mini-root`.
+ *
+ * Shared tokens (шрифты, motion, shape) — в базовом правиле.
+ * Цветовые переменные разные между `[data-theme="dark"]` и
+ * `[data-theme="light"]`.
  */
 
 .mini-root {
-  /* Dark base */
+  /* Type scales — те же в обеих темах */
+  --mini-font-display: "Fraunces", Georgia, serif;
+  --mini-font-body: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mini-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Monaco, monospace;
+
+  font-family: var(--mini-font-body);
+  font-feature-settings: "ss01", "ss02", "cv02";
+  color: var(--mini-text);
+  background-color: var(--mini-bg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --------------------------------------------------------------------
+ * DARK — "Command Deck" (default)
+ * ------------------------------------------------------------------ */
+.mini-root[data-theme="dark"],
+.mini-root:not([data-theme]) {
   --mini-bg: #0a0b0f;
   --mini-surface-1: #15161b;
   --mini-surface-2: #1f2128;
@@ -15,35 +35,92 @@
   --mini-divider: rgba(250, 247, 242, 0.08);
   --mini-divider-strong: rgba(250, 247, 242, 0.14);
 
-  /* Warm text, лёгкий cream-tint вместо pure white */
   --mini-text: #faf7f2;
   --mini-text-muted: #8a8c94;
   --mini-text-faint: #5a5c66;
 
-  /* Accents — food-inspired */
-  --mini-lime: #c8ff5a;          /* primary action, live, fresh */
+  --mini-lime: #c8ff5a;
   --mini-lime-soft: rgba(200, 255, 90, 0.14);
-  --mini-amber: #ff9040;         /* temperature, warnings */
+  --mini-lime-strong: rgba(200, 255, 90, 0.32);
+  --mini-amber: #ff9040;
   --mini-amber-soft: rgba(255, 144, 64, 0.16);
-  --mini-ice: #6ab4ff;           /* cold equipment */
+  --mini-ice: #6ab4ff;
   --mini-ice-soft: rgba(106, 180, 255, 0.14);
-  --mini-crimson: #ff5268;       /* CAPA, critical */
+  --mini-crimson: #ff5268;
   --mini-crimson-soft: rgba(255, 82, 104, 0.16);
-  --mini-sage: #9ad3a2;          /* success, done */
+  --mini-sage: #9ad3a2;
   --mini-sage-soft: rgba(154, 211, 162, 0.14);
 
-  /* Type scales */
-  --mini-font-display: "Fraunces", Georgia, serif;
-  --mini-font-body: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --mini-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Monaco, monospace;
+  --mini-grain-opacity: 0.35;
+  --mini-glow-a: rgba(200, 255, 90, 0.06);
+  --mini-glow-b: rgba(106, 180, 255, 0.04);
+  --mini-glow-c: rgba(255, 144, 64, 0.04);
 
-  color: var(--mini-text);
-  background-color: var(--mini-bg);
-  font-family: var(--mini-font-body);
-  font-feature-settings: "ss01", "ss02", "cv02";
+  --mini-card-bg: linear-gradient(
+    180deg,
+    rgba(250, 247, 242, 0.035) 0%,
+    rgba(250, 247, 242, 0.015) 100%
+  );
+  --mini-card-solid-bg: #15161b;
+  --mini-nav-rail-bg: rgba(21, 22, 27, 0.88);
+  --mini-nav-rail-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(250, 247, 242, 0.04);
+  --mini-primary-shadow: 0 8px 32px -12px rgba(200, 255, 90, 0.5);
+  --mini-primary-contrast: #0a0b0f;
 }
 
-/* Subtle grain + ambient warm glow — даёт depth, не plain black */
+/* --------------------------------------------------------------------
+ * LIGHT — "Indigo Daylight"
+ * Бело-индиго палитра как на wesetup.ru landing. Использует тот же
+ * primary `#5566f6` и soft-surfaces `#fafbff` / `#f5f6ff` — оператор,
+ * переходя с сайта в Mini App, не ощущает шва.
+ * ------------------------------------------------------------------ */
+.mini-root[data-theme="light"] {
+  --mini-bg: #fafbff;             /* soft-surface — тот же, что /dashboard */
+  --mini-surface-1: #ffffff;      /* card */
+  --mini-surface-2: #f5f6ff;      /* tint-indigo, inputs */
+  --mini-surface-3: #eef1ff;      /* tint-indigo-2, active tile */
+  --mini-divider: rgba(11, 16, 36, 0.06);
+  --mini-divider-strong: rgba(11, 16, 36, 0.12);
+
+  --mini-text: #0b1024;           /* dark-hero, тот же, что на сайте */
+  --mini-text-muted: #6f7282;
+  --mini-text-faint: #9b9fb3;
+
+  /* Primary indigo — full palette как в design-system. */
+  --mini-lime: #5566f6;           /* primary indigo, не lime */
+  --mini-lime-soft: rgba(85, 102, 246, 0.10);
+  --mini-lime-strong: rgba(85, 102, 246, 0.22);
+  --mini-amber: #c7631a;          /* burnt orange (warn-fg типа) */
+  --mini-amber-soft: rgba(199, 99, 26, 0.10);
+  --mini-ice: #3848c7;            /* indigo-deep — линки */
+  --mini-ice-soft: rgba(56, 72, 199, 0.10);
+  --mini-crimson: #a13a32;        /* warn-fg, тот же что на dashboard */
+  --mini-crimson-soft: rgba(161, 58, 50, 0.10);
+  --mini-sage: #116b2a;           /* success-fg */
+  --mini-sage-soft: rgba(17, 107, 42, 0.10);
+
+  --mini-grain-opacity: 0.18;
+  --mini-glow-a: rgba(85, 102, 246, 0.06);
+  --mini-glow-b: rgba(122, 92, 255, 0.05);
+  --mini-glow-c: rgba(61, 78, 252, 0.04);
+
+  --mini-card-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.72) 100%
+  );
+  --mini-card-solid-bg: #ffffff;
+  --mini-nav-rail-bg: rgba(255, 255, 255, 0.88);
+  --mini-nav-rail-shadow: 0 -8px 32px rgba(85, 102, 246, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --mini-primary-shadow: 0 10px 30px -12px rgba(85, 102, 246, 0.55);
+  --mini-primary-contrast: #ffffff;
+}
+
+/* --------------------------------------------------------------------
+ * Ambient layers — используют theme vars
+ * ------------------------------------------------------------------ */
 .mini-root::before {
   content: "";
   position: fixed;
@@ -51,21 +128,27 @@
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(200, 255, 90, 0.06), transparent 60%),
-    radial-gradient(ellipse 70% 40% at 100% 100%, rgba(106, 180, 255, 0.04), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 0% 100%, rgba(255, 144, 64, 0.04), transparent 60%);
+    radial-gradient(ellipse 90% 60% at 50% -10%, var(--mini-glow-a), transparent 60%),
+    radial-gradient(ellipse 70% 40% at 100% 100%, var(--mini-glow-b), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, var(--mini-glow-c), transparent 60%);
 }
 
+/* Shared grain — works beautifully on both themes, с разной прозрачностью */
 .mini-root::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.35;
-  /* Fine grain via SVG noise — inline для простоты */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0.04 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  opacity: var(--mini-grain-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.04 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
   mix-blend-mode: overlay;
+}
+.mini-root[data-theme="light"]::after {
+  mix-blend-mode: multiply;
+  /* холодный сине-серый grain для indigo-daylight — чуть видно, не
+     доминирует, сохраняет «бумажный» feel без warm-warp */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.09 0 0 0 0 0.13 0 0 0 0.04 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
 }
 
 .mini-root > * {
@@ -73,7 +156,9 @@
   z-index: 1;
 }
 
-/* Display heading — editorial italic accent */
+/* --------------------------------------------------------------------
+ * Typography helpers (тема-агностические — используют текущий --mini-text)
+ * ------------------------------------------------------------------ */
 .mini-display {
   font-family: var(--mini-font-display);
   font-optical-sizing: auto;
@@ -105,13 +190,11 @@
   font-feature-settings: "tnum" on, "ss01" on;
 }
 
-/* Glass card — основной контейнер */
+/* --------------------------------------------------------------------
+ * Reusable components (обе темы)
+ * ------------------------------------------------------------------ */
 .mini-card {
-  background: linear-gradient(
-    180deg,
-    rgba(250, 247, 242, 0.035) 0%,
-    rgba(250, 247, 242, 0.015) 100%
-  );
+  background: var(--mini-card-bg);
   border: 1px solid var(--mini-divider);
   border-radius: 20px;
   backdrop-filter: blur(20px);
@@ -119,12 +202,11 @@
 }
 
 .mini-card-solid {
-  background: var(--mini-surface-1);
+  background: var(--mini-card-solid-bg);
   border: 1px solid var(--mini-divider);
   border-radius: 20px;
 }
 
-/* Tactile press — отзывается на tap */
 .mini-press {
   transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -132,7 +214,6 @@
   transform: scale(0.97);
 }
 
-/* Animated dot — «в сети / online / слушаем температуру» */
 @keyframes miniPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.55; transform: scale(0.88); }
@@ -141,7 +222,6 @@
   animation: miniPulse 2s ease-in-out infinite;
 }
 
-/* Staggered list reveal on mount */
 @keyframes miniReveal {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -150,12 +230,10 @@
   animation: miniReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* Dotted separator — тактильный, не sterile hr */
 .mini-dotted-sep {
   border-top: 1px dashed var(--mini-divider-strong);
 }
 
-/* Status pill — single rule for all variants */
 .mini-pill {
   display: inline-flex;
   align-items: center;
@@ -170,14 +248,17 @@
   line-height: 1;
   border: 1px solid transparent;
 }
-.mini-pill[data-tone="lime"] { background: var(--mini-lime-soft); color: var(--mini-lime); border-color: rgba(200, 255, 90, 0.2); }
-.mini-pill[data-tone="amber"] { background: var(--mini-amber-soft); color: var(--mini-amber); border-color: rgba(255, 144, 64, 0.2); }
-.mini-pill[data-tone="ice"] { background: var(--mini-ice-soft); color: var(--mini-ice); border-color: rgba(106, 180, 255, 0.2); }
-.mini-pill[data-tone="crimson"] { background: var(--mini-crimson-soft); color: var(--mini-crimson); border-color: rgba(255, 82, 104, 0.2); }
-.mini-pill[data-tone="sage"] { background: var(--mini-sage-soft); color: var(--mini-sage); border-color: rgba(154, 211, 162, 0.2); }
-.mini-pill[data-tone="neutral"] { background: rgba(250, 247, 242, 0.05); color: var(--mini-text-muted); border-color: var(--mini-divider); }
+.mini-pill[data-tone="lime"] { background: var(--mini-lime-soft); color: var(--mini-lime); border-color: var(--mini-lime-strong); }
+.mini-pill[data-tone="amber"] { background: var(--mini-amber-soft); color: var(--mini-amber); border-color: rgba(0,0,0,0.06); }
+.mini-pill[data-tone="ice"] { background: var(--mini-ice-soft); color: var(--mini-ice); border-color: rgba(0,0,0,0.06); }
+.mini-pill[data-tone="crimson"] { background: var(--mini-crimson-soft); color: var(--mini-crimson); border-color: rgba(0,0,0,0.06); }
+.mini-pill[data-tone="sage"] { background: var(--mini-sage-soft); color: var(--mini-sage); border-color: rgba(0,0,0,0.06); }
+.mini-pill[data-tone="neutral"] {
+  background: var(--mini-surface-2);
+  color: var(--mini-text-muted);
+  border-color: var(--mini-divider);
+}
 
-/* Primary / secondary buttons */
 .mini-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -186,12 +267,12 @@
   padding: 14px 20px;
   border-radius: 16px;
   background: var(--mini-lime);
-  color: #0a0b0f;
+  color: var(--mini-primary-contrast);
   font-weight: 600;
   font-size: 15px;
   letter-spacing: -0.01em;
   border: none;
-  box-shadow: 0 8px 32px -12px rgba(200, 255, 90, 0.5);
+  box-shadow: var(--mini-primary-shadow);
 }
 .mini-btn-secondary {
   display: inline-flex;
@@ -219,22 +300,18 @@
   border: 1px solid transparent;
 }
 .mini-btn-ghost:hover {
-  background: rgba(250, 247, 242, 0.04);
+  background: var(--mini-surface-1);
   color: var(--mini-text);
 }
 
-/* Bottom nav — floating glass rail */
 .mini-nav-rail {
-  background: rgba(21, 22, 27, 0.88);
+  background: var(--mini-nav-rail-bg);
   border: 1px solid var(--mini-divider);
   backdrop-filter: blur(32px) saturate(160%);
   -webkit-backdrop-filter: blur(32px) saturate(160%);
-  box-shadow:
-    0 -8px 40px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(250, 247, 242, 0.04);
+  box-shadow: var(--mini-nav-rail-shadow);
 }
 
-/* Input */
 .mini-input {
   background: var(--mini-surface-2);
   border: 1px solid var(--mini-divider);
@@ -251,12 +328,10 @@
   background: var(--mini-surface-3);
 }
 
-/* Progress ring for compliance */
 .mini-ring-track {
-  stroke: rgba(250, 247, 242, 0.08);
+  stroke: var(--mini-divider-strong);
 }
 
-/* Tab scroll row */
 .mini-tab-row {
   display: flex;
   gap: 8px;
@@ -281,4 +356,38 @@
   background: var(--mini-text);
   color: var(--mini-bg);
   border-color: var(--mini-text);
+}
+
+/* --------------------------------------------------------------------
+ * Top bar — sticky blur. Фон зависит от темы чтобы Telegram chrome +
+ * этот header визуально сливались. Dark = near-black, Light = soft-white.
+ * ------------------------------------------------------------------ */
+.mini-topbar {
+  background: linear-gradient(
+    180deg,
+    var(--mini-topbar-bg-top, rgba(10, 11, 15, 0.92)) 0%,
+    var(--mini-topbar-bg-bottom, rgba(10, 11, 15, 0.72)) 100%
+  );
+}
+.mini-root[data-theme="light"] .mini-topbar {
+  background: linear-gradient(
+    180deg,
+    rgba(250, 251, 255, 0.94) 0%,
+    rgba(250, 251, 255, 0.78) 100%
+  );
+}
+
+/* Brand monogram — «W» плитка. В dark это matt charcoal, в light —
+   soft indigo tint, чтобы перекликаться с primary на сайте. */
+.mini-monogram {
+  background: linear-gradient(135deg, #15161b 0%, #1f2128 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(250, 247, 242, 0.06),
+    0 6px 20px -12px rgba(0, 0, 0, 0.6);
+}
+.mini-root[data-theme="light"] .mini-monogram {
+  background: linear-gradient(135deg, #eef1ff 0%, #f5f6ff 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 20px -12px rgba(85, 102, 246, 0.25);
 }

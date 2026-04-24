@@ -4,6 +4,10 @@ import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
+import {
+  MiniThemeBootstrap,
+  MiniThemeProvider,
+} from "./_components/mini-theme";
 import "./mini-theme.css";
 
 /**
@@ -56,15 +60,29 @@ export default function MiniLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,300..700,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist+Mono:wght@400;500;600&display=swap"
       />
       <MiniSessionProvider>
-        <MiniTelegramRuntime />
-        <div className="mini-root min-h-dvh">
-          <MiniTopBar />
-          <main className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4 pb-28 pt-4">
-            {children}
-          </main>
-          <OfflineIndicator />
-          <MiniNav />
-        </div>
+        <MiniThemeProvider>
+          <MiniTelegramRuntime />
+          {/* `id="mini-root"` нужен для pre-hydration скрипта
+              `<MiniThemeBootstrap />` и для `applyThemeToDOM`: они
+              ищут этот контейнер по id, чтобы выставить `data-theme`
+              без FOUC. `suppressHydrationWarning` — скрипт может
+              перезаписать атрибут до того, как React гидратирует
+              элемент; без этого флага React выругался бы. */}
+          <div
+            id="mini-root"
+            className="mini-root min-h-dvh"
+            data-theme="dark"
+            suppressHydrationWarning
+          >
+            <MiniThemeBootstrap />
+            <MiniTopBar />
+            <main className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4 pb-28 pt-4">
+              {children}
+            </main>
+            <OfflineIndicator />
+            <MiniNav />
+          </div>
+        </MiniThemeProvider>
       </MiniSessionProvider>
     </>
   );
