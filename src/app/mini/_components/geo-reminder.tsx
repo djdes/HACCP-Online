@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MapPin } from "lucide-react";
 
 const PROXIMITY_METERS = 50; // remind when within 50m
 
@@ -27,12 +28,10 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 export function GeoReminder({ areas }: { areas: AreaLocation[] }) {
   const [nearby, setNearby] = useState<AreaLocation[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [watching, setWatching] = useState(false);
 
   useEffect(() => {
     if (!navigator.geolocation || areas.length === 0) return;
 
-    setWatching(true);
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -44,7 +43,6 @@ export function GeoReminder({ areas }: { areas: AreaLocation[] }) {
       },
       (err) => {
         setError(err.message);
-        setWatching(false);
       },
       { enableHighAccuracy: true, maximumAge: 60000 }
     );
@@ -53,18 +51,20 @@ export function GeoReminder({ areas }: { areas: AreaLocation[] }) {
   }, [areas]);
 
   if (error) return null;
-  if (!watching) return null;
   if (nearby.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
-      <div className="font-medium">📍 Вы рядом с зоной уборки:</div>
+    <div className="rounded-3xl border border-[#ffe0bd] bg-[#fff8ed] px-4 py-3 text-[13px] text-[#9a5a00]">
+      <div className="flex items-center gap-2 font-medium">
+        <MapPin className="size-4" />
+        Вы рядом с зоной уборки:
+      </div>
       <ul className="mt-1 list-disc pl-4">
         {nearby.map((a) => (
           <li key={a.id}>{a.name}</li>
         ))}
       </ul>
-      <p className="mt-1 text-[12px] text-amber-600">
+      <p className="mt-1 text-[12px] text-[#a66a05]">
         Не забудьте отметить уборку в журнале!
       </p>
     </div>

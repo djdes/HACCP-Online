@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:bot": "tsx scripts/test-bot-wizard.ts",
+    "setup:telegram-bot": "tsx scripts/setup-telegram-bot.ts",
     "deploy:manual": "bash scripts/deploy.sh",
     "backfill:journal-staff": "tsx scripts/backfill-journal-staff-bindings.ts",
     "audit:source:parity": "tsx scripts/audit-source-local-parity.ts",

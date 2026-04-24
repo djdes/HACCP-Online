@@ -5,6 +5,7 @@ import {
   listOpenJournalObligationsForUser,
   syncDailyJournalObligationsForOrganization,
 } from "@/lib/journal-obligations";
+import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { notifyEmployee } from "@/lib/telegram";
 import {
@@ -47,12 +48,7 @@ type RunMiniDigestArgs = {
 };
 
 function resolveMiniBaseUrl(): string {
-  return (
-    process.env.MINI_APP_BASE_URL ||
-    (process.env.NEXTAUTH_URL
-      ? `${process.env.NEXTAUTH_URL.replace(/\/+$/, "")}/mini`
-      : "https://wesetup.ru/mini")
-  );
+  return getMiniAppBaseUrlFromEnv() ?? "https://wesetup.ru/mini";
 }
 
 function createDefaultDeps(): MiniDigestDeps {

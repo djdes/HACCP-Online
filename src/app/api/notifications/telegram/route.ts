@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { parseLinkToken, sendTelegramMessage } from "@/lib/telegram";
+import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
+import {
+  notifyEmployee,
+  parseLinkToken,
+  sendTelegramMessage,
+} from "@/lib/telegram";
 
 export async function POST(request: Request) {
   try {
@@ -65,9 +70,16 @@ export async function POST(request: Request) {
         data: { telegramChatId: chatId },
       });
 
-      await sendTelegramMessage(
-        chatId,
-        "Аккаунт успешно привязан! Вы будете получать уведомления."
+      const miniAppUrl = getMiniAppBaseUrlFromEnv();
+      await notifyEmployee(
+        user.id,
+        "Аккаунт успешно привязан. Откройте кабинет WeSetup в Telegram.",
+        miniAppUrl
+          ? {
+              label: "Открыть кабинет",
+              miniAppUrl,
+            }
+          : undefined
       );
 
       return NextResponse.json({ ok: true });

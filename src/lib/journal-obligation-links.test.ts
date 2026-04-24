@@ -3,7 +3,10 @@ import test from "node:test";
 
 import {
   buildMiniAppAuthBootstrapPath,
+  buildMiniAppUrl,
+  buildMiniOpenBridgePath,
   buildMiniObligationEntryUrl,
+  normalizeMiniAppBaseUrl,
   resolveJournalObligationTargetPath,
   sanitizeMiniAppRedirectPath,
 } from "@/lib/journal-obligation-links";
@@ -83,5 +86,34 @@ test("buildMiniObligationEntryUrl trims trailing slashes from the mini base url"
   assert.equal(
     buildMiniObligationEntryUrl("https://wesetup.ru/mini/", "ob-123"),
     "https://wesetup.ru/mini/o/ob-123"
+  );
+});
+
+test("normalizeMiniAppBaseUrl accepts either site root or mini root", () => {
+  assert.equal(
+    normalizeMiniAppBaseUrl("https://wesetup.ru"),
+    "https://wesetup.ru/mini"
+  );
+  assert.equal(
+    normalizeMiniAppBaseUrl("https://wesetup.ru/mini/"),
+    "https://wesetup.ru/mini"
+  );
+});
+
+test("buildMiniAppUrl avoids duplicate /mini segments", () => {
+  assert.equal(
+    buildMiniAppUrl("https://wesetup.ru/mini", "/mini/journals/hygiene"),
+    "https://wesetup.ru/mini/journals/hygiene"
+  );
+  assert.equal(
+    buildMiniAppUrl("https://wesetup.ru", "/mini/equipment"),
+    "https://wesetup.ru/mini/equipment"
+  );
+});
+
+test("buildMiniOpenBridgePath encodes a full-cabinet target", () => {
+  assert.equal(
+    buildMiniOpenBridgePath("/reports?format=pdf", "Журналы в PDF"),
+    "/mini/open?href=%2Freports%3Fformat%3Dpdf&label=%D0%96%D1%83%D1%80%D0%BD%D0%B0%D0%BB%D1%8B+%D0%B2+PDF"
   );
 });

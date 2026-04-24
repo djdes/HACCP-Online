@@ -16,6 +16,9 @@ export type TelegramWebApp = {
   colorScheme?: "light" | "dark";
   themeParams?: Record<string, string>;
   close?: () => void;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  enableClosingConfirmation?: () => void;
   showScanQrPopup(params: { text?: string }, callback: (text: string) => void | true): void;
   closeScanQrPopup(): void;
   showPopup(params: {

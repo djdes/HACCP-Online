@@ -3,6 +3,7 @@ import Script from "next/script";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
+import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
 
 /**
  * Mini App layout.
@@ -15,7 +16,7 @@ import { OfflineIndicator } from "./_components/offline-indicator";
  */
 
 export const metadata: Metadata = {
-  title: "WeSetup — Telegram",
+  title: "WeSetup — Mini App",
   robots: { index: false, follow: false },
 };
 
@@ -24,7 +25,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0f172a",
+  themeColor: "#0b1024",
 };
 
 export default function MiniLayout({
@@ -39,10 +40,15 @@ export default function MiniLayout({
         strategy="beforeInteractive"
       />
       <MiniSessionProvider>
-        <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 px-3 pb-24 pt-4 sm:px-4 sm:pt-6">
-          {children}
-        </main>
-        <MiniNav />
+        <MiniTelegramRuntime />
+        <div className="min-h-dvh bg-[#eef1ff] text-[#0b1024]">
+          <MiniTopBar />
+          <main className="mx-auto flex min-h-[calc(100dvh-58px)] w-full max-w-lg flex-col bg-[#fafbff] px-3 pb-28 pt-4 shadow-[0_0_80px_-48px_rgba(85,102,246,0.65)] sm:px-4">
+            {children}
+          </main>
+          <OfflineIndicator />
+          <MiniNav />
+        </div>
       </MiniSessionProvider>
     </>
   );

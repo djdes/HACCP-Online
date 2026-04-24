@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { MiniCard } from "../_components/mini-card";
+import { Bell, UserPlus } from "lucide-react";
 
 type Employee = {
   id: string;
@@ -138,12 +137,19 @@ export default function MiniStaffPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
       <header className="flex items-center justify-between pt-2">
-        <h1 className="text-[22px] font-semibold text-slate-900">Сотрудники</h1>
+        <h1 className="text-[22px] font-semibold text-[#0b1024]">Сотрудники</h1>
         <button
           onClick={() => setShowForm((s) => !s)}
-          className="rounded-xl bg-slate-900 px-3 py-1.5 text-[13px] font-medium text-white"
+          className="inline-flex items-center gap-1.5 rounded-2xl bg-[#5566f6] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_12px_30px_-18px_rgba(85,102,246,0.9)]"
         >
-          {showForm ? "Отмена" : "+ Добавить"}
+          {showForm ? (
+            "Отмена"
+          ) : (
+            <>
+              <UserPlus className="size-4" />
+              Добавить
+            </>
+          )}
         </button>
       </header>
 
@@ -261,13 +267,13 @@ export default function MiniStaffPage() {
                         }, 3000);
                       }}
                       disabled={notifyStatus[emp.id] === "sending"}
-                      className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 active:bg-slate-200 disabled:opacity-50"
+                      className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-xl bg-[#f5f6ff] px-2 py-1 text-[11px] font-medium text-[#3848c7] active:bg-[#eef1ff] disabled:opacity-50"
                     >
                       {notifyStatus[emp.id] === "sending"
                         ? "…"
                         : notifyStatus[emp.id] === "sent"
                         ? "✓"
-                        : "🔔"}
+                        : <Bell className="size-3.5" />}
                     </button>
                   </>
                 ) : (

@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { QrCode } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
 
 function resolveQrDestination(text: string): string | null {
@@ -69,25 +70,10 @@ export function QrScannerButton() {
   return (
     <button
       onClick={handleScan}
-      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] font-medium text-slate-700 shadow-sm active:bg-slate-50"
+      className="inline-flex items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#0b1024] shadow-sm active:scale-[0.98] active:bg-[#f5f6ff]"
       aria-label="Сканировать QR"
     >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <path d="M14 14h7v7h-7z" />
-        <path d="M14 17.5h7M17.5 14v7" />
-      </svg>
+      <QrCode className="size-4 text-[#5566f6]" />
       Сканировать QR
     </button>
   );

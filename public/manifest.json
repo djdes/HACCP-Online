@@ -1,8 +1,8 @@
 {
-  "name": "HACCP-Online",
-  "short_name": "HACCP",
-  "description": "Электронные журналы ХАССП для пищевых производств",
-  "start_url": "/dashboard",
+  "name": "WeSetup",
+  "short_name": "WeSetup",
+  "description": "Электронные журналы СанПиН и ХАССП для пищевых производств",
+  "start_url": "/mini",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#18181b",
