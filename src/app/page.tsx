@@ -312,7 +312,7 @@ export default async function LandingPage() {
       {/* overflow-x-clip contains the tilted phones horizontally, but lets
           vertical shadows + natural-height children extend freely so they
           don't get guillotined by the section boundary. */}
-      <section className="landing-hero relative overflow-x-clip pb-24 sm:pb-32">
+      <section className="landing-hero relative overflow-x-clip pb-14 sm:pb-32">
         {/* Soft ambient gradient wash */}
         <div
           className="pointer-events-none absolute inset-0 -z-0"
@@ -398,11 +398,13 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Screenshot fan — single mobile phone needs ~420px, fan with
+          {/* Screenshot fan — single mobile phone needs ~400px (9:19 ratio
+              at 180px width = 380px tall + 20px breathing room). Fan with
               two tilted phones + desktop mockup needs ~680px. Height scales
               down aggressively on <sm so the hero isn't 90% whitespace on
-              a phone. */}
-          <div className="hero-fan relative mx-auto mt-14 min-h-[420px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
+              a phone — previous `min-h-[420px]` left ~40px dead strip below
+              the phone that made the mobile hero look broken. */}
+          <div className="hero-fan relative mx-auto mt-10 min-h-[400px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>

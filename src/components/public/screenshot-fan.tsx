@@ -29,8 +29,11 @@ export function ScreenshotFan() {
       </div>
 
       {/* Mobile variant — only one phone, centred; smaller width so it
-          fits under the hero chips on 320px devices */}
-      <div className="absolute left-1/2 top-0 block w-[min(180px,65vw)] -translate-x-1/2 sm:hidden">
+          fits under the hero chips on 320px devices. Soft fade-mask on the
+          bottom 15% of the phone makes the inevitable chat clip (aspect
+          9:19 caps height at 380px, chat content is longer) read as a
+          deliberate preview rather than a broken render. */}
+      <div className="absolute left-1/2 top-0 block w-[min(180px,65vw)] -translate-x-1/2 sm:hidden [mask-image:linear-gradient(to_bottom,black_82%,transparent)]">
         <TelegramMockup />
       </div>
 
