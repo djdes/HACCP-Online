@@ -47,6 +47,7 @@ import { auditPlanAdapter } from "./audit-plan";
 import { auditProtocolAdapter } from "./audit-protocol";
 import { auditReportAdapter } from "./audit-report";
 import { traceabilityAdapter } from "./traceability";
+import { complaintRegisterAdapter } from "./complaint-register";
 import { buildGenericAdapter } from "./generic";
 import type { JournalAdapter } from "./types";
 
@@ -81,6 +82,7 @@ const SPECIFIC_ADAPTERS: JournalAdapter[] = [
   auditProtocolAdapter,
   auditReportAdapter,
   traceabilityAdapter,
+  complaintRegisterAdapter,
 ];
 
 const SPECIFIC_BY_CODE = new Map<string, JournalAdapter>(

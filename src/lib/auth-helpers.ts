@@ -1,8 +1,13 @@
 import type { Session } from "next-auth";
 import { getServerSession } from "@/lib/server-session";
 import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { hasAnyUserRole } from "@/lib/user-roles";
+
+type ApiAuthResult =
+  | { ok: true; session: Session }
+  | { ok: false; response: NextResponse };
 
 export async function requireAuth() {
   const session = await getServerSession(authOptions);
@@ -22,6 +27,38 @@ export async function requireRole(roles: string[]) {
   }
 
   return session;
+}
+
+export async function requireApiAuth(): Promise<ApiAuthResult> {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Не авторизован" }, { status: 401 }),
+    };
+  }
+
+  return { ok: true, session };
+}
+
+export async function requireApiRole(
+  roles: string[]
+): Promise<ApiAuthResult> {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth;
+
+  if (!hasAnyUserRole(auth.session.user.role, roles)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Недостаточно прав" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return auth;
 }
 
 /**

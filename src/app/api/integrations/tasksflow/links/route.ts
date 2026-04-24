@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const runtime = "nodejs";
@@ -12,7 +12,9 @@ export const dynamic = "force-dynamic";
  * per employee with status «Связан / Не найден / Без телефона».
  */
 export async function GET() {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }

@@ -46,6 +46,71 @@ type LinkRow = {
   status: "linked" | "no_phone" | "no_match" | "pending";
 };
 
+type SyncFailure = {
+  wesetupUserId: string;
+  name: string | null;
+  phone: string;
+  reason: string;
+  message: string;
+  httpStatus?: number;
+};
+
+type SyncResponse = {
+  totals: {
+    linked: number;
+    wesetupUsers: number;
+    createdRemote: number;
+    withoutPhone: number;
+    withoutMatch: number;
+  };
+  failures?: SyncFailure[];
+};
+
+async function readApiJson<T>(
+  response: Response,
+  fallbackMessage: string
+): Promise<T> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+  const isJson = contentType.toLowerCase().includes("application/json");
+
+  if (!isJson) {
+    if (response.status === 401) {
+      throw new Error("Сессия истекла. Войдите заново.");
+    }
+    if (response.status === 403) {
+      throw new Error("Недостаточно прав для этого действия.");
+    }
+    const suffix = response.redirected ? " После редиректа сервер вернул HTML." : "";
+    throw new Error(`${fallbackMessage}. Сервер вернул не JSON (HTTP ${response.status}).${suffix}`);
+  }
+
+  let data: unknown;
+  try {
+    data = text.length > 0 ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`${fallbackMessage}. Сервер вернул поврежденный JSON (HTTP ${response.status}).`);
+  }
+
+  if (!response.ok) {
+    throw new Error(extractApiError(data) ?? fallbackMessage);
+  }
+
+  return data as T;
+}
+
+function extractApiError(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  if (typeof record.error === "string" && record.error.length > 0) {
+    return record.error;
+  }
+  if (typeof record.message === "string" && record.message.length > 0) {
+    return record.message;
+  }
+  return null;
+}
+
 export function TasksFlowSettingsClient({
   organizationName,
   initialIntegration,
@@ -66,17 +131,7 @@ export function TasksFlowSettingsClient({
   const [pendingSync, startSync] = useTransition();
   const [pendingDisconnect, startDisconnect] = useTransition();
   const [links, setLinks] = useState<LinkRow[] | null>(null);
-  const [linksLoading, setLinksLoading] = useState(false);
-  const [lastFailures, setLastFailures] = useState<
-    Array<{
-      wesetupUserId: string;
-      name: string | null;
-      phone: string;
-      reason: string;
-      message: string;
-      httpStatus?: number;
-    }>
-  >([]);
+  const [lastFailures, setLastFailures] = useState<SyncFailure[]>([]);
   const integrationId = integration?.id ?? null;
   const integrationLastSyncAt = integration?.lastSyncAt ?? null;
 
@@ -85,22 +140,19 @@ export function TasksFlowSettingsClient({
   // reflects "auto / manual" + current TasksFlow id without refresh.
   useEffect(() => {
     if (!integrationId) {
-      setLinks(null);
       return;
     }
     let cancelled = false;
-    setLinksLoading(true);
     fetch("/api/integrations/tasksflow/links", { cache: "no-store" })
       .then(async (r) => {
-        if (!r.ok) throw new Error("links fetch failed");
-        const data = await r.json();
+        const data = await readApiJson<{ links?: LinkRow[] }>(
+          r,
+          "Не удалось загрузить сопоставление сотрудников"
+        );
         if (!cancelled) setLinks(data.links ?? []);
       })
       .catch(() => {
         if (!cancelled) setLinks([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLinksLoading(false);
       });
     return () => {
       cancelled = true;
@@ -119,10 +171,10 @@ export function TasksFlowSettingsClient({
             label: label.trim() || null,
           }),
         });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data?.error ?? "Не удалось подключить TasksFlow");
-        }
+        const data = await readApiJson<{
+          integration: Integration;
+          probedUserCount?: number;
+        }>(response, "Не удалось подключить TasksFlow");
         toast.success(
           `TasksFlow подключён. Найдено ${data.probedUserCount ?? 0} сотрудников.`
         );
@@ -130,7 +182,12 @@ export function TasksFlowSettingsClient({
         // gets all the derived fields (companyId, lastSyncAt, counts).
         const status = await fetch("/api/integrations/tasksflow", {
           cache: "no-store",
-        }).then((r) => r.json());
+        }).then((r) =>
+          readApiJson<{ integration: Integration | null }>(
+            r,
+            "Не удалось обновить статус интеграции"
+          )
+        );
         setIntegration(status.integration);
         setApiKey("");
         router.refresh();
@@ -149,10 +206,10 @@ export function TasksFlowSettingsClient({
           "/api/integrations/tasksflow/sync-users",
           { method: "POST" }
         );
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data?.error ?? "Не удалось синхронизировать");
-        }
+        const data = await readApiJson<SyncResponse>(
+          response,
+          "Не удалось синхронизировать"
+        );
         const t = data.totals;
         const failures = Array.isArray(data.failures) ? data.failures : [];
         setLastFailures(failures);
@@ -166,7 +223,12 @@ export function TasksFlowSettingsClient({
         }
         const status = await fetch("/api/integrations/tasksflow", {
           cache: "no-store",
-        }).then((r) => r.json());
+        }).then((r) =>
+          readApiJson<{ integration: Integration | null }>(
+            r,
+            "Не удалось обновить статус интеграции"
+          )
+        );
         setIntegration(status.integration);
       } catch (error) {
         toast.error(
@@ -189,11 +251,10 @@ export function TasksFlowSettingsClient({
         const response = await fetch("/api/integrations/tasksflow", {
           method: "DELETE",
         });
-        if (!response.ok) {
-          throw new Error("Не удалось отключить");
-        }
+        await readApiJson<{ ok: true }>(response, "Не удалось отключить");
         toast.success("TasksFlow отключён");
         setIntegration(null);
+        setLinks(null);
         setApiKey("");
         router.refresh();
       } catch (error) {
@@ -299,11 +360,11 @@ export function TasksFlowSettingsClient({
             </code>
             — тогда синхронизация пройдет без ручной магии.
           </p>
-          {linksLoading ? (
+          {links === null ? (
             <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-10 text-center text-[13px] text-[#6f7282]">
               Загрузка…
             </div>
-          ) : !links || links.length === 0 ? (
+          ) : links.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-10 text-center">
               <div className="text-[14px] font-medium text-[#0b1024]">
                 Нет сотрудников с активным аккаунтом

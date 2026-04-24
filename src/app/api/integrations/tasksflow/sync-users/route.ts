@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   TasksFlowError,
@@ -25,7 +25,9 @@ export const dynamic = "force-dynamic";
  * Returns counts so the UI can show "Связано 7 из 12 сотрудников".
  */
 export async function POST() {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { isManagerRole } from "@/lib/user-roles";
 import {
@@ -22,7 +22,9 @@ export const dynamic = "force-dynamic";
  * count for the settings page header.
  */
 export async function GET() {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
@@ -86,7 +88,9 @@ const connectSchema = z.object({
  * Single integration per org (we upsert against `organizationId`).
  */
 export async function POST(request: Request) {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!isManagerRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
@@ -181,7 +185,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!isManagerRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }

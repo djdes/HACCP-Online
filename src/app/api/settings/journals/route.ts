@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { setDisabledJournalCodes } from "@/lib/disabled-journals";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
@@ -14,7 +14,9 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
  * mutations.
  */
 export async function PATCH(request: Request) {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
@@ -33,7 +35,7 @@ export async function PATCH(request: Request) {
   }
 
   const stored = await setDisabledJournalCodes(
-    session.user.organizationId,
+    getActiveOrgId(session),
     codes
   );
   return NextResponse.json({ disabledCodes: stored });

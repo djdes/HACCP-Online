@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { pullCompletionsForOrganization } from "@/lib/tasksflow-sync";
 
@@ -16,7 +16,9 @@ export const dynamic = "force-dynamic";
  * sees today's marks immediately on open without waiting for cron.
  */
 export async function POST() {
-  const session = await requireAuth();
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
