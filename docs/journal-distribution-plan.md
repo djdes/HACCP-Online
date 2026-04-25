@@ -47,9 +47,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **2.3.** Worker / cron: когда `fillMode === "sensor"`, вместо
-  создания obligation — забирать значения с датчика и авто-создавать
-  записи в журнал
 - [ ] **2.4.** `/settings/equipment` — UI «привязать датчик к
   шаблону + полю»
 - [ ] **2.5.** Failover (Q6 = hybrid): если датчик не отвечает > 24
