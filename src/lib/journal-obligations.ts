@@ -619,6 +619,83 @@ export async function syncDailyJournalObligationsForOrganization(
   // (или сменивших defaultAssignee), делается в шаге 1.7 — там
   // одноразовая миграция вычистит старые obligations. После неё
   // новый код стабильно создаёт ровно один single-obligation на день.
+
+  // 3. Sensor-failover (Q6 = hybrid): для шаблонов с fillMode="sensor"
+  // проверяем когда последний раз приходили данные с датчика. Если
+  // тишина больше 24 часов — создаём obligation для штата (как single)
+  // чтобы заполнили вручную, а не теряли запись за день. Когда датчик
+  // оживёт — следующий cron-tick `/api/tuya/collect` снова заполнит,
+  // и obligation на следующий день уже не понадобится.
+  const SENSOR_FAILOVER_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+  const failoverThreshold = new Date(
+    now.getTime() - SENSOR_FAILOVER_THRESHOLD_MS
+  );
+  for (const template of templates) {
+    if (!isDailyObligationCode(template.code)) continue;
+    if (disabledCodes.has(template.code)) continue;
+    if (templateFillMode(template) !== "sensor") continue;
+
+    // Когда последний раз приходили данные с датчика? Смотрим на
+    // JournalEntry, который создаёт `/api/tuya/collect`. Если за
+    // 24 часа ни одной записи — датчик молчит.
+    const latestEntry = await db.journalEntry.findFirst({
+      where: {
+        organizationId,
+        templateId: template.id,
+        createdAt: { gte: failoverThreshold },
+      },
+      select: { id: true },
+    });
+    if (latestEntry) continue; // датчик жив, ничего не делаем
+
+    // Failover: создаём obligation как single. Это «человек уберёт за
+    // датчиком». Если defaultAssigneeId на шаблоне есть — отдаём ему,
+    // иначе round-robin.
+    const summary = await deps.getTemplateTodaySummary(
+      organizationId,
+      template.id,
+      template.code,
+      now
+    );
+    if (summary.aperiodic) continue;
+
+    const assignee = await deps.pickSingleAssignee({
+      organizationId,
+      template,
+      dateKey,
+    });
+    if (!assignee) continue;
+
+    const isDocumentTarget = usesDocumentTarget(template);
+    const dedupeKey = buildDedupeKey(dateKey, template.code);
+    const targetPath = isDocumentTarget
+      ? resolveJournalObligationTargetPath({
+          journalCode: template.code,
+          isDocument: true,
+          activeDocumentId: summary.activeDocumentId,
+        })
+      : resolveJournalObligationTargetPath({
+          journalCode: template.code,
+          isDocument: false,
+          activeDocumentId: null,
+        });
+
+    await deps.saveDailyObligations([
+      {
+        organizationId,
+        userId: assignee.id,
+        templateId: template.id,
+        journalCode: template.code,
+        kind: "daily-journal",
+        dateKey,
+        status: summary.filled ? "done" : "pending",
+        targetPath,
+        source: DAILY_OBLIGATION_SOURCE,
+        dedupeKey,
+        completedAt: summary.filled ? now : null,
+      },
+    ]);
+  }
 }
 
 export async function getManagerObligationSummary(
