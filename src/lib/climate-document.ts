@@ -111,7 +111,12 @@ export function getClimateCreatePeriodBounds(referenceDate = new Date()) {
 
 export function getDefaultClimateDocumentConfig(): ClimateDocumentConfig {
   return {
-    rooms: [createClimateRoomConfig()],
+    // Детерминированный id `room-0` для default-комнаты — иначе при
+    // каждом `normalizeClimateDocumentConfig` для документов с
+    // пустым `config.rooms` создаётся комната с новым `randomUUID`,
+    // и task-fill валится на «expected number, received undefined»
+    // (см. b2c7730 + dump БД 2026-04-25).
+    rooms: [createClimateRoomConfig({ id: "room-0" })],
     controlTimes: [...DEFAULT_CLIMATE_CONTROL_TIMES],
     skipWeekends: false,
   };
