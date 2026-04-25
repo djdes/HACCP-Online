@@ -14,6 +14,7 @@ import {
   selectBulkJournalTemplates,
   selectRowsForBulkAssign,
 } from "@/lib/tasksflow-bulk-assign";
+import { resolveJournalPeriod } from "@/lib/journal-period";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
@@ -277,14 +278,19 @@ export async function POST(request: Request) {
       orderBy: { dateFrom: "desc" },
     });
     if (!doc) {
-      const bounds = currentMonthBounds(now);
+      // Период считаем через resolveJournalPeriod — половина журналов
+      // на haccp-online создаётся не на полный месяц (гигиена/здоровье/
+      // холод. оборуд. — на половину; медкнижки/обучение/аварии — на
+      // год). Раньше тут всегда был monthBounds → документы создавались
+      // некорректно.
+      const period = resolveJournalPeriod(tpl.code, now);
       doc = await db.journalDocument.create({
         data: {
           organizationId,
           templateId: tpl.id,
-          title: `${tpl.name} · ${monthLabel(now)}`,
-          dateFrom: bounds.from,
-          dateTo: bounds.to,
+          title: `${tpl.name} · ${period.label}`,
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
           status: "active",
           config: {},
         },

@@ -1,6 +1,7 @@
 import { Prisma, type JournalDocument, type JournalTemplate } from "@prisma/client";
 import { db } from "@/lib/db";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { resolveJournalPeriod } from "@/lib/journal-period";
 import {
   normalizeJournalStaffBoundConfig,
   reconcileEntryStaffFields,
@@ -228,11 +229,12 @@ async function pickDefaultEmployeeId(organizationId: string): Promise<string | n
 async function findOrCreateDocument(params: {
   organizationId: string;
   templateId: string;
+  templateCode: string;
   templateName: string;
   date: Date;
   createdById: string | null;
 }): Promise<{ doc: Awaited<ReturnType<typeof db.journalDocument.findFirst>>; created: boolean }> {
-  const { organizationId, templateId, templateName, date, createdById } = params;
+  const { organizationId, templateId, templateCode, templateName, date, createdById } = params;
   const day = startOfUtcDay(date);
 
   const existing = await db.journalDocument.findFirst({
@@ -247,14 +249,17 @@ async function findOrCreateDocument(params: {
   });
   if (existing) return { doc: existing, created: false };
 
-  const { from, to } = monthRange(day);
+  // Используем resolveJournalPeriod вместо плоского monthRange:
+  // hygiene/health/cold-equipment получат half-month, годовые
+  // (медкнижки, обучение, аварии) — год.
+  const period = resolveJournalPeriod(templateCode, day);
   const created = await db.journalDocument.create({
     data: {
       organizationId,
       templateId,
       title: templateName,
-      dateFrom: from,
-      dateTo: to,
+      dateFrom: period.dateFrom,
+      dateTo: period.dateTo,
       status: "active",
       autoFill: false,
       createdById: createdById || undefined,
@@ -762,6 +767,7 @@ export async function dispatchExternalEntries(params: {
   const { doc: foundDoc, created } = await findOrCreateDocument({
     organizationId,
     templateId: template.id,
+    templateCode: template.code,
     templateName: template.name,
     date: anchorDate,
     createdById: fallbackEmployeeId,
