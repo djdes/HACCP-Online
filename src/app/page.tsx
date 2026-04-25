@@ -35,6 +35,9 @@ import { PublicFooter } from "@/components/public/public-chrome";
 import { ScreenshotFan } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getWebHomeHref } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -199,6 +202,24 @@ const FAQ = [
 ];
 
 export default async function LandingPage() {
+  // Auth state — для адаптации nav/CTA. Лендинг остаётся публичным,
+  // но залогиненный видит «Открыть кабинет» вместо «Войти/Начать».
+  const session = await getServerSession(authOptions).catch(() => null);
+  const isAuthed = Boolean(session?.user);
+  const homeHref = isAuthed
+    ? getWebHomeHref({
+        role: session?.user?.role ?? "",
+        isRoot: session?.user?.isRoot === true,
+      })
+    : "/dashboard";
+  const userInitials = (session?.user?.name ?? "")
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   const latestArticles = await db.article
     .findMany({
       where: { publishedAt: { not: null } },
@@ -293,19 +314,41 @@ export default async function LandingPage() {
             >
               Блог
             </Link>
-            <Link
-              href="/login"
-              className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
-            >
-              Войти
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
-            >
-              Начать
-              <ArrowRight className="size-4" />
-            </Link>
+            {isAuthed ? (
+              <>
+                <Link
+                  href={homeHref}
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+                >
+                  Открыть кабинет
+                  <ArrowRight className="size-4" />
+                </Link>
+                <Link
+                  href={homeHref}
+                  title={session?.user?.name ?? "Профиль"}
+                  aria-label={`Профиль · ${session?.user?.name ?? ""}`}
+                  className="hidden size-10 items-center justify-center rounded-full border border-[#dcdfed] bg-[#f5f6ff] text-[12px] font-semibold text-[#3848c7] transition-colors hover:border-[#5566f6]/50 hover:bg-[#eef1ff] sm:inline-flex"
+                >
+                  {userInitials}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+                >
+                  Войти
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+                >
+                  Начать
+                  <ArrowRight className="size-4" />
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </div>
@@ -369,17 +412,20 @@ export default async function LandingPage() {
             Бесплатно навсегда до 5 сотрудников.
           </p>
 
-          {/* Single big CTA */}
+          {/* Single big CTA — для залогиненного «Открыть кабинет»,
+              для анонимного — «Начать» (регистрация) */}
           <div className="hero-cta mt-10 flex flex-col items-center gap-3">
             <Link
-              href="/register"
+              href={isAuthed ? homeHref : "/register"}
               className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)] sm:h-[56px] sm:px-8 sm:text-[16px]"
             >
-              Начать
+              {isAuthed ? "Открыть кабинет" : "Начать"}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <div className="text-[12px] text-[#9b9fb3]">
-              Без карты · Всё включено на бесплатном тарифе
+              {isAuthed
+                ? `Залогинены как ${session?.user?.name ?? ""}`
+                : "Без карты · Всё включено на бесплатном тарифе"}
             </div>
           </div>
 
@@ -928,20 +974,32 @@ export default async function LandingPage() {
             уже сегодня. Бесплатный тариф — без срока, без карты.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/register"
-              className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
-            >
-              Зарегистрировать организацию
-              <ArrowRight className="size-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-white"
-            >
-              У меня уже есть аккаунт
-              <ArrowRight className="size-4 text-[#5566f6]" />
-            </Link>
+            {isAuthed ? (
+              <Link
+                href={homeHref}
+                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                Открыть кабинет
+                <ArrowRight className="size-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+                >
+                  Зарегистрировать организацию
+                  <ArrowRight className="size-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-white"
+                >
+                  У меня уже есть аккаунт
+                  <ArrowRight className="size-4 text-[#5566f6]" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

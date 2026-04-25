@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getWebHomeHref } from "@/lib/role-access";
 
 /**
  * Top nav shared across the marketing landing, the blog, and the journal
- * catalogue. Keeps the WeSetup lockup + Войти + Попробовать CTA the same
- * across every public entry point. Secondary links (Блог, Журналы) show
- * only on ≥sm to keep the mobile bar tidy.
+ * catalogue. Keeps the WeSetup lockup the same across every public entry
+ * point; кнопки справа адаптируются под состояние сессии:
+ *
+ *   anonymous → «Войти» (outline) + «Начать» (filled)
+ *   authenticated → «Открыть кабинет» (filled) + аватар-кружок с
+ *     инициалами как сильный визуальный сигнал «ты залогинен»
+ *
+ * Лендинг остаётся доступным авторизованным пользователям (хочется —
+ * показать ссылку клиенту, поделиться витриной), но сразу видно, что
+ * сессия жива и до кабинета один клик.
  */
-export function PublicHeader({
+export async function PublicHeader({
   activeSection,
 }: {
   activeSection?: "blog" | "journals-info" | "home";
 }) {
+  const session = await getServerSession(authOptions).catch(() => null);
   const link = (section: string, label: string, href: string) => (
     <Link
       href={href}
@@ -38,23 +49,81 @@ export function PublicHeader({
         <div className="flex items-center gap-3 sm:gap-5">
           {link("journals-info", "Журналы", "/journals-info")}
           {link("blog", "Блог", "/blog")}
-          <Link
-            href="/login"
-            className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
-          >
-            Войти
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
-          >
-            Начать
-            <ArrowRight className="size-4" />
-          </Link>
+          {session ? (
+            <PublicHeaderAuthed
+              userName={session.user.name ?? "Пользователь"}
+              role={session.user.role ?? ""}
+              isRoot={session.user.isRoot === true}
+            />
+          ) : (
+            <PublicHeaderAnon />
+          )}
         </div>
       </nav>
     </div>
   );
+}
+
+function PublicHeaderAnon() {
+  return (
+    <>
+      <Link
+        href="/login"
+        className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+      >
+        Войти
+      </Link>
+      <Link
+        href="/register"
+        className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+      >
+        Начать
+        <ArrowRight className="size-4" />
+      </Link>
+    </>
+  );
+}
+
+function PublicHeaderAuthed({
+  userName,
+  role,
+  isRoot,
+}: {
+  userName: string;
+  role: string;
+  isRoot: boolean;
+}) {
+  const homeHref = getWebHomeHref({ role, isRoot });
+  const initials = getInitials(userName);
+  return (
+    <>
+      <Link
+        href={homeHref}
+        className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+      >
+        Открыть кабинет
+        <ArrowRight className="size-4" />
+      </Link>
+      <Link
+        href={homeHref}
+        title={userName}
+        aria-label={`Профиль · ${userName}`}
+        className="hidden size-10 items-center justify-center rounded-full border border-[#dcdfed] bg-[#f5f6ff] text-[12px] font-semibold text-[#3848c7] transition-colors hover:border-[#5566f6]/50 hover:bg-[#eef1ff] sm:inline-flex"
+      >
+        {initials}
+      </Link>
+    </>
+  );
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function PublicFooter() {
