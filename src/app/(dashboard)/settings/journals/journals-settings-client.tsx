@@ -6,16 +6,26 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardList,
   Eye,
   EyeOff,
   Save,
+  Settings2,
   ShieldAlert,
   ShieldCheck,
+  UserRound,
+  Users,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import type { FillMode } from "@/lib/journal-routing";
+
+type Position = { id: string; name: string; categoryKey: string };
+type StaffUser = { id: string; name: string; jobPositionId: string | null };
 
 type Item = {
   id: string;
@@ -25,15 +35,67 @@ type Item = {
   isMandatorySanpin: boolean;
   isMandatoryHaccp: boolean;
   enabled: boolean;
+  fillMode: FillMode;
+  defaultAssigneeId: string | null;
+  allowedPositionIds: string[];
 };
 
-export function JournalsSettingsClient({ items }: { items: Item[] }) {
+const FILL_MODE_LABELS: Record<FillMode, { label: string; hint: string; icon: typeof Users }> = {
+  "per-employee": {
+    label: "Каждый сотрудник",
+    hint: "Все подходящие — отдельная задача каждому",
+    icon: Users,
+  },
+  single: {
+    label: "Один исполнитель",
+    hint: "Один человек заполняет за всю смену",
+    icon: UserRound,
+  },
+  sensor: {
+    label: "Датчик",
+    hint: "Заполнит IoT — людям не приходит",
+    icon: Wifi,
+  },
+};
+
+export function JournalsSettingsClient({
+  items,
+  positions,
+  users,
+}: {
+  items: Item[];
+  positions: Position[];
+  users: StaffUser[];
+}) {
   const router = useRouter();
   const [state, setState] = useState<Record<string, boolean>>(
     Object.fromEntries(items.map((item) => [item.code, item.enabled]))
   );
   const [saving, setSaving] = useState(false);
   const [highlightCode, setHighlightCode] = useState<string | null>(null);
+  const [expandedCode, setExpandedCode] = useState<string | null>(null);
+  const [distState, setDistState] = useState<
+    Record<
+      string,
+      {
+        fillMode: FillMode;
+        defaultAssigneeId: string | null;
+        allowedPositionIds: string[];
+      }
+    >
+  >(
+    Object.fromEntries(
+      items.map((item) => [
+        item.code,
+        {
+          fillMode: item.fillMode,
+          defaultAssigneeId: item.defaultAssigneeId,
+          allowedPositionIds: item.allowedPositionIds,
+        },
+      ])
+    )
+  );
+  const [distSavingCode, setDistSavingCode] = useState<string | null>(null);
 
   // Anchor-deep-link from disabled-card "Включить" buttons:
   //   /settings/journals#journal-<code>
@@ -68,6 +130,74 @@ export function JournalsSettingsClient({ items }: { items: Item[] }) {
 
   function toggle(code: string) {
     setState((prev) => ({ ...prev, [code]: !prev[code] }));
+  }
+
+  function toggleExpanded(code: string) {
+    setExpandedCode((prev) => (prev === code ? null : code));
+  }
+
+  function setItemFillMode(code: string, mode: FillMode) {
+    setDistState((prev) => ({
+      ...prev,
+      [code]: {
+        ...prev[code],
+        fillMode: mode,
+        // sensor + per-employee режимы не используют defaultAssigneeId —
+        // обнуляем чтобы не сохранять stale значение.
+        defaultAssigneeId:
+          mode === "single" ? prev[code].defaultAssigneeId : null,
+      },
+    }));
+  }
+
+  function setItemAssignee(code: string, userId: string | null) {
+    setDistState((prev) => ({
+      ...prev,
+      [code]: { ...prev[code], defaultAssigneeId: userId },
+    }));
+  }
+
+  function togglePosition(code: string, positionId: string) {
+    setDistState((prev) => {
+      const current = prev[code];
+      const has = current.allowedPositionIds.includes(positionId);
+      return {
+        ...prev,
+        [code]: {
+          ...current,
+          allowedPositionIds: has
+            ? current.allowedPositionIds.filter((id) => id !== positionId)
+            : [...current.allowedPositionIds, positionId],
+        },
+      };
+    });
+  }
+
+  async function saveDistribution(code: string) {
+    setDistSavingCode(code);
+    try {
+      const item = distState[code];
+      const response = await fetch(
+        `/api/settings/journals/${encodeURIComponent(code)}/distribution`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item),
+        }
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Не удалось сохранить распределение");
+      }
+      toast.success("Распределение обновлено");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка сохранения"
+      );
+    } finally {
+      setDistSavingCode(null);
+    }
   }
 
   function selectAll() {
@@ -181,13 +311,14 @@ export function JournalsSettingsClient({ items }: { items: Item[] }) {
         {items.map((item) => {
           const enabled = state[item.code];
           const isHighlighted = highlightCode === item.code;
+          const isExpanded = expandedCode === item.code;
+          const dist = distState[item.code];
+          const ModeIcon = FILL_MODE_LABELS[dist.fillMode].icon;
           return (
-            <button
+            <div
               key={item.code}
               id={`journal-${item.code}`}
-              type="button"
-              onClick={() => toggle(item.code)}
-              className={`flex h-full scroll-mt-24 items-start gap-4 rounded-2xl border bg-white px-5 py-5 text-left shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
+              className={`flex h-full flex-col scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
                 enabled
                   ? "border-[#ececf4] hover:border-[#d6d9ee]"
                   : "border-[#ececf4] opacity-60 hover:opacity-90"
@@ -197,42 +328,254 @@ export function JournalsSettingsClient({ items }: { items: Item[] }) {
                   : ""
               }`}
             >
-              <Switch
-                checked={enabled}
-                onCheckedChange={() => toggle(item.code)}
-                className="mt-0.5"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
-                  {item.name}
-                </div>
-                {item.description ? (
-                  <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
-                    {item.description}
+              <button
+                type="button"
+                onClick={() => toggle(item.code)}
+                className="flex items-start gap-4 px-5 py-5 text-left"
+              >
+                <Switch
+                  checked={enabled}
+                  onCheckedChange={() => toggle(item.code)}
+                  className="mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
+                    {item.name}
                   </div>
-                ) : null}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  {item.isMandatorySanpin ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
-                      <ShieldCheck className="size-3" />
-                      СанПиН
-                    </span>
+                  {item.description ? (
+                    <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
+                      {item.description}
+                    </div>
                   ) : null}
-                  {item.isMandatoryHaccp ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
-                      <ShieldAlert className="size-3" />
-                      ХАССП
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {item.isMandatorySanpin ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
+                        <ShieldCheck className="size-3" />
+                        СанПиН
+                      </span>
+                    ) : null}
+                    {item.isMandatoryHaccp ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
+                        <ShieldAlert className="size-3" />
+                        ХАССП
+                      </span>
+                    ) : null}
+                    <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
+                      {item.code}
                     </span>
-                  ) : null}
-                  <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
-                    {item.code}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+
+              {/* Distribution settings — раскрывается по кнопке */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpanded(item.code);
+                }}
+                className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Settings2 className="size-3.5" />
+                  <span className="font-semibold">Распределение:</span>
+                  <ModeIcon className="size-3.5" />
+                  {FILL_MODE_LABELS[dist.fillMode].label}
+                </span>
+                {isExpanded ? (
+                  <ChevronUp className="size-3.5" />
+                ) : (
+                  <ChevronDown className="size-3.5" />
+                )}
+              </button>
+
+              {isExpanded ? (
+                <DistributionEditor
+                  item={item}
+                  dist={dist}
+                  positions={positions}
+                  users={users}
+                  onModeChange={(mode) => setItemFillMode(item.code, mode)}
+                  onAssigneeChange={(id) =>
+                    setItemAssignee(item.code, id)
+                  }
+                  onPositionToggle={(id) =>
+                    togglePosition(item.code, id)
+                  }
+                  onSave={() => saveDistribution(item.code)}
+                  saving={distSavingCode === item.code}
+                />
+              ) : null}
+            </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function DistributionEditor({
+  item,
+  dist,
+  positions,
+  users,
+  onModeChange,
+  onAssigneeChange,
+  onPositionToggle,
+  onSave,
+  saving,
+}: {
+  item: Item;
+  dist: {
+    fillMode: FillMode;
+    defaultAssigneeId: string | null;
+    allowedPositionIds: string[];
+  };
+  positions: Position[];
+  users: StaffUser[];
+  onModeChange: (mode: FillMode) => void;
+  onAssigneeChange: (id: string | null) => void;
+  onPositionToggle: (id: string) => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  const dirty =
+    dist.fillMode !== item.fillMode ||
+    dist.defaultAssigneeId !== item.defaultAssigneeId ||
+    dist.allowedPositionIds.slice().sort().join(",") !==
+      item.allowedPositionIds.slice().sort().join(",");
+
+  // Фильтруем сотрудников по white-list-у должностей если он задан —
+  // в селекте «исполнитель по умолчанию» показываем только тех, кто
+  // в принципе eligible.
+  const eligibleUsers =
+    dist.allowedPositionIds.length === 0
+      ? users
+      : users.filter(
+          (u) => u.jobPositionId && dist.allowedPositionIds.includes(u.jobPositionId)
+        );
+
+  return (
+    <div className="border-t border-[#ececf4] bg-[#fafbff] px-5 py-4 text-[13px]">
+      {/* Fill mode selector */}
+      <div className="mb-3">
+        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+          Режим распределения
+        </div>
+        <div className="grid grid-cols-1 gap-1.5">
+          {(Object.keys(FILL_MODE_LABELS) as FillMode[]).map((mode) => {
+            const meta = FILL_MODE_LABELS[mode];
+            const Icon = meta.icon;
+            const active = dist.fillMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onModeChange(mode)}
+                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${
+                  active
+                    ? "border-[#5566f6] bg-[#eef1ff]"
+                    : "border-[#ececf4] bg-white hover:border-[#dcdfed]"
+                }`}
+              >
+                <Icon
+                  className={`mt-0.5 size-4 shrink-0 ${
+                    active ? "text-[#5566f6]" : "text-[#6f7282]"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <div
+                    className={`text-[13px] font-medium ${
+                      active ? "text-[#3848c7]" : "text-[#0b1024]"
+                    }`}
+                  >
+                    {meta.label}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-[#6f7282]">
+                    {meta.hint}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Default assignee — только для single */}
+      {dist.fillMode === "single" ? (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+            Исполнитель по умолчанию
+          </div>
+          <select
+            value={dist.defaultAssigneeId ?? ""}
+            onChange={(e) =>
+              onAssigneeChange(e.target.value === "" ? null : e.target.value)
+            }
+            className="h-9 w-full rounded-lg border border-[#dcdfed] bg-white px-3 text-[13px] text-[#0b1024]"
+          >
+            <option value="">— Авто (round-robin) —</option>
+            {eligibleUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <div className="mt-1 text-[11px] text-[#9b9fb3]">
+            Если не указан — система чередует подходящих сотрудников
+            по последним 7 дням.
+          </div>
+        </div>
+      ) : null}
+
+      {/* Position whitelist — для всех режимов кроме sensor */}
+      {dist.fillMode !== "sensor" ? (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+            Кому можно отправлять
+          </div>
+          {positions.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[#dcdfed] bg-white px-3 py-2 text-[12px] text-[#6f7282]">
+              Должности ещё не созданы. Добавьте на странице «Сотрудники».
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {positions.map((pos) => {
+                const checked = dist.allowedPositionIds.includes(pos.id);
+                return (
+                  <button
+                    key={pos.id}
+                    type="button"
+                    onClick={() => onPositionToggle(pos.id)}
+                    className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors ${
+                      checked
+                        ? "border-[#5566f6] bg-[#eef1ff] text-[#3848c7]"
+                        : "border-[#ececf4] bg-white text-[#6f7282] hover:border-[#dcdfed]"
+                    }`}
+                  >
+                    {pos.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-1 text-[11px] text-[#9b9fb3]">
+            Пусто — разрешено всем должностям.
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!dirty || saving}
+          className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_8px_20px_-10px_rgba(85,102,246,0.6)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
+        >
+          <Save className="size-3.5" />
+          {saving ? "Сохраняю…" : dirty ? "Сохранить" : "Сохранено"}
+        </button>
       </div>
     </div>
   );

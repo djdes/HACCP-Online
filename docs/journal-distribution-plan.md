@@ -50,10 +50,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **1.6.** UI в `/settings/journals` (одно место — Q2.A):
-  - На каждой карточке шаблона — селект `fillMode` (3 опции с пояснениями)
-  - Под ним: чекбоксы должностей орги (Q4)
-  - Если `single` — селект «по умолчанию назначать [имя или авто]»
 - [ ] **1.7.** Migration script `prisma/seed-journal-fill-modes.ts`:
   - Для всех `JournalTemplate` без `fillMode` — выставить дефолт по
     хардкод-маппингу (Q3): hygiene/health/ppe → per-employee, остальное
