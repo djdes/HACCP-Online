@@ -50,12 +50,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **1.4.** Helper `lib/journal-routing.ts` с функциями:
-  - `getEligibleEmployees(orgId, templateId)` — на основе должностей
-    + UserJournalAccess override
-  - `pickSingleAssignee(orgId, templateId, dateKey)` — round-robin
-    или defaultAssigneeId
-  - `getFillMode(template)`
 - [ ] **1.5.** Переписать `bulk-assign-today` (и аналоги — найти все
   места где создаются `JournalObligation`):
   - Если `fillMode === "per-employee"` — старая логика, обязательство
