@@ -50,14 +50,38 @@ export async function POST(request: Request) {
     create: { email, codeHash, expiresAt },
   });
 
+  // Если SMTP не настроен и в production — отдаём 503 без кода.
+  // Раньше API возвращал devCode прямо в JSON, и так как на проде
+  // SMTP_HOST=localhost — любой мог зарегистрировать компанию на чужой
+  // email, просто прочитав код из ответа.
+  const smtpHost = (process.env.SMTP_HOST ?? "").trim();
+  const smtpDisabled = !smtpHost || smtpHost === "localhost";
+  const allowFallback = process.env.ALLOW_DEV_REGISTRATION_FALLBACK === "1";
+
+  if (smtpDisabled && process.env.NODE_ENV === "production" && !allowFallback) {
+    console.error(
+      `[register/request] SMTP_HOST не настроен в production. Email с кодом для ${email} не отправлен.`
+    );
+    return NextResponse.json(
+      {
+        error:
+          "Сервис подтверждения email временно недоступен. Обратитесь в поддержку.",
+      },
+      { status: 503 }
+    );
+  }
+
   await sendVerificationEmail(email, code).catch((err) => {
     console.error("sendVerificationEmail failed", err);
   });
 
-  // В dev (SMTP не настроен) возвращаем код прямо в ответе, чтобы
-  // UI мог показать его inline. Иначе разработчик застревает на шаге
-  // «введите код из письма», а письмо никогда не приходит.
-  const smtpHost = (process.env.SMTP_HOST ?? "").trim();
-  const isDev = !smtpHost || smtpHost === "localhost";
-  return NextResponse.json({ ok: true, ...(isDev ? { devCode: code } : {}) });
+  // devCode возвращается только в development или при явном
+  // ALLOW_DEV_REGISTRATION_FALLBACK=1. Никогда в production по умолчанию.
+  const exposeCode =
+    smtpDisabled &&
+    (process.env.NODE_ENV !== "production" || allowFallback);
+  return NextResponse.json({
+    ok: true,
+    ...(exposeCode ? { devCode: code } : {}),
+  });
 }
