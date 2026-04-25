@@ -305,6 +305,192 @@
 }
 
 /* ====================================================================
+ * AMBIENT BACKGROUND — медленно дрейфующая mesh-сетка orbs за
+ * содержимым лендинга. Position: fixed inset:-20% — не сдвигается
+ * при скролле, остаётся постоянным «вайбом» на всех секциях.
+ * Z-index: -1 — за карточками/секциями, поверх белого body-bg.
+ * ================================================================== */
+@keyframes landing-mesh-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(48px, -36px, 0) rotate(120deg);
+  }
+  66% {
+    transform: translate3d(-32px, 44px, 0) rotate(240deg);
+  }
+}
+.landing-page::before {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  inset: -20%;
+  z-index: -1;
+  background:
+    radial-gradient(
+      45% 45% at 18% 28%,
+      rgba(85, 102, 246, 0.08),
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 40% at 82% 72%,
+      rgba(122, 92, 255, 0.07),
+      transparent 70%
+    ),
+    radial-gradient(
+      32% 32% at 50% 50%,
+      rgba(125, 245, 192, 0.045),
+      transparent 70%
+    );
+  animation: landing-mesh-drift 32s var(--ease-in-out-cubic) infinite;
+  will-change: transform;
+}
+
+/* Subtle dotted mesh overlay — добавляет «техно-бумага» текстуру.
+   Очень светлая, почти не заметна, но даёт ощущение «глубины». */
+.landing-page::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      rgba(11, 16, 36, 0.04) 1px,
+      transparent 0
+    );
+  background-size: 32px 32px;
+  mask-image: radial-gradient(
+    ellipse at 50% 30%,
+    black 30%,
+    transparent 75%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 30%,
+    black 30%,
+    transparent 75%
+  );
+  opacity: 0.5;
+}
+
+/* ====================================================================
+ * CURSOR GLOW — мягкий indigo-«фонарик» следует за курсором.
+ * Активируется только когда `<CursorGlow />` смонтирован (он ставит
+ * `.landing-cursor-active` на html и обновляет --cursor-x/--cursor-y
+ * через requestAnimationFrame). На touch-устройствах не активен.
+ * ================================================================== */
+.landing-cursor-active .landing-page {
+  position: relative;
+}
+.landing-cursor-active .landing-page > .landing-cursor-glow,
+.landing-cursor-active .landing-page::before {
+  /* keep mesh-bg as-is */
+}
+.landing-cursor-active body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    420px 320px at var(--cursor-x, 50%) var(--cursor-y, 50%),
+    rgba(85, 102, 246, 0.07),
+    transparent 60%
+  );
+  mix-blend-mode: multiply;
+}
+
+/* ====================================================================
+ * SECTION-CHILD STAGGER — когда секция входит в зону видимости
+ * (data-inview="true" от LandingMotion), её grid-дети появляются по
+ * очереди cascade'ом, а не все вместе. Это даёт «по красоте» эффект,
+ * особенно на feature-картах и pricing.
+ * ================================================================== */
+.landing-motion-ready .landing-page > section .grid > *,
+.landing-motion-ready .landing-page > section ul:not(.lucide) > li {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    opacity 0.55s var(--ease-out-expo),
+    transform 0.55s var(--ease-out-expo);
+  will-change: opacity, transform;
+}
+.landing-motion-ready
+  .landing-page
+  > section[data-inview="true"]
+  .grid
+  > *,
+.landing-motion-ready
+  .landing-page
+  > section[data-inview="true"]
+  ul:not(.lucide)
+  > li {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Cascade delays. До 12-го ребёнка дольше нет смысла — feature grid
+   на desktop 4 кол × 2 ряда = 8, audience grid 3×2 = 6, pricing 3. */
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(1),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(1) { transition-delay: 50ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(2),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(2) { transition-delay: 110ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(3),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(3) { transition-delay: 170ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(4),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(4) { transition-delay: 230ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(5),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(5) { transition-delay: 280ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(6),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(6) { transition-delay: 330ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(7),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(7) { transition-delay: 380ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(8),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(8) { transition-delay: 420ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(9),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(9) { transition-delay: 460ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(10),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(10) { transition-delay: 500ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(11),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(11) { transition-delay: 540ms; }
+.landing-motion-ready .landing-page > section[data-inview="true"] .grid > *:nth-child(12),
+.landing-motion-ready .landing-page > section[data-inview="true"] ul > li:nth-child(12) { transition-delay: 580ms; }
+
+/* ====================================================================
+ * OFFSCREEN OPTIMIZATION — секции вне зоны видимости получают
+ * `content-visibility: auto` (уже стояло выше) + дополнительно
+ * `contain: layout paint` чтобы браузер не пересчитывал layout/paint
+ * для скрытых блоков. Реальные improvements заметны на странице с
+ * 16+ секциями где DOM крупный.
+ * ================================================================== */
+.landing-page > section:not(.landing-hero) {
+  contain: layout paint style;
+}
+.landing-motion-ready .landing-page > section:not(.landing-hero):not([data-inview="true"]) {
+  /* Когда секция явно не видна — снимаем will-change, чтобы не
+     забивать composite layers GPU. */
+  will-change: auto;
+}
+
+/* ====================================================================
+ * FOOTER — мягкий fade-in с lift, как у секций.
+ * ================================================================== */
+.landing-motion-ready .landing-page footer {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 0.6s var(--ease-out-expo),
+    transform 0.6s var(--ease-out-expo);
+}
+.landing-motion-ready .landing-page footer[data-inview="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ====================================================================
  * EXTRA LANDING ANIMATIONS — добавлено для «вау-эффекта».
  * Все CSS-only, GPU-accelerated (transform/opacity/filter). Каждая
  * анимация respect'ит prefers-reduced-motion в блоке ниже.
@@ -582,18 +768,34 @@
   .hero-fan > div:nth-child(3),
   .landing-hero [aria-hidden="true"] > div,
   .hero-title [aria-hidden="true"],
+  .landing-page::before,
+  .landing-page::after,
+  .landing-cursor-active body::after,
   .landing-page section[class*="rounded-3xl"][class*="0b1024"] [aria-hidden="true"] > div,
   .landing-page div[class*="rounded-3xl"][class*="0b1024"] > .pointer-events-none > div {
     animation: none !important;
+  }
+
+  .landing-page::before,
+  .landing-page::after,
+  .landing-cursor-active body::after {
+    /* mesh-bg / cursor-glow / dotted-mesh — полностью убираем для
+       пользователей с настройкой reduced-motion. Остаётся чисто белый
+       лендинг без отвлекающих фоновых эффектов. */
+    display: none !important;
   }
 
   .landing-page a[href^="/features/"],
   .landing-page a[href^="/features/"] > div:first-child,
   .hero-fan > div > div,
   .hero-chips > div > div > span,
-  .landing-page a[href="/register"]:not(.hero-cta a)::after {
+  .landing-page a[href="/register"]:not(.hero-cta a)::after,
+  .landing-motion-ready .landing-page > section .grid > *,
+  .landing-motion-ready .landing-page > section ul:not(.lucide) > li,
+  .landing-motion-ready .landing-page footer {
     transition: none !important;
     transform: none !important;
+    opacity: 1 !important;
   }
 
   .landing-motion-ready .landing-page > section:not(.landing-hero),

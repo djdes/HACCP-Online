@@ -34,6 +34,7 @@ import { PricingCalculator } from "@/components/public/pricing-calculator";
 import { PublicFooter } from "@/components/public/public-chrome";
 import { ScreenshotFan } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
+import { CursorGlow } from "@/components/public/cursor-glow";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -265,6 +266,7 @@ export default async function LandingPage() {
   return (
     <div className="landing-page min-h-screen bg-white text-[#0b1024]">
       <LandingMotion />
+      <CursorGlow />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
