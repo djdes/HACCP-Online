@@ -54,8 +54,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **3.2.** UI: поле `bonusAmount` в `/settings/journals` карточке
-  (рядом с fillMode), индикатор «Премия +N₽» когда > 0
 - [ ] **3.3.** API: `POST /api/journals/<obligationId>/claim-bonus` —
   транзакционный claim через `UPDATE ... WHERE status='pending'` +
   создание `BonusEntry status="pending"`

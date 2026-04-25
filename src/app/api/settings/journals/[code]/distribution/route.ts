@@ -65,6 +65,13 @@ export async function PUT(
       )
     : [];
 
+  const bonusAmountKopecks =
+    typeof body.bonusAmountKopecks === "number" &&
+    Number.isFinite(body.bonusAmountKopecks) &&
+    body.bonusAmountKopecks >= 0
+      ? Math.floor(body.bonusAmountKopecks)
+      : 0;
+
   const organizationId = getActiveOrgId(session);
 
   const template = await db.journalTemplate.findUnique({
@@ -109,6 +116,7 @@ export async function PUT(
       data: {
         fillMode: fillMode as FillMode,
         defaultAssigneeId,
+        bonusAmountKopecks,
       },
     }),
     db.jobPositionJournalAccess.deleteMany({

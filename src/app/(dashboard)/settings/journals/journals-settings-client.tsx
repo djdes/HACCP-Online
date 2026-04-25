@@ -38,6 +38,7 @@ type Item = {
   fillMode: FillMode;
   defaultAssigneeId: string | null;
   allowedPositionIds: string[];
+  bonusAmountKopecks: number;
 };
 
 const FILL_MODE_LABELS: Record<FillMode, { label: string; hint: string; icon: typeof Users }> = {
@@ -81,6 +82,7 @@ export function JournalsSettingsClient({
         fillMode: FillMode;
         defaultAssigneeId: string | null;
         allowedPositionIds: string[];
+        bonusAmountKopecks: number;
       }
     >
   >(
@@ -91,6 +93,7 @@ export function JournalsSettingsClient({
           fillMode: item.fillMode,
           defaultAssigneeId: item.defaultAssigneeId,
           allowedPositionIds: item.allowedPositionIds,
+          bonusAmountKopecks: item.bonusAmountKopecks,
         },
       ])
     )
@@ -154,6 +157,14 @@ export function JournalsSettingsClient({
     setDistState((prev) => ({
       ...prev,
       [code]: { ...prev[code], defaultAssigneeId: userId },
+    }));
+  }
+
+  function setItemBonus(code: string, kopecks: number) {
+    const safe = Math.max(0, Math.round(kopecks));
+    setDistState((prev) => ({
+      ...prev,
+      [code]: { ...prev[code], bonusAmountKopecks: safe },
     }));
   }
 
@@ -382,6 +393,11 @@ export function JournalsSettingsClient({
                   <span className="font-semibold">Распределение:</span>
                   <ModeIcon className="size-3.5" />
                   {FILL_MODE_LABELS[dist.fillMode].label}
+                  {dist.bonusAmountKopecks > 0 ? (
+                    <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-medium text-[#116b2a]">
+                      +{(dist.bonusAmountKopecks / 100).toFixed(0)} ₽
+                    </span>
+                  ) : null}
                 </span>
                 {isExpanded ? (
                   <ChevronUp className="size-3.5" />
@@ -403,6 +419,9 @@ export function JournalsSettingsClient({
                   onPositionToggle={(id) =>
                     togglePosition(item.code, id)
                   }
+                  onBonusChange={(rub) =>
+                    setItemBonus(item.code, Math.round(rub * 100))
+                  }
                   onSave={() => saveDistribution(item.code)}
                   saving={distSavingCode === item.code}
                 />
@@ -423,6 +442,7 @@ function DistributionEditor({
   onModeChange,
   onAssigneeChange,
   onPositionToggle,
+  onBonusChange,
   onSave,
   saving,
 }: {
@@ -431,20 +451,25 @@ function DistributionEditor({
     fillMode: FillMode;
     defaultAssigneeId: string | null;
     allowedPositionIds: string[];
+    bonusAmountKopecks: number;
   };
   positions: Position[];
   users: StaffUser[];
   onModeChange: (mode: FillMode) => void;
   onAssigneeChange: (id: string | null) => void;
   onPositionToggle: (id: string) => void;
+  /// rub — значение в рублях из инпута; преобразуется в копейки в state.
+  onBonusChange: (rub: number) => void;
   onSave: () => void;
   saving: boolean;
 }) {
   const dirty =
     dist.fillMode !== item.fillMode ||
     dist.defaultAssigneeId !== item.defaultAssigneeId ||
+    dist.bonusAmountKopecks !== item.bonusAmountKopecks ||
     dist.allowedPositionIds.slice().sort().join(",") !==
       item.allowedPositionIds.slice().sort().join(",");
+  const bonusRub = (dist.bonusAmountKopecks / 100).toFixed(2);
 
   // Фильтруем сотрудников по white-list-у должностей если он задан —
   // в селекте «исполнитель по умолчанию» показываем только тех, кто
@@ -562,6 +587,40 @@ function DistributionEditor({
           )}
           <div className="mt-1 text-[11px] text-[#9b9fb3]">
             Пусто — разрешено всем должностям.
+          </div>
+        </div>
+      ) : null}
+
+      {/* Bonus — для всех режимов кроме sensor */}
+      {dist.fillMode !== "sensor" ? (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+            Премия за выполнение
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={bonusRub}
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                onBonusChange(Number.isFinite(parsed) ? parsed : 0);
+              }}
+              className="h-9 w-28 rounded-lg border border-[#dcdfed] bg-white px-3 text-[13px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none"
+            />
+            <span className="text-[13px] text-[#6f7282]">₽</span>
+            {dist.bonusAmountKopecks > 0 ? (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] font-medium text-[#116b2a]">
+                Премиальный журнал
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1 text-[11px] text-[#9b9fb3]">
+            0 ₽ — обычное обязательство. Если &gt; 0 — у сотрудника
+            появится кнопка «Взять с бонусом» с фото-доказательством;
+            бонус начисляется первому, кто выполнил.
           </div>
         </div>
       ) : null}

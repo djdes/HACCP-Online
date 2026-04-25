@@ -27,6 +27,7 @@ export default async function JournalsSettingsPage() {
           isMandatoryHaccp: true,
           fillMode: true,
           defaultAssigneeId: true,
+          bonusAmountKopecks: true,
         },
       }),
       db.organization.findUnique({
@@ -73,6 +74,7 @@ export default async function JournalsSettingsPage() {
     fillMode: getFillMode(t),
     defaultAssigneeId: t.defaultAssigneeId,
     allowedPositionIds: accessByTemplate.get(t.id) ?? [],
+    bonusAmountKopecks: t.bonusAmountKopecks,
   }));
 
   return (
