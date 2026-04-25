@@ -50,12 +50,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **1.5.** Переписать `bulk-assign-today` (и аналоги — найти все
-  места где создаются `JournalObligation`):
-  - Если `fillMode === "per-employee"` — старая логика, обязательство
-    каждому из getEligibleEmployees
-  - Если `fillMode === "single"` — одно обязательство на pickSingleAssignee
-  - Если `fillMode === "sensor"` — не создаём ничего (Фаза 2 заменит)
 - [ ] **1.6.** UI в `/settings/journals` (одно место — Q2.A):
   - На каждой карточке шаблона — селект `fillMode` (3 опции с пояснениями)
   - Под ним: чекбоксы должностей орги (Q4)

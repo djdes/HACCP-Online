@@ -12,6 +12,12 @@ import {
   type TemplateTodaySummary,
 } from "@/lib/today-compliance";
 import { isManagementRole } from "@/lib/user-roles";
+import {
+  getEligibleEmployees,
+  getFillMode,
+  pickSingleAssignee as loadSingleAssignee,
+  type FillMode,
+} from "@/lib/journal-routing";
 
 const DAILY_OBLIGATION_SOURCE = "daily-journal-sync" as const;
 const PHASE_ONE_JOURNAL_RULES: Partial<
@@ -35,7 +41,19 @@ export type ObligationTemplate = {
   name: string;
   description: string | null;
   isDocument: boolean;
+  /// "per-employee" | "single" | "sensor" — стратегия распределения
+  /// (см. lib/journal-routing.ts). Optional чтобы существующие тесты
+  /// (mock-данные без этого поля) не ломались — если undefined,
+  /// `templateFillMode()` отдаёт "per-employee" (back-compat).
+  fillMode?: FillMode;
+  /// Используется только при fillMode="single" — явный исполнитель;
+  /// если null/undefined — round-robin между eligible сотрудниками.
+  defaultAssigneeId?: string | null;
 };
+
+function templateFillMode(template: ObligationTemplate): FillMode {
+  return template.fillMode ?? "per-employee";
+}
 
 export type ObligationRow = {
   organizationId: string;
@@ -89,6 +107,21 @@ export type ObligationDeps = {
   getAllowedJournalCodes: (actor: UserActor) => Promise<string[] | null>;
   getDisabledJournalCodes: (organizationId: string) => Promise<Set<string>>;
   listTemplates: () => Promise<ObligationTemplate[]>;
+  /// Множество user-id, которым в принципе разрешено брать на себя
+  /// этот шаблон (по white-list-у должностей + UserJournalAccess
+  /// override). Per-employee режим использует это для фильтра
+  /// «уборщица не получает фритюр».
+  getEligibleUserIds: (
+    organizationId: string,
+    templateId: string
+  ) => Promise<Set<string>>;
+  /// Выбор единственного исполнителя для шаблона с fillMode="single".
+  /// `null` если eligible-список пуст.
+  pickSingleAssignee: (args: {
+    organizationId: string;
+    template: ObligationTemplate;
+    dateKey: Date;
+  }) => Promise<{ id: string; organizationId: string } | null>;
   getTemplateTodaySummary: (
     organizationId: string,
     templateId: string,
@@ -176,14 +209,38 @@ function createDefaultDeps(): ObligationDeps {
           code: true,
           name: true,
           description: true,
+          fillMode: true,
+          defaultAssigneeId: true,
         },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       });
 
       return templates.map((template) => ({
-        ...template,
+        id: template.id,
+        code: template.code,
+        name: template.name,
+        description: template.description,
         isDocument: isDocumentTemplate(template.code),
+        fillMode: getFillMode(template),
+        defaultAssigneeId: template.defaultAssigneeId,
       }));
+    },
+    async getEligibleUserIds(organizationId, templateId) {
+      const eligible = await getEligibleEmployees(organizationId, templateId);
+      return new Set(eligible.map((u) => u.id));
+    },
+    async pickSingleAssignee({ organizationId, template, dateKey }) {
+      const picked = await loadSingleAssignee(
+        organizationId,
+        {
+          id: template.id,
+          defaultAssigneeId: template.defaultAssigneeId ?? null,
+        },
+        dateKey
+      );
+      return picked
+        ? { id: picked.id, organizationId: picked.organizationId }
+        : null;
     },
     getTemplateTodaySummary: loadTemplateTodaySummary,
     async listExistingDailyObligations({ userId, dateKey, source }) {
@@ -364,14 +421,27 @@ export async function syncDailyJournalObligationsForUser(
     existingRows.map((row) => [row.dedupeKey, row])
   );
 
-  const filteredTemplates = templates.filter((template) => {
-    if (!isDailyObligationCode(template.code)) return false;
-    if (disabledCodes.has(template.code)) return false;
+  // В per-user sync создаём obligation только для шаблонов с
+  // fillMode="per-employee". `single` обрабатывает org-level sync
+  // (один pickSingleAssignee per template), а `sensor` пропускается
+  // совсем (Фаза 2 заменит на авто-данные с датчика).
+  const eligibleSets = new Map<string, Set<string>>();
+  const filteredTemplates: ObligationTemplate[] = [];
+  for (const template of templates) {
+    if (!isDailyObligationCode(template.code)) continue;
+    if (disabledCodes.has(template.code)) continue;
+    if (templateFillMode(template) !== "per-employee") continue;
     if (allowedCodes !== null && !allowedCodes.includes(template.code)) {
-      return false;
+      continue;
     }
-    return true;
-  });
+    const eligible = await deps.getEligibleUserIds(
+      args.organizationId,
+      template.id
+    );
+    eligibleSets.set(template.id, eligible);
+    if (!eligible.has(args.userId)) continue;
+    filteredTemplates.push(template);
+  }
 
   const rows: ObligationRow[] = [];
   const keepDedupeKeys = new Set<string>();
@@ -472,6 +542,8 @@ export async function syncDailyJournalObligationsForOrganization(
   const deps = resolveDeps(overrides);
   const users = await deps.listActiveStaffUsers(organizationId);
 
+  // 1. Per-employee режим: каждому подходящему пользователю —
+  // обязательство по каждому подходящему шаблону.
   await Promise.all(
     users.map((user) =>
       syncDailyJournalObligationsForUser(
@@ -484,6 +556,69 @@ export async function syncDailyJournalObligationsForOrganization(
       )
     )
   );
+
+  // 2. Single-режим: для каждого шаблона ровно одно обязательство
+  // → выбранному pickSingleAssignee. Sensor пропускаем (Фаза 2).
+  const dateKey = utcDayStart(now);
+  const [templates, disabledCodes] = await Promise.all([
+    deps.listTemplates(),
+    deps.getDisabledJournalCodes(organizationId),
+  ]);
+  for (const template of templates) {
+    if (!isDailyObligationCode(template.code)) continue;
+    if (disabledCodes.has(template.code)) continue;
+    if (templateFillMode(template) !== "single") continue;
+
+    const summary = await deps.getTemplateTodaySummary(
+      organizationId,
+      template.id,
+      template.code,
+      now
+    );
+    if (summary.aperiodic) continue;
+
+    const assignee = await deps.pickSingleAssignee({
+      organizationId,
+      template,
+      dateKey,
+    });
+    if (!assignee) continue;
+
+    const isDocumentTarget = usesDocumentTarget(template);
+    const dedupeKey = buildDedupeKey(dateKey, template.code);
+    const targetPath = isDocumentTarget
+      ? resolveJournalObligationTargetPath({
+          journalCode: template.code,
+          isDocument: true,
+          activeDocumentId: summary.activeDocumentId,
+        })
+      : resolveJournalObligationTargetPath({
+          journalCode: template.code,
+          isDocument: false,
+          activeDocumentId: null,
+        });
+
+    await deps.saveDailyObligations([
+      {
+        organizationId,
+        userId: assignee.id,
+        templateId: template.id,
+        journalCode: template.code,
+        kind: "daily-journal",
+        dateKey,
+        status: summary.filled ? "done" : "pending",
+        targetPath,
+        source: DAILY_OBLIGATION_SOURCE,
+        dedupeKey,
+        completedAt: summary.filled ? now : null,
+      },
+    ]);
+  }
+
+  // Stale-cleanup для шаблонов, переехавших из per-employee в single
+  // (или сменивших defaultAssignee), делается в шаге 1.7 — там
+  // одноразовая миграция вычистит старые obligations. После неё
+  // новый код стабильно создаёт ровно один single-obligation на день.
 }
 
 export async function getManagerObligationSummary(
