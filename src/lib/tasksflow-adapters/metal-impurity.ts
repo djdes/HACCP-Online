@@ -27,8 +27,17 @@ import { extractEmployeeId as employeeIdFromRowKey, rowKeyForEmployee } from "./
 const TEMPLATE_CODE = METAL_IMPURITY_TEMPLATE_CODE;
 
 function buildForm(config: MetalImpurityDocumentConfig): TaskFormSchema {
-  const materialOptions = config.materials.map((m) => ({ value: m.id, label: m.name }));
-  const supplierOptions = config.suppliers.map((s) => ({ value: s.id, label: s.name }));
+  // Защита от старых документов где config может быть неполным —
+  // без `?? []` адаптер падает и журналс-catalog ломается целиком
+  // (см. прод-ошибку «Cannot read properties of undefined»).
+  const materialOptions = (config.materials ?? []).map((m) => ({
+    value: m.id,
+    label: m.name,
+  }));
+  const supplierOptions = (config.suppliers ?? []).map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
   const fields: TaskFormField[] = [
     { type: "select", key: "materialId", label: "Сырьё", required: true, options: materialOptions.length > 0 ? materialOptions : [{ value: "", label: "Не выбрано" }] },
     { type: "select", key: "supplierId", label: "Поставщик", required: true, options: supplierOptions.length > 0 ? supplierOptions : [{ value: "", label: "Не выбрано" }] },

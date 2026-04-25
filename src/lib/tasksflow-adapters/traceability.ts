@@ -26,8 +26,17 @@ import { extractEmployeeId as employeeIdFromRowKey, rowKeyForEmployee } from "./
 const TEMPLATE_CODE = TRACEABILITY_DOCUMENT_TEMPLATE_CODE;
 
 function buildForm(config: TraceabilityDocumentConfig): TaskFormSchema {
-  const rawMaterialOptions = config.rawMaterialList.map((m) => ({ value: m, label: m }));
-  const productOptions = config.productList.map((p) => ({ value: p, label: p }));
+  // Защита от старых документов где config мог быть без некоторых
+  // полей — без неё `.map` падает на undefined и весь journals-catalog
+  // ломается (см. прод-ошибку «Cannot read properties of undefined»).
+  const rawMaterialOptions = (config.rawMaterialList ?? []).map((m) => ({
+    value: m,
+    label: m,
+  }));
+  const productOptions = (config.productList ?? []).map((p) => ({
+    value: p,
+    label: p,
+  }));
   const fields: TaskFormField[] = [
     { type: "select", key: "rawMaterialName", label: "Наименование сырья", required: true, options: rawMaterialOptions.length > 0 ? rawMaterialOptions : [{ value: "", label: "Не выбрано" }] },
     { type: "text", key: "batchNumber", label: "Номер партии ПФ", required: true, maxLength: 100 },

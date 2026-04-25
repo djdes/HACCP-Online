@@ -112,7 +112,16 @@ export function buildCompletionValidator(
         // Без этого Number("20,1") === NaN → z.coerce.number() ругался
         // «expected number, received NaN» когда поле было заполнено
         // через мобильную клавиатуру с локалью RU.
-        const numberSchema = z.preprocess((value) => {
+        //
+        // ВАЖНО: .min/.max применяем к z.number() ДО `preprocess`,
+        // потому что после preprocess schema становится ZodEffects, у
+        // которого нет .min/.max методов (TypeError: e.min is not a
+        // function — см. прод-краш f242c26).
+        let inner: z.ZodNumber = z.number();
+        if (typeof field.min === "number") inner = inner.min(field.min);
+        if (typeof field.max === "number") inner = inner.max(field.max);
+
+        let s: z.ZodTypeAny = z.preprocess((value) => {
           if (value === "" || value === null || value === undefined) {
             return undefined;
           }
@@ -126,12 +135,7 @@ export function buildCompletionValidator(
             return Number.isFinite(value) ? value : undefined;
           }
           return value;
-        }, z.number());
-        let s: z.ZodTypeAny = numberSchema;
-        if (typeof field.min === "number")
-          s = (s as z.ZodNumber).min(field.min);
-        if (typeof field.max === "number")
-          s = (s as z.ZodNumber).max(field.max);
+        }, inner);
         if (!field.required) s = s.optional().nullable();
         shape[field.key] = s;
         break;
