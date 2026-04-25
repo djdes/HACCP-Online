@@ -34,31 +34,38 @@ docs/journal-distribution-plan.md и продолжай».
 > обязательно. Превращает заполнение в гонку — поэтому делается только
 > после того как Фазы 1+2 устоялись на проде.
 
-### 🔴 Открытые вопросы (когда дойдём — обсуждать долго)
+### ✅ Зафиксированные решения (2026-04-25)
 
-- [ ] **Q7.** Размер бонуса — фиксированный per-template (как в идее,
-  «+50₽ за журнал»), или менеджер ставит сам?
-- [ ] **Q8.** Куда списывается бонус? Отдельная статья «премия по
-  задачам» в payroll-выгрузке или просто учёт в кабинете?
-- [ ] **Q9.** Manager approval после фото — обязательный (медленнее,
-  но честнее) или auto-approve если фото есть (быстрее, но fraud-risk)?
-- [ ] **Q10.** Что если двое одновременно отправили запись (race
-  condition в DB)? Нужен `SELECT FOR UPDATE` + чёткое правило «выиграл
-  тот чья транзакция первой коммитнулась», и UI «опоздал».
+- **Q7 → per-template, default 0₽**: новое поле `JournalTemplate.bonusAmount`
+  (Decimal, default 0). Премия активируется когда менеджер ставит > 0
+  в `/settings/journals`. Если 0 — обычное обязательство без бонуса.
+- **Q8 → страница «Премии за период» + CSV-экспорт**: новая страница
+  `/dashboard/bonuses` (или `/reports/bonuses`) с фильтром по дате/
+  сотруднику, выгрузка в CSV для ручного импорта в payroll. Без
+  прямой интеграции с конкретным payroll-провайдером — open scope.
+- **Q9 → auto-approve с EXIF-проверкой**: фото обязательно, если
+  EXIF-timestamp < 5 минут от now() — `BonusEntry.status = "approved"`
+  автоматически. Менеджер видит фото в фиде, может ретроактивно
+  отозвать (status → "rejected") с причиной — отказывает выплату.
+- **Q10 → transactional claim**: `UPDATE JournalObligation SET ...
+  WHERE status='pending' AND id=$1 RETURNING` через Prisma. Кто
+  первый прошёл — тому бонус. Остальным UI показывает «уже взято
+  Иваном в 12:34».
 
-### Шаги (черновик, уточнится перед фазой)
+### Шаги
 
-- [ ] **3.1.** Schema: `BonusEntry { obligationId, amount, status,
-  photoUrl, approvedById, approvedAt }`
-- [ ] **3.2.** Per-template setting `bonusAmount` (Q7)
-- [ ] **3.3.** API: `POST /api/journals/.../claim-bonus` с
-  `SELECT FOR UPDATE` на `JournalObligation` — кто первый, тому
-  обязательство и `BonusEntry pending`
-- [ ] **3.4.** Photo upload pipeline (предположительно уже есть
-  `JournalEntryAttachment` — переиспользовать)
-- [ ] **3.5.** Manager-approval UI (Q9)
-- [ ] **3.6.** Payroll-выгрузка / отчёт «Премии за период» (Q8)
-- [ ] **3.7.** Анти-фрод: для photo проверять EXIF timestamp, deny
-  если photo старше 5 минут или не сделано на устройстве
+- [ ] **3.2.** UI: поле `bonusAmount` в `/settings/journals` карточке
+  (рядом с fillMode), индикатор «Премия +N₽» когда > 0
+- [ ] **3.3.** API: `POST /api/journals/<obligationId>/claim-bonus` —
+  транзакционный claim через `UPDATE ... WHERE status='pending'` +
+  создание `BonusEntry status="pending"`
+- [ ] **3.4.** UI «Взять с бонусом»: на странице obligation/journal
+  кнопка с фото-обязательным аплоадом, переиспользует
+  `JournalEntryAttachment`
+- [ ] **3.5.** Manager-feed на `/dashboard` или `/reports` — список
+  pending/approved BonusEntry с фото; кнопка «Отозвать» с причиной
+- [ ] **3.6.** Страница «Премии за период» + CSV-экспорт (Q8)
+- [ ] **3.7.** Анти-фрод EXIF: при submit проверять
+  `Date.now() - photoTakenAt < 5 минут`, иначе deny + log
 
 ---

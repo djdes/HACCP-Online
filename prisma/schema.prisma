@@ -55,6 +55,7 @@ model Organization {
   journalObligations       JournalObligation[]
   workShifts               WorkShift[]
   jobPositionJournalAccess JobPositionJournalAccess[]
+  bonusEntries             BonusEntry[]
 }
 
 model User {
@@ -119,6 +120,7 @@ model User {
   documentEntries             JournalDocumentEntry[]
   managerScopes               ManagerScope[]           @relation("ManagerScopes")
   defaultAssigneeForTemplates JournalTemplate[]        @relation("DefaultAssignee")
+  bonusEntries                BonusEntry[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -446,6 +448,14 @@ model JournalObligation {
   dedupeKey      String
   openedAt       DateTime?
   completedAt    DateTime?
+  /// Когда сотрудник «забрал» премиальное obligation через
+  /// /api/journals/.../claim-bonus — заполняем эти поля атомарно
+  /// одним UPDATE. Race-condition защита: уникальный constraint
+  /// `claimedById` non-null + status="pending"-фильтр в WHERE.
+  /// Используется только когда `template.bonusAmountKopecks > 0`.
+  claimedById    String?
+  claimedAt      DateTime?
+  bonusEntry     BonusEntry?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -453,6 +463,7 @@ model JournalObligation {
   @@index([userId, dateKey, status])
   @@index([organizationId, dateKey, status])
   @@index([templateId])
+  @@index([claimedById])
 }
 
 model JournalTemplate {
@@ -478,11 +489,17 @@ model JournalTemplate {
   /// обязательство всегда идёт этому пользователю; null → round-robin.
   defaultAssigneeId  String?
   defaultAssignee    User?                      @relation("DefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
+  /// Премиальная сумма (в копейках, чтобы не возиться с float-ами)
+  /// за выполнение этого журнала. 0 — обычное обязательство без
+  /// бонуса. Менеджер активирует через `/settings/journals` → у
+  /// обязательств появляется кнопка «Взять с бонусом» (Фаза 3).
+  bonusAmountKopecks Int                        @default(0)
   entries            JournalEntry[]
   documents          JournalDocument[]
   journalObligations JournalObligation[]
   positionAccess     JobPositionJournalAccess[]
   sensorMappings     EquipmentSensorMapping[]
+  bonusEntries       BonusEntry[]
 
   @@index([defaultAssigneeId])
 }
@@ -502,6 +519,53 @@ model JobPositionJournalAccess {
 
   @@unique([jobPositionId, templateId])
   @@index([organizationId, templateId])
+}
+
+/// Запись о начислении бонуса за выполнение премиального журнала.
+/// Создаётся когда сотрудник нажимает «Взять с бонусом» на
+/// `JournalObligation` у которого `template.bonusAmountKopecks > 0`.
+///
+/// Жизненный цикл (Фаза 3):
+///   1. claim — `UPDATE JournalObligation SET claimedById=$user
+///      WHERE status='pending'` транзакционно. Кто первый прошёл —
+///      тому BonusEntry со status="pending" создаётся.
+///   2. submit — сотрудник прикрепил фото и нажал «Готово». EXIF-
+///      timestamp проверяется (<5 минут), при успехе → status="approved".
+///   3. reject (опционально) — менеджер ретроактивно может перевести
+///      запись в "rejected" с причиной.
+///
+/// Один BonusEntry на одно obligation — `obligationId @@unique`.
+model BonusEntry {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  obligationId   String            @unique
+  obligation     JournalObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       JournalTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Сумма зафиксирована в момент claim (template может потом сменить
+  /// `bonusAmountKopecks`, и это не должно ретроактивно поменять
+  /// уже начисленные премии).
+  amountKopecks  Int
+  /// "pending" | "approved" | "rejected"
+  status         String            @default("pending")
+  /// Ссылка на JournalEntryAttachment с фото-доказательством. Может
+  /// быть null до момента submit.
+  photoUrl       String?
+  /// EXIF-timestamp с фото, если получили — для аудита анти-фрода.
+  photoTakenAt   DateTime?
+  /// Менеджер который ретроактивно отозвал бонус (status="rejected").
+  rejectedById   String?
+  rejectedAt     DateTime?
+  rejectedReason String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId, status])
+  @@index([templateId])
 }
 
 model Product {
