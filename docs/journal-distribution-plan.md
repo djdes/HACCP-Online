@@ -54,7 +54,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **3.6.** Страница «Премии за период» + CSV-экспорт (Q8)
 - [ ] **3.7.** Анти-фрод EXIF: при submit проверять
   `Date.now() - photoTakenAt < 5 минут`, иначе deny + log
 

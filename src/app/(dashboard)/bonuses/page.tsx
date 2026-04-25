@@ -4,19 +4,32 @@ import { db } from "@/lib/db";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { BonusFeedTable } from "@/components/bonuses/bonus-feed-table";
+import { BonusFilters } from "@/components/bonuses/bonus-filters";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 /**
- * Manager-feed премий (Phase 3, шаг 3.5).
+ * Manager-feed премий + фильтр периода/сотрудника + CSV-экспорт
+ * (Phase 3, шаги 3.5 + 3.6).
  *
- * Видно только management-роли (через `hasFullWorkspaceAccess`).
- * Сотрудники без management-прав сюда не попадают — middleware пускает,
- * но мы дополнительно редиректим в `/dashboard`, чтобы не показывать
- * чужие премии. CSV-экспорт за период доедет в шаге 3.6.
+ * Query-параметры:
+ *   - `from` / `to` — границы периода claim (YYYY-MM-DD).
+ *     Если не заданы, по умолчанию последние 30 дней.
+ *   - `user`        — userId сотрудника, либо `all`.
+ *
+ * CSV-экспорт идёт через `GET /api/bonus-entries/export?...` —
+ * клиентская кнопка строит ссылку с теми же query-параметрами.
  */
-export default async function BonusesPage() {
+export default async function BonusesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    user?: string;
+  }>;
+}) {
   const session = await requireAuth();
   const fullAccess = hasFullWorkspaceAccess({
     role: session.user.role,
@@ -27,31 +40,41 @@ export default async function BonusesPage() {
   }
 
   const orgId = getActiveOrgId(session);
+  const params = await searchParams;
+  const filters = resolveFilters(params);
 
-  const bonuses = await db.bonusEntry.findMany({
-    where: { organizationId: orgId },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: {
-      id: true,
-      status: true,
-      amountKopecks: true,
-      photoUrl: true,
-      photoTakenAt: true,
-      createdAt: true,
-      rejectedAt: true,
-      rejectedReason: true,
-      user: { select: { id: true, name: true } },
-      template: { select: { id: true, code: true, name: true } },
-      obligation: {
-        select: {
-          id: true,
-          claimedAt: true,
-          status: true,
+  const [bonuses, employees] = await Promise.all([
+    db.bonusEntry.findMany({
+      where: {
+        organizationId: orgId,
+        createdAt: {
+          gte: filters.fromDate,
+          lt: filters.toExclusiveDate,
         },
+        ...(filters.userId ? { userId: filters.userId } : {}),
       },
-    },
-  });
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: {
+        id: true,
+        status: true,
+        amountKopecks: true,
+        photoUrl: true,
+        photoTakenAt: true,
+        createdAt: true,
+        rejectedAt: true,
+        rejectedReason: true,
+        user: { select: { id: true, name: true } },
+        template: { select: { id: true, code: true, name: true } },
+        obligation: { select: { id: true, claimedAt: true, status: true } },
+      },
+    }),
+    db.user.findMany({
+      where: { organizationId: orgId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const summary = bonuses.reduce(
     (acc, bonus) => {
@@ -85,6 +108,12 @@ export default async function BonusesPage() {
     },
   }));
 
+  const exportQuery = new URLSearchParams({
+    from: filters.fromIso,
+    to: filters.toIso,
+    ...(filters.userId ? { user: filters.userId } : {}),
+  }).toString();
+
   return (
     <div className="space-y-6">
       <div>
@@ -92,10 +121,22 @@ export default async function BonusesPage() {
           Премии за работу
         </h1>
         <p className="mt-1.5 text-[14px] text-[#6f7282]">
-          Кто что забрал, что подтверждено фото-доказом и что ты отозвал.
-          Список из ста последних записей.
+          За период {formatDateRu(filters.fromIso)} —{" "}
+          {formatDateRu(filters.toIso)}. CSV-выгрузка пригодна для
+          ручного импорта в зарплатный сервис.
         </p>
       </div>
+
+      <BonusFilters
+        from={filters.fromIso}
+        to={filters.toIso}
+        userId={filters.userId ?? "all"}
+        employees={employees.map((e) => ({
+          id: e.id,
+          name: e.name ?? "—",
+        }))}
+        exportHref={`/api/bonus-entries/export?${exportQuery}`}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
@@ -124,15 +165,14 @@ export default async function BonusesPage() {
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
           <Coins className="mx-auto size-7 text-[#9b9fb3]" strokeWidth={1.6} />
           <div className="mt-3 text-[15px] font-medium text-[#0b1024]">
-            Премий пока нет
+            За период премий нет
           </div>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] text-[#6f7282]">
-            Когда менеджер выставит сумму &gt; 0 в{" "}
+            Поменяй фильтр или активируй премию у нужного журнала в{" "}
             <code className="rounded bg-[#f5f6ff] px-1.5 py-0.5 text-[12px] text-[#3848c7]">
               /settings/journals
             </code>
-            , сотрудник сможет «забрать» журнал с бонусом, и запись
-            появится здесь.
+            .
           </p>
         </div>
       ) : (
@@ -140,6 +180,62 @@ export default async function BonusesPage() {
       )}
     </div>
   );
+}
+
+type ResolvedFilters = {
+  fromDate: Date;
+  toExclusiveDate: Date;
+  fromIso: string;
+  toIso: string;
+  userId: string | null;
+};
+
+function resolveFilters(params: {
+  from?: string;
+  to?: string;
+  user?: string;
+}): ResolvedFilters {
+  const today = new Date();
+  const todayIso = isoDate(today);
+  const defaultFrom = isoDate(new Date(today.getTime() - 30 * 86400000));
+
+  const fromIso = isValidIsoDate(params.from) ? params.from! : defaultFrom;
+  const toIso = isValidIsoDate(params.to) ? params.to! : todayIso;
+
+  const fromDate = new Date(`${fromIso}T00:00:00.000Z`);
+  const toInclusive = new Date(`${toIso}T00:00:00.000Z`);
+  const toExclusiveDate = new Date(toInclusive.getTime() + 86400000);
+
+  const userId =
+    params.user && params.user !== "all" && params.user.length > 0
+      ? params.user
+      : null;
+
+  return { fromDate, toExclusiveDate, fromIso, toIso, userId };
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function isValidIsoDate(value: string | undefined): boolean {
+  if (!value) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime());
+}
+
+function formatDateRu(iso: string): string {
+  try {
+    const d = new Date(`${iso}T00:00:00.000Z`);
+    return d.toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 function SummaryCard({
