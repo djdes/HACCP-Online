@@ -62,6 +62,14 @@ const settingsCards = [
     bg: "#fff8eb",
   },
   {
+    title: "Видимость по должностям",
+    description: "Кого видит каждая должность — драйвит TasksFlow и бот",
+    href: "/settings/position-staff-visibility",
+    icon: Users,
+    color: "#0ea5e9",
+    bg: "#e8f7ff",
+  },
+  {
     title: "Набор журналов",
     description: "Какие журналы ваша компания ведёт",
     href: "/settings/journals",

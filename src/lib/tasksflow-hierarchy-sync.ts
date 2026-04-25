@@ -104,7 +104,7 @@ export async function syncHierarchyToTasksflow(
     return report; // нет интеграции — нечего синкать
   }
 
-  const [scopes, allUsers, userLinks] = await Promise.all([
+  const [scopes, allUsers, userLinks, positions] = await Promise.all([
     db.managerScope.findMany({
       where: { organizationId },
       include: {
@@ -129,6 +129,10 @@ export async function syncHierarchyToTasksflow(
       },
       select: { wesetupUserId: true, tasksflowUserId: true },
     }),
+    db.jobPosition.findMany({
+      where: { organizationId },
+      select: { id: true, visibleUserIds: true },
+    }),
   ]);
 
   const tfIdByWesetup = new Map<string, number>();
@@ -137,14 +141,35 @@ export async function syncHierarchyToTasksflow(
       tfIdByWesetup.set(link.wesetupUserId, link.tasksflowUserId);
     }
   }
+  // Приоритетный источник иерархии: per-position visibleUserIds.
+  // Если у должности задан непустой список — все пользователи этой
+  // должности получат именно этот scope (перекрывает per-user
+  // ManagerScope). Это новая модель из /settings/position-staff-visibility.
+  const visibilityByPosition = new Map<string, string[]>();
+  for (const p of positions) {
+    if (p.visibleUserIds.length > 0) {
+      visibilityByPosition.set(p.id, p.visibleUserIds);
+    }
+  }
+  // userId → jobPositionId для быстрой резолюции ниже.
+  const positionByUser = new Map<string, string | null>();
+  for (const u of allUsers) {
+    positionByUser.set(u.id, u.jobPositionId);
+  }
 
   const client: TasksFlowClientType = tasksflowClientFor(integration);
+
+  // Менеджеры с per-user scope. Каждого пушим через client.setManagedWorkers.
+  // Если у менеджера job-position scope установлен — он перекрывает
+  // ManagerScope (per-position приоритетнее, проще и автоматически
+  // распространяется на новых сотрудников этой должности).
+  const managerIdsHandled = new Set<string>();
 
   for (const scope of scopes) {
     const managerName = scope.manager.name;
     const managerTfId = tfIdByWesetup.get(scope.managerId);
+    managerIdsHandled.add(scope.managerId);
     if (!managerTfId) {
-      // Менеджер ещё не связан с TF аккаунтом — нечего пушить.
       report.managersSkipped += 1;
       report.details.push({
         managerName,
@@ -155,8 +180,13 @@ export async function syncHierarchyToTasksflow(
       continue;
     }
 
-    const visibleWesetupIds = computeVisibleWesetupUserIds(scope, allUsers);
-    // Менеджер сам себя в скоп не пихаем — TF добавит implicit.
+    // Position-level visibility перебивает scope, если задан.
+    const positionId = positionByUser.get(scope.managerId);
+    const positionVisible = positionId
+      ? visibilityByPosition.get(positionId)
+      : undefined;
+    const visibleWesetupIds = positionVisible ?? computeVisibleWesetupUserIds(scope, allUsers);
+
     const subordinateTfIds = visibleWesetupIds
       .filter((wesetupId) => wesetupId !== scope.managerId)
       .map((wesetupId) => tfIdByWesetup.get(wesetupId))
@@ -178,6 +208,74 @@ export async function syncHierarchyToTasksflow(
       report.details.push({
         managerName,
         tfUserId: managerTfId,
+        pushed: 0,
+        error:
+          err instanceof TasksFlowError
+            ? `${err.status}: ${err.message}`
+            : err instanceof Error
+              ? err.message
+              : String(err),
+      });
+    }
+  }
+
+  // Второй проход: пользователи БЕЗ ManagerScope per-user, но
+  // принадлежащие должности с visibleUserIds. До этой фичи они
+  // были «обычными воркерами», теперь становятся менеджерами своей
+  // должности с готовым scope. Без этого прохода новый шеф-повар,
+  // у которого нет персонального ManagerScope, остался бы без
+  // подчинённых после sync.
+  const usersToFetch = await db.user.findMany({
+    where: {
+      organizationId,
+      isActive: true,
+      archivedAt: null,
+      isRoot: false,
+      jobPositionId: { not: null },
+    },
+    select: {
+      id: true,
+      name: true,
+      jobPositionId: true,
+    },
+  });
+  for (const user of usersToFetch) {
+    if (managerIdsHandled.has(user.id)) continue;
+    const positionVisible = user.jobPositionId
+      ? visibilityByPosition.get(user.jobPositionId)
+      : undefined;
+    if (!positionVisible) continue;
+
+    const userTfId = tfIdByWesetup.get(user.id);
+    if (!userTfId) {
+      report.managersSkipped += 1;
+      report.details.push({
+        managerName: user.name,
+        tfUserId: null,
+        pushed: 0,
+        error: "Не привязан к TasksFlow (position-scope)",
+      });
+      continue;
+    }
+
+    const subordinateTfIds = positionVisible
+      .filter((wesetupId) => wesetupId !== user.id)
+      .map((wesetupId) => tfIdByWesetup.get(wesetupId))
+      .filter((tfId): tfId is number => typeof tfId === "number");
+
+    try {
+      const result = await client.setManagedWorkers(userTfId, subordinateTfIds);
+      report.managersUpdated += 1;
+      report.details.push({
+        managerName: user.name,
+        tfUserId: userTfId,
+        pushed: result.count,
+      });
+    } catch (err) {
+      report.errors += 1;
+      report.details.push({
+        managerName: user.name,
+        tfUserId: userTfId,
         pushed: 0,
         error:
           err instanceof TasksFlowError

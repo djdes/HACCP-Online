@@ -149,6 +149,16 @@ model JobPosition {
   permissionsJson Json?
   journalAccess   JobPositionJournalAccess[]
 
+  /// Список user.id, которых видят все сотрудники этой должности.
+  /// Источник истины для:
+  ///   • TasksFlow `users.managed_worker_ids` (через sync)
+  ///   • Telegram-бот scope-фильтр (видимость других сотрудников)
+  /// Пустой массив = «никого не видит» (только свои задачи). Если
+  /// не задано (нет ManagerScope per-user тоже) — fallback на
+  /// «видит всех» (back-compat). Редактируется через
+  /// /settings/position-staff-visibility.
+  visibleUserIds  String[]                   @default([])
+
   @@unique([organizationId, categoryKey, name])
   @@index([organizationId, sortOrder])
 }
