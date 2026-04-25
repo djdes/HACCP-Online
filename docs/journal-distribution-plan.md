@@ -54,9 +54,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **3.3.** API: `POST /api/journals/<obligationId>/claim-bonus` —
-  транзакционный claim через `UPDATE ... WHERE status='pending'` +
-  создание `BonusEntry status="pending"`
 - [ ] **3.4.** UI «Взять с бонусом»: на странице obligation/journal
   кнопка с фото-обязательным аплоадом, переиспользует
   `JournalEntryAttachment`
