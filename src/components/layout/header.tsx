@@ -9,6 +9,7 @@ import {
   CalendarRange,
   ChevronDown,
   ClipboardList,
+  Coins,
   FileText,
   GitBranch,
   GraduationCap,
@@ -54,6 +55,7 @@ const secondaryNavItems = [
   { label: "Компетенции", href: "/competencies", icon: GraduationCap },
   { label: "CAPA", href: "/capa", icon: AlertTriangle },
   { label: "Отчёты", href: "/reports", icon: FileText },
+  { label: "Премии", href: "/bonuses", icon: Coins },
 ];
 
 const STAFF_NAV_ITEM = {

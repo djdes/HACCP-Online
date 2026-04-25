@@ -54,8 +54,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **3.5.** Manager-feed на `/dashboard` или `/reports` — список
-  pending/approved BonusEntry с фото; кнопка «Отозвать» с причиной
 - [ ] **3.6.** Страница «Премии за период» + CSV-экспорт (Q8)
 - [ ] **3.7.** Анти-фрод EXIF: при submit проверять
   `Date.now() - photoTakenAt < 5 минут`, иначе deny + log
