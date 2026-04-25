@@ -50,11 +50,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **1.7.** Migration script `prisma/seed-journal-fill-modes.ts`:
-  - Для всех `JournalTemplate` без `fillMode` — выставить дефолт по
-    хардкод-маппингу (Q3): hygiene/health/ppe → per-employee, остальное
-    → single
-  - Идемпотентно
 - [ ] **1.8.** Ручной QA на проде по чек-листу
   - Менеджер выбрал `single` для cleaning — после bulk-assign только
     один сотрудник видит задачу
