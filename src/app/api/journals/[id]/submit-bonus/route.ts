@@ -1,22 +1,29 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
+import { extractPhotoTakenAt, isPhotoFresh } from "@/lib/exif";
 
 /**
  * POST /api/journals/[id]/submit-bonus
  *
- * Phase 3 → шаг 3.4. Финализирует премиальный obligation: создаёт
- * JournalEntry + прикреплённый JournalEntryAttachment, помечает
+ * Phase 3 → шаги 3.4 + 3.7. Финализирует премиальный obligation:
+ * создаёт JournalEntry + прикреплённый JournalEntryAttachment, помечает
  * obligation `status='done'`, и проставляет `BonusEntry.photoUrl`.
  *
- * Статус BonusEntry **не** меняется — остаётся "pending". Auto-approve
- * по EXIF и manager-rejection живут в шагах 3.7 и 3.5 соответственно.
+ * Anti-fraud (3.7): сервер сам читает EXIF из файла на диске. Если
+ * `photoTakenAt` в пределах 5 минут от now — `BonusEntry.status =
+ * "approved"` сразу. Иначе submit отклоняется (400). Менеджер
+ * по-прежнему может отозвать одобренную премию через `/bonuses` (3.5).
  *
  * Только тот, кто забрал премию (`obligation.claimedById === user.id`)
  * может вызвать этот endpoint. Все остальные попадают в 403.
  */
+
+const PHOTO_FRESHNESS_WINDOW_MS = 5 * 60 * 1000;
 
 const PHOTO_URL_PATTERN = /^\/uploads\/[a-zA-Z0-9._-]{1,128}$/;
 
@@ -107,6 +114,44 @@ export async function POST(
   const now = new Date();
   const notes = parsed.data.notes;
 
+  // 3.7 — серверная EXIF-проверка. Файл лежит в `public/uploads/<hash>.<ext>`,
+  // куда писал `/api/mini/attachments`. Читаем сами, чтобы клиент не мог
+  // подменить `photoTakenAt`.
+  let photoTakenAt: Date | null = null;
+  let fileBuffer: Buffer;
+  try {
+    const filepath = join(process.cwd(), "public", parsed.data.photoUrl);
+    fileBuffer = await readFile(filepath);
+  } catch (err) {
+    console.error("[submit-bonus] read uploaded file failed", err);
+    return NextResponse.json(
+      { error: "Не удалось прочитать загруженное фото" },
+      { status: 400 }
+    );
+  }
+  photoTakenAt = extractPhotoTakenAt(fileBuffer);
+
+  if (
+    !isPhotoFresh(photoTakenAt, now, PHOTO_FRESHNESS_WINDOW_MS)
+  ) {
+    console.warn("[submit-bonus] EXIF freshness check failed", {
+      obligationId: obligation.id,
+      userId,
+      photoTakenAt: photoTakenAt?.toISOString() ?? null,
+      nowIso: now.toISOString(),
+    });
+    return NextResponse.json(
+      {
+        error:
+          photoTakenAt === null
+            ? "В фото нет метаданных времени съёмки — сделай новое фото в момент работы"
+            : "Фото снято слишком давно — оно должно быть свежим (не старше 5 минут)",
+        photoTakenAt: photoTakenAt?.toISOString() ?? null,
+      },
+      { status: 400 }
+    );
+  }
+
   const result = await db.$transaction(async (tx) => {
     const entry = await tx.journalEntry.create({
       data: {
@@ -127,7 +172,7 @@ export async function POST(
         url: parsed.data.photoUrl,
         filename,
         mimeType: "image/jpeg",
-        sizeBytes: 0,
+        sizeBytes: fileBuffer.byteLength,
         uploadedById: userId,
       },
     });
@@ -141,6 +186,8 @@ export async function POST(
       where: { obligationId: obligation.id },
       data: {
         photoUrl: parsed.data.photoUrl,
+        photoTakenAt,
+        status: "approved",
       },
     });
 
@@ -151,6 +198,8 @@ export async function POST(
     {
       entryId: result.id,
       photoUrl: parsed.data.photoUrl,
+      photoTakenAt: photoTakenAt?.toISOString() ?? null,
+      bonusStatus: "approved" as const,
     },
     { status: 201 }
   );
