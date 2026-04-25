@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -52,28 +51,33 @@ export function SiteThemeProvider({
   initialTheme = "light",
 }: {
   children: ReactNode;
-  /** Server-loaded `User.themePreference`; used as fallback when localStorage is empty. */
+  /** Server-loaded `User.themePreference`; used as the seed when
+      localStorage is empty (first visit on this device). After that
+      localStorage wins and survives reloads/SSR mismatches. */
   initialTheme?: SiteTheme;
 }) {
   const [theme, setThemeState] = useState<SiteTheme>(initialTheme);
-  // Skip the first POST after hydration (initialTheme already came from DB).
-  const skipNextSyncRef = useRef(true);
 
   useEffect(() => {
+    // localStorage > server initialTheme. Если в этом браузере уже был
+    // выбор — он живёт до момента, когда пользователь сам переключит
+    // тему через настройки. Сервер NEVER overrides local choice — иначе
+    // сетевой сбой при persist приводил бы к откату темы при reload
+    // (баг 2026-04-25 «при reload тема слетает на светлую»).
     const fromStorage = readInitialThemeFromStorage(initialTheme);
     setThemeState(fromStorage);
     applyThemeToDOM(fromStorage);
-    // localStorage may already have a stale value if user changed theme on
-    // another device while this tab was closed — server-loaded initialTheme
-    // wins for the duration of this session and replaces localStorage.
-    if (fromStorage !== initialTheme) {
+
+    // Seed localStorage из initialTheme на самой первой загрузке (когда
+    // ключа ещё нет) — чтобы offline / другие табы видели тот же выбор.
+    if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(STORAGE_KEY, initialTheme);
+        if (window.localStorage.getItem(STORAGE_KEY) === null) {
+          window.localStorage.setItem(STORAGE_KEY, fromStorage);
+        }
       } catch {
-        /* ignore */
+        /* storage blocked — ничего не делаем */
       }
-      setThemeState(initialTheme);
-      applyThemeToDOM(initialTheme);
     }
   }, [initialTheme]);
 
@@ -83,7 +87,6 @@ export function SiteThemeProvider({
     function onCustom(e: Event) {
       const next = (e as CustomEvent<SiteTheme>).detail;
       if (next === "light" || next === "dark") {
-        skipNextSyncRef.current = true;
         setThemeState(next);
         applyThemeToDOM(next);
       }
@@ -91,7 +94,6 @@ export function SiteThemeProvider({
     function onStorage(e: StorageEvent) {
       if (e.key !== STORAGE_KEY) return;
       if (e.newValue === "light" || e.newValue === "dark") {
-        skipNextSyncRef.current = true;
         setThemeState(e.newValue);
         applyThemeToDOM(e.newValue);
       }
@@ -119,12 +121,10 @@ export function SiteThemeProvider({
     } catch {
       /* ignore */
     }
-    // Persist to DB so other devices pick this up on next page load.
-    if (skipNextSyncRef.current) {
-      skipNextSyncRef.current = false;
-    } else {
-      void persistThemeToServer(next);
-    }
+    // Persist в БД best-effort — для cross-device sync на новом устройстве.
+    // На текущем устройстве источник истины — localStorage, поэтому если
+    // fetch упадёт, тема всё равно сохранится локально.
+    void persistThemeToServer(next);
   }, []);
 
   const toggle = useCallback(() => {

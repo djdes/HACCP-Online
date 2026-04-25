@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -58,24 +57,29 @@ export function MiniThemeProvider({
   initialTheme = "dark",
 }: {
   children: ReactNode;
-  /** Server-loaded `User.themePreference`; used as fallback when localStorage is empty. */
+  /** Server-loaded `User.themePreference`; used as the seed when
+      localStorage is empty (first visit on this device). */
   initialTheme?: MiniTheme;
 }) {
   const [theme, setThemeState] = useState<MiniTheme>(initialTheme);
-  const skipNextSyncRef = useRef(true);
 
   useEffect(() => {
+    // localStorage > server. Once the user picks a theme on this
+    // device, that choice survives reload until they explicitly change
+    // it. Server NEVER overrides local — иначе сетевой сбой при persist
+    // приводил бы к откату темы при reload.
     const fromStorage = readInitialThemeFromStorage(initialTheme);
     setThemeState(fromStorage);
     applyThemeToDOM(fromStorage);
-    if (fromStorage !== initialTheme) {
+
+    if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(STORAGE_KEY, initialTheme);
+        if (window.localStorage.getItem(STORAGE_KEY) === null) {
+          window.localStorage.setItem(STORAGE_KEY, fromStorage);
+        }
       } catch {
-        /* ignore */
+        /* storage blocked */
       }
-      setThemeState(initialTheme);
-      applyThemeToDOM(initialTheme);
     }
   }, [initialTheme]);
 
@@ -83,7 +87,6 @@ export function MiniThemeProvider({
     function onCustom(e: Event) {
       const next = (e as CustomEvent<MiniTheme>).detail;
       if (next === "light" || next === "dark") {
-        skipNextSyncRef.current = true;
         setThemeState(next);
         applyThemeToDOM(next);
       }
@@ -91,7 +94,6 @@ export function MiniThemeProvider({
     function onStorage(e: StorageEvent) {
       if (e.key !== STORAGE_KEY) return;
       if (e.newValue === "light" || e.newValue === "dark") {
-        skipNextSyncRef.current = true;
         setThemeState(e.newValue);
         applyThemeToDOM(e.newValue);
       }
@@ -119,11 +121,8 @@ export function MiniThemeProvider({
     } catch {
       /* ignore */
     }
-    if (skipNextSyncRef.current) {
-      skipNextSyncRef.current = false;
-    } else {
-      void persistThemeToServer(next);
-    }
+    // Best-effort cross-device sync. Source of truth — localStorage.
+    void persistThemeToServer(next);
   }, []);
 
   const toggle = useCallback(() => {

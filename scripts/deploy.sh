@@ -95,7 +95,12 @@ echo "==> Extracting + restoring .env"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && rm -rf src scripts prisma public .github docs .agent journals tmp-source-journals && tar xf deploy.tar && rm deploy.tar && [ -f .env.bak ] && cp .env.bak .env || true"
 
 echo "==> Installing deps + building on prod host"
-$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; rm -rf node_modules .next node_modules/.cache 2>/dev/null || true; sleep 1; rm -rf node_modules .next 2>/dev/null || true; npm ci --no-audit --no-fund 2>&1 | tail -5 || (echo 'retry after deep clean' && rm -rf node_modules ~/.npm/_cacache && npm ci --no-audit --no-fund 2>&1 | tail -5); npx prisma generate 2>&1 | tail -5 && npm run build 2>&1 | tail -10"
+# Verifies client-reference-manifest.js файлы на месте после build —
+# Next.js 16 иногда собирается «успешно», но без manifest-ов, и SSR
+# отдаёт страницы которые не гидрируются на мобильных (на ПК часто
+# работают из кэша). Если меньше 5 manifest-ов — ребилдим один раз и
+# фейлим если опять.
+$DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; rm -rf node_modules .next node_modules/.cache 2>/dev/null || true; sleep 1; rm -rf node_modules .next 2>/dev/null || true; npm ci --no-audit --no-fund 2>&1 | tail -5 || (echo 'retry after deep clean' && rm -rf node_modules ~/.npm/_cacache && npm ci --no-audit --no-fund 2>&1 | tail -5); npx prisma generate 2>&1 | tail -5 && npm run build 2>&1 | tail -10 && M=\$(find .next/server/app -name 'client-reference-manifest.js' 2>/dev/null | wc -l) && if [ \"\$M\" -lt \"5\" ]; then echo \"[warn] only \$M manifests, rebuilding\"; rm -rf .next; npm run build 2>&1 | tail -10; M=\$(find .next/server/app -name 'client-reference-manifest.js' 2>/dev/null | wc -l); if [ \"\$M\" -lt \"5\" ]; then echo \"[fail] still \$M manifests after rebuild\" && exit 1; fi; fi; echo \"[ok] \$M manifests\""
 
 echo "==> Running prisma db push + seeds"
 $DRY_RUN "${PLINK[@]}" "cd $DEPLOY_APP_DIR && [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true; [ -f .env ] && (set -a && . ./.env && set +a); npx prisma db push 2>&1 | tail -5 && npx tsx prisma/seed.ts 2>&1 | tail -5"
