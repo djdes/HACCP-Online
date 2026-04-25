@@ -54,9 +54,6 @@ docs/journal-distribution-plan.md и продолжай».
 
 ### Шаги
 
-- [ ] **3.4.** UI «Взять с бонусом»: на странице obligation/journal
-  кнопка с фото-обязательным аплоадом, переиспользует
-  `JournalEntryAttachment`
 - [ ] **3.5.** Manager-feed на `/dashboard` или `/reports` — список
   pending/approved BonusEntry с фото; кнопка «Отозвать» с причиной
 - [ ] **3.6.** Страница «Премии за период» + CSV-экспорт (Q8)

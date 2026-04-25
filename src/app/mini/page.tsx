@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
 import { MiniCard } from "./_components/mini-card";
+import { MiniBonusCard } from "./_components/mini-bonus-card";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
 import { QrScannerButton } from "./_components/qr-scanner";
 import { GeoReminder } from "./_components/geo-reminder";
@@ -46,6 +47,10 @@ type StaffHomeData = {
     name: string;
     description: string | null;
     href: string;
+    bonusAmountKopecks?: number;
+    claimedById?: string | null;
+    claimedByName?: string | null;
+    claimedAt?: string | null;
   }>;
   all: HomeJournal[];
 };
@@ -355,21 +360,36 @@ export default function MiniHomePage() {
               {String(home.now.length).padStart(2, "0")} / ОТКРЫТО
             </span>
           </div>
-          {home.now.map((item, idx) => (
-            <div
-              key={item.id}
-              className="mini-reveal"
-              style={{ animationDelay: `${idx * 40}ms` }}
-            >
-              <MiniCard
-                href={item.href}
-                title={item.name}
-                subtitle={item.description}
-                status={{ kind: "todo", label: "нужно заполнить" }}
-                index={idx + 1}
-              />
-            </div>
-          ))}
+          {home.now.map((item, idx) => {
+            const isPremium = (item.bonusAmountKopecks ?? 0) > 0;
+            return (
+              <div
+                key={item.id}
+                className="mini-reveal"
+                style={{ animationDelay: `${idx * 40}ms` }}
+              >
+                {isPremium ? (
+                  <MiniBonusCard
+                    obligationId={item.id}
+                    title={item.name}
+                    subtitle={item.description}
+                    bonusAmountKopecks={item.bonusAmountKopecks ?? 0}
+                    initialClaimedByName={item.claimedByName ?? null}
+                    initialClaimedAt={item.claimedAt ?? null}
+                    index={idx + 1}
+                  />
+                ) : (
+                  <MiniCard
+                    href={item.href}
+                    title={item.name}
+                    subtitle={item.description}
+                    status={{ kind: "todo", label: "нужно заполнить" }}
+                    index={idx + 1}
+                  />
+                )}
+              </div>
+            );
+          })}
         </section>
       ) : null}
 

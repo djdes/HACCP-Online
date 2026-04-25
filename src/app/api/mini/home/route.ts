@@ -144,18 +144,71 @@ export async function GET() {
   );
   const openJournalCodes = new Set(now.map((row) => row.journalCode));
 
+  // Phase 3 (шаг 3.4): подтягиваем bonusAmountKopecks + claim-state по
+  // тем же obligation-ам отдельным запросом, чтобы не ломать сигнатуру
+  // общего helper-а `listOpenJournalObligationsForUser`. UI решает
+  // показывать ли «Взять с бонусом» или «уже взял Иван в 12:34».
+  const obligationIds = now.map((row) => row.id);
+  const bonusRows = obligationIds.length
+    ? await db.journalObligation.findMany({
+        where: { id: { in: obligationIds } },
+        select: {
+          id: true,
+          claimedById: true,
+          claimedAt: true,
+          template: { select: { bonusAmountKopecks: true } },
+        },
+      })
+    : [];
+  const claimerIds = Array.from(
+    new Set(
+      bonusRows
+        .map((row) => row.claimedById)
+        .filter((id): id is string => typeof id === "string")
+    )
+  );
+  const claimers = claimerIds.length
+    ? await db.user.findMany({
+        where: { id: { in: claimerIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const claimerNameById = new Map(
+    claimers.map((user) => [user.id, user.name ?? ""])
+  );
+  const bonusByObligationId = new Map(
+    bonusRows.map((row) => [row.id, row])
+  );
+
   return NextResponse.json({
     user,
     mode: "staff",
     permissions: permissionList,
     areas,
-    now: now.map((row) => ({
-      id: row.id,
-      code: row.journalCode,
-      name: row.template.name,
-      description: row.template.description,
-      href: `/mini/o/${row.id}`,
-    })),
+    now: now.map((row) => {
+      const bonus = bonusByObligationId.get(row.id);
+      const bonusAmountKopecks =
+        bonus?.template.bonusAmountKopecks ?? 0;
+      const claimedById = bonus?.claimedById ?? null;
+      const claimedByName =
+        claimedById !== null
+          ? claimerNameById.get(claimedById) ?? null
+          : null;
+      const claimedAt = bonus?.claimedAt
+        ? bonus.claimedAt.toISOString()
+        : null;
+      return {
+        id: row.id,
+        code: row.journalCode,
+        name: row.template.name,
+        description: row.template.description,
+        href: `/mini/o/${row.id}`,
+        bonusAmountKopecks,
+        claimedById,
+        claimedByName,
+        claimedAt,
+      };
+    }),
     all: templates.map((template) => ({
       code: template.code,
       name: template.name,
