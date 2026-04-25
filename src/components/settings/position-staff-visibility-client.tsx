@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  ChevronDown,
   Loader2,
   Save,
   Search,
   Sparkles,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ type Position = {
 type Employee = {
   id: string;
   name: string;
+  jobPositionId: string | null;
   positionName: string | null;
   positionCategory: string | null;
 };
@@ -35,74 +38,96 @@ type Props = {
   employees: Employee[];
 };
 
-type VisibilityMap = Map<string, Set<string>>; // positionId → Set of userIds
+type VisibilityMap = Map<string, Set<string>>; // viewerPositionId → Set<userId>
 
-function toMap(positions: Position[]): VisibilityMap {
-  const m: VisibilityMap = new Map();
-  for (const p of positions) m.set(p.id, new Set(p.visibleUserIds));
-  return m;
-}
+const UNASSIGNED_GROUP_ID = "__unassigned__";
 
-function diff(base: VisibilityMap, curr: VisibilityMap): Set<string> {
-  const changed = new Set<string>();
-  for (const [posId, currSet] of curr.entries()) {
-    const baseSet = base.get(posId) ?? new Set<string>();
-    if (currSet.size !== baseSet.size) {
-      changed.add(posId);
-      continue;
-    }
-    for (const id of currSet) {
-      if (!baseSet.has(id)) {
-        changed.add(posId);
-        break;
-      }
-    }
-  }
-  return changed;
-}
-
-const PRESETS: Array<{
-  label: string;
-  /** Лейбл должности по подстроке */
-  positionKeywords: string[];
-  /** Лейбл подчинённого по подстроке (positionName сотрудника) */
-  employeePositionKeywords: string[];
-}> = [
-  {
-    label: "Шеф → поварам",
-    positionKeywords: ["шеф", "су-шеф"],
-    employeePositionKeywords: ["повар", "кух"],
-  },
-  {
-    label: "Технолог → всем кухне",
-    positionKeywords: ["технолог"],
-    employeePositionKeywords: ["повар", "кух", "пекар"],
-  },
-  {
-    label: "Менеджер → всем",
-    positionKeywords: ["менеджер", "управ"],
-    employeePositionKeywords: [],
-  },
-];
-
+/**
+ * Компактный UI: каждая должность (строка) видит группы-чипы по
+ * целевым должностям. Клик по телу чипа — toggle всю группу. Клик
+ * по chevron'у — раскрыть и подкрутить отдельных сотрудников. Так
+ * для большой компании не нужно листать гигантскую таблицу
+ * должность × сотрудник: чаще всего достаточно «Шеф → Повара»,
+ * редко нужно тонкое исключение.
+ */
 export function PositionStaffVisibilityClient({ positions, employees }: Props) {
   const router = useRouter();
-  const [base] = useState<VisibilityMap>(() => toMap(positions));
-  const [curr, setCurr] = useState<VisibilityMap>(() => toMap(positions));
+
+  // Группируем сотрудников по jobPositionId — это «целевые группы»
+  // для чипов. Сотрудники без jobPositionId (новые без должности)
+  // собираются в «Без должности».
+  const groups = useMemo(() => {
+    const byGroup = new Map<
+      string,
+      {
+        groupId: string;
+        groupName: string;
+        groupCategory: string | null;
+        members: Employee[];
+      }
+    >();
+    for (const e of employees) {
+      const key = e.jobPositionId ?? UNASSIGNED_GROUP_ID;
+      const existing = byGroup.get(key);
+      if (existing) {
+        existing.members.push(e);
+        continue;
+      }
+      const positionRow = positions.find((p) => p.id === e.jobPositionId);
+      byGroup.set(key, {
+        groupId: key,
+        groupName:
+          positionRow?.name ?? e.positionName ?? "Без должности",
+        groupCategory: positionRow?.categoryKey ?? e.positionCategory ?? null,
+        members: [e],
+      });
+    }
+    // Сортируем: сначала management, потом staff, потом без — alphabetical внутри
+    return Array.from(byGroup.values()).sort((a, b) => {
+      const catRank = (c: string | null) =>
+        c === "management" ? 0 : c === "staff" ? 1 : 2;
+      const r = catRank(a.groupCategory) - catRank(b.groupCategory);
+      if (r !== 0) return r;
+      return a.groupName.localeCompare(b.groupName, "ru");
+    });
+  }, [positions, employees]);
+
+  const [base] = useState<VisibilityMap>(
+    () =>
+      new Map(positions.map((p) => [p.id, new Set(p.visibleUserIds)]))
+  );
+  const [curr, setCurr] = useState<VisibilityMap>(
+    () =>
+      new Map(positions.map((p) => [p.id, new Set(p.visibleUserIds)]))
+  );
   const [query, setQuery] = useState("");
   const [posCatFilter, setPosCatFilter] = useState<
     "all" | "management" | "staff"
   >("all");
-  const [empCatFilter, setEmpCatFilter] = useState<
-    "all" | "management" | "staff"
-  >("all");
+  // Развёрнутые группы для каждой строки: rowKey = `${viewerPositionId}:${groupId}`
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  const dirty = useMemo(() => diff(base, curr), [base, curr]);
+  const dirty = useMemo(() => {
+    const out = new Set<string>();
+    for (const [posId, currSet] of curr.entries()) {
+      const baseSet = base.get(posId) ?? new Set<string>();
+      if (currSet.size !== baseSet.size) {
+        out.add(posId);
+        continue;
+      }
+      for (const id of currSet) {
+        if (!baseSet.has(id)) {
+          out.add(posId);
+          break;
+        }
+      }
+    }
+    return out;
+  }, [base, curr]);
 
   const q = query.trim().toLowerCase();
-
   const filteredPositions = useMemo(
     () =>
       positions.filter((p) => {
@@ -114,65 +139,61 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
     [positions, posCatFilter, q]
   );
 
-  const filteredEmployees = useMemo(
-    () =>
-      employees.filter((e) => {
-        if (empCatFilter === "management" && e.positionCategory !== "management")
-          return false;
-        if (empCatFilter === "staff" && e.positionCategory !== "staff")
-          return false;
-        return true;
-      }),
-    [employees, empCatFilter]
-  );
-
-  function toggleCell(positionId: string, userId: string) {
-    setCurr((prev) => {
-      const next = new Map(prev);
-      const set = new Set(next.get(positionId) ?? new Set<string>());
-      if (set.has(userId)) set.delete(userId);
-      else set.add(userId);
-      next.set(positionId, set);
+  function toggleExpanded(viewerId: string, groupId: string) {
+    const key = `${viewerId}:${groupId}`;
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  function setRowAll(positionId: string, value: boolean) {
+  function toggleGroup(viewerId: string, group: (typeof groups)[number]) {
+    setCurr((prev) => {
+      const next = new Map(prev);
+      const set = new Set(next.get(viewerId) ?? new Set<string>());
+      const allMembers = group.members.map((m) => m.id);
+      const allSelected = allMembers.every((id) => set.has(id));
+      if (allSelected) {
+        // Полностью включена → выключаем всю группу
+        for (const id of allMembers) set.delete(id);
+      } else {
+        // Любое другое состояние (нет / частично) → включаем всех
+        for (const id of allMembers) set.add(id);
+      }
+      next.set(viewerId, set);
+      return next;
+    });
+  }
+
+  function toggleMember(viewerId: string, userId: string) {
+    setCurr((prev) => {
+      const next = new Map(prev);
+      const set = new Set(next.get(viewerId) ?? new Set<string>());
+      if (set.has(userId)) set.delete(userId);
+      else set.add(userId);
+      next.set(viewerId, set);
+      return next;
+    });
+  }
+
+  function clearViewer(viewerId: string) {
+    setCurr((prev) => {
+      const next = new Map(prev);
+      next.set(viewerId, new Set());
+      return next;
+    });
+  }
+
+  function selectAllForViewer(viewerId: string) {
     setCurr((prev) => {
       const next = new Map(prev);
       const set = new Set<string>();
-      if (value) {
-        for (const e of filteredEmployees) set.add(e.id);
-      }
-      next.set(positionId, set);
+      for (const e of employees) set.add(e.id);
+      next.set(viewerId, set);
       return next;
     });
-  }
-
-  function applyPreset(preset: (typeof PRESETS)[number]) {
-    setCurr((prev) => {
-      const next = new Map(prev);
-      for (const p of positions) {
-        const matchPos = preset.positionKeywords.some((kw) =>
-          p.name.toLowerCase().includes(kw)
-        );
-        if (!matchPos) continue;
-        const set = new Set(next.get(p.id) ?? new Set<string>());
-        for (const e of employees) {
-          if (preset.employeePositionKeywords.length === 0) {
-            set.add(e.id);
-            continue;
-          }
-          const empPos = (e.positionName ?? "").toLowerCase();
-          if (preset.employeePositionKeywords.some((kw) => empPos.includes(kw))) {
-            set.add(e.id);
-          }
-        }
-        next.set(p.id, set);
-      }
-      return next;
-    });
-    toast.success(`Применён пресет: ${preset.label}`);
   }
 
   async function save() {
@@ -196,8 +217,6 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
       }
       if (failed > 0) toast.error(`Сохранено ${ok}, ошибок ${failed}`);
       else toast.success(`Сохранено для ${ok} ${pluralPos(ok)}`);
-      // Auto-push в TasksFlow — пользователю не нужно жать вторую
-      // кнопку. Если интеграция отключена, sync вернёт 0 — это OK.
       pushToTasksflow(false);
       router.refresh();
     } catch (err) {
@@ -224,7 +243,7 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
           errors: number;
         };
         toast.success(
-          `TasksFlow обновлён: ${data.managersUpdated}${
+          `TasksFlow: ${data.managersUpdated}${
             data.managersSkipped ? ` · пропущено ${data.managersSkipped}` : ""
           }${data.errors ? ` · ошибок ${data.errors}` : ""}`
         );
@@ -238,44 +257,7 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Presets + sync */}
-      <section className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282] dark:text-white/60">
-              <Sparkles className="size-3.5 text-[#5566f6]" />
-              Быстрые пресеты
-            </div>
-            <p className="mt-1 text-[12px] text-[#6f7282] dark:text-white/60">
-              Типовые связки — нажал, получил готовый scope. Можно
-              докрутить вручную после.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => applyPreset(p)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#dcdfed] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/15"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => pushToTasksflow(true)}
-            disabled={syncing}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60 dark:border-white/15 dark:bg-white/5 dark:text-[#c4b5fd] dark:hover:bg-white/10"
-          >
-            {syncing ? <Loader2 className="size-4 animate-spin" /> : null}
-            Применить в TasksFlow сейчас
-          </button>
-        </div>
-      </section>
-
-      {/* Filters */}
+      {/* Top toolbar */}
       <section className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
         <div className="relative w-full min-w-[200px] flex-1 sm:w-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3] dark:text-white/50" />
@@ -287,9 +269,6 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="self-center text-[11px] font-semibold uppercase tracking-wider text-[#9b9fb3] dark:text-white/50">
-            Должности:
-          </span>
           {(
             [
               ["all", "Все"],
@@ -312,157 +291,206 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="self-center text-[11px] font-semibold uppercase tracking-wider text-[#9b9fb3] dark:text-white/50">
-            Сотруд.:
-          </span>
-          {(
-            [
-              ["all", "Все"],
-              ["management", "Руковод."],
-              ["staff", "Сотруд."],
-            ] as const
-          ).map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setEmpCatFilter(k)}
+        <button
+          type="button"
+          onClick={() => pushToTasksflow(true)}
+          disabled={syncing}
+          className="ml-auto inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60 dark:border-white/15 dark:bg-white/5 dark:text-[#c4b5fd] dark:hover:bg-white/10"
+        >
+          {syncing ? <Loader2 className="size-4 animate-spin" /> : null}
+          Синхронизировать TasksFlow
+        </button>
+      </section>
+
+      {/* Hint */}
+      <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[12px] leading-relaxed text-[#6f7282] dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+        <Sparkles className="mr-1.5 inline size-3.5 text-[#5566f6]" />
+        Нажмите на чип-должность чтобы включить/выключить всю группу
+        целиком. Стрелка справа от чипа раскрывает список сотрудников
+        этой должности — там можно убрать конкретного человека из видимости.
+      </div>
+
+      {/* Position rows */}
+      <div className="space-y-3">
+        {filteredPositions.map((viewer) => {
+          const set = curr.get(viewer.id) ?? new Set<string>();
+          const totalSelected = set.size;
+          const totalEmployees = employees.length;
+          const isDirty = dirty.has(viewer.id);
+          return (
+            <section
+              key={viewer.id}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
-                empCatFilter === k
-                  ? "border-[#5566f6] bg-[#5566f6] text-white"
-                  : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
+                "rounded-3xl border bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-colors dark:bg-white/[0.04] dark:shadow-none sm:p-5",
+                isDirty
+                  ? "border-amber-300 bg-amber-50/50 dark:border-amber-400/40 dark:bg-amber-500/5"
+                  : "border-[#ececf4] dark:border-white/10"
               )}
             >
-              {l}
-            </button>
-          ))}
-        </div>
-      </section>
+              {/* Row header */}
+              <div className="flex flex-wrap items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[15px] font-semibold text-[#0b1024] dark:text-white">
+                      {viewer.name}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7] dark:bg-white/10 dark:text-[#c4b5fd]">
+                      {viewer.activeUsers}{" "}
+                      {pluralActive(viewer.activeUsers)}
+                    </span>
+                    <span className="text-[11px] text-[#9b9fb3] dark:text-white/50">
+                      {viewer.categoryKey === "management"
+                        ? "руководство"
+                        : "сотрудники"}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[12px] text-[#6f7282] dark:text-white/60">
+                    {totalSelected === 0
+                      ? "Никого не видит — только свои задачи"
+                      : `Видит ${totalSelected} из ${totalEmployees} сотрудников`}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectAllForViewer(viewer.id)}
+                    className="rounded-full border border-[#dcdfed] bg-white px-3 py-1 text-[11px] font-medium text-[#3c4053] hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
+                  >
+                    Все
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => clearViewer(viewer.id)}
+                    className="rounded-full border border-[#dcdfed] bg-white px-3 py-1 text-[11px] font-medium text-[#3c4053] hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
+                  >
+                    Снять
+                  </button>
+                </div>
+              </div>
 
-      {/* Matrix */}
-      <section className="rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
-        <div className="flex items-center gap-2 border-b border-[#ececf4] p-4 dark:border-white/10">
-          <Users className="size-4 text-[#5566f6]" />
-          <h2 className="text-[15px] font-semibold text-[#0b1024] dark:text-white">
-            {filteredPositions.length}{" "}
-            {pluralPos(filteredPositions.length)} ·{" "}
-            {filteredEmployees.length}{" "}
-            {pluralEmp(filteredEmployees.length)}
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max border-collapse text-[13px]">
-            <thead>
-              <tr className="border-b border-[#ececf4] dark:border-white/5">
-                <th className="sticky left-0 z-[1] bg-white px-3 py-2 text-left font-medium text-[#6f7282] dark:bg-[#0b1024] dark:text-white/60">
-                  Должность видит ↓
-                </th>
-                <th className="px-2 py-2 text-center font-medium text-[#6f7282] dark:text-white/60">
-                  <span className="text-[11px]">Все / Снять</span>
-                </th>
-                {filteredEmployees.map((e) => (
-                  <th
-                    key={e.id}
-                    className="px-1 py-2 text-center font-medium text-[#6f7282] dark:text-white/60"
-                  >
-                    <div
-                      className="mx-auto max-w-[80px] truncate text-[11px] leading-tight"
-                      title={`${e.name}${e.positionName ? " · " + e.positionName : ""}`}
-                    >
-                      {shortName(e.name)}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPositions.map((p) => {
-                const set = curr.get(p.id) ?? new Set<string>();
-                const isEmpty = set.size === 0;
-                const rowAllOn = filteredEmployees.every((e) => set.has(e.id));
-                return (
-                  <tr
-                    key={p.id}
-                    className={cn(
-                      "border-b border-[#ececf4] last:border-b-0 dark:border-white/5",
-                      dirty.has(p.id) && "bg-[#fff8eb] dark:bg-amber-500/10"
-                    )}
-                  >
-                    <td className="sticky left-0 z-[1] min-w-[180px] bg-inherit px-3 py-2">
-                      <div className="font-medium text-[#0b1024] dark:text-white">
-                        {p.name}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6f7282] dark:text-white/60">
-                        <span>
-                          {p.activeUsers} {pluralActive(p.activeUsers)}
-                        </span>
-                        <span className="text-[#c7ccea] dark:text-white/30">·</span>
-                        <span>
-                          {p.categoryKey === "management"
-                            ? "руководство"
-                            : "сотрудники"}
-                        </span>
-                      </div>
-                      {isEmpty ? (
-                        <div className="mt-0.5 text-[10px] text-[#b25f00] dark:text-amber-300/80">
-                          (никого не видит — только свои задачи)
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setRowAll(p.id, !rowAllOn)}
+              {/* Group chips */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {groups.map((g) => {
+                  const memberIds = g.members.map((m) => m.id);
+                  const selectedInGroup = memberIds.filter((id) =>
+                    set.has(id)
+                  ).length;
+                  const total = memberIds.length;
+                  const state =
+                    selectedInGroup === 0
+                      ? "none"
+                      : selectedInGroup === total
+                        ? "full"
+                        : "partial";
+                  const isExpanded = expanded.has(`${viewer.id}:${g.groupId}`);
+                  return (
+                    <div key={g.groupId} className="contents">
+                      <div
                         className={cn(
-                          "rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                          rowAllOn
-                            ? "border-[#5566f6] bg-[#5566f6] text-white"
-                            : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
+                          "inline-flex items-stretch overflow-hidden rounded-full border transition-colors",
+                          state === "full" &&
+                            "border-[#7cf5c0] bg-[#ecfdf5] text-[#136b2a] dark:border-emerald-400/40 dark:bg-emerald-500/15 dark:text-emerald-200",
+                          state === "partial" &&
+                            "border-[#fbbf24] bg-[#fff8eb] text-[#9a6300] dark:border-amber-400/45 dark:bg-amber-500/12 dark:text-amber-200",
+                          state === "none" &&
+                            "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#f5f6ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
                         )}
                       >
-                        {rowAllOn ? "Снять" : "Все"}
-                      </button>
-                    </td>
-                    {filteredEmployees.map((e) => {
-                      const granted = set.has(e.id);
-                      return (
-                        <td key={e.id} className="px-1 py-1 text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleCell(p.id, e.id)}
-                            title={`${e.name}${e.positionName ? " · " + e.positionName : ""}`}
+                        <button
+                          type="button"
+                          onClick={() => toggleGroup(viewer.id, g)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[12px] font-medium"
+                          title={
+                            state === "full"
+                              ? "Все включены — клик снимет всю группу"
+                              : "Клик — включить всю группу"
+                          }
+                        >
+                          {state === "full" ? (
+                            <Check className="size-3.5" />
+                          ) : null}
+                          <span>{g.groupName}</span>
+                          <span className="opacity-70">
+                            {state === "full"
+                              ? `${total}`
+                              : state === "none"
+                                ? `0/${total}`
+                                : `${selectedInGroup}/${total}`}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(viewer.id, g.groupId)}
+                          aria-label="Раскрыть список"
+                          className="inline-flex items-center px-2 border-l border-current/15 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                        >
+                          <ChevronDown
                             className={cn(
-                              "inline-flex size-7 items-center justify-center rounded-md border transition-colors",
-                              granted
-                                ? "border-[#7cf5c0] bg-[#ecfdf5] text-[#136b2a] dark:border-emerald-400/40 dark:bg-emerald-500/15 dark:text-emerald-200"
-                                : "border-[#dcdfed] bg-white text-[#c7ccea] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] dark:border-white/10 dark:bg-white/[0.04] dark:text-white/30 dark:hover:bg-white/10"
+                              "size-3.5 transition-transform",
+                              isExpanded ? "rotate-180" : ""
                             )}
-                          >
-                            {granted ? <Check className="size-3.5" /> : ""}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-              {filteredPositions.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={filteredEmployees.length + 2}
-                    className="px-4 py-12 text-center text-[13px] text-[#9b9fb3] dark:text-white/50"
-                  >
-                    Под фильтр не попало ни одной должности.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                          />
+                        </button>
+                      </div>
 
-      {/* Save bar */}
+                      {/* Expanded users list — рендерим под чип-row,
+                          чтобы рядом с группой; ограничиваем ширину
+                          дабы не растягивать на всю карточку. */}
+                      {isExpanded ? (
+                        <div className="mt-1 basis-full">
+                          <div className="ml-1 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6f7282] dark:text-white/55">
+                              {g.groupName} · {total}{" "}
+                              {pluralActive(total)}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {g.members.map((m) => {
+                                const checked = set.has(m.id);
+                                return (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => toggleMember(viewer.id, m.id)}
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] transition-colors",
+                                      checked
+                                        ? "border-[#5566f6] bg-[#5566f6] text-white"
+                                        : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#eef1ff] dark:border-white/15 dark:bg-white/10 dark:text-white/85 dark:hover:bg-white/15"
+                                    )}
+                                  >
+                                    {checked ? (
+                                      <Check className="size-3" />
+                                    ) : (
+                                      <X className="size-3 opacity-50" />
+                                    )}
+                                    {m.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+                {groups.length === 0 ? (
+                  <div className="text-[12px] text-[#9b9fb3] dark:text-white/50">
+                    В организации нет активных сотрудников.
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          );
+        })}
+        {filteredPositions.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-12 text-center text-[13px] text-[#9b9fb3] dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50">
+            Ни одной должности под фильтр.
+          </div>
+        ) : null}
+      </div>
+
+      {/* Sticky save bar */}
       <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white/95 px-4 py-3 shadow-[0_12px_32px_-16px_rgba(11,16,36,0.18)] backdrop-blur dark:border-white/10 dark:bg-[#0b1024]/85 dark:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.6)] sm:px-5">
         <div className="text-[13px] text-[#3c4053] dark:text-white/80">
           {dirty.size === 0
@@ -487,13 +515,6 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
   );
 }
 
-function shortName(full: string): string {
-  // Сокращаем для column-header'а: «Иванов Сергей Петрович» → «Иванов С.»
-  const parts = full.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[1][0]}.`;
-}
-
 function pluralPos(n: number): string {
   const m10 = n % 10;
   const m100 = n % 100;
@@ -502,19 +523,11 @@ function pluralPos(n: number): string {
     return "должности";
   return "должностей";
 }
-function pluralEmp(n: number): string {
+function pluralActive(n: number): string {
   const m10 = n % 10;
   const m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return "сотрудник";
   if ([2, 3, 4].includes(m10) && ![12, 13, 14].includes(m100))
     return "сотрудника";
   return "сотрудников";
-}
-function pluralActive(n: number): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return "активный";
-  if ([2, 3, 4].includes(m10) && ![12, 13, 14].includes(m100))
-    return "активных";
-  return "активных";
 }

@@ -53,6 +53,7 @@ export default async function PositionStaffVisibilityPage() {
         id: true,
         name: true,
         positionTitle: true,
+        jobPositionId: true,
         jobPosition: {
           select: { name: true, categoryKey: true },
         },
@@ -101,6 +102,7 @@ export default async function PositionStaffVisibilityPage() {
         employees={employees.map((e) => ({
           id: e.id,
           name: e.name,
+          jobPositionId: e.jobPositionId,
           positionName: e.jobPosition?.name ?? e.positionTitle ?? null,
           positionCategory: e.jobPosition?.categoryKey ?? null,
         }))}
