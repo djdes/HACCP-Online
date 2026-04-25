@@ -50,6 +50,10 @@ export const YEARLY_JOURNAL_CODES = new Set<string>([
   "accident_journal",
   "complaint_register",
   "med_books",
+  // Скан скринов lk.haccp-online.ru: «График и учёт генеральных
+  // уборок» отдельной колонкой «Год 2025» + «Дата документа
+  // 01-01-2025» — однозначно годовой документ.
+  "general_cleaning",
 ]);
 
 /**
