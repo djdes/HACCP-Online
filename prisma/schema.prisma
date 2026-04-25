@@ -7,116 +7,118 @@ datasource db {
 }
 
 model Organization {
-  id                   String            @id @default(cuid())
-  name                 String
-  type                 String
-  inn                  String?
-  address              String?
-  phone                String?
-  subscriptionPlan     String            @default("trial")
-  subscriptionEnd      DateTime?
-  locale               String            @default("ru")
-  brandColor           String?
-  logoUrl              String?
-  yookassaShopId       String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  id                       String                     @id @default(cuid())
+  name                     String
+  type                     String
+  inn                      String?
+  address                  String?
+  phone                    String?
+  subscriptionPlan         String                     @default("trial")
+  subscriptionEnd          DateTime?
+  locale                   String                     @default("ru")
+  brandColor               String?
+  logoUrl                  String?
+  yookassaShopId           String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
   /// Per-organisation bearer token for POST /api/external/entries. When set,
   /// overrides the shared EXTERNAL_API_TOKEN env and resolves the caller's
   /// organizationId automatically. Keep unique across orgs.
-  externalApiToken     String?           @unique
+  externalApiToken         String?                    @unique
   /// Journal template codes the organization has chosen NOT to keep. Empty
   /// by default (= all 35 journals enabled). Toggled from /settings/journals
   /// so different production profiles (кафе, мясокомбинат, пекарня…) can
   /// hide the journals that don't apply. Disabled journals are muted in
   /// the browser and excluded from dashboard compliance counts.
-  disabledJournalCodes Json              @default("[]")
+  disabledJournalCodes     Json                       @default("[]")
   /// Journal template codes enabled for auto document creation. Every
   /// day a cron checks for codes in this list and ensures there is an
   /// active JournalDocument covering today; creates a month-long doc if
   /// missing. Manages via /settings/auto-journals.
-  autoJournalCodes     Json              @default("[]")
-  users                User[]
-  areas                Area[]
-  journalEntries       JournalEntry[]
-  products             Product[]
-  auditLogs            AuditLog[]
-  managerScopes        ManagerScope[]
-  batches              Batch[]
-  capaTickets          CapaTicket[]
-  lossRecords          LossRecord[]
-  productionPlans      ProductionPlan[]
-  changeRequests       ChangeRequest[]
-  staffCompetencies    StaffCompetency[]
-  journalDocuments     JournalDocument[]
-  jobPositions         JobPosition[]
-  notifications        Notification[]
-  botInviteTokens      BotInviteToken[]
-  journalObligations   JournalObligation[]
-  workShifts           WorkShift[]
+  autoJournalCodes         Json                       @default("[]")
+  users                    User[]
+  areas                    Area[]
+  journalEntries           JournalEntry[]
+  products                 Product[]
+  auditLogs                AuditLog[]
+  managerScopes            ManagerScope[]
+  batches                  Batch[]
+  capaTickets              CapaTicket[]
+  lossRecords              LossRecord[]
+  productionPlans          ProductionPlan[]
+  changeRequests           ChangeRequest[]
+  staffCompetencies        StaffCompetency[]
+  journalDocuments         JournalDocument[]
+  jobPositions             JobPosition[]
+  notifications            Notification[]
+  botInviteTokens          BotInviteToken[]
+  journalObligations       JournalObligation[]
+  workShifts               WorkShift[]
+  jobPositionJournalAccess JobPositionJournalAccess[]
 }
 
 model User {
-  id                    String              @id @default(cuid())
-  email                 String              @unique
-  name                  String
-  phone                 String?
-  passwordHash          String
-  role                  String              @default("cook")
+  id                          String                   @id @default(cuid())
+  email                       String                   @unique
+  name                        String
+  phone                       String?
+  passwordHash                String
+  role                        String                   @default("cook")
   // Free-form job title that overrides the role-based label in journals.
   // Lets the same "cook" role user be displayed as "Повар холодного цеха" or
   // "Официант" per employee, instead of flipping between journals.
-  positionTitle         String?
-  organizationId        String
-  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  telegramChatId        String?
-  notificationPrefs     Json?
-  isActive              Boolean             @default(true)
+  positionTitle               String?
+  organizationId              String
+  organization                Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  telegramChatId              String?
+  notificationPrefs           Json?
+  isActive                    Boolean                  @default(true)
   // Platform-level superadmin flag. Orthogonal to `role` (which is the in-org
   // job title). Root users still belong to a real `Organization`; the synthetic
   // "platform" org carries them so every existing FK/query keeps working.
-  isRoot                Boolean             @default(false)
+  isRoot                      Boolean                  @default(false)
   // False until the owner has explicitly edited this user's journal ACL in
   // /settings/users. While false, `hasJournalAccess` grants all journals —
   // this gives zero-regression behaviour for employees predating the ACL.
-  journalAccessMigrated Boolean             @default(false)
+  journalAccessMigrated       Boolean                  @default(false)
   // Soft-archive marker for the staff page. When set, the user disappears
   // from active lists + can no longer log in, but stays referenced by old
   // journal entries. Separate from `isActive` so the staff screen can
   // distinguish "uploaded an employee but disabled them" from "formally
   // dismissed / transferred to archive".
-  archivedAt            DateTime?
+  archivedAt                  DateTime?
   // Structured job position reference. Optional — existing rows keep their
   // free-form `positionTitle` until the seed migration buckets them into
   // per-org `JobPosition` rows. New UI writes only `jobPositionId`; legacy
   // UI continues to read `positionTitle` via the getUserDisplayTitle helper.
-  jobPositionId         String?
-  jobPosition           JobPosition?        @relation(fields: [jobPositionId], references: [id], onDelete: SetNull)
-  createdAt             DateTime            @default(now())
+  jobPositionId               String?
+  jobPosition                 JobPosition?             @relation(fields: [jobPositionId], references: [id], onDelete: SetNull)
+  createdAt                   DateTime                 @default(now())
   /// Personal permission override — JSON-массив кодов из
   /// src/lib/permissions.ts. null = наследовать от должности/группы.
   /// Индивидуальный override используется редко: «этот конкретный
   /// официант умеет принимать поставки и его надо пустить в batches».
-  permissionsJson       Json?
+  permissionsJson             Json?
   /// User-chosen colour theme. "light" | "dark". Sourced once on each
   /// page-load (dashboard layout, Mini App layout) so the choice
   /// follows the user across devices. localStorage caches it for FOUC
   /// suppression but DB is source of truth.
-  themePreference       String              @default("light")
-  journalEntries        JournalEntry[]
-  journalAccess         UserJournalAccess[]
-  inviteToken           InviteToken?
-  botInviteToken        BotInviteToken?
-  workOffDays           StaffWorkOffDay[]
-  vacations             StaffVacation[]
-  sickLeaves            StaffSickLeave[]
-  dismissal             StaffDismissal?
-  notifications         Notification[]
-  journalObligations    JournalObligation[]
-  workShifts            WorkShift[]
-  entryAttachments      JournalEntryAttachment[]
-  documentEntries       JournalDocumentEntry[]
-  managerScopes         ManagerScope[]        @relation("ManagerScopes")
+  themePreference             String                   @default("light")
+  journalEntries              JournalEntry[]
+  journalAccess               UserJournalAccess[]
+  inviteToken                 InviteToken?
+  botInviteToken              BotInviteToken?
+  workOffDays                 StaffWorkOffDay[]
+  vacations                   StaffVacation[]
+  sickLeaves                  StaffSickLeave[]
+  dismissal                   StaffDismissal?
+  notifications               Notification[]
+  journalObligations          JournalObligation[]
+  workShifts                  WorkShift[]
+  entryAttachments            JournalEntryAttachment[]
+  documentEntries             JournalDocumentEntry[]
+  managerScopes               ManagerScope[]           @relation("ManagerScopes")
+  defaultAssigneeForTemplates JournalTemplate[]        @relation("DefaultAssignee")
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -128,21 +130,22 @@ model User {
 /// owner drag positions around; unique (org, category, name) keeps duplicates
 /// out.
 model JobPosition {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id              String                     @id @default(cuid())
+  organizationId  String
+  organization    Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// "management" | "staff"
-  categoryKey    String
-  name           String
-  sortOrder      Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  users          User[]
-  workShifts     WorkShift[]
+  categoryKey     String
+  name            String
+  sortOrder       Int                        @default(0)
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  users           User[]
+  workShifts      WorkShift[]
   /// JSON-массив permission-кодов (см. src/lib/permissions.ts). null =
   /// наследовать defaults группы (management/staff). Override для
   /// конкретной должности: «пекари тоже могут редактировать график».
   permissionsJson Json?
+  journalAccess   JobPositionJournalAccess[]
 
   @@unique([organizationId, categoryKey, name])
   @@index([organizationId, sortOrder])
@@ -366,11 +369,11 @@ model FeedbackReport {
 /// small objects that the client renders as a checkbox list — the shape
 /// is typed in src/lib/notifications.ts.
 model Notification {
-  id             String    @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Domain tag — e.g. "staff.added.journal". Used to dedupe with `key`.
   kind           String
   /// Stable dedupe key (e.g. "staff.added.journal:<journalCode>") so
@@ -381,11 +384,11 @@ model Notification {
   /// Optional inline link target, e.g. "/journals/hygiene".
   linkHref       String?
   linkLabel      String?
-  items          Json      @default("[]")
+  items          Json         @default("[]")
   readAt         DateTime?
   dismissedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@unique([userId, dedupeKey])
   @@index([userId, dismissedAt, readAt])
@@ -419,18 +422,51 @@ model JournalObligation {
 }
 
 model JournalTemplate {
-  id                 String            @id @default(cuid())
-  code               String            @unique
+  id                 String                     @id @default(cuid())
+  code               String                     @unique
   name               String
   description        String?
   fields             Json
-  isActive           Boolean           @default(true)
-  sortOrder          Int               @default(0)
-  isMandatorySanpin  Boolean           @default(false)
-  isMandatoryHaccp   Boolean           @default(false)
+  isActive           Boolean                    @default(true)
+  sortOrder          Int                        @default(0)
+  isMandatorySanpin  Boolean                    @default(false)
+  isMandatoryHaccp   Boolean                    @default(false)
+  /// Распределение задач из этого журнала между сотрудниками:
+  ///   "per-employee" — обязательство каждому подходящему сотруднику
+  ///                    (гигиена, журнал здоровья — каждый за себя)
+  ///   "single"       — одно обязательство на день: либо явно
+  ///                    `defaultAssigneeId`, либо round-robin между
+  ///                    подходящими сотрудниками
+  ///   "sensor"       — заполняет IoT-датчик, людям не приходит
+  ///                    (Фаза 2, пока заглушка)
+  fillMode           String                     @default("per-employee")
+  /// Используется только при `fillMode == "single"`. Если не null —
+  /// обязательство всегда идёт этому пользователю; null → round-robin.
+  defaultAssigneeId  String?
+  defaultAssignee    User?                      @relation("DefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
   entries            JournalEntry[]
   documents          JournalDocument[]
   journalObligations JournalObligation[]
+  positionAccess     JobPositionJournalAccess[]
+
+  @@index([defaultAssigneeId])
+}
+
+/// Per-org white-list: каким должностям разрешено получать
+/// обязательства по этому шаблону. Если для шаблона нет ни одной
+/// записи — считаем что разрешены все должности (back-compat).
+model JobPositionJournalAccess {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobPositionId  String
+  jobPosition    JobPosition     @relation(fields: [jobPositionId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       JournalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+
+  @@unique([jobPositionId, templateId])
+  @@index([organizationId, templateId])
 }
 
 model Product {
@@ -453,58 +489,58 @@ model Product {
 }
 
 model JournalEntry {
-  id             String          @id @default(cuid())
+  id             String                   @id @default(cuid())
   templateId     String
-  template       JournalTemplate @relation(fields: [templateId], references: [id])
+  template       JournalTemplate          @relation(fields: [templateId], references: [id])
   organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   areaId         String?
-  area           Area?           @relation(fields: [areaId], references: [id])
+  area           Area?                    @relation(fields: [areaId], references: [id])
   equipmentId    String?
-  equipment      Equipment?      @relation(fields: [equipmentId], references: [id])
+  equipment      Equipment?               @relation(fields: [equipmentId], references: [id])
   filledById     String
-  filledBy       User            @relation(fields: [filledById], references: [id])
+  filledBy       User                     @relation(fields: [filledById], references: [id])
   data           Json
-  status         String          @default("submitted")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  status         String                   @default("submitted")
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  attachments    JournalEntryAttachment[]
 
   @@index([organizationId, templateId, createdAt])
   @@index([filledById])
-  attachments    JournalEntryAttachment[]
 }
 
 model JournalEntryAttachment {
-  id             String       @id @default(cuid())
-  entryId        String
-  entry          JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  url            String
-  filename       String
-  mimeType       String       @default("image/jpeg")
-  sizeBytes      Int          @default(0)
-  createdAt      DateTime     @default(now())
-  uploadedById   String?
-  uploadedBy     User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  id           String       @id @default(cuid())
+  entryId      String
+  entry        JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  url          String
+  filename     String
+  mimeType     String       @default("image/jpeg")
+  sizeBytes    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  uploadedById String?
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([entryId])
 }
 
 model ManagerScope {
-  id                   String       @id @default(cuid())
-  organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  managerId            String
-  manager              User         @relation("ManagerScopes", fields: [managerId], references: [id], onDelete: Cascade)
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  managerId              String
+  manager                User         @relation("ManagerScopes", fields: [managerId], references: [id], onDelete: Cascade)
   /// Visibility mode: "all" = sees everyone, "job_positions" = sees specific job positions, "specific_users" = sees specific users, "none" = sees no one
-  viewMode             String       @default("all")
+  viewMode               String       @default("all")
   /// Job position IDs visible when viewMode = "job_positions"
-  viewJobPositionIds   String[]
+  viewJobPositionIds     String[]
   /// User IDs visible when viewMode = "specific_users"
-  viewUserIds          String[]
+  viewUserIds            String[]
   /// Journal template codes this manager can assign tasks for. Empty = all journals they have access to.
   assignableJournalCodes String[]
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   @@unique([organizationId, managerId])
   @@index([organizationId])
@@ -549,18 +585,18 @@ model EmailVerification {
 ///   queued -> failed          (non-429 Telegram error; `error` populated)
 ///   queued -> rate_limited    (429 after max retries)
 model TelegramLog {
-  id        String    @id @default(cuid())
-  userId    String?
+  id             String    @id @default(cuid())
+  userId         String?
   organizationId String?
-  chatId    String
-  body      String
-  kind      String?
-  dedupeKey String?
-  status    String    @default("queued")
-  error     String?
-  attempts  Int       @default(0)
-  sentAt    DateTime?
-  createdAt DateTime  @default(now())
+  chatId         String
+  body           String
+  kind           String?
+  dedupeKey      String?
+  status         String    @default("queued")
+  error          String?
+  attempts       Int       @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([userId, createdAt])
   @@index([userId, organizationId, kind, dedupeKey, createdAt])
@@ -782,26 +818,26 @@ model JournalExternalLog {
 ///
 /// One row per Organization — `organizationId @unique` enforces it.
 model TasksFlowIntegration {
-  id                  String    @id @default(cuid())
-  organizationId      String    @unique
-  baseUrl             String
+  id                 String              @id @default(cuid())
+  organizationId     String              @unique
+  baseUrl            String
   /// AES-256-GCM ciphertext: `iv(base64).tag(base64).ciphertext(base64)`.
-  apiKeyEncrypted     String
+  apiKeyEncrypted    String
   /// First 12 chars of the original plaintext, for UI ("tfk_abc12345").
-  apiKeyPrefix        String
+  apiKeyPrefix       String
   /// TasksFlow companyId resolved during connect (`whoami` or first task call).
   /// Null means we haven't been able to resolve it yet.
-  tasksflowCompanyId  Int?
+  tasksflowCompanyId Int?
   /// HMAC secret for the inbound webhook, generated on connect.
-  webhookSecret       String
-  enabled             Boolean   @default(true)
-  lastSyncAt          DateTime?
+  webhookSecret      String
+  enabled            Boolean             @default(true)
+  lastSyncAt         DateTime?
   /// Free-form notes set by the integrator (e.g. "Test key", "Production").
-  label               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  links               TasksFlowUserLink[]
-  taskLinks           TasksFlowTaskLink[]
+  label              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  links              TasksFlowUserLink[]
+  taskLinks          TasksFlowTaskLink[]
 
   @@index([organizationId])
 }
@@ -813,9 +849,9 @@ model TasksFlowIntegration {
 /// `tasksflowUserId` is nullable because we may have a phone match in
 /// WeSetup before the cleaner has been imported into TasksFlow.
 model TasksFlowUserLink {
-  id                String                @id @default(cuid())
+  id                String               @id @default(cuid())
   integrationId     String
-  integration       TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration       TasksFlowIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   /// WeSetup user (employee). Cascade-deleted when the user is removed.
   wesetupUserId     String
   /// Normalized phone (`+7XXXXXXXXX`). Stored lowercase, no spaces, so we
@@ -825,9 +861,9 @@ model TasksFlowUserLink {
   tasksflowWorkerId Int?
   /// "auto" = matched by phone on sync; "manual" = pinned by an admin
   /// (don't overwrite during the next auto-sync).
-  source            String                @default("auto")
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  source            String               @default("auto")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   @@unique([integrationId, wesetupUserId])
   @@index([integrationId, phone])
@@ -842,22 +878,22 @@ model TasksFlowUserLink {
 /// WeSetup side — `rowKey` is the journal-specific row identifier
 /// (e.g. cleaning row id, or "<roomId>:<dateKey>" for matrix cells).
 model TasksFlowTaskLink {
-  id                  String                @id @default(cuid())
-  integrationId       String
-  integration         TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  journalCode         String
-  journalDocumentId   String
-  rowKey              String
-  tasksflowTaskId     Int
+  id                String               @id @default(cuid())
+  integrationId     String
+  integration       TasksFlowIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  journalCode       String
+  journalDocumentId String
+  rowKey            String
+  tasksflowTaskId   Int
   /// Last status received from TasksFlow ("active" | "completed").
-  remoteStatus        String                @default("active")
+  remoteStatus      String               @default("active")
   /// When TasksFlow reported completion (mirrored back to journal cell).
-  completedAt         DateTime?
+  completedAt       DateTime?
   /// Last sync direction: "push" (WeSetup → TasksFlow) or "pull" (the
   /// other way). Pure observability, doesn't change behaviour.
-  lastDirection       String?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  lastDirection     String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   @@unique([integrationId, journalDocumentId, rowKey])
   @@index([tasksflowTaskId])
