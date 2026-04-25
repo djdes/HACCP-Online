@@ -540,12 +540,15 @@ function buildBaseConfig(users?: UserLike[], areas?: AreaLike[]): CleaningDocume
     title: CLEANING_PAGE_TITLE,
     documentTitle: CLEANING_PAGE_TITLE,
     settings: {
-      autoFillEnabled: true,
+      // Автозаполнение по умолчанию выключено: новый документ
+      // создаётся «чистым», менеджер сам включает автозаполнение
+      // когда убедился что responsibles и расписание настроены.
+      autoFillEnabled: false,
       skipWeekends: false,
       fillUntilToday: true,
     },
     autoFill: {
-      enabled: true,
+      enabled: false,
       skipWeekends: false,
       fillUntilToday: true,
       defaultRoomMark: "T",

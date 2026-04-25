@@ -112,7 +112,9 @@ export function getDefaultCleaningVentilationConfig(
     }));
 
   return {
-    autoFillEnabled: true,
+    // Автозаполнение по умолчанию выключено — менеджер включает
+    // вручную после того, как проверил список ответственных.
+    autoFillEnabled: false,
     skipWeekends: false,
     mainResponsibleTitle: fallbackTitle,
     mainResponsibleUserId,
