@@ -111,9 +111,32 @@ export async function POST(
         sanitized = validator.parse(rawValues) as typeof sanitized;
       } catch (err) {
         if (err instanceof z.ZodError) {
+          const issue = err.issues[0];
+          const fieldKey = Array.isArray(issue?.path) ? issue?.path[0] : null;
+          const fieldLabel =
+            schema.fields.find((f) => f.key === fieldKey)?.label ??
+            (typeof fieldKey === "string" ? fieldKey : "поле");
+          // Подробный лог в pm2 — чтобы понять что прилетело и какие
+          // поля валидатор ожидал, при «странных» падениях с прода.
+          console.error("[task-fill] validator failed", {
+            taskId,
+            journalCode: link.journalCode,
+            fieldKey,
+            fieldLabel,
+            issueMessage: issue?.message,
+            allIssues: err.issues,
+            receivedKeys: Object.keys(rawValues ?? {}),
+            expectedKeys: schema.fields.map((f) => ({
+              key: f.key,
+              type: f.type,
+              required: "required" in f ? f.required : undefined,
+            })),
+          });
           return NextResponse.json(
             {
-              error: `Ошибка валидации: ${err.issues[0]?.message ?? "неизвестно"}`,
+              error: `Ошибка валидации поля «${fieldLabel}»: ${
+                issue?.message ?? "неизвестно"
+              }`,
             },
             { status: 400 }
           );
