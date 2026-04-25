@@ -6,6 +6,7 @@ import {
   BookOpen,
   Building2,
   ClipboardList,
+  Coins,
   CreditCard,
   KeyRound,
   Package,
@@ -123,6 +124,14 @@ const settingsCards = [
     icon: Network,
     color: "#7a5cff",
     bg: "#f0edff",
+  },
+  {
+    title: "Премии за журналы",
+    description: "Сколько ₽ за «единичные» журналы — мотивация в TasksFlow",
+    href: "/settings/journal-bonuses",
+    icon: Coins,
+    color: "#b45309",
+    bg: "#fef3c7",
   },
   {
     title: "Уведомления",
