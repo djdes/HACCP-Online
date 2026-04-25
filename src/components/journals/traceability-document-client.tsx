@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -656,6 +657,7 @@ export function TraceabilityDocumentClient(props: Props) {
 
   return (
     <div className="space-y-8 pb-8 text-black">
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       {props.routeCode ? (
         <DocumentPageHeader
           backHref={`/journals/${props.routeCode}`}

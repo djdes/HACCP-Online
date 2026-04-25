@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -717,7 +718,8 @@ export function GlassControlDocumentClient(props: Props) {
 
   return (
     <div className="space-y-6 text-black">
-      <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
       {selectedCount > 0 && !isClosed && (
         <div className="sticky top-0 z-30 -mx-4 flex items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-6 md:px-6">
           <button

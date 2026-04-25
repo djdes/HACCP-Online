@@ -40,6 +40,7 @@ import {
 } from "@/lib/metal-impurity-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -1122,6 +1123,7 @@ export function MetalImpurityDocumentClient({
           </div>
         )}
 
+        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${METAL_IMPURITY_TEMPLATE_CODE}`} documentId={documentId} />
         <div className="flex flex-col gap-4 print:hidden sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div>

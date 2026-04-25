@@ -44,6 +44,7 @@ import {
   type SanitationMonthKey,
 } from "@/lib/sanitation-day-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -654,7 +655,8 @@ export function SanitationDayDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href={journalHref} documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href={journalHref} documentId={documentId} />
       <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
         <div className="flex flex-wrap items-center gap-3">
           {!readOnly && (

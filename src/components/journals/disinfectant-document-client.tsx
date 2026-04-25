@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Settings2, Trash2, X } from "lucide-react";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -1230,7 +1231,8 @@ export function DisinfectantDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentPageHeader
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentPageHeader
         backHref="/journals/disinfectant_usage"
         documentId={documentId}
         rightActions={

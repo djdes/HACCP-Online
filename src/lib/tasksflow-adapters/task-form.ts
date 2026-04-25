@@ -107,7 +107,27 @@ export function buildCompletionValidator(
         break;
       }
       case "number": {
-        let s: z.ZodTypeAny = z.coerce.number();
+        // Принимаем русские запятые («20,1»), пустые строки, null —
+        // не валим валидацию, превращаем в число или undefined.
+        // Без этого Number("20,1") === NaN → z.coerce.number() ругался
+        // «expected number, received NaN» когда поле было заполнено
+        // через мобильную клавиатуру с локалью RU.
+        const numberSchema = z.preprocess((value) => {
+          if (value === "" || value === null || value === undefined) {
+            return undefined;
+          }
+          if (typeof value === "string") {
+            const normalized = value.trim().replace(",", ".");
+            if (normalized === "") return undefined;
+            const parsed = Number(normalized);
+            return Number.isFinite(parsed) ? parsed : undefined;
+          }
+          if (typeof value === "number") {
+            return Number.isFinite(value) ? value : undefined;
+          }
+          return value;
+        }, z.number());
+        let s: z.ZodTypeAny = numberSchema;
         if (typeof field.min === "number")
           s = (s as z.ZodNumber).min(field.min);
         if (typeof field.max === "number")

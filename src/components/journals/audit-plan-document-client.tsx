@@ -33,6 +33,7 @@ import {
   type AuditPlanSection,
 } from "@/lib/audit-plan-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -702,7 +703,8 @@ export function AuditPlanDocumentClient({
 
   return (
     <div className="space-y-8">
-      <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
       <div className="flex items-center justify-between print:hidden">
         <div />
         {!readOnly && (

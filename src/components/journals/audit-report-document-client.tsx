@@ -24,6 +24,7 @@ import {
   type AuditReportFinding,
 } from "@/lib/audit-report-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 
 import { toast } from "sonner";
@@ -143,6 +144,7 @@ export function AuditReportDocumentClient({
   return (
     <>
       <div className="space-y-8">
+        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/audit_report" documentId={documentId} />
         <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
           {status === "active" && (

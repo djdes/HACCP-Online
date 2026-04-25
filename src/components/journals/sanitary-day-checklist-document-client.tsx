@@ -32,6 +32,7 @@ import {
   type SdcItem,
 } from "@/lib/sanitary-day-checklist-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -781,7 +782,8 @@ export function SanitaryDayChecklistDocumentClient({
 
   return (
     <div className="bg-white text-black">
-      <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
       <style jsx global>{`
         @page {
           size: A4 portrait;

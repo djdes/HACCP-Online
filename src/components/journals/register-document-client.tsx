@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_GRID_CLASS,
@@ -532,7 +533,10 @@ export function RegisterDocumentClient({
   return (
     <div className="bg-white text-black">
       <div className={REGISTER_DOCUMENT_PAGE_CLASS}>
-        {templateCode ? <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} /> : null}
+        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        {templateCode ? (
+          <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
+        ) : null}
         <div className={REGISTER_DOCUMENT_HEADER_CLASS}>
           <div>
             <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">

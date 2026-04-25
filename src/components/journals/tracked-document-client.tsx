@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_GRID_CLASS,
@@ -335,7 +336,8 @@ function TrackedDocumentClientImpl({
         </div>
       ) : null}
 
-      <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
       <div className={JOURNAL_DOCUMENT_SHELL_CLASS}>
         <div className={JOURNAL_DOCUMENT_HEADER_CLASS}>
           <div>

@@ -35,6 +35,7 @@ import {
 } from "@/lib/equipment-calibration-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -310,7 +311,8 @@ export function EquipmentCalibrationDocumentClient({
   return (
     <div className="space-y-6 text-black">
       {/* Breadcrumb */}
-      <DocumentBackLink href="/journals/equipment_calibration" documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href="/journals/equipment_calibration" documentId={documentId} />
 
       {/* screen header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">

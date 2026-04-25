@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -286,7 +287,8 @@ export function ProductWriteoffDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
-      <DocumentBackLink href="/journals/product_writeoff" documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href="/journals/product_writeoff" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
         <div className="flex items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button type="button" className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]" onClick={() => setSelectedRows([])}>

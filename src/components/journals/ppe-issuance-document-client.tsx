@@ -5,6 +5,7 @@ import { ChevronDown, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -564,6 +565,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
           </div>
         )}
 
+        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentPageHeader
           backHref="/journals/ppe_issuance"
           documentId={props.documentId}

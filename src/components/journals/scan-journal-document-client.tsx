@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 type Props = {
   templateCode: string;
@@ -27,7 +28,8 @@ export function ScanJournalDocumentClient({
 
   return (
     <div className="space-y-6">
-      <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">

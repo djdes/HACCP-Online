@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -147,7 +148,8 @@ export function GlassListDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
-      <DocumentBackLink href="/journals/glass_items_list" documentId={documentId} />
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+        <DocumentBackLink href="/journals/glass_items_list" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
         <div className="flex items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button

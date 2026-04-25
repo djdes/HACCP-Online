@@ -368,9 +368,15 @@ function FieldInput({
             type="number"
             inputMode="decimal"
             value={value === null || value === undefined ? "" : String(value)}
-            onChange={(e) =>
-              onChange(e.target.value === "" ? null : Number(e.target.value))
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return onChange(null);
+              // RU-клавиатуры пишут запятую — Number("20,1") = NaN.
+              // Заменяем перед парсом.
+              const normalized = raw.replace(",", ".");
+              const parsed = Number(normalized);
+              onChange(Number.isFinite(parsed) ? parsed : raw);
+            }}
             min={field.min}
             max={field.max}
             step={field.step}

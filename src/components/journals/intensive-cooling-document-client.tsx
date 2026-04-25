@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   CalendarDays,
   Plus,
@@ -563,6 +564,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
       ) : null}
 
       <div className="mx-auto max-w-[1860px] space-y-8 px-4 py-4 sm:px-6 sm:py-6">
+        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentPageHeader
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}
