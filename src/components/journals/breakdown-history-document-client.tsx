@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { CalendarDays, Plus, Settings2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -508,6 +509,16 @@ export function BreakdownHistoryDocumentClient(props: Props) {
   return (
     <div className="bg-white text-black">
       <div className="mx-auto max-w-[1860px] space-y-6 px-4 py-4 sm:px-6 sm:py-6">
+        {/* Скроллер из ?focus=today: для event-driven журнала
+           «история поломок» нет «сегодня» — поэтому селектор —
+           самая свежая запись, либо если записей нет — пустой
+           dialog с подсказкой добавить новую. */}
+        <FocusTodayScroller
+          selector="[data-focus-today]"
+          createLabel="Добавить запись о поломке"
+          emptyTitle="Поломок ещё нет"
+          emptyBody="Если случилась поломка — добавьте новую запись через кнопку «Добавить» в таблице ниже."
+        />
         <DocumentBackLink href="/journals/breakdown_history" documentId={props.documentId} />
         {/* Page heading */}
         <div className="flex items-center justify-between">
@@ -658,9 +669,13 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows.map((row, idx) => (
                 <tr
                   key={row.id}
+                  // Самая свежая запись (последняя в массиве) — целевая
+                  // для «Перейти к сегодня»/?focus=today, т.к. журнал
+                  // event-driven, у него нет «сегодня».
+                  data-focus-today={idx === rows.length - 1 ? "" : undefined}
                   className={isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : undefined}
                   onClick={() => {
                     if (!isActive) return;

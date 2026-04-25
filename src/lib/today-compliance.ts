@@ -584,8 +584,25 @@ export async function getTemplatesFilledToday(
     documentsByTemplate.set(doc.templateId, entry);
   }
 
+  // Strict-режим включается legacy-кодами или динамически когда
+  // менеджер выбрал fillMode="per-employee". Грузим fillMode для всех
+  // активных шаблонов одним запросом — лишний select без N+1.
+  const templateIdsInPlay = [...documentsByTemplate.keys()];
+  const templateFillModes =
+    templateIdsInPlay.length > 0
+      ? await db.journalTemplate.findMany({
+          where: { id: { in: templateIdsInPlay } },
+          select: { id: true, fillMode: true },
+        })
+      : [];
+  const fillModeById = new Map(
+    templateFillModes.map((t) => [t.id, t.fillMode])
+  );
+
   for (const [templateId, { code, docIds }] of documentsByTemplate.entries()) {
-    const strict = STRICT_COMPLETENESS_CODES.has(code);
+    const fillMode = fillModeById.get(templateId) ?? "per-employee";
+    const strict =
+      STRICT_COMPLETENESS_CODES.has(code) || fillMode === "per-employee";
     const ok = strict
       ? docIds.every(documentFilledStrict) // все документы целиком заполнены
       : docIds.some(documentStartedToday); // хотя бы один начат
@@ -634,6 +651,10 @@ export type TemplateTodaySummary = {
   activeDocumentId: string | null;
 };
 
+export type TemplateTodaySummaryOptions = {
+  treatAperiodicAsFilled?: boolean;
+};
+
 /**
  * Detailed per-template summary for today. Powers the per-journal banner
  * — the banner uses `todayCount`/`expectedCount` to render «X из Y
@@ -643,14 +664,17 @@ export async function getTemplateTodaySummary(
   organizationId: string,
   templateId: string,
   templateCode: string | null = null,
-  now: Date = new Date()
+  now: Date = new Date(),
+  options: TemplateTodaySummaryOptions = {}
 ): Promise<TemplateTodaySummary> {
+  const treatAperiodicAsFilled = options.treatAperiodicAsFilled ?? true;
   const todayStart = utcDayStart(now);
   const todayEnd = new Date(todayStart);
   todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
 
   // Aperiodic journals are treated as filled — no daily obligation.
   if (
+    treatAperiodicAsFilled &&
     templateCode &&
     !DAILY_JOURNAL_CODES.has(templateCode) &&
     !CONFIG_DAILY_CODES.has(templateCode)
@@ -665,7 +689,7 @@ export async function getTemplateTodaySummary(
     };
   }
 
-  const [legacyCount, activeDocuments] = await Promise.all([
+  const [legacyCount, activeDocuments, template] = await Promise.all([
     db.journalEntry.count({
       where: {
         organizationId,
@@ -684,7 +708,12 @@ export async function getTemplateTodaySummary(
       select: { id: true, config: true },
       orderBy: { dateFrom: "desc" },
     }),
+    db.journalTemplate.findUnique({
+      where: { id: templateId },
+      select: { fillMode: true },
+    }),
   ]);
+  const fillMode = template?.fillMode ?? "per-employee";
 
   const activeDocumentId = activeDocuments[0]?.id ?? null;
 
@@ -738,8 +767,17 @@ export async function getTemplateTodaySummary(
     };
   }
 
+  // Strict-режим (журнал «выполнен» только когда все eligible
+   // сотрудники отметились) включается двумя путями:
+  //   1. Хардкод: hygiene/health_check (legacy + per-employee по
+  //      дизайну с самого начала)
+  //   2. Динамически: любой шаблон с `fillMode === "per-employee"` —
+  //      т.е. менеджер настроил «каждый сотрудник заполняет за себя»
+  //      в `/settings/journals`. Один заполнивший ≠ выполнен.
   const strict =
-    typeof templateCode === "string" && STRICT_COMPLETENESS_CODES.has(templateCode);
+    (typeof templateCode === "string" &&
+      STRICT_COMPLETENESS_CODES.has(templateCode)) ||
+    fillMode === "per-employee";
 
   const rollups = await Promise.all(
     activeDocuments.map(async (doc) => {
