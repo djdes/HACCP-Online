@@ -162,12 +162,12 @@ jobs:
             # на ПК и сломанными на телефоне. Если такая ситуация —
             # ребилдим один раз с чистой папкой; если опять не помогло —
             # фейлим деплой явно, чтобы PM2 не подхватил битый build.
-            MANIFESTS=$(find .next/server/app -name 'client-reference-manifest.js' 2>/dev/null | wc -l)
+            MANIFESTS=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
             if [ "$MANIFESTS" -lt "5" ]; then
               echo "[warn] Только $MANIFESTS client-reference-manifest файлов — пробую rebuild"
               rm -rf .next
               npm run build 2>&1 | tail -10
-              MANIFESTS=$(find .next/server/app -name 'client-reference-manifest.js' 2>/dev/null | wc -l)
+              MANIFESTS=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
               if [ "$MANIFESTS" -lt "5" ]; then
                 echo "[fail] Build не сгенерировал client-reference-manifest.js даже после rebuild"
                 exit 1
