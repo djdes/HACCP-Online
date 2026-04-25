@@ -130,17 +130,27 @@ export function normalizeClimateDocumentConfig(value: unknown): ClimateDocumentC
         .filter(Boolean)
     : [];
 
+  // Прод-баг: createId() ниже использует randomUUID — при normalize
+  // config документа без stable room.id адаптер на каждом запросе
+  // получает РАЗНЫЕ uuid, и `t_<roomId>` в форме (load) не совпадает
+  // с тем что ожидает validator (submit), → «expected number,
+  // received undefined» (см. d484f2d).
+  //
+  // Лекарство: при отсутствии id в БД назначаем детерминированный
+  // `room-<index>` — такой же при любом следующем normalize одного
+  // и того же raw config.
   const rooms = Array.isArray(record.rooms)
     ? record.rooms
-        .map((room) => {
+        .map((room, index) => {
           if (!room || typeof room !== "object" || Array.isArray(room)) return null;
           const roomRecord = room as Record<string, unknown>;
+          const rawId =
+            typeof roomRecord.id === "string" && roomRecord.id.trim() !== ""
+              ? roomRecord.id
+              : `room-${index}`;
 
           return createClimateRoomConfig({
-            id:
-              typeof roomRecord.id === "string" && roomRecord.id.trim() !== ""
-                ? roomRecord.id
-                : undefined,
+            id: rawId,
             name:
               typeof roomRecord.name === "string" ? roomRecord.name : undefined,
             temperature: normalizeMetric(roomRecord.temperature, {
