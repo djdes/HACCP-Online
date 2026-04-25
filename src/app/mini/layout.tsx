@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
@@ -9,6 +12,11 @@ import {
   MiniThemeProvider,
 } from "./_components/mini-theme";
 import "./mini-theme.css";
+// app-theme.css scopes site dashboard styles to `.app-shell` — needed
+// here because the Mini App embeds site components (e.g. document
+// editor in /mini/documents/[id]). We mirror `.app-shell` onto
+// `#mini-root` so those embedded components pick up the right theme.
+import "@/app/app-theme.css";
 
 /**
  * Mini App layout.
@@ -36,11 +44,27 @@ export const viewport: Viewport = {
   themeColor: "#0a0b0f",
 };
 
-export default function MiniLayout({
+export default async function MiniLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the user's saved theme so the layout SSRs in the right colour
+  // immediately. Anonymous visitors (Mini App auth happens client-side
+  // via Telegram initData) get the default `dark`; once they sign in,
+  // a subsequent navigation pulls their preference.
+  const session = await getServerSession(authOptions).catch(() => null);
+  const initialTheme: "light" | "dark" = await (async () => {
+    if (!session?.user?.id) return "dark";
+    const user = await db.user
+      .findUnique({
+        where: { id: session.user.id },
+        select: { themePreference: true },
+      })
+      .catch(() => null);
+    return user?.themePreference === "light" ? "light" : "dark";
+  })();
+
   return (
     <>
       <Script
@@ -60,18 +84,23 @@ export default function MiniLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,300..700,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist+Mono:wght@400;500;600&display=swap"
       />
       <MiniSessionProvider>
-        <MiniThemeProvider>
+        <MiniThemeProvider initialTheme={initialTheme}>
           <MiniTelegramRuntime />
           {/* `id="mini-root"` нужен для pre-hydration скрипта
               `<MiniThemeBootstrap />` и для `applyThemeToDOM`: они
               ищут этот контейнер по id, чтобы выставить `data-theme`
               без FOUC. `suppressHydrationWarning` — скрипт может
               перезаписать атрибут до того, как React гидратирует
-              элемент; без этого флага React выругался бы. */}
+              элемент; без этого флага React выругался бы.
+              `class="app-shell"` + `data-app-theme` мирорят тему на
+              site-уровень — встроенные клиенты документов из
+              `(dashboard)` (например HygieneDocumentClient) подхватят
+              правильную dark/light палитру через `.app-shell[data-app-theme]`. */}
           <div
             id="mini-root"
-            className="mini-root min-h-dvh"
-            data-theme="dark"
+            className="mini-root app-shell min-h-dvh"
+            data-theme={initialTheme}
+            data-app-theme={initialTheme}
             suppressHydrationWarning
           >
             <MiniThemeBootstrap />

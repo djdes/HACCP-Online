@@ -7,6 +7,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
 import {
   SiteThemeBootstrap,
   SiteThemeProvider,
@@ -25,12 +26,19 @@ export default async function RootAreaLayout({
   // belt-and-braces safety net in case middleware is ever bypassed.
   const session = await requireRoot();
 
+  const profile = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { themePreference: true },
+  });
+  const initialTheme: "light" | "dark" =
+    profile?.themePreference === "dark" ? "dark" : "light";
+
   return (
-    <SiteThemeProvider>
+    <SiteThemeProvider initialTheme={initialTheme}>
       <SiteThemeBootstrap />
       <div
         className="app-shell min-h-screen bg-[#f4f5fb]"
-        data-app-theme="light"
+        data-app-theme={initialTheme}
         suppressHydrationWarning
       >
       <header className="border-b border-[#dddfe8] bg-[#11142b] text-white">

@@ -29,19 +29,21 @@ export default async function DashboardLayout({
       : Promise.resolve(null),
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { positionTitle: true },
+      select: { positionTitle: true, themePreference: true },
     }),
   ]);
 
   const impersonatedName = impersonatedOrg?.name ?? null;
+  const initialTheme: "light" | "dark" =
+    profile?.themePreference === "dark" ? "dark" : "light";
 
   return (
     <AuthSessionProvider session={session}>
-      <SiteThemeProvider>
+      <SiteThemeProvider initialTheme={initialTheme}>
         <SiteThemeBootstrap />
         <div
           className="app-shell min-h-screen bg-gray-50"
-          data-app-theme="light"
+          data-app-theme={initialTheme}
           suppressHydrationWarning
         >
           {impersonatedName ? (

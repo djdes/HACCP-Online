@@ -98,6 +98,11 @@ model User {
   /// Индивидуальный override используется редко: «этот конкретный
   /// официант умеет принимать поставки и его надо пустить в batches».
   permissionsJson       Json?
+  /// User-chosen colour theme. "light" | "dark". Sourced once on each
+  /// page-load (dashboard layout, Mini App layout) so the choice
+  /// follows the user across devices. localStorage caches it for FOUC
+  /// suppression but DB is source of truth.
+  themePreference       String              @default("light")
   journalEntries        JournalEntry[]
   journalAccess         UserJournalAccess[]
   inviteToken           InviteToken?
