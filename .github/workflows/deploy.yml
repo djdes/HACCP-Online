@@ -77,8 +77,9 @@ jobs:
             --exclude=haccp-deploy.tar \
             --exclude='*.tar' \
             --exclude='*.tar.gz' \
-            --exclude='*.png' \
-            --exclude='prod-*.png' \
+            --exclude='./prod-*.png' \
+            --exclude='./animations*.png' \
+            --exclude='./screenshot-*.png' \
             --exclude=test.txt \
             .
 
