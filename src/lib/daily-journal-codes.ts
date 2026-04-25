@@ -70,3 +70,13 @@ export const ALL_DAILY_JOURNAL_CODES = new Set<string>([
   ...DAILY_JOURNAL_CODES,
   ...CONFIG_DAILY_CODES,
 ]);
+
+/**
+ * Journals that genuinely require one task/obligation per employee for
+ * the same day. Other selected journals are organization-level daily
+ * work: one responsible employee fills the journal for the day.
+ */
+export const PER_EMPLOYEE_DAILY_JOURNAL_CODES = new Set<string>([
+  "hygiene",
+  "health_check",
+]);

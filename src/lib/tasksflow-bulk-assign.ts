@@ -1,10 +1,14 @@
 import type { ManagerScope } from "@/lib/manager-scope";
+import { PER_EMPLOYEE_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import type { AdapterRow } from "@/lib/tasksflow-adapters/types";
 
 export type BulkJournalTemplate = {
   id: string;
   code: string;
   name: string;
+  /** Премия за выполнение в копейках. Если > 0 — задача отправляется
+   *  всем eligible сотрудникам (race-for-bonus), а не одному. */
+  bonusAmountKopecks?: number;
 };
 
 export type BulkJournalSkip = {
@@ -18,11 +22,6 @@ export type BulkRowSelection = {
   skipReason?: string;
 };
 
-export const PER_EMPLOYEE_BULK_ASSIGN_CODES = new Set<string>([
-  "hygiene",
-  "health_check",
-]);
-
 export function parseStringArray(raw: unknown): string[] {
   return Array.isArray(raw)
     ? raw.filter((value): value is string => typeof value === "string")
@@ -30,7 +29,25 @@ export function parseStringArray(raw: unknown): string[] {
 }
 
 export function isPerEmployeeBulkJournal(journalCode: string): boolean {
-  return PER_EMPLOYEE_BULK_ASSIGN_CODES.has(journalCode);
+  return PER_EMPLOYEE_DAILY_JOURNAL_CODES.has(journalCode);
+}
+
+/**
+ * Должна ли задача рассылаться всем eligible-сотрудникам (а не одному).
+ *
+ * Два случая:
+ *   1. Per-employee журнал (hygiene / health_check) — каждый ведёт сам.
+ *   2. Журнал с премией > 0 — все видят, кто первый сделал, тому бонус
+ *      (race-for-bonus). Остальные карточки автоматически попадают в
+ *      «Сделано другими» на стороне TasksFlow.
+ */
+export function shouldFanOutToAll(template: {
+  code: string;
+  bonusAmountKopecks?: number;
+}): boolean {
+  if (isPerEmployeeBulkJournal(template.code)) return true;
+  if ((template.bonusAmountKopecks ?? 0) > 0) return true;
+  return false;
 }
 
 export function canBulkAssignJournal(
@@ -102,14 +119,20 @@ function noEligibleRowReason(args: {
 
 export function selectRowsForBulkAssign(args: {
   journalCode: string;
+  /** Премия за журнал в копейках. Опциональна для обратной совместимости
+   *  тестов; если опущена — fan-out только для per-employee. */
+  bonusAmountKopecks?: number;
   rows: AdapterRow[];
   takenRowKeys: Set<string>;
   onDutyUserIds: Set<string>;
   linkedUserIds: Set<string>;
 }): BulkRowSelection {
-  const perEmployee = isPerEmployeeBulkJournal(args.journalCode);
+  const fanOutToAll = shouldFanOutToAll({
+    code: args.journalCode,
+    bonusAmountKopecks: args.bonusAmountKopecks,
+  });
 
-  if (!perEmployee && args.takenRowKeys.size > 0) {
+  if (!fanOutToAll && args.takenRowKeys.size > 0) {
     return { rows: [], alreadyLinked: 1 };
   }
 
@@ -129,7 +152,7 @@ export function selectRowsForBulkAssign(args: {
     };
   }
 
-  if (!perEmployee) {
+  if (!fanOutToAll) {
     const firstAvailable = linkedOnDutyRows.find(
       (row) => !args.takenRowKeys.has(row.rowKey)
     );

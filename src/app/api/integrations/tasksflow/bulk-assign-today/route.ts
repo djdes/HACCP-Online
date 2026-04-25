@@ -111,7 +111,14 @@ export async function POST(request: Request) {
   const [templates, org] = await Promise.all([
     db.journalTemplate.findMany({
       where: { isActive: true },
-      select: { id: true, code: true, name: true },
+      // bonusAmountKopecks > 0 → шаблон фанаут-ится на всех eligible
+      // (race-for-bonus). См. shouldFanOutToAll в tasksflow-bulk-assign.
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        bonusAmountKopecks: true,
+      },
       orderBy: { sortOrder: "asc" },
     }),
     db.organization.findUnique({
@@ -333,6 +340,7 @@ export async function POST(request: Request) {
     const takenRowKeys = new Set(existingLinks.map((l) => l.rowKey));
     const rowSelection = selectRowsForBulkAssign({
       journalCode: tpl.code,
+      bonusAmountKopecks: tpl.bonusAmountKopecks,
       rows: adapterDoc.rows,
       takenRowKeys,
       onDutyUserIds: candidateUserIds,
@@ -368,6 +376,11 @@ export async function POST(request: Request) {
       const description = adapter.descriptionForRow?.(row, adapterDoc) ?? "";
       const schedule = adapter.scheduleForRow(row, adapterDoc);
       const category = `WeSetup · ${tpl.name}`;
+      // Премия в рублях (см. /settings/journal-bonuses). Передаём в TF
+      // как `task.price` — там же логика начисления при complete.
+      // Также кладём в journalLink, чтобы клиентский бейдж читал
+      // именно сконфигурированную сумму, а не hardcoded.
+      const bonusRubles = Math.floor((tpl.bonusAmountKopecks ?? 0) / 100);
 
       let created;
       try {
@@ -380,6 +393,7 @@ export async function POST(request: Request) {
           monthDay: schedule.monthDay ?? null,
           category,
           description,
+          price: bonusRubles > 0 ? bonusRubles : undefined,
         });
       } catch (err) {
         console.error(
@@ -400,6 +414,11 @@ export async function POST(request: Request) {
         rowKey: row.rowKey,
         label: title,
         isFreeText: false,
+        // Опциональная сумма премии в копейках. TasksFlow читает её
+        // для бейджа «+N ₽» и для определения «race-for-bonus»
+        // claim-логики (когда первый сделал — у всех остальных
+        // карточка уезжает в «Сделано другими»).
+        bonusAmountKopecks: tpl.bonusAmountKopecks ?? 0,
       });
       try {
         await client.updateTask(created.id, { journalLink } as never);
