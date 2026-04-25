@@ -117,6 +117,14 @@ const settingsCards = [
     bg: "#eef1ff",
   },
   {
+    title: "Иерархия журналов по должностям",
+    description: "Какие журналы получает каждая должность при «отправить всем»",
+    href: "/settings/journals-by-position",
+    icon: Network,
+    color: "#7a5cff",
+    bg: "#f0edff",
+  },
+  {
     title: "Уведомления",
     description: "Telegram-бот, типы оповещений",
     href: "/settings/notifications",
