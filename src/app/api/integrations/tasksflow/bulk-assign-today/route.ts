@@ -194,7 +194,15 @@ export async function POST(request: Request) {
   const adapters = await listAdapters();
   const adapterByCode = new Map(adapters.map((a) => [a.meta.templateCode, a]));
   const client = tasksflowClientFor(integration);
-  const baseUrl = new URL(request.url).origin;
+  // Раньше: baseUrl = origin запроса. Когда nginx проксирует с upstream
+  // localhost:3002 без сохранения Host, в task.journalLink улетал
+  // "https://localhost:3002" — таски в TasksFlow становились некликабельны
+  // (ссылка ведёт на localhost, недоступный с мобильника).
+  // Теперь: предпочитаем явный NEXTAUTH_URL, fallback на origin запроса.
+  const envBase = (process.env.NEXTAUTH_URL ?? "").trim();
+  const requestOrigin = new URL(request.url).origin;
+  const baseUrl =
+    envBase && !envBase.includes("localhost") ? envBase : requestOrigin;
 
   // Pre-load the org's TF user-link table once — hot loop below does
   // per-worker lookups against this in-memory map.

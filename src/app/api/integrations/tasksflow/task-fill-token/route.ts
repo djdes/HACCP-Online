@@ -77,7 +77,10 @@ export async function POST(request: Request) {
   }
 
   const token = mintTaskFillToken(payload.taskId, integration.webhookSecret);
-  const base = new URL(request.url).origin;
+  const envBase = (process.env.NEXTAUTH_URL ?? "").trim();
+  const requestOrigin = new URL(request.url).origin;
+  const base =
+    envBase && !envBase.includes("localhost") ? envBase : requestOrigin;
   const url = `${base}/task-fill/${payload.taskId}?token=${encodeURIComponent(token)}`;
   return NextResponse.json({ token, url });
 }

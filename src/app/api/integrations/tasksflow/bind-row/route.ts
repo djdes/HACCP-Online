@@ -251,9 +251,13 @@ export async function POST(request: Request) {
       continue;
     }
 
+    const envBase = (process.env.NEXTAUTH_URL ?? "").trim();
+    const requestOrigin = new URL(request.url).origin;
+    const baseUrl =
+      envBase && !envBase.includes("localhost") ? envBase : requestOrigin;
     const journalLink = JSON.stringify({
       kind: `wesetup-${payload.journalCode}`,
-      baseUrl: new URL(request.url).origin,
+      baseUrl,
       integrationId: integration.id,
       documentId: doc.id,
       rowKey: storedRowKey,
