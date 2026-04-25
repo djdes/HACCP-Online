@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ positionId: string }> }
 ) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
@@ -33,7 +33,7 @@ export async function PUT(
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 
-  const { id: positionId } = await params;
+  const { positionId } = await params;
   const organizationId = getActiveOrgId(session);
 
   // Только должность из текущей орги — никаких cross-org правок.
