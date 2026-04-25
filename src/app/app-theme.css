@@ -155,20 +155,61 @@ body:has(.app-shell[data-app-theme="dark"]) {
   background-color: var(--app-tint-indigo-2);
 }
 
-/* Success / warn tints — semantic color, просто темнее */
+/* Success / warn tints — на dark делаем «hint of color, not wall of color».
+   Сразу две градации: мягкая фоновая для карточки целиком (very subtle —
+   карточка остаётся читаемой как тёмная), и более насыщенная для
+   маленьких иконок/чипсов (видно что statusный, без шум-эффекта). */
+
+/* — карточный фон status (success): едва-едва зелёный налёт на dark surface */
 .app-shell[data-app-theme="dark"] .bg-\[\#ecfdf5\],
 .app-shell[data-app-theme="dark"] .bg-\[\#e6f8ec\],
-.app-shell[data-app-theme="dark"] .bg-\[\#d9f4e1\],
 .app-shell[data-app-theme="dark"] .bg-\[\#effaf1\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e8f7ff\] {
-  background-color: var(--app-success-bg);
+.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\] {
+  background-color: rgba(124, 245, 192, 0.06);
 }
+/* — иконочный фон status (success): чип/icon-tile, заметнее */
+.app-shell[data-app-theme="dark"] .bg-\[\#d9f4e1\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e8f7ff\] {
+  background-color: rgba(124, 245, 192, 0.16);
+}
+/* — карточный фон status (warn): едва-едва красный налёт */
 .app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\] {
+  background-color: rgba(255, 144, 130, 0.07);
+}
+/* — иконочный фон status (warn) */
 .app-shell[data-app-theme="dark"] .bg-\[\#ffe2de\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\] {
-  background-color: var(--app-warn-bg);
+.app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe1dc\] {
+  background-color: rgba(255, 144, 130, 0.16);
+}
+
+/* Status borders на dark — тонкие, акцентные. Используются для всех
+   pending/done вариаций журналов в dashboard и /journals tile-сетке. */
+.app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
+.app-shell[data-app-theme="dark"] .border-\[\#ff8d7d\],
+.app-shell[data-app-theme="dark"] .border-\[\#ffb0a6\] {
+  border-color: rgba(255, 144, 130, 0.3);
+}
+.app-shell[data-app-theme="dark"] .hover\:border-\[\#ff8d7d\]:hover {
+  border-color: rgba(255, 144, 130, 0.5);
+}
+.app-shell[data-app-theme="dark"] .border-\[\#c8f0d5\],
+.app-shell[data-app-theme="dark"] .border-\[\#7cf5c0\] {
+  border-color: rgba(124, 245, 192, 0.28);
+}
+.app-shell[data-app-theme="dark"] .hover\:border-\[\#7cf5c0\]:hover {
+  border-color: rgba(124, 245, 192, 0.5);
+}
+
+/* Action arrows / icons accent text (success/warn) — на dark поярче
+   чтобы не сливались с тенями. */
+.app-shell[data-app-theme="dark"] .text-\[\#7cf5c0\] {
+  color: #8ce0bd;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#ffb0a6\],
+.app-shell[data-app-theme="dark"] .text-\[\#ff8d7d\] {
+  color: #ffaba0;
 }
 
 /* --- BORDERS ------------------------------------------------------- */
