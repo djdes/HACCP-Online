@@ -305,7 +305,7 @@ model Area {
 }
 
 model Equipment {
-  id             String         @id @default(cuid())
+  id             String                   @id @default(cuid())
   name           String
   type           String
   serialNumber   String?
@@ -313,8 +313,42 @@ model Equipment {
   tempMax        Float?
   tuyaDeviceId   String?
   areaId         String
-  area           Area           @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  area           Area                     @relation(fields: [areaId], references: [id], onDelete: Cascade)
   journalEntries JournalEntry[]
+  sensorMappings EquipmentSensorMapping[]
+}
+
+/// Связь «датчик ↔ поле шаблона журнала». Один Tuya-девайс может
+/// отдавать несколько метрик (`va_temperature`, `va_humidity`),
+/// поэтому на один Equipment вешается N мапингов — по одному на
+/// каждое поле, которое мы заполняем автоматически.
+///
+/// Используется только когда у соответствующего шаблона
+/// `fillMode = "sensor"` — иначе мапинг игнорируется. Пишутся
+/// `lastReadingAt` + `lastValue` чтобы UI мог быстро показать
+/// «датчик жив», не ходя в Tuya API на каждый рендер.
+model EquipmentSensorMapping {
+  id            String          @id @default(cuid())
+  equipmentId   String
+  equipment     Equipment       @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  templateId    String
+  template      JournalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  /// Ключ из `template.fields[].key` (e.g. "temperature", "humidity")
+  fieldKey      String
+  /// Какую метрику с устройства брать. Сейчас поддержаны
+  /// "temperature" / "humidity"; список расширяется по мере
+  /// поддержки новых типов журналов.
+  readingType   String
+  lastReadingAt DateTime?
+  /// Сериализованное значение (числа храним как строку — потом
+  /// парсим по типу поля шаблона; так гибче если появятся булевые
+  /// или enum-метрики).
+  lastValue     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([equipmentId, templateId, fieldKey])
+  @@index([templateId])
 }
 
 /// Long-form article for the public /blog. Platform-level (not org-scoped)
@@ -448,6 +482,7 @@ model JournalTemplate {
   documents          JournalDocument[]
   journalObligations JournalObligation[]
   positionAccess     JobPositionJournalAccess[]
+  sensorMappings     EquipmentSensorMapping[]
 
   @@index([defaultAssigneeId])
 }
