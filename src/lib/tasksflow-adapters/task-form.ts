@@ -113,15 +113,22 @@ export function buildCompletionValidator(
         // «expected number, received NaN» когда поле было заполнено
         // через мобильную клавиатуру с локалью RU.
         //
-        // ВАЖНО: .min/.max применяем к z.number() ДО `preprocess`,
-        // потому что после preprocess schema становится ZodEffects, у
-        // которого нет .min/.max методов (TypeError: e.min is not a
-        // function — см. прод-краш f242c26).
-        let inner: z.ZodNumber = z.number();
-        if (typeof field.min === "number") inner = inner.min(field.min);
-        if (typeof field.max === "number") inner = inner.max(field.max);
+        // 1. .min/.max применяем к z.number() ДО оборачивания
+        //    preprocess'ом — после preprocess это ZodEffects, у
+        //    которого нет .min (см. прод-краш f242c26).
+        // 2. .optional().nullable() применяем ВНУТРИ preprocess'а —
+        //    чтобы пустое значение, превращённое в undefined,
+        //    корректно проходило optional. Иначе на required=false
+        //    полях падает «expected number, received undefined»
+        //    при пустом submit (см. прод-краш 0744c1d).
+        let inner: z.ZodTypeAny = z.number();
+        if (typeof field.min === "number")
+          inner = (inner as z.ZodNumber).min(field.min);
+        if (typeof field.max === "number")
+          inner = (inner as z.ZodNumber).max(field.max);
+        if (!field.required) inner = inner.optional().nullable();
 
-        let s: z.ZodTypeAny = z.preprocess((value) => {
+        shape[field.key] = z.preprocess((value) => {
           if (value === "" || value === null || value === undefined) {
             return undefined;
           }
@@ -136,8 +143,6 @@ export function buildCompletionValidator(
           }
           return value;
         }, inner);
-        if (!field.required) s = s.optional().nullable();
-        shape[field.key] = s;
         break;
       }
       case "boolean": {
