@@ -155,61 +155,89 @@ body:has(.app-shell[data-app-theme="dark"]) {
   background-color: var(--app-tint-indigo-2);
 }
 
-/* Success / warn tints — на dark делаем «hint of color, not wall of color».
-   Сразу две градации: мягкая фоновая для карточки целиком (very subtle —
-   карточка остаётся читаемой как тёмная), и более насыщенная для
-   маленьких иконок/чипсов (видно что statusный, без шум-эффекта). */
+/* Success / warn tints на dark — мягкие, приглушённые. Используем
+   sage-green (#9bc8b0) и dusty-rose (#dba59c) вместо ярких lime/peach,
+   чтобы статус читался без агрессивного давления на глаза. */
 
-/* — карточный фон status (success): едва-едва зелёный налёт на dark surface */
+/* — карточный фон status (success): почти невидимый sage-налёт */
 .app-shell[data-app-theme="dark"] .bg-\[\#ecfdf5\],
 .app-shell[data-app-theme="dark"] .bg-\[\#e6f8ec\],
 .app-shell[data-app-theme="dark"] .bg-\[\#effaf1\],
 .app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\] {
-  background-color: rgba(124, 245, 192, 0.06);
+  background-color: rgba(155, 200, 176, 0.05);
 }
-/* — иконочный фон status (success): чип/icon-tile, заметнее */
+/* — иконочный фон status (success) — заметнее, для чипсов */
 .app-shell[data-app-theme="dark"] .bg-\[\#d9f4e1\],
 .app-shell[data-app-theme="dark"] .bg-\[\#e8f7ff\] {
-  background-color: rgba(124, 245, 192, 0.16);
+  background-color: rgba(155, 200, 176, 0.14);
 }
-/* — карточный фон status (warn): едва-едва красный налёт */
+/* — карточный фон status (warn): rosé hint */
 .app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
 .app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\] {
-  background-color: rgba(255, 144, 130, 0.07);
+  background-color: rgba(219, 165, 156, 0.06);
 }
 /* — иконочный фон status (warn) */
 .app-shell[data-app-theme="dark"] .bg-\[\#ffe2de\],
 .app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\],
 .app-shell[data-app-theme="dark"] .bg-\[\#ffe1dc\] {
-  background-color: rgba(255, 144, 130, 0.16);
+  background-color: rgba(219, 165, 156, 0.14);
 }
 
-/* Status borders на dark — тонкие, акцентные. Используются для всех
-   pending/done вариаций журналов в dashboard и /journals tile-сетке. */
+/* Status borders — тонкие приглушённые. На hover ещё видимее
+   но без яркой подсветки. */
 .app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
 .app-shell[data-app-theme="dark"] .border-\[\#ff8d7d\],
 .app-shell[data-app-theme="dark"] .border-\[\#ffb0a6\] {
-  border-color: rgba(255, 144, 130, 0.3);
+  border-color: rgba(219, 165, 156, 0.22);
 }
 .app-shell[data-app-theme="dark"] .hover\:border-\[\#ff8d7d\]:hover {
-  border-color: rgba(255, 144, 130, 0.5);
+  border-color: rgba(219, 165, 156, 0.4);
 }
 .app-shell[data-app-theme="dark"] .border-\[\#c8f0d5\],
 .app-shell[data-app-theme="dark"] .border-\[\#7cf5c0\] {
-  border-color: rgba(124, 245, 192, 0.28);
+  border-color: rgba(155, 200, 176, 0.22);
 }
 .app-shell[data-app-theme="dark"] .hover\:border-\[\#7cf5c0\]:hover {
-  border-color: rgba(124, 245, 192, 0.5);
+  border-color: rgba(155, 200, 176, 0.4);
 }
 
-/* Action arrows / icons accent text (success/warn) — на dark поярче
-   чтобы не сливались с тенями. */
-.app-shell[data-app-theme="dark"] .text-\[\#7cf5c0\] {
-  color: #8ce0bd;
+/* Status text/icons — приглушённые dusty-rose / sage. */
+.app-shell[data-app-theme="dark"] .text-\[\#7cf5c0\],
+.app-shell[data-app-theme="dark"] .text-\[\#136b2a\] {
+  color: #9bc8b0;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#ffb0a6\],
-.app-shell[data-app-theme="dark"] .text-\[\#ff8d7d\] {
-  color: #ffaba0;
+.app-shell[data-app-theme="dark"] .text-\[\#ff8d7d\],
+.app-shell[data-app-theme="dark"] .text-\[\#d2453d\],
+.app-shell[data-app-theme="dark"] .text-\[\#a13a32\],
+.app-shell[data-app-theme="dark"] .text-\[\#b83a33\],
+.app-shell[data-app-theme="dark"] .text-\[\#bd392f\] {
+  color: #dba59c;
+}
+
+/* Override главных переменных, чтобы пиллы Tailwind-у-shadcn
+   (`var(--app-warn-fg)` etc) тоже были мягкими */
+.app-shell[data-app-theme="dark"] {
+  --app-success-bg: rgba(155, 200, 176, 0.10);
+  --app-success-fg: #9bc8b0;
+  --app-warn-bg: rgba(219, 165, 156, 0.10);
+  --app-warn-fg: #dba59c;
+}
+
+/* Кнопки destructive (например "Перейти к сегодня") в dark — тоже
+   приглушённый rosé вместо ярко-красного */
+.app-shell[data-app-theme="dark"] .bg-\[\#d2453d\],
+.app-shell[data-app-theme="dark"] .bg-\[\#bd392f\],
+.app-shell[data-app-theme="dark"] .bg-\[\#b83a33\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ef4b44\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e0342a\] {
+  background-color: #b87a72;
+  color: #fff;
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#b83a33\]:hover,
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#bd392f\]:hover,
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#e0342a\]:hover {
+  background-color: #a06b62;
 }
 
 /* --- BORDERS ------------------------------------------------------- */
