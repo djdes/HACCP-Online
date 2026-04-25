@@ -32,6 +32,12 @@ export function StaffHierarchyClient({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncReport, setSyncReport] = useState<{
+    managersUpdated: number;
+    managersSkipped: number;
+    errors: number;
+  } | null>(null);
 
   // Find managers without scope (can add new)
   const managersWithScope = new Set(scopes.map((s) => s.managerId));
@@ -73,10 +79,48 @@ export function StaffHierarchyClient({
         else next.push(item);
         return next;
       });
+      // Auto-push в TasksFlow после save — fire-and-forget. Пользователь
+      // увидит «Применено в TasksFlow» в баннере, при ошибке — warning,
+      // но изменение в WeSetup-БД уже зафиксировано.
+      pushHierarchyToTasksflow(false);
     } catch {
       setError("Не удалось сохранить");
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * Запускает /api/integrations/tasksflow/sync-hierarchy для всей орги.
+   * Вызывается автоматически после saveScope и вручную через кнопку.
+   * Если showError=true — выводим текст в банер при ошибке.
+   */
+  async function pushHierarchyToTasksflow(showError: boolean) {
+    setSyncing(true);
+    if (showError) setSyncReport(null);
+    try {
+      const res = await fetch(
+        "/api/integrations/tasksflow/sync-hierarchy",
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const msg =
+          data?.error ?? `Ошибка синка иерархии (${res.status})`;
+        if (showError) setError(msg);
+        setSyncReport(null);
+      } else {
+        const data = (await res.json()) as {
+          managersUpdated: number;
+          managersSkipped: number;
+          errors: number;
+        };
+        setSyncReport(data);
+      }
+    } catch {
+      if (showError) setError("Не удалось связаться с TasksFlow");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -98,6 +142,40 @@ export function StaffHierarchyClient({
           {error}
         </div>
       ) : null}
+
+      {/* TasksFlow sync — кнопка ручного применения иерархии и
+          сводка по последнему пушу. Авто-sync уже запускается после
+          каждого saveScope, но если интеграция была отключена/сломана,
+          ручная кнопка позволяет применить всё разом. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-semibold text-[#0b1024]">
+            Синхронизация с TasksFlow
+          </div>
+          <div className="mt-1 text-[12px] text-[#6f7282]">
+            Иерархия живёт здесь, в TasksFlow её зеркалит этот sync —
+            каждый руководитель видит у себя только задачи своих
+            подчинённых.
+          </div>
+          {syncReport ? (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#ecfdf5] px-3 py-1 text-[12px] font-medium text-[#116b2a]">
+              ✓ Применено: {syncReport.managersUpdated}
+              {syncReport.managersSkipped > 0
+                ? ` · пропущено ${syncReport.managersSkipped}`
+                : ""}
+              {syncReport.errors > 0 ? ` · ошибок ${syncReport.errors}` : ""}
+            </div>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={() => pushHierarchyToTasksflow(true)}
+          disabled={syncing}
+          className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:bg-[#c8cbe0]"
+        >
+          {syncing ? "Синхронизация…" : "Применить в TasksFlow"}
+        </button>
+      </div>
 
       {/* Existing scopes */}
       {scopes.map((scope) => (

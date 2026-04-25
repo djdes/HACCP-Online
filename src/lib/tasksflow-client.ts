@@ -216,6 +216,23 @@ class TasksFlowClient {
       {}
     );
   }
+
+  /**
+   * Push manager-scope в TasksFlow. После этого вызова на стороне
+   * TF user-id `managerTfUserId` видит в /api/tasks и /api/users
+   * только задачи/воркеров из `subordinateTfUserIds` + свои.
+   *
+   * Источник истины — WeSetup ManagerScope. Этот метод не сохраняет
+   * иерархию на стороне TF, только отражает её для read-фильтрации.
+   */
+  setManagedWorkers(
+    managerTfUserId: number,
+    subordinateTfUserIds: number[]
+  ): Promise<{ ok: boolean; count: number }> {
+    return this.request("PUT", `/api/admin/users/${managerTfUserId}/managed-workers`, {
+      workerIds: subordinateTfUserIds,
+    });
+  }
 }
 
 /** Build a client from a stored integration row (decrypts the API key). */
