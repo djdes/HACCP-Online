@@ -105,6 +105,47 @@ const bot = token
  */
 export const escapeTelegramHtml = escapeHtml;
 
+/**
+ * Personalize Telegram-сообщение — заменяет {name}, {timeOfDay},
+ * {dayOfWeek} в тексте на реальные значения. Не трогает текст без
+ * placeholder'ов. Снижает reminder fatigue: «Иван, утренняя гигиена»
+ * вместо генерического «у вас задача».
+ *
+ * Использование: callers могут просто включать {name} в template
+ * и не думать о том как достать имя — notifyEmployee сделает за них.
+ */
+export function personalizeMessage(
+  text: string,
+  ctx: { name?: string | null }
+): string {
+  if (!text.includes("{") ) return text;
+  const now = new Date();
+  const hour = now.getHours();
+  const timeOfDay =
+    hour < 6
+      ? "ночью"
+      : hour < 12
+        ? "утром"
+        : hour < 18
+          ? "днём"
+          : "вечером";
+  const days = [
+    "воскресенье",
+    "понедельник",
+    "вторник",
+    "среду",
+    "четверг",
+    "пятницу",
+    "субботу",
+  ];
+  const dayOfWeek = days[now.getDay()];
+  const firstName = (ctx.name ?? "").trim().split(/\s+/)[0] ?? "";
+  return text
+    .replace(/\{name\}/g, firstName || "сотрудник")
+    .replace(/\{timeOfDay\}/g, timeOfDay)
+    .replace(/\{dayOfWeek\}/g, dayOfWeek);
+}
+
 const MAX_RETRIES = 3;
 const RETRY_HARD_CAP_SECONDS = 30;
 
@@ -299,11 +340,20 @@ export async function notifyEmployee(
   const { db } = await import("./db");
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, telegramChatId: true, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      telegramChatId: true,
+      isActive: true,
+    },
   });
   if (!user || !user.isActive || !user.telegramChatId) {
     return;
   }
+  // Persoналиize: подставляем {name}, {timeOfDay}, {dayOfWeek} в
+  // text. Callers могут пропустить — без placeholder'ов helper
+  // ничего не делает.
+  text = personalizeMessage(text, { name: user.name });
 
   if (
     await shouldSkipTelegramSendOnRerun({
