@@ -258,14 +258,40 @@ export default function RegisterPage() {
                   onChange={(v) => update("organizationType", v)}
                   options={organizationTypes}
                 />
-                <Field
-                  id="inn"
-                  label="ИНН"
-                  value={form.inn}
-                  onChange={(v) => update("inn", v)}
-                  placeholder="опционально"
-                  inputMode="numeric"
-                />
+                <div className="space-y-1.5">
+                  <Field
+                    id="inn"
+                    label="ИНН"
+                    value={form.inn}
+                    onChange={(v) => update("inn", v)}
+                    placeholder="опционально"
+                    inputMode="numeric"
+                  />
+                  {/^\d{10}$|^\d{12}$/.test(form.inn) ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setError(null);
+                        try {
+                          const r = await fetch(
+                            `/api/public/inn-lookup?inn=${form.inn}`
+                          );
+                          const d = await r.json();
+                          if (!d.ok) {
+                            setError(d.error ?? "Не нашли по ИНН");
+                            return;
+                          }
+                          if (d.name) update("organizationName", d.name);
+                        } catch {
+                          setError("Ошибка проверки ИНН");
+                        }
+                      }}
+                      className="text-[12px] font-medium text-[#3848c7] hover:underline"
+                    >
+                      Подтянуть название по ИНН
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <Field
                 id="name"
