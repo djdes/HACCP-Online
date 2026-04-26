@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,9 @@ type NotificationItem = {
   id: string;
   label: string;
   hint?: string;
+  /** Per-item ссылка. Если есть — клик по подзадаче ведёт сюда,
+   *  иначе fallback на row.linkHref. */
+  href?: string;
 };
 
 type NotificationRow = {
@@ -35,8 +38,49 @@ function asItems(raw: unknown): NotificationItem[] {
       id: typeof v.id === "string" ? v.id : "",
       label: typeof v.label === "string" ? v.label : "",
       hint: typeof v.hint === "string" ? v.hint : undefined,
+      href: typeof v.href === "string" ? v.href : undefined,
     }))
     .filter((it) => it.id && it.label);
+}
+
+/** Стабильный ключ для per-item selection. Notification.id + item.id —
+ *  каждый item уникален в рамках своей нотификации. */
+function itemKey(rowId: string, itemId: string) {
+  return `${rowId}::${itemId}`;
+}
+
+/**
+ * Чекбокс с тремя состояниями: none / all / indeterminate. Native
+ * <input type="checkbox"> поддерживает indeterminate только через
+ * imperative DOM API (`el.indeterminate = true`) — выставляем через ref
+ * каждый рендер. Клик всегда вызывает `onClick`; consumer сам решает
+ * что делать (toggle all / toggle none).
+ */
+function TriStateCheckbox({
+  state,
+  onClick,
+  ariaLabel,
+  className,
+}: {
+  state: "none" | "all" | "indeterminate";
+  onClick: () => void;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = state === "indeterminate";
+  }, [state]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      aria-label={ariaLabel}
+      checked={state === "all"}
+      onChange={onClick}
+      className={`size-4 shrink-0 cursor-pointer rounded border-[#dcdfed] text-[#5566f6] focus:ring-[#5566f6] ${className ?? ""}`}
+    />
+  );
 }
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
@@ -49,6 +93,11 @@ export function NotificationsBell() {
     read: [],
     unreadCount: 0,
   });
+  // Хранит:
+  //   - row-id для нотификаций без подзадач (таких в проекте немного)
+  //   - itemKey(rowId, itemId) для подзадач каждой нотификации
+  // Чекбокс шапки нотификации checked если ВСЕ её items selected, и
+  // indeterminate если только некоторые.
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
@@ -102,28 +151,100 @@ export function NotificationsBell() {
   const rows = tab === "unread" ? data.unread : data.read;
   const headerCount = data.unreadCount;
 
-  const toggleSelected = useCallback((id: string) => {
+  /**
+   * Выделение row → выделяет/снимает все её items (для row без items —
+   * саму row). Если все items уже выделены — снимаем все. Иначе
+   * выделяем все недостающие.
+   */
+  const toggleRow = useCallback((row: NotificationRow) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (row.items.length === 0) {
+        if (next.has(row.id)) next.delete(row.id);
+        else next.add(row.id);
+        return next;
+      }
+      const allKeys = row.items.map((it) => itemKey(row.id, it.id));
+      const allSelected = allKeys.every((k) => next.has(k));
+      if (allSelected) {
+        for (const k of allKeys) next.delete(k);
+      } else {
+        for (const k of allKeys) next.add(k);
+      }
       return next;
     });
   }, []);
 
-  const selectedInView = useMemo(
-    () => rows.filter((r) => selected.has(r.id)),
-    [rows, selected]
-  );
+  /** Toggle одной подзадачи. Не дёргает родителя. */
+  const toggleItem = useCallback((rowId: string, itemId: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const key = itemKey(rowId, itemId);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  /**
+   * Возвращает «состояние родителя» по выделенным items этой row:
+   *   "none"          — ни одна подзадача не выделена
+   *   "all"           — все подзадачи выделены (или row без items и selected)
+   *   "indeterminate" — выделены некоторые, но не все
+   */
+  function rowSelectionState(row: NotificationRow): "none" | "all" | "indeterminate" {
+    if (row.items.length === 0) {
+      return selected.has(row.id) ? "all" : "none";
+    }
+    let count = 0;
+    for (const it of row.items) {
+      if (selected.has(itemKey(row.id, it.id))) count++;
+    }
+    if (count === 0) return "none";
+    if (count === row.items.length) return "all";
+    return "indeterminate";
+  }
+
+  /**
+   * План «Прочитать выбранное» по строкам:
+   *   - all   → PATCH /api/notifications/[id] с пустым body (как раньше)
+   *   - indeterminate → PATCH с {dismissedItemIds: [...]}
+   *   - none  → пропустить
+   */
+  type ReadPlan = { rowId: string; mode: "row" | "items"; itemIds: string[] };
+  const plansForView = useMemo<ReadPlan[]>(() => {
+    const out: ReadPlan[] = [];
+    for (const r of rows) {
+      const state = rowSelectionState(r);
+      if (state === "none") continue;
+      if (state === "all") {
+        out.push({ rowId: r.id, mode: "row", itemIds: [] });
+      } else {
+        const itemIds = r.items
+          .filter((it) => selected.has(itemKey(r.id, it.id)))
+          .map((it) => it.id);
+        if (itemIds.length > 0) out.push({ rowId: r.id, mode: "items", itemIds });
+      }
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, selected]);
 
   async function markReadSelected() {
-    if (selectedInView.length === 0) {
-      toast.info("Отметьте уведомления слева, чтобы прочитать.");
+    if (plansForView.length === 0) {
+      toast.info("Отметьте уведомления (или подзадачи) слева.");
       return;
     }
     await Promise.all(
-      selectedInView.map((r) =>
-        fetch(`/api/notifications/${r.id}`, { method: "PATCH" })
+      plansForView.map((p) =>
+        fetch(`/api/notifications/${p.rowId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body:
+            p.mode === "row"
+              ? JSON.stringify({})
+              : JSON.stringify({ dismissedItemIds: p.itemIds }),
+        })
       )
     );
     setSelected(new Set());
@@ -131,13 +252,17 @@ export function NotificationsBell() {
   }
 
   async function removeSelected() {
-    if (selectedInView.length === 0) {
+    // «Удалить» работает на уровне всей нотификации — даже если выделена
+    // одна подзадача, прячем всю карточку. (Per-item delete мы пока не
+    // делаем — это симметрично к «Удалить все», другого UX нет.)
+    const rowIds = Array.from(new Set(plansForView.map((p) => p.rowId)));
+    if (rowIds.length === 0) {
       toast.info("Отметьте уведомления, чтобы удалить.");
       return;
     }
     await Promise.all(
-      selectedInView.map((r) =>
-        fetch(`/api/notifications/${r.id}`, { method: "DELETE" })
+      rowIds.map((id) =>
+        fetch(`/api/notifications/${id}`, { method: "DELETE" })
       )
     );
     setSelected(new Set());
@@ -263,82 +388,95 @@ export function NotificationsBell() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {rows.map((row) => (
-                    <div
-                      key={row.id}
-                      className="overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff]"
-                    >
-                      <label className="flex cursor-pointer items-start gap-3 px-4 py-3.5">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(row.id)}
-                          onChange={() => toggleSelected(row.id)}
-                          className="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-[#dcdfed] text-[#5566f6] focus:ring-[#5566f6]"
-                        />
-                        <div className="min-w-0 text-[14px] font-medium leading-[1.45] text-[#0b1024]">
-                          {row.title}
-                          {row.linkHref && row.linkLabel && (
-                            <>
-                              {" "}
-                              <Link
-                                href={row.linkHref}
-                                className="text-[#5566f6] hover:underline"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {row.linkLabel}
-                              </Link>
-                            </>
-                          )}
-                        </div>
-                      </label>
-                      {row.items.length > 0 && (
-                        <ul className="divide-y divide-[#ececf4] border-t border-[#ececf4]">
-                          {row.items.map((item) => {
-                            // Если у группы есть общая ссылка — клик по
-                            // подзадаче ведёт по ней (а не «выделяет
-                            // всю группу»). Это закрывает баги: (а) из
-                            // подзадачи не получалось перейти к журналу,
-                            // (б) клик по «чекбоксу» подзадачи отмечал
-                            // всю группу — теперь чекбокса у item'а нет
-                            // вообще, выделение делается строго на шапке.
-                            const ItemBody = (
+                  {rows.map((row) => {
+                    const state = rowSelectionState(row);
+                    return (
+                      <div
+                        key={row.id}
+                        className="overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff]"
+                      >
+                        <div className="flex items-start gap-3 px-4 py-3.5">
+                          <TriStateCheckbox
+                            state={state}
+                            onClick={() => toggleRow(row)}
+                            ariaLabel="Выделить всю задачу"
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0 text-[14px] font-medium leading-[1.45] text-[#0b1024]">
+                            {row.title}
+                            {row.linkHref && row.linkLabel && (
                               <>
-                                <span className="text-[14px] text-[#0b1024]">
-                                  {item.label}
-                                </span>
-                                {item.hint && (
-                                  <span className="ml-auto text-[12px] text-[#9b9fb3]">
-                                    {item.hint}
-                                  </span>
-                                )}
+                                {" "}
+                                <Link
+                                  href={row.linkHref}
+                                  className="text-[#5566f6] hover:underline"
+                                  onClick={closePanel}
+                                >
+                                  {row.linkLabel}
+                                </Link>
                               </>
-                            );
-                            if (row.linkHref) {
+                            )}
+                          </div>
+                        </div>
+                        {row.items.length > 0 && (
+                          <ul className="divide-y divide-[#ececf4] border-t border-[#ececf4]">
+                            {row.items.map((item) => {
+                              const key = itemKey(row.id, item.id);
+                              const isChecked = selected.has(key);
+                              // Per-item href: сначала item.href (если
+                              // notification передал свой линк на каждую
+                              // подзадачу), иначе общий row.linkHref.
+                              const href = item.href ?? row.linkHref;
                               return (
-                                <li key={item.id}>
-                                  <Link
-                                    href={row.linkHref}
-                                    onClick={closePanel}
-                                    className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/60"
-                                  >
-                                    {ItemBody}
-                                  </Link>
+                                <li
+                                  key={item.id}
+                                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/60"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Прочитать ${item.label}`}
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      toggleItem(row.id, item.id);
+                                    }}
+                                    className="size-4 shrink-0 cursor-pointer rounded border-[#dcdfed] text-[#5566f6] focus:ring-[#5566f6]"
+                                  />
+                                  {href ? (
+                                    <Link
+                                      href={href}
+                                      onClick={closePanel}
+                                      className="flex flex-1 items-center gap-3"
+                                    >
+                                      <span className="text-[14px] text-[#0b1024]">
+                                        {item.label}
+                                      </span>
+                                      {item.hint && (
+                                        <span className="ml-auto text-[12px] text-[#9b9fb3]">
+                                          {item.hint}
+                                        </span>
+                                      )}
+                                    </Link>
+                                  ) : (
+                                    <div className="flex flex-1 items-center gap-3">
+                                      <span className="text-[14px] text-[#0b1024]">
+                                        {item.label}
+                                      </span>
+                                      {item.hint && (
+                                        <span className="ml-auto text-[12px] text-[#9b9fb3]">
+                                          {item.hint}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </li>
                               );
-                            }
-                            return (
-                              <li
-                                key={item.id}
-                                className="flex items-center gap-3 px-4 py-3"
-                              >
-                                {ItemBody}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

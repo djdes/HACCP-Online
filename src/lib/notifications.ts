@@ -12,6 +12,10 @@ export type NotificationItem = {
   label: string;
   /// Optional secondary text rendered faded to the right (e.g. position).
   hint?: string;
+  /// Optional per-item link target. Если задан — клик по подзадаче
+  /// ведёт сюда, а не на общий `linkHref` группы. Полезно когда у каждой
+  /// подзадачи свой документ/журнал/раздел.
+  href?: string;
 };
 
 export function asNotificationItems(raw: unknown): NotificationItem[] {
@@ -22,8 +26,21 @@ export function asNotificationItems(raw: unknown): NotificationItem[] {
       id: typeof v.id === "string" ? v.id : "",
       label: typeof v.label === "string" ? v.label : "",
       hint: typeof v.hint === "string" ? v.hint : undefined,
+      href: typeof v.href === "string" ? v.href : undefined,
     }))
     .filter((it) => it.id && it.label);
+}
+
+/**
+ * Парсит JSON-массив id'шников подзадач, которые юзер пометил
+ * прочитанными. На уровне DB это просто Json — здесь нормализуем
+ * к Set<string>, безопасно отбросив всё, что не строка.
+ */
+export function asDismissedItemIds(raw: unknown): Set<string> {
+  if (!Array.isArray(raw)) return new Set();
+  return new Set(
+    raw.filter((v): v is string => typeof v === "string" && v.length > 0)
+  );
 }
 
 /**

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import {
+  asDismissedItemIds,
+  asNotificationItems,
+} from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +13,9 @@ export const dynamic = "force-dynamic";
  * GET /api/notifications — returns the current user's notification bucket,
  * split into «Новые» (unread) and «Прочитанные» (read), both excluding
  * dismissed rows.
+ *
+ * Подзадачи (items), id которых попал в `dismissedItemIds`, фильтруются
+ * из items на уровне ответа. Клиент видит только живые подзадачи.
  */
 export async function GET() {
   const session = await requireAuth();
@@ -17,8 +24,28 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  const unread = rows.filter((n) => !n.readAt);
-  const read = rows.filter((n) => !!n.readAt);
+  const visible = rows.map((n) => {
+    const dismissed = asDismissedItemIds(n.dismissedItemIds);
+    const items = asNotificationItems(n.items).filter(
+      (it) => !dismissed.has(it.id)
+    );
+    return { ...n, items };
+  });
+  // Если у нотификации не осталось «живых» подзадач — она автоматически
+  // считается прочитанной (юзер вычистил все). Отделяем по readAt и по
+  // пустому items для нотификаций, у которых items с самого начала был
+  // массив подзадач (а не один общий title без items).
+  const unread = visible.filter((n) => {
+    if (n.readAt) return false;
+    const original = asNotificationItems(rows.find((r) => r.id === n.id)?.items ?? []);
+    if (original.length > 0 && n.items.length === 0) return false;
+    return true;
+  });
+  const read = visible.filter((n) => {
+    if (n.readAt) return true;
+    const original = asNotificationItems(rows.find((r) => r.id === n.id)?.items ?? []);
+    return original.length > 0 && n.items.length === 0;
+  });
   return NextResponse.json({
     unread,
     read,

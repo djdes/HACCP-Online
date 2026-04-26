@@ -431,6 +431,12 @@ model Notification {
   linkHref       String?
   linkLabel      String?
   items          Json         @default("[]")
+  /// Подзадачи (items.id), которые юзер уже отметил как прочитанные.
+  /// При выдаче GET /api/notifications эти id фильтруются из items;
+  /// если после фильтра items пустой — readAt автоматически выставится
+  /// и нотификация перейдёт в «Прочитанные». Это даёт UX «прочитать
+  /// одну подзадачу из десяти, не закрывая всю задачу».
+  dismissedItemIds Json       @default("[]")
   readAt         DateTime?
   dismissedAt    DateTime?
   createdAt      DateTime     @default(now())
