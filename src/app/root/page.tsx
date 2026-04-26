@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, ChartLine } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { SeedDemoButton } from "./seed-demo-button";
@@ -42,7 +42,16 @@ export default async function RootOrganizationsPage() {
             Платформенный уровень. Всего организаций: {organizations.length}.
           </p>
         </div>
-        <SeedDemoButton />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/root/metrics"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            <ChartLine className="size-4 text-[#5566f6]" />
+            Метрики платформы
+          </Link>
+          <SeedDemoButton />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-[#ececf4] bg-white">
