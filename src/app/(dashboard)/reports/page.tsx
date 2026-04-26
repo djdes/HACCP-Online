@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { ReportForm } from "@/components/reports/report-form";
 import { ComplianceBundleCard } from "@/components/reports/compliance-bundle-card";
+import { AiPeriodReportCard } from "@/components/reports/ai-period-report";
 
 export default async function ReportsPage() {
   // Принимаем и новые (manager / head_chef), и легаси (owner /
@@ -36,6 +37,7 @@ export default async function ReportsPage() {
           Выгрузки журналов за период — PDF и Excel для проверок
         </p>
       </div>
+      <AiPeriodReportCard />
       <ComplianceBundleCard />
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
