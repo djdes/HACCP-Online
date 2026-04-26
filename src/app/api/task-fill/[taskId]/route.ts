@@ -99,11 +99,25 @@ export async function POST(
     );
   }
 
+  // Resolve template scope — определяет flow:
+  //   personal → каждое POST = upsert, после save TF task = completed
+  //   shared   → каждое POST = APPEND новой записи, TF task остаётся
+  //              active (закрывается отдельно через close-no-events
+  //              или close-with-events). Это event-log семантика для
+  //              acceptance / finished_product / complaint_register etc.
+  const template = await db.journalTemplate.findFirst({
+    where: { code: link.journalCode },
+    select: { taskScope: true },
+  });
+  const isShared = template?.taskScope === "shared";
+
   // Compliance gate: when the org enabled requireAdminForJournalEdit
   // and this is a re-submission of an already-completed task by a
   // non-management worker, refuse to overwrite. UI hides the button,
   // but a worker who knows the URL could still POST — block here.
-  if (link.remoteStatus === "completed") {
+  // ВАЖНО: гейт НЕ применяется к shared-task (event-log) — там
+  // повторный POST = новая запись, не редактирование старой.
+  if (link.remoteStatus === "completed" && !isShared) {
     const org = await db.organization.findUnique({
       where: { id: link.integration.organizationId },
       select: { requireAdminForJournalEdit: true },
@@ -192,37 +206,44 @@ export async function POST(
     values: sanitized,
   });
 
-  // Mark the remote task complete + bump TaskLink status so the
-  // worker's TasksFlow dashboard refreshes to «выполнено» without
-  // the worker having to tap anything else.
+  // Для shared-task (event-log) НЕ помечаем TF задачу completed —
+  // она остаётся active весь день, чтобы можно было дописать ещё
+  // записи. Закроется отдельно через POST /close-no-events с
+  // kind="closed-with-events" или auto-cron'ом по shiftEndHour.
   const client = tasksflowClientFor(link.integration);
-  try {
-    // Be tolerant of «already completed» — TasksFlow returns 400 if
-    // photo required (we never set that flag, so unlikely). Other
-    // errors are logged but don't fail the write — journal is the
-    // source of truth, the TF task state is secondary.
-    await client.completeTask(taskId).catch((err) => {
-      if (!(err instanceof TasksFlowError)) throw err;
-      console.warn(
-        "[task-fill] completeTask non-fatal error",
-        err.status,
-        err.message
-      );
-    });
-  } catch (err) {
-    console.error("[task-fill] completeTask crashed", err);
+  if (!isShared) {
+    try {
+      // Be tolerant of «already completed» — TasksFlow returns 400 if
+      // photo required (we never set that flag, so unlikely). Other
+      // errors are logged but don't fail the write — journal is the
+      // source of truth, the TF task state is secondary.
+      await client.completeTask(taskId).catch((err) => {
+        if (!(err instanceof TasksFlowError)) throw err;
+        console.warn(
+          "[task-fill] completeTask non-fatal error",
+          err.status,
+          err.message
+        );
+      });
+    } catch (err) {
+      console.error("[task-fill] completeTask crashed", err);
+    }
   }
 
+  // Для shared — НЕ обновляем remoteStatus на completed (остаётся
+   // active). Просто бампаем lastDirection как «была активность».
   await db.tasksFlowTaskLink.update({
     where: { id: link.id },
-    data: {
-      remoteStatus: "completed",
-      completedAt: new Date(),
-      lastDirection: "pull",
-    },
+    data: isShared
+      ? { lastDirection: "pull" }
+      : {
+          remoteStatus: "completed",
+          completedAt: new Date(),
+          lastDirection: "pull",
+        },
   });
 
-  return NextResponse.json({ ok: true, applied, todayKey });
+  return NextResponse.json({ ok: true, applied, todayKey, isShared });
 }
 
 function coerceValues(
