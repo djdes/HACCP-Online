@@ -8,6 +8,49 @@ import { parseDisabledCodes } from "@/lib/disabled-journals";
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
+/**
+ * 3-уровневая эскалация (на основе времени дня в Europe/Moscow):
+ *   STAGE_1 (рекомендуется в 12:00): мягкое напоминание управлению.
+ *   STAGE_2 (рекомендуется в 17:00): повторное + email.
+ *   STAGE_3 (рекомендуется в 21:00): срочное — управление + владелец.
+ *
+ * Cron должен дёргаться 3 раза в день (через crontab или GitHub Actions
+ * schedule). Stage определяется по часу запуска. Если хочется пинговать
+ * чаще — допустимо, тогда same-stage notifications будут de-duplicated
+ * через `notifyOrganization` встроенным dedupe (kind + dedupeKey).
+ */
+type Stage = "soft" | "warn" | "urgent";
+
+function stageFor(now: Date): Stage {
+  // Europe/Moscow через UTC+3 (без учёта летнего, у РФ нет DST с 2014).
+  const mskHour = (now.getUTCHours() + 3) % 24;
+  if (mskHour >= 19) return "urgent";
+  if (mskHour >= 15) return "warn";
+  return "soft";
+}
+
+const STAGE_CONFIG: Record<Stage, {
+  emoji: string;
+  prefix: string;
+  emailEnabled: boolean;
+}> = {
+  soft: {
+    emoji: "📋",
+    prefix: "Напоминание",
+    emailEnabled: false,
+  },
+  warn: {
+    emoji: "⚠️",
+    prefix: "Внимание",
+    emailEnabled: true,
+  },
+  urgent: {
+    emoji: "🚨",
+    prefix: "СРОЧНО",
+    emailEnabled: true,
+  },
+};
+
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   if (!CRON_SECRET || searchParams.get("secret") !== CRON_SECRET) {
@@ -15,6 +58,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const now = new Date();
+    const stage = stageFor(now);
+    const stageCfg = STAGE_CONFIG[stage];
+
     // Get all organizations (with their disabled-journal toggle).
     const organizations = await db.organization.findMany({
       select: { id: true, name: true, disabledJournalCodes: true },
@@ -46,7 +93,8 @@ export async function POST(request: Request) {
         org.id,
         new Date(),
         mandatoryTemplates.map((t) => ({ id: t.id, code: t.code })),
-        disabledCodes
+        disabledCodes,
+        { treatAperiodicAsFilled: false }
       );
 
       const missingTemplates = mandatoryTemplates.filter(
@@ -59,39 +107,51 @@ export async function POST(request: Request) {
 
       results.push({ org: org.name, missing: missingNames });
 
-      // Telegram alert
+      // Эскалация: контент сообщения зависит от stage (soft / warn / urgent).
       const telegramMsg =
-        `<b>Незаполненные журналы за сегодня</b>\n\n` +
+        `${stageCfg.emoji} <b>${stageCfg.prefix}: незаполненные журналы за сегодня</b>\n\n` +
         missingNames.map((n) => `• ${esc(n)}`).join("\n") +
         `\n\nВсего не заполнено: ${missingNames.length} из ${mandatoryTemplates.length}`;
 
-      notifyOrganization(org.id, telegramMsg, ["owner", "technologist"], "compliance").catch((err) =>
+      // type оставляем "compliance" (enum в notifyOrganization), а уровень
+      // эскалации передаём через сам текст (emoji + prefix). Если позже
+      // потребуется отдельный канал per-stage — расширим NotificationType.
+      notifyOrganization(
+        org.id,
+        telegramMsg,
+        ["owner", "technologist"],
+        "compliance"
+      ).catch((err) =>
         console.error(`Compliance telegram error (${org.name}):`, err)
       );
 
-      // Email to owners/technologists
-      const users = await db.user.findMany({
-        where: {
-          organizationId: org.id,
-          role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
-          isActive: true,
-        },
-        select: { email: true },
-      });
+      // Email шлём только начиная со stage `warn`. На stage `soft`
+      // (12:00) — только Telegram, чтобы не спамить почту.
+      if (stageCfg.emailEnabled) {
+        const users = await db.user.findMany({
+          where: {
+            organizationId: org.id,
+            role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
+            isActive: true,
+          },
+          select: { email: true },
+        });
 
-      for (const user of users) {
-        sendComplianceReminderEmail({
-          to: user.email,
-          missingJournals: missingNames,
-          organizationName: org.name,
-        }).catch((err) =>
-          console.error(`Compliance email error:`, err)
-        );
+        for (const user of users) {
+          sendComplianceReminderEmail({
+            to: user.email,
+            missingJournals: missingNames,
+            organizationName: org.name,
+          }).catch((err) =>
+            console.error(`Compliance email error:`, err)
+          );
+        }
       }
     }
 
     return NextResponse.json({
       ok: true,
+      stage,
       checked: organizations.length,
       withMissing: results.length,
       details: results,

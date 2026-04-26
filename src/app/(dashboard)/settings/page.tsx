@@ -30,6 +30,14 @@ export const dynamic = "force-dynamic";
 
 const settingsCards = [
   {
+    title: "Быстрая настройка",
+    description: "За 3 шага: должности, сотрудники, TasksFlow",
+    href: "/settings/onboarding",
+    icon: Sparkles,
+    color: "#5566f6",
+    bg: "#eef1ff",
+  },
+  {
     title: "Цеха и участки",
     description: "Производственные зоны и помещения",
     href: "/settings/areas",

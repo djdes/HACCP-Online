@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
+import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
 import { YandexMetrika } from "@/components/layout/yandex-metrika";
 import "./globals.css";
 
@@ -70,6 +71,7 @@ export default function RootLayout({
       <body className="antialiased overflow-x-clip">
         {children}
         <ServiceWorkerRegister />
+        <BuildVersionWatcher />
         <YandexMetrika />
       </body>
     </html>

@@ -6,6 +6,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalsByPositionMatrix } from "@/components/settings/journals-by-position-matrix";
+import { OnboardingApplyButton } from "@/components/settings/onboarding-apply-button";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function JournalsByPositionPage() {
   if (!hasFullWorkspaceAccess(session.user)) redirect("/settings");
   const organizationId = getActiveOrgId(session);
 
-  const [positions, templates, accessRows] = await Promise.all([
+  const [positions, templates, accessRows, org] = await Promise.all([
     db.jobPosition.findMany({
       where: { organizationId },
       orderBy: [{ categoryKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -45,6 +46,10 @@ export default async function JournalsByPositionPage() {
     db.jobPositionJournalAccess.findMany({
       where: { organizationId },
       select: { jobPositionId: true, templateId: true },
+    }),
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { type: true },
     }),
   ]);
 
@@ -97,6 +102,11 @@ export default async function JournalsByPositionPage() {
           </div>
         </div>
       </div>
+
+      <OnboardingApplyButton
+        orgType={org?.type ?? null}
+        showSeedStaff={positions.length === 0}
+      />
 
       <JournalsByPositionMatrix
         positions={positions.map((p) => ({
