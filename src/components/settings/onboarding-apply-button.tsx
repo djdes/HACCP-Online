@@ -33,8 +33,10 @@ export function OnboardingApplyButton({ orgType, showSeedStaff = false, label }:
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [seed, setSeed] = useState(showSeedStaff);
+  const [pickedType, setPickedType] = useState<string>(orgType ?? "other");
 
-  const typeLabel = TYPE_LABELS[orgType ?? "other"] ?? "Другое";
+  const typeLabel = TYPE_LABELS[pickedType] ?? "Другое";
+  const typeChanged = pickedType !== (orgType ?? "other");
 
   async function apply() {
     setBusy(true);
@@ -43,15 +45,27 @@ export function OnboardingApplyButton({ orgType, showSeedStaff = false, label }:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type: pickedType,
+          updateOrgType: typeChanged,
           seedDemoStaff: seed,
           applyJournalAccess: true,
+          // По умолчанию включаем — клиент перестаёт видеть нерелевантные
+          // 35 журналов в дашборде, и cron auto-journals начинает сам
+          // создавать ему документы на месяц.
+          applyDisabledJournals: true,
+          applyAutoJournals: true,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Не удалось применить");
+      const orgUpd = data.orgUpdated as
+        | { disabledJournalCodes?: string[]; autoJournalCodes?: string[] }
+        | undefined;
+      const disabledN = orgUpd?.disabledJournalCodes?.length ?? 0;
+      const autoN = orgUpd?.autoJournalCodes?.length ?? 0;
       toast.success(
-        `Применён шаблон «${data.presetLabel}». Должностей: ${data.positionsCreated}, доступов: ${data.journalAccessRowsCreated}` +
-          (seed ? `, демо-сотрудников создано: ${data.staffCreated}` : "")
+        `Применён шаблон «${data.presetLabel}». Должностей: ${data.positionsCreated}, доступов: ${data.journalAccessRowsCreated}, скрыто журналов: ${disabledN}, автосоздание: ${autoN}` +
+          (seed ? `, демо-сотрудников: ${data.staffCreated}` : "")
       );
       router.refresh();
     } catch (err) {
@@ -72,8 +86,31 @@ export function OnboardingApplyButton({ orgType, showSeedStaff = false, label }:
             {label ?? `Применить шаблон «${typeLabel}»`}
           </div>
           <div className="mt-0.5 text-[12px] leading-snug text-[#6f7282]">
-            Создаст должности и привяжет журналы по умолчанию для
-            типа «{typeLabel}». Идемпотентно: повторное нажатие безопасно.
+            Создаст должности, привяжет журналы, отключит нерелевантные
+            и включит автосоздание документов на каждый месяц.
+            Идемпотентно — повторное нажатие безопасно.
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <label className="text-[12px] font-medium text-[#3a3f55]">
+              Тип компании:
+            </label>
+            <select
+              value={pickedType}
+              onChange={(e) => setPickedType(e.target.value)}
+              className="h-8 rounded-lg border border-[#dcdfed] bg-white px-2 text-[12px] text-[#0b1024]"
+              disabled={busy}
+            >
+              {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            {typeChanged ? (
+              <span className="rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] text-[#7a4a00]">
+                будет переписан
+              </span>
+            ) : null}
           </div>
           {showSeedStaff ? (
             <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-[12px] text-[#3a3f55]">

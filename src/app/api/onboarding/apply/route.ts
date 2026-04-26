@@ -4,6 +4,8 @@ import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import {
+  computeAutoJournalCodes,
+  computeDisabledJournalCodes,
   getDemoStaffForType,
   getOnboardingPreset,
   type OrgType,
@@ -41,6 +43,18 @@ const bodySchema = z.object({
     .optional(),
   seedDemoStaff: z.boolean().optional(),
   applyJournalAccess: z.boolean().optional(),
+  /** Если true — переписать Organization.type на новое значение из body.type
+      (после визарда «у нас не ресторан, а пекарня»). По умолчанию false:
+      preset применяется, тип организации не трогаем. */
+  updateOrgType: z.boolean().optional(),
+  /** Если true — записать computeDisabledJournalCodes(preset) в
+      Organization.disabledJournalCodes. По умолчанию true для нового
+      онбординга — клиент видит только relevant журналы. */
+  applyDisabledJournals: z.boolean().optional(),
+  /** Если true — записать computeAutoJournalCodes(preset) в
+      Organization.autoJournalCodes. Cron auto-journals потом сам
+      создаст документы на текущий месяц. По умолчанию true. */
+  applyAutoJournals: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -67,6 +81,29 @@ export async function POST(request: Request) {
   const preset = getOnboardingPreset(type);
   const applyJournals = body.data.applyJournalAccess ?? true;
   const seedStaff = body.data.seedDemoStaff ?? false;
+  const applyDisabledJournals = body.data.applyDisabledJournals ?? true;
+  const applyAutoJournals = body.data.applyAutoJournals ?? true;
+  const updateOrgType = body.data.updateOrgType ?? false;
+
+  // 0. Optionally update org-level fields from preset: type, disabled
+  // journals (so dashboard isn't cluttered with 35 cards), auto-journals
+  // (so cron creates monthly documents without admin intervention).
+  const orgUpdate: Record<string, unknown> = {};
+  if (updateOrgType && body.data.type && body.data.type !== org.type) {
+    orgUpdate.type = body.data.type;
+  }
+  if (applyDisabledJournals) {
+    orgUpdate.disabledJournalCodes = computeDisabledJournalCodes(preset);
+  }
+  if (applyAutoJournals) {
+    orgUpdate.autoJournalCodes = computeAutoJournalCodes(preset);
+  }
+  if (Object.keys(orgUpdate).length > 0) {
+    await db.organization.update({
+      where: { id: organizationId },
+      data: orgUpdate,
+    });
+  }
 
   // 1. upsert positions
   const positionByName = new Map<string, string>();
@@ -179,6 +216,7 @@ export async function POST(request: Request) {
       staffCreated,
       staffSkipped,
       seedStaffRequested: seedStaff,
+      orgUpdated: orgUpdate,
     },
   });
 
@@ -190,5 +228,6 @@ export async function POST(request: Request) {
     journalAccessRowsCreated: journalRowsCreated,
     staffCreated,
     staffSkipped,
+    orgUpdated: orgUpdate,
   });
 }

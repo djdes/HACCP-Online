@@ -41,7 +41,56 @@ export interface OrgTypePreset {
   /** Журналы которые этой компании скорее всего НЕ нужны (отключить
    *  через disabledJournalCodes на старте). Пусто = оставить все 35. */
   disabledJournalCodes?: readonly string[];
+  /** Какие журналы автосоздавать каждый месяц (Organization.autoJournalCodes).
+   *  Подмножество active-журналов для типа. По умолчанию — ежедневные. */
+  autoJournalCodes?: readonly string[];
 }
+
+/**
+ * Все коды журналов в системе. Хардкоженый список нужен чтобы
+ * `disabledJournalCodes` пресета мог быть declared как «всё кроме этого
+ * подмножества» — в /api/onboarding/apply мы вычисляем diff и пишем
+ * `Organization.disabledJournalCodes`. Если список расходится с
+ * реальностью БД — preset игнорирует неизвестные коды (см. apply
+ * route), это безопасно но добавит лишний журнал в дашборде.
+ */
+export const ALL_JOURNAL_CODES: readonly string[] = [
+  "hygiene",
+  "health_check",
+  "cleaning",
+  "general_cleaning",
+  "cleaning_ventilation_checklist",
+  "uv_lamp_runtime",
+  "disinfectant_usage",
+  "sanitary_day_control",
+  "pest_control",
+  "climate_control",
+  "cold_equipment_control",
+  "intensive_cooling",
+  "finished_product",
+  "perishable_rejection",
+  "incoming_control",
+  "incoming_raw_materials_control",
+  "fryer_oil",
+  "product_writeoff",
+  "metal_impurity",
+  "traceability_test",
+  "equipment_cleaning",
+  "equipment_maintenance",
+  "breakdown_history",
+  "equipment_calibration",
+  "glass_items_list",
+  "glass_control",
+  "med_books",
+  "training_plan",
+  "staff_training",
+  "ppe_issuance",
+  "audit_plan",
+  "audit_protocol",
+  "audit_report",
+  "accident_journal",
+  "complaint_register",
+] as const;
 
 // Каноничные группы журналов — переиспользуем во всех пресетах.
 const HYGIENE_PER_EMPLOYEE = ["hygiene", "health_check"];
@@ -426,6 +475,54 @@ export function getOnboardingPreset(type: string | null | undefined): OrgTypePre
 
 export function listOnboardingPresets(): OrgTypePreset[] {
   return Object.values(PRESETS);
+}
+
+/**
+ * Какие журналы НЕ нужны для preset'а — всё, что отсутствует в любом из
+ * positions[].journalCodes. Используется для заполнения
+ * Organization.disabledJournalCodes при apply preset, чтобы новый клиент
+ * не видел в /journals 35 нерелевантных карточек.
+ */
+export function computeDisabledJournalCodes(preset: OrgTypePreset): string[] {
+  if (preset.disabledJournalCodes && preset.disabledJournalCodes.length > 0) {
+    return [...preset.disabledJournalCodes];
+  }
+  const enabled = new Set<string>(
+    preset.positions.flatMap((p) => p.journalCodes)
+  );
+  return ALL_JOURNAL_CODES.filter((code) => !enabled.has(code));
+}
+
+/**
+ * Журналы, которые WeSetup сам создаёт документами на каждый месяц.
+ * По умолчанию — все ежедневные «hygiene/health_check/cleaning/temperatures»
+ * из preset'a, чтобы клиенту не пришлось их заводить руками каждый месяц.
+ * Если preset.autoJournalCodes явно задан — берём оттуда.
+ */
+export function computeAutoJournalCodes(preset: OrgTypePreset): string[] {
+  if (preset.autoJournalCodes && preset.autoJournalCodes.length > 0) {
+    return [...preset.autoJournalCodes];
+  }
+  const enabled = new Set<string>(
+    preset.positions.flatMap((p) => p.journalCodes)
+  );
+  // Ежедневные журналы — те, для которых имеет смысл «один документ на
+  // месяц, заполняем каждый день». События (accidents, complaints,
+  // breakdowns) НЕ авто-создаём.
+  const DAILY = [
+    "hygiene",
+    "health_check",
+    "cleaning",
+    "general_cleaning",
+    "cleaning_ventilation_checklist",
+    "uv_lamp_runtime",
+    "disinfectant_usage",
+    "climate_control",
+    "cold_equipment_control",
+    "intensive_cooling",
+    "fryer_oil",
+  ];
+  return DAILY.filter((c) => enabled.has(c));
 }
 
 /**
