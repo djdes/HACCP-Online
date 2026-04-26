@@ -56,6 +56,19 @@ model Organization {
   /// Базовый месячный лимит — куда возвращаемся после reset cron'а.
   /// Тариф Pro меняет это поле, не aiMonthlyMessagesLeft.
   aiMonthlyQuota     Int                        @default(20)
+  /// OAuth-токен Yandex.Disk REST API (получается через /authorize). Если
+  /// заполнен — еженедельный cron /api/cron/yandex-backup сохраняет туда
+  /// JSON-дамп всех журналов за последние 7 дней. Хранится в открытом
+  /// виде, потому что ресторатор сам выпускает app-token для нашего
+  /// приложения и может его отозвать в любой момент через
+  /// https://oauth.yandex.ru/client/applications.
+  yandexDiskToken          String?
+  /// Папка на Я.Диске куда писать бэкапы. По умолчанию /WeSetup.
+  yandexDiskFolder         String                     @default("/WeSetup")
+  /// Когда последний раз cron успешно загрузил дамп. Используем чтобы
+  /// показать в /settings/backup карточке «последний бэкап: …» и в
+  /// /dashboard health-check'е сигналить если бэкап старше 14 дней.
+  yandexDiskLastBackupAt   DateTime?
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

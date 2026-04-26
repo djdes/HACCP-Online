@@ -6,6 +6,7 @@ import {
   BookOpen,
   Building2,
   ClipboardList,
+  CloudUpload,
   Coins,
   CreditCard,
   KeyRound,
@@ -212,6 +213,14 @@ const settingsCards = [
     icon: Plug,
     color: "#0ea5e9",
     bg: "#e8f7ff",
+  },
+  {
+    title: "Авто-бэкап на Я.Диск",
+    description: "Еженедельный JSON-дамп журналов в облако",
+    href: "/settings/backup",
+    icon: CloudUpload,
+    color: "#3848c7",
+    bg: "#eef1ff",
   },
 ];
 
