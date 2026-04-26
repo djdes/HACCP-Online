@@ -8,6 +8,7 @@ import {
   SiteThemeProvider,
 } from "@/components/theme/site-theme";
 import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
+import { SupportWidget } from "@/components/support/support-widget";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import "@/app/app-theme.css";
@@ -66,6 +67,8 @@ export default async function DashboardLayout({
               нужен — они выполняют конкретные задачи, а не настраивают
               нормативы. */}
           {hasFullWorkspaceAccess(session.user) ? <SanpinChatWidget /> : null}
+          {/* Поддержка — доступна management+ из любого экрана. */}
+          {hasFullWorkspaceAccess(session.user) ? <SupportWidget /> : null}
         </div>
         <Toaster />
       </SiteThemeProvider>
