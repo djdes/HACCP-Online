@@ -213,17 +213,42 @@ export async function POST(request: Request) {
 
   // Pre-load the org's TF user-link table once — hot loop below does
   // per-worker lookups against this in-memory map.
-  const [userLinks, onDutyUsers, activeUsersForScope] = await Promise.all([
-    db.tasksFlowUserLink.findMany({
-      where: { integrationId: integration.id, tasksflowUserId: { not: null } },
-      select: { wesetupUserId: true, tasksflowUserId: true },
-    }),
-    listOnDutyToday(organizationId, now),
-    db.user.findMany({
-      where: { organizationId, isActive: true, archivedAt: null },
-      select: { id: true, jobPositionId: true },
-    }),
-  ]);
+  const [userLinks, onDutyUsers, activeUsersForScope, allAccessRows] =
+    await Promise.all([
+      db.tasksFlowUserLink.findMany({
+        where: {
+          integrationId: integration.id,
+          tasksflowUserId: { not: null },
+        },
+        select: { wesetupUserId: true, tasksflowUserId: true },
+      }),
+      listOnDutyToday(organizationId, now),
+      db.user.findMany({
+        where: { organizationId, isActive: true, archivedAt: null },
+        select: { id: true, jobPositionId: true },
+      }),
+      // Per-position journal access — нужно отфильтровать row'ы которые
+      // adapter возвращает по всем employees: бармен/грузчик/повар не
+      // должны попадать в чек-лист уборки. Если для шаблона нет ни одной
+      // строки — back-compat: без фильтрации (доступно всем).
+      db.jobPositionJournalAccess.findMany({
+        where: { organizationId },
+        select: { templateId: true, jobPositionId: true },
+      }),
+    ]);
+  // Карта { templateId: Set<jobPositionId> }
+  const allowedPositionsByTemplateId = new Map<string, Set<string>>();
+  for (const row of allAccessRows) {
+    const set =
+      allowedPositionsByTemplateId.get(row.templateId) ?? new Set<string>();
+    set.add(row.jobPositionId);
+    allowedPositionsByTemplateId.set(row.templateId, set);
+  }
+  // Карта userId → jobPositionId, чтобы быстро проверить eligibility row.
+  const positionByUserId = new Map<string, string | null>();
+  for (const u of activeUsersForScope) {
+    positionByUserId.set(u.id, u.jobPositionId);
+  }
   const tfUserIdByWesetup = new Map<string, number>();
   for (const link of userLinks) {
     if (link.tasksflowUserId !== null) {
@@ -343,10 +368,25 @@ export async function POST(request: Request) {
       select: { rowKey: true },
     });
     const takenRowKeys = new Set(existingLinks.map((l) => l.rowKey));
+
+    // Фильтр rows по per-position journal access. Если для шаблона
+    // настроены какие-то «разрешённые должности» — оставляем только
+    // тех responsible, чья должность входит в этот набор. Если access
+    // пуст для шаблона — пропускаем (легаси-режим «всем»).
+    const allowedPositionIdsForTpl = allowedPositionsByTemplateId.get(tpl.id);
+    const filteredRows =
+      allowedPositionIdsForTpl && allowedPositionIdsForTpl.size > 0
+        ? adapterDoc.rows.filter((row) => {
+            if (!row.responsibleUserId) return true; // generic / shared rows
+            const pid = positionByUserId.get(row.responsibleUserId);
+            return pid != null && allowedPositionIdsForTpl.has(pid);
+          })
+        : adapterDoc.rows;
+
     const rowSelection = selectRowsForBulkAssign({
       journalCode: tpl.code,
       bonusAmountKopecks: tpl.bonusAmountKopecks,
-      rows: adapterDoc.rows,
+      rows: filteredRows,
       takenRowKeys,
       onDutyUserIds: candidateUserIds,
       linkedUserIds,

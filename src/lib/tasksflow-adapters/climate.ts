@@ -39,6 +39,20 @@ import {
 import type { TaskFormField, TaskFormSchema } from "./task-form";
 import { extractEmployeeId as employeeIdFromRowKey, rowKeyForEmployee } from "./row-key";
 
+/**
+ * climate row-keys теперь привязаны к конкретному controlTime — это даёт
+ * «несколько задач в день в разное время» (один замер = одна задача,
+ * не нужно держать одну гигантскую форму на весь день). Формат:
+ *   `employee-<userId>-time-<HH:MM>`
+ */
+function rowKeyForEmployeeAndTime(empId: string, time: string): string {
+  return `${rowKeyForEmployee(empId)}-time-${time}`;
+}
+function timeFromRowKey(rowKey: string): string | null {
+  const m = /-time-(\d{1,2}:\d{2})$/.exec(rowKey);
+  return m ? m[1] : null;
+}
+
 const TEMPLATE_CODE = CLIMATE_DOCUMENT_TEMPLATE_CODE;
 const toDateKey = (d: Date) =>
   `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
@@ -52,22 +66,25 @@ function humidityKey(roomId: string) {
 
 function buildForm(
   config: ClimateDocumentConfig,
-  employeeName: string | null
+  employeeName: string | null,
+  fixedTime: string | null,
 ): TaskFormSchema {
   const fields: TaskFormField[] = [];
 
-  // Which control-time slot this measurement belongs to. Default = the
-  // first configured time; admin's document config defines the list.
+  // controlTime slot is fixed by the task — adapter row-key carries it.
+  // Remains in form as a hidden default so old applyRemoteCompletion
+  // logic (which reads `values.controlTime`) keeps working.
   const times = config.controlTimes.length
     ? config.controlTimes
     : [...DEFAULT_CLIMATE_CONTROL_TIMES];
+  const time = fixedTime && times.includes(fixedTime) ? fixedTime : times[0];
   fields.push({
     type: "select",
     key: "controlTime",
     label: "Время замера",
     required: true,
-    options: times.map((t) => ({ value: t, label: t })),
-    defaultValue: times[0],
+    options: [{ value: time, label: time }],
+    defaultValue: time,
   });
 
   for (const room of config.rooms) {
@@ -146,7 +163,7 @@ export const climateAdapter: JournalAdapter = {
     return [
       `Журнал: ${doc.documentTitle}`,
       `Период: ${doc.period.from} — ${doc.period.to}`,
-      "Снимите показания по помещениям из списка в задаче.",
+      "Снимите показания по помещениям на это время.",
     ].join("\n");
   },
 
@@ -158,7 +175,13 @@ export const climateAdapter: JournalAdapter = {
           status: "active",
           template: { code: TEMPLATE_CODE },
         },
-        select: { id: true, title: true, dateFrom: true, dateTo: true },
+        select: {
+          id: true,
+          title: true,
+          dateFrom: true,
+          dateTo: true,
+          config: true,
+        },
         orderBy: { dateFrom: "desc" },
       }),
       db.user.findMany({
@@ -167,17 +190,34 @@ export const climateAdapter: JournalAdapter = {
         orderBy: [{ role: "asc" }, { name: "asc" }],
       }),
     ]);
-    return docs.map<AdapterDocument>((doc) => ({
-      documentId: doc.id,
-      documentTitle: doc.title,
-      period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
-      rows: employees.map<AdapterRow>((emp) => ({
-        rowKey: rowKeyForEmployee(emp.id),
-        label: emp.name,
-        sublabel: emp.positionTitle ?? undefined,
-        responsibleUserId: emp.id,
-      })),
-    }));
+    return docs.map<AdapterDocument>((doc) => {
+      const config = normalizeClimateDocumentConfig(doc.config);
+      const times = config.controlTimes.length
+        ? config.controlTimes
+        : [...DEFAULT_CLIMATE_CONTROL_TIMES];
+      // Один row = (employee × time). Если в конфиге задано 3 controlTime
+      // (10:00, 14:00, 17:00), то на каждого сотрудника создастся 3 task'и
+      // — каждая закрывается отдельно по факту замера. Это решает проблему
+      // «одна задача висит весь день», когда сотрудник не может частично
+      // завершить.
+      const rows: AdapterRow[] = [];
+      for (const emp of employees) {
+        for (const time of times) {
+          rows.push({
+            rowKey: rowKeyForEmployeeAndTime(emp.id, time),
+            label: `${emp.name} · ${time}`,
+            sublabel: emp.positionTitle ?? undefined,
+            responsibleUserId: emp.id,
+          });
+        }
+      }
+      return {
+        documentId: doc.id,
+        documentTitle: doc.title,
+        period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
+        rows,
+      };
+    });
   },
 
   async syncDocument() {
@@ -201,7 +241,7 @@ export const climateAdapter: JournalAdapter = {
     ]);
     if (!doc) return null;
     const config = normalizeClimateDocumentConfig(doc.config);
-    return buildForm(config, employee?.name ?? null);
+    return buildForm(config, employee?.name ?? null, timeFromRowKey(rowKey));
   },
 
   async applyRemoteCompletion({ documentId, rowKey, completed, todayKey, values }) {
@@ -221,9 +261,14 @@ export const climateAdapter: JournalAdapter = {
     const times = config.controlTimes.length
       ? config.controlTimes
       : [...DEFAULT_CLIMATE_CONTROL_TIMES];
+    // Сначала пытаемся взять controlTime из rowKey (новый формат
+    // `employee-X-time-HH:MM`), потом из values (legacy form), потом
+    // первый по списку конфига.
+    const rowTime = timeFromRowKey(rowKey);
     const requestedTime =
-      typeof values?.controlTime === "string" &&
-      times.includes(values.controlTime)
+      rowTime && times.includes(rowTime)
+        ? rowTime
+        : typeof values?.controlTime === "string" && times.includes(values.controlTime)
         ? values.controlTime
         : times[0];
 

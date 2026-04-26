@@ -33,19 +33,43 @@ export function isPerEmployeeBulkJournal(journalCode: string): boolean {
 }
 
 /**
+ * Журналы, которые ведутся ОДНОЙ КОМАНДОЙ — любой из ответственных
+ * может закрыть запись от лица команды. Задача fan-out'ится на всех
+ * eligible; первый кто сделает — у остальных карточка автоматически
+ * уходит в «Сделано другими» (claimedByWorkerId выставляется на
+ * стороне TasksFlow). Отличие от bonus-fan-out: денег не начисляем,
+ * но это удобный race-for-completion для смены из N человек.
+ */
+const TEAM_FAN_OUT_CODES = new Set<string>([
+  "intensive_cooling",              // повара горячего цеха
+  "fryer_oil",                      // фритюр — те же повара
+  "uv_lamp_runtime",                // УФ-лампа — уборщики/менеджер
+  "cleaning_ventilation_checklist", // уборка-проветривание — команда
+  "disinfectant_usage",             // дезсредства — кто доставал
+  "climate_control",                // замер t°/влажности — кто в смене
+  "cold_equipment_control",         // замер холодильников — повара
+]);
+
+export function isTeamFanOutJournal(journalCode: string): boolean {
+  return TEAM_FAN_OUT_CODES.has(journalCode);
+}
+
+/**
  * Должна ли задача рассылаться всем eligible-сотрудникам (а не одному).
  *
- * Два случая:
+ * Случаи:
  *   1. Per-employee журнал (hygiene / health_check) — каждый ведёт сам.
- *   2. Журнал с премией > 0 — все видят, кто первый сделал, тому бонус
- *      (race-for-bonus). Остальные карточки автоматически попадают в
- *      «Сделано другими» на стороне TasksFlow.
+ *   2. Team-журнал (intensive_cooling, fryer_oil, …) — fan-out на всех
+ *      eligible, первый закрывает у остальных.
+ *   3. Журнал с премией > 0 — все видят, кто первый сделал, тому бонус
+ *      (race-for-bonus).
  */
 export function shouldFanOutToAll(template: {
   code: string;
   bonusAmountKopecks?: number;
 }): boolean {
   if (isPerEmployeeBulkJournal(template.code)) return true;
+  if (isTeamFanOutJournal(template.code)) return true;
   if ((template.bonusAmountKopecks ?? 0) > 0) return true;
   return false;
 }
