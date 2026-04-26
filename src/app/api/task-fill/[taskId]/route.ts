@@ -34,6 +34,9 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   token: z.string().min(10),
   values: z.record(z.string(), z.unknown()).optional(),
+  /** Unix-timestamp ms когда форма открылась — для time-to-fill метрики.
+   *  Опционально, старые клиенты не передают и timing просто не пишется. */
+  openedAt: z.number().int().positive().optional(),
 });
 
 export async function POST(
@@ -107,7 +110,7 @@ export async function POST(
   //              acceptance / finished_product / complaint_register etc.
   const template = await db.journalTemplate.findFirst({
     where: { code: link.journalCode },
-    select: { taskScope: true },
+    select: { id: true, taskScope: true },
   });
   const isShared = template?.taskScope === "shared";
 
@@ -242,6 +245,31 @@ export async function POST(
           lastDirection: "pull",
         },
   });
+
+  // Time-to-fill метрика — best-effort, не валим основной flow.
+  // ROOT-аналитика читает это для UX-research'а: какие формы тормозят.
+  if (parsed.openedAt && template) {
+    const durationMs = Math.max(
+      0,
+      Math.min(30 * 60 * 1000, Date.now() - parsed.openedAt)
+    );
+    if (durationMs > 0) {
+      const actorId = extractEmployeeId(link.rowKey);
+      db.formFillTiming
+        .create({
+          data: {
+            organizationId: link.integration.organizationId,
+            templateId: template.id,
+            userId: actorId,
+            durationMs,
+            source: "task-fill",
+          },
+        })
+        .catch((err) =>
+          console.warn("[task-fill] timing write failed", err)
+        );
+    }
+  }
 
   return NextResponse.json({ ok: true, applied, todayKey, isShared });
 }

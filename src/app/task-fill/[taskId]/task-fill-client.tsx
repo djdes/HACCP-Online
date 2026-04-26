@@ -125,6 +125,9 @@ export function TaskFillClient({
   // выполненной с новыми значениями).
   const [editIntent, setEditIntent] = useState(false);
   const editMode = alreadyCompleted && editIntent;
+  // Время открытия формы — для time-to-fill метрики на ROOT-дашборде.
+  // Создаём один раз при mount (Date.now() в useState init).
+  const [formOpenedAt] = useState(() => Date.now());
 
   // Shared-task state — счётчик записей и closure (могут меняться
   // прямо в этой сессии после нажатий кнопок).
@@ -158,7 +161,7 @@ export function TaskFillClient({
       const response = await fetch(`/api/task-fill/${taskId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, values }),
+        body: JSON.stringify({ token, values, openedAt: formOpenedAt }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {

@@ -69,6 +69,7 @@ model Organization {
   bonusEntries             BonusEntry[]
   inspectorTokens          InspectorToken[]
   journalCloseEvents       JournalCloseEvent[]
+  formFillTimings          FormFillTiming[]
 }
 
 model User {
@@ -136,6 +137,7 @@ model User {
   bonusEntries                BonusEntry[]
   closedJournalEvents         JournalCloseEvent[]      @relation("ClosedBy")
   reopenedJournalEvents       JournalCloseEvent[]      @relation("ReopenedBy")
+  formFillTimings             FormFillTiming[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -321,6 +323,33 @@ model InspectorToken {
 
   @@index([organizationId])
   @@index([expiresAt])
+}
+
+/// Замер времени заполнения формы — «сколько секунд от open до submit».
+/// Используется на ROOT-дашборде для UX-аналитики: какие формы тормозят
+/// сотрудников, требуют упрощения. Платформенная метрика, в org UI не
+/// показывается.
+///
+/// Запись создаётся в submit-handler'е task-fill / journal-documents
+/// если client передал `openedAt` в payload. Старые клиенты без поля
+/// просто не пишут timing — это OK.
+model FormFillTiming {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       JournalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Длительность от open formы до submit'а в миллисекундах.
+  durationMs     Int
+  /// "task-fill" | "document-edit" | "field-form" — для разделения
+  /// сценариев в аналитике.
+  source         String          @default("task-fill")
+  createdAt      DateTime        @default(now())
+
+  @@index([templateId, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model BotInviteToken {
@@ -589,6 +618,7 @@ model JournalTemplate {
   sensorMappings     EquipmentSensorMapping[]
   bonusEntries       BonusEntry[]
   closeEvents        JournalCloseEvent[]
+  formFillTimings    FormFillTiming[]
 
   @@index([defaultAssigneeId])
 }
