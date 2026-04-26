@@ -28,6 +28,8 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import crypto from "node:crypto";
 import {
   encryptSecret,
@@ -36,11 +38,10 @@ import {
 import { resolveJournalPeriod } from "../src/lib/journal-period";
 import { getOnboardingPreset } from "../src/lib/onboarding-presets";
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: { url: process.env.DATABASE_URL },
-  },
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL,
 });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const ORG_NAME = "Ресторан «Вкусная Гавань»";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@vkusnaya-gavan.ru";
