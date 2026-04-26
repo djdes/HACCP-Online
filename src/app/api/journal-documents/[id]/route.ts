@@ -129,8 +129,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Некорректный статус документа" }, { status: 400 });
   }
 
-  const nextDateFrom = body.dateFrom !== undefined ? new Date(body.dateFrom) : new Date(doc.dateFrom);
-  const nextDateTo = body.dateTo !== undefined ? new Date(body.dateTo) : new Date(doc.dateTo);
+  let nextDateFrom = body.dateFrom !== undefined ? new Date(body.dateFrom) : new Date(doc.dateFrom);
+  let nextDateTo = body.dateTo !== undefined ? new Date(body.dateTo) : new Date(doc.dateTo);
 
   if (!isValidDate(nextDateFrom) || !isValidDate(nextDateTo)) {
     return NextResponse.json({ error: "Некорректный период документа" }, { status: 400 });
@@ -141,6 +141,36 @@ export async function PATCH(
       { error: "Дата начала не может быть позже даты окончания" },
       { status: 400 }
     );
+  }
+
+  // Защита от случайного сжатия документа.
+  //
+  // Несколько UI-клиентов (accident-document-client, complaint-documents-
+  // client, ppe-issuance-document-client, intensive-cooling-document-client,
+  // equipment-cleaning-documents-client) при сохранении строки/конфига
+  // отправляют `dateFrom` и `dateTo`, заданные одинаковыми (= одна дата).
+  // Это правильно только при создании single-day мероприятия. Но если
+  // существующий документ был многомесячным/годовым/perpetual — такой
+  // PATCH сжимает его в один день, после чего:
+  //   1. На /journals snippet `dateFrom <= today AND dateTo >= today`
+  //      перестаёт его находить → checkbox «Создать документы»
+  //      возвращается, хотя документ есть.
+  //   2. POST /api/integrations/tasksflow/bulk-assign-today тоже не
+  //      находит и создаёт ВТОРОЙ документ для того же шаблона.
+  // Полностью клиентский фикс невозможен — слишком много мест. Поэтому
+  // здесь, на сервере, отказываемся СОКРАЩАТЬ период, если каллер не
+  // передал явный `shrinkPeriod: true`. Расширение периода и обновление
+  // dateFrom не блокируются — они никогда не приводят к этому багу.
+  const oldFrom = new Date(doc.dateFrom).getTime();
+  const oldTo = new Date(doc.dateTo).getTime();
+  const newFrom = nextDateFrom.getTime();
+  const newTo = nextDateTo.getTime();
+  const oldSpansMultipleDays = oldTo - oldFrom > 24 * 60 * 60 * 1000;
+  const newWouldBeSingleDay = newTo - newFrom < 24 * 60 * 60 * 1000;
+  const shrinkRequested = body.shrinkPeriod === true;
+  if (oldSpansMultipleDays && newWouldBeSingleDay && !shrinkRequested) {
+    nextDateFrom = new Date(doc.dateFrom);
+    nextDateTo = new Date(doc.dateTo);
   }
 
   if (

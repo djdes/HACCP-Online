@@ -293,30 +293,48 @@ export function NotificationsBell() {
                       </label>
                       {row.items.length > 0 && (
                         <ul className="divide-y divide-[#ececf4] border-t border-[#ececf4]">
-                          {row.items.map((item) => (
-                            <li
-                              key={item.id}
-                              onClick={() => toggleSelected(row.id)}
-                              className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/60"
-                            >
-                              <input
-                                type="checkbox"
-                                aria-label={item.label}
-                                checked={selected.has(row.id)}
-                                readOnly
-                                tabIndex={-1}
-                                className="pointer-events-none size-4 shrink-0 rounded border-[#dcdfed] text-[#5566f6] focus:ring-[#5566f6]"
-                              />
-                              <span className="text-[14px] text-[#0b1024]">
-                                {item.label}
-                              </span>
-                              {item.hint && (
-                                <span className="ml-auto text-[12px] text-[#9b9fb3]">
-                                  {item.hint}
+                          {row.items.map((item) => {
+                            // Если у группы есть общая ссылка — клик по
+                            // подзадаче ведёт по ней (а не «выделяет
+                            // всю группу»). Это закрывает баги: (а) из
+                            // подзадачи не получалось перейти к журналу,
+                            // (б) клик по «чекбоксу» подзадачи отмечал
+                            // всю группу — теперь чекбокса у item'а нет
+                            // вообще, выделение делается строго на шапке.
+                            const ItemBody = (
+                              <>
+                                <span className="text-[14px] text-[#0b1024]">
+                                  {item.label}
                                 </span>
-                              )}
-                            </li>
-                          ))}
+                                {item.hint && (
+                                  <span className="ml-auto text-[12px] text-[#9b9fb3]">
+                                    {item.hint}
+                                  </span>
+                                )}
+                              </>
+                            );
+                            if (row.linkHref) {
+                              return (
+                                <li key={item.id}>
+                                  <Link
+                                    href={row.linkHref}
+                                    onClick={closePanel}
+                                    className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/60"
+                                  >
+                                    {ItemBody}
+                                  </Link>
+                                </li>
+                              );
+                            }
+                            return (
+                              <li
+                                key={item.id}
+                                className="flex items-center gap-3 px-4 py-3"
+                              >
+                                {ItemBody}
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
