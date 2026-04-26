@@ -52,19 +52,44 @@ export function TaskFillClient({
     const init: Record<string, unknown> = {};
     if (form) {
       for (const field of form.fields) {
-        if (field.type === "boolean")
-          init[field.key] = field.defaultValue ?? false;
-        else if (field.type === "select" && field.defaultValue)
-          init[field.key] = field.defaultValue;
-        else init[field.key] = "";
+        const dv = (field as { defaultValue?: unknown }).defaultValue;
+        if (field.type === "boolean") {
+          init[field.key] = typeof dv === "boolean" ? dv : false;
+        } else if (field.type === "number") {
+          // Подхватываем prefill из адаптера (если задача уже выполнялась
+          // и мы открываем её для редактирования — defaults берутся из
+          // существующей journal-row).
+          init[field.key] =
+            typeof dv === "number"
+              ? dv
+              : typeof dv === "string" && dv.trim() !== ""
+                ? Number(dv)
+                : "";
+        } else {
+          init[field.key] =
+            typeof dv === "string" || typeof dv === "number"
+              ? String(dv)
+              : "";
+        }
       }
     }
     return init;
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(alreadyCompleted);
+  // done = «только что сохранили». Для ранее выполненной задачи мы
+  // НЕ показываем сразу SuccessCard — сначала спрашиваем у юзера, хочет
+  // ли он отредактировать данные. После реального submit в editMode →
+  // тоже done=true и тот же success-card.
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Из «Выполненных» задача сама не возвращается. Кружок выполненной
+  // → confirm «Точно изменить данные?» → editIntent=true → форма с
+  // prefilled значениями, юзер правит и подтверждает (новый submit
+  // обновит row через applyRemoteCompletion adapter — task остаётся
+  // выполненной с новыми значениями).
+  const [editIntent, setEditIntent] = useState(false);
+  const editMode = alreadyCompleted && editIntent;
 
   const readyToSubmit = useMemo(() => {
     if (!form) return true; // no-form tasks (generic) can always submit
@@ -155,8 +180,19 @@ export function TaskFillClient({
             returnUrl={returnUrl}
             autoRedirecting={Boolean(returnUrl)}
           />
+        ) : alreadyCompleted && !editIntent ? (
+          <AlreadyDoneCard
+            onEdit={() => setEditIntent(true)}
+            returnUrl={returnUrl}
+          />
         ) : (
           <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            {editMode ? (
+              <div className="mb-5 rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-snug text-[#3c4053]">
+                Вы редактируете уже сохранённую запись журнала. После
+                подтверждения старые значения будут перезаписаны.
+              </div>
+            ) : null}
             {form?.intro ? (
               <p className="mb-5 rounded-2xl bg-[#f5f6ff] p-4 text-[14px] leading-relaxed text-[#3c4053]">
                 {form.intro}
@@ -217,6 +253,52 @@ export function TaskFillClient({
         ) : null}
       </section>
     </main>
+  );
+}
+
+/**
+ * Confirm-card для уже выполненной задачи. Юзер видит «Задача
+ * выполнена» и большую кнопку «Изменить данные» (редактирование
+ * существующей записи журнала). Из выполненных можно ТОЛЬКО
+ * редактировать — отмена выполнения недоступна (это правильное
+ * compliance-поведение: история заполнений журнала не должна
+ * стираться обратным toggle'ом).
+ */
+function AlreadyDoneCard({
+  onEdit,
+  returnUrl,
+}: {
+  onEdit: () => void;
+  returnUrl: string | null;
+}) {
+  return (
+    <div className="rounded-3xl border border-[#ececf4] bg-white p-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#ecfdf5] text-[#116b2a]">
+        <CheckCircle2 className="size-7" />
+      </div>
+      <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        Задача выполнена
+      </h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
+        Запись уже сохранена в журнале. Можно открыть её и изменить
+        данные — старые значения будут перезаписаны.
+      </p>
+      <Button
+        type="button"
+        onClick={onEdit}
+        className="mt-6 h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0] shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]"
+      >
+        Изменить данные
+      </Button>
+      {returnUrl ? (
+        <a
+          href={returnUrl}
+          className="mt-3 inline-block text-[13px] text-[#6f7282] hover:text-[#0b1024]"
+        >
+          Вернуться в TasksFlow
+        </a>
+      ) : null}
+    </div>
   );
 }
 
