@@ -5,6 +5,7 @@ import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getUserRoleLabel } from "@/lib/user-roles";
 import { ImpersonateButton } from "./impersonate-button";
+import { DeleteOrgButton } from "./delete-org-button";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,10 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
             {org.inn ? ` · ИНН ${org.inn}` : ""}
           </p>
         </div>
-        <ImpersonateButton organizationId={org.id} organizationName={org.name} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ImpersonateButton organizationId={org.id} organizationName={org.name} />
+          <DeleteOrgButton organizationId={org.id} organizationName={org.name} />
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
