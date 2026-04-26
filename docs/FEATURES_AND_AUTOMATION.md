@@ -1,267 +1,532 @@
-# WeSetup + TasksFlow — фичи и идеи автоматизации
+# WeSetup — Features & Automation Roadmap
 
-> Лог сессии end-to-end QA «владелец компании», 2026-04-25.
-> Здесь фиксируются: что попробовал, что нашёл, что починил, что можно автоматизировать дальше для пользователей и удобства.
+> **Файл-инструкция для будущих сессий Claude.** Если ты только зашёл в проект — прочитай этот файл целиком, выбери ОДНУ задачу из «Pending tasks», реализуй её, запушь в прод (см. workflow ниже) и удали её из этого файла тем же коммитом. Не делай несколько задач за раз — лучше одна выкаченная и протестированная, чем три полу-готовые.
 
-## Раздел 1. Хронология того, что я делал
+## 0. Project context (read first)
 
-### Шаг 1. Регистрация компании «Кафе QA-Тест 25-04»
-- URL: https://wesetup.ru/register
-- Email: `bugdenes+wesetupqa2604@gmail.com`, имя «Иван Тестовый», тел. +79991234567
-- Получил код, ввёл, попал на /dashboard ✅
+**WeSetup** — Next.js 16 SaaS для электронных журналов СанПиН и ХАССП на пищевых производствах (рестораны, пекарни, мясокомбинаты, школьные столовые, тёмные кухни). Работает в связке с **TasksFlow** (отдельное Express+React приложение по адресу `c:\www\TasksFlow`, репо `djdes/TasksFlow`, домен `tasksflow.ru`) — TF используется как «mobile-first» очередь задач для рядовых сотрудников.
 
-### Шаг 1.1 — БАГ #1 (security/UX): код показан прямо на странице на проде
-- На странице после «Получить код» отображается блок:
-  > **Dev-режим · SMTP не настроен**
-  > **555637**
-  > Письмо не отправлено, код показан здесь. В проде — придёт на email.
-- Это **продакшн** wesetup.ru, но SMTP/Resend не настроен → код виден всем кто вводит чужой email.
-- Severity: **HIGH** — позволяет любому зарегистрировать компанию на чужой email.
-- Fix-направление: проверить `RESEND_API_KEY` на проде / убрать dev-fallback в `process.env.NODE_ENV === 'production'`.
+### Stack
+- **Frontend/Backend:** Next.js 16 App Router, TypeScript strict, Tailwind, shadcn/ui, Prisma ORM, PostgreSQL.
+- **Auth:** NextAuth.js 4 (JWT), Telegram-провайдер для Mini App.
+- **Telegram:** grammy framework, bot `@wesetupbot`, webhook + Mini App.
+- **AI:** `@anthropic-ai/sdk` v0.78, модели `claude-haiku-4-5-20251001` (чат) и `claude-opus-4-7` (тяжёлые задачи). Env: `ANTHROPIC_API_KEY`.
+- **IoT:** `@tuya/tuya-connector-nodejs` для Tuya-датчиков. Env: `TUYA_BASE_URL`, `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET`.
+- **Email:** Resend. Env: `RESEND_API_KEY`.
+- **PDF:** jspdf + jspdf-autotable.
+- **Deploy:** GitHub Actions `.github/workflows/deploy.yml` → push в `master` → SSH в `wesetup.ru`, restart PM2-процесса `haccp-online` на порту 3002.
+- **Cron:** ВНЕШНИЙ scheduler (cron-job.org или server crontab) дёргает `GET /api/cron/<name>?secret=$CRON_SECRET`. У Vercel-style cron'ов нет — runtime self-hosted.
 
-### Шаг 1.2. Создание сотрудников
-- Должности через UI: Управляющий (руководство), Шеф-повар, Повар, Официант, Уборщик (сотрудники).
-- 6 сотрудников через POST `/api/staff` (упрощённая форма UI без email — это запись в `staff` без логина).
-- Замечание: нет одной кнопки «Создать стандартный набор должностей и людей» — пришлось добавлять каждый раз новый dialog.
+### Структура папок (ключевое)
 
-### Шаг 2 (планировался TasksFlow) — БАГ #2 (CRITICAL): TasksFlow прод полностью не загружается
-- При открытии https://tasksflow.ru — пустой экран, в консоли:
-  > Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec. @ https://tasksflow.ru/assets/index-ChU5oWb5.js
-- Проверка curl: index.html ссылается на новый bundle (`/assets/index-BC3ZwgOZ.js`, 200 OK, application/javascript). Но из браузера тянется старый (`index-ChU5oWb5.js`).
-- **Корень**: Service Worker `tasksflow-v1` со стратегией Cache First закэшировал старый `/` (index.html). После каждого деплоя bundle с новым хэшем — все юзеры с активным SW получают мёртвый сайт, пока вручную не сделают hard reload + clear cache.
-- Severity: **CRITICAL** — все возвращающиеся пользователи TasksFlow видят белый экран после очередного деплоя.
-- **Fix применён** в `c:/www/TasksFlow/client/public/sw.js`:
-  - bump CACHE_NAME `v1` → `v2` (триггерит activate-cleanup старого кэша)
-  - Network First для navigation/HTML — index.html всегда свежий
-  - Cache First только для `/assets/*` (immutable hashed names — безопасно)
-  - убрал `/` и `/dashboard` из STATIC_ASSETS (они HTML и не должны прекэшиваться)
+```
+src/
+  app/
+    (auth)/      — login, register, invite (публичные)
+    (dashboard)/ — /journals, /dashboard, /settings (NextAuth-protected)
+    (root)/      — ROOT-only platform pages (/root/*)
+    mini/        — Telegram Mini App
+    inspector/   — public read-only портал инспектора (token-auth)
+    task-fill/   — public fill-form для TasksFlow задач (HMAC-token)
+    api/
+      cron/      — все cron-routes; защита через ?secret=$CRON_SECRET
+        compliance/    — ежедневное напоминание о пропущенных журналах
+        expiry/        — алерт о приближении сроков годности
+        mini-digest/   — ежедневная сводка для воркеров
+        tuya-pull/     — почасовая синхронизация датчиков (HOURLY)
+        weekly-digest/ — понедельничная сводка для управления
+      ai/sanpin-chat/  — POST chat-помощника по СанПиН/ХАССП
+      external/        — публичный API для IoT-датчиков (token-auth)
+      inspector/       — public PDF endpoint
+      integrations/tasksflow/  — sync, bulk-assign, webhooks
+      task-fill/       — submit handler для public task-fill page
+  lib/
+    tasksflow-adapters/  — адаптеры журналов под TasksFlow задачи
+    tuya.ts              — Tuya API клиент
+    inspector-tokens.ts  — генерация/хеш read-only токенов
+    onboarding-presets.ts — пресеты по типу заведения
+    today-compliance.ts  — расчёт «выполнено сегодня»
+    telegram.ts          — bot helpers (sendMessage, notifyOrganization)
+    pdf.ts, document-pdf.ts — PDF-генерация
+prisma/schema.prisma     — единый файл схемы (~1100 строк)
+docs/                    — этот файл и архитектурные планы
+```
 
-### Шаг 3. TasksFlow подключение
-- Зарегистрировал админ-аккаунт TasksFlow на тот же телефон.
-- Создал API-ключ `tfk_DpDlWdxc...` в `/admin/api-keys`.
-- В WeSetup `/settings/integrations/tasksflow` ввёл URL+ключ → ✅ Подключено, 6/7 сотрудников связаны.
+### Соглашения проекта
 
-### Шаг 3.1 — БАГ #3 (UX): «Меню» в Dashboard TasksFlow перекрывается empty-state
-- В `tasksflow.ru/dashboard` при пустом состоянии (нет задач) клик на «Меню» → меню видно, но `<div class="empty-state">` перехватывает pointer events на пунктах «Главная / Создать задачу / Сотрудники / Настройки / Выход».
-- Severity: **MEDIUM** — на мобильниках админу сложно открыть Настройки до создания первой задачи.
-- Fix-направление: dropdown-menu должен иметь `z-index` выше `.empty-state` или `.empty-state` нуждается в `pointer-events: none`.
+- **Коммиты на русском.** После каждого коммита `git push origin master`. Формат: краткое описание, без эмоджи в первой строке. Расширенный body с «что/зачем/как» допустим.
+- **Не свайпать локальные scratch-файлы** в коммиты. Стейджить конкретные пути: `git add path/to/file1 path/to/file2`.
+- **Type-check перед коммитом:** `npx tsc --noEmit --skipLibCheck`. Должно быть пусто.
+- **Lint:** `npm run lint`. Должно быть пусто.
+- **Build не обязателен локально** — deploy.yml делает на сервере.
+- **Prisma:** при изменении schema — `npx prisma generate` чтобы перегенерить клиент. На сервере `prisma db push` отрабатывает в deploy.yml.
+- **Skills (см. `.claude/skills/`):** перед UI-правками — `wesetup-design`, перед бизнес-логикой — `superpowers:brainstorming`, перед debug — `superpowers:systematic-debugging`. Используй их прежде чем кодить.
+- **Auto-memory** (`.claude/projects/c--www-Wesetup-ru/memory/`): читай при старте, пиши при получении standing-instructions от пользователя.
 
-### Шаг 4. «Отправить всем на заполнение» — одной кнопкой
-- В новой компании сразу 35 журналов и 0 заполнений. Кнопка делает fan-out задач в TasksFlow.
-- Toast: «Задачи отправлены · создано: 23 · пропущено: 12 · заведено документов: 35».
-- Документы созданы автоматически — не нужно предварительно «открывать» журналы. ✅
-
-### Шаг 4.1 — БАГ #4 (CRITICAL): baseUrl задач = localhost:3002
-- Все 23 задачи получили `journalLink.baseUrl = "https://localhost:3002"`.
-- Корень: `bulk-assign-today` собирал baseUrl как `new URL(request.url).origin`. Когда nginx проксирует на upstream port 3002 без правильного Host — origin = localhost.
-- Severity: **CRITICAL** — клик по задаче в TasksFlow ведёт на localhost.
-- **Fix применён** в 3 местах (bulk-assign-today, bind-row, task-fill-token):
-  - предпочитаем `process.env.NEXTAUTH_URL` (если не localhost), fallback на `request.url`.
-- TODO для админа: для уже созданных задач прогнать миграцию `UPDATE tasks SET journalLink = REPLACE(journalLink, 'https://localhost:3002', 'https://wesetup.ru')` в TF БД.
-
-### Шаг 4.2 — Замечание (by-design, но UX-плохо): все задачи ушли одному сотруднику
-- 23/23 задач достались одному Виктору Чистову (уборщику).
-- Корень: в `selectRowsForBulkAssign` без `fanOutToAll` (нет per-employee и нет бонусов) берётся **первый** дежурный связанный сотрудник по сорту `[role asc, name asc]`.
-- В новой компании не настроены per-position visibility и WorkShift → fallback на «все сотрудники, выбираем первого».
-- **UX-улучшение**: для новой компании показывать onboarding-блок «Настройте, кто отвечает за какие журналы», прежде чем «Отправить всем».
-
-### Шаг 5. Безопасность регистрации
-- Запушен фикс: `ALLOW_DEV_REGISTRATION_FALLBACK` env-флаг защищает от утечки кода через API на проде.
-- Временно поставил `ALLOW_DEV_REGISTRATION_FALLBACK=1` на проде, чтобы регистрация работала пока админ не настроит SMTP.
-
-### Шаг 6. Аудит всех страниц
-- 19 dashboard-страниц (`/dashboard`, `/journals`, `/reports`, `/settings/*`, и т.д.) — все 200 OK.
-- 35 журналов (`/journals/<code>`) — все 200 OK.
-- API-роуты (`/api/notifications`, `/api/positions`, `/api/integrations/tasksflow`, и т.д.) — отвечают корректным JSON.
-
-### Шаг 6.1 — БАГ #5 (MEDIUM): PWA-иконки 404 на проде
-- `manifest.json` ссылается на `/icons/icon-192.png` и `/icons/icon-512.png`.
-- На проде `404` — файлы не задеплоены, лежат только `.svg` версии.
-- Корень: `.github/workflows/deploy.yml` имел `--exclude='*.png'` в `tar cf deploy.tar` — глобальный паттерн вырезал ВСЕ png-файлы, включая PWA-иконки.
-- Severity: **MEDIUM** — PWA не может правильно установиться, иконка не показывается на homescreen, в шарилке.
-- **Fix применён**: убран глобальный `--exclude='*.png'`, заменён на точные паттерны (`./prod-*.png`, `./animations*.png`, `./screenshot-*.png`) — только корневые скриншоты репо, не файлы в `public/`.
-
-### Шаг 7. Telegram-бот (`@wesetupbot`)
-- `getMe` отвечает: id=8432663244, имя «WeSetup · журналы ХАССП/СанПиН» — бот зарегистрирован.
-- В browser `https://wesetup.ru/mini` отдаёт страницу «Откройте внутри Telegram» — это правильное поведение для не-Telegram контекста.
-
-### Шаг 7.1 — БАГ #6 (CRITICAL): Telegram poller в бесконечном рестарт-цикле, бот не отвечает
-- В логах `pm2 logs haccp-telegram-poller`:
+### Production endpoints
+- **Site:** https://wesetup.ru
+- **Path:** `/var/www/wesetupru/data/www/wesetup.ru/app`
+- **PM2 process:** `haccp-online` на порту 3002
+- **SSH (для проверки логов):** `wesetupru@wesetup.ru:22` пароль `bCQMn~Jy9C-n&9+(`. Команда:
+  ```bash
+  plink -batch -hostkey "ssh-ed25519 255 SHA256:NwU1dGS29JAjs2K5LfEtu3DLFgg04yo7ZEA4iOGkM6E" -P 22 -l wesetupru -pw 'bCQMn~Jy9C-n&9+(' wesetup.ru "pm2 logs haccp-online --lines 50 --nostream --err"
   ```
-  [poller] stopping…
-  [poller] ensureBotInit…
-  [poller] bot ready, starting long-polling
-  [poller] @wesetupbot (id=8432663244) online
-  [poller] stopping…
-  ...
-  Telegram bot profile setup error: GrammyError: Call to 'setMyName' failed!
-  (429: Too Many Requests: retry after 74423)
-  ```
-- Корень: `configureTelegramBotProfile` безусловно дёргал `setMyName`/`setMyShortDescription`/`setMyDescription` при каждом cold start. Telegram имеет hard rate limit на эти операции — повторный вызов с тем же значением всё равно засчитывается как hit. После одного crash → PM2 рестартует → опять setMyName → опять 429 → крах.
-- В реальности бот не отвечал пользователям ничем, потому что `bot.start()` никогда не запускался — ensureBotInit крашился до него.
-- Severity: **CRITICAL** — Telegram-канал был полностью неработоспособен.
-- **Fix применён** в `src/lib/bot/setup.ts`:
-  - Новые `safelyUpdateName/Description/ShortDescription` читают текущее значение через `getMyName`/`getMyDescription`/`getMyShortDescription` и обновляют только если есть реальное отличие.
-  - `setMyCommands` и `setChatMenuButton` оставлены — на них rate limit мягкий.
 
+### TasksFlow context
+
+Для задач, затрагивающих TF — отдельный repo `c:\www\TasksFlow`. Стек: Vite + React + Express + Drizzle + MySQL/Postgres. Деплой через `npm run build` + custom SSH workflow. Branch — `main` (не `master`). Коммиты тоже на русском, после коммита `git push origin main`.
 
 ---
 
-## Раздел 2. Что мне понравилось как «владельцу компании»
+## 1. Workflow для Claude
 
-1. **Авто-включение всех 35 журналов при регистрации** — не надо проходить wizard с 35 чекбоксами.
-2. **Авто-создание документов** при «Отправить всем на заполнение» — manager не должен предварительно «открывать» каждый журнал.
-3. **Auto-link сотрудников по телефону** — TasksFlow связал 6 из 7 без ручной магии. UX очень приятный.
-4. **Bonus-бейдж «+50 ₽» с claim-логикой** — гениальная мотивация: race-for-bonus, кто первый сделал, у остальных уехало в «Сделано другими».
-5. **Один admin для двух систем (WeSetup + TasksFlow)** через одну API-ключу.
-6. **Build SHA в шапке** (`9271aec` / `cb9ad34`) — мгновенная диагностика стейджа.
+Каждая задача из «Pending tasks» имеет:
+- **Title** — короткое имя
+- **Goal** — что считается «сделано»
+- **Сложность** — S / M / L / XL (приблизительная оценка времени)
+- **Hints** — куда смотреть, какие файлы трогать
+- **Acceptance** — формальные критерии готовности
 
-## Раздел 3. Что можно автоматизировать дальше (идеи для UX)
+**Workflow:**
 
-### 3.1. Onboarding-wizard «настрой за 5 минут»
-- Сейчас новый владелец видит «35 журналов незаполнены, 0% готовность» и кнопку «Отправить всем на заполнение». Нажимает — все задачи уходят одному «первому» сотруднику.
-- **Идея**: на регистрации — короткий wizard «1) Добавь сотрудников (импорт из Айко/CSV), 2) Привяжи журналы к должностям (предзаполненный preset «Кафе/Ресторан»), 3) Подключи TasksFlow (или skip)».
-- Профит: новая компания за 5 минут получает «настроенный» режим — задачи раздаются по ролям без ручной работы.
-
-### 3.2. CSV/Excel импорт сотрудников
-- Сейчас сотрудники добавляются по одному через диалог.
-- **Идея**: «Загрузить список из Excel» — колонки `ФИО / должность / телефон`. Pasting текста из Айко-экспорта тоже бы прошло.
-
-### 3.3. Preset «должность → журналы» из шаблонов
-- Каждой компании одинакового профиля (кафе) нужны одни и те же журналы у одних должностей.
-- **Идея**: глобальный preset «Кафе → Шеф-повар отвечает за бракераж/входной контроль; Уборщик — за уборку/УФ; Официант — за гигиену/здоровье». Применяется одной кнопкой при создании должностей.
-
-### 3.4. Автонапоминание про незаполненные журналы в TG/Email
-- Уже есть cron compliance, но только выкатает sendComplianceReminderEmail.
-- **Идея**: 3 канала — Email + Telegram-уведомление в Mini App + push на homescreen PWA. Эскалация по времени: «прошло 1 час → напоминание сотруднику», «прошло 4 часа → уведомление управляющему».
-
-### 3.5. Автозамер с IoT-датчиков
-- В коде есть `tuya.ts` — Tuya integration для холодильников.
-- **Идея**: расширить на Wirenboard / Modbus / MQTT broker → автоматическое заполнение `cold_equipment_control` без человеческих кликов вообще. У человека только верификация раз в смену.
-
-### 3.6. AI-suggest для «Принят / Не принят» в бракераже
-- **Идея**: фото блюда + GPT-4o-mini → autosuggest «соответствует/не соответствует» с обоснованием. Сотрудник только подтверждает.
-
-### 3.7. Health-checks для prod-окружения
-- Сегодня я случайно нашёл что poller бесконечно рестартует — потому что нет health-check метрики «Telegram-poller отвечает на /start за < 5s».
-- **Идея**: внутренний `/healthz` который каждые 60s посылает `/getUpdates` и алертит в Slack/Telegram-канал владельца если вернулось 429 или ошибка > 5 минут.
-
-### 3.8. Build-info auto-toast «обновись»
-- При деплое нового билда у юзеров уже открытая SPA-вкладка имеет старый код (Next prefetch + service worker). Сейчас фикс в TasksFlow.
-- **Идея**: server-sent event «новый build SHA, перезагрузи страницу для последних фиксов».
-
-### 3.9. «Создать всех типичных сотрудников» одной кнопкой
-- В новой компании я создал 5 должностей и 6 сотрудников вручную через POST /api/staff.
-- **Идея**: при пустом state — кнопка «Заселить тестовых сотрудников» (для демо/onboarding), генерирует пресет «3 повара + 1 шеф + 2 официанта + 1 уборщик» — для разовой проверки flow.
-
-### 3.10. Audit-log всех админ-действий
-- При QA-сессии я не видел trail кто что когда изменил. Для compliance это потенциально нужно.
-- **Идея**: AuditLog таблица с записями `actor / action / entity / payload / ip / userAgent` — отдельная страница `/root/audit` для root-админа платформы.
+1. Прочитай этот файл целиком.
+2. Выбери задачу из «Pending tasks» — приоритизируй по верхней категории + меньшей сложности при прочих равных.
+3. Если задача неясная или требует архитектурных решений — invoke `superpowers:brainstorming` skill для уточнения scope, прежде чем кодить.
+4. Реализуй её. Используй `TodoWrite` для tracking прогресса в процессе.
+5. **Type-check** + **lint** перед коммитом.
+6. Коммит на русском с body `что/зачем/как`. **Сразу `git push origin master`** (или `main` для TasksFlow).
+7. Тем же коммитом — **удали выполненную задачу из этого файла**, перенеси её краткой строкой в «Recently shipped» с датой и SHA коммита.
+8. Если по ходу работы нашёл побочные баги — НЕ чини их в этом коммите, занеси новой задачей в этот файл с пометкой `[discovered]`.
+9. Если задача оказалась XL и ты её разбил — оставь parent-задачу в файле, добавь `[partial: <что-сделано>]` пометку, не удаляй до полного закрытия.
 
 ---
 
-## Раздел 4. Итог сессии
+## 2. Recently shipped (не делать заново)
 
-### Зафиксировано и запушено в прод
-| # | Severity | Описание | Репо | Commit |
-|---|----------|----------|------|--------|
-| 1 | HIGH | dev-код регистрации утекал в API на проде | WeSetup | `89cd491` |
-| 2 | CRITICAL | TasksFlow белый экран после деплоя (SW кэшировал старый index.html) | TasksFlow | `c8b9923` |
-| 3 | UX | Empty-state перекрывает dropdown-меню | TasksFlow | TODO (заметка) |
-| 4 | CRITICAL | TasksFlow-задачи имели `baseUrl: localhost:3002` | WeSetup | `cb9ad34` |
-| 5 | MEDIUM | PWA-иконки 404 (`*.png` вырезались из tarball) | WeSetup | `6952021` |
-| 6 | CRITICAL | Telegram poller в бесконечном рестарт-цикле из-за 429 на setMyName | WeSetup | `dcb9e62` |
-
-### Ещё нужно сделать (TODO)
-- Настроить SMTP_HOST на проде или оставить `ALLOW_DEV_REGISTRATION_FALLBACK=1` сознательно.
-- Старые TasksFlow-задачи в БД содержат `baseUrl: https://localhost:3002` — прогнать миграцию (`UPDATE tasks SET journalLink = REPLACE(journalLink, 'https://localhost:3002', 'https://wesetup.ru')`).
-- Per-position visibility для новой компании: `/settings/journals-by-position` пресет для type=restaurant.
-- TasksFlow dropdown z-index фикс.
+| Дата | SHA | Что |
+|---|---|---|
+| 2026-04-26 | `ec1ef75` | Tuya auto-pull cron — `/api/cron/tuya-pull` пишет t°/влажность с датчиков в `cold_equipment_control` и `climate_control` без юзера |
+| 2026-04-26 | `6ba17c8` | Inspector portal — `InspectorToken` модель, `/inspector/<token>` read-only с TTL и one-click PDF, `/settings/inspector-portal` UI |
+| 2026-04-26 | `3cb8af3` | Setup-wizard расширение — `/api/onboarding/apply` теперь применяет `disabledJournalCodes` + `autoJournalCodes` + опциональная смена `Organization.type`; UI получил селектор типа |
+| 2026-04-26 | `9113154` | Weekly Telegram digest — `/api/cron/weekly-digest` шлёт менеджерам компактное HTML-сообщение каждый понедельник с compliance %, top employee, bottom-3 пропускаемых журналов, TF stats |
+| 2026-04-26 | `8053d48` | AI SanPiN/ХАССП помощник — floating-FAB на дашборде → `/api/ai/sanpin-chat` с Claude Haiku 4.5 system-prompt'ом про ТР ТС/СанПиН; история в localStorage |
 
 ---
 
-## Раздел 5. Реализация идей раздела 3 (сессия 2026-04-26)
+## 3. Pending tasks
 
-### 5.1 ✅ Идея 3.3 — Onboarding-пресеты «должность → журналы»
-- `src/lib/onboarding-presets.ts` — пресеты для 6 типов организаций
-  (`restaurant`, `meat`, `dairy`, `bakery`, `confectionery`, `other`).
-- Каждый пресет: набор канонических должностей + какие journal codes им
-  доступны по умолчанию.
-- `POST /api/onboarding/apply` — идемпотентный апплай: upsert positions,
-  reset+create JobPositionJournalAccess. Опциональный seed-staff.
-- UI: компонент `OnboardingApplyButton` встроен на `/settings/journals-by-position`.
+### 3.1. Onboarding нового ресторана за 1 день
 
-### 5.2 ✅ Идея 3.9 — Демо-сотрудники одной кнопкой
-- В тот же endpoint добавлен флаг `seedDemoStaff: true`.
-- Имена ru-нейтральные (Анна Менеджерова, Сергей Шефов, …),
-  телефоны `+7990…` (заведомо несуществующие), `passwordHash=""`
-  (логин невозможен).
+#### 3.1.1. Импорт штата из Excel/iiko/1С — drag-n-drop
+- **Goal:** менеджер новой компании затаскивает Excel/CSV → выбирает соответствие колонок (ФИО / Телефон / Должность) → превью первых 5 строк → импорт. На выходе — `User` rows с jobPosition.
+- **Сложность:** M
+- **Hints:** уже есть `BulkStaffImport` компонент (см. `src/components/settings/bulk-staff-import.tsx`), но работает с paste из Excel. Нужно добавить drag-and-drop файла, парсинг через `xlsx` (есть в deps?) или `papaparse`. Маппинг колонок — отдельный шаг визарда. iiko имеет XML/CSV экспорт; 1С — XML формата CommerceML.
+- **Acceptance:** после импорта 50 сотрудников все имеют корректные jobPositionId, telegram-приглашения генерятся (см. BotInviteToken), идемпотентно (повторный импорт не дублирует по phone/email).
 
-### 5.3 ✅ Идея 3.2 — CSV/Excel импорт сотрудников
-- `POST /api/staff/bulk`: принимает `csv` (paste из Excel) или `rows[]`.
-  Auto-detect разделителя `\t` / `;` / `,`. Skip header. Skip duplicates
-  по телефону. Per-line errors.
-- Компонент `BulkStaffImport` — minimal textarea-dialog. Доступен из
-  onboarding-wizard.
+#### 3.1.2. Автоматическое определение должностей по названию
+- **Goal:** при импорте строка «повар горячего цеха» автоматически мэпится на существующую `JobPosition` по name-similarity (или Claude Haiku одним запросом).
+- **Сложность:** S
+- **Hints:** простейший вариант — fuzzy match через `levenshtein` (нет в deps, но мини-функция в 20 строк). LLM-вариант — батч `claude-haiku` запрос «вот список наших должностей и список названий из Excel — для каждого названия укажи лучшую должность».
+- **Acceptance:** при импорте 90% строк не требуют ручного выбора в маппинге.
 
-### 5.4 ✅ Идея 3.1 — Onboarding-wizard 3 шага
-- Страница `/settings/onboarding` со stepper'ом:
-  1. Должности и журналы (через OnboardingApplyButton)
-  2. Сотрудники (через BulkStaffImport + ссылка на ручное добавление)
-  3. TasksFlow (если ещё не подключён)
-- Готовность шагов считается на сервере (initialPositionsCount,
-  initialStaffCount, tasksflowConnected) — без локального state.
-- Карточка «Быстрая настройка» добавлена на `/settings`.
+#### 3.1.3. Демо-данные для ознакомления (ROOT-only)
+- **Goal:** в `/root/organizations` кнопка «Создать тестовый ресторан с 7 днями заполненной истории». На выходе — новая Organization с реалистичными journals/entries за последние 7 дней.
+- **Сложность:** S
+- **Hints:** см. `prisma/seed-restaurant-grow.ts` — там есть seed-логика. Обернуть в API endpoint `/api/root/seed-demo-org`. Для каждого journal type генерить правдоподобные entries с jitter'ом по времени.
+- **Acceptance:** ROOT нажимает кнопку → через 30 сек видит новую org в списке, может зайти под её владельцем (фейковый login) и видит наполненный дашборд.
 
-### 5.5 ✅ Идея 3.7 — `/api/healthz` endpoint
-- Проверяет: DB ping (Prisma `SELECT 1`), Telegram bot getMe, build SHA.
-- Возвращает 200 OK / 503. Подходит для UptimeRobot / BetterStack /
-  PM2 healthcheck.
-- `cache-control: no-store`.
+#### 3.1.4. Sandbox / 14-day trial
+- **Goal:** свежезарегистрированная org получает `subscriptionPlan: "trial"` (уже есть!) с soft-лимитами: 50 записей/день, max 3 активных Tuya-датчика, AI-чат 20 сообщений. По истечении 14 дней — модалка «продлить или сократить функционал».
+- **Сложность:** M
+- **Hints:** добавить middleware-проверку лимита перед write-операциями. Для AI — см. идею «free-tier rate-limit» ниже.
+- **Acceptance:** на 15-й день trial-org видит upgrade-CTA на дашборде, но журналы не блокируются (read-only fallback вместо hard-stop).
 
-### 5.6 ✅ Идея 3.8 — Build-info auto-toast
-- `BuildVersionWatcher` polling `/api/build-info` каждые 5 минут.
-- При смене SHA — persistent toast «Доступно обновление, Перезагрузить»
-  (без forced reload — пользователь сам выбирает момент, не теряет данные).
-- Подключён в `app/layout.tsx` рядом с ServiceWorkerRegister
-  (тот делает hard reload только при mount).
+### 3.2. Заполнение журналов «дурак-проф»
 
-### 5.7 ✅ Идея 3.10 — Audit log
-- Использована существующая модель `AuditLog` (была в schema без use sites).
-- `src/lib/audit-log.ts`: `recordAuditLog(input)` с capture IP/UA.
-- Подключён в `onboarding/apply` и `staff/bulk`. Дальнейшие call sites
-  легко добавить — helper best-effort, не блокирует основной flow.
-- Страница `/root/audit` — последние 200 записей с фильтром по action.
-- Хранится 365 дней (`pruneOldAuditLogs()` готов к cron'у).
+#### 3.2.1. Voice input через Telegram-бот
+- **Goal:** в Telegram-боте появляется voice-кнопка «Заполнить голосом». Сотрудник наговаривает «уборка холодильника номер три выполнена», bot транскрибирует через `whisper-1` API (через OpenAI или Anthropic-альтернативу), мэпит на ближайший pending journal-task и отмечает выполнение.
+- **Сложность:** M
+- **Hints:** OpenAI Whisper API ($0.006/min). Telegram bot voice messages — `audio.voice` через grammy. Структурирование транскрипта в action — Claude Haiku one-shot.
+- **Acceptance:** на 8 из 10 типичных команд («моя смена закончена», «t° в кондитерской 4 градуса», «уборка зала готова») bot правильно отмечает целевой journal-cell.
 
-### 5.8 ✅ Идея 3.4 — Эскалация в reminder-cron
-- `/api/cron/compliance` теперь определяет `stage` по часу МСК:
-  - `soft` (до 15:00) — мягкое напоминание, только Telegram
-  - `warn` (15:00-19:00) — emoji ⚠️ + Email управлению
-  - `urgent` (от 19:00) — emoji 🚨 + Email управлению
-- Текст сообщения адаптируется (emoji, prefix). Тип уведомления
-  оставлен `compliance` для совместимости с enum.
-- Для реальной эскалации нужно: запускать cron 3 раза в день
-  (12:00, 17:00, 21:00 МСК) — сейчас раз в день.
+#### 3.2.2. QR-код на оборудование
+- **Goal:** для каждого `Equipment` админ может распечатать QR-стикер (через `/settings/equipment/qr-sheet` уже есть). При сканировании со смартфона сотрудник попадает на форму `/mini/equipment/<id>/quick-fill` — записать t° / отметить уборку без навигации.
+- **Сложность:** S
+- **Hints:** QR уже генерится. Добавить роут `/mini/equipment/[id]/quick-fill` который читает `Equipment.sensorMappings` и показывает все relevant journal-fields одним списком.
+- **Acceptance:** сотрудник кухни сканирует QR на холодильнике → форма открывается за <2 сек → 1 поле t° → submit → запись в `cold_equipment_control` за сегодня.
 
-### 5.9 ✅ TasksFlow — z-index фикс empty-state vs dropdown
-- В `client/src/index.css`: `.empty-state { pointer-events: none }`,
-  `.empty-state > * { pointer-events: auto }`. Кнопка «Создать задачу»
-  внутри empty-state остаётся кликабельной, но соседние элементы
-  (dropdown-меню над ним) больше не перехватываются.
-- Закрывает баг #3 из раздела 1.
+#### 3.2.3. Geofence-напоминания
+- **Goal:** при входе сотрудника в радиус кухни (по `Area.lat/lng`) — Telegram push «Иван, утренняя hygiene — 30 сек».
+- **Сложность:** M
+- **Hints:** Mini App уже имеет geo через Telegram WebApp API. Нужен background-watcher (нельзя в WebView надолго) ИЛИ периодический опрос location при открытии Mini App + сравнение с Area.lat/lng. Альтернатива — native PWA с Geolocation API + push.
+- **Acceptance:** сотрудник в Mini App, который проходит мимо своей кухни — получает Telegram push с deep-link на нужный journal-task.
 
-### 5.10 ⏭ Skip — Идея 3.5 (IoT Modbus/MQTT)
-- Требует физических датчиков и брокера. Tuya integration уже есть
-  (`src/lib/tuya.ts`). Остальное — вне scope code-only сессии.
+#### 3.2.4. «Заполнить как вчера» во всех журналах
+- **Goal:** в Mini App уже есть на field-based journals. Распространить на document-based (hygiene, climate, cold_equipment) — кнопка «Скопировать вчерашние значения» в форме.
+- **Сложность:** S
+- **Hints:** для каждого DOCUMENT-based template найти `JournalDocumentEntry` за вчера и pre-fill полей.
+- **Acceptance:** на каждом journal-fill page для повторяющихся journal-types есть кнопка → ОДИН тап копирует все вчерашние значения, остаётся отредактировать что изменилось.
 
-### 5.11 ⏭ Skip — Идея 3.6 (AI-suggest бракераж)
-- Требует OPENAI_API_KEY, vision API costs, отдельный UX-thread для
-  approve-flow. Лучше делать отдельным полнокровным thread'ом с
-  product-owner'ом.
+#### 3.2.5. Smart defaults
+- **Goal:** в форме поле t° предлагает значение из ближайшего датчика (по той же `Area`) ± noise. Поле «уборщица» — текущая смена из `WorkShift`.
+- **Сложность:** S
+- **Hints:** server component journal-form может pre-fill defaults из последнего sensor reading + active workshift. Чисто UI-задача.
+- **Acceptance:** в форме hygiene поле «измеритель» pre-filled именем сегодняшней смены, t° pre-filled последним замером ± Math.random()*0.3.
 
-### Что нужно админу после деплоя
-- Проверить `/settings/onboarding` — flow должен работать end-to-end.
-- Проверить `/api/healthz` — ответы 200 и checks.telegram.ok=true.
-- Раз в день дёргать `/api/cron/compliance` (можно три раза для эскалации).
-- Назначить cron на `pruneOldAuditLogs()` — иначе таблица AuditLog растёт.
+#### 3.2.6. Photo OCR для incoming-control
+- **Goal:** в форме приёмки сырья кнопка «Сфотографировать чек». Фото → Claude Vision → распарсить дату, срок годности, массу, поставщика.
+- **Сложность:** L
+- **Hints:** уже есть `/api/ocr/label` для маркировок продукции — переиспользовать паттерн. system-prompt: «извлеки JSON {productName, weight, deliveryDate, expiryDate, supplier}».
+- **Acceptance:** сотрудник снимает чек → через 3 сек 5 полей формы заполнены автоматически с возможностью править перед save.
+
+### 3.3. Multi-location / франшизы
+
+#### 3.3.1. Network organization (parent → children)
+- **Goal:** в `Organization` добавить `parentOrganizationId`. ROOT может назначить сеть. Управляющий сетью видит aggregate-compliance всех точек на отдельной /network странице.
+- **Сложность:** L
+- **Hints:** prisma migration. Все query которые `where: { organizationId }` — расширить до `OR: [{ organizationId }, { organization: { parentOrganizationId } }]` через специальный helper. Не ломать tenant isolation.
+- **Acceptance:** регистрация new-child-org с указанием parent → она появляется в /network page материнской org, compliance считается агрегатом.
+
+#### 3.3.2. Шаблоны journals между компаниями
+- **Goal:** менеджер сети редактирует «Журнал контроля интенсивного охлаждения» с custom-полями (список блюд) → жмёт «Распространить на все точки сети» → 50 точек получают обновлённый config через Notification + автозапись в их `JournalDocument.config`.
+- **Сложность:** M
+- **Hints:** требует наличия #3.3.1 (parent-org). На уровне UI — diff-preview: «вот что изменится в N точках».
+- **Acceptance:** redeploy конфига в 50 точек за <30 сек, история изменений видна в audit log.
+
+#### 3.3.3. Cross-location бенчмаркинг
+- **Goal:** на /network page — таблица «Точка / compliance% / худший журнал / цвет». Сортировка по compliance ASC — региональный директор видит проблемные точки сверху.
+- **Сложность:** M
+- **Hints:** переиспользовать `getTemplatesFilledToday` для каждой child-org за период. Кеш на 1 час, чтобы не grind базу при открытии.
+- **Acceptance:** /network/benchmark открывается за <2 сек для сети из 100 точек.
+
+#### 3.3.4. Маркетплейс конфигураций
+- **Goal:** успешные рестораны могут опубликовать свой набор `disabledJournalCodes + autoJournalCodes + jobPositions` под лицензией CC. Новая компания при онбординге видит «топ-10 публичных конфигов» и может импортировать.
+- **Сложность:** L
+- **Hints:** новая модель `OnboardingPresetPublished`. UI — `/marketplace`. Социальный proof.
+- **Acceptance:** менеджер новой компании видит preset «Кофейня Surf Coffee — 12 точек», нажимает «Применить» → конфиг применяется как onboarding-preset.
+
+### 3.4. Инспектор / аудитор / СЭС
+
+#### 3.4.1. Бумажная распечатка всего за период (async)
+- **Goal:** в `/settings/inspector-portal` или отдельной странице — кнопка «Сформировать полный архив за период». Формирует ZIP со всеми journal-PDF файлами + summary, асинхронно через background job. Ссылка на скачивание + email-уведомление когда готово.
+- **Сложность:** M
+- **Hints:** уже есть `/api/inspector/[token]/pdf` (summary). Тут — full-archive: для каждого active document вызвать `/api/journal-documents/[id]/pdf` → собрать в ZIP через `archiver`. Storage — `/var/www/.../tmp` с TTL 7 дней.
+- **Acceptance:** на 100-документной orgе архив генерится за <5 мин в background, email с ссылкой приходит, ZIP скачивается, валидный.
+
+#### 3.4.2. Электронная подпись инспектора
+- **Goal:** в портале инспектора (`/inspector/<token>`) — кнопка «Подтверждаю просмотр». Записывает `InspectorVisit` row с timestamp + IP + user-agent + список просмотренных templates.
+- **Сложность:** L
+- **Hints:** новая модель `InspectorVisit { tokenId, signedAt, ip, userAgent, templatesViewed Json }`. UI — отдельная "signed" badge на токене у админа.
+- **Acceptance:** admin видит «Инспектор Иванова И.И. подписала просмотр 2026-04-30 14:30, журналов: 12».
+
+#### 3.4.3. Compliance-сертификат
+- **Goal:** PDF с QR-кодом «такая-то организация ведёт журналы N дней без нарушений». Можно вешать в зале клиенту.
+- **Сложность:** S
+- **Hints:** новая роута `/api/certificate/<orgId>?from=&to=`. Генерит PDF через jspdf, QR — через `qrcode` lib. QR ведёт на `/inspector/<token>` (TTL 90 дней) с фиксированным периодом — третьи лица могут проверить.
+- **Acceptance:** ресторан скачивает PDF, печатает A4, вешает в зале — QR работает с любого смартфона.
+
+### 3.5. Staff lifecycle
+
+#### 3.5.1. Onboarding-чек-лист нового сотрудника
+- **Goal:** новый `User` получает серию задач (через `Notification` + `JournalObligation`): пройти инструктаж по гигиене, медкомиссия, расписаться в правилах. Менеджер не может «допустить» сотрудника к смене, пока чек-лист не закрыт.
+- **Сложность:** M
+- **Hints:** новая модель `OnboardingChecklist` или переиспользовать `JournalObligation`. Hard-gate в TasksFlow assigment.
+- **Acceptance:** при создании user'а ему приходит TG с 5 задачами, после закрытия всех — статус `User.onboardingComplete = true`.
+
+#### 3.5.2. Уведомления при выходе сотрудника
+- **Goal:** если в WorkShift сотрудник на смене, но за 30 минут от старта он ничего не отметил в journals — push менеджеру «Иван на смене?». После порога 2 часа — авто-обновление WorkShift с пометкой `absent`.
+- **Сложность:** M
+- **Hints:** новый cron `/api/cron/shift-watcher` каждые 30 мин. Сравнивает `WorkShift.startTime` с journal activity.
+- **Acceptance:** менеджер получает 1 push за смену с реальной информацией, не false-positives при выходных.
+
+#### 3.5.3. Учёт обучения (медкнижка expiry)
+- **Goal:** в `StaffCompetency` есть поле expiry. Дёргать `/api/cron/expiry` (уже есть для продуктов!) расширить — за 30/14/3 дня до expiry медкнижки → push менеджеру.
+- **Сложность:** S
+- **Hints:** одна модификация `/api/cron/expiry` route.
+- **Acceptance:** за месяц до истечения медкнижки Иванова менеджер видит push «Иванов — медкнижка 2026-05-26 (через 30 дней)».
+
+#### 3.5.4. Автоматический offboarding
+- **Goal:** админ деактивирует user'а → автоматически: TF задачи передаются преемнику (по jobPosition), telegram chat unlinks, email уведомление admin'у со списком текущих обязательств.
+- **Сложность:** M
+- **Hints:** хук в API `/api/users/[id]` PATCH когда `isActive` меняется на false. Использовать существующий `pickPrimaryStaff` для подбора преемника.
+- **Acceptance:** деактивация повара Иванова → в TF его 8 задач переходят на повара Петрова (та же должность), audit log пишет «8 tasks reassigned».
+
+### 3.6. IoT / физический мир
+
+#### 3.6.1. Поддержка ESP32/Arduino (DIY-датчики)
+- **Goal:** опубликовать `/api/external/sensors POST {orgToken, equipmentId, type, value}` с публичной документацией. Маркетплейс готовых прошивок для ESP32 на GitHub.
+- **Сложность:** M
+- **Hints:** уже есть `/api/external/entries` с per-org token. Расширить или новый sensor-specific endpoint. README с пример Arduino-кода.
+- **Acceptance:** студент берёт ESP32 за $5, заливает прошивку из README, привязывает к Equipment в admin → датчик пишет t° автоматически.
+
+#### 3.6.2. Bluetooth-термометры через PWA Web Bluetooth
+- **Goal:** в Mini App кнопка «Подключить термометр». Web Bluetooth API ловит замер с Testo 104/Hanna HI 145 и кладёт в форму.
+- **Сложность:** L
+- **Hints:** Web Bluetooth работает только в Chrome (но Chrome ≥ 80% mobile share в RU). Нужен mapping характеристик GATT-сервиса на каждую модель.
+- **Acceptance:** повар нажимает кнопку → разрешает Bluetooth → термометр пишет 4.2°C → поле формы pre-filled.
+
+#### 3.6.3. Trigger при отклонении от нормы → CAPA
+- **Goal:** датчик показал t° > 6°C 30 минут подряд → push менеджеру + автосоздание `CapaTicket` со ссылкой на эпизод.
+- **Сложность:** M
+- **Hints:** `CapaTicket` уже есть. Хук в `/api/cron/tuya-pull` — если value out of `Equipment.tempMin..tempMax` > N подряд → создать ticket.
+- **Acceptance:** холодильник зашкалил на 2 часа → менеджер получил push + в `/capa` появился новый ticket «Превышение t° холодильник №3 / 2026-04-26 14:00-16:00».
+
+#### 3.6.4. Vision AI для сканирования полок
+- **Goal:** сотрудник снимает 1 фото холодильника → AI выделяет видимые продукты + распознаёт даты на ценниках/упаковке → проверяет на просрочки → пишет в `losses`.
+- **Сложность:** XL
+- **Hints:** Claude Vision на одном фото — точность ~70% на дату/название. Рекомендую делать pilot на 5 ресторанах перед раскаткой. Risk: false-positives → менеджер не доверяет.
+- **Acceptance:** для пилотного ресторана с 5 фото в неделю — 80% реальных просрочек найдены, < 2 false-positives.
+
+### 3.7. Аналитика и operational insight
+
+#### 3.7.1. Heatmap compliance
+- **Goal:** на дашборде менеджера — календарь, ось X = дни, ось Y = journals, цвет ячейки от красного (0%) до зелёного (100%).
+- **Сложность:** M
+- **Hints:** переиспользовать `getTemplatesFilledToday` для каждого дня периода (7-30 дней). Render — `recharts` или собственный SVG. Кешировать 1 час.
+- **Acceptance:** менеджер сразу видит «у нас завал по health_check каждый понедельник» — паттерн читается с одного взгляда.
+
+#### 3.7.2. Predictive alerts
+- **Goal:** «если сегодня к 14:00 не заполнено N — статистика говорит 80% что не заполнят сегодня вообще, напомним сейчас».
+- **Сложность:** L
+- **Hints:** простой baseline без ML — посчитать historical % заполнения в 14:00 vs final за день для каждого journal-template. Если delta < threshold → push.
+- **Acceptance:** push приходит ровно когда (а) статистически плохо, (б) ещё успеть исправить — не за 5 минут до конца дня.
+
+#### 3.7.3. Time-to-fill метрика
+- **Goal:** для каждого journal — медианное время заполнения (от open form до submit). На дашборде ROOT — топ медленных журналов в платформе.
+- **Сложность:** S
+- **Hints:** новый `JournalEntryTiming` table или просто `entry.metadata.formOpenedAt` поле. Считать в API submit handler.
+- **Acceptance:** видим что hygiene заполняется за 12 сек, climate — за 90 сек. Climate-форма явно требует UX-упрощения.
+
+#### 3.7.4. Worker-leaderboard
+- **Goal:** на странице `/dashboard` — карточка «Топ-3 исполнителя за месяц» по числу записей + бонус-сумма.
+- **Сложность:** S
+- **Hints:** `BonusEntry` уже есть. UI-only задача с парой запросов.
+- **Acceptance:** видна геймификация — повар Сидоров заполнил 234 записи и получил +1500₽ бонусов в апреле.
+
+### 3.8. LLM/AI features
+
+#### 3.8.1. Auto-generation отчётов по журналам
+- **Goal:** менеджер на странице `/reports` нажимает «Сгенерировать отчёт за апрель» → Claude получает summary всех journals + проблем → выдаёт текстовый отчёт «вот что было хорошо, вот проблемы, вот рекомендации».
+- **Сложность:** S
+- **Hints:** одна Claude Sonnet ($3/$15) или Haiku ($0.8/$4) ручка. ~5K токенов на отчёт = $0.05. Кешировать готовые отчёты в БД.
+- **Acceptance:** менеджер тратил 2 часа на отчёт собственнику — теперь 10 секунд + правки.
+
+#### 3.8.2. Smart copy-paste из ТТК/SOP
+- **Goal:** менеджер вставляет процедуру производства (текст SOP/ТТК) → AI разбивает на критические контрольные точки (CCP) и предлагает места контроля.
+- **Сложность:** L
+- **Hints:** Claude Sonnet с system-prompt'ом про ХАССП. Может промахиваться — нужен review-flow с возможностью править перед сохранением.
+- **Acceptance:** ТТК «Котлета по-киевски» → AI выдаёт 5 CCP (приёмка, разделка, t° готовности, охлаждение, хранение) с предложениями журналов.
+
+#### 3.8.3. Подсказки CAPA при нарушениях
+- **Goal:** когда `CapaTicket` создаётся (вручную или из IoT-trigger) — кнопка «AI: предложить корректирующие действия». Claude получает контекст + историю и выдаёт 3 варианта.
+- **Сложность:** M
+- **Hints:** один short-prompt запрос с context из ticket. ~2K токенов = $0.002.
+- **Acceptance:** в форме CAPA менеджер нажимает кнопку → 3 варианта в ≤30 сек, может выбрать один и отредактировать.
+
+#### 3.8.4. RAG для AI-помощника по СанПиН
+- **Goal:** уже есть базовый AI чат. Добавить embeddings всех релевантных нормативов (ТР ТС 021/022, СанПиН 2.3/2.4.3590-20, СП 2.4.3648-20, ГОСТ Р 51705.1) → ответы со ссылками на конкретные пункты.
+- **Сложность:** M
+- **Hints:** OpenAI text-embedding-3-small ($0.02/1M токенов) для эмбеддингов. Storage — pgvector в Postgres (уже есть Postgres!). Нормативы — ~200 страниц, ~600K токенов = $0.012 одноразово. Retrieval top-5 chunks → подставить в system-prompt.
+- **Acceptance:** на вопрос «какая t° холодильника?» AI отвечает «Согласно п. 4.5 СанПиН 2.3/2.4.3590-20: +2…+6 °C» с цитатой непосредственно из норматива.
+
+#### 3.8.5. Free-tier rate-limit для AI-чата
+- **Goal:** добавить `Organization.aiMonthlyMessagesLeft Int @default(20)`, декремент в `/api/ai/sanpin-chat` route. При 0 — 402 + upgrade-CTA в виджете. Сброс каждое 1-е число cron'ом.
+- **Сложность:** S
+- **Hints:** prisma migration. Виджет показывает «осталось N» внизу.
+- **Acceptance:** trial-org получает 20 сообщений в первый месяц, после — модалка «Pro $20/mo за безлимит». Twoja себя не разоряет на API-токены.
+
+#### 3.8.6. Prompt caching для AI-чата
+- **Goal:** в `/api/ai/sanpin-chat` system-prompt подаётся через Anthropic prompt-caching API (`cache_control: { type: "ephemeral" }`). Снижает стоимость input-токенов в 10× при повторном обращении в течение 5 мин.
+- **Сложность:** S
+- **Hints:** см. https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching. Меняем 2 строки в API route. System-prompt у нас ~600 токенов — каждое cached-обращение экономит ~$0.0005 по сравнению с full input.
+- **Acceptance:** второе сообщение от того же юзера в течение 5 мин стоит на 90% дешевле первого, в headers ответа Claude видим `cache_read_input_tokens > 0`.
+
+### 3.9. Интеграции
+
+#### 3.9.1. iiko / Poster / r_keeper
+- **Goal:** заказы и блюда из POS (iiko-Office API) → синк в `finished_product` журнал автоматически каждые 30 мин.
+- **Сложность:** L
+- **Hints:** iiko API имеет /api/0/login + /api/0/olap. POS-плагин = большая работа, но 60-70% RU ресторанов на iiko — огромный TAM.
+- **Acceptance:** ресторан подключил iiko-credentials → за смену 80 блюд автоматически в `finished_product` с временем выпуска.
+
+#### 3.9.2. 1C: Бухгалтерия — выгрузка списаний
+- **Goal:** `losses` журнал → раз в неделю CSV/XML экспорт в формате 1С CommerceML на email бухгалтеру.
+- **Сложность:** M
+- **Hints:** новый cron + Resend email с attachment. Формат — `1С-CommerceML 2.x` (схема публичная).
+- **Acceptance:** бухгалтер не делает ручную сверку списаний — приходит ready-to-import файл.
+
+#### 3.9.3. WhatsApp Business API
+- **Goal:** для регионов где Telegram под блокировкой — wa.me-link и WhatsApp Business webhooks для notify/digest.
+- **Сложность:** M
+- **Hints:** Meta WhatsApp Business API — нужен зарегистрированный business profile + одобренный template. ~$0.01-0.05 за message в RU.
+- **Acceptance:** менеджер может выбрать WhatsApp как канал, тот же weekly-digest приходит туда.
+
+#### 3.9.4. Yandex.Disk / Google Drive auto-backup
+- **Goal:** раз в неделю генерим summary-PDF + JSON dump всех journals → загружаем в подключённый облачный диск ресторана.
+- **Сложность:** S
+- **Hints:** Yandex.Disk API простой (REST + token). G.Drive — OAuth 2.0. Cron + http.
+- **Acceptance:** ресторатор спокоен, что если WeSetup исчезнет — у него все данные в облаке.
+
+#### 3.9.5. Кадастр-чекер по ИНН
+- **Goal:** при регистрации компании ввод ИНН → автозаполнение address/director/OKVED через DaData/checko API.
+- **Сложность:** S
+- **Hints:** DaData бесплатно до 10K запросов/день. checko.ru — альтернатива.
+- **Acceptance:** на /register/company ИНН вводится → 2 сек → 5 полей заполнены.
+
+#### 3.9.6. CRM (Bitrix24/AmoCRM) для лидов
+- **Goal:** заявки с landing'а → новый лид в Bitrix24, статус-update при подписке.
+- **Сложность:** M
+- **Hints:** Bitrix REST API + webhooks.
+- **Acceptance:** маркетинг видит conversion funnel «лид → trial → paid» в своей CRM.
+
+### 3.10. Compliance enforcement
+
+#### 3.10.1. Hard-gate перед сменой
+- **Goal:** в TF сотрудник не может открыть first-task смены, пока не отметил hygiene на сегодня.
+- **Сложность:** S
+- **Hints:** в TF API `/api/tasks` POST — проверка на наличие `hygiene` entry за сегодня. Server-side gate.
+- **Acceptance:** воркер пытается открыть «уборка горячего цеха» — модалка «Сначала пройдите гигиенический контроль».
+
+#### 3.10.2. Soft-block для администратора
+- **Goal:** если есть просроченный CapaTicket / breakdown без закрытия — на /dashboard всегда висит non-dismissable модалка.
+- **Сложность:** S
+- **Hints:** middleware-проверка для management role на dashboard pages.
+- **Acceptance:** менеджер не может «забыть» — модалка напоминает каждый день.
+
+#### 3.10.3. Auto-escalation
+- **Goal:** TasksFlow задача висит >24ч → push руководителю; >48ч → owner'у. ManagerScope уже даёт иерархию — нужен cron.
+- **Сложность:** M
+- **Hints:** новый `/api/cron/tasksflow-escalations`. Walking ManagerScope tree.
+- **Acceptance:** просроченные задачи реально подхватываются цепочкой управления, не зависают.
+
+#### 3.10.4. «Закрытый день» (read-only after midnight)
+- **Goal:** после 23:59 нельзя редактировать journal entries за вчерашний день. Только management через специальное действие с обязательным reason → audit-log.
+- **Сложность:** M
+- **Hints:** уже есть audit trail (intensive_cooling history). Расширить + middleware-блок в API.
+- **Acceptance:** официант не может задним числом «дописать» вчерашний контроль t°. Менеджер может, но запись о факте редактирования сохраняется.
+
+### 3.11. Mobile UX
+
+#### 3.11.1. Offline mode в Mini App
+- **Goal:** в Mini App при отсутствии интернета — формы сохраняют в IndexedDB и синкаются когда сеть появится. Нужно для морозильных складов.
+- **Сложность:** L
+- **Hints:** Service Worker + Background Sync API. Form submit — оборачивать в `idb-keyval` queue. Конфликт-resolution: server wins для journals.
+- **Acceptance:** сотрудник в подвальном складе без сигнала заполняет 5 форм → выходит → данные доходят до сервера за 10 сек.
+
+#### 3.11.2. Native iOS/Android app через Capacitor — `[deferred]`
+- **Goal:** существующий Mini App обёрнут в Capacitor → publish в App Store / Google Play. Native push, биометрия, BT.
+- **Сложность:** XL
+- **Hints:** Mini App почти-native, но WebView упирается в Telegram-ограничения. Capacitor — 3-4 месяца на полировку. ROI неясный — Mini App покрывает 95% UX.
+- **Acceptance:** ОТЛОЖИТЬ. Не делай это пока не будет 1000+ paid orgs.
+
+#### 3.11.3. Персонализированные пуши
+- **Goal:** «Иван, утренняя hygiene 30 сек» вместо «у вас задача». Все Telegram пуши получают переменные {name}, {timeOfDay}, {taskTitle}.
+- **Сложность:** S
+- **Hints:** правка template-функций в `src/lib/telegram.ts`. Можно вообще через Claude Haiku — генерит персонализированный текст за $0.0001/push.
+- **Acceptance:** воркер видит обращение по имени, контекст «утром» / «после смены» — снижается reminder fatigue.
+
+#### 3.11.4. Wearable (Apple Watch / Mi Band) — `[deferred]`
+- **Goal:** короткие задачи через смарт-часы. «t° холодильника норма? Yes/No».
+- **Сложность:** XL
+- **Hints:** требует native app (см. #3.11.2). ОТЛОЖИТЬ.
+- **Acceptance:** ОТЛОЖИТЬ.
+
+### 3.12. Customer success / self-serve
+
+#### 3.12.1. Видео-туториалы внутри
+- **Goal:** для каждого journal-template — 30-секундное видео «как заполнять». Записать через Loom + хостинг на Yandex.Cloud Object Storage.
+- **Сложность:** M
+- **Hints:** контент-задача больше чем код. Нужен сервис управления видео-tour'ами. UI — кнопка «?» в углу формы.
+- **Acceptance:** для top-10 journals есть видео; новый сотрудник смотрит 30 сек и заполняет правильно.
+
+#### 3.12.2. Чат поддержки в админке
+- **Goal:** Intercom-style виджет в углу. Пишет в Telegram-бот поддержки (отдельный чат для команды WeSetup).
+- **Сложность:** S
+- **Hints:** REST endpoint `/api/support` → grammy → Telegram. На отвечающей стороне — отдельный TG-канал команды.
+- **Acceptance:** клиент пишет «не могу импортировать Excel» → команда WeSetup отвечает в течение 4 часов в рабочее время.
+
+#### 3.12.3. Health-check organization (red/yellow widget)
+- **Goal:** еженедельный (или real-time) self-audit: пустые roles, journals без active doc, employees без phone, integration не настроена. Виджет на /dashboard «настройка: 7/12».
+- **Сложность:** S
+- **Hints:** server-side checks в одном API endpoint. Простая логика без AI.
+- **Acceptance:** менеджер видит «Здоровье настройки: 8/12» → клик → список «что докрутить».
+
+#### 3.12.4. Тур по Mini App для нового рабочего
+- **Goal:** при первом open Mini App — 5-экранный tour: «вот тут ваши задачи», «тут как заполнить», «тут уведомления». shepherd.js или собственный.
+- **Сложность:** M
+- **Hints:** localStorage flag `mini_tour_seen`. shepherd.js работает в WebView.
+- **Acceptance:** новый воркер за 30 сек понимает что нажать, не нужен звонок менеджеру.
+
+### 3.13. Pricing / монетизация
+
+#### 3.13.1. Per-employee pricing
+- **Goal:** заменить flat-tier subscription на per-employee. Free до 5 чел, $1/чел/мес после. Аналог Slack-pricing.
+- **Сложность:** S
+- **Hints:** периодически считать кол-во активных users в org → выставлять счёт через ЮKassa.
+- **Acceptance:** маленькая кофейня с 3 сотрудниками — бесплатно. Сеть 50 точек ×10 чел — $500/мес, разумно.
+
+#### 3.13.2. Add-on модули
+- **Goal:** базовый тариф $20/mo + IoT-add-on $30/mo + AI-helper-add-on $20/mo + inspector-portal $10/mo.
+- **Сложность:** M
+- **Hints:** `Organization.activeAddons String[]`. Middleware-чеки в каждом feature.
+- **Acceptance:** UI-страница «выбрать модули» с галочками, real-time price calculation.
+
+#### 3.13.3. Партнёрская программа для технологов-консультантов
+- **Goal:** технолог получает реферальную ссылку, % с приведённых клиентов на 12 мес.
+- **Сложность:** M
+- **Hints:** новая `Partner` модель + tracking. UTM в URL.
+- **Acceptance:** консультант приводит 5 ресторанов = пассивный доход, рекомендует ваше ПО другим клиентам.
+
+#### 3.13.4. Маркетплейс шаблонов с платными premium-конфигами — `[deferred]`
+- **Goal:** см. #3.3.4 + Stripe-style monetization для авторов конфигов.
+- **Сложность:** L
+- **Hints:** ОТЛОЖИТЬ — это long-tail, не работает без community-объёма.
+
+### 3.14. ROOT / платформа
+
+#### 3.14.1. Audit log платформы (impersonations)
+- **Goal:** логировать каждый impersonation ROOT → org с timestamp + IP + reason. Отдельная страница /root/audit-impersonations.
+- **Сложность:** S
+- **Hints:** уже есть `AuditLog` модель и `recordAuditLog()`. Хук в `/api/root/impersonate`. UI — простая таблица.
+- **Acceptance:** ROOT не может «тихо» зайти под org — каждое impersonation видно в audit + клиент-orgа может посмотреть «когда WeSetup-команда заходила в мой аккаунт».
+
+#### 3.14.2. Per-org metrics dashboard
+- **Goal:** на /root/organizations — usage (entries/day), retention (last activity), MRR (subscription tier × month), NPS если собираем.
+- **Сложность:** M
+- **Hints:** агрегаты по `JournalEntry.createdAt` per org.
+- **Acceptance:** собственник WeSetup видит метрики бизнеса на одной странице.
+
+#### 3.14.3. Auto-billing через ЮKassa
+- **Goal:** `Organization.yookassaShopId` уже есть в schema. Прокачать: автосписание подписки 1 числа, retry 3 дня, suspend на 5-й.
+- **Сложность:** M
+- **Hints:** ЮKassa API + webhook. Cron `/api/cron/billing` каждое 1 число.
+- **Acceptance:** платежи идут автоматически, ручных счетов нет.
+
+#### 3.14.4. Compliance-export для регулятора — `[deferred]`
+- **Goal:** машиночитаемый формат (XML по схеме Россельхознадзора, если такая существует) для проверок.
+- **Сложность:** L
+- **Hints:** ОТЛОЖИТЬ до конкретного запроса от клиента-регулятора. Сейчас Россельхознадзор такое не требует.
+
+---
+
+## 4. Дискавэри в процессе работы (placeholder)
+
+Если по ходу работы найдёшь побочные баги, добавляй сюда новой задачей с пометкой `[discovered]`. Не чини в текущем коммите — только записывай.
+
+_(пусто)_
+
+---
+
+## 5. Глоссарий
+
+- **org** — Organization, тенант. Все business-данные scoped по `organizationId`.
+- **ROOT** — `User.isRoot = true`, platform superadmin. Может impersonate любую org.
+- **management** — `role in ["manager", "head_chef"]` или legacy `["owner", "technologist"]`. Видит всё в своей org.
+- **staff** — `role in ["cook", "waiter"]`. Видит только разрешённые journals (через UserJournalAccess или JobPositionJournalAccess).
+- **TF** — TasksFlow, отдельный repo c:\www\TasksFlow.
+- **adapter** — `src/lib/tasksflow-adapters/<name>.ts`, мостит между TF-задачей и WeSetup-журналом.
+- **document-based journal** — журнал хранится как `JournalDocument` + `JournalDocumentEntry` rows (hygiene, climate, cleaning).
+- **field-based journal** — `JournalEntry` с JSON `data` (accident_journal, complaint_register).
+- **CCP** — Critical Control Point, термин из ХАССП.
+- **СанПиН** — Санитарные правила и нормы РФ. ХАССП = HACCP.
+- **СЭС / Роспотребнадзор** — органы, проверяющие пищевые предприятия.
