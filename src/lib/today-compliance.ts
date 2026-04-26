@@ -703,6 +703,23 @@ export async function getTemplatesFilledToday(
     }
   }
 
+  // JournalCloseEvent override: если на сегодня есть active-closure
+  // (kind = "no-events" | "closed-with-events" | "auto-closed-empty"),
+  // журнал считается заполненным (compliance ✅). Это обеспечивает
+  // что «Не требуется сегодня» / «Завершить смену» / даже cron
+  // auto-close не оставляют красные журналы на дашборде.
+  const todayCloseEvents = await db.journalCloseEvent.findMany({
+    where: {
+      organizationId,
+      date: todayStart,
+      reopenedAt: null, // активные closures (не reopened)
+    },
+    select: { templateId: true, kind: true },
+  });
+  for (const ce of todayCloseEvents) {
+    filled.add(ce.templateId);
+  }
+
   return filled;
 }
 
@@ -810,6 +827,31 @@ export async function getTemplateTodaySummary(
   const fillMode = template?.fillMode ?? "per-employee";
 
   const activeDocumentId = activeDocuments[0]?.id ?? null;
+
+  // JournalCloseEvent override: если на сегодня есть active closure —
+  // журнал считается заполненным (зелёный), независимо от entry-count
+  // и TF readiness. Это применяется к ЛЮБОМУ template'у, включая
+  // aperiodic — менеджер может вручную закрыть «без событий».
+  const closeEvent = await db.journalCloseEvent.findUnique({
+    where: {
+      organizationId_templateId_date: {
+        organizationId,
+        templateId,
+        date: todayStart,
+      },
+    },
+    select: { id: true, kind: true, reason: true, reopenedAt: true },
+  });
+  if (closeEvent && !closeEvent.reopenedAt) {
+    return {
+      filled: true,
+      aperiodic: false,
+      todayCount: 0,
+      expectedCount: 0,
+      noActiveDocument: false,
+      activeDocumentId,
+    };
+  }
 
   // TasksFlow override: if there are TF tasks bound to today's active
   // documents, the journal's readiness is purely "all those tasks
