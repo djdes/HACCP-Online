@@ -86,9 +86,19 @@ export function InspectorPortalClient({ initialTokens }: Props) {
     refresh();
   }
 
+  const [certOpen, setCertOpen] = useState(false);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setCertOpen(true)}
+          className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#3848c7] hover:bg-[#f5f6ff]"
+        >
+          🏆 Сертификат соответствия
+        </Button>
         <Button
           type="button"
           onClick={() => setCreateOpen(true)}
@@ -98,6 +108,10 @@ export function InspectorPortalClient({ initialTokens }: Props) {
           Создать ссылку
         </Button>
       </div>
+
+      {certOpen ? (
+        <CertificateDialog onClose={() => setCertOpen(false)} />
+      ) : null}
 
       {tokens.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
@@ -381,6 +395,110 @@ function SuccessDialog({
               className="h-10 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]"
             >
               Готово
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Modal для генерации compliance-сертификата (PDF + QR на 90 дней).
+ * Юзер выбирает период «за что отчитываемся», жмёт «Скачать PDF» —
+ * браузер стартует загрузку файла. Никакого confirmation-state — open
+ * tab с blob URL.
+ */
+function CertificateDialog({ onClose }: { onClose: () => void }) {
+  const [periodFrom, setPeriodFrom] = useState(daysAgo(30));
+  const [periodTo, setPeriodTo] = useState(todayKey());
+  const [generating, setGenerating] = useState(false);
+
+  async function generate() {
+    setGenerating(true);
+    try {
+      // Open in new tab — browser handles download header.
+      const url = `/api/certificate?from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(periodTo)}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Не удалось сформировать");
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download =
+        response.headers
+          .get("content-disposition")
+          ?.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1] ?? "certificate.pdf";
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Сертификат скачан — печатайте на A4 и вешайте в зале");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle className="text-[18px]">
+            🏆 Сертификат соответствия
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-[13px] leading-relaxed text-[#6f7282]">
+            PDF на A4 с уровнем соответствия за период и QR-кодом для
+            проверки. Можно повесить в зале — гости и проверяющие
+            сканируют QR со смартфона и видят live-журналы. QR
+            действует <strong>90 дней</strong>.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-[13px] text-[#6f7282]">За период с</Label>
+              <Input
+                type="date"
+                value={periodFrom}
+                onChange={(e) => setPeriodFrom(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] text-[#6f7282]">по</Label>
+              <Input
+                type="date"
+                value={periodTo}
+                onChange={(e) => setPeriodTo(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={generating}
+              className="h-10 rounded-2xl border-[#dcdfed] px-4"
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              onClick={generate}
+              disabled={generating}
+              className="h-10 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]"
+            >
+              {generating ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Скачать PDF"
+              )}
             </Button>
           </div>
         </div>
