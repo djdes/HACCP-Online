@@ -6,6 +6,7 @@ import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   CalendarDays,
+  History,
   Plus,
   Printer,
   Settings2,
@@ -43,6 +44,7 @@ import {
   normalizeIntensiveCoolingConfig,
   type IntensiveCoolingConfig,
   type IntensiveCoolingRow,
+  type IntensiveCoolingRowHistoryEntry,
 } from "@/lib/intensive-cooling-document";
 
 import { toast } from "sonner";
@@ -301,6 +303,13 @@ function RowDialog(props: {
             </Select>
           </div>
 
+          {props.initialRow?.history && props.initialRow.history.length > 0 ? (
+            <RowHistorySection
+              history={props.initialRow.history}
+              users={props.users}
+            />
+          ) : null}
+
           <div className="flex justify-end">
             <Button
               type="button"
@@ -318,6 +327,106 @@ function RowDialog(props: {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function formatHistoryTimestamp(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+}
+
+function RowHistorySection(props: {
+  history: IntensiveCoolingRowHistoryEntry[];
+  users: UserItem[];
+}) {
+  // Reverse-chronological — newest first.
+  const ordered = [...props.history].sort((a, b) => {
+    return new Date(b.at).getTime() - new Date(a.at).getTime();
+  });
+  return (
+    <fieldset className="space-y-3 rounded-[18px] border border-[#e5e8f2] bg-[#fafbff] p-4">
+      <legend className="px-1 text-base font-medium text-[#3848c7]">
+        <span className="inline-flex items-center gap-2">
+          <History className="size-4" />
+          История изменений · {props.history.length}
+        </span>
+      </legend>
+      <p className="text-[12px] leading-snug text-[#6f7282]">
+        Все правки строки фиксируются автоматически — это требование
+        ХАССП. Ниже показаны значения ДО каждого изменения.
+      </p>
+      <ul className="space-y-3">
+        {ordered.map((entry, idx) => {
+          const editorName =
+            entry.byName ||
+            (entry.by
+              ? props.users.find((u) => u.id === entry.by)?.name
+              : null) ||
+            "—";
+          return (
+            <li
+              key={`${entry.at}-${idx}`}
+              className="rounded-2xl border border-[#dcdfed] bg-white p-3 text-[13px] leading-snug"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-[#6f7282]">
+                <span className="font-medium text-[#0b1024]">
+                  {formatHistoryTimestamp(entry.at)}
+                </span>
+                <span>Изменил: {editorName}</span>
+              </div>
+              <dl className="mt-2 grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
+                <HistoryField label="Блюдо" value={entry.prev.dishName} />
+                <HistoryField
+                  label="Время"
+                  value={
+                    entry.prev.productionHour || entry.prev.productionMinute
+                      ? `${entry.prev.productionHour || "00"}:${entry.prev.productionMinute || "00"}`
+                      : ""
+                  }
+                />
+                <HistoryField
+                  label="T° в начале"
+                  value={
+                    entry.prev.startTemperature
+                      ? `${entry.prev.startTemperature} °C`
+                      : ""
+                  }
+                />
+                <HistoryField
+                  label="T° через 1 час"
+                  value={
+                    entry.prev.endTemperature
+                      ? `${entry.prev.endTemperature} °C`
+                      : ""
+                  }
+                />
+                <HistoryField
+                  label="Корректирующие действия"
+                  value={entry.prev.correctiveAction}
+                />
+                <HistoryField label="Комментарий" value={entry.prev.comment} />
+              </dl>
+            </li>
+          );
+        })}
+      </ul>
+    </fieldset>
+  );
+}
+
+function HistoryField({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2">
+      <dt className="text-[12px] text-[#6f7282]">{label}:</dt>
+      <dd className="text-[12px] text-[#0b1024]">{value}</dd>
+    </div>
   );
 }
 
@@ -778,6 +887,15 @@ export function IntensiveCoolingDocumentClient(props: Props) {
                   </td>
                   <td className="border border-black p-3 text-center whitespace-pre-line">
                     {formatIntensiveCoolingDateTime(row)}
+                    {row.history && row.history.length > 0 ? (
+                      <span
+                        title={`Запись редактировалась ${row.history.length} раз`}
+                        className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[10px] font-medium text-[#3848c7]"
+                      >
+                        <History className="size-3" />
+                        {row.history.length}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="border border-black p-3 text-center">
                     {row.dishName || "—"}

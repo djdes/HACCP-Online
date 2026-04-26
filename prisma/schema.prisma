@@ -36,6 +36,12 @@ model Organization {
   /// active JournalDocument covering today; creates a month-long doc if
   /// missing. Manages via /settings/auto-journals.
   autoJournalCodes         Json                       @default("[]")
+  /// Compliance toggle: when true, a previously-completed journal task
+  /// can ONLY be re-opened for edit by management roles
+  /// (manager/head_chef/owner/technologist) or ROOT. Default false —
+  /// any user who originally filled a task is allowed to re-open and
+  /// correct it. Toggled from /settings/compliance.
+  requireAdminForJournalEdit Boolean                  @default(false)
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

@@ -9,6 +9,7 @@ import {
 import { getAdapter } from "@/lib/tasksflow-adapters";
 import { buildCompletionValidator } from "@/lib/tasksflow-adapters/task-form";
 import { toDateKey } from "@/lib/hygiene-document";
+import { isManagementRole } from "@/lib/user-roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,6 +96,43 @@ export async function POST(
       { error: `Журнал «${link.journalCode}» не поддерживается` },
       { status: 400 }
     );
+  }
+
+  // Compliance gate: when the org enabled requireAdminForJournalEdit
+  // and this is a re-submission of an already-completed task by a
+  // non-management worker, refuse to overwrite. UI hides the button,
+  // but a worker who knows the URL could still POST — block here.
+  if (link.remoteStatus === "completed") {
+    const org = await db.organization.findUnique({
+      where: { id: link.integration.organizationId },
+      select: { requireAdminForJournalEdit: true },
+    });
+    if (org?.requireAdminForJournalEdit) {
+      let actorRole: string | null = null;
+      const mEmp = /^employee-(.+)$/.exec(link.rowKey);
+      let actorId = mEmp ? mEmp[1] : null;
+      if (!actorId && link.rowKey.startsWith("freetask:")) {
+        const rest = link.rowKey.slice("freetask:".length);
+        const sep = rest.indexOf(":");
+        if (sep > 0) actorId = rest.slice(0, sep);
+      }
+      if (actorId) {
+        const actor = await db.user.findUnique({
+          where: { id: actorId },
+          select: { role: true },
+        });
+        actorRole = actor?.role ?? null;
+      }
+      if (!isManagementRole(actorRole)) {
+        return NextResponse.json(
+          {
+            error:
+              "Только администраторы могут изменять выполненные записи. Попросите руководителя поправить данные.",
+          },
+          { status: 403 }
+        );
+      }
+    }
   }
 
   // Validate values through the adapter's form schema (if any).

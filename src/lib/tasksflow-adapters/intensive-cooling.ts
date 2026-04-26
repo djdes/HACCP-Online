@@ -19,7 +19,9 @@
 import { db } from "@/lib/db";
 import {
   INTENSIVE_COOLING_TEMPLATE_CODE,
+  snapshotIntensiveCoolingRow,
   type IntensiveCoolingRow,
+  type IntensiveCoolingRowHistoryEntry,
 } from "@/lib/intensive-cooling-document";
 import {
   EMPTY_SYNC_REPORT,
@@ -227,11 +229,12 @@ export const intensiveCoolingAdapter: JournalAdapter = {
     const existingIndex = existingRows.findIndex(
       (r) => r.sourceRowKey === rowKey
     );
+    const existingRow =
+      existingIndex >= 0 ? existingRows[existingIndex] : null;
     const existingId =
-      existingIndex >= 0
-        ? existingRows[existingIndex].id
-        : `cooling-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const row: IntensiveCoolingRow = {
+      existingRow?.id ??
+      `cooling-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const baseRow: IntensiveCoolingRow = {
       id: existingId,
       productionDate: todayKey,
       productionHour: hour,
@@ -253,6 +256,34 @@ export const intensiveCoolingAdapter: JournalAdapter = {
       responsibleUserId: employeeId,
       sourceRowKey: rowKey,
     };
+
+    // Audit trail: when re-completing an existing row with values
+    // that actually differ, push the OLD snapshot into history before
+    // overwriting. We DON'T append a history entry if values are
+    // identical (e.g. worker tapped «Готово» twice with no edits).
+    let row: IntensiveCoolingRow = baseRow;
+    if (existingRow) {
+      const prevSnapshot = snapshotIntensiveCoolingRow(existingRow);
+      const nextSnapshot = snapshotIntensiveCoolingRow(baseRow);
+      const changed = (Object.keys(prevSnapshot) as Array<
+        keyof typeof prevSnapshot
+      >).some((k) => prevSnapshot[k] !== nextSnapshot[k]);
+      const previousHistory = Array.isArray(existingRow.history)
+        ? existingRow.history
+        : [];
+      const nextHistory: IntensiveCoolingRowHistoryEntry[] = changed
+        ? [
+            ...previousHistory,
+            {
+              at: new Date().toISOString(),
+              by: employeeId,
+              byName: employee?.name ?? null,
+              prev: prevSnapshot,
+            },
+          ]
+        : previousHistory;
+      row = nextHistory.length > 0 ? { ...baseRow, history: nextHistory } : baseRow;
+    }
 
     const nextRows =
       existingIndex >= 0

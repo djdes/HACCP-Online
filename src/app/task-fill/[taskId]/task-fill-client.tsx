@@ -28,6 +28,12 @@ type Props = {
   employeePositionTitle: string | null;
   form: TaskFormSchema | null;
   alreadyCompleted: boolean;
+  /**
+   * If true, the org admin enabled "Только админы могут править
+   * выполненные записи" and the current rowKey owner is not a
+   * management role. Hide the «Изменить данные» button.
+   */
+  editLocked: boolean;
 };
 
 /**
@@ -47,6 +53,7 @@ export function TaskFillClient({
   employeePositionTitle,
   form,
   alreadyCompleted,
+  editLocked,
 }: Props) {
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
@@ -182,8 +189,9 @@ export function TaskFillClient({
           />
         ) : alreadyCompleted && !editIntent ? (
           <AlreadyDoneCard
-            onEdit={() => setEditIntent(true)}
+            onEdit={editLocked ? null : () => setEditIntent(true)}
             returnUrl={returnUrl}
+            locked={editLocked}
           />
         ) : (
           <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
@@ -267,9 +275,11 @@ export function TaskFillClient({
 function AlreadyDoneCard({
   onEdit,
   returnUrl,
+  locked,
 }: {
-  onEdit: () => void;
+  onEdit: (() => void) | null;
   returnUrl: string | null;
+  locked: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-[#ececf4] bg-white p-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
@@ -279,21 +289,33 @@ function AlreadyDoneCard({
       <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
         Задача выполнена
       </h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
-        Запись уже сохранена в журнале. Можно открыть её и изменить
-        данные — старые значения будут перезаписаны.
-      </p>
-      <Button
-        type="button"
-        onClick={onEdit}
-        className="mt-6 h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0] shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]"
-      >
-        Изменить данные
-      </Button>
+      {locked ? (
+        <>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
+            Запись уже сохранена в журнале. По правилам компании изменять
+            выполненные записи могут только администраторы — попросите
+            руководителя поправить данные за вас.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
+            Запись уже сохранена в журнале. Можно открыть её и изменить
+            данные — старые значения будут перезаписаны.
+          </p>
+          <Button
+            type="button"
+            onClick={onEdit ?? undefined}
+            className="mt-6 h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0] shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]"
+          >
+            Изменить данные
+          </Button>
+        </>
+      )}
       {returnUrl ? (
         <a
           href={returnUrl}
-          className="mt-3 inline-block text-[13px] text-[#6f7282] hover:text-[#0b1024]"
+          className={`${locked ? "mt-6" : "mt-3"} inline-block text-[13px] text-[#6f7282] hover:text-[#0b1024]`}
         >
           Вернуться в TasksFlow
         </a>

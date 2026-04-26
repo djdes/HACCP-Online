@@ -174,6 +174,14 @@ const settingsCards = [
     bg: "#f3f4f6",
   },
   {
+    title: "Compliance",
+    description: "Кто может править выполненные записи журналов",
+    href: "/settings/compliance",
+    icon: ShieldCheck,
+    color: "#3848c7",
+    bg: "#eef1ff",
+  },
+  {
     title: "Справочник СанПиН",
     description: "Нормативы и требования",
     href: "/sanpin",

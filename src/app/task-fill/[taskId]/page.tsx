@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { getAdapter } from "@/lib/tasksflow-adapters";
+import { isManagementRole } from "@/lib/user-roles";
 import { TaskFillClient } from "./task-fill-client";
 
 export const runtime = "nodejs";
@@ -76,7 +77,7 @@ export default async function TaskFillPage({
   const adapter = getAdapter(link.journalCode);
   if (!adapter) notFound();
 
-  const [doc, employee, template] = await Promise.all([
+  const [doc, employee, template, org] = await Promise.all([
     db.journalDocument.findUnique({
       where: { id: link.journalDocumentId },
       select: { id: true, title: true, dateFrom: true, dateTo: true },
@@ -97,12 +98,16 @@ export default async function TaskFillPage({
       if (!userId) return null;
       return db.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, positionTitle: true },
+        select: { id: true, name: true, role: true, positionTitle: true },
       });
     })(),
     db.journalTemplate.findFirst({
       where: { code: link.journalCode },
       select: { name: true },
+    }),
+    db.organization.findUnique({
+      where: { id: link.integration.organizationId },
+      select: { requireAdminForJournalEdit: true },
     }),
   ]);
   if (!doc) notFound();
@@ -113,6 +118,15 @@ export default async function TaskFillPage({
         rowKey: link.rowKey,
       })
     : null;
+
+  // Compliance toggle: when org has requireAdminForJournalEdit ON AND
+  // the worker who owns this task is NOT a management role, hide the
+  // «Изменить данные» button on a re-opened completed task. The HMAC
+  // token authenticates the rowKey owner (no NextAuth session here),
+  // so role check is derived from `employee.role`.
+  const editLocked =
+    Boolean(org?.requireAdminForJournalEdit) &&
+    !isManagementRole(employee?.role ?? null);
 
   return (
     <TaskFillClient
@@ -125,6 +139,7 @@ export default async function TaskFillPage({
       employeePositionTitle={employee?.positionTitle ?? null}
       form={form}
       alreadyCompleted={link.remoteStatus === "completed"}
+      editLocked={editLocked}
     />
   );
 }

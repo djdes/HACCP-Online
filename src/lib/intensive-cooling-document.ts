@@ -6,6 +6,34 @@ export const INTENSIVE_COOLING_DOCUMENT_TITLE =
   "Журнал контроля интенсивного охлаждения горячих блюд";
 export const INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME = "Журнал контроля";
 
+export type IntensiveCoolingRowSnapshot = {
+  productionDate: string;
+  productionHour: string;
+  productionMinute: string;
+  dishName: string;
+  startTemperature: string;
+  endTemperature: string;
+  correctiveAction: string;
+  comment: string;
+  responsibleTitle: string;
+  responsibleUserId: string;
+};
+
+/**
+ * Audit-trail entry for an intensive-cooling row. Pushed to
+ * `IntensiveCoolingRow.history` every time the row gets updated (either
+ * via TasksFlow re-completion or via the document UI). `prev` is a
+ * snapshot of the row's values BEFORE the update — `at` / `by` /
+ * `byName` describe who made the change. Compliance requirement: the
+ * journal must keep an immutable trail of all corrections.
+ */
+export type IntensiveCoolingRowHistoryEntry = {
+  at: string;
+  by: string | null;
+  byName: string | null;
+  prev: IntensiveCoolingRowSnapshot;
+};
+
 export type IntensiveCoolingRow = {
   id: string;
   productionDate: string;
@@ -25,6 +53,12 @@ export type IntensiveCoolingRow = {
    * manually-entered rows.
    */
   sourceRowKey?: string;
+  /**
+   * Append-only audit trail of edits — each entry holds the row state
+   * BEFORE that edit plus who/when. Empty / undefined means the row was
+   * never edited after creation.
+   */
+  history?: IntensiveCoolingRowHistoryEntry[];
 };
 
 export type IntensiveCoolingConfig = {
@@ -86,6 +120,65 @@ export function createIntensiveCoolingRow(
     ...(overrides?.sourceRowKey
       ? { sourceRowKey: normalizeText(overrides.sourceRowKey) }
       : {}),
+    ...(Array.isArray(overrides?.history) && overrides.history.length > 0
+      ? { history: normalizeIntensiveCoolingHistory(overrides.history) }
+      : {}),
+  };
+}
+
+function normalizeIntensiveCoolingHistory(
+  raw: unknown
+): IntensiveCoolingRowHistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item): IntensiveCoolingRowHistoryEntry | null => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const obj = item as Record<string, unknown>;
+      const prevRaw = obj.prev as Record<string, unknown> | undefined;
+      if (!prevRaw || typeof prevRaw !== "object") return null;
+      const at = typeof obj.at === "string" ? obj.at : "";
+      if (!at) return null;
+      const by =
+        typeof obj.by === "string" && obj.by !== "" ? obj.by : null;
+      const byName =
+        typeof obj.byName === "string" && obj.byName !== "" ? obj.byName : null;
+      return {
+        at,
+        by,
+        byName,
+        prev: {
+          productionDate: normalizeText(prevRaw.productionDate),
+          productionHour: normalizeText(prevRaw.productionHour),
+          productionMinute: normalizeText(prevRaw.productionMinute),
+          dishName: normalizeText(prevRaw.dishName),
+          startTemperature: normalizeText(prevRaw.startTemperature),
+          endTemperature: normalizeText(prevRaw.endTemperature),
+          correctiveAction: normalizeText(prevRaw.correctiveAction),
+          comment: normalizeText(prevRaw.comment),
+          responsibleTitle: normalizeText(prevRaw.responsibleTitle),
+          responsibleUserId: normalizeText(prevRaw.responsibleUserId),
+        },
+      };
+    })
+    .filter(
+      (item): item is IntensiveCoolingRowHistoryEntry => item !== null
+    );
+}
+
+export function snapshotIntensiveCoolingRow(
+  row: IntensiveCoolingRow
+): IntensiveCoolingRowSnapshot {
+  return {
+    productionDate: row.productionDate,
+    productionHour: row.productionHour,
+    productionMinute: row.productionMinute,
+    dishName: row.dishName,
+    startTemperature: row.startTemperature,
+    endTemperature: row.endTemperature,
+    correctiveAction: row.correctiveAction,
+    comment: row.comment,
+    responsibleTitle: row.responsibleTitle,
+    responsibleUserId: row.responsibleUserId,
   };
 }
 
