@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Building2 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { SeedDemoButton } from "./seed-demo-button";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,16 @@ export default async function RootOrganizationsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">
-          Все организации
-        </h1>
-        <p className="mt-2 text-[15px] text-[#6f7282]">
-          Платформенный уровень. Всего организаций: {organizations.length}.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">
+            Все организации
+          </h1>
+          <p className="mt-2 text-[15px] text-[#6f7282]">
+            Платформенный уровень. Всего организаций: {organizations.length}.
+          </p>
+        </div>
+        <SeedDemoButton />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-[#ececf4] bg-white">
