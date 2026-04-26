@@ -42,6 +42,11 @@ model Organization {
   /// any user who originally filled a task is allowed to re-open and
   /// correct it. Toggled from /settings/compliance.
   requireAdminForJournalEdit Boolean                  @default(false)
+  /// Час суток (0-23 по локальному часовому поясу организации) когда
+  /// смена заканчивается и cron auto-close срабатывает на shared-задачах
+  /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен
+  /// можно поставить, например, 6 — тогда «сегодня» длится до 06:00.
+  shiftEndHour       Int                        @default(0)
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
@@ -63,6 +68,7 @@ model Organization {
   jobPositionJournalAccess JobPositionJournalAccess[]
   bonusEntries             BonusEntry[]
   inspectorTokens          InspectorToken[]
+  journalCloseEvents       JournalCloseEvent[]
 }
 
 model User {
@@ -128,6 +134,8 @@ model User {
   managerScopes               ManagerScope[]           @relation("ManagerScopes")
   defaultAssigneeForTemplates JournalTemplate[]        @relation("DefaultAssignee")
   bonusEntries                BonusEntry[]
+  closedJournalEvents         JournalCloseEvent[]      @relation("ClosedBy")
+  reopenedJournalEvents       JournalCloseEvent[]      @relation("ReopenedBy")
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -554,14 +562,81 @@ model JournalTemplate {
   /// бонуса. Менеджер активирует через `/settings/journals` → у
   /// обязательств появляется кнопка «Взять с бонусом» (Фаза 3).
   bonusAmountKopecks Int                        @default(0)
+  /// Тип задачи в TasksFlow:
+  ///   "personal" — закреплено за одним сотрудником, закрывается один
+  ///                раз за смену (hygiene, health_check, cleaning).
+  ///   "shared"   — общая задача смены, доступна всем подходящим по
+  ///                роли. Может быть заполнена N раз в день (event-log:
+  ///                acceptance, finished_product, complaint_register).
+  /// Default "personal" для back-compat. Settings UI в /settings/journals/[code]
+  /// позволяет менеджеру переопределить для своей организации (см.
+  /// OrgJournalScopeOverride если потребуется per-org override).
+  taskScope          String                     @default("personal")
+  /// Можно ли в TasksFlow нажать «Не требуется сегодня» вместо
+  /// заполнения. False для критичных журналов (health_check —
+  /// нельзя отказаться от проверки здоровья).
+  allowNoEvents      Boolean                    @default(true)
+  /// Список стандартных причин для closure без событий. JSON-массив
+  /// строк. Менеджер редактирует в /settings/journals/[code].
+  noEventsReasons    Json                       @default("[\"Поставок/событий нет\",\"Заведение закрыто\",\"Оборудование не в работе\",\"Выходной/праздничный день\"]")
+  /// Можно ли вводить свободный текст причины в дополнение к списку.
+  /// False — только из готового списка (стандартизация для отчётов).
+  allowFreeTextReason Boolean                   @default(false)
   entries            JournalEntry[]
   documents          JournalDocument[]
   journalObligations JournalObligation[]
   positionAccess     JobPositionJournalAccess[]
   sensorMappings     EquipmentSensorMapping[]
   bonusEntries       BonusEntry[]
+  closeEvents        JournalCloseEvent[]
 
   @@index([defaultAssigneeId])
+}
+
+/// Событие закрытия журнала за день — отдельное от обычных entry.
+/// Создаётся когда сотрудник нажимает «Не требуется сегодня» / «Завершить
+/// смену», или когда cron auto-close срабатывает в shiftEndHour.
+///
+/// Семантика kind:
+///   "no-events"          — явное закрытие сотрудником с причиной
+///                          (compliance ✅ зелёный)
+///   "auto-closed-empty"  — cron закрыл по полуночи, никто не действовал
+///                          (compliance 🟡 жёлтый — флаг халатности)
+///   "closed-with-events" — сотрудник нажал «завершить смену» после
+///                          N записей (compliance ✅ зелёный)
+///
+/// Reopen: если после закрытия случилось событие — сотрудник может
+/// reopen'ить, тогда reopenedAt/reopenedByUserId заполняются. Запись
+/// остаётся как audit trail (не удаляется).
+model JournalCloseEvent {
+  id                String           @id @default(cuid())
+  organizationId    String
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateId        String
+  template          JournalTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  /// JournalDocument на которую относится closure. Null если журнал
+  /// document-free (legacy field-based) — тогда date+template определяет.
+  journalDocumentId String?
+  journalDocument   JournalDocument? @relation(fields: [journalDocumentId], references: [id], onDelete: Cascade)
+  /// UTC midnight того дня, который закрывается.
+  date              DateTime
+  kind              String
+  /// Текст причины (либо из noEventsReasons-list, либо free-text).
+  /// Пусто для "auto-closed-empty" и "closed-with-events".
+  reason            String?
+  closedByUserId    String?
+  closedBy          User?            @relation("ClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  /// Заполняется когда юзер reopen'ит закрытие после факта события.
+  reopenedAt        DateTime?
+  reopenedByUserId  String?
+  reopenedBy        User?            @relation("ReopenedBy", fields: [reopenedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+
+  /// На один (template, date, org) — одно закрытие. Reopen не плодит
+  /// новых записей, обновляет существующую.
+  @@unique([organizationId, templateId, date])
+  @@index([organizationId, date])
+  @@index([templateId, date])
 }
 
 /// Per-org white-list: каким должностям разрешено получать
@@ -911,6 +986,7 @@ model JournalDocument {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   entries           JournalDocumentEntry[]
+  closeEvents       JournalCloseEvent[]
 
   @@index([organizationId, templateId, status])
   @@index([organizationId, dateFrom])
