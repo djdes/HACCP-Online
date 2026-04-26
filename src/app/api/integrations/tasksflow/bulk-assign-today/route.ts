@@ -119,6 +119,9 @@ export async function POST(request: Request) {
         code: true,
         name: true,
         bonusAmountKopecks: true,
+        // taskScope нужен для journalLink — TF Dashboard разделяет
+        // задачи на «Мои» / «Общие» по этому полю.
+        taskScope: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -464,6 +467,11 @@ export async function POST(request: Request) {
         // claim-логики (когда первый сделал — у всех остальных
         // карточка уезжает в «Сделано другими»).
         bonusAmountKopecks: tpl.bonusAmountKopecks ?? 0,
+        // taskScope — 'personal' (закрепленная задача) или 'shared'
+        // (общая очередь записей). TF Dashboard разделяет на 2 таба
+        // «Мои задачи» / «Общие задачи смены». Default 'personal'
+        // для back-compat если поле не пришло.
+        taskScope: tpl.taskScope ?? "personal",
       });
       try {
         await client.updateTask(created.id, { journalLink } as never);

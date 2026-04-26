@@ -22,15 +22,31 @@ export async function PATCH(request: Request) {
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { requireAdminForJournalEdit?: unknown }
+    | {
+        requireAdminForJournalEdit?: unknown;
+        shiftEndHour?: unknown;
+      }
     | null;
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const data: { requireAdminForJournalEdit?: boolean } = {};
+  const data: {
+    requireAdminForJournalEdit?: boolean;
+    shiftEndHour?: number;
+  } = {};
   if (typeof body.requireAdminForJournalEdit === "boolean") {
     data.requireAdminForJournalEdit = body.requireAdminForJournalEdit;
+  }
+  if (typeof body.shiftEndHour === "number") {
+    const h = Math.floor(body.shiftEndHour);
+    if (h < 0 || h > 23) {
+      return NextResponse.json(
+        { error: "shiftEndHour должен быть от 0 до 23" },
+        { status: 400 }
+      );
+    }
+    data.shiftEndHour = h;
   }
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
@@ -42,7 +58,7 @@ export async function PATCH(request: Request) {
   const updated = await db.organization.update({
     where: { id: getActiveOrgId(session) },
     data,
-    select: { requireAdminForJournalEdit: true },
+    select: { requireAdminForJournalEdit: true, shiftEndHour: true },
   });
 
   return NextResponse.json(updated);

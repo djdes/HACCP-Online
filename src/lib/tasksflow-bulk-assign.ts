@@ -9,6 +9,9 @@ export type BulkJournalTemplate = {
   /** Премия за выполнение в копейках. Если > 0 — задача отправляется
    *  всем eligible сотрудникам (race-for-bonus), а не одному. */
   bonusAmountKopecks?: number;
+  /** 'personal' (закрепленная задача) или 'shared' (общая очередь
+   *  записей). TF Dashboard разделяет на 2 таба. */
+  taskScope?: string;
 };
 
 export type BulkJournalSkip = {

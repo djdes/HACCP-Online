@@ -17,7 +17,7 @@ export default async function CompliancePage() {
 
   const org = await db.organization.findUnique({
     where: { id: orgId },
-    select: { requireAdminForJournalEdit: true },
+    select: { requireAdminForJournalEdit: true, shiftEndHour: true },
   });
 
   return (
@@ -52,6 +52,7 @@ export default async function CompliancePage() {
         initialRequireAdminForJournalEdit={
           org?.requireAdminForJournalEdit ?? false
         }
+        initialShiftEndHour={org?.shiftEndHour ?? 0}
       />
     </div>
   );
