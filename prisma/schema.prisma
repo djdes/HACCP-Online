@@ -77,6 +77,11 @@ model Organization {
   /// показать в /settings/backup карточке «последний бэкап: …» и в
   /// /dashboard health-check'е сигналить если бэкап старше 14 дней.
   yandexDiskLastBackupAt   DateTime?
+  /// Email бухгалтера для еженедельной выгрузки списаний (LossRecord)
+  /// в формате CSV под импорт в 1С:Бухгалтерия. Дёргается cron
+  /// `/api/cron/losses-export-1c` по понедельникам. Если null —
+  /// org не получает рассылку.
+  accountantEmail          String?
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
