@@ -177,3 +177,91 @@
 - Старые TasksFlow-задачи в БД содержат `baseUrl: https://localhost:3002` — прогнать миграцию (`UPDATE tasks SET journalLink = REPLACE(journalLink, 'https://localhost:3002', 'https://wesetup.ru')`).
 - Per-position visibility для новой компании: `/settings/journals-by-position` пресет для type=restaurant.
 - TasksFlow dropdown z-index фикс.
+
+---
+
+## Раздел 5. Реализация идей раздела 3 (сессия 2026-04-26)
+
+### 5.1 ✅ Идея 3.3 — Onboarding-пресеты «должность → журналы»
+- `src/lib/onboarding-presets.ts` — пресеты для 6 типов организаций
+  (`restaurant`, `meat`, `dairy`, `bakery`, `confectionery`, `other`).
+- Каждый пресет: набор канонических должностей + какие journal codes им
+  доступны по умолчанию.
+- `POST /api/onboarding/apply` — идемпотентный апплай: upsert positions,
+  reset+create JobPositionJournalAccess. Опциональный seed-staff.
+- UI: компонент `OnboardingApplyButton` встроен на `/settings/journals-by-position`.
+
+### 5.2 ✅ Идея 3.9 — Демо-сотрудники одной кнопкой
+- В тот же endpoint добавлен флаг `seedDemoStaff: true`.
+- Имена ru-нейтральные (Анна Менеджерова, Сергей Шефов, …),
+  телефоны `+7990…` (заведомо несуществующие), `passwordHash=""`
+  (логин невозможен).
+
+### 5.3 ✅ Идея 3.2 — CSV/Excel импорт сотрудников
+- `POST /api/staff/bulk`: принимает `csv` (paste из Excel) или `rows[]`.
+  Auto-detect разделителя `\t` / `;` / `,`. Skip header. Skip duplicates
+  по телефону. Per-line errors.
+- Компонент `BulkStaffImport` — minimal textarea-dialog. Доступен из
+  onboarding-wizard.
+
+### 5.4 ✅ Идея 3.1 — Onboarding-wizard 3 шага
+- Страница `/settings/onboarding` со stepper'ом:
+  1. Должности и журналы (через OnboardingApplyButton)
+  2. Сотрудники (через BulkStaffImport + ссылка на ручное добавление)
+  3. TasksFlow (если ещё не подключён)
+- Готовность шагов считается на сервере (initialPositionsCount,
+  initialStaffCount, tasksflowConnected) — без локального state.
+- Карточка «Быстрая настройка» добавлена на `/settings`.
+
+### 5.5 ✅ Идея 3.7 — `/api/healthz` endpoint
+- Проверяет: DB ping (Prisma `SELECT 1`), Telegram bot getMe, build SHA.
+- Возвращает 200 OK / 503. Подходит для UptimeRobot / BetterStack /
+  PM2 healthcheck.
+- `cache-control: no-store`.
+
+### 5.6 ✅ Идея 3.8 — Build-info auto-toast
+- `BuildVersionWatcher` polling `/api/build-info` каждые 5 минут.
+- При смене SHA — persistent toast «Доступно обновление, Перезагрузить»
+  (без forced reload — пользователь сам выбирает момент, не теряет данные).
+- Подключён в `app/layout.tsx` рядом с ServiceWorkerRegister
+  (тот делает hard reload только при mount).
+
+### 5.7 ✅ Идея 3.10 — Audit log
+- Использована существующая модель `AuditLog` (была в schema без use sites).
+- `src/lib/audit-log.ts`: `recordAuditLog(input)` с capture IP/UA.
+- Подключён в `onboarding/apply` и `staff/bulk`. Дальнейшие call sites
+  легко добавить — helper best-effort, не блокирует основной flow.
+- Страница `/root/audit` — последние 200 записей с фильтром по action.
+- Хранится 365 дней (`pruneOldAuditLogs()` готов к cron'у).
+
+### 5.8 ✅ Идея 3.4 — Эскалация в reminder-cron
+- `/api/cron/compliance` теперь определяет `stage` по часу МСК:
+  - `soft` (до 15:00) — мягкое напоминание, только Telegram
+  - `warn` (15:00-19:00) — emoji ⚠️ + Email управлению
+  - `urgent` (от 19:00) — emoji 🚨 + Email управлению
+- Текст сообщения адаптируется (emoji, prefix). Тип уведомления
+  оставлен `compliance` для совместимости с enum.
+- Для реальной эскалации нужно: запускать cron 3 раза в день
+  (12:00, 17:00, 21:00 МСК) — сейчас раз в день.
+
+### 5.9 ✅ TasksFlow — z-index фикс empty-state vs dropdown
+- В `client/src/index.css`: `.empty-state { pointer-events: none }`,
+  `.empty-state > * { pointer-events: auto }`. Кнопка «Создать задачу»
+  внутри empty-state остаётся кликабельной, но соседние элементы
+  (dropdown-меню над ним) больше не перехватываются.
+- Закрывает баг #3 из раздела 1.
+
+### 5.10 ⏭ Skip — Идея 3.5 (IoT Modbus/MQTT)
+- Требует физических датчиков и брокера. Tuya integration уже есть
+  (`src/lib/tuya.ts`). Остальное — вне scope code-only сессии.
+
+### 5.11 ⏭ Skip — Идея 3.6 (AI-suggest бракераж)
+- Требует OPENAI_API_KEY, vision API costs, отдельный UX-thread для
+  approve-flow. Лучше делать отдельным полнокровным thread'ом с
+  product-owner'ом.
+
+### Что нужно админу после деплоя
+- Проверить `/settings/onboarding` — flow должен работать end-to-end.
+- Проверить `/api/healthz` — ответы 200 и checks.telegram.ok=true.
+- Раз в день дёргать `/api/cron/compliance` (можно три раза для эскалации).
+- Назначить cron на `pruneOldAuditLogs()` — иначе таблица AuditLog растёт.
