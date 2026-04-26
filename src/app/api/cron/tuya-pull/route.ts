@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getDeviceTemperature } from "@/lib/tuya";
 import { pickPrimaryManager } from "@/lib/user-roles";
+import { maybeCreateRealtimeCapa } from "@/lib/iot-violation-capa";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +104,8 @@ async function handle(request: Request) {
       id: true,
       name: true,
       tuyaDeviceId: true,
+      tempMin: true,
+      tempMax: true,
       area: { select: { organizationId: true } },
       sensorMappings: {
         select: {
@@ -110,6 +113,8 @@ async function handle(request: Request) {
           templateId: true,
           fieldKey: true,
           readingType: true,
+          lastReadingAt: true,
+          lastValue: true,
           template: {
             select: { code: true, fillMode: true, id: true },
           },
@@ -262,6 +267,33 @@ async function handle(request: Request) {
         update: { data: dataValue },
       });
       report.entriesWritten += 1;
+
+      // IoT-trigger → CAPA: до апдейта mapping.lastValue/lastReadingAt
+      // мы знаем «предыдущий» замер. Если оба out-of-range и зазор
+      // ≤90 мин — создаём тикет (см. src/lib/iot-violation-capa.ts).
+      // Только для temperature-readings (humidity не имеет min/max).
+      if (mapping.readingType === "temperature") {
+        const prevValue =
+          mapping.lastValue !== null && mapping.lastValue !== undefined
+            ? Number(mapping.lastValue)
+            : null;
+        maybeCreateRealtimeCapa({
+          organizationId: orgId,
+          equipmentId: eq.id,
+          equipmentName: eq.name,
+          currentValue: value,
+          previousValue: Number.isFinite(prevValue) ? prevValue : null,
+          previousAt: mapping.lastReadingAt,
+          tempMin: eq.tempMin,
+          tempMax: eq.tempMax,
+          now,
+        }).catch((err) => {
+          console.warn(
+            `[tuya-pull] capa-trigger failed for ${eq.name}:`,
+            err instanceof Error ? err.message : err
+          );
+        });
+      }
 
       await db.equipmentSensorMapping.update({
         where: { id: mapping.id },
