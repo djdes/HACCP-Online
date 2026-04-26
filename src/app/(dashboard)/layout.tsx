@@ -7,6 +7,8 @@ import {
   SiteThemeBootstrap,
   SiteThemeProvider,
 } from "@/components/theme/site-theme";
+import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import "@/app/app-theme.css";
 
@@ -59,6 +61,11 @@ export default async function DashboardLayout({
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
           />
           <main className="p-4 md:p-6">{children}</main>
+          {/* AI SanPiN/HACCP помощник — доступен management+ из любого
+              экрана дашборда. Сотрудникам без полного доступа не
+              нужен — они выполняют конкретные задачи, а не настраивают
+              нормативы. */}
+          {hasFullWorkspaceAccess(session.user) ? <SanpinChatWidget /> : null}
         </div>
         <Toaster />
       </SiteThemeProvider>
