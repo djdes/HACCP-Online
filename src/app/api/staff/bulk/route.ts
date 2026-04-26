@@ -118,18 +118,52 @@ export async function POST(request: Request) {
     select: { id: true, name: true, categoryKey: true },
   });
   const posByName = new Map(positions.map((p) => [p.name.toLowerCase(), p]));
+  const posById = new Map(positions.map((p) => [p.id, p]));
+
+  // Fuzzy-match для всех уникальных имён должностей в импорте — одной
+  // batch-операцией. Используется как fallback если exact-match не
+  // сработал. Confidence ≥ 0.7 → авто-применяем, < 0.7 → ошибка для
+  // ручного выбора.
+  const { matchJobPositions } = await import("@/lib/job-position-match");
+  const uniquePositionNames = Array.from(
+    new Set(rows.map((r) => r.positionName))
+  );
+  const fuzzyMatches = matchJobPositions(
+    uniquePositionNames,
+    positions.map((p) => ({ id: p.id, name: p.name }))
+  );
+  const fuzzyByInput = new Map(fuzzyMatches.map((m) => [m.input, m]));
 
   let created = 0;
   let skipped = 0;
+  let autoMatched = 0;
   const createdUsers: Array<{ id: string; name: string }> = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const pos = posByName.get(row.positionName.toLowerCase());
+    let pos = posByName.get(row.positionName.toLowerCase()) ?? null;
+
+    // Fallback: fuzzy match если exact не нашёл.
     if (!pos) {
+      const fuzzy = fuzzyByInput.get(row.positionName);
+      if (fuzzy && fuzzy.positionId && fuzzy.confidence >= 0.7) {
+        const matched = posById.get(fuzzy.positionId);
+        if (matched) {
+          pos = matched;
+          autoMatched += 1;
+        }
+      }
+    }
+
+    if (!pos) {
+      const fuzzy = fuzzyByInput.get(row.positionName);
+      const hint =
+        fuzzy && fuzzy.positionName
+          ? ` Возможно, имели в виду «${fuzzy.positionName}» (точность ${Math.round(fuzzy.confidence * 100)}%)? Уточните название.`
+          : "";
       errors.push({
         line: i + 1,
-        message: `Должность «${row.positionName}» не найдена. Создайте её сначала или применайте онбординг-шаблон.`,
+        message: `Должность «${row.positionName}» не найдена.${hint}`,
         raw: row,
       });
       continue;
@@ -190,6 +224,7 @@ export async function POST(request: Request) {
       attempted: rows.length,
       created,
       skipped,
+      autoMatched,
       errorCount: errors.length,
     },
   });
@@ -198,6 +233,7 @@ export async function POST(request: Request) {
     ok: true,
     created,
     skipped,
+    autoMatched,
     errors,
     createdUsers,
   });

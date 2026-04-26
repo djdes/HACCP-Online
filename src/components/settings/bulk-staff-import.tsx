@@ -33,8 +33,12 @@ export function BulkStaffImport() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Ошибка импорта");
       const errCount = (data.errors ?? []).length;
+      const autoMatched = data.autoMatched ?? 0;
       toast.success(
         `Создано: ${data.created}, пропущено (дубли): ${data.skipped}` +
+          (autoMatched > 0
+            ? `, авто-распознано должностей: ${autoMatched}`
+            : "") +
           (errCount > 0 ? `, ошибок: ${errCount}` : "")
       );
       if (errCount > 0) {
