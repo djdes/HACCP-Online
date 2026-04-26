@@ -57,6 +57,10 @@ export type CreateTaskInput = {
 export type CreateUserInput = {
   phone: string;
   name?: string;
+  /** Если true — TasksFlow создаст юзера как admin (видит всё в компании).
+   * При повторном create на существующего юзера TF auto-promote'нет его
+   * в admin (см. handler в TasksFlow server/routes.ts). */
+  isAdmin?: boolean;
 };
 
 export class TasksFlowError extends Error {

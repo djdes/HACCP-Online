@@ -45,7 +45,8 @@ export async function POST() {
 
   const wesetupUsers = await db.user.findMany({
     where: { organizationId: orgId, isActive: true, archivedAt: null },
-    select: { id: true, name: true, phone: true, role: true },
+    select: { id: true, name: true, phone: true, role: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
   });
 
   let remoteUsers;
@@ -77,10 +78,11 @@ export async function POST() {
       wesetupUsers,
       existingLinks,
       remoteUsers,
-      createRemoteUser: async ({ name, phone }) =>
+      createRemoteUser: async ({ name, phone, isAdmin }) =>
         client.createUser({
           phone,
           ...(name ? { name } : {}),
+          ...(isAdmin ? { isAdmin: true } : {}),
         }),
       upsertLink: async ({
         integrationId,

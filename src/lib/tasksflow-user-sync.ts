@@ -3,6 +3,7 @@ import { normalizeRussianPhone } from "@/lib/tasksflow-client";
 export type SyncTasksflowUserInput = {
   name?: string;
   phone: string;
+  isAdmin?: boolean;
 };
 
 type WeSetupSyncUser = {
@@ -10,6 +11,9 @@ type WeSetupSyncUser = {
   name: string | null;
   phone: string | null;
   role: string | null;
+  /** ISO-timestamp создания. Используется чтобы определить кто первый
+   *  user в org (= owner) — он получает isAdmin=true в TasksFlow. */
+  createdAt: Date;
 };
 
 type ExistingSyncLink = {
@@ -62,6 +66,7 @@ export async function syncTasksflowUsers(args: {
     withoutPhone: number;
     withoutMatch: number;
     manualSkipped: number;
+    promotedAdmin: number;
   };
   failures: SyncFailure[];
 }> {
@@ -85,12 +90,27 @@ export async function syncTasksflowUsers(args: {
   let withoutPhone = 0;
   let withoutMatch = 0;
   let manualSkipped = 0;
+  let promotedAdmin = 0;
   const failures: SyncFailure[] = [];
 
   // Как только TasksFlow отказывает «в принципе» (403 на Bearer-ключ, 404
   // на endpoint) — дальнейшие попытки create бессмысленны и только
   // тратят время. Помечаем флаг и пропускаем остальных.
   let remoteCreateDisabled: { status: number; message: string } | null = null;
+
+  // Определяем «owner» компании = первый user по createdAt с role,
+  // которая считается admin-ской (owner / manager). Этому юзеру в
+  // TasksFlow ставим isAdmin=true, чтобы он видел ВСЁ в компании TF
+  // (без managedWorkerIds-фильтра). Остальные management-юзеры
+  // (head_chef, прочие "manager") продолжают видеть только своих
+  // подчинённых через managed_worker_ids — это корректное per-role
+  // ограничение. Без этого фикса TF создавал ВСЕХ как worker'ов и
+  // даже владелец компании видел только свои задачи.
+  const ADMIN_ROLE_NAMES = new Set(["owner", "manager", "admin"]);
+  const ownerCandidate = [...args.wesetupUsers]
+    .filter((u) => ADMIN_ROLE_NAMES.has((u.role ?? "").toLowerCase()))
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0] ?? null;
+  const ownerId = ownerCandidate?.id ?? null;
 
   for (const user of args.wesetupUsers) {
     const phone = normalizeRussianPhone(user.phone);
@@ -115,13 +135,31 @@ export async function syncTasksflowUsers(args: {
       continue;
     }
 
+    const isOwner = user.id === ownerId;
     let remote = remoteByPhone.get(phone) ?? null;
+    // Если remote уже существует но НЕ admin, и наш user — owner —
+    // делаем повторный POST createUser с isAdmin:true. TasksFlow в
+    // обработчике видит «уже существует + requestedAdmin» и зовёт
+    // setUserAdmin(id, true) — promote'ит на месте.
+    if (remote && isOwner) {
+      try {
+        await args.createRemoteUser({
+          name: user.name?.trim() || undefined,
+          phone,
+          isAdmin: true,
+        });
+        promotedAdmin += 1;
+      } catch {
+        // 400 «уже существует» норма если TF не promote'ит — пропускаем
+      }
+    }
     if (!remote && !remoteCreateDisabled) {
       let nextRemote: RemoteSyncUser | null = null;
       try {
         nextRemote = await args.createRemoteUser({
           name: user.name?.trim() || undefined,
           phone,
+          isAdmin: isOwner ? true : undefined,
         });
       } catch (err) {
         const status = extractHttpStatus(err);
@@ -192,6 +230,7 @@ export async function syncTasksflowUsers(args: {
       withoutPhone,
       withoutMatch,
       manualSkipped,
+      promotedAdmin,
     },
     failures,
   };
