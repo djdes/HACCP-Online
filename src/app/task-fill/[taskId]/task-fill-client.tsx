@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   ClipboardCheck,
+  Copy,
   Loader2,
   Plus,
   RotateCcw,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -264,6 +266,93 @@ export function TaskFillClient({
     }
   }
 
+  /**
+   * «Заполнить как вчера» — дёргает API /yesterday-prefill, получает
+   * data вчерашней entry для этого rowKey, мэпит keys которые
+   * совпадают с form.fields[].key. Если ключи не совпадают
+   * (template changed, или там nested data типа measurements) —
+   * заполняем что смогли, остальное юзер дозаполнит.
+   */
+  const [yesterdayChecked, setYesterdayChecked] = useState(false);
+  const [hasYesterdayData, setHasYesterdayData] = useState(false);
+  const [yesterdayBusy, setYesterdayBusy] = useState(false);
+
+  // На монтировании проверяем — есть ли вчерашняя entry, чтобы
+  // показать/спрятать кнопку.
+  useEffect(() => {
+    if (!form || form.fields.length === 0) return;
+    if (yesterdayChecked || alreadyCompleted || done) return;
+    let cancelled = false;
+    fetch(`/api/task-fill/${taskId}/yesterday-prefill?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json().catch(() => null))
+      .then((data) => {
+        if (cancelled) return;
+        setYesterdayChecked(true);
+        if (data && data.values && typeof data.values === "object") {
+          const yd = data.values as Record<string, unknown>;
+          // Проверяем что хотя бы одно поле формы есть в data
+          const hasAny = form.fields.some((f) => f.key in yd);
+          setHasYesterdayData(hasAny);
+        }
+      })
+      .catch(() => setYesterdayChecked(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId, token, form, alreadyCompleted, done, yesterdayChecked]);
+
+  async function fillFromYesterday() {
+    setYesterdayBusy(true);
+    try {
+      const response = await fetch(
+        `/api/task-fill/${taskId}/yesterday-prefill?token=${encodeURIComponent(token)}`
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.values) {
+        toast.error("Вчерашних данных не нашлось");
+        return;
+      }
+      const yd = data.values as Record<string, unknown>;
+      let copied = 0;
+      setValues((prev) => {
+        const next = { ...prev };
+        if (form) {
+          for (const f of form.fields) {
+            if (f.key in yd) {
+              const v = yd[f.key];
+              if (f.type === "boolean") {
+                next[f.key] = typeof v === "boolean" ? v : Boolean(v);
+              } else if (f.type === "number") {
+                next[f.key] =
+                  typeof v === "number"
+                    ? v
+                    : typeof v === "string" && v.trim() !== ""
+                      ? Number(v)
+                      : "";
+              } else {
+                next[f.key] =
+                  typeof v === "string" || typeof v === "number"
+                    ? String(v)
+                    : "";
+              }
+              copied += 1;
+            }
+          }
+        }
+        return next;
+      });
+      if (copied > 0) {
+        toast.success(`Скопировано ${copied} полей со вчера`);
+      } else {
+        toast.message("Вчерашняя структура отличается — заполните вручную");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setYesterdayBusy(false);
+    }
+  }
+
   async function reopenJournal() {
     setSubmitting(true);
     setError(null);
@@ -385,6 +474,25 @@ export function TaskFillClient({
               <p className="mb-5 rounded-2xl bg-[#f5f6ff] p-4 text-[14px] leading-relaxed text-[#3c4053]">
                 {form.intro}
               </p>
+            ) : null}
+
+            {/* «Заполнить как вчера» — показывается только если у этого
+                сотрудника действительно есть вчерашняя entry с
+                совпадающими ключами полей. */}
+            {hasYesterdayData && form && form.fields.length > 0 ? (
+              <button
+                type="button"
+                onClick={fillFromYesterday}
+                disabled={yesterdayBusy || submitting}
+                className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+              >
+                {yesterdayBusy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+                Заполнить как вчера
+              </button>
             ) : null}
 
             {form && form.fields.length > 0 ? (
