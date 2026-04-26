@@ -6,6 +6,15 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function clientIp(request?: Request): string | null {
+  if (!request) return null;
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  const xri = request.headers.get("x-real-ip");
+  if (xri) return xri.trim();
+  return null;
+}
+
 /**
  * POST /api/root/impersonate — validates the target org and writes an
  * AuditLog row. The client then calls `useSession().update()` to refresh
@@ -48,13 +57,14 @@ export async function POST(request: Request) {
       entity: "Organization",
       entityId: org.id,
       details: { organizationName: org.name },
+      ipAddress: clientIp(request),
     },
   });
 
   return NextResponse.json({ ok: true, organization: org });
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.isRoot) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -69,6 +79,7 @@ export async function DELETE() {
         action: "impersonate.stop",
         entity: "Organization",
         entityId: target,
+        ipAddress: clientIp(request),
       },
     });
   }
