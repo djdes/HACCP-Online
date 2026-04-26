@@ -160,12 +160,19 @@ export async function POST(request: Request) {
     skipReason: reason,
   }));
   const notificationItems = new Map<string, NotificationItem>();
-  for (const { template, reason } of hierarchySkipped) {
-    notificationItems.set(template.code, {
-      id: template.code,
-      label: template.name,
-      hint: reason,
+  // Per-item href: клик по подзадаче в bell-панели ведёт прямо на
+  // соответствующий журнал, а не на общий /settings/staff-hierarchy.
+  // (Общий linkHref остаётся как fallback в шапке нотификации.)
+  function pushSkippedItem(code: string, label: string, hint: string) {
+    notificationItems.set(code, {
+      id: code,
+      label,
+      hint,
+      href: `/journals/${code}`,
     });
+  }
+  for (const { template, reason } of hierarchySkipped) {
+    pushSkippedItem(template.code, template.name, reason);
   }
 
   if (targetTemplates.length === 0) {
@@ -237,11 +244,7 @@ export async function POST(request: Request) {
   function markJournalSkipped(report: JournalReport, reason: string) {
     report.skipReason = reason;
     report.skipped += 1;
-    notificationItems.set(report.code, {
-      id: report.code,
-      label: report.label,
-      hint: reason,
-    });
+    pushSkippedItem(report.code, report.label, reason);
   }
 
   for (const tpl of targetTemplates) {
@@ -261,11 +264,7 @@ export async function POST(request: Request) {
       report.skipReason = "Адаптер не зарегистрирован";
       report.skipped += 1;
       if (report.skipReason) {
-        notificationItems.set(report.code, {
-          id: report.code,
-          label: report.label,
-          hint: report.skipReason,
-        });
+        pushSkippedItem(report.code, report.label, report.skipReason);
       }
       reports.push(report);
       continue;
@@ -320,11 +319,7 @@ export async function POST(request: Request) {
       report.skipReason = "Ошибка адаптера";
       report.skipped += 1;
       if (report.skipReason) {
-        notificationItems.set(report.code, {
-          id: report.code,
-          label: report.label,
-          hint: report.skipReason,
-        });
+        pushSkippedItem(report.code, report.label, report.skipReason);
       }
       reports.push(report);
       continue;
@@ -334,11 +329,7 @@ export async function POST(request: Request) {
       report.skipReason = "У журнала нет строк для назначения";
       report.skipped += 1;
       if (report.skipReason) {
-        notificationItems.set(report.code, {
-          id: report.code,
-          label: report.label,
-          hint: report.skipReason,
-        });
+        pushSkippedItem(report.code, report.label, report.skipReason);
       }
       reports.push(report);
       continue;
