@@ -7,6 +7,7 @@ import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
+import { MiniTour } from "./_components/mini-tour";
 import {
   MiniThemeBootstrap,
   MiniThemeProvider,
@@ -110,6 +111,7 @@ export default async function MiniLayout({
             </main>
             <OfflineIndicator />
             <MiniNav />
+            <MiniTour />
           </div>
         </MiniThemeProvider>
       </MiniSessionProvider>

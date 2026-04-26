@@ -1,0 +1,131 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ArrowRight, BellRing, ListChecks, Sparkles, X } from "lucide-react";
+
+const STORAGE_KEY = "wesetup.mini.tour.seen";
+
+type TourStep = {
+  icon: typeof ListChecks;
+  title: string;
+  description: string;
+};
+
+const STEPS: TourStep[] = [
+  {
+    icon: ListChecks,
+    title: "Здесь — ваши задачи на сегодня",
+    description:
+      "На главной видны журналы, которые надо заполнить. Тапните на карточку → откроется простая форма с галочками и температурами.",
+  },
+  {
+    icon: Sparkles,
+    title: "«Заполнить как вчера»",
+    description:
+      "Если значения не меняются — нажмите кнопку «Заполнить как вчера». Это копирует данные предыдущего дня и экономит 30 сек на форму.",
+  },
+  {
+    icon: BellRing,
+    title: "Уведомления приходят в Telegram",
+    description:
+      "Бот пингает за 30 мин до конца смены, если что-то не заполнено. Закрыли все задачи — push больше не приходит.",
+  },
+];
+
+/**
+ * 3-экранный onboarding-тур для нового сотрудника, открывшего Mini App
+ * впервые. После dismiss сохраняем флаг в localStorage — больше не
+ * показываем. Можно сбросить через DevTools `localStorage.removeItem`.
+ */
+export function MiniTour() {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const seen = window.localStorage.getItem(STORAGE_KEY);
+      if (!seen) setOpen(true);
+    } catch {
+      /* localStorage blocked — skip */
+    }
+  }, []);
+
+  function dismiss() {
+    setOpen(false);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function next() {
+    if (step >= STEPS.length - 1) {
+      dismiss();
+      return;
+    }
+    setStep((s) => s + 1);
+  }
+
+  if (!open) return null;
+  const current = STEPS[step];
+  const Icon = current.icon;
+  const isLast = step === STEPS.length - 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-3"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0a0b0f] p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
+        <div className="flex items-start justify-between gap-3">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-[#5566f6]/15 text-[#a3b0ff]">
+            <Icon className="size-6" />
+          </span>
+          <button
+            type="button"
+            onClick={dismiss}
+            className="rounded-full p-1.5 text-white/40 hover:bg-white/5 hover:text-white"
+            aria-label="Закрыть"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <h2 className="mt-4 text-[20px] font-semibold leading-tight text-white">
+          {current.title}
+        </h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-white/65">
+          {current.description}
+        </p>
+
+        <div className="mt-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5">
+            {STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === step
+                    ? "w-8 bg-white"
+                    : i < step
+                      ? "w-3 bg-white/50"
+                      : "w-3 bg-white/15"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={next}
+            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-5 text-[14px] font-semibold text-[#0a0b0f] hover:bg-white/90"
+          >
+            {isLast ? "Поехали" : "Далее"}
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
