@@ -91,6 +91,26 @@ const COMPLIANCE = [
   "complaint_register",
 ];
 
+// Шаблон ресторана/кафе с детализированными должностями кухни и зала.
+// Каждая должность = ровный набор journal codes для access.
+// Когда в реальном кафе должность есть в обоих формах («Повар» или
+// «Повар горячего цеха») — нужны обе строки, чтобы preset покрыл
+// любой выбор именования.
+const KITCHEN_PRODUCTION_FULL = [
+  "finished_product",
+  "perishable_rejection",
+  "intensive_cooling",
+  "fryer_oil",
+  "cold_equipment_control",
+  "climate_control",
+];
+const KITCHEN_PRODUCTION_LIGHT = [
+  "finished_product",
+  "perishable_rejection",
+  "cold_equipment_control",
+  "climate_control",
+];
+
 const RESTAURANT_PRESET: OrgTypePreset = {
   type: "restaurant",
   label: "Ресторан / кафе",
@@ -118,17 +138,64 @@ const RESTAURANT_PRESET: OrgTypePreset = {
       ],
     },
     {
+      name: "Су-шеф",
+      category: "management",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, ...KITCHEN_PRODUCTION_FULL],
+    },
+    {
+      name: "Технолог",
+      category: "management",
+      journalCodes: [
+        ...HYGIENE_PER_EMPLOYEE,
+        ...EQUIPMENT,
+        "metal_impurity",
+        "traceability_test",
+      ],
+    },
+    {
       name: "Повар",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, ...KITCHEN_PRODUCTION_FULL],
+    },
+    {
+      name: "Повар горячего цеха",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, ...KITCHEN_PRODUCTION_FULL],
+    },
+    {
+      name: "Повар холодного цеха",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, ...KITCHEN_PRODUCTION_LIGHT],
+    },
+    {
+      name: "Повар-кондитер",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, ...KITCHEN_PRODUCTION_LIGHT],
+    },
+    {
+      name: "Пекарь",
       category: "staff",
       journalCodes: [
         ...HYGIENE_PER_EMPLOYEE,
         "finished_product",
         "perishable_rejection",
-        "intensive_cooling",
         "fryer_oil",
         "cold_equipment_control",
-        "climate_control",
       ],
+    },
+    {
+      name: "Мангальщик",
+      category: "staff",
+      journalCodes: [
+        ...HYGIENE_PER_EMPLOYEE,
+        "finished_product",
+        "fryer_oil",
+      ],
+    },
+    {
+      name: "Стажёр",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
     },
     {
       name: "Официант",
@@ -136,12 +203,74 @@ const RESTAURANT_PRESET: OrgTypePreset = {
       journalCodes: [...HYGIENE_PER_EMPLOYEE, "complaint_register"],
     },
     {
+      name: "Хостес",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, "complaint_register"],
+    },
+    {
+      name: "Бармен",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
+    },
+    {
+      name: "Бариста",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
+    },
+    {
+      name: "Сомелье",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
+    },
+    {
+      name: "Менеджер зала",
+      category: "management",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, "complaint_register"],
+    },
+    {
+      name: "Метрдотель",
+      category: "management",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, "complaint_register"],
+    },
+    {
+      name: "Администратор смены",
+      category: "management",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE, "complaint_register"],
+    },
+    {
+      name: "Кладовщик",
+      category: "staff",
+      journalCodes: [
+        ...HYGIENE_PER_EMPLOYEE,
+        "incoming_control",
+        "incoming_raw_materials_control",
+      ],
+    },
+    {
+      name: "Грузчик",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
+    },
+    {
+      name: "Курьер",
+      category: "staff",
+      journalCodes: [...HYGIENE_PER_EMPLOYEE],
+    },
+    {
+      name: "Посудомойщик",
+      category: "staff",
+      journalCodes: [
+        ...HYGIENE_PER_EMPLOYEE,
+        "cleaning",
+        "equipment_cleaning",
+      ],
+    },
+    {
       name: "Уборщик",
       category: "staff",
       journalCodes: [
         ...HYGIENE_PER_EMPLOYEE,
         ...CLEANING,
-        ...EQUIPMENT,
         "uv_lamp_runtime",
       ],
     },
