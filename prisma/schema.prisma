@@ -47,6 +47,15 @@ model Organization {
   /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен
   /// можно поставить, например, 6 — тогда «сегодня» длится до 06:00.
   shiftEndHour       Int                        @default(0)
+  /// Сколько сообщений к AI-чату осталось в этом месяце. Декремент
+  /// в /api/ai/sanpin-chat и /api/ai/period-report. Сброс — cron
+  /// /api/cron/reset-ai-quota 1-го числа. Default 20 — trial-tier.
+  /// Pro тарифы могут установить большое значение (10000) или −1
+  /// (трактуем как unlimited).
+  aiMonthlyMessagesLeft Int                     @default(20)
+  /// Базовый месячный лимит — куда возвращаемся после reset cron'а.
+  /// Тариф Pro меняет это поле, не aiMonthlyMessagesLeft.
+  aiMonthlyQuota     Int                        @default(20)
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

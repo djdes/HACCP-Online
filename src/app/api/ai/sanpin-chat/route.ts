@@ -72,6 +72,28 @@ export async function POST(request: Request) {
     );
   }
 
+  // Free-tier rate-limit: проверяем aiMonthlyMessagesLeft на org.
+  // -1 = unlimited (Pro tier), 0 — отказ + upgrade-CTA.
+  const { db } = await import("@/lib/db");
+  const { getActiveOrgId } = await import("@/lib/auth-helpers");
+  const orgId = getActiveOrgId(auth.session);
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { aiMonthlyMessagesLeft: true, aiMonthlyQuota: true },
+  });
+  const left = org?.aiMonthlyMessagesLeft ?? 0;
+  const isUnlimited = left < 0;
+  if (!isUnlimited && left <= 0) {
+    return NextResponse.json(
+      {
+        error: `Месячный лимит AI-сообщений исчерпан (${org?.aiMonthlyQuota ?? 20} в месяц). Перейдите на тариф Pro для безлимитного доступа.`,
+        quotaExceeded: true,
+        quota: org?.aiMonthlyQuota ?? 20,
+      },
+      { status: 402 }
+    );
+  }
+
   let parsed;
   try {
     parsed = bodySchema.parse(await request.json());
@@ -116,8 +138,25 @@ export async function POST(request: Request) {
     const textBlock = response.content.find((b) => b.type === "text");
     const reply = textBlock && textBlock.type === "text" ? textBlock.text : "";
 
+    // Decrement quota — best-effort. Не валит ответ при ошибке write'а.
+    let messagesLeft = isUnlimited ? -1 : Math.max(0, left - 1);
+    if (!isUnlimited) {
+      try {
+        const updated = await db.organization.update({
+          where: { id: orgId },
+          data: { aiMonthlyMessagesLeft: { decrement: 1 } },
+          select: { aiMonthlyMessagesLeft: true },
+        });
+        messagesLeft = Math.max(0, updated.aiMonthlyMessagesLeft);
+      } catch (err) {
+        console.warn("[sanpin-chat] quota decrement failed", err);
+      }
+    }
+
     return NextResponse.json({
       reply,
+      messagesLeft,
+      isUnlimited,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
