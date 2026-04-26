@@ -1,23 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Loader2, ShieldCheck } from "lucide-react";
+import { Lock, Clock, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
 type Props = {
   initialRequireAdminForJournalEdit: boolean;
   initialShiftEndHour: number;
+  initialLockPastDayEdits: boolean;
 };
 
 export function ComplianceClient({
   initialRequireAdminForJournalEdit,
   initialShiftEndHour,
+  initialLockPastDayEdits,
 }: Props) {
   const [value, setValue] = useState(initialRequireAdminForJournalEdit);
   const [shiftEndHour, setShiftEndHour] = useState(initialShiftEndHour);
+  const [lockPastDay, setLockPastDay] = useState(initialLockPastDayEdits);
   const [saving, setSaving] = useState(false);
   const [savingShift, setSavingShift] = useState(false);
+  const [savingLock, setSavingLock] = useState(false);
 
   async function handleToggle(next: boolean) {
     const previous = value;
@@ -45,6 +49,33 @@ export function ComplianceClient({
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleLockPastDayToggle(next: boolean) {
+    const previous = lockPastDay;
+    setLockPastDay(next);
+    setSavingLock(true);
+    try {
+      const response = await fetch("/api/settings/compliance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lockPastDayEdits: next }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Не удалось сохранить");
+      }
+      toast.success(
+        next
+          ? "Закрытый день включён: вчерашние записи заперты"
+          : "Закрытый день выключен: записи можно править"
+      );
+    } catch (error) {
+      setLockPastDay(previous);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingLock(false);
     }
   }
 
@@ -168,6 +199,50 @@ export function ComplianceClient({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="flex items-start gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#3848c7]">
+            <Lock className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Закрытый день — нельзя править вчерашние записи
+                </div>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+                  Когда включено — после момента «начало сегодняшнего
+                  дня» (с учётом часа окончания смены выше) рядовые
+                  сотрудники не могут изменить или удалить записи за
+                  прошедшие дни. Управление по-прежнему может, но
+                  каждое такое действие пишется в журнал аудита с
+                  отметкой <span className="font-mono text-[12px]">closed_day.override</span>.
+                  <br />
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    Используйте если ваш бизнес проходит ХАССП-аудит и
+                    нужно гарантировать, что официант не «допишет»
+                    вчерашний контроль t° задним числом.
+                  </span>
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {savingLock ? (
+                  <Loader2 className="size-4 animate-spin text-[#9b9fb3]" />
+                ) : null}
+                <Switch
+                  checked={lockPastDay}
+                  onCheckedChange={(next) => {
+                    if (savingLock) return;
+                    void handleLockPastDayToggle(next);
+                  }}
+                  disabled={savingLock}
+                />
               </div>
             </div>
           </div>

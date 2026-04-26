@@ -25,6 +25,7 @@ export async function PATCH(request: Request) {
     | {
         requireAdminForJournalEdit?: unknown;
         shiftEndHour?: unknown;
+        lockPastDayEdits?: unknown;
       }
     | null;
   if (!body || typeof body !== "object") {
@@ -34,6 +35,7 @@ export async function PATCH(request: Request) {
   const data: {
     requireAdminForJournalEdit?: boolean;
     shiftEndHour?: number;
+    lockPastDayEdits?: boolean;
   } = {};
   if (typeof body.requireAdminForJournalEdit === "boolean") {
     data.requireAdminForJournalEdit = body.requireAdminForJournalEdit;
@@ -48,6 +50,9 @@ export async function PATCH(request: Request) {
     }
     data.shiftEndHour = h;
   }
+  if (typeof body.lockPastDayEdits === "boolean") {
+    data.lockPastDayEdits = body.lockPastDayEdits;
+  }
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
       { error: "Нет полей для обновления" },
@@ -58,7 +63,11 @@ export async function PATCH(request: Request) {
   const updated = await db.organization.update({
     where: { id: getActiveOrgId(session) },
     data,
-    select: { requireAdminForJournalEdit: true, shiftEndHour: true },
+    select: {
+      requireAdminForJournalEdit: true,
+      shiftEndHour: true,
+      lockPastDayEdits: true,
+    },
   });
 
   return NextResponse.json(updated);

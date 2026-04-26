@@ -47,6 +47,14 @@ model Organization {
   /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен
   /// можно поставить, например, 6 — тогда «сегодня» длится до 06:00.
   shiftEndHour       Int                        @default(0)
+  /// Compliance toggle: «закрытый день». Когда true — после `shiftEndHour`
+  /// рядовые сотрудники не могут редактировать записи прошедших дней
+  /// (PUT/PATCH/DELETE на JournalDocumentEntry). Только management
+  /// (manager/head_chef/owner/technologist/root) может «приоткрыть»
+  /// прошлый день — каждое такое редактирование пишется в AuditLog с
+  /// reason. Для ХАССП — гарантирует, что официант не «допишет»
+  /// вчерашний контроль t° задним числом.
+  lockPastDayEdits   Boolean                    @default(false)
   /// Сколько сообщений к AI-чату осталось в этом месяце. Декремент
   /// в /api/ai/sanpin-chat и /api/ai/period-report. Сброс — cron
   /// /api/cron/reset-ai-quota 1-го числа. Default 20 — trial-tier.

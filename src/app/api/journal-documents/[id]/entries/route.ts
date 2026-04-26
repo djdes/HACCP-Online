@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
 import { isManagementRole } from "@/lib/user-roles";
 import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
+import { canEditEntryAt } from "@/lib/closed-day";
 
 /**
  * Fire-and-forget авто-детектор CAPA по температуре. Дёргается после
@@ -88,6 +89,50 @@ export async function PUT(
       { error: "Дата записи должна попадать в период документа" },
       { status: 400 }
     );
+  }
+
+  // «Закрытый день»: рядовой сотрудник не может править прошедшие
+  // дни, если org.lockPastDayEdits=true. Management — может, но
+  // мы запишем override в AuditLog.
+  const orgConfig = await db.organization.findUnique({
+    where: { id: doc.organizationId },
+    select: { lockPastDayEdits: true, shiftEndHour: true },
+  });
+  if (orgConfig) {
+    const decision = canEditEntryAt(
+      dateObj,
+      { role: session.user.role, isRoot: session.user.isRoot === true },
+      orgConfig
+    );
+    if (!decision.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "День закрыт. Рядовые сотрудники не могут редактировать записи прошедших дней.",
+          code: "past_day_locked",
+        },
+        { status: 403 }
+      );
+    }
+    if (decision.isOverride) {
+      // Лог переопределения — событие на которое смотрит ХАССП-аудит.
+      await db.auditLog.create({
+        data: {
+          organizationId: doc.organizationId,
+          userId: session.user.id,
+          userName: session.user.name ?? null,
+          action: "closed_day.override",
+          entity: "journal_document_entry",
+          entityId: documentId,
+          details: {
+            documentId,
+            employeeId,
+            date: dateObj.toISOString(),
+            templateCode: doc.template?.code ?? null,
+          },
+        },
+      });
+    }
   }
 
   const entry = await db.journalDocumentEntry.upsert({
