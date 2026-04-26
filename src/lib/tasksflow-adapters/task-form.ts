@@ -38,6 +38,9 @@ export type TaskFormField =
       placeholder?: string;
       multiline?: boolean;
       maxLength?: number;
+      /** Pre-fill значение при открытии (для редактирования уже сохранённой
+       *  записи журнала: kepp prior values). */
+      defaultValue?: string;
     }
   | {
       type: "number";
@@ -48,6 +51,8 @@ export type TaskFormField =
       min?: number;
       max?: number;
       step?: number;
+      /** Pre-fill значение при открытии. */
+      defaultValue?: number | string;
     }
   | {
       type: "boolean";
@@ -70,6 +75,7 @@ export type TaskFormField =
       key: string;
       label: string;
       required?: boolean;
+      defaultValue?: string;
     };
 
 export type TaskFormSchema = {

@@ -47,14 +47,25 @@ function splitTime(raw: unknown): { hour: string; minute: string } {
   };
 }
 
-function buildForm(employeeName: string | null): TaskFormSchema {
+function buildForm(
+  employeeName: string | null,
+  prefill: IntensiveCoolingRow | null,
+): TaskFormSchema {
+  // Если есть уже сохранённая запись для этого row — подставляем её
+  // как defaultValue. Это нужно для UX «открыть выполненную задачу
+  // и поправить данные»: юзер видит свои значения и может изменить,
+  // вместо ввода заново.
+  const productionTime =
+    prefill && prefill.productionHour && prefill.productionMinute
+      ? `${prefill.productionHour}:${prefill.productionMinute}`
+      : "";
   return {
     intro:
       (employeeName ? `${employeeName}, ` : "") +
       "запишите контроль интенсивного охлаждения горячего блюда. " +
       "Начальная температура должна быть 75 °C и выше, конечная — не " +
       "более 6 °C через 90 минут.",
-    submitLabel: "Сохранить замер",
+    submitLabel: prefill ? "Сохранить изменения" : "Сохранить замер",
     fields: [
       {
         type: "text",
@@ -63,6 +74,7 @@ function buildForm(employeeName: string | null): TaskFormSchema {
         required: true,
         placeholder: "Например: борщ",
         maxLength: 120,
+        defaultValue: prefill?.dishName ?? undefined,
       },
       {
         type: "text",
@@ -71,6 +83,7 @@ function buildForm(employeeName: string | null): TaskFormSchema {
         required: true,
         placeholder: "14:00",
         maxLength: 5,
+        defaultValue: productionTime || undefined,
       },
       {
         type: "number",
@@ -81,6 +94,7 @@ function buildForm(employeeName: string | null): TaskFormSchema {
         min: 0,
         max: 120,
         step: 0.5,
+        defaultValue: prefill?.startTemperature || undefined,
       },
       {
         type: "number",
@@ -91,6 +105,7 @@ function buildForm(employeeName: string | null): TaskFormSchema {
         min: -20,
         max: 120,
         step: 0.5,
+        defaultValue: prefill?.endTemperature || undefined,
       },
       {
         type: "text",
@@ -98,6 +113,7 @@ function buildForm(employeeName: string | null): TaskFormSchema {
         label: "Комментарий / корректирующие действия",
         multiline: true,
         maxLength: 300,
+        defaultValue: prefill?.comment || undefined,
       },
     ],
   };
@@ -162,14 +178,25 @@ export const intensiveCoolingAdapter: JournalAdapter = {
     return EMPTY_SYNC_REPORT;
   },
 
-  async getTaskForm({ rowKey }) {
+  async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
-    if (!employeeId) return buildForm(null);
-    const emp = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
-    });
-    return buildForm(emp?.name ?? null);
+    const [emp, doc] = await Promise.all([
+      employeeId
+        ? db.user.findUnique({ where: { id: employeeId }, select: { name: true } })
+        : Promise.resolve(null),
+      db.journalDocument.findUnique({
+        where: { id: documentId },
+        select: { config: true },
+      }),
+    ]);
+    // Подтягиваем previously saved row (если задачу выполняли раньше),
+    // чтобы форма открылась с теми же значениями. UX «нажал на круг
+    // выполненной → редактирую данные».
+    const cfg = (doc?.config as { rows?: IntensiveCoolingRow[] }) ?? {};
+    const existing = Array.isArray(cfg.rows)
+      ? cfg.rows.find((r) => r.sourceRowKey === rowKey) ?? null
+      : null;
+    return buildForm(emp?.name ?? null, existing);
   },
 
   async applyRemoteCompletion({ documentId, rowKey, completed, todayKey, values }) {
