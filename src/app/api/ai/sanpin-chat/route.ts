@@ -88,10 +88,25 @@ export async function POST(request: Request) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
+    // Prompt caching: system-prompt у нас ~600 токенов и идентичен для
+    // всех юзеров. Anthropic кеширует его на 5 минут — повторные
+    // запросы одного и того же юзера или соседних работников в той же
+    // org стоят 10× дешевле на input-токенах ($0.08 vs $0.80 / 1M
+    // tokens для Haiku 4.5). Документация:
+    // https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+    //
+    // Передаём system как массив из одного блока с cache_control —
+    // первая часть (system) кешируется, messages всё равно меняются.
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
-      system: SYSTEM_PROMPT,
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
       messages: parsed.messages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -106,6 +121,14 @@ export async function POST(request: Request) {
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
+        // Возвращаем cache-метрики если Anthropic SDK их выдал —
+        // полезно для отладки и observability.
+        cacheReadTokens:
+          (response.usage as { cache_read_input_tokens?: number })
+            .cache_read_input_tokens ?? 0,
+        cacheCreationTokens:
+          (response.usage as { cache_creation_input_tokens?: number })
+            .cache_creation_input_tokens ?? 0,
       },
     });
   } catch (err) {
