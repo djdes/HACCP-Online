@@ -35,6 +35,8 @@ const bodySchema = z.object({
   token: z.string().min(10),
   employeeId: z.string().min(1),
   temperature: z.number(),
+  /** Опциональная влажность для оборудования с climate-mapping. */
+  humidity: z.number().min(0).max(100).optional(),
 });
 
 function toPrismaJsonValue(
@@ -168,6 +170,114 @@ export async function POST(
     touched += 1;
   }
 
+  // Если юзер ввёл humidity И у equipment есть climate-mapping — пишем
+  // в active climate_control document. Используется в кондитерках,
+  // где один датчик отвечает за temperature + humidity комнаты.
+  let humidityTouched = 0;
+  if (typeof parsed.humidity === "number") {
+    const climateMapping = await db.equipmentSensorMapping.findFirst({
+      where: {
+        equipmentId: equipment.id,
+        readingType: "humidity",
+        template: { code: "climate_control" },
+      },
+      select: { templateId: true },
+    });
+    if (climateMapping) {
+      const climateDoc = await db.journalDocument.findFirst({
+        where: {
+          organizationId,
+          templateId: climateMapping.templateId,
+          status: "active",
+          dateFrom: { lte: todayStart },
+          dateTo: { gte: todayStart },
+        },
+        select: { id: true, config: true },
+      });
+      if (climateDoc) {
+        const cfg = (climateDoc.config as { controlTimes?: unknown }) ?? {};
+        const controlTimes = Array.isArray(cfg.controlTimes)
+          ? (cfg.controlTimes as unknown[]).filter(
+              (t): t is string => typeof t === "string"
+            )
+          : [];
+        // Ближайшее controlTime к текущему часу — куда логично записать
+        // показание с QR-сканирования. Если controlTimes пусто — fallback
+        // на "now-rounded" "HH:MM".
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+        let slot: string;
+        if (controlTimes.length > 0) {
+          let best = controlTimes[0];
+          let bestDelta = Number.POSITIVE_INFINITY;
+          for (const t of controlTimes) {
+            const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+            if (!m) continue;
+            const v = Number(m[1]) * 60 + Number(m[2]);
+            const d = Math.abs(v - nowMin);
+            if (d < bestDelta) {
+              best = t;
+              bestDelta = d;
+            }
+          }
+          slot = best;
+        } else {
+          slot = `${String(now.getHours()).padStart(2, "0")}:00`;
+        }
+
+        const existing = await db.journalDocumentEntry.findUnique({
+          where: {
+            documentId_employeeId_date: {
+              documentId: climateDoc.id,
+              employeeId: employee.id,
+              date: todayStart,
+            },
+          },
+          select: { data: true },
+        });
+        const baseData =
+          (existing?.data as Record<string, unknown>) ?? {};
+        const prevMeasurements =
+          (baseData.measurements as
+            | Record<string, Record<string, Record<string, unknown>>>
+            | undefined) ?? {};
+        const prevRoom = prevMeasurements[equipment.id] ?? {};
+        const prevSlot = prevRoom[slot] ?? {};
+        const nextData = {
+          ...baseData,
+          measurements: {
+            ...prevMeasurements,
+            [equipment.id]: {
+              ...prevRoom,
+              [slot]: {
+                ...prevSlot,
+                temperature: parsed.temperature,
+                humidity: parsed.humidity,
+              },
+            },
+          },
+        };
+
+        await db.journalDocumentEntry.upsert({
+          where: {
+            documentId_employeeId_date: {
+              documentId: climateDoc.id,
+              employeeId: employee.id,
+              date: todayStart,
+            },
+          },
+          create: {
+            documentId: climateDoc.id,
+            employeeId: employee.id,
+            date: todayStart,
+            data: toPrismaJsonValue(nextData),
+          },
+          update: { data: toPrismaJsonValue(nextData) },
+        });
+        humidityTouched = 1;
+      }
+    }
+  }
+
   // Out-of-range alerting — matches the Tuya-collect behaviour so
   // human-entered readings get the same visibility as IoT ones.
   const isOutOfRange =
@@ -199,6 +309,7 @@ export async function POST(
   return NextResponse.json({
     ok: true,
     touched,
+    humidityTouched,
     outOfRange: isOutOfRange,
   });
 }

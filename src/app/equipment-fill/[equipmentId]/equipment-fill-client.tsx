@@ -22,6 +22,9 @@ type Props = {
     tempMin: number | null;
     tempMax: number | null;
     areaName: string;
+    /** True если у оборудования есть sensorMapping на climate_control
+     *  с humidity — тогда форма показывает дополнительное поле. */
+    hasHumidityField: boolean;
   };
   employees: Employee[];
 };
@@ -36,6 +39,7 @@ const LS_EMPLOYEE_KEY = "wesetup.equipment-fill.employeeId";
 export function EquipmentFillClient({ token, equipment, employees }: Props) {
   const [employeeId, setEmployeeId] = useState<string>("");
   const [temperature, setTemperature] = useState<string>("");
+  const [humidity, setHumidity] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +65,12 @@ export function EquipmentFillClient({ token, equipment, employees }: Props) {
     const n = Number(temperature.replace(",", "."));
     return Number.isFinite(n) ? n : null;
   }, [temperature]);
+
+  const parsedHumidity = useMemo(() => {
+    if (!equipment.hasHumidityField || !humidity.trim()) return null;
+    const n = Number(humidity.replace(",", "."));
+    return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
+  }, [humidity, equipment.hasHumidityField]);
 
   const outOfRange = useMemo(() => {
     if (parsedTemp === null) return false;
@@ -93,6 +103,9 @@ export function EquipmentFillClient({ token, equipment, employees }: Props) {
             token,
             employeeId,
             temperature: parsedTemp,
+            ...(parsedHumidity !== null
+              ? { humidity: parsedHumidity }
+              : {}),
           }),
         }
       );
@@ -216,6 +229,35 @@ export function EquipmentFillClient({ token, equipment, employees }: Props) {
                   </p>
                 ) : null}
               </div>
+
+              {/* Дополнительное поле для оборудования с climate-mapping
+                  на humidity (например, кондиционер в кондитерской цехе). */}
+              {equipment.hasHumidityField ? (
+                <div>
+                  <label className="text-[13px] font-medium text-[#0b1024]">
+                    Влажность, % (опционально)
+                  </label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
+                      💧
+                    </span>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={humidity}
+                      onChange={(e) => setHumidity(e.target.value)}
+                      placeholder="0–100"
+                      className="h-12 flex-1 rounded-2xl border-[#dcdfed] text-[18px]"
+                    />
+                  </div>
+                  {humidity.trim() && parsedHumidity === null ? (
+                    <p className="mt-1.5 text-[11px] text-[#a13a32]">
+                      Влажность должна быть числом 0–100. Можно оставить
+                      пустым, если не измеряли.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               {error ? (
                 <div className="rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-3 text-[13px] text-[#a13a32]">

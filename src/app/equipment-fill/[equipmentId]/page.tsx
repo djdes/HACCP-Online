@@ -61,9 +61,25 @@ export default async function EquipmentFillPage({
           organizationId: true,
         },
       },
+      sensorMappings: {
+        select: {
+          id: true,
+          readingType: true,
+          fieldKey: true,
+          template: { select: { code: true, name: true } },
+        },
+      },
     },
   });
   if (!equipment) notFound();
+
+  // Если у оборудования есть sensor mapping на climate_control с
+  // readingType=humidity — добавляем поле «Влажность» в форму. По
+  // тому же принципу можно расширить на другие journal-templates.
+  const hasHumidityField = equipment.sensorMappings.some(
+    (m) =>
+      m.readingType === "humidity" && m.template.code === "climate_control"
+  );
 
   const organizationId = equipment.area.organizationId;
 
@@ -83,6 +99,7 @@ export default async function EquipmentFillPage({
         tempMin: equipment.tempMin ?? null,
         tempMax: equipment.tempMax ?? null,
         areaName: equipment.area.name,
+        hasHumidityField,
       }}
       employees={employees.map((e) => ({
         id: e.id,
