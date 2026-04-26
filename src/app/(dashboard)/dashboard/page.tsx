@@ -28,6 +28,8 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
+import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
+import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getWorkerLeaderboard } from "@/lib/worker-leaderboard";
 import { getWeeklyTails } from "@/lib/weekly-tails";
@@ -203,13 +205,16 @@ export default async function DashboardPage() {
   // dashboard. Dismissable per-session, появляется снова после
   // следующей перезагрузки.
   const staleCapaCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const staleCapaCount = await db.capaTicket.count({
-    where: {
-      organizationId,
-      status: { not: "closed" },
-      createdAt: { lt: staleCapaCutoff },
-    },
-  });
+  const [staleCapaCount, healthCheck] = await Promise.all([
+    db.capaTicket.count({
+      where: {
+        organizationId,
+        status: { not: "closed" },
+        createdAt: { lt: staleCapaCutoff },
+      },
+    }),
+    runOrgHealthCheck(organizationId),
+  ]);
 
   const [filledTodayIds, weeklyTails, leaderboard] = await Promise.all([
     getTemplatesFilledToday(
@@ -501,6 +506,18 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
+
+      {/* Health-check виджет — self-audit конфигурации (кратко в свёрнутом
+          виде, разворачивается по клику). Не показываем когда score=100%
+          — пустой шум на готовой настройке. */}
+      {healthCheck.scorePercent < 100 ? (
+        <OrgHealthWidget
+          checks={healthCheck.checks}
+          scorePercent={healthCheck.scorePercent}
+          okCount={healthCheck.okCount}
+          totalCount={healthCheck.totalCount}
+        />
+      ) : null}
 
       {/* Worker leaderboard — топ-3 за месяц по числу записей. Показываем
           только когда есть хотя бы 1 человек с записями (на пустой
