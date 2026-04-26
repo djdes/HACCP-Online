@@ -1,0 +1,190 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * GET/POST /api/cron/shift-watcher?secret=$CRON_SECRET
+ *
+ * Каждые 30 минут (рекомендуется 06:00-22:00 MSK) проверяет
+ * запланированные смены сегодня — если сотрудник числится в
+ * `WorkShift.status="scheduled"`, но за «час окончания вчерашней
+ * смены» не сделал ни одной записи в журналах, эскалирует:
+ *   - 30 мин без активности → push руководству «Иван на смене?»;
+ *   - 2 ч без активности → status="absent" + повторный push.
+ *
+ * Дедупликация — через `AuditLog` с `entity="work_shift"`,
+ * `entityId=shift.id`, action ∈ {`shift_watcher.notify_30`,
+ * `shift_watcher.mark_absent`}. Повторно не пингуем ту же смену
+ * на ту же стадию.
+ *
+ * INFRA NEXT: настроить cron на cron-job.org каждые 30 мин,
+ * 06:00-22:00 MSK, на /api/cron/shift-watcher.
+ */
+async function handle(request: Request) {
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const now = new Date();
+  const currentDayStart = new Date(now);
+  currentDayStart.setUTCHours(0, 0, 0, 0);
+
+  // 1. Все смены сегодня в статусе "scheduled".
+  const shifts = await db.workShift.findMany({
+    where: {
+      date: currentDayStart,
+      status: "scheduled",
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      userId: true,
+      date: true,
+      user: {
+        select: {
+          name: true,
+          isActive: true,
+          archivedAt: true,
+        },
+      },
+    },
+  });
+
+  if (shifts.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      shiftsChecked: 0,
+      notified: 0,
+      markedAbsent: 0,
+    });
+  }
+
+  let notified = 0;
+  let markedAbsent = 0;
+
+  for (const shift of shifts) {
+    if (!shift.user.isActive || shift.user.archivedAt) continue;
+
+    // Активность с начала суток.
+    const [fieldEntry, docEntry] = await Promise.all([
+      db.journalEntry.findFirst({
+        where: {
+          organizationId: shift.organizationId,
+          filledById: shift.userId,
+          createdAt: { gte: currentDayStart },
+        },
+        select: { id: true },
+      }),
+      db.journalDocumentEntry.findFirst({
+        where: {
+          employeeId: shift.userId,
+          createdAt: { gte: currentDayStart },
+          document: { organizationId: shift.organizationId },
+        },
+        select: { id: true },
+      }),
+    ]);
+    const hasActivity = Boolean(fieldEntry || docEntry);
+    if (hasActivity) continue;
+
+    // Сколько часов прошло с начала суток (proxy для "от старта смены").
+    // Точное startTime у WorkShift не хранится — приближаем «начало
+    // смены» = 9:00 локального времени (UTC+3 для РФ) = 06:00 UTC.
+    // Если cron дёрнут до 06:00 UTC — пропускаем, ещё не смена.
+    const SHIFT_START_HOUR_UTC = 6;
+    const shiftStartedAt = new Date(currentDayStart);
+    shiftStartedAt.setUTCHours(SHIFT_START_HOUR_UTC, 0, 0, 0);
+    if (now < shiftStartedAt) continue;
+
+    const minutesSinceStart = Math.floor(
+      (now.getTime() - shiftStartedAt.getTime()) / (60 * 1000)
+    );
+
+    // Достаём существующие пинги для этой смены.
+    const existingNotifications = await db.auditLog.findMany({
+      where: {
+        organizationId: shift.organizationId,
+        entity: "work_shift",
+        entityId: shift.id,
+        action: {
+          in: ["shift_watcher.notify_30", "shift_watcher.mark_absent"],
+        },
+      },
+      select: { action: true },
+    });
+    const alreadyNotified = existingNotifications.some(
+      (l) => l.action === "shift_watcher.notify_30"
+    );
+    const alreadyMarkedAbsent = existingNotifications.some(
+      (l) => l.action === "shift_watcher.mark_absent"
+    );
+
+    // Stage 2: 2+ часа без активности → mark absent.
+    if (minutesSinceStart >= 120 && !alreadyMarkedAbsent) {
+      await db.workShift.update({
+        where: { id: shift.id },
+        data: { status: "absent" },
+      });
+      await db.auditLog.create({
+        data: {
+          organizationId: shift.organizationId,
+          action: "shift_watcher.mark_absent",
+          entity: "work_shift",
+          entityId: shift.id,
+          details: {
+            userId: shift.userId,
+            userName: shift.user.name,
+            minutesSinceStart,
+          },
+        },
+      });
+      const message =
+        `🚨 <b>Сотрудник не вышел на смену?</b>\n\n` +
+        `${esc(shift.user.name)} числится сегодня на смене, но за ` +
+        `${Math.floor(minutesSinceStart / 60)} ч не заполнил ни одного ` +
+        `журнала. Статус смены автоматически переведён на «absent». ` +
+        `Если это ошибка — поправьте в графике.`;
+      await notifyOrganization(shift.organizationId, message, ["owner"]);
+      markedAbsent += 1;
+      continue;
+    }
+
+    // Stage 1: 30+ минут без активности → soft-ping управление.
+    if (minutesSinceStart >= 30 && !alreadyNotified) {
+      await db.auditLog.create({
+        data: {
+          organizationId: shift.organizationId,
+          action: "shift_watcher.notify_30",
+          entity: "work_shift",
+          entityId: shift.id,
+          details: {
+            userId: shift.userId,
+            userName: shift.user.name,
+            minutesSinceStart,
+          },
+        },
+      });
+      const message =
+        `🟡 <b>${esc(shift.user.name)} на смене?</b>\n\n` +
+        `Прошло ${minutesSinceStart} мин с начала смены, но он/она ` +
+        `ещё не заполнил ни одного журнала. Возможно опаздывает или ` +
+        `не отметился — проверьте.`;
+      await notifyOrganization(shift.organizationId, message, ["owner"]);
+      notified += 1;
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    shiftsChecked: shifts.length,
+    notified,
+    markedAbsent,
+  });
+}
+
+export const GET = handle;
+export const POST = handle;
