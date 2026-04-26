@@ -13,6 +13,7 @@ import {
 } from "@/lib/user-roles";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
+import { performOffboarding } from "@/lib/offboarding";
 
 const updateUserSchema = z.object({
   name: z.string().trim().min(2).optional(),
@@ -93,6 +94,8 @@ export async function PUT(
       }
     }
 
+    const wasActive = user.isActive === true;
+
     const updated = await db.user.update({
       where: { id },
       data: {
@@ -114,6 +117,20 @@ export async function PUT(
         phone: true,
       },
     });
+
+    // Auto-offboarding trigger: пользователь только что был
+    // деактивирован (был active → стал inactive). Fire-and-forget,
+    // чтобы PUT отдал ответ быстро. Сам helper идемпотентен.
+    if (wasActive && isActive === false) {
+      performOffboarding({
+        userId: id,
+        organizationId: session.user.organizationId,
+        actorId: session.user.id,
+        actorName: session.user.name ?? null,
+      }).catch((err) => {
+        console.error("[users/PUT] offboarding failed", err);
+      });
+    }
 
     // If the phone just changed (or appeared), try to auto-link the user
     // to the matching TasksFlow worker. Fire-and-forget so a slow TF
@@ -209,6 +226,16 @@ export async function DELETE(
     await db.user.update({
       where: { id },
       data: { isActive: false },
+    });
+
+    // Auto-offboarding запускаем в DELETE так же. Fire-and-forget.
+    performOffboarding({
+      userId: id,
+      organizationId: session.user.organizationId,
+      actorId: session.user.id,
+      actorName: session.user.name ?? null,
+    }).catch((err) => {
+      console.error("[users/DELETE] offboarding failed", err);
     });
 
     return NextResponse.json({ success: true });
