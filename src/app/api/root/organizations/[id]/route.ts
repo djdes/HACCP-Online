@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { recordAuditLog } from "@/lib/audit-log";
+import { tasksflowClientFor } from "@/lib/tasksflow-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +42,42 @@ export async function DELETE(
     return NextResponse.json({ error: "Организация не найдена" }, { status: 404 });
   }
 
+  // Best-effort cleanup TasksFlow-задач до DELETE org. Cascade prisma
+  // удалит TasksFlowTaskLink/TasksFlowIntegration в БД, но в TF
+  // remote-таски останутся «зомби» (с baseUrl на удалённую WeSetup org)
+  // и будут показываться у TF-юзеров с битым task-fill flow. Чтобы
+  // этого избежать — проходим по интеграциям org'а и DELETE-каждого
+  // task'а через TF API.
+  let tfTasksDeleted = 0;
+  let tfTasksFailed = 0;
+  try {
+    const integrations = await db.tasksFlowIntegration.findMany({
+      where: { organizationId: id, enabled: true },
+    });
+    for (const integration of integrations) {
+      const taskLinks = await db.tasksFlowTaskLink.findMany({
+        where: { integrationId: integration.id },
+        select: { tasksflowTaskId: true },
+      });
+      if (taskLinks.length === 0) continue;
+      const client = tasksflowClientFor(integration);
+      for (const link of taskLinks) {
+        try {
+          await client.deleteTask(link.tasksflowTaskId);
+          tfTasksDeleted += 1;
+        } catch (err) {
+          tfTasksFailed += 1;
+          console.warn(
+            `[org-delete] TF task ${link.tasksflowTaskId} delete failed`,
+            err instanceof Error ? err.message : err
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[org-delete] TF cleanup failed", err);
+  }
+
   await db.organization.delete({ where: { id } });
 
   // AuditLog требует organizationId — пишем в platform-org, чтобы запись
@@ -59,9 +96,18 @@ export async function DELETE(
       action: "root.organization.delete",
       entity: "Organization",
       entityId: id,
-      details: { name: org.name, type: org.type },
+      details: {
+        name: org.name,
+        type: org.type,
+        tfTasksDeleted,
+        tfTasksFailed,
+      },
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    tfTasksDeleted,
+    tfTasksFailed,
+  });
 }
