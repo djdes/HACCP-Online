@@ -182,6 +182,14 @@ const settingsCards = [
     bg: "#eef1ff",
   },
   {
+    title: "Портал инспектора",
+    description: "Read-only ссылка для СЭС / Роспотребнадзора с TTL",
+    href: "/settings/inspector-portal",
+    icon: ShieldCheck,
+    color: "#10b981",
+    bg: "#ecfdf5",
+  },
+  {
     title: "Справочник СанПиН",
     description: "Нормативы и требования",
     href: "/sanpin",

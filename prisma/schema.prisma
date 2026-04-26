@@ -62,6 +62,7 @@ model Organization {
   workShifts               WorkShift[]
   jobPositionJournalAccess JobPositionJournalAccess[]
   bonusEntries             BonusEntry[]
+  inspectorTokens          InspectorToken[]
 }
 
 model User {
@@ -277,6 +278,43 @@ model InviteToken {
 /// "set a password on the site", this one means "bind your Telegram identity".
 /// Consumed by the grammy `/start inv_<token>` handler, which resolves the
 /// token, writes `telegramChatId` on the matching User and activates them.
+/// Read-only access tokens for SES / Роспотребнадзор inspector visits.
+/// Created by org admin via /settings/inspector-portal — produces a TTL'd
+/// share-link. Inspector opens /inspector/<token>, sees journals + entries
+/// for the configured period in read-only mode, can download PDF за период
+/// одной кнопкой.
+///
+/// Period is fixed at creation (no «slide forward»). Notes optional —
+/// admin может пометить «проверка СЭС 2026-04-30 / Иванова И.И.».
+/// Like InviteToken — only sha256 digest is persisted, raw token is shown
+/// once on creation.
+model InspectorToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  /// Free-form description set by admin (visible only in their list).
+  label          String?
+  /// Period the inspector is allowed to view (UTC midnight).
+  periodFrom     DateTime
+  periodTo       DateTime
+  expiresAt      DateTime
+  /// Bumped on every successful resolve — UI shows last-access stamp.
+  lastAccessedAt DateTime?
+  /// Total resolve count for usage stats.
+  accessCount    Int          @default(0)
+  /// Once admin clicks «Отозвать», token stops working without removing
+  /// the row (audit trail of who/when/why).
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  /// Who issued the token (admin's userId). Helps audits and "кто впустил
+  /// инспектора" forensics. Nullable for legacy and ROOT-issued tokens.
+  createdById    String?
+
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
 model BotInviteToken {
   id             String       @id @default(cuid())
   organizationId String
