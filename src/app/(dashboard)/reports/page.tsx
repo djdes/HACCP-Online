@@ -1,8 +1,12 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireRole, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { ReportForm } from "@/components/reports/report-form";
 import { ComplianceBundleCard } from "@/components/reports/compliance-bundle-card";
 import { AiPeriodReportCard } from "@/components/reports/ai-period-report";
+import { ComplianceHeatmap } from "@/components/reports/compliance-heatmap";
+import { getComplianceHeatmap } from "@/lib/compliance-heatmap";
+
+export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
   // Принимаем и новые (manager / head_chef), и легаси (owner /
@@ -14,7 +18,8 @@ export default async function ReportsPage() {
     "technologist",
   ]);
 
-  const [templates, areas] = await Promise.all([
+  const orgId = getActiveOrgId(session);
+  const [templates, areas, heatmap] = await Promise.all([
     db.journalTemplate.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -25,6 +30,7 @@ export default async function ReportsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    getComplianceHeatmap(orgId, 30),
   ]);
 
   return (
@@ -38,6 +44,7 @@ export default async function ReportsPage() {
         </p>
       </div>
       <AiPeriodReportCard />
+      <ComplianceHeatmap rows={heatmap.rows} days={heatmap.days} />
       <ComplianceBundleCard />
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
