@@ -38,6 +38,10 @@ import {
   getDefaultCleaningDocumentConfig,
   normalizeCleaningDocumentConfig,
 } from "../src/lib/cleaning-document";
+import {
+  getDefaultGlassListConfig,
+  createGlassListRow,
+} from "../src/lib/glass-list-document";
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL,
@@ -203,6 +207,30 @@ async function main() {
         },
       });
       updates.push({ code: "equipment_calibration", ok: true });
+    }
+  }
+
+  // 5b. glass_items_list — config с парой стеклянных изделий + responsibleUserId
+  {
+    const doc = findDoc("glass_items_list");
+    if (doc) {
+      const cfg = getDefaultGlassListConfig();
+      cfg.responsibleUserId = tech.id;
+      cfg.responsibleTitle = "Технолог";
+      cfg.rows = [
+        createGlassListRow({ location: "Бар", itemName: "Бокалы для вина", quantity: "24" }),
+        createGlassListRow({ location: "Зал", itemName: "Графины", quantity: "8" }),
+        createGlassListRow({ location: "Кухня", itemName: "Стеклянные банки для специй", quantity: "30" }),
+      ];
+      await prisma.journalDocument.update({
+        where: { id: doc.id },
+        data: {
+          config: cfg as object,
+          responsibleUserId: tech.id,
+          responsibleTitle: "Технолог",
+        },
+      });
+      updates.push({ code: "glass_items_list", ok: true });
     }
   }
 

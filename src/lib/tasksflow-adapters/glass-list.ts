@@ -61,22 +61,41 @@ export const glassListAdapter: JournalAdapter = {
   async listDocumentsForOrg(organizationId): Promise<AdapterDocument[]> {
     const docs = await db.journalDocument.findMany({
       where: { organizationId, status: "active", template: { code: TEMPLATE_CODE } },
-      select: { id: true, title: true, dateFrom: true, dateTo: true, config: true },
+      select: {
+        id: true,
+        title: true,
+        dateFrom: true,
+        dateTo: true,
+        config: true,
+        responsibleUserId: true,
+      },
       orderBy: { dateFrom: "desc" },
     });
     return docs.map<AdapterDocument>((doc) => {
       const config = doc.config as GlassListConfig;
+      // glass-list config хранит ответственного как `responsibleUserId`
+      // (а не `responsibleEmployeeId` как audit/equipment). Поддерживаем
+      // оба поля + fallback на doc.responsibleUserId.
+      const cfgWithResp = config as unknown as {
+        responsibleUserId?: string | null;
+        responsibleEmployeeId?: string | null;
+      };
+      const docResp =
+        (cfgWithResp?.responsibleUserId || null) ??
+        (cfgWithResp?.responsibleEmployeeId || null) ??
+        doc.responsibleUserId ??
+        null;
       const itemRows: AdapterRow[] = (config?.rows ?? []).map<AdapterRow>((item) => ({
         rowKey: `glass-${item.id}`,
         label: item.itemName || item.location || "Изделие",
         sublabel: item.location || undefined,
-        responsibleUserId: null,
+        responsibleUserId: docResp,
       }));
       return {
         documentId: doc.id,
         documentTitle: doc.title,
         period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
-        rows: itemRows.length > 0 ? itemRows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: null }],
+        rows: itemRows.length > 0 ? itemRows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: docResp }],
       };
     });
   },

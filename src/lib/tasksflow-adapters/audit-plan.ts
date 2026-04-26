@@ -58,22 +58,36 @@ export const auditPlanAdapter: JournalAdapter = {
   async listDocumentsForOrg(organizationId): Promise<AdapterDocument[]> {
     const docs = await db.journalDocument.findMany({
       where: { organizationId, status: "active", template: { code: TEMPLATE_CODE } },
-      select: { id: true, title: true, dateFrom: true, dateTo: true, config: true },
+      select: {
+        id: true,
+        title: true,
+        dateFrom: true,
+        dateTo: true,
+        config: true,
+        responsibleUserId: true,
+      },
       orderBy: { dateFrom: "desc" },
     });
     return docs.map<AdapterDocument>((doc) => {
       const config = doc.config as AuditPlanConfig;
+      // bulk-assign-today фильтрует rows по `responsibleUserId` — null
+      // означает «отвечать некому», и весь журнал помечается skipped.
+      // Берём владельца на уровне документа (config.responsibleEmployeeId
+      // или doc.responsibleUserId), чтобы каждая строка была eligible.
+      const cfgResp = (config as unknown as { responsibleEmployeeId?: string | null })
+        ?.responsibleEmployeeId;
+      const docResp = cfgResp ?? doc.responsibleUserId ?? null;
       const rows: AdapterRow[] = (config?.rows ?? []).map<AdapterRow>((row) => ({
         rowKey: `audit-${row.id}`,
         label: row.text || "Пункт аудита",
         sublabel: row.checked ? "✓ Проверено" : "Не проверено",
-        responsibleUserId: null,
+        responsibleUserId: docResp,
       }));
       return {
         documentId: doc.id,
         documentTitle: doc.title,
         period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
-        rows: rows.length > 0 ? rows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: null }],
+        rows: rows.length > 0 ? rows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: docResp }],
       };
     });
   },

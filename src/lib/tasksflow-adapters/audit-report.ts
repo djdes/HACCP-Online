@@ -63,15 +63,28 @@ export const auditReportAdapter: JournalAdapter = {
   async listDocumentsForOrg(organizationId): Promise<AdapterDocument[]> {
     const docs = await db.journalDocument.findMany({
       where: { organizationId, status: "active", template: { code: TEMPLATE_CODE } },
-      select: { id: true, title: true, dateFrom: true, dateTo: true },
+      select: {
+        id: true,
+        title: true,
+        dateFrom: true,
+        dateTo: true,
+        config: true,
+        responsibleUserId: true,
+      },
       orderBy: { dateFrom: "desc" },
     });
-    return docs.map<AdapterDocument>((doc) => ({
-      documentId: doc.id,
-      documentTitle: doc.title,
-      period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
-      rows: [{ rowKey: "new-finding", label: "Добавить несоответствие", responsibleUserId: null }],
-    }));
+    return docs.map<AdapterDocument>((doc) => {
+      const config = doc.config as AuditReportConfig | null;
+      const cfgResp = (config as unknown as { responsibleEmployeeId?: string | null } | null)
+        ?.responsibleEmployeeId;
+      const docResp = cfgResp ?? doc.responsibleUserId ?? null;
+      return {
+        documentId: doc.id,
+        documentTitle: doc.title,
+        period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
+        rows: [{ rowKey: "new-finding", label: "Добавить несоответствие", responsibleUserId: docResp }],
+      };
+    });
   },
 
   async syncDocument() {

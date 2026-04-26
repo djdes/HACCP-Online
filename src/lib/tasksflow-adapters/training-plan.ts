@@ -57,11 +57,23 @@ export const trainingPlanAdapter: JournalAdapter = {
   async listDocumentsForOrg(organizationId): Promise<AdapterDocument[]> {
     const docs = await db.journalDocument.findMany({
       where: { organizationId, status: "active", template: { code: TEMPLATE_CODE } },
-      select: { id: true, title: true, dateFrom: true, dateTo: true, config: true },
+      select: {
+        id: true,
+        title: true,
+        dateFrom: true,
+        dateTo: true,
+        config: true,
+        responsibleUserId: true,
+      },
       orderBy: { dateFrom: "desc" },
     });
     return docs.map<AdapterDocument>((doc) => {
       const config = doc.config as TrainingPlanConfig;
+      const cfgWithResp = config as unknown as {
+        responsibleEmployeeId?: string | null;
+      };
+      const docResp =
+        cfgWithResp?.responsibleEmployeeId ?? doc.responsibleUserId ?? null;
       const rows: AdapterRow[] = [];
       for (const position of config.rows ?? []) {
         for (const topic of config.topics ?? []) {
@@ -70,7 +82,7 @@ export const trainingPlanAdapter: JournalAdapter = {
             rowKey: `position-${position.id}-topic-${topic.id}`,
             label: `${position.positionName} — ${topic.name}`,
             sublabel: cell?.required ? `Дата: ${cell.date || "—"}` : "Не требуется",
-            responsibleUserId: null,
+            responsibleUserId: docResp,
           });
         }
       }
@@ -78,7 +90,7 @@ export const trainingPlanAdapter: JournalAdapter = {
         documentId: doc.id,
         documentTitle: doc.title,
         period: { from: toDateKey(doc.dateFrom), to: toDateKey(doc.dateTo) },
-        rows: rows.length > 0 ? rows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: null }],
+        rows: rows.length > 0 ? rows : [{ rowKey: "default", label: "Общая запись", responsibleUserId: docResp }],
       };
     });
   },
