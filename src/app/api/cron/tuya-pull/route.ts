@@ -1,0 +1,282 @@
+import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
+import { getDeviceTemperature } from "@/lib/tuya";
+import { pickPrimaryManager } from "@/lib/user-roles";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Hourly cron: pull current temperature/humidity from every Tuya-paired
+ * Equipment and write it into the corresponding journal entry — without
+ * any worker filling forms.
+ *
+ *   GET/POST /api/cron/tuya-pull?secret=$CRON_SECRET
+ *
+ * Flow:
+ *   1. Find all Equipment.tuyaDeviceId != null + at least one
+ *      EquipmentSensorMapping with template.fillMode = "sensor".
+ *   2. Group by organizationId for batch processing.
+ *   3. For each org, walk equipment list:
+ *        - Pull current temp/humidity from Tuya
+ *        - For each mapping (templateId, fieldKey, readingType):
+ *            - Find active JournalDocument covering today
+ *            - Upsert daily entry attributed to org's primary manager
+ *              (one entry per doc/manager/date — values merged into
+ *              data.temperatures[equipmentId] for cold_equipment_control,
+ *              data.measurements[roomId][nearestTime] for climate_control)
+ *        - Update mapping.lastReadingAt + lastValue
+ *
+ * Errors per device are isolated — one Tuya 5xx doesn't stop the run.
+ *
+ * For now we support cold_equipment_control journal directly. climate_control
+ * support follows the same pattern, fanning into the nearest controlTime
+ * slot. Other templates with fillMode=sensor get logged but skipped.
+ */
+
+const COLD_EQUIPMENT_CODE = "cold_equipment_control";
+const CLIMATE_CODE = "climate_control";
+
+type RunReport = {
+  organizationsTouched: number;
+  equipmentsChecked: number;
+  tuyaErrors: number;
+  entriesWritten: number;
+  mappingsUpdated: number;
+  skipped: number;
+};
+
+function utcDayStart(now: Date): Date {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+}
+
+function nearestControlTime(now: Date, controlTimes: string[]): string | null {
+  if (controlTimes.length === 0) return null;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  let best = controlTimes[0];
+  let bestDelta = Infinity;
+  for (const t of controlTimes) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+    if (!m) continue;
+    const slot = Number(m[1]) * 60 + Number(m[2]);
+    const delta = Math.abs(slot - nowMin);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      best = t;
+    }
+  }
+  return best;
+}
+
+async function handle(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get("secret");
+  if (secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const now = new Date();
+  const todayStart = utcDayStart(now);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
+
+  const report: RunReport = {
+    organizationsTouched: 0,
+    equipmentsChecked: 0,
+    tuyaErrors: 0,
+    entriesWritten: 0,
+    mappingsUpdated: 0,
+    skipped: 0,
+  };
+
+  // Pull all Tuya-paired equipment with their sensor mappings + the area's
+  // organization for scoping. Single batch query for efficiency.
+  const equipments = await db.equipment.findMany({
+    where: {
+      tuyaDeviceId: { not: null },
+      sensorMappings: { some: {} },
+    },
+    select: {
+      id: true,
+      name: true,
+      tuyaDeviceId: true,
+      area: { select: { organizationId: true } },
+      sensorMappings: {
+        select: {
+          id: true,
+          templateId: true,
+          fieldKey: true,
+          readingType: true,
+          template: {
+            select: { code: true, fillMode: true, id: true },
+          },
+        },
+      },
+    },
+  });
+
+  const orgsTouched = new Set<string>();
+  const managerByOrg = new Map<string, string | null>();
+
+  for (const eq of equipments) {
+    const orgId = eq.area.organizationId;
+    if (!eq.tuyaDeviceId) continue;
+
+    // Skip equipment whose mappings are all on non-sensor templates.
+    const activeMappings = eq.sensorMappings.filter(
+      (m) => m.template.fillMode === "sensor"
+    );
+    if (activeMappings.length === 0) {
+      report.skipped += 1;
+      continue;
+    }
+
+    let reading: Awaited<ReturnType<typeof getDeviceTemperature>>;
+    try {
+      reading = await getDeviceTemperature(eq.tuyaDeviceId);
+    } catch (err) {
+      report.tuyaErrors += 1;
+      console.warn(
+        `[tuya-pull] device ${eq.tuyaDeviceId} (${eq.name}) failed:`,
+        err instanceof Error ? err.message : err
+      );
+      continue;
+    }
+    report.equipmentsChecked += 1;
+    orgsTouched.add(orgId);
+
+    // Resolve the org's primary manager once per org — used as the
+    // employeeId for synthetic auto-fill entries (must be a valid User
+    // due to FK on JournalDocumentEntry.employeeId).
+    let managerId = managerByOrg.get(orgId);
+    if (managerId === undefined) {
+      const orgUsers = await db.user.findMany({
+        where: { organizationId: orgId, isActive: true },
+        select: { id: true, role: true },
+      });
+      const primary = pickPrimaryManager(orgUsers);
+      managerId = primary?.id ?? null;
+      managerByOrg.set(orgId, managerId);
+    }
+    if (!managerId) {
+      report.skipped += 1;
+      continue;
+    }
+
+    // For each mapping, find the active document and write the value.
+    for (const mapping of activeMappings) {
+      const tplCode = mapping.template.code;
+      // Pick the value based on readingType.
+      const value =
+        mapping.readingType === "humidity"
+          ? reading.humidity
+          : reading.temperature;
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      const doc = await db.journalDocument.findFirst({
+        where: {
+          organizationId: orgId,
+          templateId: mapping.templateId,
+          status: "active",
+          dateFrom: { lte: todayStart },
+          dateTo: { gte: todayStart },
+        },
+        select: { id: true, config: true },
+      });
+      if (!doc) continue;
+
+      // Merge value into existing entry data (per-template shape).
+      const existing = await db.journalDocumentEntry.findUnique({
+        where: {
+          documentId_employeeId_date: {
+            documentId: doc.id,
+            employeeId: managerId,
+            date: todayStart,
+          },
+        },
+        select: { data: true },
+      });
+      const baseData = (existing?.data as Record<string, unknown>) ?? {};
+      let nextData: Record<string, unknown> = baseData;
+
+      if (tplCode === COLD_EQUIPMENT_CODE) {
+        const prevTemps =
+          (baseData.temperatures as Record<string, unknown> | undefined) ?? {};
+        nextData = {
+          ...baseData,
+          temperatures: { ...prevTemps, [eq.id]: value },
+        };
+      } else if (tplCode === CLIMATE_CODE) {
+        const cfg = (doc.config as { controlTimes?: unknown }) ?? {};
+        const controlTimes = Array.isArray(cfg.controlTimes)
+          ? (cfg.controlTimes as unknown[]).filter(
+              (t): t is string => typeof t === "string"
+            )
+          : [];
+        const slot = nearestControlTime(now, controlTimes);
+        if (!slot) continue;
+        const prevMeasurements =
+          (baseData.measurements as
+            | Record<string, Record<string, Record<string, unknown>>>
+            | undefined) ?? {};
+        const prevRoom = prevMeasurements[eq.id] ?? {};
+        const prevSlot = prevRoom[slot] ?? {};
+        nextData = {
+          ...baseData,
+          measurements: {
+            ...prevMeasurements,
+            [eq.id]: {
+              ...prevRoom,
+              [slot]: { ...prevSlot, [mapping.readingType]: value },
+            },
+          },
+        };
+      } else {
+        // Other sensor-fill templates not yet supported — log and skip.
+        console.info(
+          `[tuya-pull] skipping unsupported template ${tplCode}`
+        );
+        continue;
+      }
+
+      const dataValue = nextData as Prisma.InputJsonValue;
+      await db.journalDocumentEntry.upsert({
+        where: {
+          documentId_employeeId_date: {
+            documentId: doc.id,
+            employeeId: managerId,
+            date: todayStart,
+          },
+        },
+        create: {
+          documentId: doc.id,
+          employeeId: managerId,
+          date: todayStart,
+          data: dataValue,
+        },
+        update: { data: dataValue },
+      });
+      report.entriesWritten += 1;
+
+      await db.equipmentSensorMapping.update({
+        where: { id: mapping.id },
+        data: {
+          lastReadingAt: now,
+          lastValue: String(value),
+        },
+      });
+      report.mappingsUpdated += 1;
+    }
+  }
+
+  report.organizationsTouched = orgsTouched.size;
+  return NextResponse.json({ ok: true, report });
+}
+
+export const GET = handle;
+export const POST = handle;
