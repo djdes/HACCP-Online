@@ -107,9 +107,112 @@ export async function POST(request: Request) {
       }
     }
 
+    // ========================================================
+    // StaffCompetency expiry — медкнижки, обучение, сертификаты.
+    // Проверяем окна 30/14/3 дня, шлём push с emoji-intensity.
+    //
+    // По умолчанию cron дёргается ежедневно в одно и то же время —
+    // за месяц до истечения медкнижки Иванова менеджер сначала
+    // получит лёгкое 🟡 напоминание, за 2 недели — 🟠, за 3 дня — 🔴.
+    // Дубликации нет: для каждого экземпляра StaffCompetency пуш идёт
+    // только когда days-until-expiry попадает на одно из 3 значений
+    // (30, 14, 3) — иначе skip.
+    // ========================================================
+    const staffByOrg = new Map<
+      string,
+      Array<{
+        userName: string;
+        skill: string;
+        expiresAt: Date;
+        daysLeft: number;
+      }>
+    >();
+
+    const competencies = await db.staffCompetency.findMany({
+      where: {
+        expiresAt: {
+          // окно: от now до now+30 дней (включая уже истёкшие в last 7 дней)
+          gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+          lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+      include: { organization: { select: { id: true, name: true } } },
+    });
+
+    // Pre-fetch user names в одном запросе.
+    const userIds = Array.from(new Set(competencies.map((c) => c.userId)));
+    const users = await db.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    const userById = new Map(users.map((u) => [u.id, u.name]));
+
+    const NOTIFY_WINDOWS = [3, 14, 30] as const;
+    for (const comp of competencies) {
+      if (!comp.expiresAt) continue;
+      const msUntil = comp.expiresAt.getTime() - now.getTime();
+      const daysLeft = Math.ceil(msUntil / (24 * 60 * 60 * 1000));
+      // Шлём только в дни-якоря: 30, 14, 3 и в день истечения (0,
+      // отрицательные = просрочено).
+      const isAnchor =
+        NOTIFY_WINDOWS.includes(daysLeft as 3 | 14 | 30) || daysLeft <= 0;
+      if (!isAnchor) continue;
+
+      const list = staffByOrg.get(comp.organizationId) ?? [];
+      list.push({
+        userName: userById.get(comp.userId) ?? "?",
+        skill: comp.skill,
+        expiresAt: comp.expiresAt,
+        daysLeft,
+      });
+      staffByOrg.set(comp.organizationId, list);
+    }
+
+    let staffAlerts = 0;
+    for (const [orgId, items] of staffByOrg) {
+      // emoji-intensity: 30→🟡, 14→🟠, ≤3→🔴.
+      const lines = items
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .map((item) => {
+          const emoji =
+            item.daysLeft <= 3 ? "🔴" : item.daysLeft <= 14 ? "🟠" : "🟡";
+          const dateLabel = item.expiresAt.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          });
+          const suffix =
+            item.daysLeft < 0
+              ? `<b>просрочена ${Math.abs(item.daysLeft)} дн.</b>`
+              : item.daysLeft === 0
+                ? "<b>истекает сегодня</b>"
+                : `через ${item.daysLeft} дн.`;
+          return `${emoji} <b>${esc(item.userName)}</b> — ${esc(
+            item.skill
+          )} (${esc(dateLabel)}, ${suffix})`;
+        });
+
+      const message =
+        `<b>Срок действия документов сотрудников</b>\n\n` +
+        `${lines.join("\n")}\n\n` +
+        `Запланируйте обновление до истечения, иначе сотрудник не сможет работать.`;
+
+      notifyOrganization(
+        orgId,
+        message,
+        ["owner", "technologist"],
+        "expiry"
+      ).catch((err) =>
+        console.error("Telegram staff-expiry alert error:", err)
+      );
+      staffAlerts += items.length;
+    }
+
     return NextResponse.json({
       alerts: alerts.length,
       organizations: byOrg.size,
+      staffAlerts,
+      staffOrgs: staffByOrg.size,
     });
   } catch (error) {
     console.error("Expiry cron error:", error);
