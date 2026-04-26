@@ -406,6 +406,19 @@ export function JournalsSettingsClient({
                 )}
               </button>
 
+              <Link
+                href={`/settings/journals/${item.code}/scope`}
+                onClick={(e) => e.stopPropagation()}
+                className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <ClipboardList className="size-3.5" />
+                  <span className="font-semibold">Тип задачи и кнопки</span>
+                  <span className="text-[#6f7282]">— настроить</span>
+                </span>
+                <span className="text-[10px] text-[#9b9fb3]">→</span>
+              </Link>
+
               {isExpanded ? (
                 <DistributionEditor
                   item={item}
