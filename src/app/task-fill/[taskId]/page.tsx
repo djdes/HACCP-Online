@@ -4,6 +4,10 @@ import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { getAdapter } from "@/lib/tasksflow-adapters";
 import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
 import { isManagementRole } from "@/lib/user-roles";
+import {
+  getActiveCloseEvent,
+  utcDayStart,
+} from "@/lib/journal-close-events";
 import { TaskFillClient } from "./task-fill-client";
 
 export const runtime = "nodejs";
@@ -95,7 +99,14 @@ export default async function TaskFillPage({
     })(),
     db.journalTemplate.findFirst({
       where: { code: link.journalCode },
-      select: { name: true },
+      select: {
+        id: true,
+        name: true,
+        taskScope: true,
+        allowNoEvents: true,
+        noEventsReasons: true,
+        allowFreeTextReason: true,
+      },
     }),
     db.organization.findUnique({
       where: { id: link.integration.organizationId },
@@ -111,6 +122,40 @@ export default async function TaskFillPage({
       })
     : null;
 
+  // Shared-task: загружаем close-event и счётчик записей за сегодня.
+  const todayStart = utcDayStart(new Date());
+  const todayEnd = new Date(todayStart);
+  todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
+  const isShared = template?.taskScope === "shared";
+  const [closeEvent, todaysEntryCount] = await Promise.all([
+    template
+      ? getActiveCloseEvent(
+          link.integration.organizationId,
+          template.id,
+          new Date()
+        )
+      : Promise.resolve(null),
+    isShared
+      ? Promise.all([
+          db.journalDocumentEntry.count({
+            where: {
+              documentId: link.journalDocumentId,
+              date: { gte: todayStart, lt: todayEnd },
+            },
+          }),
+          template
+            ? db.journalEntry.count({
+                where: {
+                  organizationId: link.integration.organizationId,
+                  templateId: template.id,
+                  createdAt: { gte: todayStart, lt: todayEnd },
+                },
+              })
+            : Promise.resolve(0),
+        ]).then(([a, b]) => a + b)
+      : Promise.resolve(0),
+  ]);
+
   // Compliance toggle: when org has requireAdminForJournalEdit ON AND
   // the worker who owns this task is NOT a management role, hide the
   // «Изменить данные» button on a re-opened completed task. The HMAC
@@ -119,6 +164,12 @@ export default async function TaskFillPage({
   const editLocked =
     Boolean(org?.requireAdminForJournalEdit) &&
     !isManagementRole(employee?.role ?? null);
+
+  const noEventsReasons = Array.isArray(template?.noEventsReasons)
+    ? (template.noEventsReasons as unknown[]).filter(
+        (r): r is string => typeof r === "string"
+      )
+    : [];
 
   return (
     <TaskFillClient
@@ -132,6 +183,20 @@ export default async function TaskFillPage({
       form={form}
       alreadyCompleted={link.remoteStatus === "completed"}
       editLocked={editLocked}
+      taskScope={(template?.taskScope as "personal" | "shared") ?? "personal"}
+      allowNoEvents={template?.allowNoEvents ?? true}
+      noEventsReasons={noEventsReasons}
+      allowFreeTextReason={template?.allowFreeTextReason ?? false}
+      todaysEntryCount={todaysEntryCount}
+      closeEvent={
+        closeEvent
+          ? {
+              kind: closeEvent.kind,
+              reason: closeEvent.reason,
+              closedAt: closeEvent.createdAt.toISOString(),
+            }
+          : null
+      }
     />
   );
 }

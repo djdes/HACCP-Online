@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardCheck,
+  Loader2,
+  Plus,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -34,6 +41,19 @@ type Props = {
    * management role. Hide the «Изменить данные» button.
    */
   editLocked: boolean;
+  /** personal — обычный flow; shared — event-log с 3 кнопками. */
+  taskScope: "personal" | "shared";
+  allowNoEvents: boolean;
+  noEventsReasons: string[];
+  allowFreeTextReason: boolean;
+  /** Кол-во записей в этот журнал за сегодня (бейдж для shared). */
+  todaysEntryCount: number;
+  /** Active closure если журнал уже закрыт за сегодня. */
+  closeEvent: {
+    kind: string;
+    reason: string | null;
+    closedAt: string;
+  } | null;
 };
 
 /**
@@ -54,6 +74,12 @@ export function TaskFillClient({
   form,
   alreadyCompleted,
   editLocked,
+  taskScope,
+  allowNoEvents,
+  noEventsReasons,
+  allowFreeTextReason,
+  todaysEntryCount,
+  closeEvent,
 }: Props) {
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
@@ -98,6 +124,17 @@ export function TaskFillClient({
   const [editIntent, setEditIntent] = useState(false);
   const editMode = alreadyCompleted && editIntent;
 
+  // Shared-task state — счётчик записей и closure (могут меняться
+  // прямо в этой сессии после нажатий кнопок).
+  const [entryCount, setEntryCount] = useState(todaysEntryCount);
+  const [closure, setClosure] = useState(closeEvent);
+  // addAnother — после успешного submit для shared показываем «Записано!
+  // +1. Добавить ещё запись? / Завершить смену».
+  const [addAnotherMode, setAddAnotherMode] = useState(false);
+  // noEventsOpen — модалка с выбором причины «Не требуется сегодня».
+  const [noEventsOpen, setNoEventsOpen] = useState(false);
+  const isShared = taskScope === "shared";
+
   const readyToSubmit = useMemo(() => {
     if (!form) return true; // no-form tasks (generic) can always submit
     for (const f of form.fields) {
@@ -125,8 +162,27 @@ export function TaskFillClient({
       if (!response.ok) {
         throw new Error(data?.error ?? "Ошибка сохранения");
       }
-      setDone(true);
       setConfirmOpen(false);
+      if (isShared) {
+        // Shared: задача остаётся открытой, бампаем счётчик и
+        // показываем «+1, добавить ещё или завершить смену».
+        setEntryCount((c) => c + 1);
+        setAddAnotherMode(true);
+        // Сбрасываем форму для следующей записи (preserve какие-нибудь
+        // sticky поля? пока полный reset — у каждого события свои данные).
+        setValues((prev) => {
+          const next: Record<string, unknown> = {};
+          if (form) {
+            for (const f of form.fields) {
+              if (f.type === "boolean") next[f.key] = false;
+              else next[f.key] = "";
+            }
+          }
+          return next;
+        });
+      } else {
+        setDone(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
     } finally {
@@ -146,6 +202,89 @@ export function TaskFillClient({
     }, 1800);
     return () => clearTimeout(t);
   }, [done, returnUrl]);
+
+  // ===== Shared-task actions =====
+  async function closeNoEvents(reason: string) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/task-fill/${taskId}/close-no-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, kind: "no-events", reason }),
+        }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Ошибка");
+      }
+      setClosure({
+        kind: "no-events",
+        reason,
+        closedAt: new Date().toISOString(),
+      });
+      setNoEventsOpen(false);
+      setAddAnotherMode(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function closeShift() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/task-fill/${taskId}/close-no-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, kind: "closed-with-events" }),
+        }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Ошибка");
+      }
+      setClosure({
+        kind: "closed-with-events",
+        reason: null,
+        closedAt: new Date().toISOString(),
+      });
+      setAddAnotherMode(false);
+      setDone(true); // обычная success-карточка с auto-redirect
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function reopenJournal() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/task-fill/${taskId}/reopen`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Ошибка");
+      }
+      setClosure(null);
+      setAddAnotherMode(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#fafbff]">
@@ -187,7 +326,23 @@ export function TaskFillClient({
             returnUrl={returnUrl}
             autoRedirecting={Boolean(returnUrl)}
           />
-        ) : alreadyCompleted && !editIntent ? (
+        ) : isShared && closure ? (
+          <SharedClosedCard
+            closure={closure}
+            onReopen={reopenJournal}
+            submitting={submitting}
+            returnUrl={returnUrl}
+            entryCount={entryCount}
+          />
+        ) : isShared && addAnotherMode ? (
+          <SharedAddAnotherCard
+            entryCount={entryCount}
+            onAddAnother={() => setAddAnotherMode(false)}
+            onCloseShift={closeShift}
+            submitting={submitting}
+            returnUrl={returnUrl}
+          />
+        ) : alreadyCompleted && !editIntent && !isShared ? (
           <AlreadyDoneCard
             onEdit={editLocked ? null : () => setEditIntent(true)}
             returnUrl={returnUrl}
@@ -195,6 +350,31 @@ export function TaskFillClient({
           />
         ) : (
           <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            {isShared ? (
+              <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-snug text-[#3c4053]">
+                <div>
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                    Общая задача смены
+                  </div>
+                  <div className="mt-1 text-[14px] text-[#0b1024]">
+                    Записей сегодня: <strong>{entryCount}</strong>
+                  </div>
+                  <p className="mt-1 text-[12px] text-[#6f7282]">
+                    Можно добавлять записи несколько раз — задача
+                    остаётся открытой до конца смены.
+                  </p>
+                </div>
+                {allowNoEvents ? (
+                  <button
+                    type="button"
+                    onClick={() => setNoEventsOpen(true)}
+                    className="shrink-0 rounded-xl border border-[#dcdfed] bg-white px-3 py-2 text-[12px] font-medium text-[#3a3f55] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  >
+                    Не требуется сегодня
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             {editMode ? (
               <div className="mb-5 rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-snug text-[#3c4053]">
                 Вы редактируете уже сохранённую запись журнала. После
@@ -259,8 +439,275 @@ export function TaskFillClient({
             onConfirm={doSubmit}
           />
         ) : null}
+
+        {/* «Не требуется сегодня» modal */}
+        {noEventsOpen ? (
+          <NoEventsSheet
+            reasons={noEventsReasons}
+            allowFreeText={allowFreeTextReason}
+            submitting={submitting}
+            onCancel={() => setNoEventsOpen(false)}
+            onConfirm={closeNoEvents}
+          />
+        ) : null}
       </section>
     </main>
+  );
+}
+
+/**
+ * Карточка «+1 записано». Показывается после успешного submit на
+ * shared-task. Юзер выбирает: добавить ещё запись, или закрыть смену.
+ */
+function SharedAddAnotherCard({
+  entryCount,
+  onAddAnother,
+  onCloseShift,
+  submitting,
+  returnUrl,
+}: {
+  entryCount: number;
+  onAddAnother: () => void;
+  onCloseShift: () => void;
+  submitting: boolean;
+  returnUrl: string | null;
+}) {
+  return (
+    <div className="rounded-3xl border border-[#ececf4] bg-white p-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#ecfdf5] text-[#116b2a]">
+        <CheckCircle2 className="size-7" />
+      </div>
+      <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        Запись сохранена
+      </h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
+        Сегодня записей: <strong>{entryCount}</strong>. Можно добавить
+        ещё или закрыть смену по этому журналу.
+      </p>
+      <div className="mt-6 flex flex-col gap-2.5">
+        <Button
+          type="button"
+          onClick={onAddAnother}
+          disabled={submitting}
+          className="h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+        >
+          <Plus className="mr-2 size-4" />
+          Добавить ещё запись
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCloseShift}
+          disabled={submitting}
+          className="h-12 w-full rounded-2xl border-[#dcdfed] bg-white text-[15px] font-medium text-[#0b1024] hover:bg-[#fafbff]"
+        >
+          {submitting ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : null}
+          Завершить смену по этому журналу
+        </Button>
+      </div>
+      {returnUrl ? (
+        <a
+          href={returnUrl}
+          className="mt-4 inline-block text-[13px] text-[#6f7282] hover:text-[#0b1024]"
+        >
+          Вернуться в TasksFlow
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Карточка для уже закрытого журнала за сегодня (kind = no-events /
+ * closed-with-events). Кнопка «Открыть заново» доступна — если событие
+ * случилось после закрытия.
+ */
+function SharedClosedCard({
+  closure,
+  onReopen,
+  submitting,
+  returnUrl,
+  entryCount,
+}: {
+  closure: { kind: string; reason: string | null; closedAt: string };
+  onReopen: () => void;
+  submitting: boolean;
+  returnUrl: string | null;
+  entryCount: number;
+}) {
+  const labelByKind: Record<string, string> = {
+    "no-events": "Закрыто как «без событий»",
+    "closed-with-events": "Смена завершена",
+    "auto-closed-empty": "Закрыто автоматически",
+  };
+  return (
+    <div className="rounded-3xl border border-[#ececf4] bg-white p-8 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#ecfdf5] text-[#116b2a]">
+        <CheckCircle2 className="size-7" />
+      </div>
+      <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        {labelByKind[closure.kind] ?? "Журнал закрыт"}
+      </h2>
+      {closure.reason ? (
+        <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
+          Причина: <strong>{closure.reason}</strong>
+        </p>
+      ) : null}
+      <p className="mt-1 text-[13px] text-[#9b9fb3]">
+        {entryCount > 0 ? `Записей за смену: ${entryCount} · ` : ""}
+        Закрыто {new Date(closure.closedAt).toLocaleString("ru-RU", {
+          dateStyle: "short",
+          timeStyle: "short",
+        })}
+      </p>
+      <Button
+        type="button"
+        onClick={onReopen}
+        disabled={submitting}
+        className="mt-6 h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+      >
+        {submitting ? (
+          <Loader2 className="mr-2 size-4 animate-spin" />
+        ) : (
+          <RotateCcw className="mr-2 size-4" />
+        )}
+        Открыть заново (случилось событие)
+      </Button>
+      {returnUrl ? (
+        <a
+          href={returnUrl}
+          className="mt-3 inline-block text-[13px] text-[#6f7282] hover:text-[#0b1024]"
+        >
+          Вернуться в TasksFlow
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Modal «Не требуется сегодня» с выбором причины. Свой текст
+ * доступен только если allowFreeText=true.
+ */
+function NoEventsSheet({
+  reasons,
+  allowFreeText,
+  submitting,
+  onCancel,
+  onConfirm,
+}: {
+  reasons: string[];
+  allowFreeText: boolean;
+  submitting: boolean;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [picked, setPicked] = useState<string | "__free__" | null>(
+    reasons[0] ?? (allowFreeText ? "__free__" : null)
+  );
+  const [free, setFree] = useState("");
+  const ready =
+    picked !== null &&
+    (picked !== "__free__" || free.trim().length > 0);
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] sm:items-center">
+      <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] sm:rounded-3xl sm:border">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-[18px] font-semibold text-[#0b1024]">
+            Не требуется сегодня
+          </h3>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg p-1.5 text-[#6f7282] hover:bg-[#fafbff]"
+            disabled={submitting}
+            aria-label="Закрыть"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <p className="mt-1 text-[13px] text-[#6f7282]">
+          Укажите причину. Журнал будет закрыт за сегодня — менеджер
+          увидит «без событий».
+        </p>
+        <div className="mt-4 space-y-2">
+          {reasons.map((r) => (
+            <label
+              key={r}
+              className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 text-[14px] transition-colors ${
+                picked === r
+                  ? "border-[#5566f6] bg-[#f5f6ff]"
+                  : "border-[#dcdfed] bg-white hover:bg-[#fafbff]"
+              }`}
+            >
+              <input
+                type="radio"
+                checked={picked === r}
+                onChange={() => setPicked(r)}
+                className="size-4"
+              />
+              <span className="text-[#0b1024]">{r}</span>
+            </label>
+          ))}
+          {allowFreeText ? (
+            <label
+              className={`flex cursor-pointer flex-col gap-2 rounded-2xl border px-3 py-2.5 text-[14px] transition-colors ${
+                picked === "__free__"
+                  ? "border-[#5566f6] bg-[#f5f6ff]"
+                  : "border-[#dcdfed] bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  checked={picked === "__free__"}
+                  onChange={() => setPicked("__free__")}
+                  className="size-4"
+                />
+                <span className="text-[#0b1024]">Своя причина</span>
+              </div>
+              {picked === "__free__" ? (
+                <Input
+                  value={free}
+                  onChange={(e) => setFree(e.target.value)}
+                  placeholder="Например: проверка СЭС"
+                  maxLength={120}
+                  className="h-10 rounded-xl"
+                  autoFocus
+                />
+              ) : null}
+            </label>
+          ) : null}
+        </div>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={submitting}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[14px]"
+          >
+            Отмена
+          </Button>
+          <Button
+            type="button"
+            onClick={() =>
+              onConfirm(picked === "__free__" ? free.trim() : picked!)
+            }
+            disabled={!ready || submitting}
+            className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+          >
+            {submitting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              "Подтвердить"
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
