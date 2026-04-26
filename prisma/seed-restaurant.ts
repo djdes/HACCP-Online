@@ -36,7 +36,11 @@ import {
 import { resolveJournalPeriod } from "../src/lib/journal-period";
 import { getOnboardingPreset } from "../src/lib/onboarding-presets";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: { url: process.env.DATABASE_URL },
+  },
+});
 
 const ORG_NAME = "Ресторан «Вкусная Гавань»";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@vkusnaya-gavan.ru";
