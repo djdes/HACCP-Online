@@ -61,6 +61,11 @@ export type CreateUserInput = {
    * При повторном create на существующего юзера TF auto-promote'нет его
    * в admin (см. handler в TasksFlow server/routes.ts). */
   isAdmin?: boolean;
+  /** Должность («Шеф-повар», «Уборщик», ...). TasksFlow хранит её в
+   * users.position и показывает в UI (Dashboard секции «ФИО · Должность»
+   * + сортировка). При повторном create с другим position обновляется
+   * на стороне TF без полной пересинхронизации. */
+  position?: string | null;
 };
 
 export class TasksFlowError extends Error {

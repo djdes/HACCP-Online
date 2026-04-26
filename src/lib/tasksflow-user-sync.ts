@@ -4,6 +4,7 @@ export type SyncTasksflowUserInput = {
   name?: string;
   phone: string;
   isAdmin?: boolean;
+  position?: string | null;
 };
 
 type WeSetupSyncUser = {
@@ -14,6 +15,10 @@ type WeSetupSyncUser = {
   /** ISO-timestamp создания. Используется чтобы определить кто первый
    *  user в org (= owner) — он получает isAdmin=true в TasksFlow. */
   createdAt: Date;
+  /** Должность пользователя (берётся из jobPosition.name либо
+   *  positionTitle). Прокидывается в TasksFlow как users.position для
+   *  UI «ФИО · Должность» и сортировки. */
+  positionTitle?: string | null;
 };
 
 type ExistingSyncLink = {
@@ -137,18 +142,22 @@ export async function syncTasksflowUsers(args: {
 
     const isOwner = user.id === ownerId;
     let remote = remoteByPhone.get(phone) ?? null;
-    // Если remote уже существует но НЕ admin, и наш user — owner —
-    // делаем повторный POST createUser с isAdmin:true. TasksFlow в
-    // обработчике видит «уже существует + requestedAdmin» и зовёт
-    // setUserAdmin(id, true) — promote'ит на месте.
-    if (remote && isOwner) {
+    // Если remote уже существует — повторный POST createUser:
+    //   - с isAdmin:true (если owner) — TF promote'ит через setUserAdmin
+    //   - с position — TF обновит position в users (см. handler в TF)
+    // Это idempotent merge: при добавлении новых сотрудников или смене
+    // должностей нам не нужен отдельный endpoint.
+    if (remote && (isOwner || user.positionTitle)) {
       try {
         await args.createRemoteUser({
           name: user.name?.trim() || undefined,
           phone,
-          isAdmin: true,
+          ...(isOwner ? { isAdmin: true } : {}),
+          ...(user.positionTitle !== undefined
+            ? { position: user.positionTitle }
+            : {}),
         });
-        promotedAdmin += 1;
+        if (isOwner) promotedAdmin += 1;
       } catch {
         // 400 «уже существует» норма если TF не promote'ит — пропускаем
       }
@@ -160,6 +169,7 @@ export async function syncTasksflowUsers(args: {
           name: user.name?.trim() || undefined,
           phone,
           isAdmin: isOwner ? true : undefined,
+          position: user.positionTitle ?? undefined,
         });
       } catch (err) {
         const status = extractHttpStatus(err);

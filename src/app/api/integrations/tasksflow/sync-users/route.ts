@@ -43,11 +43,30 @@ export async function POST() {
     );
   }
 
-  const wesetupUsers = await db.user.findMany({
+  const rawUsers = await db.user.findMany({
     where: { organizationId: orgId, isActive: true, archivedAt: null },
-    select: { id: true, name: true, phone: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+      positionTitle: true,
+      jobPosition: { select: { name: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
+  // jobPosition.name — авторитетный источник (если задано), positionTitle
+  // legacy fallback. Так положение синхронизируется с актуальной
+  // должностью даже если позиционный snapshot устарел.
+  const wesetupUsers = rawUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    phone: u.phone,
+    role: u.role,
+    createdAt: u.createdAt,
+    positionTitle: u.jobPosition?.name ?? u.positionTitle ?? null,
+  }));
 
   let remoteUsers;
   try {
@@ -78,11 +97,12 @@ export async function POST() {
       wesetupUsers,
       existingLinks,
       remoteUsers,
-      createRemoteUser: async ({ name, phone, isAdmin }) =>
+      createRemoteUser: async ({ name, phone, isAdmin, position }) =>
         client.createUser({
           phone,
           ...(name ? { name } : {}),
           ...(isAdmin ? { isAdmin: true } : {}),
+          ...(position !== undefined ? { position } : {}),
         }),
       upsertLink: async ({
         integrationId,

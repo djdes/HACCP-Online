@@ -218,7 +218,15 @@ async function connectIntegration(request: Request) {
   const [wesetupUsers, existingLinks] = await Promise.all([
     db.user.findMany({
       where: { organizationId: orgId, isActive: true, archivedAt: null },
-      select: { id: true, name: true, phone: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        positionTitle: true,
+        jobPosition: { select: { name: true } },
+      },
       orderBy: { createdAt: "asc" },
     }),
     db.tasksFlowUserLink.findMany({
@@ -229,14 +237,22 @@ async function connectIntegration(request: Request) {
 
   const userSync = await syncTasksflowUsers({
     integrationId: integration.id,
-    wesetupUsers,
+    wesetupUsers: wesetupUsers.map((u) => ({
+      id: u.id,
+      name: u.name,
+      phone: u.phone,
+      role: u.role,
+      createdAt: u.createdAt,
+      positionTitle: u.jobPosition?.name ?? u.positionTitle ?? null,
+    })),
     existingLinks,
     remoteUsers: probeUsers,
-    createRemoteUser: async ({ name, phone, isAdmin }) =>
+    createRemoteUser: async ({ name, phone, isAdmin, position }) =>
       client.createUser({
         phone,
         ...(name ? { name } : {}),
         ...(isAdmin ? { isAdmin: true } : {}),
+        ...(position !== undefined ? { position } : {}),
       }),
     upsertLink: async ({
       integrationId,
