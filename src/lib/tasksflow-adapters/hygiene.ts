@@ -26,7 +26,7 @@ import {
   type JournalAdapter,
   type TaskSchedule,
 } from "./types";
-import type { TaskFormSchema } from "./task-form";
+import type { TaskFormField, TaskFormSchema } from "./task-form";
 import { extractEmployeeId as employeeIdFromRowKey, rowKeyForEmployee } from "./row-key";
 
 const HYGIENE_CODE = "hygiene";
@@ -147,16 +147,52 @@ export const hygieneAdapter: JournalAdapter = {
   async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return HYGIENE_TASK_FORM;
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
-    });
+    const [employee, yesterday] = await Promise.all([
+      db.user.findUnique({
+        where: { id: employeeId },
+        select: { name: true },
+      }),
+      // Smart-default из вчерашней entry: если повар вчера ставил
+      // «healthy», скорее всего и сегодня то же. Pre-fill экономит
+      // тап и не блокирует «осознанное подтверждение submit'ом».
+      // См. src/lib/smart-defaults.ts § getYesterdayEntryData.
+      (async () => {
+        const { getYesterdayEntryData } = await import(
+          "@/lib/smart-defaults"
+        );
+        return getYesterdayEntryData(documentId, employeeId);
+      })(),
+    ]);
     if (!employee) return HYGIENE_TASK_FORM;
+
+    // Override defaults в форме если есть данные за вчера. Cast в
+    // TaskFormField нужен потому что spread теряет discriminated-union
+    // narrowing на тип field'а.
+    const fields: TaskFormField[] = HYGIENE_TASK_FORM.fields.map((f) => {
+      if (!yesterday) return f;
+      if (
+        f.type === "select" &&
+        f.key === "status" &&
+        typeof yesterday.status === "string"
+      ) {
+        return { ...f, defaultValue: yesterday.status };
+      }
+      if (
+        f.type === "boolean" &&
+        f.key === "temperatureAbove37" &&
+        typeof yesterday.temperatureAbove37 === "boolean"
+      ) {
+        return { ...f, defaultValue: yesterday.temperatureAbove37 };
+      }
+      return f;
+    });
+
     return {
       ...HYGIENE_TASK_FORM,
       intro:
         `${employee.name}, отметьте своё состояние перед сменой. ` +
         `Если есть симптомы — выберите «Болен» и сообщите начальнику.`,
+      fields,
     };
   },
 

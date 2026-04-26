@@ -20,7 +20,7 @@ import {
   type JournalAdapter,
   type TaskSchedule,
 } from "./types";
-import type { TaskFormSchema } from "./task-form";
+import type { TaskFormField, TaskFormSchema } from "./task-form";
 import { extractEmployeeId as employeeIdFromRowKey, rowKeyForEmployee } from "./row-key";
 
 const TEMPLATE_CODE = "health_check";
@@ -106,17 +106,43 @@ export const healthCheckAdapter: JournalAdapter = {
     return EMPTY_SYNC_REPORT;
   },
 
-  async getTaskForm({ rowKey }) {
+  async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return HEALTH_TASK_FORM;
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
-    });
+    const [employee, yesterday] = await Promise.all([
+      db.user.findUnique({
+        where: { id: employeeId },
+        select: { name: true },
+      }),
+      // Smart-default: подтянуть «signed» и «measures» из вчерашней
+      // записи. См. src/lib/smart-defaults.ts.
+      (async () => {
+        const { getYesterdayEntryData } = await import(
+          "@/lib/smart-defaults"
+        );
+        return getYesterdayEntryData(documentId, employeeId);
+      })(),
+    ]);
     if (!employee) return HEALTH_TASK_FORM;
+
+    const fields: TaskFormField[] = HEALTH_TASK_FORM.fields.map((f) => {
+      if (!yesterday) return f;
+      if (
+        f.type === "boolean" &&
+        f.key === "signed" &&
+        typeof yesterday.signed === "boolean"
+      ) {
+        return { ...f, defaultValue: yesterday.signed };
+      }
+      // measures обычно пустое — НЕ pre-fill, чтобы не тащить устаревшие
+      // жалобы. Свежий день — свежий контекст.
+      return f;
+    });
+
     return {
       ...HEALTH_TASK_FORM,
       intro: `${employee.name}, подтвердите что сегодня чувствуете себя хорошо.`,
+      fields,
     };
   },
 
