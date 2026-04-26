@@ -8,6 +8,7 @@ import {
 } from "@/lib/tasksflow-client";
 import { getAdapter } from "@/lib/tasksflow-adapters";
 import { buildCompletionValidator } from "@/lib/tasksflow-adapters/task-form";
+import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
 import { toDateKey } from "@/lib/hygiene-document";
 import { isManagementRole } from "@/lib/user-roles";
 
@@ -108,14 +109,8 @@ export async function POST(
       select: { requireAdminForJournalEdit: true },
     });
     if (org?.requireAdminForJournalEdit) {
+      const actorId = extractEmployeeId(link.rowKey);
       let actorRole: string | null = null;
-      const mEmp = /^employee-(.+)$/.exec(link.rowKey);
-      let actorId = mEmp ? mEmp[1] : null;
-      if (!actorId && link.rowKey.startsWith("freetask:")) {
-        const rest = link.rowKey.slice("freetask:".length);
-        const sep = rest.indexOf(":");
-        if (sep > 0) actorId = rest.slice(0, sep);
-      }
       if (actorId) {
         const actor = await db.user.findUnique({
           where: { id: actorId },

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { getAdapter } from "@/lib/tasksflow-adapters";
+import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
 import { isManagementRole } from "@/lib/user-roles";
 import { TaskFillClient } from "./task-fill-client";
 
@@ -83,18 +84,9 @@ export default async function TaskFillPage({
       select: { id: true, title: true, dateFrom: true, dateTo: true },
     }),
     (async () => {
-      // rowKey formats:
-      //   - `employee-<userId>`   — most adapters (hygiene, cold-equipment…)
-      //   - `freetask:<userId>:<rand>` — admin-driven free-text task
-      //   - other (e.g. `cleaning-pair-…`) → no direct user binding.
-      let userId: string | null = null;
-      const mEmp = /^employee-(.+)$/.exec(link.rowKey);
-      if (mEmp) userId = mEmp[1];
-      if (!userId && link.rowKey.startsWith("freetask:")) {
-        const rest = link.rowKey.slice("freetask:".length);
-        const sep = rest.indexOf(":");
-        if (sep > 0) userId = rest.slice(0, sep);
-      }
+      // rowKey -> userId via shared helper (handles `employee-<id>`,
+      // `employee-<id>-time-HH:MM` for climate, и `freetask:<id>:<rand>`).
+      const userId = extractEmployeeId(link.rowKey);
       if (!userId) return null;
       return db.user.findUnique({
         where: { id: userId },
