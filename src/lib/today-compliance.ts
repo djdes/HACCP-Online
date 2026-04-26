@@ -7,6 +7,79 @@ import {
 export { DAILY_JOURNAL_CODES, CONFIG_DAILY_CODES };
 
 /**
+ * TasksFlow-driven readiness for a journal: when the org has TF tasks
+ * tied to active documents covering today, the journal is «готов» iff
+ * every such task is completed today. This overrides the entry-count
+ * heuristics (which can lag behind reality when the TF assignment plan
+ * doesn't perfectly match the document's roster — e.g. cold-equipment
+ * fan-out where 3 cooks share 10 fridges, or hygiene where TF skips
+ * employees without phone numbers).
+ *
+ * Rule per template:
+ *   - If TF link count for today > 0:
+ *       filled = (every link is completed AND completedAt ≥ todayStart)
+ *     This OVERRIDES whatever entry-counting decided.
+ *   - If TF link count for today === 0:
+ *       no TF override; the caller's existing logic stands.
+ *
+ * "completedAt ≥ todayStart" rules out stale completions left over from
+ * yesterday on a recurring task that TF rolled but our sync hasn't
+ * polled yet.
+ */
+type TfTemplateReadiness = {
+  totalCount: number;
+  doneTodayCount: number;
+  allDoneToday: boolean;
+};
+
+async function getTasksFlowReadinessByTemplate(
+  organizationId: string,
+  todayStart: Date,
+  activeDocs: Array<{ id: string; templateId: string }>
+): Promise<Map<string, TfTemplateReadiness>> {
+  const out = new Map<string, TfTemplateReadiness>();
+  if (activeDocs.length === 0) return out;
+  const docIds = activeDocs.map((d) => d.id);
+  const templateByDocId = new Map<string, string>();
+  for (const doc of activeDocs) templateByDocId.set(doc.id, doc.templateId);
+
+  const links = await db.tasksFlowTaskLink.findMany({
+    where: {
+      journalDocumentId: { in: docIds },
+      integration: { organizationId, enabled: true },
+    },
+    select: {
+      journalDocumentId: true,
+      remoteStatus: true,
+      completedAt: true,
+    },
+  });
+
+  for (const link of links) {
+    const templateId = templateByDocId.get(link.journalDocumentId);
+    if (!templateId) continue;
+    const acc = out.get(templateId) ?? {
+      totalCount: 0,
+      doneTodayCount: 0,
+      allDoneToday: false,
+    };
+    acc.totalCount += 1;
+    const doneToday =
+      link.remoteStatus === "completed" &&
+      link.completedAt !== null &&
+      link.completedAt >= todayStart;
+    if (doneToday) acc.doneTodayCount += 1;
+    out.set(templateId, acc);
+  }
+
+  for (const acc of out.values()) {
+    acc.allDoneToday = acc.totalCount > 0 && acc.doneTodayCount === acc.totalCount;
+  }
+
+  return out;
+}
+
+/**
  * "Filled today" check for a journal template. Not every mandatory
  * journal has daily obligations — some are aperiodic (accidents,
  * complaints, breakdowns happen only when they happen) or event-driven
@@ -609,6 +682,27 @@ export async function getTemplatesFilledToday(
     if (ok) filled.add(templateId);
   }
 
+  // TasksFlow override: if the org has TF tasks bound to today's active
+  // documents, the journal's readiness is the AND of those tasks being
+  // completed today. This is the user's mental model — "I see in TF
+  // that everything is done, so journal must be ready". Without this,
+  // entry-counting heuristics can lag behind (roster changes, partial
+  // fan-out, deep-inspect mismatches) and leave a journal "not done"
+  // even after every assigned worker tapped «Готово».
+  const tfReadiness = await getTasksFlowReadinessByTemplate(
+    organizationId,
+    todayStart,
+    activeDocuments.map((d) => ({ id: d.id, templateId: d.templateId }))
+  );
+  for (const [templateId, readiness] of tfReadiness.entries()) {
+    if (readiness.totalCount === 0) continue;
+    if (readiness.allDoneToday) {
+      filled.add(templateId);
+    } else {
+      filled.delete(templateId);
+    }
+  }
+
   return filled;
 }
 
@@ -716,6 +810,31 @@ export async function getTemplateTodaySummary(
   const fillMode = template?.fillMode ?? "per-employee";
 
   const activeDocumentId = activeDocuments[0]?.id ?? null;
+
+  // TasksFlow override: if there are TF tasks bound to today's active
+  // documents, the journal's readiness is purely "all those tasks
+  // completed today". Same rationale as in getTemplatesFilledToday —
+  // entry-counting can lag behind reality. We expose the TF counts via
+  // the existing todayCount/expectedCount fields so the banner reads
+  // "N из M задач выполнено за сегодня" naturally.
+  if (activeDocuments.length > 0) {
+    const tfReadiness = await getTasksFlowReadinessByTemplate(
+      organizationId,
+      todayStart,
+      activeDocuments.map((d) => ({ id: d.id, templateId }))
+    );
+    const tf = tfReadiness.get(templateId);
+    if (tf && tf.totalCount > 0) {
+      return {
+        filled: tf.allDoneToday,
+        aperiodic: false,
+        todayCount: tf.doneTodayCount,
+        expectedCount: tf.totalCount,
+        noActiveDocument: false,
+        activeDocumentId,
+      };
+    }
+  }
 
   if (legacyCount > 0) {
     return {
