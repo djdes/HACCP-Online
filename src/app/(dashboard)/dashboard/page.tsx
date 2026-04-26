@@ -27,6 +27,7 @@ import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
+import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getWorkerLeaderboard } from "@/lib/worker-leaderboard";
 import { getWeeklyTails } from "@/lib/weekly-tails";
@@ -197,6 +198,19 @@ export default async function DashboardPage() {
   // active templates minus disabled journal codes.
   const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
 
+  // Soft-block: количество CAPA, которые открыты > 7 дней — это
+  // знак что менеджер забыл их закрыть. Показываем nag-модалку на
+  // dashboard. Dismissable per-session, появляется снова после
+  // следующей перезагрузки.
+  const staleCapaCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const staleCapaCount = await db.capaTicket.count({
+    where: {
+      organizationId,
+      status: { not: "closed" },
+      createdAt: { lt: staleCapaCutoff },
+    },
+  });
+
   const [filledTodayIds, weeklyTails, leaderboard] = await Promise.all([
     getTemplatesFilledToday(
       organizationId,
@@ -241,6 +255,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Soft-block: nag-modal для админа когда CAPA открыты > 7 дней.
+          Dismissable per-session, появляется снова после reload. */}
+      <StaleCapaNag count={staleCapaCount} />
+
       {/* Dark hero with greeting + stat pills */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
