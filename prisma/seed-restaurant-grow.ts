@@ -353,15 +353,92 @@ async function main() {
   // 5. Per-position journal access (preset) — для новых должностей нужно
   // явно дать им доступы к hygiene/health_check (per-employee).
   console.log("[5] JobPositionJournalAccess для новых должностей…");
+  // Полный per-position access для ресторана. Перезаписывает предыдущие
+  // строки для перечисленных должностей. Базовые preset-имена «Повар» в
+  // нашем ресторане расщеплены на «Повар горячего/холодного цеха» —
+  // им нужен явный access ниже.
   const NEW_POSITION_ACCESS: Record<string, string[]> = {
-    "Бариста": ["hygiene", "health_check"],
-    "Мангальщик": ["hygiene", "health_check", "finished_product", "fryer_oil"],
-    "Пекарь": ["hygiene", "health_check", "finished_product", "perishable_rejection"],
-    "Сомелье": ["hygiene", "health_check"],
-    "Курьер": ["hygiene", "health_check"],
-    "Чистильщик овощей": ["hygiene", "health_check", "incoming_control"],
+    // Кухня — доступ к температурам и production-журналам
+    "Шеф-повар": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection", "incoming_control",
+      "incoming_raw_materials_control", "fryer_oil", "intensive_cooling",
+      "metal_impurity", "traceability_test", "product_writeoff",
+      "climate_control", "cold_equipment_control",
+    ],
+    "Су-шеф": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection", "intensive_cooling",
+      "fryer_oil", "climate_control", "cold_equipment_control",
+    ],
+    "Повар горячего цеха": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection",
+      "intensive_cooling", "fryer_oil",
+      "climate_control", "cold_equipment_control",
+    ],
+    "Повар холодного цеха": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection",
+      "climate_control", "cold_equipment_control",
+    ],
+    "Повар-кондитер": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection",
+      "cold_equipment_control",
+    ],
+    "Пекарь": [
+      "hygiene", "health_check",
+      "finished_product", "perishable_rejection",
+      "fryer_oil", "cold_equipment_control",
+    ],
+    "Мангальщик": [
+      "hygiene", "health_check",
+      "finished_product", "fryer_oil",
+    ],
+    "Чистильщик овощей": [
+      "hygiene", "health_check", "incoming_control",
+    ],
+    "Стажёр": ["hygiene", "health_check"],
+    "Технолог": [
+      "hygiene", "health_check",
+      "equipment_maintenance", "equipment_calibration",
+      "breakdown_history", "equipment_cleaning",
+      "glass_items_list", "glass_control",
+    ],
+    // Зал и бар
+    "Менеджер зала": ["hygiene", "health_check", "complaint_register"],
     "Метрдотель": ["hygiene", "health_check", "complaint_register"],
     "Администратор смены": ["hygiene", "health_check", "complaint_register"],
+    "Хостес": ["hygiene", "health_check", "complaint_register"],
+    "Официант": ["hygiene", "health_check", "complaint_register"],
+    "Бармен": ["hygiene", "health_check"],
+    "Бариста": ["hygiene", "health_check"],
+    "Сомелье": ["hygiene", "health_check"],
+    // Склад / уборка
+    "Кладовщик": [
+      "hygiene", "health_check",
+      "incoming_control", "incoming_raw_materials_control",
+    ],
+    "Грузчик": ["hygiene", "health_check"],
+    "Курьер": ["hygiene", "health_check"],
+    "Уборщик": [
+      "hygiene", "health_check",
+      "cleaning", "general_cleaning", "cleaning_ventilation_checklist",
+      "uv_lamp_runtime", "disinfectant_usage", "sanitary_day_control",
+      "pest_control",
+    ],
+    "Посудомойщик": [
+      "hygiene", "health_check",
+      "cleaning", "equipment_cleaning",
+    ],
+    // Управляющий — широкий набор compliance + hr
+    "Управляющий": [
+      "hygiene", "health_check",
+      "med_books", "training_plan", "staff_training", "ppe_issuance",
+      "complaint_register", "audit_plan", "audit_protocol", "audit_report",
+      "accident_journal", "sanitary_day_control",
+    ],
   };
   const codes = Array.from(new Set(Object.values(NEW_POSITION_ACCESS).flat()));
   const templates = await prisma.journalTemplate.findMany({
