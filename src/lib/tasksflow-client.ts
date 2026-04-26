@@ -237,6 +237,25 @@ class TasksFlowClient {
       workerIds: subordinateTfUserIds,
     });
   }
+
+  /**
+   * Прописывает обратное подключение TasksFlow → WeSetup. Без него
+   * TF не может загружать task-form / catalog / complete-with-values
+   * (см. resolveWesetupTarget в TF server/routes.ts) — пользователь
+   * получает «WeSetup-интеграция не настроена для этой компании».
+   *
+   * `wesetupApiKey` — это тот же TFK-ключ, который WeSetup хранит у
+   * себя. TF использует его обратно как Bearer для запросов к
+   * /api/integrations/tasksflow/task-form и т.п.
+   */
+  setWesetupBridge(args: {
+    name?: string;
+    email?: string | null;
+    wesetupBaseUrl: string;
+    wesetupApiKey: string;
+  }): Promise<unknown> {
+    return this.request("PUT", "/api/companies/me", args);
+  }
 }
 
 /** Build a client from a stored integration row (decrypts the API key). */
