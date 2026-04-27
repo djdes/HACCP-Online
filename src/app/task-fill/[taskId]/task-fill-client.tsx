@@ -85,6 +85,11 @@ export function TaskFillClient({
 }: Props) {
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
+    // HH:MM текущего времени — подставим в time-поля без defaultValue.
+    // Это feature A7 в brainstorm: «Время выпуска / Время приёмки» —
+    // повар вписывал руками, а уж лучше сразу подставить и дать
+    // править если что.
+    const nowHHMM = new Date().toTimeString().slice(0, 5);
     if (form) {
       for (const field of form.fields) {
         const dv = (field as { defaultValue?: unknown }).defaultValue;
@@ -101,10 +106,19 @@ export function TaskFillClient({
                 ? Number(dv)
                 : "";
         } else {
+          // Smart default для time-полей: если адаптер не указал
+          // defaultValue, а maxLength=5 (как объявлены time-поля), —
+          // подставляем сейчас. Юзер может стереть и ввести вручную.
+          const looksLikeTime =
+            field.type === "text" &&
+            ((field as { maxLength?: number }).maxLength === 5 ||
+              field.label?.includes("ЧЧ:ММ"));
           init[field.key] =
             typeof dv === "string" || typeof dv === "number"
               ? String(dv)
-              : "";
+              : looksLikeTime
+                ? nowHHMM
+                : "";
         }
       }
     }
