@@ -23,7 +23,11 @@ export default async function ReportsPage() {
   ]);
 
   const orgId = getActiveOrgId(session);
+  const now = new Date();
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // E7 — compare-mode: 7 дней «эта неделя» vs предыдущие 7 дней.
+  const since7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const since14 = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   const [
     templates,
     areas,
@@ -31,6 +35,12 @@ export default async function ReportsPage() {
     weekdayHeatmap,
     entries30Count,
     entriesWithAttachment30Count,
+    thisWeekFieldEntries,
+    thisWeekDocEntries,
+    prevWeekFieldEntries,
+    prevWeekDocEntries,
+    thisWeekCapaCount,
+    prevWeekCapaCount,
   ] = await Promise.all([
     db.journalTemplate.findMany({
       where: { isActive: true },
@@ -54,7 +64,54 @@ export default async function ReportsPage() {
         attachments: { some: {} },
       },
     }),
+    db.journalEntry.count({
+      where: { organizationId: orgId, createdAt: { gte: since7 } },
+    }),
+    db.journalDocumentEntry.count({
+      where: {
+        document: { organizationId: orgId },
+        createdAt: { gte: since7 },
+      },
+    }),
+    db.journalEntry.count({
+      where: {
+        organizationId: orgId,
+        createdAt: { gte: since14, lt: since7 },
+      },
+    }),
+    db.journalDocumentEntry.count({
+      where: {
+        document: { organizationId: orgId },
+        createdAt: { gte: since14, lt: since7 },
+      },
+    }),
+    db.capaTicket.count({
+      where: { organizationId: orgId, createdAt: { gte: since7 } },
+    }),
+    db.capaTicket.count({
+      where: {
+        organizationId: orgId,
+        createdAt: { gte: since14, lt: since7 },
+      },
+    }),
   ]);
+
+  const thisWeekTotal = thisWeekFieldEntries + thisWeekDocEntries;
+  const prevWeekTotal = prevWeekFieldEntries + prevWeekDocEntries;
+  const entriesDeltaPct =
+    prevWeekTotal === 0
+      ? thisWeekTotal > 0
+        ? 100
+        : null
+      : Math.round(((thisWeekTotal - prevWeekTotal) / prevWeekTotal) * 100);
+  const capaDeltaPct =
+    prevWeekCapaCount === 0
+      ? thisWeekCapaCount > 0
+        ? 100
+        : null
+      : Math.round(
+          ((thisWeekCapaCount - prevWeekCapaCount) / prevWeekCapaCount) * 100
+        );
   const photoEvidencePct =
     entries30Count === 0
       ? null
@@ -95,6 +152,30 @@ export default async function ReportsPage() {
       </div>
       <AiPeriodReportCard />
 
+      {/* E7 — Сравнение «эта неделя vs прошлая». Δ-стрелки + %.
+          Помогает заметить тренды без ковыряния в графиках. */}
+      <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-6">
+        <h2 className="mb-4 text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+          Эта неделя vs прошлая
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CompareTile
+            label="Записи в журналах"
+            now={thisWeekTotal}
+            prev={prevWeekTotal}
+            deltaPct={entriesDeltaPct}
+            betterIs="up"
+          />
+          <CompareTile
+            label="Открыто CAPA"
+            now={thisWeekCapaCount}
+            prev={prevWeekCapaCount}
+            deltaPct={capaDeltaPct}
+            betterIs="down"
+          />
+        </div>
+      </section>
+
       {photoEvidencePct !== null ? (
         <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
           <div className="flex items-baseline gap-3">
@@ -134,6 +215,65 @@ export default async function ReportsPage() {
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
         <ReportForm templates={templates} areas={areas} />
+      </div>
+    </div>
+  );
+}
+
+function CompareTile({
+  label,
+  now,
+  prev,
+  deltaPct,
+  betterIs,
+}: {
+  label: string;
+  now: number;
+  prev: number;
+  deltaPct: number | null;
+  betterIs: "up" | "down";
+}) {
+  const arrow =
+    deltaPct === null ? "—" : deltaPct > 0 ? "↑" : deltaPct < 0 ? "↓" : "=";
+  const isPositive = deltaPct !== null && deltaPct !== 0;
+  const directionGood =
+    deltaPct === null
+      ? null
+      : (betterIs === "up" && deltaPct > 0) ||
+          (betterIs === "down" && deltaPct < 0)
+        ? true
+        : (betterIs === "up" && deltaPct < 0) ||
+            (betterIs === "down" && deltaPct > 0)
+          ? false
+          : null;
+  const deltaColor =
+    !isPositive
+      ? "#6f7282"
+      : directionGood === true
+        ? "#116b2a"
+        : directionGood === false
+          ? "#a13a32"
+          : "#6f7282";
+  return (
+    <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4">
+      <div className="text-[12px] font-medium uppercase tracking-wider text-[#6f7282]">
+        {label}
+      </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="text-[28px] font-semibold tabular-nums text-[#0b1024]">
+          {now}
+        </span>
+        <span className="text-[12px] text-[#9b9fb3]">
+          было {prev}
+        </span>
+        {deltaPct !== null ? (
+          <span
+            className="ml-auto text-[14px] font-semibold tabular-nums"
+            style={{ color: deltaColor }}
+          >
+            {arrow} {Math.abs(deltaPct)}%
+          </span>
+        ) : null}
       </div>
     </div>
   );

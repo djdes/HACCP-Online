@@ -409,3 +409,64 @@ body:has(.app-shell[data-app-theme="dark"]) {
 .app-shell [data-no-theme-transition] {
   transition: none !important;
 }
+
+/* ====================================================================
+ * PRINT — J4 в brainstorm. При печати compliance-сводок и журналов
+ * скрываем интерактивные элементы (FAB-кнопки, header, modals,
+ * navigation) и форсируем светлую тему.
+ * ================================================================== */
+@media print {
+  /* Force light, white backgrounds — экономим тонер. */
+  body,
+  .app-shell {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Скрываем элементы которые не нужны на бумаге. */
+  header,
+  nav,
+  [role="alert"],
+  [role="dialog"],
+  .fixed,
+  /* Tail-floating widgets */
+  button[aria-label="AI-помощник по СанПиН"],
+  button[aria-label="Поддержка"],
+  /* AI/Support FAB-кнопки идентифицируются по тексту */
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* Карточки — без теней и без скруглений (бумажный вид). */
+  [class*="rounded-3xl"],
+  [class*="rounded-2xl"],
+  [class*="shadow-"] {
+    box-shadow: none !important;
+    border-radius: 4px !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Не разрывать таблицы между страниц. */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Ссылки — не показывать href в скобках (по умолчанию некоторые
+     браузеры это делают; для compliance-отчёта это шум). */
+  a[href]::after {
+    content: "" !important;
+  }
+
+  /* Фон у hero-блоков (тёмный indigo) ломает печать — облегчаем. */
+  [style*="0b1024"],
+  [class*="bg-[#0b1024]"] {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #d1d5db !important;
+  }
+}
+
