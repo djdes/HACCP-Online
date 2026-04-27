@@ -183,4 +183,56 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  events: {
+    /**
+     * Уведомление руководству при первом входе нового сотрудника.
+     * Дедупликация через AuditLog (action="user.first_login") — повторные
+     * логины не пингают повторно. Fire-and-forget: ошибка нотификации
+     * не должна ломать сам логин.
+     */
+    async signIn({ user }) {
+      const u = user as { id?: string; organizationId?: string; name?: string };
+      if (!u?.id || !u.organizationId) return;
+      try {
+        const { db } = await import("@/lib/db");
+        const existing = await db.auditLog.findFirst({
+          where: {
+            organizationId: u.organizationId,
+            action: "user.first_login",
+            entityId: u.id,
+          },
+          select: { id: true },
+        });
+        if (existing) return;
+
+        await db.auditLog.create({
+          data: {
+            organizationId: u.organizationId,
+            userId: u.id,
+            userName: u.name ?? null,
+            action: "user.first_login",
+            entity: "user",
+            entityId: u.id,
+          },
+        });
+
+        // Не пингаем для root и management — они себя сами регистрируют
+        // и не интересны как «новенький».
+        const { notifyOrganization, escapeTelegramHtml: esc } = await import(
+          "@/lib/telegram"
+        );
+        const { isManagementRole } = await import("@/lib/user-roles");
+        const u2 = user as { role?: string; isRoot?: boolean };
+        if (u2?.isRoot || isManagementRole(u2?.role)) return;
+
+        const message =
+          `👋 <b>Новенький в команде</b>\n\n` +
+          `${esc(u.name ?? "Сотрудник")} зашёл в систему первый раз. ` +
+          `Проверьте права доступа и медкнижку, прежде чем выпускать на смену.`;
+        await notifyOrganization(u.organizationId, message, ["owner"]);
+      } catch (err) {
+        console.warn("[auth/signIn] first-login notify failed", err);
+      }
+    },
+  },
 };

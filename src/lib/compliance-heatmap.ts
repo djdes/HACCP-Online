@@ -133,3 +133,123 @@ export async function getComplianceHeatmap(
 
   return { rows, days };
 }
+
+/**
+ * Агрегат: для каждого шаблона — заполняемость по дням недели за
+ * последние 8 недель. Помогает увидеть «у нас завал по health_check
+ * каждый понедельник» одним взглядом.
+ *
+ * Строки = шаблоны (отсортированы по проблемности — больше пропусков сверху).
+ * Колонки = дни недели (Пн..Вс).
+ * Ячейка = % дней-этого-дня-недели когда был хоть один entry.
+ */
+export type WeekdayHeatmapRow = {
+  templateCode: string;
+  templateName: string;
+  cells: Array<{ weekday: number; pct: number; sampleSize: number }>;
+};
+
+const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"] as const;
+
+export async function getWeekdayHeatmap(
+  organizationId: string,
+  weeksBack: number = 8,
+  refDate: Date = new Date()
+): Promise<{ rows: WeekdayHeatmapRow[]; weekdayLabels: typeof WEEKDAY_LABELS }> {
+  const todayStart = new Date(refDate);
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const periodStart = new Date(todayStart);
+  periodStart.setUTCDate(periodStart.getUTCDate() - weeksBack * 7);
+
+  const [organization, templates, fieldEntries, docEntries] = await Promise.all(
+    [
+      db.organization.findUnique({
+        where: { id: organizationId },
+        select: { disabledJournalCodes: true },
+      }),
+      db.journalTemplate.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, code: true, name: true },
+      }),
+      db.journalEntry.findMany({
+        where: {
+          organizationId,
+          createdAt: { gte: periodStart, lte: todayStart },
+        },
+        select: { templateId: true, createdAt: true },
+      }),
+      db.journalDocumentEntry.findMany({
+        where: {
+          document: { organizationId },
+          date: { gte: periodStart, lte: todayStart },
+        },
+        select: {
+          date: true,
+          document: { select: { templateId: true } },
+        },
+      }),
+    ]
+  );
+
+  const disabledSet = parseDisabledCodes(organization?.disabledJournalCodes);
+  const activeTemplates = templates.filter((t) => !disabledSet.has(t.code));
+
+  // [templateId][weekday(0=Пн..6=Вс)] → Set<dateKey>
+  const filledByTemplate = new Map<string, Map<number, Set<string>>>();
+  function bump(templateId: string, dt: Date) {
+    if (!activeTemplates.find((t) => t.id === templateId)) return;
+    const dateStr = dt.toISOString().slice(0, 10);
+    const jsDay = dt.getUTCDay(); // 0=Sun..6=Sat
+    const weekday = (jsDay + 6) % 7; // 0=Mon..6=Sun
+    let perTpl = filledByTemplate.get(templateId);
+    if (!perTpl) {
+      perTpl = new Map();
+      filledByTemplate.set(templateId, perTpl);
+    }
+    let dates = perTpl.get(weekday);
+    if (!dates) {
+      dates = new Set();
+      perTpl.set(weekday, dates);
+    }
+    dates.add(dateStr);
+  }
+  for (const e of fieldEntries) bump(e.templateId, e.createdAt);
+  for (const e of docEntries) bump(e.document.templateId, e.date);
+
+  // Sample size — сколько раз каждый день недели прошёл за период.
+  // weeksBack полных недель + остатки на текущей.
+  const sampleByWeekday = new Map<number, number>();
+  for (let i = 0; i < weeksBack * 7; i++) {
+    const d = new Date(periodStart);
+    d.setUTCDate(d.getUTCDate() + i);
+    if (d > todayStart) break;
+    const jsDay = d.getUTCDay();
+    const weekday = (jsDay + 6) % 7;
+    sampleByWeekday.set(weekday, (sampleByWeekday.get(weekday) ?? 0) + 1);
+  }
+
+  const rows: WeekdayHeatmapRow[] = activeTemplates.map((tpl) => {
+    const perTpl = filledByTemplate.get(tpl.id);
+    const cells = WEEKDAY_LABELS.map((_, weekday) => {
+      const sampleSize = sampleByWeekday.get(weekday) ?? 0;
+      const filled = perTpl?.get(weekday)?.size ?? 0;
+      const pct = sampleSize === 0 ? 0 : Math.round((filled / sampleSize) * 100);
+      return { weekday, pct, sampleSize };
+    });
+    return {
+      templateCode: tpl.code,
+      templateName: tpl.name,
+      cells,
+    };
+  });
+
+  // Sort: сначала шаблоны с самым низким средним пропуском.
+  rows.sort((a, b) => {
+    const avgA = a.cells.reduce((s, c) => s + c.pct, 0) / a.cells.length;
+    const avgB = b.cells.reduce((s, c) => s + c.pct, 0) / b.cells.length;
+    return avgA - avgB;
+  });
+
+  return { rows, weekdayLabels: WEEKDAY_LABELS };
+}

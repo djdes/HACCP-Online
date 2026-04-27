@@ -21,7 +21,8 @@ export default async function LossesPage() {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [records, weekRecords] = await Promise.all([
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const [records, weekRecords, monthRecords] = await Promise.all([
     db.lossRecord.findMany({
       where: { organizationId: orgId },
       orderBy: { date: "desc" },
@@ -30,7 +31,39 @@ export default async function LossesPage() {
     db.lossRecord.findMany({
       where: { organizationId: orgId, date: { gte: weekAgo } },
     }),
+    db.lossRecord.findMany({
+      where: { organizationId: orgId, date: { gte: monthAgo } },
+      select: { productName: true, cause: true, costRub: true, quantity: true },
+    }),
   ]);
+
+  // Топ-5 продуктов и причин за 30 дней.
+  const productRollup = new Map<string, { count: number; cost: number }>();
+  const causeRollup = new Map<string, { count: number; cost: number }>();
+  for (const r of monthRecords) {
+    const cost = r.costRub ?? 0;
+    if (r.productName) {
+      const v = productRollup.get(r.productName) ?? { count: 0, cost: 0 };
+      v.count += 1;
+      v.cost += cost;
+      productRollup.set(r.productName, v);
+    }
+    if (r.cause && r.cause.trim()) {
+      const k = r.cause.trim();
+      const v = causeRollup.get(k) ?? { count: 0, cost: 0 };
+      v.count += 1;
+      v.cost += cost;
+      causeRollup.set(k, v);
+    }
+  }
+  const topProducts = [...productRollup.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.cost - a.cost || b.count - a.count)
+    .slice(0, 5);
+  const topCauses = [...causeRollup.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.cost - a.cost || b.count - a.count)
+    .slice(0, 5);
 
   const weekByCategory: Record<
     string,
@@ -119,6 +152,77 @@ export default async function LossesPage() {
           )}
         </div>
       </div>
+
+      {/* Топ-5 продуктов и причин за 30 дней — для быстрого «что чаще
+          списываем» / «по какой причине теряем больше всего денег». */}
+      {(topProducts.length > 0 || topCauses.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {topProducts.length > 0 && (
+            <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+              <h2 className="text-[15px] font-semibold text-[#0b1024]">
+                Топ-5 продуктов в потерях (30 дней)
+              </h2>
+              <ol className="mt-4 space-y-2">
+                {topProducts.map((p, i) => (
+                  <li
+                    key={p.name}
+                    className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2"
+                  >
+                    <span className="size-7 shrink-0 rounded-full bg-[#fff4f2] text-center text-[13px] font-semibold leading-7 text-[#a13a32]">
+                      {i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-[#0b1024]">
+                      {p.name}
+                    </span>
+                    <span className="text-right text-[13px] tabular-nums">
+                      <span className="font-semibold text-[#0b1024]">
+                        {p.cost > 0
+                          ? `${p.cost.toLocaleString("ru-RU")} ₽`
+                          : "—"}
+                      </span>
+                      <span className="ml-2 text-[12px] text-[#6f7282]">
+                        ×{p.count}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+          {topCauses.length > 0 && (
+            <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+              <h2 className="text-[15px] font-semibold text-[#0b1024]">
+                Топ-5 причин потерь (30 дней)
+              </h2>
+              <ol className="mt-4 space-y-2">
+                {topCauses.map((p, i) => (
+                  <li
+                    key={p.name}
+                    className="flex items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2"
+                  >
+                    <span className="size-7 shrink-0 rounded-full bg-[#fff8eb] text-center text-[13px] font-semibold leading-7 text-[#b25f00]">
+                      {i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-[#0b1024]">
+                      {p.name}
+                    </span>
+                    <span className="text-right text-[13px] tabular-nums">
+                      <span className="font-semibold text-[#0b1024]">
+                        {p.cost > 0
+                          ? `${p.cost.toLocaleString("ru-RU")} ₽`
+                          : "—"}
+                      </span>
+                      <span className="ml-2 text-[12px] text-[#6f7282]">
+                        ×{p.count}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+        </div>
+      )}
 
       {/* Records table */}
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 md:overflow-visible">
