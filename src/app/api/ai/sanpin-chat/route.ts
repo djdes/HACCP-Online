@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireApiAuth } from "@/lib/auth-helpers";
+import { aiChatRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +65,22 @@ const SYSTEM_PROMPT = `Ты — AI-помощник в системе WeSetup (�
 export async function POST(request: Request) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
+
+  // Per-user rate limit: 10 запросов в минуту. Защищает от спама
+  // и сильного перерасхода токенов одним юзером (например, скрипт
+  // в цикле). Месячный quota по org остался отдельно.
+  if (!aiChatRateLimiter.consume(`user:${auth.session.user.id}`)) {
+    return NextResponse.json(
+      {
+        error:
+          "Слишком много запросов к AI. Подождите минуту и попробуйте снова.",
+        retryAfterMs: aiChatRateLimiter.remainingMs(
+          `user:${auth.session.user.id}`
+        ),
+      },
+      { status: 429 }
+    );
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(

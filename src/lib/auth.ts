@@ -68,6 +68,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Введите email и пароль");
         }
 
+        // Защита от brute-force: 5 попыток на email за 5 минут.
+        // Lazy-import — rate-limit Map не должна быть в server bundle
+        // если функция не вызвана.
+        const { loginRateLimiter } = await import("@/lib/rate-limit");
+        const emailKey = `login:${credentials.email.toLowerCase().trim()}`;
+        if (!loginRateLimiter.consume(emailKey)) {
+          throw new Error(
+            "Слишком много попыток входа. Подождите 5 минут или восстановите пароль."
+          );
+        }
+
         const user = await db.user.findUnique({
           where: { email: credentials.email },
           include: { organization: true },
