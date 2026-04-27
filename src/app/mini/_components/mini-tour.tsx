@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, BellRing, ListChecks, Sparkles, X } from "lucide-react";
+import { haptic } from "./use-haptic";
 
 const STORAGE_KEY = "wesetup.mini.tour.seen";
 
@@ -62,9 +63,11 @@ export function MiniTour() {
 
   function next() {
     if (step >= STEPS.length - 1) {
+      haptic("success");
       dismiss();
       return;
     }
+    haptic("light");
     setStep((s) => s + 1);
   }
 

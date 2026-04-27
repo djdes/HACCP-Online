@@ -46,6 +46,16 @@ function readInitialThemeFromStorage(fallback: MiniTheme): MiniTheme {
       .getElementById(MINI_ROOT_ID)
       ?.getAttribute(ATTRIBUTE);
     if (attr === "light" || attr === "dark") return attr;
+    // D6 — следуем Telegram colorScheme если нет ни сохранённого
+    // выбора, ни server-injected initialTheme. У Telegram WebApp
+    // есть `colorScheme: "dark" | "light"` — тогда Mini App
+    // выглядит как «родная» в Telegram'е.
+    const tgScheme = (
+      window as unknown as {
+        Telegram?: { WebApp?: { colorScheme?: string } };
+      }
+    ).Telegram?.WebApp?.colorScheme;
+    if (tgScheme === "light" || tgScheme === "dark") return tgScheme;
   } catch {
     /* sessionStorage/localStorage blocked */
   }

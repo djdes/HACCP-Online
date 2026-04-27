@@ -60,15 +60,38 @@ export default async function ReportsPage() {
       ? null
       : Math.round((entriesWithAttachment30Count / entries30Count) * 100);
 
+  // Подготавливаем mailto-link для шеринга отчёта.
+  const subj = encodeURIComponent(
+    `Отчёт по compliance — ${session.user.organizationName}`
+  );
+  const body = encodeURIComponent(
+    `Здравствуйте,\n\n` +
+      `делюсь данными compliance из системы WeSetup.\n\n` +
+      `Photo evidence rate: ${
+        photoEvidencePct === null ? "n/a" : photoEvidencePct + "%"
+      } (${entriesWithAttachment30Count} из ${entries30Count} за 30 дней)\n\n` +
+      `Подробный обзор и графики — в системе WeSetup на странице /reports.\n\n` +
+      `Это автоматическое письмо из WeSetup.`
+  );
+  const mailtoHref = `mailto:?subject=${subj}&body=${body}`;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
-          Отчёты
-        </h1>
-        <p className="mt-1.5 text-[14px] text-[#6f7282]">
-          Выгрузки журналов за период — PDF и Excel для проверок
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Отчёты
+          </h1>
+          <p className="mt-1.5 text-[14px] text-[#6f7282]">
+            Выгрузки журналов за период — PDF и Excel для проверок
+          </p>
+        </div>
+        <a
+          href={mailtoHref}
+          className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          ✉ Поделиться по email
+        </a>
       </div>
       <AiPeriodReportCard />
 
