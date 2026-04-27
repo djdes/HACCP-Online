@@ -348,6 +348,26 @@ export async function POST(request: Request) {
           console.error("Auto-CAPA creation error:", err);
         }
       }
+
+      // K10 — outbound webhooks. Шлём fire-and-forget для каждого
+      // deviation которое дошло до auto-CAPA — это самое значимое
+      // событие, на которое внешние системы (Zapier / Make / N8N)
+      // могут реагировать.
+      if (capaTriggers.length > 0) {
+        try {
+          const { dispatchWebhooks } = await import("@/lib/webhook-dispatch");
+          dispatchWebhooks(session.user.organizationId, "journal.deviation", {
+            templateCode,
+            templateName: template.name,
+            entryId: entry.id,
+            filledBy: filledByName,
+            deviation: capaTriggers[0].suffix,
+            priority: capaTriggers[0].priority,
+          }).catch(() => {});
+        } catch {
+          /* webhook dispatch best-effort */
+        }
+      }
     }
 
     return NextResponse.json({ entry }, { status: 201 });

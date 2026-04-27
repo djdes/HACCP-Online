@@ -88,6 +88,12 @@ model Organization {
   /// Не путать с `shiftEndHour` — тот про границу смены, а это
   /// про общую локализацию интерфейса.
   timezone                 String                     @default("Europe/Moscow")
+  /// K10 — outbound webhooks (Zapier-style). Каждый URL получает
+  /// POST { event, organizationId, timestamp, payload } при
+  /// significant событиях (capa.created, journal.rejected,
+  /// equipment.expired etc.). Org сама может построить интеграцию
+  /// с Zapier / Make / N8N не дожидаясь нашей разработки.
+  webhookUrls              String[]
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
