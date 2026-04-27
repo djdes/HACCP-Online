@@ -30,15 +30,45 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(records);
 }
 
+/**
+ * L9 — авто-классификация writeoff causes по ключевым словам.
+ * Если менеджер не выбрал категорию (или выбрал "other"), а в
+ * `cause` или `productName` есть характерное слово — мы
+ * подменяем category. Без AI — keyword-matching.
+ */
+function autoCategorize(
+  category: string | undefined,
+  cause: string | undefined,
+  productName: string | undefined
+): string {
+  const initial = (category ?? "").trim();
+  if (initial && initial !== "other") return initial;
+  const haystack = `${cause ?? ""} ${productName ?? ""}`.toLowerCase();
+  const matches: Array<{ cat: string; words: string[] }> = [
+    { cat: "writeoff", words: ["просроч", "истёк", "испорч", "плесен", "запах"] },
+    { cat: "packaging_defect", words: ["упаков", "тара", "вмятин", "разрыв"] },
+    { cat: "rework", words: ["перераб", "повтор"] },
+    { cat: "overweight", words: ["перевес"] },
+    { cat: "underweight", words: ["недовес"] },
+    { cat: "bottleneck_idle", words: ["простой", "ожидан"] },
+    { cat: "raw_material_variance", words: ["сырь", "разброс"] },
+  ];
+  for (const m of matches) {
+    if (m.words.some((w) => haystack.includes(w))) return m.cat;
+  }
+  return "other";
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+  const category = autoCategorize(body.category, body.cause, body.productName);
   const record = await db.lossRecord.create({
     data: {
       organizationId: session.user.organizationId,
-      category: body.category,
+      category,
       productName: body.productName,
       quantity: Number(body.quantity),
       unit: body.unit || "kg",

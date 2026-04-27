@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -31,7 +32,22 @@ export function OrgHealthWidget({
   okCount,
   totalCount,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const params = useSearchParams();
+  const focusParam = params.get("focus");
+  const [open, setOpen] = useState(focusParam === "health");
+
+  // J7 — onboarding deep-link: при `?focus=health` (или
+  // `#health-check`) виджет автоматически развёрнут. Используется
+  // в email-рассылках / push'ах: «нажмите тут чтобы поправить
+  // настройки».
+  useEffect(() => {
+    if (focusParam === "health") {
+      setOpen(true);
+      // Прокручиваем к виджету
+      const el = document.querySelector("[data-section=\"health-widget\"]");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [focusParam]);
 
   const tone =
     scorePercent >= 90
@@ -41,7 +57,10 @@ export function OrgHealthWidget({
         : { bg: "#fff4f2", fg: "#a13a32", label: "нужна донастройка" };
 
   return (
-    <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+    <section
+      data-section="health-widget"
+      className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}

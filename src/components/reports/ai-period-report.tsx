@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GlowLoader } from "@/components/ui/glow-loader";
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -113,6 +114,15 @@ export function AiPeriodReportCard() {
               </Button>
             </div>
           </div>
+
+          {busy && !report ? (
+            <div className="mt-5">
+              <GlowLoader
+                label="Собираю данные за период и формирую narrative..."
+                targetSeconds={20}
+              />
+            </div>
+          ) : null}
 
           {report ? (
             <div className="mt-5 space-y-2">
