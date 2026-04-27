@@ -30,6 +30,39 @@
 | A7 | `2c7d8f9` | Auto-fill HH:MM в time-полях |
 | N3 | `d779e82` | bulk-close API для CAPA (UI после) |
 | M9 | `d779e82` | Публичный /api/health для uptime-monitor |
+| M6 | `9ca9ddf` | Cron auto-pause inactive |
+| H8 | `9ca9ddf` | Self-cancel subscription |
+| J8 | `e6fbe79` | Modal «Что нового» |
+| I2 | `de6b7a1` | Audit CSV export |
+| N8 | `de6b7a1` | Mailto share отчёт |
+| D5 | `de6b7a1` | Haptic feedback в Mini App |
+| D6 | `de6b7a1` | Telegram colorScheme |
+| J4 | `eaba420` | Print stylesheet |
+| E7 | `eaba420` | Compare-mode «эта неделя vs прошлая» |
+| H9 | `27fbf98` | Годовая скидка 20% |
+| E6 | `27fbf98` | Cron weekly AI digest |
+| G9 | `1f54be2` | npm scripts |
+| J5 | `1f54be2` | ⌘K command palette |
+| B5 | `e29c202` | Пофамильный аудит /reports/by-user/[id] |
+| F5 | `e29c202` | Progress-bar в OrgHealthWidget |
+| H10 | `e29c202` | ROI-калькулятор + /pricing |
+| N6 | `04ee3de` | Org.timezone helper |
+| D2 | `04ee3de` | Skeleton component |
+| E1 | `0795581` | 12-month compliance trend chart |
+| B3 | `0795581` | Auto-block при просрочке медкнижки 7+ дней |
+| J10 | `7cb4eea` | /journals/[code]/help (9 шаблонов) |
+| I4 | `7cb4eea` | Self-service удаление org |
+| D8 | `eb64097` | GlowLoader для долгих операций |
+| L9 | `eb64097` | Auto-classify writeoff causes |
+| L5 | `eb64097` | Product autocomplete API |
+| J7 | `eb64097` | onboarding ?focus= deep-link |
+| I3 | `6f737f1` | GDPR ZIP export всех данных org |
+| I6 | `6f737f1` | audit-helper (audit + withAudit) |
+| M10 | `6f737f1` | Российские праздники + isNonWorkingDay |
+| B6 | `55433b0` | InspectorVisit signature |
+| O5 | `8429cb5` | Сертификат «Знаток ХАССП» PDF |
+
+**Итого: 50 фич реализовано в эту ночь.** Остальные требуют либо нового инфра-setup'а (Sentry / Crisp / OAuth / S3 / iiko / WhatsApp / pgvector), либо больших refactor'ов (i18n / Capacitor / encryption at rest / soft-delete), либо контента (видеотуториалы / partner program / marketing copy).
 
 **Bug-fixes из этой же сессии (найденные при QA, не из brainstorm):**
 | SHA | Фикс |
