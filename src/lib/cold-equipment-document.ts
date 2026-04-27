@@ -85,8 +85,15 @@ export function createColdEquipmentConfigItem(
 }
 
 function buildDefaultSeedItems() {
-  return DEFAULT_EQUIPMENT_SEEDS.map((item) =>
+  // ВАЖНО: id должен быть детерминистским (на основе индекса), а не
+  // случайный UUID. Иначе при пустом config документа `getTaskForm()`
+  // возвращает поля с одним набором id, а валидатор сабмита (тоже
+  // зовёт `getTaskForm()`) — со совершенно другим набором, и
+  // worker'у приходит «expected number, received undefined» на каждое
+  // поле, потому что shape-keys не совпадают с values-keys.
+  return DEFAULT_EQUIPMENT_SEEDS.map((item, idx) =>
     createColdEquipmentConfigItem({
+      id: `cold-equipment-default-${idx}`,
       name: item.name,
       min: item.min,
       max: item.max,
