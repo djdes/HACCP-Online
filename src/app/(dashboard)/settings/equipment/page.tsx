@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { CopyIdButton } from "@/components/settings/copy-id-button";
 import { EquipmentDialog } from "@/components/settings/equipment-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
 import { isManagementRole, isManagerRole } from "@/lib/user-roles";
@@ -235,6 +236,10 @@ export default async function EquipmentSettingsPage() {
                     {canManage && (
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-1">
+                          <CopyIdButton
+                            id={item.id}
+                            hint="Скопировать Equipment ID (для DIY-датчика, скрипта)"
+                          />
                           <EquipmentDialog
                             areas={areas}
                             equipment={{

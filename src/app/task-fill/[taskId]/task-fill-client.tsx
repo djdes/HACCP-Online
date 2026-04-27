@@ -154,6 +154,40 @@ export function TaskFillClient({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  // «Всё в норме (1 тап)»: для форм с number-полями min/max +
+  // boolean-полями подставляет среднее min/max и true. Не сабмитит —
+  // даёт юзеру тапнуть «Сохранить» если хочет проверить. Кнопка
+  // показывается только если в форме есть хотя бы одно number-поле
+  // с заданными min/max (иначе бессмысленно).
+  const allOkApplicable = useMemo(() => {
+    if (!form) return false;
+    return form.fields.some(
+      (f) =>
+        f.type === "number" &&
+        typeof (f as { min?: number }).min === "number" &&
+        typeof (f as { max?: number }).max === "number"
+    );
+  }, [form]);
+
+  function fillAllOk() {
+    if (!form) return;
+    setValues((prev) => {
+      const next = { ...prev };
+      for (const f of form.fields) {
+        if (f.type === "number") {
+          const lo = (f as { min?: number }).min;
+          const hi = (f as { max?: number }).max;
+          if (typeof lo === "number" && typeof hi === "number") {
+            next[f.key] = Math.round(((lo + hi) / 2) * 10) / 10;
+          }
+        } else if (f.type === "boolean") {
+          next[f.key] = true;
+        }
+      }
+      return next;
+    });
+  }
+
   async function doSubmit() {
     setSubmitting(true);
     setError(null);
@@ -479,24 +513,42 @@ export function TaskFillClient({
               </p>
             ) : null}
 
-            {/* «Заполнить как вчера» — показывается только если у этого
-                сотрудника действительно есть вчерашняя entry с
-                совпадающими ключами полей. */}
-            {hasYesterdayData && form && form.fields.length > 0 ? (
-              <button
-                type="button"
-                onClick={fillFromYesterday}
-                disabled={yesterdayBusy || submitting}
-                className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
-              >
-                {yesterdayBusy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
-                Заполнить как вчера
-              </button>
-            ) : null}
+            {/* Quick-fill кнопки — рядом друг с другом */}
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+              {/* «Заполнить как вчера» — показывается только если у этого
+                  сотрудника действительно есть вчерашняя entry с
+                  совпадающими ключами полей. */}
+              {hasYesterdayData && form && form.fields.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={fillFromYesterday}
+                  disabled={yesterdayBusy || submitting}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+                >
+                  {yesterdayBusy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Copy className="size-4" />
+                  )}
+                  Заполнить как вчера
+                </button>
+              ) : null}
+
+              {/* «Всё в норме» — для обходов где все измерения штатные.
+                  Подставляет midpoint(min,max) для number-полей и true
+                  для boolean. НЕ сабмитит — даёт юзеру тапнуть submit. */}
+              {allOkApplicable ? (
+                <button
+                  type="button"
+                  onClick={fillAllOk}
+                  disabled={submitting}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#116b2a] transition-colors hover:border-[#22c55e]/40 hover:bg-[#ecfdf5] disabled:opacity-60"
+                  title="Подставит средние значения нормы для всех замеров и true для галочек"
+                >
+                  ✓ Всё в норме
+                </button>
+              ) : null}
+            </div>
 
             {form && form.fields.length > 0 ? (
               <div className="space-y-4">
