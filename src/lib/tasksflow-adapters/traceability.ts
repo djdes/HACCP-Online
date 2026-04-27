@@ -137,7 +137,15 @@ export const traceabilityAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as TraceabilityDocumentConfig;
+    // Защита от пустого doc.config — иначе spread `[...currentConfig.rows]`
+    // падает с «rows is not iterable». Document может быть auto-create'нут без формы.
+    const rawConfig = (doc.config ?? {}) as Partial<TraceabilityDocumentConfig>;
+    const currentConfig: TraceabilityDocumentConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      defaultResponsibleRole:
+        rawConfig.defaultResponsibleRole ?? "Сотрудник",
+    } as TraceabilityDocumentConfig;
     const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: TraceabilityRow = createTraceabilityRow({

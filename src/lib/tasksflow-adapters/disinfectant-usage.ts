@@ -118,7 +118,15 @@ export const disinfectantUsageAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as DisinfectantDocumentConfig;
+    // Документ может быть создан с пустым `config` (auto-create cron
+    // или ручное создание без формы). В этом случае спрэд `[...currentConfig.receipts]`
+    // падает с «receipts is not iterable». Гарантируем массив.
+    const rawConfig = (doc.config ?? {}) as Partial<DisinfectantDocumentConfig>;
+    const currentConfig: DisinfectantDocumentConfig = {
+      ...rawConfig,
+      receipts: Array.isArray(rawConfig.receipts) ? rawConfig.receipts : [],
+      responsibleRole: rawConfig.responsibleRole ?? "Сотрудник",
+    } as DisinfectantDocumentConfig;
     const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: ReceiptRow = createEmptyReceipt(

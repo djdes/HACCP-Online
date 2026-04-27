@@ -127,7 +127,17 @@ export const metalImpurityAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as MetalImpurityDocumentConfig;
+    // Защита от пустого doc.config — при auto-create rows/materials/suppliers
+    // отсутствуют, и .find() / spread падают.
+    const rawConfig = (doc.config ?? {}) as Partial<MetalImpurityDocumentConfig>;
+    const currentConfig: MetalImpurityDocumentConfig = {
+      ...rawConfig,
+      materials: Array.isArray(rawConfig.materials) ? rawConfig.materials : [],
+      suppliers: Array.isArray(rawConfig.suppliers) ? rawConfig.suppliers : [],
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      responsiblePosition:
+        rawConfig.responsiblePosition ?? "Сотрудник",
+    } as MetalImpurityDocumentConfig;
     const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
     const material = currentConfig.materials.find((m) => m.id === (values?.materialId as string));
