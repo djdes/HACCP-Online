@@ -69,6 +69,32 @@ export default function PricingPage() {
 
       <RoiCalculator />
 
+      {/* F8 — sample reports demo link. Ведёт на public каталог журналов
+          с пояснением что внутри получает менеджер после регистрации. */}
+      <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
+        <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+          Что внутри после регистрации
+        </h2>
+        <p className="mt-2 max-w-[640px] text-[14px] leading-relaxed text-[#3c4053]">
+          35 готовых журналов СанПиН/ХАССП — от гигиены сотрудников и
+          контроля холодильников до бракеража и журнала уборок.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/journals-info"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Каталог журналов →
+          </Link>
+          <Link
+            href="/features"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Все возможности →
+          </Link>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="rounded-3xl border border-[#ececf4] bg-[#0b1024] p-8 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] md:p-10">
         <h2 className="text-[24px] font-semibold tracking-[-0.02em]">

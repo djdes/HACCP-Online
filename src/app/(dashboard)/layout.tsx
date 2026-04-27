@@ -29,7 +29,12 @@ export default async function DashboardLayout({
 }) {
   const session = await requireAuth();
 
-  const [impersonatedOrg, profile] = await Promise.all([
+  const activeOrgId =
+    isImpersonating(session) && session.user.actingAsOrganizationId
+      ? session.user.actingAsOrganizationId
+      : session.user.organizationId;
+
+  const [impersonatedOrg, profile, brandedOrg] = await Promise.all([
     isImpersonating(session) && session.user.actingAsOrganizationId
       ? db.organization.findUnique({
           where: { id: session.user.actingAsOrganizationId },
@@ -40,16 +45,36 @@ export default async function DashboardLayout({
       where: { id: session.user.id },
       select: { positionTitle: true, themePreference: true },
     }),
+    // H1 — white-label: читаем brandColor для override основного indigo.
+    db.organization.findUnique({
+      where: { id: activeOrgId },
+      select: { brandColor: true },
+    }),
   ]);
 
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
 
+  // Validate hex color (#RRGGBB) — иначе CSS injection-vector.
+  const brandColor =
+    brandedOrg?.brandColor && /^#[0-9a-fA-F]{6}$/.test(brandedOrg.brandColor)
+      ? brandedOrg.brandColor
+      : null;
+
   return (
     <AuthSessionProvider session={session}>
       <SiteThemeProvider initialTheme={initialTheme}>
         <SiteThemeBootstrap />
+        {/* H1 — white-label brand color через CSS-vars. Подменяет
+            основной indigo (#5566f6) если org указала свой цвет. */}
+        {brandColor ? (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `.app-shell { --brand-color: ${brandColor}; }`,
+            }}
+          />
+        ) : null}
         <div
           className="app-shell min-h-screen bg-gray-50"
           data-app-theme={initialTheme}
