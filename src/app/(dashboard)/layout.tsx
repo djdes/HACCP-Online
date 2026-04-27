@@ -9,6 +9,7 @@ import {
 } from "@/components/theme/site-theme";
 import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
 import { SupportWidget } from "@/components/support/support-widget";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
 import {
   LATEST_NOTES_BUILD_SHA,
@@ -83,6 +84,9 @@ export default async function DashboardLayout({
               notes={WHATS_NEW_NOTES}
             />
           ) : null}
+          {/* ⌘K — палитра-навигатор. Один глобальный listener на keydown,
+              ноль cost когда не открыт. Доступна всем кто видит dashboard. */}
+          <CommandPalette />
         </div>
         <Toaster />
       </SiteThemeProvider>

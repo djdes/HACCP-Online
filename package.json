@@ -20,7 +20,11 @@
     "watch:progress": "powershell -ExecutionPolicy Bypass -File scripts/watch-progress.ps1",
     "capture:source:25-27": "tsx scripts/capture-source-journals.ts --targets tmp-source-journals/targets-25-27.json --out tmp-source-journals/capture-25-27",
     "capture:source:25-27:auto": "tsx scripts/capture-source-journals.ts --no-login-pause --targets tmp-source-journals/targets-25-27.json --out tmp-source-journals/capture-25-27",
-    "capture:source:all": "tsx scripts/crawl-all-source-journals.ts"
+    "capture:source:all": "tsx scripts/crawl-all-source-journals.ts",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "qa:smoke:prod": "bash .agent/smoke-prod.sh",
+    "qa:complete-tasks": "bash .agent/complete-all.sh",
+    "qa:fill-remaining": "bash .agent/fill-remaining.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
