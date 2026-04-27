@@ -91,6 +91,32 @@ export default async function SubscriptionPage() {
                 <li>100+ (сети): 60 ₽/чел/мес</li>
               </ul>
             </div>
+
+            {/* H9 — годовая скидка 20% — отображается только при платной
+                подписке (бесплатной нечего скидывать). */}
+            {!price.isFree ? (
+              <div className="mt-3 rounded-2xl border border-[#86efac] bg-[#ecfdf5] p-4 text-[13px] leading-relaxed text-[#3c4053]">
+                <strong className="text-[#116b2a]">
+                  Годовая подписка: −20%
+                </strong>
+                <div className="mt-1">
+                  Оплатив сразу 12 месяцев, вы платите{" "}
+                  <span className="font-semibold tabular-nums">
+                    {Math.round(price.yearlyRub * 0.8).toLocaleString("ru-RU")} ₽
+                  </span>{" "}
+                  вместо{" "}
+                  <span className="line-through tabular-nums">
+                    {price.yearlyRub.toLocaleString("ru-RU")} ₽
+                  </span>{" "}
+                  — экономия{" "}
+                  <span className="font-semibold text-[#116b2a] tabular-nums">
+                    {Math.round(price.yearlyRub * 0.2).toLocaleString("ru-RU")} ₽
+                  </span>
+                  . Свяжитесь с поддержкой через виджет, мы выставим
+                  отдельный счёт.
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
