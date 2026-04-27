@@ -68,6 +68,17 @@ export function OrgHealthWidget({
               ? "Кликните строку чтобы перейти на настройку"
               : "Кликните чтобы посмотреть список"}
           </div>
+          {/* F5 — progress-bar «настройки готовы X%». Визуал прогресса
+              делает онбординг ощутимее: «осталось 20% и я готов». */}
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#ececf4]">
+            <div
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${scorePercent}%`,
+                backgroundColor: tone.fg,
+              }}
+            />
+          </div>
         </div>
         {open ? (
           <ChevronUp className="size-4 text-[#9b9fb3]" />
