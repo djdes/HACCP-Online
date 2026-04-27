@@ -361,9 +361,31 @@ model InspectorToken {
   /// Who issued the token (admin's userId). Helps audits and "кто впустил
   /// инспектора" forensics. Nullable for legacy and ROOT-issued tokens.
   createdById    String?
+  visits         InspectorVisit[]
 
   @@index([organizationId])
   @@index([expiresAt])
+}
+
+/// B6 — Электронная подпись инспектора. Каждый раз когда инспектор
+/// нажимает «Подтверждаю просмотр» на /inspector/<token>, мы создаём
+/// row с timestamp + IP + user-agent + список просмотренных templates.
+/// На стороне админа в /settings/inspector-portal — badge «Подписал
+/// 2026-04-30 14:30». Compliance-проверка постфактум: видно кто и
+/// когда смотрел журналы.
+model InspectorVisit {
+  id           String         @id @default(cuid())
+  tokenId      String
+  token        InspectorToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  signedAt     DateTime       @default(now())
+  ipAddress    String?
+  userAgent    String?
+  /// ФИО / должность которое инспектор сам указал в форме «Подтверждаю».
+  inspectorName String?
+  /// Список templateCodes которые он просмотрел в эту сессию.
+  templatesViewed Json?
+
+  @@index([tokenId])
 }
 
 /// Замер времени заполнения формы — «сколько секунд от open до submit».
