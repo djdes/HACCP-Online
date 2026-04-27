@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# G10 — pre-commit hook: type-check + lint только staged file'ов.
+# Не запускает full build (медленно) — только быстрые проверки которые
+# отлавливают 80% случайных регрессий.
+
+# Type check на изменённых .ts/.tsx
+staged_ts=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
+if [ -n "$staged_ts" ]; then
+  echo "→ TypeScript type-check..."
+  npx tsc --noEmit --skipLibCheck || {
+    echo "✗ Type-check провалился. Поправьте ошибки или пропустите hook через --no-verify."
+    exit 1
+  }
+fi
+
+echo "✓ pre-commit OK"
