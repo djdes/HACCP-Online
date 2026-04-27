@@ -6,6 +6,40 @@
 >
 > **Дата:** 2026-04-27. **Состояние:** свежий сборник от ночной QA-сессии после 12-фич-batch'а.
 
+## ✅ Уже реализовано в этой ночной сессии (2026-04-27)
+
+После QA-теста compliance flow (35/35 задач выполнены, 100% compliance подтверждён через worker-flow):
+
+| ID | SHA | Что |
+|---|---|---|
+| B1 | `b867baf` | Auto-CAPA при критических deviations (брак / не допущен / ККТ) |
+| E3 | `b867baf` | Strugglers leaderboard на /dashboard |
+| M1 | `0cd32bd` | Look-ahead auto-create на 7 дней + cron |
+| F4 | `0cd32bd` | 8 готовых сценариев CAPA в /capa/new |
+| E2 | `294a8ad` | Heatmap по дням недели на /reports |
+| E10 | `294a8ad` | Photo evidence rate виджет |
+| E5 | `294a8ad` | Top-5 продуктов и причин потерь на /losses |
+| F2 | `294a8ad` | Push owner'у при первом login (через events.signIn + AuditLog dedupe) |
+| N1 | `f5faa1d` | CopyIdButton + применён к /settings/equipment |
+| A2 | `f5faa1d` | Кнопка «✓ Всё в норме» в task-fill |
+| M2 | `f5faa1d` | Cron auto-archive documents > 365 дней |
+| M3 | `f5faa1d` | Cron purge AuditLog с tiered retention |
+| A8 | `2c7d8f9` | NFC docs (`docs/nfc-tags-howto.md`) |
+| I8 | `2c7d8f9` | Rate-limit на AI-чат (10/мин/user) |
+| I10 | `2c7d8f9` | Brute-force защита login (5/email/5мин) |
+| A7 | `2c7d8f9` | Auto-fill HH:MM в time-полях |
+| N3 | `d779e82` | bulk-close API для CAPA (UI после) |
+| M9 | `d779e82` | Публичный /api/health для uptime-monitor |
+
+**Bug-fixes из этой же сессии (найденные при QA, не из brainstorm):**
+| SHA | Фикс |
+|---|---|
+| `40cf90c` | cold-equipment-document.ts — детерминистские id для default seeds |
+| `a533af5` | disinfectant/metal_impurity/traceability адаптеры — config={} resilience |
+
+Остальные идеи ниже остаются актуальными для будущих batch'ей.
+
+
 ---
 
 ## Категория A — Уменьшение количества тапов сотрудника
