@@ -1,3 +1,4 @@
+import { readFile } from "fs/promises";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -30,7 +31,15 @@ export async function GET() {
     dbOk = false;
   }
 
-  const buildSha = process.env.BUILD_SHA ?? "unknown";
+  // Читаем `.build-sha` файл (пишется в deploy.yml на проде).
+  // Через env BUILD_SHA — fallback для контейнерных деплоев.
+  let buildSha = process.env.BUILD_SHA ?? "unknown";
+  try {
+    const fileSha = (await readFile(".build-sha", "utf-8")).trim().slice(0, 7);
+    if (fileSha) buildSha = fileSha;
+  } catch {
+    /* file not present — keep env fallback */
+  }
   const uptimeSec = Math.round((Date.now() - startedAt) / 1000);
 
   const status = dbOk ? 200 : 503;
