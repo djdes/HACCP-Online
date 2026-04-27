@@ -208,11 +208,54 @@ export async function POST(request: Request) {
       staffAlerts += items.length;
     }
 
+    // B3 — auto-block при просрочке > 7 дней. Сотрудник с
+    // просроченной медкнижкой не имеет права работать (СанПиН 2.3/2.4),
+    // поэтому переводим isActive=false. Менеджер увидит это в
+    // /settings/users — сможет восстановить после обновления документа.
+    // Audit-row для трассируемости.
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const seriouslyExpired = await db.staffCompetency.findMany({
+      where: { expiresAt: { lt: sevenDaysAgo, not: null } },
+      include: { organization: { select: { id: true } } },
+    });
+    let blocked = 0;
+    for (const c of seriouslyExpired) {
+      if (!c.expiresAt) continue;
+      const u = await db.user.findUnique({
+        where: { id: c.userId },
+        select: { isActive: true, name: true },
+      });
+      if (!u || !u.isActive) continue;
+      await db.user.update({
+        where: { id: c.userId },
+        data: { isActive: false },
+      });
+      await db.auditLog.create({
+        data: {
+          organizationId: c.organizationId,
+          userId: c.userId,
+          userName: u.name,
+          action: "user.auto_blocked_expired",
+          entity: "user",
+          entityId: c.userId,
+          details: {
+            skill: c.skill,
+            expiredAt: c.expiresAt.toISOString(),
+            daysOverdue: Math.ceil(
+              (now.getTime() - c.expiresAt.getTime()) / (24 * 60 * 60 * 1000)
+            ),
+          },
+        },
+      });
+      blocked += 1;
+    }
+
     return NextResponse.json({
       alerts: alerts.length,
       organizations: byOrg.size,
       staffAlerts,
       staffOrgs: staffByOrg.size,
+      autoBlocked: blocked,
     });
   } catch (error) {
     console.error("Expiry cron error:", error);
