@@ -82,6 +82,12 @@ model Organization {
   /// `/api/cron/losses-export-1c` по понедельникам. Если null —
   /// org не получает рассылку.
   accountantEmail          String?
+  /// IANA timezone для отображения дат и расчётов compliance.
+  /// Default "Europe/Moscow" (UTC+3) — большинство клиентов в РФ.
+  /// Используется для перевода дашборд/отчётов из UTC в локаль.
+  /// Не путать с `shiftEndHour` — тот про границу смены, а это
+  /// про общую локализацию интерфейса.
+  timezone                 String                     @default("Europe/Moscow")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
