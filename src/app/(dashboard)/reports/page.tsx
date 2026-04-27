@@ -5,10 +5,12 @@ import { ComplianceBundleCard } from "@/components/reports/compliance-bundle-car
 import { AiPeriodReportCard } from "@/components/reports/ai-period-report";
 import { ComplianceHeatmap } from "@/components/reports/compliance-heatmap";
 import { WeekdayHeatmap } from "@/components/reports/weekday-heatmap";
+import { ComplianceTrend } from "@/components/reports/compliance-trend";
 import {
   getComplianceHeatmap,
   getWeekdayHeatmap,
 } from "@/lib/compliance-heatmap";
+import { getComplianceTrend } from "@/lib/compliance-trend";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export default async function ReportsPage() {
     areas,
     heatmap,
     weekdayHeatmap,
+    trend,
     entries30Count,
     entriesWithAttachment30Count,
     thisWeekFieldEntries,
@@ -54,6 +57,7 @@ export default async function ReportsPage() {
     }),
     getComplianceHeatmap(orgId, 30),
     getWeekdayHeatmap(orgId, 8),
+    getComplianceTrend(orgId, 12),
     db.journalEntry.count({
       where: { organizationId: orgId, createdAt: { gte: since30 } },
     }),
@@ -206,6 +210,7 @@ export default async function ReportsPage() {
         </section>
       ) : null}
 
+      <ComplianceTrend points={trend} />
       <ComplianceHeatmap rows={heatmap.rows} days={heatmap.days} />
       <WeekdayHeatmap
         rows={weekdayHeatmap.rows}
