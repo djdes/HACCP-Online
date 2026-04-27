@@ -293,6 +293,61 @@ export async function POST(request: Request) {
       } catch (deviationError) {
         console.error("Deviation alert error:", deviationError);
       }
+
+      // Auto-CAPA для критичных отклонений: брак, не допущен, ККТ
+      // вышла за пределы. Без этого нарушение фиксируется только в
+      // журнале + push'ом — менеджер видит, но не обязан расследовать.
+      // С CAPA — формальное расследование с SLA 24ч и aудитом.
+      // Дедупликация: один тикет на (entry.id, alertType).
+      const capaTriggers: Array<{ category: string; priority: string; suffix: string }> = [];
+      for (const deviation of deviations) {
+        const t = deviation.alertType.toLowerCase();
+        if (t.includes("брак") || t.includes("не допущ")) {
+          capaTriggers.push({
+            category:
+              templateCode === "hygiene" ? "hygiene" :
+              templateCode === "incoming_control" || templateCode === "finished_product" ? "quality" :
+              "process",
+            priority: "high",
+            suffix: deviation.alertType,
+          });
+        }
+        if (t.includes("ккт") || t.includes("за пределы")) {
+          capaTriggers.push({ category: "process", priority: "critical", suffix: deviation.alertType });
+        }
+      }
+      if (capaTriggers.length > 0) {
+        try {
+          const existing = await db.capaTicket.findFirst({
+            where: {
+              organizationId: session.user.organizationId,
+              sourceType: "auto_deviation",
+              sourceEntryId: entry.id,
+              status: { not: "closed" },
+            },
+            select: { id: true },
+          });
+          if (!existing) {
+            const trigger = capaTriggers[0];
+            await db.capaTicket.create({
+              data: {
+                organizationId: session.user.organizationId,
+                title: `${trigger.suffix} · ${template.name}`,
+                description:
+                  `Автоматически открыт CAPA по записи журнала «${template.name}» от ${filledByName}. ` +
+                  `Расследуйте корневую причину и опишите корректирующее/предупреждающее действие.`,
+                priority: trigger.priority,
+                category: trigger.category,
+                sourceType: "auto_deviation",
+                sourceEntryId: entry.id,
+                slaHours: trigger.priority === "critical" ? 4 : 24,
+              },
+            });
+          }
+        } catch (err) {
+          console.error("Auto-CAPA creation error:", err);
+        }
+      }
     }
 
     return NextResponse.json({ entry }, { status: 201 });
