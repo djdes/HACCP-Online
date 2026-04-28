@@ -190,6 +190,32 @@ export const authOptions: NextAuthOptions = {
           typeof token.actingAsOrganizationId === "string"
             ? token.actingAsOrganizationId
             : null;
+
+        // Live-refresh organizationName из БД. JWT кэширует имя на момент
+        // login и больше его не обновляет, поэтому при переименовании
+        // организации старое имя «прилипает» в шапке у залогиненного
+        // пользователя до релогина. Один лёгкий запрос (только name)
+        // решает это без необходимости в logout/login.
+        try {
+          const activeOrgId =
+            session.user.isRoot &&
+            typeof session.user.actingAsOrganizationId === "string" &&
+            session.user.actingAsOrganizationId.length > 0
+              ? session.user.actingAsOrganizationId
+              : session.user.organizationId;
+          if (activeOrgId) {
+            const { db } = await import("@/lib/db");
+            const fresh = await db.organization.findUnique({
+              where: { id: activeOrgId },
+              select: { name: true },
+            });
+            if (fresh?.name) {
+              session.user.organizationName = fresh.name;
+            }
+          }
+        } catch {
+          /* fall back to cached token name */
+        }
       }
       return session;
     },
