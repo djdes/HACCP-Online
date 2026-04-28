@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
+import {
+  notifyEmployee,
+  notifyOrganization,
+  escapeTelegramHtml as esc,
+} from "@/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,12 +17,16 @@ export const dynamic = "force-dynamic";
  * `WorkShift.status="scheduled"`, но за «час окончания вчерашней
  * смены» не сделал ни одной записи в журналах, эскалирует:
  *   - 30 мин без активности → push руководству «Иван на смене?»;
- *   - 2 ч без активности → status="absent" + повторный push.
+ *   - 2 ч без активности → status="absent" + повторный push;
+ *   - 4 ч без активности (но не absent) → friendly DM самому
+ *     сотруднику: «{greeting}, {name}! Всё ок? Журналы пустые».
+ *     Цель — не давление, а напоминание для тех, кто реально на
+ *     смене, но забыл заполнить.
  *
  * Дедупликация — через `AuditLog` с `entity="work_shift"`,
  * `entityId=shift.id`, action ∈ {`shift_watcher.notify_30`,
- * `shift_watcher.mark_absent`}. Повторно не пингуем ту же смену
- * на ту же стадию.
+ * `shift_watcher.mark_absent`, `shift_watcher.staff_check_in_240`}.
+ * Повторно не пингуем ту же смену на ту же стадию.
  *
  * INFRA NEXT: настроить cron на cron-job.org каждые 30 мин,
  * 06:00-22:00 MSK, на /api/cron/shift-watcher.
@@ -65,6 +73,7 @@ async function handle(request: Request) {
 
   let notified = 0;
   let markedAbsent = 0;
+  let staffCheckIns = 0;
 
   for (const shift of shifts) {
     if (!shift.user.isActive || shift.user.archivedAt) continue;
@@ -111,7 +120,11 @@ async function handle(request: Request) {
         entity: "work_shift",
         entityId: shift.id,
         action: {
-          in: ["shift_watcher.notify_30", "shift_watcher.mark_absent"],
+          in: [
+            "shift_watcher.notify_30",
+            "shift_watcher.mark_absent",
+            "shift_watcher.staff_check_in_240",
+          ],
         },
       },
       select: { action: true },
@@ -121,6 +134,9 @@ async function handle(request: Request) {
     );
     const alreadyMarkedAbsent = existingNotifications.some(
       (l) => l.action === "shift_watcher.mark_absent"
+    );
+    const alreadyStaffCheckedIn = existingNotifications.some(
+      (l) => l.action === "shift_watcher.staff_check_in_240"
     );
 
     // Stage 2: 2+ часа без активности → mark absent.
@@ -153,6 +169,37 @@ async function handle(request: Request) {
       continue;
     }
 
+    // Stage 3: 4+ часа без активности (но смена ещё не absent) →
+    // friendly DM самому сотруднику. Это не давление, а тихая
+    // подсказка тем, кто реально работает, но забыл открыть журнал.
+    // Только один раз за смену — повторно не пингуем.
+    if (minutesSinceStart >= 240 && !alreadyStaffCheckedIn && !alreadyMarkedAbsent) {
+      await db.auditLog.create({
+        data: {
+          organizationId: shift.organizationId,
+          action: "shift_watcher.staff_check_in_240",
+          entity: "work_shift",
+          entityId: shift.id,
+          details: {
+            userId: shift.userId,
+            userName: shift.user.name,
+            minutesSinceStart,
+          },
+        },
+      });
+      // {greeting} и {name} разворачивает personalizeMessage в
+      // notifyEmployee — сотрудник увидит свой язык приветствия по
+      // времени дня + своё имя.
+      const message =
+        `{greeting}, {name}! 👋\n\n` +
+        `Сегодня вы числитесь на смене, но в журналах пока пусто. ` +
+        `Если уже работаете — заполните хотя бы первое наблюдение, ` +
+        `чтобы руководство видело активность. Если что-то не так — ` +
+        `напишите менеджеру.`;
+      await notifyEmployee(shift.userId, message);
+      staffCheckIns += 1;
+    }
+
     // Stage 1: 30+ минут без активности → soft-ping управление.
     if (minutesSinceStart >= 30 && !alreadyNotified) {
       await db.auditLog.create({
@@ -183,6 +230,7 @@ async function handle(request: Request) {
     shiftsChecked: shifts.length,
     notified,
     markedAbsent,
+    staffCheckIns,
   });
 }
 
