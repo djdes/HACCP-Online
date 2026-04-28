@@ -153,6 +153,15 @@ jobs:
             echo "=== Building Next.js on prod ==="
             # Build на том же хосте, где устанавливались node_modules,
             # чтобы пути внутри .next всегда резолвились в свежие пакеты.
+            #
+            # Stale .next/lock от прошлого упавшего build'а ломает все
+            # следующие deploy'и: `next build` сразу выходит с «Unable to
+            # acquire lock» и оставляет .next/server/app пустым, а
+            # verify_manifests раньше (до strict-check) пропускал такое
+            # как «зелёный» — пользователи видели «Что-то пошло не так»
+            # на /root/organizations/[id], /mini и пр. Удаляем lock'и
+            # перед каждой попыткой.
+            rm -f .next/lock 2>/dev/null || true
             npm run build 2>&1 | tail -10
 
             echo "=== Verifying client-reference manifests ==="
@@ -170,6 +179,19 @@ jobs:
             # конкретного route отсутствует» — последний крашил
             # /root/organizations/[id], /mini и пр. с InvariantError.
             verify_manifests() {
+              # Sanity: build вообще должен был сгенерировать .next/server/app.
+              # Если его нет — `find` молча вернёт пусто, и loop ниже отдаст
+              # missing=0 → false-positive «всё ок». Проверяем явно.
+              if [ ! -d .next/server/app ]; then
+                echo "[fail] .next/server/app отсутствует — build не дошёл до compilation"
+                return 1
+              fi
+              local pages
+              pages=$(find .next/server/app -name 'page.js' 2>/dev/null | wc -l)
+              if [ "$pages" -lt "10" ]; then
+                echo "[fail] всего $pages page.js — build явно неполный (ожидаем 80+)"
+                return 1
+              fi
               local missing=0
               local missing_list=""
               while IFS= read -r page_js; do
@@ -188,12 +210,14 @@ jobs:
               fi
               local total
               total=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
-              echo "[ok] все page-routes имеют manifest ($total всего)"
+              echo "[ok] $pages page-routes, все имеют manifest ($total файлов)"
               return 0
             }
 
             if ! verify_manifests; then
               echo "[warn] manifest check failed — rebuilding from clean .next"
+              # Полный rm -rf — заодно убирает stale .next/lock который
+              # мог остаться от первого build'а, упавшего на OOM.
               rm -rf .next
               npm run build 2>&1 | tail -10
               if ! verify_manifests; then
