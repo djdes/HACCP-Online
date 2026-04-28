@@ -49,6 +49,15 @@ const settingsCards = [
     bg: "#eef1ff",
   },
   {
+    title: "Здания и помещения",
+    description:
+      "Точки бизнеса (корпуса) и помещения внутри — для журнала уборки",
+    href: "/settings/buildings",
+    icon: Building2,
+    color: "#5566f6",
+    bg: "#eef1ff",
+  },
+  {
     title: "Оборудование",
     description: "Холодильники, печи, датчики",
     href: "/settings/equipment",
@@ -87,6 +96,15 @@ const settingsCards = [
     icon: ClipboardList,
     color: "#d946ef",
     bg: "#fdf4ff",
+  },
+  {
+    title: "Периоды журналов",
+    description:
+      "На какой срок создаётся каждый журнал — месяц, N дней, год…",
+    href: "/settings/journal-periods",
+    icon: CalendarRange,
+    color: "#10b981",
+    bg: "#ecfdf5",
   },
   {
     title: "Справочник продуктов",
