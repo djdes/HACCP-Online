@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 import {
   GLASS_LIST_DOCUMENT_TITLE,
   GLASS_LIST_PAGE_TITLE,
@@ -165,7 +165,11 @@ function GlassListFormDialog(props: {
             <select
               value={state.responsibleTitle}
               onChange={(event) =>
-                setState((prev) => ({ ...prev, responsibleTitle: event.target.value }))
+                setState((prev) => ({
+                  ...prev,
+                  responsibleTitle: event.target.value,
+                  responsibleUserId: "",
+                }))
               }
               className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
             >
@@ -183,7 +187,10 @@ function GlassListFormDialog(props: {
               className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
             >
               <option value="">- Выберите значение -</option>
-              {props.users.map((user) => (
+              {(state.responsibleTitle
+                ? getUsersForRoleLabel(props.users, state.responsibleTitle)
+                : props.users
+              ).map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name}
                 </option>

@@ -48,11 +48,13 @@ import {
   JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 type JournalListDocument = {
   id: string;
   title: string;
   status: "active" | "closed";
   responsibleTitle: string | null;
+  responsibleUserId: string | null;
   periodLabel: string;
 };
 
@@ -90,12 +92,14 @@ function EditDocumentDialog({
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState("");
+  const [responsibleUserId, setResponsibleUserId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!document || !open) return;
     setTitle(document.title);
     setResponsibleTitle(document.responsibleTitle || responsibleOptions[0] || "");
+    setResponsibleUserId(document.responsibleUserId || "");
   }, [document, open, responsibleOptions]);
 
   async function handleSave() {
@@ -109,6 +113,7 @@ function EditDocumentDialog({
         body: JSON.stringify({
           title: title.trim(),
           responsibleTitle,
+          responsibleUserId: responsibleUserId || null,
         }),
       });
       if (!response.ok) {
@@ -147,12 +152,34 @@ function EditDocumentDialog({
 
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                setResponsibleUserId("");
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={users} />
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

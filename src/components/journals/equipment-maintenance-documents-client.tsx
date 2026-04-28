@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import {
   DropdownMenu,
@@ -293,7 +293,9 @@ export function EquipmentMaintenanceDocumentsClient({
               }}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
-                  {users.map((u) => <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>)}
+                  {(approveRole ? getUsersForRoleLabel(users, approveRole) : users).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -321,7 +323,9 @@ export function EquipmentMaintenanceDocumentsClient({
               }}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
-                  {users.map((u) => <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>)}
+                  {(responsibleRole ? getUsersForRoleLabel(users, responsibleRole) : users).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

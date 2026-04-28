@@ -40,6 +40,7 @@ import {
   JOURNAL_LIST_ACTIONS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 type UserItem = {
   id: string;
   name: string;
@@ -51,6 +52,7 @@ type JournalListDocument = {
   title: string;
   status: "active" | "closed";
   responsibleTitle: string | null;
+  responsibleUserId: string | null;
   responsibleUserName: string | null;
   periodLabel: string;
   dateFrom: string;
@@ -93,7 +95,7 @@ function EditDocumentDialog({
     if (!open || !document) return;
     setTitle(document.title);
     setResponsibleTitle(document.responsibleTitle || titleOptions[0] || "");
-    setResponsibleUserId(users[0]?.id || "");
+    setResponsibleUserId(document.responsibleUserId || "");
   }, [document, open, titleOptions, users]);
 
   async function handleSave() {
@@ -160,7 +162,13 @@ function EditDocumentDialog({
             <Label className="text-[15px] text-[#8b8fa3]">
               Должность ответственного за снятие показателей
             </Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                setResponsibleUserId("");
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#d7dbe8] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
@@ -177,7 +185,7 @@ function EditDocumentDialog({
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {users.map((user) => (
+                {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

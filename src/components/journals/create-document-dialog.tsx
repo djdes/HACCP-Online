@@ -127,7 +127,13 @@ import {
 interface Props {
   templateCode: string;
   templateName: string;
-  users: { id: string; name: string; role: string }[];
+  users: {
+    id: string;
+    name: string;
+    role: string;
+    positionTitle?: string | null;
+    jobPosition?: { name: string; categoryKey: string } | null;
+  }[];
   triggerClassName?: string;
   triggerLabel?: string;
   triggerIcon?: ReactNode;
@@ -632,7 +638,13 @@ export function CreateDocumentDialog({
                   </div>
                   <div className="space-y-3">
                     <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-                    <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+                    <Select
+                      value={responsibleTitle}
+                      onValueChange={(v) => {
+                        setResponsibleTitle(v);
+                        setResponsibleUserId("");
+                      }}
+                    >
                       <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                         <SelectValue placeholder="- Выберите значение -" />
                       </SelectTrigger>
@@ -641,21 +653,65 @@ export function CreateDocumentDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-3">
+                    <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+                    <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+                      <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                        <SelectValue placeholder="- Выберите значение -" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(responsibleTitle
+                          ? getUsersForRoleLabel(users, responsibleTitle)
+                          : users
+                        ).map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </>
               )}
 
               {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (
-              <div className="space-y-3">
-                <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-                <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                    <SelectValue placeholder="- Выберите значение -" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <PositionSelectItems users={users} />
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-3">
+                  <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
+                  <Select
+                    value={responsibleTitle}
+                    onValueChange={(v) => {
+                      setResponsibleTitle(v);
+                      setResponsibleUserId("");
+                    }}
+                  >
+                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                      <SelectValue placeholder="- Выберите значение -" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <PositionSelectItems users={users} />
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+                  <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                      <SelectValue placeholder="- Выберите значение -" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(responsibleTitle
+                        ? getUsersForRoleLabel(users, responsibleTitle)
+                        : users
+                      ).map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
               )}
 
               {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
@@ -686,36 +742,16 @@ export function CreateDocumentDialog({
               ))}
 
               {isAcceptanceJournal && (
-                <>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Добавить поля</Label>
-                    <label className="flex items-center gap-3 text-[15px]">
-                      <Checkbox
-                        checked={fpShowCorrectiveAction}
-                        onCheckedChange={(checked) => setFpShowCorrectiveAction(checked === true)}
-                      />
-                      &quot;Соответствие внешнего вида упаковки, маркировки требованиям НД&quot;
-                    </label>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
-                    <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-                      <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                        <SelectValue placeholder="- Выберите значение -" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(responsibleTitle
-                          ? getUsersForRoleLabel(users, responsibleTitle)
-                          : users
-                        ).map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+                <div className="space-y-3">
+                  <Label className="text-[14px] text-[#73738a]">Добавить поля</Label>
+                  <label className="flex items-center gap-3 text-[15px]">
+                    <Checkbox
+                      checked={fpShowCorrectiveAction}
+                      onCheckedChange={(checked) => setFpShowCorrectiveAction(checked === true)}
+                    />
+                    &quot;Соответствие внешнего вида упаковки, маркировки требованиям НД&quot;
+                  </label>
+                </div>
               )}
 
               <div className="hidden">

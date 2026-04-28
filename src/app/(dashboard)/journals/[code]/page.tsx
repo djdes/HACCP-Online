@@ -1428,6 +1428,7 @@ export default async function JournalDocumentsPage({
         title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
         status: document.status as "active" | "closed",
         responsibleTitle: document.responsibleTitle,
+        responsibleUserId: document.responsibleUserId,
         periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
         printEmptyRows: typeof config.printEmptyRows === "number" ? config.printEmptyRows : 0,
       };
@@ -3679,6 +3680,7 @@ export default async function JournalDocumentsPage({
               title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
               status: document.status as "active" | "closed",
               responsibleTitle: document.responsibleTitle,
+              responsibleUserId: document.responsibleUserId,
               responsibleUserName: document.responsibleUserId
                 ? orgUsers.find((user) => user.id === document.responsibleUserId)?.name || null
                 : null,
@@ -3739,6 +3741,7 @@ export default async function JournalDocumentsPage({
             title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
             status: document.status as "active" | "closed",
             responsibleTitle: document.responsibleTitle,
+            responsibleUserId: document.responsibleUserId,
             responsibleUserName: document.responsibleUserId
               ? orgUsers.find((user) => user.id === document.responsibleUserId)?.name || null
               : null,
@@ -3766,6 +3769,7 @@ export default async function JournalDocumentsPage({
           title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
           status: document.status as "active" | "closed",
           responsibleTitle: document.responsibleTitle,
+          responsibleUserId: document.responsibleUserId,
           periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
         }))}
       />

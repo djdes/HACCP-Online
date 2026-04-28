@@ -36,6 +36,7 @@ import {
   normalizeUvRuntimeDocumentConfig,
   type UvRuntimeDocumentConfig,
 } from "@/lib/uv-lamp-runtime-document";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
@@ -194,7 +195,13 @@ function UvRuntimeSettingsDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                setResponsibleUserId("");
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -231,7 +238,10 @@ function UvRuntimeSettingsDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {(responsibleTitle
+                  ? getUsersForRoleLabel(props.users, responsibleTitle)
+                  : props.users
+                ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

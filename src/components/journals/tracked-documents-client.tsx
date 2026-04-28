@@ -52,11 +52,13 @@ import {
   JOURNAL_TAB_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 type JournalListDocument = {
   id: string;
   title: string;
   status: "active" | "closed";
   responsibleTitle: string | null;
+  responsibleUserId?: string | null;
   responsibleUserName?: string | null;
   periodLabel: string;
   metaLabel: string;
@@ -123,8 +125,12 @@ function EditTrackedDocumentDialog({
     );
     const acceptanceConfig = normalizeAcceptanceDocumentConfig(document.config, users);
     setShowPackagingField(acceptanceConfig.showPackagingComplianceField);
-    setResponsibleUserId(acceptanceConfig.defaultResponsibleUserId || "");
-  }, [document, open, responsibleOptions, users]);
+    setResponsibleUserId(
+      isAcceptance
+        ? acceptanceConfig.defaultResponsibleUserId || ""
+        : document.responsibleUserId || ""
+    );
+  }, [document, open, responsibleOptions, users, isAcceptance]);
 
   async function handleSave() {
     if (!document) return;
@@ -136,6 +142,7 @@ function EditTrackedDocumentDialog({
         body: JSON.stringify({
           title: title.trim(),
           responsibleTitle: responsibleTitle || null,
+          responsibleUserId: responsibleUserId || null,
           dateFrom,
           dateTo,
           config: areaName.trim() ? { ...(document.config || {}), areaName: areaName.trim() } : document.config,
@@ -203,7 +210,13 @@ function EditTrackedDocumentDialog({
 
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                setResponsibleUserId("");
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -212,6 +225,24 @@ function EditTrackedDocumentDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {!isAcceptance && (
+            <div className="space-y-3">
+              <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+              <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {createMode === "staff" ? (
             <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
@@ -251,7 +282,7 @@ function EditTrackedDocumentDialog({
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map((user) => (
+                    {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name}
                       </SelectItem>

@@ -36,6 +36,7 @@ import {
   normalizeGlassControlConfig,
   toIsoDate,
 } from "@/lib/glass-control-document";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
@@ -173,7 +174,7 @@ function GlassControlFormDialog(props: {
             <Select
               value={state.responsibleTitle}
               onValueChange={(value) =>
-                setState((prev) => ({ ...prev, responsibleTitle: value }))
+                setState((prev) => ({ ...prev, responsibleTitle: value, responsibleUserId: "" }))
               }
             >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
@@ -201,7 +202,10 @@ function GlassControlFormDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {props.users.map((user) => (
+                {(state.responsibleTitle
+                  ? getUsersForRoleLabel(props.users, state.responsibleTitle)
+                  : props.users
+                ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
