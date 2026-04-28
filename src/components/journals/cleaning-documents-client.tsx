@@ -72,7 +72,9 @@ type DocumentItem = {
 type CreateState = {
   title: string;
   cleaningRole: string;
+  cleaningUserId: string;
   controlRole: string;
+  controlUserId: string;
 };
 
 type SettingsState = {
@@ -105,10 +107,14 @@ function getUserName(users: UserItem[], userId: string) {
 
 function buildCreateState(users: UserItem[]): CreateState {
   const baseConfig = defaultCleaningDocumentConfig(users);
+  const cleaningRole = baseConfig.cleaningResponsibles[0]?.title || "";
+  const controlRole = baseConfig.controlResponsibles[0]?.title || "";
   return {
     title: "",
-    cleaningRole: baseConfig.cleaningResponsibles[0]?.title || "",
-    controlRole: baseConfig.controlResponsibles[0]?.title || "",
+    cleaningRole,
+    cleaningUserId: pickFirstUserId(users, cleaningRole),
+    controlRole,
+    controlUserId: pickFirstUserId(users, controlRole),
   };
 }
 
@@ -218,7 +224,13 @@ function CreateDialog(props: {
             <Label className="text-[16px] text-[#73738a]">Должность ответственного за уборку</Label>
             <Select
               value={state.cleaningRole}
-              onValueChange={(value) => setState((current) => ({ ...current, cleaningRole: value }))}
+              onValueChange={(value) =>
+                setState((current) => ({
+                  ...current,
+                  cleaningRole: value,
+                  cleaningUserId: pickFirstUserId(props.users, value),
+                }))
+              }
             >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -229,16 +241,62 @@ function CreateDialog(props: {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
+            <Select
+              value={state.cleaningUserId}
+              onValueChange={(value) =>
+                setState((current) => ({ ...current, cleaningUserId: value }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {getUsersForRoleLabel(props.users, state.cleaningRole).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label className="text-[16px] text-[#73738a]">Должность ответственного за контроль</Label>
             <Select
               value={state.controlRole}
-              onValueChange={(value) => setState((current) => ({ ...current, controlRole: value }))}
+              onValueChange={(value) =>
+                setState((current) => ({
+                  ...current,
+                  controlRole: value,
+                  controlUserId: pickFirstUserId(props.users, value),
+                }))
+              }
             >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={props.users} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
+            <Select
+              value={state.controlUserId}
+              onValueChange={(value) =>
+                setState((current) => ({ ...current, controlUserId: value }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {getUsersForRoleLabel(props.users, state.controlRole).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -435,8 +493,12 @@ export function CleaningDocumentsClient(props: Props) {
   async function createDocument(state: CreateState) {
     const period = getCleaningCreatePeriodBounds();
     const baseConfig = defaultCleaningDocumentConfig(props.users);
-    const cleaningUserId = pickFirstUserId(props.users, state.cleaningRole);
-    const controlUserId = pickFirstUserId(props.users, state.controlRole);
+    // Пользователь может выбрать конкретного сотрудника в диалоге;
+    // если не выбрал — fallback на первого подходящего по должности.
+    const cleaningUserId =
+      state.cleaningUserId || pickFirstUserId(props.users, state.cleaningRole);
+    const controlUserId =
+      state.controlUserId || pickFirstUserId(props.users, state.controlRole);
 
     const nextConfig: CleaningDocumentConfig = normalizeCleaningDocumentConfig(
       {
