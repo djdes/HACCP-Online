@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserCog } from "lucide-react";
 import { toast } from "sonner";
@@ -11,12 +10,13 @@ type Props = { organizationId: string; organizationName: string };
 
 /**
  * Starts a "view as" session. Writes actingAsOrganizationId into the JWT
- * via next-auth update(), then redirects to /dashboard so the user lands
- * in the customer's view immediately. Dashboard layout shows a persistent
- * banner with a "Stop" button (see impersonation-banner.tsx).
+ * via next-auth update(), then full-reloads to /dashboard so SSR layout
+ * перечитывает обновлённый cookie. router.push() + router.refresh() в
+ * Next.js 16 не всегда подхватывает свежий JWT — layout рендерится со
+ * старым session и юзер видит свой ROOT-контент. Hard reload через
+ * window.location.href гарантирует чистую сессию на /dashboard.
  */
 export function ImpersonateButton({ organizationId, organizationName }: Props) {
-  const router = useRouter();
   const { update } = useSession();
   const [busy, setBusy] = useState(false);
 
@@ -32,16 +32,18 @@ export function ImpersonateButton({ organizationId, organizationName }: Props) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error || "Не удалось начать impersonation");
       }
-      // Forces NextAuth to re-issue the JWT with the new claim.
+      // Forces NextAuth to re-issue the JWT with the new claim. await
+      // дожидаемся ответа сервера (cookie перезаписан до того как мы
+      // перейдём на /dashboard).
       await update({ actingAsOrganizationId: organizationId });
       toast.success(`Вы просматриваете: ${organizationName}`);
-      router.push("/dashboard");
-      router.refresh();
+      // Hard reload — soft router.push в Next.js 16 кэширует layout с
+      // прежним JWT и activeOrgId остаётся = platform.
+      window.location.href = "/dashboard";
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось войти в организацию"
       );
-    } finally {
       setBusy(false);
     }
   }
