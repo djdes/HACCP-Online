@@ -927,7 +927,7 @@ export default async function JournalDocumentPage({
 
   if (document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE) {
     const buildings = await db.building.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: session.user.organizationId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
         rooms: {
