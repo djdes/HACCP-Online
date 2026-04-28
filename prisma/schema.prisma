@@ -94,6 +94,13 @@ model Organization {
   /// equipment.expired etc.). Org сама может построить интеграцию
   /// с Zapier / Make / N8N не дожидаясь нашей разработки.
   webhookUrls              String[]
+  /// Per-template переопределение периода ведения журнала. Shape:
+  /// { [templateCode]: { kind: "monthly"|"yearly"|"days"|"perpetual"|"single-day", days?: number } }.
+  /// Если для template есть запись — она побеждает дефолтный
+  /// resolveJournalPeriodKind. Days-режим режет окна от начала
+  /// месяца: N=10 → 1-10 / 11-20 / 21-end. Управляется через
+  /// /settings/journals (period column).
+  journalPeriods           Json                       @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

@@ -27,7 +27,51 @@ export type JournalPeriodKind =
   | "yearly"
   | "half-monthly"
   | "single-day"
-  | "perpetual";
+  | "perpetual"
+  /// Пользовательский режим: окна по N дней от начала месяца.
+  /// N=10 → 1-10 / 11-20 / 21-end. N=15 эквивалентно half-monthly,
+  /// но через универсальный механизм. N>=31 → fallback на monthly.
+  | "days";
+
+/** Per-org override настроек периодов. Shape: { templateCode: {kind, days?} }. */
+export type JournalPeriodOverride = {
+  kind: JournalPeriodKind;
+  days?: number;
+};
+export type JournalPeriodOverrideMap = Record<string, JournalPeriodOverride>;
+
+export function parseJournalPeriodsJson(
+  raw: unknown
+): JournalPeriodOverrideMap {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: JournalPeriodOverrideMap = {};
+  for (const [code, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const v = value as Record<string, unknown>;
+    const kind = v.kind;
+    if (
+      kind !== "monthly" &&
+      kind !== "yearly" &&
+      kind !== "half-monthly" &&
+      kind !== "single-day" &&
+      kind !== "perpetual" &&
+      kind !== "days"
+    )
+      continue;
+    const entry: JournalPeriodOverride = { kind };
+    if (kind === "days") {
+      const d = typeof v.days === "number" ? Math.floor(v.days) : NaN;
+      if (Number.isFinite(d) && d >= 1 && d <= 31) {
+        entry.days = d;
+      } else {
+        // Без валидного `days` режим бессмысленен → пропускаем.
+        continue;
+      }
+    }
+    out[code] = entry;
+  }
+  return out;
+}
 
 /**
  * Явно помеченные как yearly коды. Список основан на тех журналах,
@@ -158,6 +202,38 @@ function yearBounds(now: Date): { from: Date; to: Date } {
   };
 }
 
+/**
+ * Окно по N дней от начала месяца. Если день 17 и N=10:
+ *   chunkIndex = floor((17-1)/10) = 1
+ *   from = 11, to = 20.
+ * Если to уходит за пределы месяца (последняя «плитка» хвост) —
+ * прижимаем к последнему дню месяца.
+ */
+function customDaysBounds(
+  now: Date,
+  days: number
+): { from: Date; to: Date } {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const day = now.getUTCDate();
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const chunkIndex = Math.floor((day - 1) / days);
+  const fromDay = chunkIndex * days + 1;
+  const toDay = Math.min((chunkIndex + 1) * days, lastDay);
+  return {
+    from: new Date(Date.UTC(y, m, fromDay)),
+    to: new Date(Date.UTC(y, m, toDay)),
+  };
+}
+
+function customDaysLabel(now: Date, days: number): string {
+  const b = customDaysBounds(now, days);
+  const fromDay = b.from.getUTCDate();
+  const toDay = b.to.getUTCDate();
+  const monthName = RU_MONTHS_NOMINATIVE[now.getUTCMonth()];
+  return `${monthName} с ${fromDay} по ${toDay}`;
+}
+
 const RU_MONTHS_NOMINATIVE = [
   "Январь",
   "Февраль",
@@ -207,8 +283,59 @@ function startOfUtcDay(now: Date): Date {
 
 export function resolveJournalPeriod(
   templateCode: string,
-  now: Date = new Date()
+  now: Date = new Date(),
+  overrides?: JournalPeriodOverrideMap
 ): { dateFrom: Date; dateTo: Date; kind: JournalPeriodKind; label: string } {
+  // Per-org override побеждает дефолт. Если override-kind = "days",
+  // используем кастомный механизм окон от начала месяца.
+  const override = overrides?.[templateCode];
+  if (override) {
+    if (override.kind === "days" && override.days && override.days >= 1) {
+      // N=15 даст эффект half-monthly при стандартных месяцах.
+      // N>=31 — резать нечего, fallback на monthly.
+      if (override.days >= 31) {
+        const b = monthBounds(now);
+        return {
+          dateFrom: b.from,
+          dateTo: b.to,
+          kind: "monthly",
+          label: monthLabel(now),
+        };
+      }
+      const b = customDaysBounds(now, override.days);
+      return {
+        dateFrom: b.from,
+        dateTo: b.to,
+        kind: "days",
+        label: customDaysLabel(now, override.days),
+      };
+    }
+    if (override.kind === "yearly") {
+      const b = yearBounds(now);
+      return { dateFrom: b.from, dateTo: b.to, kind: "yearly", label: yearLabel(now) };
+    }
+    if (override.kind === "half-monthly") {
+      const b = halfMonthBounds(now);
+      return { dateFrom: b.from, dateTo: b.to, kind: "half-monthly", label: halfMonthLabel(now) };
+    }
+    if (override.kind === "single-day") {
+      const day = startOfUtcDay(now);
+      return { dateFrom: day, dateTo: day, kind: "single-day", label: singleDayLabel(now) };
+    }
+    if (override.kind === "perpetual") {
+      const day = startOfUtcDay(now);
+      return {
+        dateFrom: day,
+        dateTo: PERPETUAL_DATE_TO,
+        kind: "perpetual",
+        label: `с ${singleDayLabel(now)}`,
+      };
+    }
+    if (override.kind === "monthly") {
+      const b = monthBounds(now);
+      return { dateFrom: b.from, dateTo: b.to, kind: "monthly", label: monthLabel(now) };
+    }
+  }
   const kind = resolveJournalPeriodKind(templateCode);
   if (kind === "yearly") {
     const b = yearBounds(now);

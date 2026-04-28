@@ -14,7 +14,10 @@
  * отчёте «уже был».
  */
 import type { PrismaClient } from "@prisma/client";
-import { resolveJournalPeriod } from "@/lib/journal-period";
+import {
+  parseJournalPeriodsJson,
+  resolveJournalPeriod,
+} from "@/lib/journal-period";
 
 export type CreateReport = {
   code: string;
@@ -67,7 +70,15 @@ export async function ensureActiveDocument(
     };
   }
 
-  const period = resolveJournalPeriod(args.templateCode, now);
+  // Если у org есть per-template override периода (см.
+  // /settings/journals — period column) — подмешиваем его в
+  // resolveJournalPeriod. Иначе fallback на дефолтную семантику.
+  const orgRow = await db.organization.findUnique({
+    where: { id: args.organizationId },
+    select: { journalPeriods: true },
+  });
+  const overrides = parseJournalPeriodsJson(orgRow?.journalPeriods ?? null);
+  const period = resolveJournalPeriod(args.templateCode, now, overrides);
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -177,9 +188,21 @@ export async function ensureNextPeriodDocument(
     };
   }
 
-  // Период следующего: resolveJournalPeriod(current.dateTo + 1d).
+  // Период следующего: resolveJournalPeriod(current.dateTo + 1d) с
+  // учётом per-template override организации.
   const nextStart = new Date(current.dateTo.getTime() + 24 * 60 * 60 * 1000);
-  const nextPeriod = resolveJournalPeriod(args.templateCode, nextStart);
+  const orgRowNext = await db.organization.findUnique({
+    where: { id: args.organizationId },
+    select: { journalPeriods: true },
+  });
+  const nextOverrides = parseJournalPeriodsJson(
+    orgRowNext?.journalPeriods ?? null
+  );
+  const nextPeriod = resolveJournalPeriod(
+    args.templateCode,
+    nextStart,
+    nextOverrides
+  );
 
   // Не создаём, если следующий период идентичен текущему (perpetual / single-day).
   if (
