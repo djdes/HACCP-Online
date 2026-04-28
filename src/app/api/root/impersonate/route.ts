@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { decode, encode } from "next-auth/jwt";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,6 +15,61 @@ function clientIp(request?: Request): string | null {
   const xri = request.headers.get("x-real-ip");
   if (xri) return xri.trim();
   return null;
+}
+
+/**
+ * Перевыпускает NextAuth session-token cookie с новым actingAsOrganizationId.
+ * Делается напрямую через encode/decode из next-auth/jwt — обходит баг
+ * update() в NextAuth v4 + Next.js 16, где update() возвращает успех, но
+ * cookie не всегда сразу пишется в response, и следующий
+ * getServerSession() видит старый JWT.
+ */
+async function rewriteSessionToken(
+  next: string | null
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return { ok: false, reason: "NEXTAUTH_SECRET не задан" };
+
+  const isHttps =
+    process.env.NEXTAUTH_URL?.startsWith("https://") ||
+    process.env.VERCEL === "1";
+  const cookieName = isHttps
+    ? "__Secure-next-auth.session-token"
+    : "next-auth.session-token";
+
+  const cookieStore = await cookies();
+  const current = cookieStore.get(cookieName)?.value;
+  if (!current) return { ok: false, reason: "Cookie сессии не найден" };
+
+  let decoded: Record<string, unknown> | null = null;
+  try {
+    decoded = (await decode({ token: current, secret })) as Record<
+      string,
+      unknown
+    > | null;
+  } catch {
+    return { ok: false, reason: "Не удалось декодировать JWT" };
+  }
+  if (!decoded) return { ok: false, reason: "JWT пустой" };
+
+  if (decoded.isRoot !== true) {
+    return { ok: false, reason: "Только ROOT может impersonate" };
+  }
+
+  decoded.actingAsOrganizationId = next;
+
+  const maxAgeSec = 30 * 24 * 60 * 60;
+  const fresh = await encode({ token: decoded, secret, maxAge: maxAgeSec });
+
+  cookieStore.set(cookieName, fresh, {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: "lax",
+    path: "/",
+    maxAge: maxAgeSec,
+  });
+
+  return { ok: true };
 }
 
 /**
@@ -61,6 +118,14 @@ export async function POST(request: Request) {
     },
   });
 
+  const rewrite = await rewriteSessionToken(org.id);
+  if (!rewrite.ok) {
+    return NextResponse.json(
+      { error: `Не удалось обновить сессию: ${rewrite.reason}` },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({ ok: true, organization: org });
 }
 
@@ -83,5 +148,8 @@ export async function DELETE(request: Request) {
       },
     });
   }
+  // Чистим actingAsOrganizationId в JWT — даже если update() от клиента
+  // не сработает, сервер уже выпустит cookie без impersonation.
+  await rewriteSessionToken(null);
   return NextResponse.json({ ok: true });
 }

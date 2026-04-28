@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 type Props = {
@@ -11,12 +9,11 @@ type Props = {
 
 /**
  * Persistent red banner shown on every dashboard page while a root user is
- * "viewing as" a customer organisation. One click clears the claim and
- * returns them to the /root area.
+ * "viewing as" a customer organisation. /api/root/impersonate DELETE сам
+ * перевыпускает session-token без actingAsOrganizationId — клиенту нужен
+ * только hard reload, чтобы layout перечитал свежий JWT.
  */
 export function ImpersonationBanner({ organizationName }: Props) {
-  const router = useRouter();
-  const { update } = useSession();
   const [busy, setBusy] = useState(false);
 
   async function stop() {
@@ -26,15 +23,12 @@ export function ImpersonationBanner({ organizationName }: Props) {
       if (!res.ok) {
         throw new Error("Не удалось выйти из просмотра");
       }
-      await update({ actingAsOrganizationId: null });
       toast.success("Выход из организации");
-      router.push("/root");
-      router.refresh();
+      window.location.href = "/root";
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось выйти"
       );
-    } finally {
       setBusy(false);
     }
   }

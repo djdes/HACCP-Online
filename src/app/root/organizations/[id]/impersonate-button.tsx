@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,15 +8,14 @@ import { Button } from "@/components/ui/button";
 type Props = { organizationId: string; organizationName: string };
 
 /**
- * Starts a "view as" session. Writes actingAsOrganizationId into the JWT
- * via next-auth update(), then full-reloads to /dashboard so SSR layout
- * перечитывает обновлённый cookie. router.push() + router.refresh() в
- * Next.js 16 не всегда подхватывает свежий JWT — layout рендерится со
- * старым session и юзер видит свой ROOT-контент. Hard reload через
- * window.location.href гарантирует чистую сессию на /dashboard.
+ * Starts a "view as" session. /api/root/impersonate сам перевыпускает
+ * NextAuth session-token cookie с новым actingAsOrganizationId — нам
+ * не нужен useSession().update() (он ненадёжен в Next.js 16 + NextAuth
+ * v4: cookie иногда не записывается до hard navigation). После успеха
+ * делаем full reload на /dashboard — layout видит обновлённый JWT и
+ * рендерится в контексте выбранной организации.
  */
 export function ImpersonateButton({ organizationId, organizationName }: Props) {
-  const { update } = useSession();
   const [busy, setBusy] = useState(false);
 
   async function start() {
@@ -32,13 +30,9 @@ export function ImpersonateButton({ organizationId, organizationName }: Props) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error || "Не удалось начать impersonation");
       }
-      // Forces NextAuth to re-issue the JWT with the new claim. await
-      // дожидаемся ответа сервера (cookie перезаписан до того как мы
-      // перейдём на /dashboard).
-      await update({ actingAsOrganizationId: organizationId });
       toast.success(`Вы просматриваете: ${organizationName}`);
-      // Hard reload — soft router.push в Next.js 16 кэширует layout с
-      // прежним JWT и activeOrgId остаётся = platform.
+      // Hard reload гарантирует что server-side getServerSession()
+      // перечитает свежий cookie на /dashboard.
       window.location.href = "/dashboard";
     } catch (error) {
       toast.error(
