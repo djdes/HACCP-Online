@@ -86,6 +86,22 @@ export function JournalPeriodsClient({ initial }: { initial: Item[] }) {
   }
 
   return (
+    <div className="space-y-3">
+      {/* Sticky save bar — всегда виден сверху, не нужно скроллить через 35 строк. */}
+      <div className="sticky top-2 z-10 flex items-center justify-between gap-3 rounded-2xl border border-[#ececf4] bg-white/90 px-4 py-2.5 shadow-[0_8px_24px_-12px_rgba(11,16,36,0.18)] backdrop-blur">
+        <div className="text-[13px] text-[#6f7282]">
+          Изменения применятся к пустым активным документам сразу,
+          к заполненным — со следующего цикла.
+        </div>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="inline-flex h-10 shrink-0 items-center rounded-2xl bg-[#5566f6] px-5 text-[13.5px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c8cbe0]"
+        >
+          {saving ? "Сохраняем…" : "Сохранить"}
+        </button>
+      </div>
     <div className="rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
       <div className="overflow-x-auto">
         <table className="w-full text-[13.5px]">
@@ -177,6 +193,7 @@ export function JournalPeriodsClient({ initial }: { initial: Item[] }) {
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
+    </div>
     </div>
   );
 }
