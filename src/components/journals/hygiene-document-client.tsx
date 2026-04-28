@@ -32,6 +32,7 @@ type Props = {
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
+  responsibleUserId?: string | null;
   responsibleName: string | null;
   status: string;
   autoFill?: boolean;
@@ -160,6 +161,7 @@ export function HygieneDocumentClient({
   dateFrom,
   dateTo,
   responsibleTitle,
+  responsibleUserId = null,
   status,
   autoFill = false,
   employees,
@@ -413,6 +415,7 @@ export function HygieneDocumentClient({
           status={status}
           autoFill={autoFill}
           responsibleTitle={responsibleTitle}
+          responsibleUserId={responsibleUserId}
           users={employees}
           includedEmployeeIds={includedEmployeeIds}
           routeCode={routeCode}

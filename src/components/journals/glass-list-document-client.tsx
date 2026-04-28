@@ -393,7 +393,9 @@ export function GlassListDocumentClient({
                     return {
                       ...prev,
                       responsibleTitle: newTitle,
-                      responsibleUserId: stillValid ? prev.responsibleUserId : "",
+                      responsibleUserId: stillValid
+                        ? prev.responsibleUserId
+                        : candidates[0]?.id || "",
                     };
                   });
                 }}

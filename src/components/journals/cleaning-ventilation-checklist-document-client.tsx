@@ -259,7 +259,19 @@ function DocumentSettingsDialog(props: {
             <Select
               value={state.mainResponsibleTitle}
               onValueChange={(value) =>
-                setState((current) => ({ ...current, mainResponsibleTitle: value }))
+                setState((current) => {
+                  const candidates = filterUsersByBucket(props.users, value);
+                  const stillValid =
+                    current.mainResponsibleUserId &&
+                    candidates.some((u) => u.id === current.mainResponsibleUserId);
+                  return {
+                    ...current,
+                    mainResponsibleTitle: value,
+                    mainResponsibleUserId: stillValid
+                      ? current.mainResponsibleUserId
+                      : candidates[0]?.id || "",
+                  };
+                })
               }
             >
               <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
@@ -352,7 +364,18 @@ function AddResponsibleDialog(props: {
         <div className="space-y-5 px-8 py-7">
           <div className="space-y-2">
             <Label className="text-[14px] text-[#7a7c8e]">Должность ответственного</Label>
-            <Select value={title} onValueChange={setTitle}>
+            <Select
+              value={title}
+              onValueChange={(value) => {
+                setTitle(value);
+                const candidates = filterUsersByBucket(props.users, value);
+                if (userId && !candidates.some((u) => u.id === userId)) {
+                  setUserId(candidates[0]?.id || "");
+                } else if (!userId && candidates[0]) {
+                  setUserId(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>

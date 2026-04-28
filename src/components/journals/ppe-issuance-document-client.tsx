@@ -241,7 +241,21 @@ function SettingsDialog(props: {
           </div>
           <div className="space-y-2">
             <Label className="text-[14px] text-[#7a7c8e]">Должность лица, выдавшего СИЗ</Label>
-            <Select value={state.defaultIssuerTitle || ""} onValueChange={(value) => setState({ ...state, defaultIssuerTitle: value })}>
+            <Select
+              value={state.defaultIssuerTitle || ""}
+              onValueChange={(value) => {
+                const candidates = getUsersForRoleLabel(props.users, value);
+                const currentId = state.defaultIssuerUserId || "";
+                const stillValid = currentId && candidates.some((u) => u.id === currentId);
+                setState({
+                  ...state,
+                  defaultIssuerTitle: value,
+                  defaultIssuerUserId: stillValid
+                    ? currentId
+                    : candidates[0]?.id || "",
+                });
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -323,7 +337,22 @@ function RowDialog(props: {
             {props.config.showCaps && <Input value={state.capCount} onChange={(e) => setState({ ...state, capCount: e.target.value })} placeholder="Введите количество шапочек" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />}
             <div className="space-y-2">
               <Label className="text-[14px] text-[#7a7c8e]">Должность лица, получившего СИЗ</Label>
-              <Select value={state.recipientTitle} onValueChange={(value) => setState({ ...state, recipientTitle: value })}>
+              <Select
+                value={state.recipientTitle}
+                onValueChange={(value) => {
+                  const candidates = getUsersForRoleLabel(props.users, value);
+                  const stillValid =
+                    state.recipientUserId &&
+                    candidates.some((u) => u.id === state.recipientUserId);
+                  setState({
+                    ...state,
+                    recipientTitle: value,
+                    recipientUserId: stillValid
+                      ? state.recipientUserId
+                      : candidates[0]?.id || "",
+                  });
+                }}
+              >
                 <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   {titles.map((title) => <SelectItem key={title} value={title}>{title}</SelectItem>)}
@@ -347,7 +376,22 @@ function RowDialog(props: {
             </div>
             <div className="space-y-2">
               <Label className="text-[14px] text-[#7a7c8e]">Должность лица, выдавшего СИЗ</Label>
-              <Select value={state.issuerTitle} onValueChange={(value) => setState({ ...state, issuerTitle: value })}>
+              <Select
+                value={state.issuerTitle}
+                onValueChange={(value) => {
+                  const candidates = getUsersForRoleLabel(props.users, value);
+                  const stillValid =
+                    state.issuerUserId &&
+                    candidates.some((u) => u.id === state.issuerUserId);
+                  setState({
+                    ...state,
+                    issuerTitle: value,
+                    issuerUserId: stillValid
+                      ? state.issuerUserId
+                      : candidates[0]?.id || "",
+                  });
+                }}
+              >
                 <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   {titles.map((title) => <SelectItem key={title} value={title}>{title}</SelectItem>)}

@@ -38,6 +38,7 @@ type Props = {
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
+  responsibleUserId?: string | null;
   status: string;
   autoFill?: boolean;
   employees: { id: string; name: string; role: string }[];
@@ -318,6 +319,7 @@ export function HealthDocumentClient(props: Props) {
             status={status}
             autoFill={autoFill}
             responsibleTitle={props.responsibleTitle}
+            responsibleUserId={props.responsibleUserId ?? null}
             users={employees}
             includedEmployeeIds={includedEmployeeIds}
             routeCode="health_check"

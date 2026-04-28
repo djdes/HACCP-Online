@@ -61,6 +61,7 @@ import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -376,7 +377,18 @@ function JournalSettingsDialog({
             <Label className="text-[15px] text-[#8b8fa3]">
               Должность ответственного за снятие показателей
             </Label>
-            <Select value={position} onValueChange={setPosition}>
+            <Select
+              value={position}
+              onValueChange={(value) => {
+                setPosition(value);
+                const candidates = getUsersForRoleLabel(employees, value);
+                if (userId && !candidates.some((u) => u.id === userId)) {
+                  setUserId(candidates[0]?.id || "");
+                } else if (!userId && candidates[0]) {
+                  setUserId(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
@@ -393,7 +405,10 @@ function JournalSettingsDialog({
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {(position
+                  ? getUsersForRoleLabel(employees, position)
+                  : employees
+                ).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>

@@ -29,6 +29,7 @@ import {
   getStaffJournalResponsibleTitleOptions,
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import {
@@ -48,6 +49,7 @@ type Props = {
   status: string;
   autoFill: boolean;
   responsibleTitle: string | null;
+  responsibleUserId?: string | null;
   users: UserItem[];
   includedEmployeeIds: string[];
   routeCode?: string;
@@ -278,6 +280,7 @@ function JournalSettingsDialog({
   documentId,
   title,
   responsibleTitle,
+  responsibleUserId,
   users,
 }: {
   open: boolean;
@@ -285,11 +288,13 @@ function JournalSettingsDialog({
   documentId: string;
   title: string;
   responsibleTitle: string | null;
+  responsibleUserId: string | null;
   users: UserItem[];
 }) {
   const router = useRouter();
   const [name, setName] = useState(title);
   const [responsible, setResponsible] = useState(responsibleTitle || "");
+  const [responsibleUser, setResponsibleUser] = useState(responsibleUserId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const options = useMemo(() => getStaffJournalResponsibleTitleOptions(users), [users]);
 
@@ -297,7 +302,8 @@ function JournalSettingsDialog({
     if (!open) return;
     setName(title);
     setResponsible(responsibleTitle || options[0] || "");
-  }, [open, options, responsibleTitle, title]);
+    setResponsibleUser(responsibleUserId || "");
+  }, [open, options, responsibleTitle, responsibleUserId, title]);
 
   async function handleSave() {
     setIsSubmitting(true);
@@ -308,6 +314,7 @@ function JournalSettingsDialog({
         body: JSON.stringify({
           title: name.trim(),
           responsibleTitle: responsible,
+          responsibleUserId: responsibleUser || null,
         }),
       });
 
@@ -343,12 +350,41 @@ function JournalSettingsDialog({
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select value={responsible} onValueChange={setResponsible}>
+            <Select
+              value={responsible}
+              onValueChange={(value) => {
+                setResponsible(value);
+                const candidates = getUsersForRoleLabel(users, value);
+                if (responsibleUser && !candidates.some((u) => u.id === responsibleUser)) {
+                  setResponsibleUser(candidates[0]?.id || "");
+                } else if (!responsibleUser && candidates[0]) {
+                  setResponsibleUser(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={users} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+            <Select value={responsibleUser} onValueChange={setResponsibleUser}>
+              <SelectTrigger className="h-22 rounded-3xl border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[24px]">
+                <SelectValue placeholder="- Выберите значение -" />
+              </SelectTrigger>
+              <SelectContent>
+                {(responsible
+                  ? getUsersForRoleLabel(users, responsible)
+                  : users
+                ).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -379,6 +415,7 @@ export function StaffJournalToolbar({
   status,
   autoFill,
   responsibleTitle,
+  responsibleUserId = null,
   users,
   includedEmployeeIds,
   routeCode,
@@ -560,6 +597,7 @@ export function StaffJournalToolbar({
         documentId={documentId}
         title={title}
         responsibleTitle={responsibleTitle}
+        responsibleUserId={responsibleUserId}
         users={users}
       />
 

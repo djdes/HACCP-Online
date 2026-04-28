@@ -576,7 +576,31 @@ export function ProductWriteoffDocumentClient({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Должность</Label>
-                <select value={commissionDialog.member.role} onChange={(event) => setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, role: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
+                <select
+                  value={commissionDialog.member.role}
+                  onChange={(event) => {
+                    const role = event.target.value;
+                    const candidates = getUsersForRoleLabel(users, role);
+                    setCommissionDialog((prev) => {
+                      const stillValid =
+                        prev.member.employeeId &&
+                        candidates.some((u) => u.id === prev.member.employeeId);
+                      const nextEmployee = stillValid
+                        ? candidates.find((u) => u.id === prev.member.employeeId)
+                        : candidates[0];
+                      return {
+                        ...prev,
+                        member: {
+                          ...prev.member,
+                          role,
+                          employeeId: nextEmployee?.id || "",
+                          employeeName: nextEmployee?.name || "",
+                        },
+                      };
+                    });
+                  }}
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                >
                   <option value="">— выберите —</option>
                   <PositionNativeOptions users={users} />
                 </select>

@@ -41,6 +41,7 @@ import {
   type ClimateRoomConfig,
 } from "@/lib/climate-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
@@ -374,7 +375,18 @@ function ResponsibleDialog({
         <div className="space-y-7 px-12 py-10">
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                const candidates = getUsersForRoleLabel(employees, value);
+                if (employeeId && !candidates.some((u) => u.id === employeeId)) {
+                  setEmployeeId(candidates[0]?.id || "");
+                } else if (!employeeId && candidates[0]) {
+                  setEmployeeId(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
@@ -391,7 +403,10 @@ function ResponsibleDialog({
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {(responsibleTitle
+                  ? getUsersForRoleLabel(employees, responsibleTitle)
+                  : employees
+                ).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>
@@ -495,7 +510,18 @@ function AddRowDialog({
 
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                const candidates = getUsersForRoleLabel(employees, value);
+                if (employeeId && !candidates.some((u) => u.id === employeeId)) {
+                  setEmployeeId(candidates[0]?.id || "");
+                } else if (!employeeId && candidates[0]) {
+                  setEmployeeId(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
@@ -512,7 +538,10 @@ function AddRowDialog({
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {(responsibleTitle
+                  ? getUsersForRoleLabel(employees, responsibleTitle)
+                  : employees
+                ).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>
@@ -637,7 +666,18 @@ function JournalSettingsDialog({
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-              <Select value={position} onValueChange={setPosition}>
+              <Select
+                value={position}
+                onValueChange={(value) => {
+                  setPosition(value);
+                  const candidates = getUsersForRoleLabel(employees, value);
+                  if (userId && !candidates.some((u) => u.id === userId)) {
+                    setUserId(candidates[0]?.id || "");
+                  } else if (!userId && candidates[0]) {
+                    setUserId(candidates[0].id);
+                  }
+                }}
+              >
                 <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                   <SelectValue placeholder="Выберите должность" />
                 </SelectTrigger>
@@ -654,7 +694,10 @@ function JournalSettingsDialog({
                   <SelectValue placeholder="Выберите сотрудника" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((employee) => (
+                  {(position
+                    ? getUsersForRoleLabel(employees, position)
+                    : employees
+                  ).map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name}
                     </SelectItem>

@@ -428,7 +428,9 @@ function UvRuntimeSettingsDialog(props: {
             <Select value={responsibleTitle} onValueChange={(value) => {
               const candidates = getUsersForRoleLabel(props.users, value);
               if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
-                setResponsibleUserId("");
+                setResponsibleUserId(candidates[0]?.id || "");
+              } else if (!responsibleUserId && candidates[0]) {
+                setResponsibleUserId(candidates[0].id);
               }
               setResponsibleTitle(value);
             }}>
@@ -634,7 +636,9 @@ function AddRowDialog(props: {
             <Select value={responsibleTitle} onValueChange={(value) => {
               const candidates = getUsersForRoleLabel(props.users, value);
               if (employeeId && !candidates.some((u) => u.id === employeeId)) {
-                setEmployeeId("");
+                setEmployeeId(candidates[0]?.id || "");
+              } else if (!employeeId && candidates[0]) {
+                setEmployeeId(candidates[0].id);
               }
               setResponsibleTitle(value);
             }}>

@@ -301,6 +301,7 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
+        responsibleUserId={document.responsibleUserId}
         responsibleName={null}
         status={document.status}
         autoFill={document.autoFill}
@@ -323,6 +324,7 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
+        responsibleUserId={document.responsibleUserId}
         status={document.status}
         autoFill={document.autoFill}
         employees={enrichedEmployees}

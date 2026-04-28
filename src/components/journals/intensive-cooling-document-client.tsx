@@ -266,7 +266,11 @@ function RowDialog(props: {
                   return {
                     ...current,
                     responsibleTitle: nextTitle,
-                    responsibleUserId: stillValid ? current.responsibleUserId : "",
+                    responsibleUserId: stillValid
+                      ? current.responsibleUserId
+                      : nextTitle
+                        ? candidates[0]?.id || ""
+                        : "",
                   };
                 });
               }}

@@ -475,7 +475,11 @@ function RowDialog(props: {
                   const candidates = getUsersForRoleLabel(props.users, v);
                   const stillValid = candidates.some((u) => u.id === row.responsibleUserId);
                   setValue("responsibleTitle", v);
-                  if (!stillValid) setValue("responsibleUserId", "");
+                  if (!stillValid) {
+                    setValue("responsibleUserId", candidates[0]?.id || "");
+                  } else if (!row.responsibleUserId && candidates[0]) {
+                    setValue("responsibleUserId", candidates[0].id);
+                  }
                 }}
               >
                 <option value="">— выберите —</option>

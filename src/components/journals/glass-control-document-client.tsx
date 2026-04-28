@@ -247,7 +247,18 @@ function GlassControlSettingsDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={setResponsibleTitle}>
+            <Select
+              value={responsibleTitle}
+              onValueChange={(value) => {
+                setResponsibleTitle(value);
+                const candidates = getUsersForRoleLabel(props.users, value);
+                if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
+                  setResponsibleUserId(candidates[0]?.id || "");
+                } else if (!responsibleUserId && candidates[0]) {
+                  setResponsibleUserId(candidates[0].id);
+                }
+              }}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
