@@ -14,10 +14,17 @@ export const dynamic = "force-dynamic";
  * GET/POST /api/cron/tasksflow-escalations?secret=$CRON_SECRET
  *
  * Раз в 6 часов проходит по всем активным TasksFlowTaskLink:
- *   - >24 ч без выполнения → push непосредственному руководителю
+ *   - >L1 ч без выполнения → push непосредственному руководителю
  *     по ManagerScope (либо management в целом если scope не задан);
- *   - >48 ч без выполнения → push owner'у/manager'у уровнем выше +
+ *   - >L2 ч без выполнения → push owner'у/manager'у уровнем выше +
  *     помечается уже escalated_owner.
+ *
+ * Пороги конфигурируются через env vars (default 24/48 ч):
+ *   TASKSFLOW_ESCALATE_L1_HOURS — мягкий пинг руководителю
+ *   TASKSFLOW_ESCALATE_L2_HOURS — жёсткий пинг owner'у
+ *
+ * Per-org override пока нет (требует schema change на TasksFlowIntegration —
+ * см. P1#3 в docs/THREAD_TASKSFLOW.md, согласовать с потоком 1).
  *
  * Дедупликация — через AuditLog с entity="tasksflow_task_link",
  * entityId=link.id, action ∈ {`escalated_l1`, `escalated_l2`}.
@@ -25,22 +32,38 @@ export const dynamic = "force-dynamic";
  * INFRA NEXT: добавить в внешний cron 4 раза в день (06/12/18/00 MSK)
  * на /api/cron/tasksflow-escalations.
  */
+function readHourThreshold(envKey: string, fallback: number): number {
+  const raw = process.env[envKey];
+  if (!raw) return fallback;
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  // Sanity-cap чтобы случайно `1000000` не отключил эскалацию навсегда.
+  return Math.min(parsed, 24 * 30);
+}
+
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
   if (searchParams.get("secret") !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const now = new Date();
-  const since48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-  const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const l1Hours = readHourThreshold("TASKSFLOW_ESCALATE_L1_HOURS", 24);
+  const l2Hours = readHourThreshold("TASKSFLOW_ESCALATE_L2_HOURS", 48);
+  // Defensive: L2 должен быть строго больше L1; если конфигурация
+  // некорректна (l2 <= l1), стрейтиться на defaults вместо silent
+  // skip-escalation-l2-навсегда.
+  const useL2 = l2Hours > l1Hours ? l2Hours : Math.max(l1Hours * 2, 48);
 
-  // Все активные task-link'и старше 24 ч. Заодно подтянем integration,
+  const now = new Date();
+  const sinceL1 = new Date(now.getTime() - l1Hours * 60 * 60 * 1000);
+  const sinceL2 = new Date(now.getTime() - useL2 * 60 * 60 * 1000);
+
+  // Все активные task-link'и старше L1-порога. Заодно подтянем integration,
   // чтобы найти organizationId и сходить в TF API за заголовком.
   const links = await db.tasksFlowTaskLink.findMany({
     where: {
       remoteStatus: "active",
-      createdAt: { lte: since24h },
+      createdAt: { lte: sinceL1 },
     },
     include: {
       integration: {
@@ -77,8 +100,8 @@ async function handle(request: Request) {
   );
 
   for (const link of enabledLinks) {
-    const isOver48h = link.createdAt < since48h;
-    const stage = isOver48h ? "escalated_l2" : "escalated_l1";
+    const isOverL2 = link.createdAt < sinceL2;
+    const stage = isOverL2 ? "escalated_l2" : "escalated_l1";
 
     if (dedupe.has(`${link.id}:${stage}`)) {
       skipped += 1;
@@ -179,13 +202,13 @@ async function handle(request: Request) {
         `🟡 <b>Просроченная задача в TasksFlow</b>\n\n` +
         `«${esc(titleText)}»\n` +
         `Исполнитель: ${esc(employeeText)}\n` +
-        `Не выполнено уже ${ageHours} ч (норма ≤ 24 ч).`;
+        `Не выполнено уже ${ageHours} ч (норма ≤ ${l1Hours} ч).`;
       await notifyEmployee(managerToPing, message);
       escalatedL1 += 1;
     } else if (stage === "escalated_l2") {
       // Hard-ping: всему management.
       const message =
-        `🚨 <b>Срочно! Просроченная задача >48 ч</b>\n\n` +
+        `🚨 <b>Срочно! Просроченная задача >${useL2} ч</b>\n\n` +
         `«${esc(titleText)}»\n` +
         `Исполнитель: ${esc(employeeText)}\n` +
         `Не выполнено ${ageHours} ч — это критическое отставание.\n` +
@@ -230,6 +253,7 @@ async function handle(request: Request) {
     escalatedL1,
     escalatedL2,
     skipped,
+    thresholdsHours: { l1: l1Hours, l2: useL2 },
   });
 }
 
