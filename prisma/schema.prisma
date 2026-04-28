@@ -117,6 +117,45 @@ model Organization {
   inspectorTokens          InspectorToken[]
   journalCloseEvents       JournalCloseEvent[]
   formFillTimings          FormFillTiming[]
+  employeeJoinTokens       EmployeeJoinToken[]
+}
+
+/// QR-код самостоятельной регистрации сотрудника. Админ нажимает «По
+/// QR-коду» в /settings/users — генерируется токен. Распечатанный QR
+/// или ссылка отдаётся новому сотруднику; он открывает /join/<token>,
+/// вводит ФИО + телефон + выбирает должность из dropdown'а
+/// организации, после чего создаётся User с привязкой к JobPosition
+/// и ролью derived из categoryKey (management | staff). По умолчанию
+/// он сразу попадает в иерархию (manager scope), а если есть
+/// TasksFlow-интеграция — best-effort синкается туда по телефону и
+/// получает все today's tasks через стандартный fan-out.
+///
+/// Один токен = одна регистрация. После claim'a пишется claimedAt +
+/// claimedUserId, повторное использование возвращает 410 Gone. По
+/// истечении expiresAt токен молча отклоняется (404).
+model EmployeeJoinToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// SHA-256 hash от raw токена. Raw показывается админу один раз при
+  /// создании и больше нигде не хранится — как InviteToken/InspectorToken.
+  tokenHash      String       @unique
+  /// Подсказка: какую должность админ имел в виду. Юзер всё равно
+  /// выбирает сам из dropdown'а, но если поле выставлено — оно
+  /// preselected'ит вариант.
+  suggestedJobPositionId String?
+  /// User-кто-выписал. Помогает аудиту «кто впустил сотрудника».
+  createdById    String
+  expiresAt      DateTime
+  claimedAt      DateTime?
+  claimedUserId  String?
+  /// Свободный лейбл для админа («Иванов И.И. цех №2») — UI показывает
+  /// в списке выписанных QR.
+  label          String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([expiresAt])
 }
 
 model User {

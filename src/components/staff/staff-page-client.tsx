@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Pencil,
   Plus,
+  QrCode,
   RefreshCcw,
   Send,
   Trash2,
@@ -23,6 +24,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StaffQrInviteDialog } from "@/components/staff/staff-qr-invite-dialog";
 import {
   StaffAddEmployeeDialog,
   StaffAddPeriodDialog,
@@ -139,6 +141,7 @@ export function StaffPageClient(props: StaffPageProps) {
     | { kind: "delete-blocked"; employee: StaffEmployee }
     | { kind: "iiko" }
     | { kind: "instruction" }
+    | { kind: "qr-invite" }
     | {
         kind: "add-period";
         periodKind: "vacation" | "sick_leave" | "dismissal";
@@ -498,14 +501,24 @@ export function StaffPageClient(props: StaffPageProps) {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setDlg({ kind: "instruction" })}
-              className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-colors hover:bg-white/10"
-            >
-              <BookOpen className="size-4" />
-              Инструкция
-            </button>
+            <div className="flex flex-wrap gap-2 self-start">
+              <button
+                type="button"
+                onClick={() => setDlg({ kind: "qr-invite" })}
+                className="inline-flex items-center gap-2 rounded-full bg-[#5566f6] px-3 py-1.5 text-[12px] font-medium uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_-12px_rgba(85,102,246,0.85)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                <QrCode className="size-4" />
+                Пригласить по QR
+              </button>
+              <button
+                type="button"
+                onClick={() => setDlg({ kind: "instruction" })}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-colors hover:bg-white/10"
+              >
+                <BookOpen className="size-4" />
+                Инструкция
+              </button>
+            </div>
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -816,6 +829,13 @@ export function StaffPageClient(props: StaffPageProps) {
             setDlg(null);
             startTransition(() => router.refresh());
           }}
+        />
+      ) : null}
+      {dlg?.kind === "qr-invite" ? (
+        <StaffQrInviteDialog
+          positions={props.positions}
+          open
+          onClose={() => setDlg(null)}
         />
       ) : null}
       {dlg?.kind === "edit-employee" ? (
