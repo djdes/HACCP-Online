@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   TasksFlowError,
+  normalizeRussianPhone,
   tasksflowClientFor,
 } from "@/lib/tasksflow-client";
 import { syncTasksflowUsers } from "@/lib/tasksflow-user-sync";
@@ -149,10 +152,114 @@ export async function POST() {
     );
   }
 
+  // Reverse sync (P1#4): TF → WeSetup. Когда manager в TF добавляет
+  // сотрудника, он не появляется в WeSetup автоматически — раньше нужно
+  // было руками заводить. Теперь после прямой синхронизации идём
+  // вторым проходом: для каждого TF-юзера без WeSetup-связи создаём
+  // pending User (isActive=false, синтетический email tf-{id}@invited.local,
+  // случайный пароль) + linking row.
+  //
+  // Pending user может авторизоваться только после того как owner
+  // активирует их в /settings/users (включит isActive + сменит email
+  // на настоящий и пароль через "сбросить пароль").
+  //
+  // Не трогаем TF-админов: создавать в WeSetup отдельную учётку для
+  // совладельца — overengineering. Owner/admin в TF — это обычно тот
+  // же человек, что owner в WeSetup; ему не нужна вторая учётка.
+  const wesetupUserIdsLinked = new Set(
+    existingLinks.map((l) => l.wesetupUserId),
+  );
+  const wesetupPhonesLinked = new Set(
+    rawUsers
+      .filter((u) => wesetupUserIdsLinked.has(u.id))
+      .map((u) => normalizeRussianPhone(u.phone || ""))
+      .filter((p): p is string => Boolean(p)),
+  );
+  const wesetupPhonesAll = new Set(
+    rawUsers
+      .map((u) => normalizeRussianPhone(u.phone || ""))
+      .filter((p): p is string => Boolean(p)),
+  );
+  const orphanTfUsers = remoteUsers.filter((tf) => {
+    if (tf.isAdmin) return false;
+    const phone = normalizeRussianPhone(tf.phone || "");
+    if (!phone) return false;
+    if (wesetupPhonesAll.has(phone)) return false;
+    if (wesetupPhonesLinked.has(phone)) return false;
+    return true;
+  });
+
+  const importedFromTasksflow: Array<{
+    tasksflowUserId: number;
+    name: string | null;
+    phone: string;
+    wesetupUserId: string;
+  }> = [];
+  const importFailures: Array<{
+    tasksflowUserId: number;
+    phone: string;
+    message: string;
+  }> = [];
+
+  for (const tf of orphanTfUsers) {
+    const phone = normalizeRussianPhone(tf.phone || "");
+    if (!phone) continue;
+    try {
+      const synthEmail = `tf-${tf.id}@invited.local`;
+      const passwordHash = await bcrypt.hash(
+        randomBytes(32).toString("hex"),
+        10,
+      );
+      const created = await db.user.create({
+        data: {
+          email: synthEmail,
+          name: tf.name?.trim() || `TF #${tf.id}`,
+          phone,
+          passwordHash,
+          role: "cook",
+          organizationId: orgId,
+          isActive: false,
+        },
+        select: { id: true, name: true },
+      });
+      await db.tasksFlowUserLink.create({
+        data: {
+          integrationId: integration.id,
+          wesetupUserId: created.id,
+          phone,
+          tasksflowUserId: tf.id,
+          tasksflowWorkerId: tf.id,
+          source: "auto",
+        },
+      });
+      importedFromTasksflow.push({
+        tasksflowUserId: tf.id,
+        name: created.name,
+        phone,
+        wesetupUserId: created.id,
+      });
+    } catch (err) {
+      importFailures.push({
+        tasksflowUserId: tf.id,
+        phone,
+        message: err instanceof Error ? err.message : "unknown",
+      });
+    }
+  }
+
   await db.tasksFlowIntegration.update({
     where: { id: integration.id },
     data: { lastSyncAt: new Date() },
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({
+    ...result,
+    reverseSync: {
+      imported: importedFromTasksflow.length,
+      failures: importFailures,
+      ...(importedFromTasksflow.length > 0
+        ? { details: importedFromTasksflow }
+        : {}),
+    },
+  });
 }
