@@ -1341,9 +1341,12 @@ function drawCleaningPdf(doc: jsPDF, params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: any;
   entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
+  /** roomId → имя помещения (для rooms-mode). */
+  roomNamesById?: Record<string, string>;
+  /** userId → инициалы (для rooms-mode, инициалы cleaner-а / контролёра). */
+  userInitialsById?: Record<string, string>;
 }) {
   const config = normalizeCleaningDocumentConfig(params.config);
-  void params.entries;
 
   const dateKeys = buildDateKeys(params.dateFrom, params.dateTo);
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -1371,41 +1374,142 @@ function drawCleaningPdf(doc: jsPDF, params: {
   doc.setFontSize(12);
   doc.text(journalTitle.toUpperCase(), pageWidth / 2, 54, { align: "center" });
 
-  const matrixRows: RowInput[] = [
-    ...config.rooms.map((room) => [
+  const isRoomsMode =
+    config.cleaningMode === "rooms" &&
+    !!params.roomNamesById &&
+    !!params.userInitialsById;
+
+  // Helper для rooms-mode: ищем cleaning_room entry по (roomId, dateKey)
+  // и возвращаем инициалы cleaner-а или "" если ещё не убирался.
+  function roomsModeCellValue(roomId: string, dateKey: string): string {
+    if (!params.userInitialsById) return "";
+    for (const e of params.entries) {
+      const d = e.data as Record<string, unknown> | undefined;
+      if (
+        d?.kind === "cleaning_room" &&
+        d?.roomId === roomId &&
+        d?.dateKey === dateKey
+      ) {
+        return (
+          params.userInitialsById[String(d.cleanerUserId ?? "")] ?? ""
+        );
+      }
+    }
+    return "";
+  }
+  function roomsModeControllerCellValue(
+    roomId: string,
+    dateKey: string
+  ): string {
+    if (!params.userInitialsById) return "";
+    for (const e of params.entries) {
+      const d = e.data as Record<string, unknown> | undefined;
+      if (
+        d?.kind === "cleaning_room" &&
+        d?.roomId === roomId &&
+        d?.dateKey === dateKey &&
+        d?.controllerUserId
+      ) {
+        return (
+          params.userInitialsById[String(d.controllerUserId ?? "")] ?? ""
+        );
+      }
+    }
+    return "";
+  }
+
+  const matrixRows: RowInput[] = isRoomsMode
+    ? buildRoomsModeMatrixRows()
+    : [
+        ...config.rooms.map((room) => [
+          {
+            content: room.name,
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          {
+            content: room.detergent || "—",
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          ...dateKeys.map((dateKey) =>
+            centerCell(config.matrix[room.id]?.[dateKey] || "")
+          ),
+        ]),
+        ...config.cleaningResponsibles.map((responsible) => [
+          {
+            content: "Ответственный за уборку",
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          {
+            content: `${responsible.code} - ${responsible.userName || "—"}`,
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          ...dateKeys.map((dateKey) =>
+            centerCell(config.matrix[responsible.id]?.[dateKey] || "")
+          ),
+        ]),
+        ...config.controlResponsibles.map((responsible) => [
+          {
+            content: "Ответственный за контроль",
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          {
+            content: `${responsible.code} - ${responsible.userName || "—"}`,
+            styles: { halign: "center" as const, valign: "middle" as const },
+          },
+          ...dateKeys.map((dateKey) =>
+            centerCell(config.matrix[responsible.id]?.[dateKey] || "")
+          ),
+        ]),
+      ];
+
+  function buildRoomsModeMatrixRows(): RowInput[] {
+    const selectedRoomIds = (config.selectedRoomIds ?? []) as string[];
+    if (selectedRoomIds.length === 0) return [];
+    const detergentByRoom = new Map<string, string>();
+    config.rooms.forEach((r) => detergentByRoom.set(r.id, r.detergent || ""));
+    const namesMap = params.roomNamesById ?? {};
+
+    const roomRows: RowInput[] = selectedRoomIds.map((roomId) => [
       {
-        content: room.name,
+        content: namesMap[roomId] ?? "Помещение",
         styles: { halign: "center" as const, valign: "middle" as const },
       },
       {
-        content: room.detergent || "—",
+        content: detergentByRoom.get(roomId) || "—",
         styles: { halign: "center" as const, valign: "middle" as const },
       },
-      ...dateKeys.map((dateKey) => centerCell(config.matrix[room.id]?.[dateKey] || "")),
-    ]),
-    ...config.cleaningResponsibles.map((responsible) => [
-      {
-        content: "Ответственный за уборку",
-        styles: { halign: "center" as const, valign: "middle" as const },
-      },
-      {
-        content: `${responsible.code} - ${responsible.userName || "—"}`,
-        styles: { halign: "center" as const, valign: "middle" as const },
-      },
-      ...dateKeys.map((dateKey) => centerCell(config.matrix[responsible.id]?.[dateKey] || "")),
-    ]),
-    ...config.controlResponsibles.map((responsible) => [
+      ...dateKeys.map((dateKey) =>
+        centerCell(roomsModeCellValue(roomId, dateKey))
+      ),
+    ]);
+
+    // Контрольная строка — одна на все помещения, с инициалами
+    // controller-а в каждой ячейке где он подписался.
+    const ctrlInitials = config.controlUserId
+      ? params.userInitialsById?.[config.controlUserId] ?? ""
+      : "";
+    const controlRow: RowInput = [
       {
         content: "Ответственный за контроль",
         styles: { halign: "center" as const, valign: "middle" as const },
       },
       {
-        content: `${responsible.code} - ${responsible.userName || "—"}`,
+        content: ctrlInitials || "—",
         styles: { halign: "center" as const, valign: "middle" as const },
       },
-      ...dateKeys.map((dateKey) => centerCell(config.matrix[responsible.id]?.[dateKey] || "")),
-    ]),
-  ];
+      ...dateKeys.map((dateKey) => {
+        // Ставим инициалы, если хотя бы одно помещение за этот день
+        // подписано контролёром.
+        for (const roomId of selectedRoomIds) {
+          if (roomsModeControllerCellValue(roomId, dateKey)) {
+            return centerCell(ctrlInitials);
+          }
+        }
+        return centerCell("");
+      }),
+    ];
+    return [...roomRows, controlRow];
+  }
 
   if (matrixRows.length === 0) {
     matrixRows.push([
@@ -4811,12 +4915,33 @@ export async function generateJournalDocumentPdf(params: {
       })),
     });
   } else if (templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    // Для rooms-mode подгружаем имена помещений и инициалы юзеров.
+    // В pairs-mode params не используются — pdf рендерится по старой
+    // логике из config.rooms / config.controlResponsibles.
+    const cleaningRoomNamesById: Record<string, string> = {};
+    const cleaningUserInitialsById: Record<string, string> = {};
+    if (cleaningConfig?.cleaningMode === "rooms") {
+      const orgRooms = await db.room.findMany({
+        where: { building: { organizationId: document.organizationId } },
+        select: { id: true, name: true },
+      });
+      for (const r of orgRooms) cleaningRoomNamesById[r.id] = r.name;
+      for (const u of users) {
+        const parts = (u.name ?? "").trim().split(/\s+/);
+        cleaningUserInitialsById[u.id] = parts
+          .map((p) => p[0]?.toUpperCase() ?? "")
+          .slice(0, 3)
+          .join("");
+      }
+    }
     drawCleaningPdf(doc, {
       organizationName,
       title: document.title || getCleaningDocumentTitle(),
       dateFrom: document.dateFrom,
       dateTo: document.dateTo,
       config: cleaningConfig,
+      roomNamesById: cleaningRoomNamesById,
+      userInitialsById: cleaningUserInitialsById,
       entries: document.entries.map((entry) => ({
         employeeId: entry.employeeId,
         date: entry.date,
