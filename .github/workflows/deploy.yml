@@ -164,23 +164,31 @@ jobs:
             # ребилдим один раз с чистой папкой; если опять не помогло —
             # фейлим деплой явно, чтобы PM2 не подхватил битый build.
             #
-            # Проверяем И общее количество, И конкретно `_not-found`
-            # manifest — у Next.js 16 был случай (build ea9bb4b)
-            # когда manifest-ов было 199, но именно `_not-found` отсутствовал,
-            # и каждый 404 на проде выкидывал InvariantError → React не
-            # рендерился. Так что проверяем точечно самый критичный.
+            # Per-route check: для КАЖДОГО page.js должен лежать рядом
+            # page_client-reference-manifest.js. Это ловит и случай
+            # «manifest-ов мало вообще», и «manifest-ов много, но для
+            # конкретного route отсутствует» — последний крашил
+            # /root/organizations/[id], /mini и пр. с InvariantError.
             verify_manifests() {
+              local missing=0
+              local missing_list=""
+              while IFS= read -r page_js; do
+                [ -z "$page_js" ] && continue
+                local dir
+                dir=$(dirname "$page_js")
+                if [ ! -f "$dir/page_client-reference-manifest.js" ]; then
+                  missing=$((missing+1))
+                  missing_list="$missing_list ${dir#.next/server/app/}"
+                fi
+              done < <(find .next/server/app -name 'page.js' 2>/dev/null)
+              if [ "$missing" -gt "0" ]; then
+                echo "[fail] $missing routes без client-reference-manifest:"
+                for r in $missing_list; do echo "  - $r"; done
+                return 1
+              fi
               local total
               total=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
-              if [ "$total" -lt "5" ]; then
-                echo "[fail] only $total manifests"
-                return 1
-              fi
-              if [ ! -f .next/server/app/_not-found/page_client-reference-manifest.js ]; then
-                echo "[fail] _not-found/page_client-reference-manifest.js missing"
-                return 1
-              fi
-              echo "[ok] $total manifests + _not-found present"
+              echo "[ok] все page-routes имеют manifest ($total всего)"
               return 0
             }
 
