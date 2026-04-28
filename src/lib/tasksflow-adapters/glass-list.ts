@@ -117,7 +117,13 @@ export const glassListAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as GlassListConfig;
+    // Защита от пустого doc.config — без `?? {}` `.rows.map` / `.some`
+    // падают с null.
+    const rawConfig = (doc.config ?? {}) as Partial<GlassListConfig>;
+    const currentConfig: GlassListConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+    } as GlassListConfig;
     const glassItemId = rowKey.startsWith("glass-") ? rowKey.slice(6) : undefined;
 
     const nextRows = currentConfig.rows.map((row) => {

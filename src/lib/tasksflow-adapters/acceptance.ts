@@ -105,7 +105,13 @@ function makeAdapter(templateCode: string, label: string, description: string, i
       });
       if (!doc || !TEMPLATE_CODES.includes(doc.template.code)) return false;
 
-      const currentConfig = doc.config as AcceptanceDocumentConfig;
+      // Защита от пустого doc.config — без `?? {}` `currentConfig.rows`
+      // падает с «Cannot read properties of null».
+      const rawConfig = (doc.config ?? {}) as Partial<AcceptanceDocumentConfig>;
+      const currentConfig: AcceptanceDocumentConfig = {
+        ...rawConfig,
+        rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      } as AcceptanceDocumentConfig;
       const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
       const newRow: AcceptanceRow = createAcceptanceRow({
@@ -123,7 +129,7 @@ function makeAdapter(templateCode: string, label: string, description: string, i
         responsibleUserId: employeeId,
       });
 
-      const nextConfig: AcceptanceDocumentConfig = { ...currentConfig, rows: [...(currentConfig.rows ?? []), newRow] };
+      const nextConfig: AcceptanceDocumentConfig = { ...currentConfig, rows: [...currentConfig.rows, newRow] };
       await db.journalDocument.update({ where: { id: documentId }, data: { config: nextConfig } });
       return true;
     },

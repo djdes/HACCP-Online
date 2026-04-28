@@ -108,7 +108,13 @@ export const staffTrainingAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as StaffTrainingConfig;
+    // Защита от пустого doc.config — без `?? {}` `currentConfig.rows`
+    // падает с «Cannot read properties of null».
+    const rawConfig = (doc.config ?? {}) as Partial<StaffTrainingConfig>;
+    const currentConfig: StaffTrainingConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+    } as StaffTrainingConfig;
     const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: StaffTrainingRow = createStaffTrainingRow({
@@ -123,7 +129,7 @@ export const staffTrainingAdapter: JournalAdapter = {
       unscheduledReason: typeof values?.unscheduledReason === "string" ? values.unscheduledReason : "",
     });
 
-    const nextConfig: StaffTrainingConfig = { ...currentConfig, rows: [...(currentConfig.rows ?? []), newRow] };
+    const nextConfig: StaffTrainingConfig = { ...currentConfig, rows: [...currentConfig.rows, newRow] };
     await db.journalDocument.update({ where: { id: documentId }, data: { config: nextConfig } });
     return true;
   },

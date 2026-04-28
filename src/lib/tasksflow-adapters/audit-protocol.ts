@@ -107,7 +107,15 @@ export const auditProtocolAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as AuditProtocolConfig;
+    // Защита от пустого doc.config — `as` не проверяет рантайм, и без
+    // `?? {}` `.rows.map` падает с «Cannot read properties of null».
+    const rawConfig = (doc.config ?? {}) as Partial<AuditProtocolConfig>;
+    const currentConfig: AuditProtocolConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      sections: Array.isArray(rawConfig.sections) ? rawConfig.sections : [],
+      signatures: Array.isArray(rawConfig.signatures) ? rawConfig.signatures : [],
+    } as AuditProtocolConfig;
     const nextRows = currentConfig.rows.map((row: AuditProtocolRow) => {
       if (row.id !== rowId) return row;
       return {

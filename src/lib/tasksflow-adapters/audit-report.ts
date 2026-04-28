@@ -104,7 +104,13 @@ export const auditReportAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as AuditReportConfig;
+    // Защита от пустого doc.config — `as` не проверяет рантайм, и без
+    // `?? {}` spread `[...currentConfig.findings]` падает с null.
+    const rawConfig = (doc.config ?? {}) as Partial<AuditReportConfig>;
+    const currentConfig: AuditReportConfig = {
+      ...rawConfig,
+      findings: Array.isArray(rawConfig.findings) ? rawConfig.findings : [],
+    } as AuditReportConfig;
 
     const newFinding: AuditReportFinding = createAuditReportFinding({
       nonConformity: typeof values?.nonConformity === "string" ? values.nonConformity : "",
@@ -115,7 +121,7 @@ export const auditReportAdapter: JournalAdapter = {
       dueDatePlan: typeof values?.dueDatePlan === "string" ? values.dueDatePlan : new Date().toISOString().slice(0, 10),
     });
 
-    const nextConfig: AuditReportConfig = { ...currentConfig, findings: [...(currentConfig.findings ?? []), newFinding] };
+    const nextConfig: AuditReportConfig = { ...currentConfig, findings: [...currentConfig.findings, newFinding] };
     await db.journalDocument.update({ where: { id: documentId }, data: { config: nextConfig } });
     return true;
   },

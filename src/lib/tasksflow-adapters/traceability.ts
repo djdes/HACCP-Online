@@ -122,7 +122,21 @@ export const traceabilityAdapter: JournalAdapter = {
       select: { config: true },
     });
     if (!doc) return null;
-    const config = doc.config as TraceabilityDocumentConfig;
+    // Защита от пустого doc.config — buildForm читает .rawMaterialList /
+    // .productList / .showShockTempField, и без `?? {}` падает с null.
+    const rawConfig = (doc.config ?? {}) as Partial<TraceabilityDocumentConfig>;
+    const config: TraceabilityDocumentConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      rawMaterialList: Array.isArray(rawConfig.rawMaterialList)
+        ? rawConfig.rawMaterialList
+        : [],
+      productList: Array.isArray(rawConfig.productList)
+        ? rawConfig.productList
+        : [],
+      defaultResponsibleRole:
+        rawConfig.defaultResponsibleRole ?? "Сотрудник",
+    } as TraceabilityDocumentConfig;
     return buildForm(config);
   },
 

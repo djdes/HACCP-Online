@@ -107,7 +107,12 @@ export const equipmentCalibrationAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as EquipmentCalibrationConfig;
+    // Защита от пустого doc.config — без `?? {}` `.rows.map` падает с null.
+    const rawConfig = (doc.config ?? {}) as Partial<EquipmentCalibrationConfig>;
+    const currentConfig: EquipmentCalibrationConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+    } as EquipmentCalibrationConfig;
     const nextRows = currentConfig.rows.map((row: CalibrationRow) => {
       if (row.id !== rowId) return row;
       return {

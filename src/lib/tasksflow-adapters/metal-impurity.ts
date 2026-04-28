@@ -112,7 +112,16 @@ export const metalImpurityAdapter: JournalAdapter = {
       select: { config: true },
     });
     if (!doc) return null;
-    const config = doc.config as MetalImpurityDocumentConfig;
+    // Защита от пустого doc.config — buildForm читает .materials/.suppliers,
+    // и без `?? {}` падает с «Cannot read properties of null».
+    const rawConfig = (doc.config ?? {}) as Partial<MetalImpurityDocumentConfig>;
+    const config: MetalImpurityDocumentConfig = {
+      ...rawConfig,
+      materials: Array.isArray(rawConfig.materials) ? rawConfig.materials : [],
+      suppliers: Array.isArray(rawConfig.suppliers) ? rawConfig.suppliers : [],
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      responsiblePosition: rawConfig.responsiblePosition ?? "Сотрудник",
+    } as MetalImpurityDocumentConfig;
     return buildForm(config);
   },
 

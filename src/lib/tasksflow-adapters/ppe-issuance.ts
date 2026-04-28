@@ -114,7 +114,13 @@ export const ppeIssuanceAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as PpeIssuanceConfig;
+    // Защита от пустого doc.config — без `?? {}` `[...currentConfig.rows]`
+    // падает с null.
+    const rawConfig = (doc.config ?? {}) as Partial<PpeIssuanceConfig>;
+    const currentConfig: PpeIssuanceConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+    } as PpeIssuanceConfig;
     const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: PpeIssuanceRow = createPpeIssuanceRow({

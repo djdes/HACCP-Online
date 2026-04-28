@@ -111,7 +111,14 @@ export const auditPlanAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as AuditPlanConfig;
+    // Защита от пустого doc.config — `as` не проверяет рантайм, и без
+    // `?? {}` `.rows.map` / `.columns[0]` падают с null.
+    const rawConfig = (doc.config ?? {}) as Partial<AuditPlanConfig>;
+    const currentConfig: AuditPlanConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      columns: Array.isArray(rawConfig.columns) ? rawConfig.columns : [],
+    } as AuditPlanConfig;
     const nextRows = currentConfig.rows.map((row: AuditPlanRow) => {
       if (row.id !== rowId) return row;
       const comment = typeof values?.comment === "string" ? values.comment : "";

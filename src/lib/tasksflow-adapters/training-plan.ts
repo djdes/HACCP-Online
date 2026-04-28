@@ -68,15 +68,17 @@ export const trainingPlanAdapter: JournalAdapter = {
       orderBy: { dateFrom: "desc" },
     });
     return docs.map<AdapterDocument>((doc) => {
-      const config = doc.config as TrainingPlanConfig;
+      // Защита от пустого doc.config — `as` не проверяет рантайм, и без
+      // `?.` итерация по `config.rows ?? []` падает с null.
+      const config = (doc.config ?? {}) as Partial<TrainingPlanConfig>;
       const cfgWithResp = config as unknown as {
         responsibleEmployeeId?: string | null;
       };
       const docResp =
         cfgWithResp?.responsibleEmployeeId ?? doc.responsibleUserId ?? null;
       const rows: AdapterRow[] = [];
-      for (const position of config.rows ?? []) {
-        for (const topic of config.topics ?? []) {
+      for (const position of config?.rows ?? []) {
+        for (const topic of config?.topics ?? []) {
           const cell = position.cells?.[topic.id];
           rows.push({
             rowKey: `position-${position.id}-topic-${topic.id}`,
@@ -115,7 +117,13 @@ export const trainingPlanAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
-    const currentConfig = doc.config as TrainingPlanConfig;
+    // Защита от пустого doc.config — без guard `.rows.map` падает с null.
+    const rawConfig = (doc.config ?? {}) as Partial<TrainingPlanConfig>;
+    const currentConfig: TrainingPlanConfig = {
+      ...rawConfig,
+      rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
+      topics: Array.isArray(rawConfig.topics) ? rawConfig.topics : [],
+    } as TrainingPlanConfig;
     const nextRows = currentConfig.rows.map((pos: TrainingPositionRow) => {
       if (pos.id !== positionId) return pos;
       return {
