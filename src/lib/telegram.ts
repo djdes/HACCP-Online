@@ -191,6 +191,44 @@ function extractRetryAfterSeconds(error: unknown): number | null {
   return Math.min(ra, RETRY_HARD_CAP_SECONDS);
 }
 
+function extractErrorCode(error: unknown): number | null {
+  if (!error || typeof error !== "object") return null;
+  const candidate = error as GrammyRetryError;
+  return typeof candidate.error_code === "number" ? candidate.error_code : null;
+}
+
+/**
+ * Structured-log helper для observability. PM2 / journalctl / Loki легко
+ * фильтрует по тегу `tag=tg-send` и парсит JSON, в отличие от free-form
+ * `console.error`. Расширение TelegramLog в БД (latencyMs, retryCount,
+ * errorCode отдельные колонки) требует schema migration, поэтому пока
+ * структурируем только лог-выход — этого достаточно для диагностики
+ * 429/5xx без cross-thread coordination.
+ */
+function logTelegramSend(payload: {
+  level: "info" | "warn" | "error";
+  outcome: "sent" | "rate_limited" | "failed";
+  logId: string;
+  attempts: number;
+  latencyMs: number;
+  errorCode: number | null;
+  errorMessage: string | null;
+}): void {
+  const fn =
+    payload.level === "error"
+      ? console.error
+      : payload.level === "warn"
+        ? console.warn
+        : console.log;
+  fn(
+    JSON.stringify({
+      tag: "tg-send",
+      ts: new Date().toISOString(),
+      ...payload,
+    })
+  );
+}
+
 /**
  * Execute a Telegram API send with retry logic and log update.
  * DRY helper used by sendTelegramMessage, notifyEmployee, etc.
@@ -203,6 +241,7 @@ async function executeTelegramSend(
   const { db } = await import("./db");
   let attempt = 0;
   let lastError: unknown = null;
+  const startedAt = Date.now();
 
   while (attempt < MAX_RETRIES) {
     attempt += 1;
@@ -211,6 +250,15 @@ async function executeTelegramSend(
       await db.telegramLog.update({
         where: { id: logId },
         data: { status: "sent", attempts: attempt, sentAt: new Date() },
+      });
+      logTelegramSend({
+        level: "info",
+        outcome: "sent",
+        logId,
+        attempts: attempt,
+        latencyMs: Date.now() - startedAt,
+        errorCode: null,
+        errorMessage: null,
       });
       return;
     } catch (error) {
@@ -235,6 +283,15 @@ async function executeTelegramSend(
       error: errorText?.slice(0, 500) ?? "unknown",
       attempts: attempt,
     },
+  });
+  logTelegramSend({
+    level: "error",
+    outcome: rateLimited ? "rate_limited" : "failed",
+    logId,
+    attempts: attempt,
+    latencyMs: Date.now() - startedAt,
+    errorCode: extractErrorCode(lastError),
+    errorMessage: errorText?.slice(0, 300) ?? null,
   });
   console.error(`${errorLabel}:`, lastError);
 }
