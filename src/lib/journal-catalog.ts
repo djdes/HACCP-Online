@@ -3,6 +3,34 @@ export type JournalTariffId = "basic" | "extended";
 export interface JournalCatalogItem {
   code: string;
   name: string;
+  /**
+   * Если задано — этот журнал считается «слитым» в другой (caller'ы UI
+   * могут скрыть его из списка и редиректить на канонический). По
+   * стандарту ХАССП так нельзя удалить запись из БД (compliance), но
+   * показывать пользователю две дубликатные позиции — путаница. Сейчас
+   * объединены:
+   *   • health_check → hygiene  (журналы здоровья и гигиены — на
+   *     практике один и тот же набор сотрудников × дней)
+   *   • incoming_raw_materials_control → incoming_control (один и
+   *     тот же приёмочный flow по продуктам)
+   */
+  mergedInto?: string;
+}
+
+/** Журналы которые «слиты» в другие — показывать в каноническом UI. */
+export const MERGED_JOURNAL_CODES: Record<string, string> = {
+  health_check: "hygiene",
+  incoming_raw_materials_control: "incoming_control",
+};
+
+/** Канонический код журнала: если он merged — возвращаем основной. */
+export function getCanonicalJournalCode(code: string): string {
+  return MERGED_JOURNAL_CODES[code] ?? code;
+}
+
+/** Скрытые из списка для UI журналы (те у кого есть mergedInto). */
+export function isMergedJournalCode(code: string): boolean {
+  return code in MERGED_JOURNAL_CODES;
 }
 
 export interface JournalTariffDefinition {

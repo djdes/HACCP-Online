@@ -1,5 +1,9 @@
 import type React from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import {
+  getCanonicalJournalCode,
+  isMergedJournalCode,
+} from "@/lib/journal-catalog";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
@@ -1290,6 +1294,11 @@ export default async function JournalDocumentsPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { code } = await params;
+  // Merged journals (health_check → hygiene и т.п.) — редирект на
+  // канонический. Старые ссылки в почте/телеграме продолжают работать.
+  if (isMergedJournalCode(code)) {
+    redirect(`/journals/${getCanonicalJournalCode(code)}`);
+  }
   const resolvedCode = resolveJournalCodeAlias(code);
   const { tab } = await searchParams;
   const session = await requireAuth();
