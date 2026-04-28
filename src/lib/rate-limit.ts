@@ -74,3 +74,18 @@ export const loginRateLimiter = createRateLimiter({
   tokensPerInterval: 5,
   intervalMs: 5 * 60 * 1000,
 });
+
+/**
+ * Защита от flood'а Telegram-webhook'а. Telegram retry'ит неудачные
+ * webhook'и агрессивно (до ~24h, экспоненциально), и если бот случайно
+ * упал и ответил 5xx, мы можем получить тысячи retry'ев в минуту.
+ * Также защищает от атак: кто-то узнал URL webhook'а и DDOS'ит.
+ *
+ * 60 запросов в минуту с одного source-IP — достаточно для нормального
+ * Telegram ingestion (даже у активной организации update rate < 10/sec),
+ * но обрезает любой flood.
+ */
+export const telegramWebhookRateLimiter = createRateLimiter({
+  tokensPerInterval: 60,
+  intervalMs: 60_000,
+});

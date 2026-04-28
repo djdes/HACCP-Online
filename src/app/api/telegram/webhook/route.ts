@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ensureBotInit, getInboundBot } from "@/lib/bot/bot-app";
+import { telegramWebhookRateLimiter } from "@/lib/rate-limit";
 
 /**
  * Telegram pushes updates to this endpoint.
@@ -28,6 +29,22 @@ export async function POST(req: NextRequest) {
   const provided = req.headers.get("x-telegram-bot-api-secret-token");
   if (provided !== secret) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate-limit. Ключ — source-IP из X-Forwarded-For (под Nginx) или
+  // CF-Connecting-IP (под Cloudflare); fallback "unknown" объединяет
+  // запросы без явного IP в один bucket — это намеренно, чтобы
+  // прокси-misconfig не давал злоумышленнику безлимитный канал.
+  const ipKey =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  if (!telegramWebhookRateLimiter.consume(ipKey)) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
   }
 
   const bot = getInboundBot();
