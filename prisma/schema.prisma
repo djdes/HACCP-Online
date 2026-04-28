@@ -118,6 +118,44 @@ model Organization {
   journalCloseEvents       JournalCloseEvent[]
   formFillTimings          FormFillTiming[]
   employeeJoinTokens       EmployeeJoinToken[]
+  buildings                Building[]
+}
+
+/// Корпус/точка бизнеса организации. У сети может быть несколько
+/// зданий («Кухня № 1», «Цех на Ленина», «Бар у моря»). Каждое
+/// здание содержит набор Room — это и есть «помещения», по которым
+/// строятся журналы уборки и аналогичные. Settings: /settings/buildings.
+model Building {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  address        String?
+  sortOrder      Int          @default(0)
+  rooms          Room[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, sortOrder])
+}
+
+/// Помещение в здании. Используется как row в матрице журнала
+/// уборки: «Гостевая зона», «Мойка», «Горячий цех», «Бар». Имя —
+/// свободный текст; `kind` — слабая типизация для иконок и pre-fill
+/// (guest/kitchen/wash/bar/storage/other).
+model Room {
+  id         String   @id @default(cuid())
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  name       String
+  kind       String   @default("other")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([buildingId, name])
+  @@index([buildingId, sortOrder])
 }
 
 /// QR-код самостоятельной регистрации сотрудника. Админ нажимает «По
