@@ -120,6 +120,22 @@ export type CleaningDocumentConfig = {
   cleaningResponsibles: CleaningResponsible[];
   controlResponsibles: CleaningResponsible[];
   marks: CleaningMatrixMap;
+  /// Режим раздачи задач:
+  ///   "pairs"  — старый: 1 задача на пару (cleaner+control), на день.
+  ///   "rooms"  — новый: 1 race-задача на каждое помещение в день,
+  ///              которую может закрыть любой из selectedCleanerUserIds.
+  ///              Контролёр получает один agg-таск в конце дня.
+  /// По умолчанию "pairs" — старые документы продолжают работать.
+  cleaningMode?: "pairs" | "rooms";
+  /// IDs зарегистрированных Room (см. /settings/buildings) которые
+  /// участвуют в этом журнале. Используются только при cleaningMode="rooms".
+  selectedRoomIds?: string[];
+  /// IDs User-ов, которые могут забирать задачи на уборку (race).
+  /// Только для cleaningMode="rooms".
+  selectedCleanerUserIds?: string[];
+  /// User-id ответственного за контроль. В rooms-режиме он получает
+  /// одну сводную задачу в конце дня.
+  controlUserId?: string | null;
 };
 
 type UserLike = {
@@ -1004,6 +1020,23 @@ export function normalizeCleaningDocumentConfig(
   if (!hasModernModel && next.responsiblePairs.length === 0) {
     next.responsiblePairs = buildResponsiblePairs(next.cleaningResponsibles, next.controlResponsibles);
   }
+
+  // Rooms-mode (Этап 2). Опциональные поля — без значения старые
+  // документы продолжают работать через responsiblePairs.
+  const modeRaw = record.cleaningMode;
+  next.cleaningMode = modeRaw === "rooms" ? "rooms" : "pairs";
+  next.selectedRoomIds = Array.isArray(record.selectedRoomIds)
+    ? record.selectedRoomIds.filter((x): x is string => typeof x === "string" && x.length > 0)
+    : [];
+  next.selectedCleanerUserIds = Array.isArray(record.selectedCleanerUserIds)
+    ? record.selectedCleanerUserIds.filter(
+        (x): x is string => typeof x === "string" && x.length > 0
+      )
+    : [];
+  next.controlUserId =
+    typeof record.controlUserId === "string" && record.controlUserId.length > 0
+      ? record.controlUserId
+      : null;
 
   return syncCompatibilityFields(next);
 }

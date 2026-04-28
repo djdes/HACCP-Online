@@ -60,6 +60,16 @@ type Props = {
    * touching every render site.
    */
   hasTasksFlowIntegration?: boolean;
+  /**
+   * Зарегистрированные в /settings/buildings корпуса и помещения.
+   * Используется для нового rooms-режима (race-задачи). Старые
+   * caller'ы могут не передавать — режим pairs работает как раньше.
+   */
+  buildings?: Array<{
+    id: string;
+    name: string;
+    rooms: Array<{ id: string; name: string; kind: string }>;
+  }>;
 };
 type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
 type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string; generalScope: string };
@@ -408,6 +418,27 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
+        {!printMode && props.buildings && props.buildings.length > 0 ? (
+          <RoomsModeCard
+            buildings={props.buildings}
+            users={props.users}
+            disabled={props.status !== "active" || saving}
+            cleaningMode={config.cleaningMode ?? "pairs"}
+            selectedRoomIds={config.selectedRoomIds ?? []}
+            selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
+            controlUserId={config.controlUserId ?? null}
+            onSave={async (patch) => {
+              await patchDocument({
+                ...config,
+                cleaningMode: patch.cleaningMode,
+                selectedRoomIds: patch.selectedRoomIds,
+                selectedCleanerUserIds: patch.selectedCleanerUserIds,
+                controlUserId: patch.controlUserId,
+              });
+            }}
+          />
+        ) : null}
+
         {!printMode ? (
           <div role="tablist" aria-label="Режим отображения" className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden">
             <button type="button" role="tab" aria-selected={mobileView === "cards"} onClick={() => switchMobileView("cards")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${mobileView === "cards" ? "bg-[#f5f6ff] text-[#5566f6]" : "text-[#6f7282]"}`}>
@@ -644,5 +675,224 @@ export function CleaningDocumentClient(props: Props) {
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]"><DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
       <ConfirmDialog open={deleteOpen} title="Удалить выбранные строки?" submitLabel="Удалить" onOpenChange={setDeleteOpen} onSubmit={deleteSelectedRows} />
     </>
+  );
+}
+
+/**
+ * Карточка настройки rooms-режима для journal-уборки.
+ * Появляется только если у org заведены здания/помещения в /settings/buildings.
+ *
+ * При cleaningMode="rooms" daily fan-out создаст одну race-задачу на
+ * каждое выбранное помещение (на каждого выбранного уборщика). Кто
+ * первый закроет — забрал. В конце дня контролёр получит сводную
+ * задачу о том что нужно проверить.
+ *
+ * Сейчас (Этап 2a/b) сохраняем только конфиг. Race-логика подключится
+ * в Этапе 2c вместе с расширением cleaning adapter.
+ */
+type RoomsModeCardProps = {
+  buildings: Array<{
+    id: string;
+    name: string;
+    rooms: Array<{ id: string; name: string; kind: string }>;
+  }>;
+  users: UserItem[];
+  disabled: boolean;
+  cleaningMode: "pairs" | "rooms";
+  selectedRoomIds: string[];
+  selectedCleanerUserIds: string[];
+  controlUserId: string | null;
+  onSave: (patch: {
+    cleaningMode: "pairs" | "rooms";
+    selectedRoomIds: string[];
+    selectedCleanerUserIds: string[];
+    controlUserId: string | null;
+  }) => Promise<void>;
+};
+
+function RoomsModeCard(props: RoomsModeCardProps) {
+  const [mode, setMode] = useState<"pairs" | "rooms">(props.cleaningMode);
+  const [rooms, setRooms] = useState<string[]>(props.selectedRoomIds);
+  const [cleaners, setCleaners] = useState<string[]>(
+    props.selectedCleanerUserIds
+  );
+  const [control, setControl] = useState<string | null>(props.controlUserId);
+  const [busy, setBusy] = useState(false);
+
+  function toggleRoom(id: string) {
+    setRooms((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+  function toggleCleaner(id: string) {
+    setCleaners((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      await props.onSave({
+        cleaningMode: mode,
+        selectedRoomIds: rooms,
+        selectedCleanerUserIds: cleaners,
+        controlUserId: control,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Кандидаты на role «cleaner»: позиция «Уборщик» + cook-роль.
+  // Кандидаты на role «control»: management roles.
+  const cleanerCandidates = props.users.filter((u) =>
+    /уборщик|cleaner/i.test(`${u.name} ${u.role}`)
+  );
+  const allStaffCandidates = props.users; // fallback — если фильтр пустой
+  const cleanersList =
+    cleanerCandidates.length > 0 ? cleanerCandidates : allStaffCandidates;
+
+  return (
+    <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#3848c7]">
+            Режим уборки
+          </div>
+          <h3 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+            Race-задачи на помещения
+          </h3>
+          <p className="mt-1 max-w-[640px] text-[13px] leading-[1.55] text-[#6f7282]">
+            Если включить — каждое выбранное помещение в каждый рабочий
+            день станет отдельной задачей. Любой из выбранных уборщиков
+            может её закрыть; кто первый — тот и закрепил за собой
+            (остальные у него исчезают). Контролёр получит одну сводную
+            задачу в конце дня.
+          </p>
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-[13px] font-medium text-[#0b1024]">
+          <input
+            type="checkbox"
+            checked={mode === "rooms"}
+            disabled={props.disabled}
+            onChange={(e) => setMode(e.target.checked ? "rooms" : "pairs")}
+            className="size-4 cursor-pointer accent-[#5566f6]"
+          />
+          Включить
+        </label>
+      </div>
+
+      {mode === "rooms" ? (
+        <div className="space-y-5">
+          {/* Помещения */}
+          <div>
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Помещения, по которым раздавать задачи
+            </div>
+            {props.buildings.map((b) => (
+              <div key={b.id} className="mb-3">
+                <div className="mb-1.5 text-[13px] font-medium text-[#3c4053]">
+                  {b.name}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {b.rooms.length === 0 ? (
+                    <span className="text-[12px] text-[#9b9fb3]">
+                      Нет помещений в этом здании. Заведите в{" "}
+                      <a href="/settings/buildings" className="text-[#5566f6] underline">
+                        /settings/buildings
+                      </a>
+                      .
+                    </span>
+                  ) : (
+                    b.rooms.map((r) => {
+                      const active = rooms.includes(r.id);
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          disabled={props.disabled}
+                          onClick={() => toggleRoom(r.id)}
+                          className={`inline-flex h-9 items-center gap-1.5 rounded-2xl border px-3 text-[13px] font-medium transition-colors ${
+                            active
+                              ? "border-[#5566f6] bg-[#f5f6ff] text-[#3848c7]"
+                              : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/50 hover:bg-[#f5f6ff]"
+                          }`}
+                        >
+                          {r.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Уборщики */}
+          <div>
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Уборщики (race) — кто может забирать задачи
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {cleanersList.map((u) => {
+                const active = cleaners.includes(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    disabled={props.disabled}
+                    onClick={() => toggleCleaner(u.id)}
+                    className={`inline-flex h-9 items-center gap-1.5 rounded-2xl border px-3 text-[13px] font-medium transition-colors ${
+                      active
+                        ? "border-[#5566f6] bg-[#f5f6ff] text-[#3848c7]"
+                        : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/50 hover:bg-[#f5f6ff]"
+                    }`}
+                  >
+                    {u.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Контролёр */}
+          <div>
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Ответственный за контроль
+            </div>
+            <select
+              value={control ?? ""}
+              disabled={props.disabled}
+              onChange={(e) => setControl(e.target.value || null)}
+              className="h-11 w-full max-w-md rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            >
+              <option value="">— выберите —</option>
+              {props.users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[13px] text-[#6f7282]">
+          Выключено — журнал работает в классическом режиме «1 задача на
+          пару уборщик-контролёр в день».
+        </p>
+      )}
+
+      <div className="mt-5 flex justify-end">
+        <button
+          type="button"
+          onClick={save}
+          disabled={props.disabled || busy}
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c8cbe0]"
+        >
+          {busy ? "Сохраняем…" : "Сохранить настройки"}
+        </button>
+      </div>
+    </section>
   );
 }

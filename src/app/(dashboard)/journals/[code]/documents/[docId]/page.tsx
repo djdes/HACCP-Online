@@ -926,6 +926,16 @@ export default async function JournalDocumentPage({
   }
 
   if (document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    const buildings = await db.building.findMany({
+      where: { organizationId: orgId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        rooms: {
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          select: { id: true, name: true, kind: true },
+        },
+      },
+    });
     return (
       <CleaningDocumentClient
         documentId={document.id}
@@ -938,6 +948,11 @@ export default async function JournalDocumentPage({
         status={document.status}
         autoFill={document.autoFill}
         users={enrichedEmployees}
+        buildings={buildings.map((b) => ({
+          id: b.id,
+          name: b.name,
+          rooms: b.rooms.map((r) => ({ id: r.id, name: r.name, kind: r.kind })),
+        }))}
         config={normalizeCleaningDocumentConfig(document.config)}
         initialEntries={document.entries.map((entry) => ({
           id: entry.id,
