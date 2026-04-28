@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatBulkAssignToastMessage } from "@/lib/tasksflow-bulk-assign-toast";
 
 type BulkAssignResult = {
   created: number;
@@ -75,19 +76,7 @@ export function BulkAssignTodayButton({
           );
         }
       } else {
-        const parts: string[] = [];
-        if (result.created > 0) parts.push(`создано: ${result.created}`);
-        if (result.alreadyLinked > 0)
-          parts.push(`уже назначено: ${result.alreadyLinked}`);
-        if (result.skipped > 0)
-          parts.push(`пропущено: ${result.skipped}`);
-        if (result.errors > 0) parts.push(`ошибок: ${result.errors}`);
-        if (result.documentsCreated && result.documentsCreated > 0) {
-          parts.push(
-            `заведено документов: ${result.documentsCreated}`
-          );
-        }
-        toast.success(`Задачи отправлены · ${parts.join(" · ")}`);
+        toast.success(formatBulkAssignToastMessage(result));
       }
       router.refresh();
     } catch (err) {

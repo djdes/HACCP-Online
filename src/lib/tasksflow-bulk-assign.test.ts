@@ -55,7 +55,7 @@ test("selectBulkJournalTemplates skips journals not allowed by hierarchy", () =>
 
 test("single-per-day journals create only one available row", () => {
   const result = selectRowsForBulkAssign({
-    journalCode: "fryer_oil",
+    journalCode: "cleaning",
     rows: [row("u1-row", "u1"), row("u2-row", "u2")],
     takenRowKeys: new Set(),
     onDutyUserIds: new Set(["u1", "u2"]),
@@ -72,7 +72,7 @@ test("single-per-day journals create only one available row", () => {
 
 test("single-per-day journals do not duplicate an existing journal task", () => {
   const result = selectRowsForBulkAssign({
-    journalCode: "fryer_oil",
+    journalCode: "cleaning",
     rows: [row("u1-row", "u1"), row("u2-row", "u2")],
     takenRowKeys: new Set(["u2-row"]),
     onDutyUserIds: new Set(["u1", "u2"]),
@@ -117,7 +117,7 @@ test("per-employee journals skip atomically when a scheduled employee is not lin
 
 test("bulk row selection reports an empty candidate scope as a hierarchy issue", () => {
   const result = selectRowsForBulkAssign({
-    journalCode: "fryer_oil",
+    journalCode: "cleaning",
     rows: [row("u1-row", "u1")],
     takenRowKeys: new Set(),
     onDutyUserIds: new Set(),

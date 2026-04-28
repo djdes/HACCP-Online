@@ -1,0 +1,58 @@
+{
+  "verdict": "PASS",
+  "acceptanceCriteria": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS",
+    "AC5": "PASS"
+  },
+  "commands": [
+    {
+      "command": "npx tsx --test src/lib/tasksflow-bulk-assign-toast.test.ts",
+      "status": "PASS",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/toast-test.txt"
+    },
+    {
+      "command": "npx tsx --test src/lib/tasksflow-bulk-assign.test.ts",
+      "status": "PASS",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/selection-test.txt"
+    },
+    {
+      "command": "npx eslint src/components/dashboard/bulk-assign-today-button.tsx src/lib/tasksflow-bulk-assign-toast.ts src/lib/tasksflow-bulk-assign-toast.test.ts src/lib/tasksflow-bulk-assign.test.ts",
+      "status": "PASS",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/eslint-touched.txt"
+    },
+    {
+      "command": "npx tsx --test src/lib/tasksflow-bulk-assign-toast.test.ts src/lib/tasksflow-bulk-assign.test.ts",
+      "status": "PASS",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/reverify-tests.txt"
+    },
+    {
+      "command": "npx eslint src/components/dashboard/bulk-assign-today-button.tsx src/lib/tasksflow-bulk-assign-toast.ts src/lib/tasksflow-bulk-assign-toast.test.ts src/lib/tasksflow-bulk-assign.test.ts",
+      "status": "PASS",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/reverify-eslint-touched.txt"
+    },
+    {
+      "command": "npm run lint",
+      "status": "TIMEOUT_NON_BLOCKING",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/lint.txt",
+      "note": "Timed out after 120s while linting generated/worktree output under .worktrees/.next."
+    },
+    {
+      "command": "npm run typecheck -- --pretty false",
+      "status": "FAIL_UNRELATED",
+      "raw": ".agent/tasks/tasksflow-bulk-toast-2026-04-28/raw/typecheck.txt",
+      "note": "Existing dirty file src/app/api/root/impersonate/route.ts fails TS2740."
+    }
+  ],
+  "changedFiles": [
+    "src/components/dashboard/bulk-assign-today-button.tsx",
+    "src/lib/tasksflow-bulk-assign-toast.ts",
+    "src/lib/tasksflow-bulk-assign-toast.test.ts",
+    "src/lib/tasksflow-bulk-assign.test.ts",
+    ".agent/tasks/tasksflow-bulk-toast-2026-04-28/spec.md",
+    ".agent/tasks/tasksflow-bulk-toast-2026-04-28/evidence.md",
+    ".agent/tasks/tasksflow-bulk-toast-2026-04-28/evidence.json"
+  ]
+}
