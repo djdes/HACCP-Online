@@ -28,6 +28,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
+import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
@@ -402,6 +403,10 @@ export default async function DashboardPage() {
         ) : null}
 
         <CloseDayCard unfilledCount={unfilledCount} />
+
+        <div className="mt-5">
+          <AnomaliesCard />
+        </div>
 
         {complianceItems.length > 0 && (
           <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
