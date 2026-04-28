@@ -189,28 +189,37 @@ export function SiteThemeProvider({
   // Live-recompute effective theme when mode / auto-schedule / system pref / time changes.
   useEffect(() => {
     function recompute() {
-      const next = computeEffective(mode, autoBySchedule, theme);
-      if (next !== theme) {
-        setThemeState(next);
-        applyThemeToDOM(next);
-        try {
-          window.localStorage.setItem(STORAGE_KEY, next);
-          window.dispatchEvent(
-            new CustomEvent<SiteTheme>(CUSTOM_EVENT, { detail: next })
-          );
-        } catch {
-          /* ignore */
+      // Functional setState — читаем актуальное значение `theme` без него
+      // в deps (иначе цикл: setTheme → useEffect re-run → setTheme).
+      setThemeState((prev) => {
+        const next = computeEffective(mode, autoBySchedule, prev);
+        if (next !== prev) {
+          applyThemeToDOM(next);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, next);
+            window.dispatchEvent(
+              new CustomEvent<SiteTheme>(CUSTOM_EVENT, { detail: next })
+            );
+          } catch {
+            /* ignore */
+          }
+          void persistThemeToServer(next);
         }
-        void persistThemeToServer(next);
-      }
+        return next;
+      });
     }
 
-    // a) System preference change (prefers-color-scheme)
+    // ВАЖНО: пересчитываем сразу при любой смене mode/auto, иначе клик
+    // «Тёмная» в popover'е менял только mode-state, но effective theme
+    // оставался прежним и DOM не обновлялся.
+    recompute();
+
+    // a) System preference change (prefers-color-scheme) — слушаем только
+    //    в режиме `system` без auto-by-schedule.
     let mqlCleanup: (() => void) | null = null;
     if (mode === "system" && !autoBySchedule && typeof window !== "undefined") {
       const mql = window.matchMedia("(prefers-color-scheme: dark)");
       const handler = () => recompute();
-      // Safari < 14 нужен addListener
       if (mql.addEventListener) {
         mql.addEventListener("change", handler);
         mqlCleanup = () => mql.removeEventListener("change", handler);
@@ -220,7 +229,6 @@ export function SiteThemeProvider({
     // b) Auto-by-schedule: проверять каждые 5 минут (час пересёк границу).
     let intervalId: ReturnType<typeof setInterval> | null = null;
     if (autoBySchedule) {
-      recompute(); // immediate apply при включении
       intervalId = setInterval(recompute, 5 * 60 * 1000);
     }
 
@@ -228,7 +236,7 @@ export function SiteThemeProvider({
       if (mqlCleanup) mqlCleanup();
       if (intervalId) clearInterval(intervalId);
     };
-  }, [mode, autoBySchedule, theme]);
+  }, [mode, autoBySchedule]);
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);
