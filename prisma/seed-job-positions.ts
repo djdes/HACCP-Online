@@ -59,28 +59,29 @@ async function main() {
   let totalDefaults = 0;
 
   for (const org of orgs) {
-    // First: always upsert the standard catalogue — ensures existing orgs
-    // pick up new positions added to DEFAULT_JOB_POSITIONS later too.
-    let defaultsSortOrder = 0;
-    for (const { categoryKey, name } of DEFAULT_JOB_POSITIONS) {
-      await prisma.jobPosition.upsert({
-        where: {
-          organizationId_categoryKey_name: {
+    // ВАЖНО: канонический каталог seed-им ТОЛЬКО для пустых org (где
+    // ещё ни одной jobPosition нет). Раньше upsert проходил каждой
+    // org на каждом deploy и наполнял уже-настроенные кафе мусорными
+    // должностями (см. инцидент c «Кухня» 2026-04-28: ROOT создал
+    // 5 custom-должностей, следующий deploy подсыпал ещё 16
+    // канонических — пользователь увидел дубли в /settings/users).
+    const existingCount = await prisma.jobPosition.count({
+      where: { organizationId: org.id },
+    });
+    if (existingCount === 0) {
+      let defaultsSortOrder = 0;
+      for (const { categoryKey, name } of DEFAULT_JOB_POSITIONS) {
+        await prisma.jobPosition.create({
+          data: {
             organizationId: org.id,
             categoryKey,
             name,
+            sortOrder: defaultsSortOrder,
           },
-        },
-        create: {
-          organizationId: org.id,
-          categoryKey,
-          name,
-          sortOrder: defaultsSortOrder,
-        },
-        update: {},
-      });
-      defaultsSortOrder += 1;
-      totalDefaults += 1;
+        });
+        defaultsSortOrder += 1;
+        totalDefaults += 1;
+      }
     }
 
     const users = await prisma.user.findMany({
