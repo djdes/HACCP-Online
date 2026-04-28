@@ -84,29 +84,72 @@ function dayKey(now: Date): string {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!hasFullWorkspaceAccess({ role: session.user.role, isRoot: session.user.isRoot })) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const organizationId = getActiveOrgId(session);
-
-  // `force=true` (из кнопки «Пересоздать все»): удаляем все локальные
-  // TasksFlowTaskLink перед массовым назначением. Это нужно когда юзер
-  // удалил задачи на стороне TasksFlow, а локальные связки остались
-  // (orphan) и блокируют создание новых через alreadyLinked.
-  // Внимание: сами задачи в TF не трогаем — могут остаться как мусор;
-  // UI должен предупредить юзера.
-  let force = false;
+  // Server-to-server trigger: после саморегистрации сотрудника по QR
+  // /api/join/[token] делает internal-fetch сюда чтобы fan-out задач.
+  // У него нет session-cookie, поэтому используем shared secret из env
+  // и organizationId передаётся прямо в body. Секрет НЕ должен попадать
+  // в публичные логи.
+  const internalSecret = request.headers.get("x-internal-trigger");
+  let body: { force?: unknown; organizationId?: unknown } | null = null;
   try {
-    const body = (await request.clone().json().catch(() => null)) as
-      | { force?: unknown }
-      | null;
-    force = body?.force === true;
+    body = (await request.clone().json().catch(() => null)) as typeof body;
   } catch {
-    /* пустое тело — force=false */
+    /* пустое тело — fall through */
+  }
+  const force = body?.force === true;
+  const isInternal =
+    !!internalSecret &&
+    !!process.env.INTERNAL_TRIGGER_SECRET &&
+    internalSecret === process.env.INTERNAL_TRIGGER_SECRET;
+
+  let organizationId: string;
+  let actingUser: { id: string; name: string | null; email: string | null };
+
+  if (isInternal) {
+    if (typeof body?.organizationId !== "string" || !body.organizationId) {
+      return NextResponse.json(
+        { error: "organizationId required for internal trigger" },
+        { status: 400 }
+      );
+    }
+    organizationId = body.organizationId;
+    // В internal-trigger нет session, но getManagerScope, AuditLog и
+    // filterSubordinates ниже требуют acting userId. Подменяем на
+    // первого active management-юзера этой org — он точно видит весь
+    // штат, manager-scope не отсекает (full workspace access).
+    const mgmt = await db.user.findFirst({
+      where: {
+        organizationId,
+        isActive: true,
+        archivedAt: null,
+        role: {
+          in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES),
+        },
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!mgmt) {
+      return NextResponse.json(
+        { error: "Нет management-юзера в org для server-side trigger" },
+        { status: 400 }
+      );
+    }
+    actingUser = mgmt;
+  } else {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!hasFullWorkspaceAccess({ role: session.user.role, isRoot: session.user.isRoot })) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    organizationId = getActiveOrgId(session);
+    actingUser = {
+      id: session.user.id,
+      name: session.user.name ?? null,
+      email: session.user.email ?? null,
+    };
   }
 
   const integration = await db.tasksFlowIntegration.findFirst({
@@ -129,12 +172,12 @@ export async function POST(request: Request) {
     await db.auditLog.create({
       data: {
         organizationId,
-        userId: session.user.id,
-        userName: session.user.name ?? session.user.email ?? null,
+        userId: actingUser.id,
+        userName: actingUser.name ?? actingUser.email ?? null,
         action: "tasksflow.bulk_assign.force_wipe",
         entity: "TasksFlowTaskLink",
         entityId: integration.id,
-        details: { wiped: wiped.count },
+        details: { wiped: wiped.count, internal: isInternal },
       },
     });
   }
@@ -166,7 +209,7 @@ export async function POST(request: Request) {
   const disabledCodes = new Set<string>(
     parseStringArray((org?.disabledJournalCodes ?? []) as unknown)
   );
-  const scope = await getManagerScope(session.user.id, organizationId);
+  const scope = await getManagerScope(actingUser.id, organizationId);
   const now = new Date();
   const filledTemplateIds = await getTemplatesFilledToday(
     organizationId,
@@ -291,7 +334,7 @@ export async function POST(request: Request) {
       tfUserIdByWesetup.set(link.wesetupUserId, link.tasksflowUserId);
     }
   }
-  const scopedUsers = filterSubordinates(activeUsersForScope, scope, session.user.id);
+  const scopedUsers = filterSubordinates(activeUsersForScope, scope, actingUser.id);
   const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
   const scheduledUserIds = new Set(onDutyUsers.map((user) => user.userId));
   const candidateUserIds =

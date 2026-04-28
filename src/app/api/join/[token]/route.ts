@@ -211,29 +211,129 @@ export async function POST(request: Request, ctx: Ctx) {
     return u;
   });
 
-  // Best-effort: попытка sync-up в TasksFlow если интеграция настроена.
-  // Делаем in-fly без блокировки ответа — если упадёт, юзер всё равно
-  // создан, админ сможет вручную нажать «Sync users».
-  void (async () => {
-    try {
-      const integration = await db.tasksFlowIntegration.findUnique({
-        where: { organizationId: r.row.organizationId },
-        select: { id: true, enabled: true },
-      });
-      if (integration?.enabled) {
-        const { syncUsersForIntegration } = await import(
-          "@/lib/tasksflow-sync-users"
-        ).catch(() => ({ syncUsersForIntegration: null as unknown as null }));
-        if (syncUsersForIntegration) {
-          await (syncUsersForIntegration as (id: string) => Promise<unknown>)(
-            integration.id
-          );
-        }
-      }
-    } catch (e) {
-      console.warn("[join] tasksflow auto-sync failed", e);
-    }
-  })();
+  // Auto-onboarding в TasksFlow:
+  //   1. Создаём worker в TF по телефону + ФИО + должности (если
+  //      интеграция enabled). Даже если пользователь уже есть в TF
+  //      по этому номеру — listUsers() при следующем sync найдёт
+  //      совпадение, ошибки «уже есть» проглатываем.
+  //   2. Триггерим bulk-assign-today через server-to-server fetch с
+  //      x-internal-trigger header — назначаем все сегодняшние задачи
+  //      по журналам должности.
+  // Всё in-fly: ответ юзеру не ждёт TF, иначе при медленном TF API
+  // регистрация будет 5-10 секунд "висеть".
+  void autoOnboardToTasksflow({
+    organizationId: r.row.organizationId,
+    wesetupUserId: newUser.id,
+    name: newUser.name,
+    phone,
+    positionName: position.name,
+    request,
+  });
 
   return NextResponse.json({ ok: true, userId: newUser.id, email });
+}
+
+async function autoOnboardToTasksflow(args: {
+  organizationId: string;
+  wesetupUserId: string;
+  name: string;
+  phone: string;
+  positionName: string;
+  request: Request;
+}) {
+  try {
+    const integration = await db.tasksFlowIntegration.findUnique({
+      where: { organizationId: args.organizationId },
+      select: { id: true, baseUrl: true, apiKeyEncrypted: true, enabled: true },
+    });
+    if (!integration || !integration.enabled) return;
+
+    const { tasksflowClientFor, normalizeRussianPhone, TasksFlowError } =
+      await import("@/lib/tasksflow-client");
+    const client = tasksflowClientFor(integration);
+    const normalized = normalizeRussianPhone(args.phone) ?? args.phone;
+
+    // 1. Если worker с таким телефоном уже есть — берём его, иначе
+    //    создаём. createUser в TF идемпотентен по телефону: если уже
+    //    есть, вернёт существующего (либо 409 — обрабатываем).
+    let remote: { id: number; workerId: number; phone: string } | null = null;
+    try {
+      remote = await client.createUser({
+        phone: normalized,
+        name: args.name,
+        position: args.positionName,
+      });
+    } catch (err) {
+      if (err instanceof TasksFlowError && (err.status === 409 || err.status === 400)) {
+        // Уже существует — найдём через listUsers.
+        try {
+          const list = await client.listUsers();
+          const hit = list.find(
+            (u) => normalizeRussianPhone(u.phone) === normalized
+          );
+          if (hit) {
+            remote = { id: hit.id, workerId: hit.workerId, phone: hit.phone };
+          }
+        } catch (e) {
+          console.warn("[join/auto-onboard] listUsers failed", e);
+        }
+      } else {
+        console.warn("[join/auto-onboard] createUser failed", err);
+      }
+    }
+
+    if (remote) {
+      await db.tasksFlowUserLink.upsert({
+        where: {
+          integrationId_wesetupUserId: {
+            integrationId: integration.id,
+            wesetupUserId: args.wesetupUserId,
+          },
+        },
+        create: {
+          integrationId: integration.id,
+          wesetupUserId: args.wesetupUserId,
+          phone: normalized,
+          tasksflowUserId: remote.id,
+          tasksflowWorkerId: remote.workerId,
+          source: "auto",
+        },
+        update: {
+          phone: normalized,
+          tasksflowUserId: remote.id,
+          tasksflowWorkerId: remote.workerId,
+        },
+      });
+    }
+
+    // 2. Триггерим bulk-assign-today через internal cookie-less путь.
+    //    Передаём x-internal-trigger header + organizationId в body —
+    //    endpoint проверит секрет и обойдёт session-проверку.
+    const secret = process.env.INTERNAL_TRIGGER_SECRET;
+    if (!secret) {
+      console.warn("[join/auto-onboard] INTERNAL_TRIGGER_SECRET не задан — skip auto fan-out");
+      return;
+    }
+    const url = new URL(
+      "/api/integrations/tasksflow/bulk-assign-today",
+      args.request.url
+    );
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-trigger": secret,
+      },
+      body: JSON.stringify({ organizationId: args.organizationId }),
+    });
+    if (!res.ok) {
+      console.warn(
+        "[join/auto-onboard] bulk-assign-today failed",
+        res.status,
+        await res.text().catch(() => "")
+      );
+    }
+  } catch (e) {
+    console.warn("[join/auto-onboard] uncaught", e);
+  }
 }
