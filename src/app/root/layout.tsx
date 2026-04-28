@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { AuthSessionProvider } from "@/components/layout/session-provider";
 import {
   SiteThemeBootstrap,
   SiteThemeProvider,
@@ -34,6 +35,12 @@ export default async function RootAreaLayout({
     profile?.themePreference === "dark" ? "dark" : "light";
 
   return (
+    // AuthSessionProvider обязателен — клиентские компоненты типа
+    // ImpersonateButton используют useSession()/update() для смены
+    // actingAsOrganizationId. Без провайдера destructure undefined
+    // → React error boundary → «Что-то пошло не так» на любой
+    // /root/* странице где есть подобные кнопки.
+    <AuthSessionProvider session={session}>
     <SiteThemeProvider initialTheme={initialTheme}>
       <SiteThemeBootstrap />
       <div
@@ -94,5 +101,6 @@ export default async function RootAreaLayout({
         <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-8 sm:py-8">{children}</main>
       </div>
     </SiteThemeProvider>
+    </AuthSessionProvider>
   );
 }
