@@ -302,6 +302,19 @@ export const cleaningAdapter: JournalAdapter = {
       });
     }
 
+    // Control-digest task: rowKey формата `control::{documentId}::{dateKey}`.
+    // Контролёр проверил сводку за день — проставляем
+    // controllerCompletedAt всем entries за этот dateKey.
+    const ctrl = parseControlRowKey(rowKey);
+    if (ctrl && config.cleaningMode === "rooms") {
+      return applyControlCompletion({
+        documentId: doc.id,
+        controllerUserId: config.controlUserId ?? null,
+        dateKey: ctrl.dateKey,
+        completed,
+      });
+    }
+
     // Старая логика — pairs-mode: пишем mark в matrix.
     config.matrix = config.matrix ?? {};
     config.matrix[rowKey] = config.matrix[rowKey] ?? {};
@@ -355,6 +368,62 @@ function parseRoomsModeRowKey(
   const m = /^room::([^:]+)::cleaner::([^:]+)$/.exec(rowKey);
   if (!m) return null;
   return { roomId: m[1], cleanerUserId: m[2] };
+}
+
+export function parseControlRowKey(
+  rowKey: string
+): { documentId: string; dateKey: string } | null {
+  // Формат: `control::{documentId}::{dateKey}`
+  const m = /^control::([^:]+)::([0-9-]+)$/.exec(rowKey);
+  if (!m) return null;
+  return { documentId: m[1], dateKey: m[2] };
+}
+
+export function buildControlRowKey(documentId: string, dateKey: string): string {
+  return `control::${documentId}::${dateKey}`;
+}
+
+async function applyControlCompletion(args: {
+  documentId: string;
+  controllerUserId: string | null;
+  dateKey: string;
+  completed: boolean;
+}): Promise<boolean> {
+  if (!args.completed || !args.controllerUserId) return false;
+  const date = new Date(`${args.dateKey}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return false;
+
+  // Находим все cleaning_room entries за эту дату, проставляем
+  // controllerCompletedAt + controllerUserId.
+  const entries = await db.journalDocumentEntry.findMany({
+    where: {
+      documentId: args.documentId,
+      date,
+      data: { path: ["kind"], equals: "cleaning_room" },
+    },
+    select: { id: true, data: true },
+  });
+  if (entries.length === 0) return false;
+
+  const stamp = new Date().toISOString();
+  for (const e of entries) {
+    const prevData =
+      e.data && typeof e.data === "object" && !Array.isArray(e.data)
+        ? (e.data as Record<string, unknown>)
+        : {};
+    if (prevData.controllerCompletedAt) continue;
+    await db.journalDocumentEntry.update({
+      where: { id: e.id },
+      data: {
+        data: {
+          ...prevData,
+          controllerUserId: args.controllerUserId,
+          controllerCompletedAt: stamp,
+        },
+      },
+    });
+  }
+  return true;
 }
 
 /**
