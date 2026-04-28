@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { ArrowRight, BellRing, ListChecks, Sparkles, X } from "lucide-react";
 import { haptic } from "./use-haptic";
 
@@ -39,18 +40,28 @@ const STEPS: TourStep[] = [
  * показываем. Можно сбросить через DevTools `localStorage.removeItem`.
  */
 export function MiniTour() {
+  const { status } = useSession();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
+  // Тур имеет смысл показывать только аутентифицированным сотрудникам.
+  // Anonymous-визиты на /mini (нет initData, нет signIn) видят landing-
+  // CTA «Откройте через Telegram» — карточки журналов не загружены, и
+  // тур про «вот ваши задачи» был бы лишним шумом. Поэтому ждём, пока
+  // NextAuth подтвердит сессию. localStorage доступен только на клиенте,
+  // поэтому решение «открывать или нет» принимается в effect — это
+  // намеренное «set state in effect», подавлено линтером.
   useEffect(() => {
+    if (status !== "authenticated") return;
     if (typeof window === "undefined") return;
     try {
       const seen = window.localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (!seen) setOpen(true);
     } catch {
       /* localStorage blocked — skip */
     }
-  }, []);
+  }, [status]);
 
   function dismiss() {
     setOpen(false);
