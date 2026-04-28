@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowDownToLine, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowDownToLine, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Summary = {
@@ -112,15 +113,24 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
             ) : null}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleClose}
-          disabled={busy}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
-        >
-          <ArrowDownToLine className="size-4" />
-          {busy ? "Копирую…" : "Закрыть день"}
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={busy}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+          >
+            <ArrowDownToLine className="size-4" />
+            {busy ? "Копирую…" : "Закрыть день"}
+          </button>
+          <Link
+            href="/dashboard/catch-up"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            <Wand2 className="size-4" />
+            Догнать пропуски
+          </Link>
+        </div>
       </div>
 
       {result ? (
