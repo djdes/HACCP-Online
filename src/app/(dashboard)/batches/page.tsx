@@ -3,13 +3,13 @@ import { AlertTriangle, Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
-const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
-  received: { label: "Принята", bg: "#eef1ff", fg: "#3848c7" },
-  in_production: { label: "В производстве", bg: "#f5f6ff", fg: "#5566f6" },
-  finished: { label: "Готова", bg: "#ecfdf5", fg: "#116b2a" },
-  shipped: { label: "Отгружена", bg: "#fafbff", fg: "#6f7282" },
-  expired: { label: "Просрочена", bg: "#fff4f2", fg: "#a13a32" },
-  written_off: { label: "Списана", bg: "#fff4f2", fg: "#a13a32" },
+const STATUS_INFO: Record<string, { label: string; className: string }> = {
+  received: { label: "Принята", className: "bg-[#eef1ff] text-[#3848c7]" },
+  in_production: { label: "В производстве", className: "bg-[#f5f6ff] text-[#5566f6]" },
+  finished: { label: "Готова", className: "bg-[#ecfdf5] text-[#116b2a]" },
+  shipped: { label: "Отгружена", className: "bg-[#fafbff] text-[#6f7282]" },
+  expired: { label: "Просрочена", className: "bg-[#fff4f2] text-[#a13a32]" },
+  written_off: { label: "Списана", className: "bg-[#fff4f2] text-[#a13a32]" },
 };
 
 const FILTER_LABELS: Record<string, string> = {
@@ -144,8 +144,7 @@ export default async function BatchesPage({
                 const isExpired = days !== null && days < 0;
                 const status = STATUS_INFO[batch.status] ?? {
                   label: batch.status,
-                  bg: "#f5f6ff",
-                  fg: "#6f7282",
+                  className: "bg-[#f5f6ff] text-[#6f7282]",
                 };
                 const rowTint = isExpired
                   ? "bg-[#fff4f2]"
@@ -210,8 +209,7 @@ export default async function BatchesPage({
                     </td>
                     <td className="px-5 py-3">
                       <span
-                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium"
-                        style={{ backgroundColor: status.bg, color: status.fg }}
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ${status.className}`}
                       >
                         {status.label}
                       </span>

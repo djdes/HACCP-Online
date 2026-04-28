@@ -4,19 +4,19 @@ import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { CapaAutoDetectButton } from "@/components/capa/auto-detect-button";
 
-const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
-  open: { label: "Открыто", bg: "#fff4f2", fg: "#a13a32" },
-  investigating: { label: "Расследование", bg: "#fff8eb", fg: "#b25f00" },
-  corrective_action: { label: "Корректировка", bg: "#eef1ff", fg: "#3848c7" },
-  verification: { label: "Верификация", bg: "#f5f0ff", fg: "#5d3ab3" },
-  closed: { label: "Закрыто", bg: "#ecfdf5", fg: "#116b2a" },
+const STATUS_INFO: Record<string, { label: string; className: string }> = {
+  open: { label: "Открыто", className: "bg-[#fff4f2] text-[#a13a32]" },
+  investigating: { label: "Расследование", className: "bg-[#fff8eb] text-[#b25f00]" },
+  corrective_action: { label: "Корректировка", className: "bg-[#eef1ff] text-[#3848c7]" },
+  verification: { label: "Верификация", className: "bg-[#f5f0ff] text-[#5d3ab3]" },
+  closed: { label: "Закрыто", className: "bg-[#ecfdf5] text-[#116b2a]" },
 };
 
-const PRIORITY_INFO: Record<string, { label: string; bg: string; fg: string }> = {
-  critical: { label: "Критический", bg: "#a13a32", fg: "#ffffff" },
-  high: { label: "Высокий", bg: "#d95f2a", fg: "#ffffff" },
-  medium: { label: "Средний", bg: "#d9a02a", fg: "#ffffff" },
-  low: { label: "Низкий", bg: "#9b9fb3", fg: "#ffffff" },
+const PRIORITY_INFO: Record<string, { label: string; className: string }> = {
+  critical: { label: "Критический", className: "bg-[#a13a32] text-white" },
+  high: { label: "Высокий", className: "bg-[#d95f2a] text-white" },
+  medium: { label: "Средний", className: "bg-[#d9a02a] text-white" },
+  low: { label: "Низкий", className: "bg-[#9b9fb3] text-white" },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -114,8 +114,7 @@ export default async function CapaPage() {
               <div key={status} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider"
-                    style={{ backgroundColor: info.bg, color: info.fg }}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider ${info.className}`}
                   >
                     {info.label}
                   </span>
@@ -141,8 +140,7 @@ export default async function CapaPage() {
                             {ticket.title}
                           </p>
                           <span
-                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                            style={{ backgroundColor: pInfo.bg, color: pInfo.fg }}
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${pInfo.className}`}
                           >
                             {pInfo.label}
                           </span>

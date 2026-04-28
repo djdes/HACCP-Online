@@ -254,10 +254,25 @@ export default async function DashboardPage() {
     : 100;
   const complianceTone =
     compliancePercent >= 90
-      ? { bg: "#ecfdf5", fg: "#136b2a", ring: "#7cf5c0", label: "всё в порядке" }
+      ? {
+          bgClass: "bg-[#ecfdf5] text-[#136b2a]",
+          fgClass: "text-[#136b2a]",
+          ring: "#7cf5c0",
+          label: "всё в порядке",
+        }
       : compliancePercent >= 60
-        ? { bg: "#fff8eb", fg: "#b25f00", ring: "#ffd466", label: "почти готово" }
-        : { bg: "#fff4f2", fg: "#d2453d", ring: "#ffb0a6", label: "требует внимания" };
+        ? {
+            bgClass: "bg-[#fff8eb] text-[#b25f00]",
+            fgClass: "text-[#b25f00]",
+            ring: "#ffd466",
+            label: "почти готово",
+          }
+        : {
+            bgClass: "bg-[#fff4f2] text-[#d2453d]",
+            fgClass: "text-[#d2453d]",
+            ring: "#ffb0a6",
+            label: "требует внимания",
+          };
 
   const greetingName = addressedName(session.user.name ?? "");
   const greeting = timeBasedGreeting(now.getHours());
@@ -341,8 +356,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span
-              className="flex size-10 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: complianceTone.bg, color: complianceTone.fg }}
+              className={`flex size-10 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
             >
               {unfilledCount === 0 ? (
                 <CheckCircle2 className="size-5" />
@@ -374,8 +388,7 @@ export default async function DashboardPage() {
                 Готовность
               </div>
               <div
-                className="text-[22px] font-semibold leading-tight"
-                style={{ color: complianceTone.fg }}
+                className={`text-[22px] font-semibold leading-tight ${complianceTone.fgClass}`}
               >
                 {compliancePercent}%
               </div>
@@ -955,37 +968,50 @@ function AlertPill({
 }) {
   const palette: Record<
     typeof tone,
-    { bg: string; border: string; fg: string; ring: string }
+    { card: string; ring: string; fg: string }
   > = {
-    red: { bg: "#fff4f2", border: "#ffd2cd", fg: "#d2453d", ring: "#ffe1dc" },
-    amber: { bg: "#fff8eb", border: "#ffe2a0", fg: "#b25f00", ring: "#ffe9b0" },
-    orange: { bg: "#fff2e5", border: "#ffd1a8", fg: "#c2510a", ring: "#ffe0c2" },
-    indigo: { bg: "#eef1ff", border: "#c7ccea", fg: "#5566f6", ring: "#dadfff" },
+    red: {
+      card: "border-[#ffd2cd] bg-[#fff4f2]",
+      ring: "bg-[#ffe1dc] text-[#d2453d]",
+      fg: "text-[#d2453d]",
+    },
+    amber: {
+      card: "border-[#ffe2a0] bg-[#fff8eb]",
+      ring: "bg-[#ffe9b0] text-[#b25f00]",
+      fg: "text-[#b25f00]",
+    },
+    orange: {
+      card: "border-[#ffd1a8] bg-[#fff2e5]",
+      ring: "bg-[#ffe0c2] text-[#c2510a]",
+      fg: "text-[#c2510a]",
+    },
+    indigo: {
+      card: "border-[#c7ccea] bg-[#eef1ff]",
+      ring: "bg-[#dadfff] text-[#5566f6]",
+      fg: "text-[#5566f6]",
+    },
   };
   const c = palette[tone];
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(11,16,36,0.15)]"
-      style={{ borderColor: c.border, backgroundColor: c.bg }}
+      className={`group flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(11,16,36,0.15)] ${c.card}`}
     >
       <span
-        className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: c.ring, color: c.fg }}
+        className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${c.ring}`}
       >
         <Icon className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-[20px] font-semibold tabular-nums" style={{ color: c.fg }}>
+        <div className={`text-[20px] font-semibold tabular-nums ${c.fg}`}>
           {value}
         </div>
-        <div className="text-[12px] leading-tight" style={{ color: c.fg, opacity: 0.85 }}>
+        <div className={`text-[12px] leading-tight opacity-85 ${c.fg}`}>
           {label}
         </div>
       </div>
       <ArrowRight
-        className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
-        style={{ color: c.fg, opacity: 0.6 }}
+        className={`size-4 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 ${c.fg}`}
       />
     </Link>
   );

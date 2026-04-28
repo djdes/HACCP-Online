@@ -51,10 +51,22 @@ export function OrgHealthWidget({
 
   const tone =
     scorePercent >= 90
-      ? { bg: "#ecfdf5", fg: "#116b2a", label: "отлично" }
+      ? {
+          chipClass: "bg-[#ecfdf5] text-[#116b2a]",
+          fgColor: "#116b2a",
+          label: "отлично",
+        }
       : scorePercent >= 60
-        ? { bg: "#fff8eb", fg: "#7a4a00", label: "почти готово" }
-        : { bg: "#fff4f2", fg: "#a13a32", label: "нужна донастройка" };
+        ? {
+            chipClass: "bg-[#fff8eb] text-[#7a4a00]",
+            fgColor: "#7a4a00",
+            label: "почти готово",
+          }
+        : {
+            chipClass: "bg-[#fff4f2] text-[#a13a32]",
+            fgColor: "#a13a32",
+            label: "нужна донастройка",
+          };
 
   return (
     <section
@@ -67,8 +79,7 @@ export function OrgHealthWidget({
         className="flex w-full items-center gap-3 text-left"
       >
         <span
-          className="flex size-10 shrink-0 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: tone.bg, color: tone.fg }}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${tone.chipClass}`}
         >
           <HeartPulse className="size-5" />
         </span>
@@ -76,8 +87,7 @@ export function OrgHealthWidget({
           <div className="flex items-center gap-2 text-[14px] font-semibold text-[#0b1024]">
             Здоровье настройки: {okCount}/{totalCount}
             <span
-              className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-              style={{ backgroundColor: tone.bg, color: tone.fg }}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone.chipClass}`}
             >
               {scorePercent}% — {tone.label}
             </span>
@@ -94,7 +104,7 @@ export function OrgHealthWidget({
               className="h-full transition-all duration-300"
               style={{
                 width: `${scorePercent}%`,
-                backgroundColor: tone.fg,
+                backgroundColor: tone.fgColor,
               }}
             />
           </div>
@@ -115,17 +125,16 @@ export function OrgHealthWidget({
                 : c.status === "warn"
                   ? AlertCircle
                   : XCircle;
-            const fg =
+            const fgClass =
               c.status === "ok"
-                ? "#116b2a"
+                ? "text-[#116b2a]"
                 : c.status === "warn"
-                  ? "#7a4a00"
-                  : "#a13a32";
+                  ? "text-[#7a4a00]"
+                  : "text-[#a13a32]";
             const inner = (
               <span className="flex items-start gap-2.5 rounded-xl px-2.5 py-2 hover:bg-[#fafbff]">
                 <Icon
-                  className="mt-0.5 size-4 shrink-0"
-                  style={{ color: fg }}
+                  className={`mt-0.5 size-4 shrink-0 ${fgClass}`}
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-medium text-[#0b1024]">

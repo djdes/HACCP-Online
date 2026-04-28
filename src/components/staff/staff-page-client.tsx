@@ -934,10 +934,10 @@ function CategoryColumn(props: {
   onAddEmployee: (position: StaffPosition) => void;
   onEditPosition: (position: StaffPosition) => void;
 }) {
-  const headerAccent =
+  const headerAccentClass =
     props.categoryKey === "management"
-      ? { color: "#b25f00", bg: "#fff8eb" }
-      : { color: "#5566f6", bg: "#eef1ff" };
+      ? "bg-[#fff8eb] text-[#b25f00]"
+      : "bg-[#eef1ff] text-[#5566f6]";
   const totalEmployees = props.positions.reduce(
     (sum, p) => sum + (props.employeesByPosition.get(p.id)?.length ?? 0),
     0
@@ -952,16 +952,14 @@ function CategoryColumn(props: {
           className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]"
         >
           <span
-            className="flex size-7 items-center justify-center rounded-lg"
-            style={{ backgroundColor: headerAccent.bg, color: headerAccent.color }}
+            className={`flex size-7 items-center justify-center rounded-lg ${headerAccentClass}`}
             aria-hidden
           >
             <UsersIcon className="size-3.5" />
           </span>
           {props.title}
           <span
-            className="inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium"
-            style={{ backgroundColor: headerAccent.bg, color: headerAccent.color }}
+            className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium ${headerAccentClass}`}
           >
             {totalEmployees}
           </span>

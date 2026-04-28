@@ -248,10 +248,10 @@ function SummaryCard({
   tone: "indigo" | "lime" | "amber" | "rose";
 }) {
   const palette = {
-    indigo: { bg: "#f5f6ff", fg: "#3848c7" },
-    lime: { bg: "#ecfdf5", fg: "#116b2a" },
-    amber: { bg: "#fff7ed", fg: "#9a3412" },
-    rose: { bg: "#fff4f2", fg: "#a13a32" },
+    indigo: "bg-[#f5f6ff] text-[#3848c7]",
+    lime: "bg-[#ecfdf5] text-[#116b2a]",
+    amber: "bg-[#fff7ed] text-[#9a3412]",
+    rose: "bg-[#fff4f2] text-[#a13a32]",
   }[tone];
 
   return (
@@ -260,8 +260,7 @@ function SummaryCard({
         {label}
       </div>
       <div
-        className="mt-1.5 inline-flex rounded-xl px-2.5 py-0.5 text-[20px] font-semibold tabular-nums"
-        style={{ background: palette.bg, color: palette.fg }}
+        className={`mt-1.5 inline-flex rounded-xl px-2.5 py-0.5 text-[20px] font-semibold tabular-nums ${palette}`}
       >
         {value}
       </div>

@@ -949,18 +949,29 @@ function Field({
 function StatusBadge({ status }: { status: LinkRow["status"] }) {
   const map: Record<
     LinkRow["status"],
-    { label: string; bg: string; fg: string }
+    { label: string; className: string }
   > = {
-    linked: { label: "Связан", bg: "#ecfdf5", fg: "#116b2a" },
-    no_phone: { label: "Без телефона", bg: "#fff4f2", fg: "#a13a32" },
-    no_match: { label: "Не найден в TasksFlow", bg: "#fff8eb", fg: "#92400e" },
-    pending: { label: "Не синхронизирован", bg: "#f5f6ff", fg: "#3848c7" },
+    linked: {
+      label: "Связан",
+      className: "bg-[#ecfdf5] text-[#116b2a]",
+    },
+    no_phone: {
+      label: "Без телефона",
+      className: "bg-[#fff4f2] text-[#a13a32]",
+    },
+    no_match: {
+      label: "Не найден в TasksFlow",
+      className: "bg-[#fff8eb] text-[#92400e]",
+    },
+    pending: {
+      label: "Не синхронизирован",
+      className: "bg-[#f5f6ff] text-[#3848c7]",
+    },
   };
   const cfg = map[status];
   return (
     <span
-      className="inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium"
-      style={{ background: cfg.bg, color: cfg.fg }}
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ${cfg.className}`}
     >
       {cfg.label}
     </span>

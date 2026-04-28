@@ -183,12 +183,76 @@ body:has(.app-shell[data-app-theme="dark"]) {
   background-color: rgba(219, 165, 156, 0.14);
 }
 
+/* — amber/оранжевые тинты (warning-soft, alarm-soft) */
+.app-shell[data-app-theme="dark"] .bg-\[\#fff8eb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff7ed\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff2e5\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fef3c7\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe9b0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe2a0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe0c2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffd1a8\] {
+  background-color: rgba(220, 180, 120, 0.10);
+}
+
+/* — фиолетово-розовые тинты (info-soft, magenta accent) */
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f0ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0edff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f3ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fdf4ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fdf2f8\] {
+  background-color: rgba(180, 150, 230, 0.10);
+}
+
+/* — teal / mint тинты */
+.app-shell[data-app-theme="dark"] .bg-\[\#f0fdfa\] {
+  background-color: rgba(120, 200, 200, 0.10);
+}
+
+/* Цветные иконки амбер / оранж / фиолет / тиал — приглушаем чтобы не
+   слепили на тёмном (но сохраняем оттенок для distinction) */
+.app-shell[data-app-theme="dark"] .text-\[\#b25f00\],
+.app-shell[data-app-theme="dark"] .text-\[\#7a4a00\],
+.app-shell[data-app-theme="dark"] .text-\[\#92400e\],
+.app-shell[data-app-theme="dark"] .text-\[\#9a3412\],
+.app-shell[data-app-theme="dark"] .text-\[\#c2510a\],
+.app-shell[data-app-theme="dark"] .text-\[\#b45309\],
+.app-shell[data-app-theme="dark"] .text-\[\#f59e0b\] {
+  color: #d4b078;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#5d3ab3\],
+.app-shell[data-app-theme="dark"] .text-\[\#7a5cff\],
+.app-shell[data-app-theme="dark"] .text-\[\#8b5cf6\],
+.app-shell[data-app-theme="dark"] .text-\[\#d946ef\],
+.app-shell[data-app-theme="dark"] .text-\[\#ec4899\] {
+  color: #b496e6;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#0ea5e9\],
+.app-shell[data-app-theme="dark"] .text-\[\#14b8a6\],
+.app-shell[data-app-theme="dark"] .text-\[\#10b981\] {
+  color: #78c8c8;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#3848c7\],
+.app-shell[data-app-theme="dark"] .text-\[\#5566f6\] {
+  color: var(--app-indigo);
+}
+.app-shell[data-app-theme="dark"] .text-\[\#6b7280\] {
+  color: var(--app-text-muted);
+}
+
 /* Status borders — тонкие приглушённые. На hover ещё видимее
    но без яркой подсветки. */
 .app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
 .app-shell[data-app-theme="dark"] .border-\[\#ff8d7d\],
 .app-shell[data-app-theme="dark"] .border-\[\#ffb0a6\] {
   border-color: rgba(219, 165, 156, 0.22);
+}
+.app-shell[data-app-theme="dark"] .border-\[\#ffe2a0\],
+.app-shell[data-app-theme="dark"] .border-\[\#ffd1a8\] {
+  border-color: rgba(220, 180, 120, 0.22);
+}
+.app-shell[data-app-theme="dark"] .border-\[\#c7ccea\] {
+  border-color: rgba(85, 102, 246, 0.28);
 }
 .app-shell[data-app-theme="dark"] .hover\:border-\[\#ff8d7d\]:hover {
   border-color: rgba(219, 165, 156, 0.4);

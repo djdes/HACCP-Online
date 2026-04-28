@@ -3,13 +3,13 @@ import { GitBranch, Plus } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
-const STATUS_INFO: Record<string, { label: string; bg: string; fg: string }> = {
-  requested: { label: "Заявка", bg: "#eef1ff", fg: "#3848c7" },
-  risk_review: { label: "Оценка рисков", bg: "#fff8eb", fg: "#b25f00" },
-  testing: { label: "Тестирование", bg: "#f5f0ff", fg: "#5d3ab3" },
-  approved: { label: "Одобрено", bg: "#ecfdf5", fg: "#116b2a" },
-  rejected: { label: "Отклонено", bg: "#fff4f2", fg: "#a13a32" },
-  implemented: { label: "Внедрено", bg: "#ecfdf5", fg: "#116b2a" },
+const STATUS_INFO: Record<string, { label: string; className: string }> = {
+  requested: { label: "Заявка", className: "bg-[#eef1ff] text-[#3848c7]" },
+  risk_review: { label: "Оценка рисков", className: "bg-[#fff8eb] text-[#b25f00]" },
+  testing: { label: "Тестирование", className: "bg-[#f5f0ff] text-[#5d3ab3]" },
+  approved: { label: "Одобрено", className: "bg-[#ecfdf5] text-[#116b2a]" },
+  rejected: { label: "Отклонено", className: "bg-[#fff4f2] text-[#a13a32]" },
+  implemented: { label: "Внедрено", className: "bg-[#ecfdf5] text-[#116b2a]" },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -71,8 +71,7 @@ export default async function ChangesPage() {
               {changes.map((c: (typeof changes)[number]) => {
                 const sInfo = STATUS_INFO[c.status] ?? {
                   label: c.status,
-                  bg: "#f5f6ff",
-                  fg: "#6f7282",
+                  className: "bg-[#f5f6ff] text-[#6f7282]",
                 };
                 return (
                   <tr
@@ -92,8 +91,7 @@ export default async function ChangesPage() {
                     </td>
                     <td className="px-5 py-3">
                       <span
-                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium"
-                        style={{ backgroundColor: sInfo.bg, color: sInfo.fg }}
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ${sInfo.className}`}
                       >
                         {sInfo.label}
                       </span>
