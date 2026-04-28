@@ -5,6 +5,7 @@ import { registerStopHandler } from "./handlers/stop";
 import { registerInlineQueryHandler } from "./handlers/inline";
 import { registerShortcutHandlers } from "./handlers/shortcut";
 import { registerEditHandlers } from "./handlers/edit";
+import { registerOwnerStatsHandlers } from "./handlers/owner-stats";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import {
   configureTelegramBotProfile,
@@ -85,6 +86,7 @@ export function getInboundBot(): Bot | null {
   registerStartHandler(composer);
   registerStopHandler(composer);
   registerShortcutHandlers(composer);
+  registerOwnerStatsHandlers(composer);
   registerEditHandlers(composer);
   registerInlineQueryHandler(composer);
   cachedBot.use(composer);
