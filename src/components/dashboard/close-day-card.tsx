@@ -94,7 +94,7 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
   const busy = submitting || pending;
 
   return (
-    <div className="mt-3 rounded-2xl border border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-[#fafbff] px-4 py-3.5 sm:px-5 sm:py-4">
+    <div className="mt-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3.5 sm:px-5 sm:py-4">
       <div className="flex flex-wrap items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
           <Sparkles className="size-5" />

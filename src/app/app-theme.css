@@ -209,6 +209,124 @@ body:has(.app-shell[data-app-theme="dark"]) {
   background-color: rgba(120, 200, 200, 0.10);
 }
 
+/* — bonus-tone palette (struggler stat-card, journal-bonuses cards):
+   pale lavender / rose / yellow ещё не в map'е выше. */
+.app-shell[data-app-theme="dark"] .bg-\[\#dadfff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#e3e7ff\] {
+  background-color: var(--app-tint-indigo-2);
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#c8cbe0\] {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe9e4\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffe6e1\] {
+  background-color: rgba(219, 165, 156, 0.10);
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4d9\] {
+  background-color: rgba(220, 180, 120, 0.10);
+}
+
+/* — destructive accent reds (ff3b30, e0342a) — мягкая dusty-rose
+   как кнопка-удаления. */
+.app-shell[data-app-theme="dark"] .bg-\[\#ff3b30\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ff5e57\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ff6059\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ff6f5e\] {
+  background-color: #b87a72;
+  color: #fff;
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#ff3b30\]:hover {
+  background-color: #a06b62;
+}
+
+/* === Comprehensive sweep: оставшиеся pale light backgrounds ========
+ * Группируем по семантике: почти-белые → soft-surface, бледно-розовые
+ * → warn-tint, бледно-жёлтые → ambr-tint, цветные акценты — чуть
+ * приглушаем но сохраняем индивидуальность.
+ */
+
+/* Whites / pale grays → soft surface */
+.app-shell[data-app-theme="dark"] .bg-\[\#f0f0f0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0f2f7\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f8\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f9\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f2f3f8\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f4f6\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f4fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f4fe\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f5ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fe\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f6fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f6f6f6\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f6f7fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f6f7ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f7f7fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f7f8fd\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f7f8ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f8f9fc\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f8f9ff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f9f9f9\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f9f9fc\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fafafa\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fbfbfe\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fbfbff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\] {
+  background-color: var(--app-soft-surface);
+}
+
+/* Pale rose / blush — warn-tint */
+.app-shell[data-app-theme="dark"] .bg-\[\#fef2f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff0f0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff1ef\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff2f1\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff3f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4f4\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff5f4\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff6f5\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffecea\] {
+  background-color: rgba(219, 165, 156, 0.06);
+}
+
+/* Saturated salmon (chip icons, alarms) — slightly stronger rose */
+.app-shell[data-app-theme="dark"] .bg-\[\#f6caca\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fda5a5\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffb08a\] {
+  background-color: rgba(219, 165, 156, 0.20);
+}
+
+/* Pale ambers (warning soft) — amber-tint */
+.app-shell[data-app-theme="dark"] .bg-\[\#fde68a\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fef3c7\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff7e6\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff8ed\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff9eb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fffbf0\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4c7\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff5d9\] {
+  background-color: rgba(220, 180, 120, 0.10);
+}
+
+/* Saturated yellow / orange chip icons */
+.app-shell[data-app-theme="dark"] .bg-\[\#ffbe2f\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ffd466\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3b75a\] {
+  background-color: rgba(220, 180, 120, 0.30);
+  color: #f5f6ff;
+}
+
+/* Gradient sweep: добавляем популярные from/to для journal-bonuses,
+   landing CTA и т.п. */
+.app-shell[data-app-theme="dark"] [class*="from-\[\#fde68a\]"],
+.app-shell[data-app-theme="dark"] [class*="to-\[\#fbbf24\]"],
+.app-shell[data-app-theme="dark"] [class*="to-\[\#f59e0b\]"] {
+  --tw-gradient-from: rgba(220, 180, 120, 0.20) !important;
+  --tw-gradient-to: rgba(220, 180, 120, 0.30) !important;
+  background-image: linear-gradient(to bottom right, rgba(220, 180, 120, 0.20), rgba(220, 180, 120, 0.30));
+}
+
 /* Цветные иконки амбер / оранж / фиолет / тиал — приглушаем чтобы не
    слепили на тёмном (но сохраняем оттенок для distinction) */
 .app-shell[data-app-theme="dark"] .text-\[\#b25f00\],
@@ -421,6 +539,22 @@ body:has(.app-shell[data-app-theme="dark"]) {
   --input: oklch(1 0 0 / 15%);
   --secondary: oklch(0.28 0.012 265);
   --secondary-foreground: oklch(0.95 0.01 265);
+}
+
+/* --- Linear gradients on light surfaces ----------------------------
+ * Поскольку CSS-overrides ловят только bg-color-классы, gradient-классы
+ * (`bg-gradient-to-br from-[#f5f6ff] to-[#fafbff]` и т.п.) остаются
+ * со светлыми остановками и рисуются почти-белой плашкой на тёмном фоне.
+ * Перебиваем gradient-фон одним сплошным soft-surface там, где он
+ * декоративный, чтобы карточка читалась.
+ */
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#f5f6ff]"],
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#fafbff]"],
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#ffffff]"],
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-white"],
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#eef1ff]"] {
+  background-image: none;
+  background-color: var(--app-soft-surface);
 }
 
 /* --- Dark-hero card (`bg-[#0b1024]`) — остаётся тёмным в обоих темах,
