@@ -142,7 +142,7 @@ export function JournalsBrowser({
   // Compliance ring считает только ежедневные/конфиг-ежедневные
   // mandatory-журналы. Aperiodic (годовые, событийные — медкнижки,
   // аудиты, аварии) не имеют понятия «готовность на сегодня» и не
-  // попадают в знаменатель — иначе создание документа событийного
+  // попадают в знаменатель ring'а — иначе создание документа событийного
   // журнала мгновенно сдвигает ring, хотя ничего фактически не
   // заполнено.
   const mandatoryEnabledTemplates = enabledTemplates.filter(
@@ -150,14 +150,22 @@ export function JournalsBrowser({
       (t.isMandatorySanpin || t.isMandatoryHaccp) &&
       ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
-  const filledTodayCount = mandatoryEnabledTemplates.filter(
+  const compliancePercent = mandatoryEnabledTemplates.length
+    ? Math.round(
+        (mandatoryEnabledTemplates.filter((t) => t.filledToday).length /
+          mandatoryEnabledTemplates.length) *
+          100
+      )
+    : 100;
+  // А stat-pill'ы «Заполнено сегодня» и «Надо заполнить» ориентируются
+  // на ВЕСЬ включённый набор журналов из настроек (Набор журналов).
+  // Иначе менеджер с 35 включёнными журналами видит «Надо заполнить 9»
+  // и недоумевает — это считались только mandatory-daily, а не весь
+  // его роstер.
+  const filledTodayCount = enabledTemplates.filter(
     (t) => t.filledToday
   ).length;
-  const pendingTodayCount =
-    mandatoryEnabledTemplates.length - filledTodayCount;
-  const compliancePercent = mandatoryEnabledTemplates.length
-    ? Math.round((filledTodayCount / mandatoryEnabledTemplates.length) * 100)
-    : 100;
+  const pendingTodayCount = enabledTemplates.length - filledTodayCount;
 
   const filteredEnabled = filteredTemplates.filter((t) => !t.disabled);
   const filteredDisabled = filteredTemplates.filter((t) => t.disabled);
@@ -288,11 +296,7 @@ export function JournalsBrowser({
             <StatPill
               label="Заполнено сегодня"
               value={filledTodayCount}
-              hint={
-                mandatoryEnabledTemplates.length === 0
-                  ? undefined
-                  : `из ${mandatoryEnabledTemplates.length}`
-              }
+              hint={enabledCount === 0 ? undefined : `из ${enabledCount}`}
             />
             <StatPill
               label="Надо заполнить"
