@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { decryptSecret } from "@/lib/integration-crypto";
 import { mintTaskFillToken } from "@/lib/task-fill-token";
+import {
+  extractTasksFlowBearer,
+  findTaskLinkForAuthorizedIntegrations,
+  getMatchingTasksFlowIntegrations,
+} from "@/lib/tasksflow-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,32 +25,19 @@ export const dynamic = "force-dynamic";
  * The token encodes the taskId and issue timestamp, signed with the
  * integration's `webhookSecret`. TTL 30 minutes (see task-fill-token.ts).
  */
-const bodySchema = z.object({ taskId: z.number().int().positive() });
+const bodySchema = z.object({
+  taskId: z.number().int().positive(),
+  integrationId: z.string().optional(),
+});
 
 export async function POST(request: Request) {
   const auth = request.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+(tfk_[A-Za-z0-9_-]+)$/.exec(auth);
-  if (!match) {
+  const presented = extractTasksFlowBearer(auth);
+  if (!presented) {
     return NextResponse.json({ error: "Missing Bearer key" }, { status: 401 });
   }
-  const presented = match[1];
-  const prefix = presented.slice(0, 12);
-
-  const candidates = await db.tasksFlowIntegration.findMany({
-    where: { enabled: true, apiKeyPrefix: prefix },
-  });
-  let integration: (typeof candidates)[number] | null = null;
-  for (const cand of candidates) {
-    try {
-      if (decryptSecret(cand.apiKeyEncrypted) === presented) {
-        integration = cand;
-        break;
-      }
-    } catch {
-      /* skip */
-    }
-  }
-  if (!integration) {
+  const integrations = await getMatchingTasksFlowIntegrations(presented);
+  if (integrations.length === 0) {
     return NextResponse.json({ error: "Invalid key" }, { status: 401 });
   }
 
@@ -66,15 +56,15 @@ export async function POST(request: Request) {
 
   // Verify the task belongs to this integration. Don't leak the
   // answer on failure — just return a 404.
-  const link = await db.tasksFlowTaskLink.findFirst({
-    where: {
-      integrationId: integration.id,
-      tasksflowTaskId: payload.taskId,
-    },
+  const found = await findTaskLinkForAuthorizedIntegrations({
+    integrations,
+    tasksflowTaskId: payload.taskId,
+    preferredIntegrationId: payload.integrationId,
   });
-  if (!link) {
+  if (!found) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
+  const { integration } = found;
 
   const token = mintTaskFillToken(payload.taskId, integration.webhookSecret);
   const envBase = (process.env.NEXTAUTH_URL ?? "").trim();

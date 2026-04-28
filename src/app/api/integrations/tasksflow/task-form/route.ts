@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { decryptSecret } from "@/lib/integration-crypto";
 import { getAdapter } from "@/lib/tasksflow-adapters";
+import {
+  extractTasksFlowBearer,
+  findTaskLinkForAuthorizedIntegrations,
+  getMatchingTasksFlowIntegrations,
+} from "@/lib/tasksflow-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,41 +23,29 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+(tfk_[A-Za-z0-9_-]+)$/.exec(auth);
-  if (!match) {
+  const presented = extractTasksFlowBearer(auth);
+  if (!presented) {
     return NextResponse.json({ error: "Missing Bearer key" }, { status: 401 });
   }
-  const presented = match[1];
-  const prefix = presented.slice(0, 12);
-
-  const candidates = await db.tasksFlowIntegration.findMany({
-    where: { enabled: true, apiKeyPrefix: prefix },
-  });
-  let integration: (typeof candidates)[number] | null = null;
-  for (const cand of candidates) {
-    try {
-      if (decryptSecret(cand.apiKeyEncrypted) === presented) {
-        integration = cand;
-        break;
-      }
-    } catch {
-      /* skip */
-    }
-  }
-  if (!integration) {
+  const integrations = await getMatchingTasksFlowIntegrations(presented);
+  if (integrations.length === 0) {
     return NextResponse.json({ error: "Invalid key" }, { status: 401 });
   }
 
   const url = new URL(request.url);
   const taskIdRaw = url.searchParams.get("taskId");
+  const integrationId = url.searchParams.get("integrationId");
   const taskId = Number(taskIdRaw);
   if (!Number.isFinite(taskId) || taskId <= 0) {
     return NextResponse.json({ error: "Bad taskId" }, { status: 400 });
   }
 
-  const link = await db.tasksFlowTaskLink.findFirst({
-    where: { integrationId: integration.id, tasksflowTaskId: taskId },
+  const found = await findTaskLinkForAuthorizedIntegrations({
+    integrations,
+    tasksflowTaskId: taskId,
+    preferredIntegrationId: integrationId,
   });
+  const link = found?.link ?? null;
   if (!link) {
     return NextResponse.json({ form: null, journalCode: null });
   }
