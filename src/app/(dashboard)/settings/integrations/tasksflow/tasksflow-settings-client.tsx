@@ -10,10 +10,12 @@ import {
   ClipboardCopy,
   ExternalLink,
   KeyRound,
+  Loader2,
   Plug,
   RefreshCw,
   Trash2,
   Users as UsersIcon,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,19 @@ type SyncResponse = {
     withoutMatch: number;
   };
   failures?: SyncFailure[];
+};
+
+type HealthState = {
+  status: "green" | "yellow" | "red";
+  reason?: string;
+  message?: string;
+  latencyMs?: number;
+  httpStatus?: number;
+  remote?: {
+    buildSha?: string;
+    dbLatencyMs?: number;
+    uptimeSec?: number;
+  };
 };
 
 async function readApiJson<T>(
@@ -158,6 +173,49 @@ export function TasksFlowSettingsClient({
       cancelled = true;
     };
   }, [integrationId, integrationLastSyncAt]);
+
+  // Health-check polling: пингуем TasksFlow `/api/health` через
+  // `/api/integrations/tasksflow/health` каждые 60 секунд, чтобы UI
+  // показал «зелёный/жёлтый/красный» индикатор и заголовок видимый
+  // сразу. Без интеграции — пропускаем (нет смысла пинговать).
+  // См. P1#5 в docs/THREAD_TASKSFLOW.md.
+  const [health, setHealth] = useState<HealthState | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  useEffect(() => {
+    if (!integrationId) {
+      setHealth(null);
+      return;
+    }
+    let cancelled = false;
+    async function pingHealth() {
+      if (cancelled) return;
+      setHealthLoading(true);
+      try {
+        const response = await fetch(
+          "/api/integrations/tasksflow/health",
+          { cache: "no-store" },
+        );
+        const data = (await response.json()) as HealthState;
+        if (!cancelled) setHealth(data);
+      } catch {
+        if (!cancelled) {
+          setHealth({
+            status: "red",
+            reason: "client_error",
+            message: "Не удалось проверить статус.",
+          });
+        }
+      } finally {
+        if (!cancelled) setHealthLoading(false);
+      }
+    }
+    pingHealth();
+    const intervalId = window.setInterval(pingHealth, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [integrationId]);
 
   function handleConnect() {
     startConnect(async () => {
@@ -326,11 +384,24 @@ export function TasksFlowSettingsClient({
                 </p>
               </div>
             </div>
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              <CheckCircle2 className="size-3.5" />
-              {integration ? "Подключено" : "Не подключено"}
-            </div>
+            <HealthBadge integration={integration} health={health} loading={healthLoading} />
           </div>
+          {integration && health && health.status !== "green" ? (
+            <div
+              className={`relative z-10 mt-4 rounded-2xl border px-4 py-2.5 text-[12.5px] leading-relaxed backdrop-blur ${
+                health.status === "yellow"
+                  ? "border-[#f3b75a]/30 bg-[#f3b75a]/15 text-[#f7d8a4]"
+                  : "border-[#ff6f5e]/30 bg-[#ff6f5e]/15 text-[#ffc6bf]"
+              }`}
+            >
+              {health.message || "TasksFlow недоступен"}
+              {health.remote?.buildSha ? (
+                <span className="ml-2 font-mono text-[11px] opacity-70">
+                  build {health.remote.buildSha}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -539,6 +610,66 @@ export function TasksFlowSettingsClient({
           </div>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function HealthBadge({
+  integration,
+  health,
+  loading,
+}: {
+  integration: Integration | null;
+  health: HealthState | null;
+  loading: boolean;
+}) {
+  // Без интеграции — старый «Не подключено» в нейтральном цвете.
+  if (!integration) {
+    return (
+      <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+        <CheckCircle2 className="size-3.5" />
+        Не подключено
+      </div>
+    );
+  }
+  // С интеграцией — пока не дождались первый health, показываем спиннер
+  // вместо «Подключено», чтобы юзер видел что мы реально проверяем.
+  if (loading && !health) {
+    return (
+      <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+        <Loader2 className="size-3.5 animate-spin" />
+        Проверяем
+      </div>
+    );
+  }
+  // Палитра по статусу. Тон выдержан в стиле hero (тёмный фон,
+  // полупрозрачная заливка) — чтобы индикатор не выбивался из шапки.
+  const palette = {
+    green: {
+      icon: <CheckCircle2 className="size-3.5" />,
+      label: "Здоров",
+      classes: "border-[#79e8a3]/30 bg-[#79e8a3]/15 text-[#bef0d0]",
+    },
+    yellow: {
+      icon: <AlertTriangle className="size-3.5" />,
+      label: "Замедлен",
+      classes: "border-[#f3b75a]/30 bg-[#f3b75a]/15 text-[#f7d8a4]",
+    },
+    red: {
+      icon: <XCircle className="size-3.5" />,
+      label: "Недоступен",
+      classes: "border-[#ff6f5e]/30 bg-[#ff6f5e]/15 text-[#ffc6bf]",
+    },
+  } as const;
+  const status = health?.status ?? "red";
+  const { icon, label, classes } = palette[status];
+  return (
+    <div
+      className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] backdrop-blur ${classes}`}
+      title={health?.message || ""}
+    >
+      {icon}
+      {label}
     </div>
   );
 }
