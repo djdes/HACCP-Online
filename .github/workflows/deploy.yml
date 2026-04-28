@@ -45,11 +45,14 @@ jobs:
       - name: Generate Prisma client for CI build
         run: npx prisma generate
 
-      - name: Write build markers
+      - name: Write build-time only (sha записывается на проде после build)
         run: |
-          # Just timestamps — actual build runs on the prod host so that
-          # .next references the same node_modules that PM2 will load.
-          echo "${{ github.sha }}" > .build-sha
+          # КРИТИЧНО: .build-sha НЕ пишем тут. Если запишем — он попадёт
+          # в tar и применится на проде даже когда `npm run build`
+          # сломается → /api/health покажет «свежий» sha, мониторинг
+          # подумает «всё задеплоено», а .next/server/app окажется
+          # пустым и динамические страницы будут 500-ить.
+          # Sha записываем ТОЛЬКО после verify_manifests на сервере.
           echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .build-time
 
       - name: Create deploy tarball
@@ -112,11 +115,16 @@ jobs:
           username: ${{ secrets.DEPLOY_SSH_USER }}
           password: ${{ secrets.DEPLOY_SSH_PASS }}
           port: ${{ secrets.DEPLOY_SSH_PORT }}
+          # Пробрасываем github.sha как env-переменную внутрь SSH-сессии,
+          # чтобы скрипт мог записать .build-sha ТОЛЬКО после успешного
+          # build (а не в tar заранее).
+          envs: GITHUB_SHA
           timeout: 600s
           command_timeout: 10m
           script: |
             set -eo pipefail
             cd ${{ env.APP_DIR }}
+            export GITHUB_SHA="${{ github.sha }}"
 
             echo "=== Cleaning stale source (keeps .env, node_modules, tarball) ==="
             # Source dirs below are fully owned by the repo — nuke them before
@@ -225,6 +233,15 @@ jobs:
                 exit 1
               fi
             fi
+
+            echo "=== Writing .build-sha (after successful verify) ==="
+            # КРИТИЧНО: пишем sha ТОЛЬКО после verify_manifests. Если
+            # build упал и verify не прошёл — exit 1 выше, sha не
+            # обновился, /api/health показывает старый sha и мониторинг
+            # видит что deploy не дошёл. Раньше .build-sha записывался
+            # в CI step до build'а и попадал на прод даже при failed
+            # build — отсюда «зелёный buildSha» и сломанные страницы.
+            echo "$GITHUB_SHA" > .build-sha
 
             echo "=== Pushing schema to DB ==="
             # prisma db push зависит от `dotenv/config` в prisma.config.ts.
