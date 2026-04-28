@@ -230,6 +230,29 @@
   animation: miniReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* Skeleton-плейсхолдер для loading-состояний.
+ * Шиммер проходит слева направо за 1.6s — это короче чем стандартный
+ * fetch /api/mini/home, поэтому пользователь успевает увидеть движение
+ * хотя бы один раз и понимает что страница живая, а не зависла. */
+@keyframes miniSkeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.mini-skeleton-bar {
+  background: linear-gradient(
+    90deg,
+    var(--mini-skeleton-base, rgba(255, 255, 255, 0.04)) 0%,
+    var(--mini-skeleton-shine, rgba(255, 255, 255, 0.12)) 50%,
+    var(--mini-skeleton-base, rgba(255, 255, 255, 0.04)) 100%
+  );
+  background-size: 200% 100%;
+  animation: miniSkeletonShimmer 1.6s ease-in-out infinite;
+}
+[data-theme="light"] .mini-skeleton-bar {
+  --mini-skeleton-base: rgba(11, 16, 36, 0.06);
+  --mini-skeleton-shine: rgba(11, 16, 36, 0.12);
+}
+
 .mini-dotted-sep {
   border-top: 1px dashed var(--mini-divider-strong);
 }

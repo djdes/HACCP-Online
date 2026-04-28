@@ -1,12 +1,16 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAuth } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiTokenManager } from "./api-token-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function ExternalApiSettingsPage() {
-  const session = await requireRole(["owner", "manager", "technologist", "head_chef"]);
+  // Role-gate через единый helper — все management-роли имеют доступ.
+  const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
   const org = await db.organization.findUnique({
     where: { id: session.user.organizationId },
     select: { name: true, externalApiToken: true },

@@ -16,6 +16,7 @@ import { MiniBonusCard } from "./_components/mini-bonus-card";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
 import { QrScannerButton } from "./_components/qr-scanner";
 import { GeoReminder } from "./_components/geo-reminder";
+import { MiniHomeSkeleton } from "./_components/mini-home-skeleton";
 
 type LocalState =
   | { kind: "init" }
@@ -214,6 +215,13 @@ export default function MiniHomePage() {
         </section>
       </div>
     );
+  }
+  // Аутентифицированному, но без payload — показываем skeleton-каркас.
+  // Эффективнее на восприятие чем спиннер: мерцание из 3-4 «карточек»
+  // создаёт иллюзию того что страница уже здесь и просто доукомплектуется,
+  // а не «зависла на белом экране».
+  if (status === "authenticated" && !home) {
+    return <MiniHomeSkeleton />;
   }
   if (status !== "authenticated" || !home) {
     return (

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
-import { notFound } from "next/navigation";
-import { requireRole, getActiveOrgId } from "@/lib/auth-helpers";
+import { notFound, redirect } from "next/navigation";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -20,12 +21,9 @@ export default async function ByUserReportPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const session = await requireRole([
-    "manager",
-    "head_chef",
-    "owner",
-    "technologist",
-  ]);
+  // Role-gate через единый helper — все management-роли имеют доступ.
+  const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
   const orgId = getActiveOrgId(session);
   const { id: userId } = await params;
   const { from, to } = await searchParams;

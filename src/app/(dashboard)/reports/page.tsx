@@ -1,4 +1,6 @@
-import { requireRole, getActiveOrgId } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { ReportForm } from "@/components/reports/report-form";
 import { ComplianceBundleCard } from "@/components/reports/compliance-bundle-card";
@@ -17,16 +19,14 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage() {
   // Принимаем и новые (manager / head_chef), и легаси (owner /
   // technologist) роли — и то, и то пишет отчёты.
-  const session = await requireRole([
-    "manager",
-    "head_chef",
-    "owner",
-    "technologist",
-  ]);
+  // Role-gate через единый helper — manager/head_chef/owner/technologist
+  // все имеют full workspace access (см. memory: feedback_manager_full_rights).
+  const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
 
   const orgId = getActiveOrgId(session);
   const now = new Date();
-  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const since30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   // E7 — compare-mode: 7 дней «эта неделя» vs предыдущие 7 дней.
   const since7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const since14 = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
