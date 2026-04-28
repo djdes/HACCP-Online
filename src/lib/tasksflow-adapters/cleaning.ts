@@ -78,6 +78,20 @@ export const cleaningAdapter: JournalAdapter = {
       },
       orderBy: { dateFrom: "desc" },
     });
+
+    // Подгружаем комнаты org один раз — нужны для label в rooms-mode.
+    const allRooms = await db.room.findMany({
+      where: { building: { organizationId } },
+      select: { id: true, name: true },
+    });
+    const roomNameById = new Map(allRooms.map((r) => [r.id, r.name]));
+    // И юзеров — для подписи cleaner-а в label.
+    const orgUsers = await db.user.findMany({
+      where: { organizationId, archivedAt: null },
+      select: { id: true, name: true },
+    });
+    const userNameById = new Map(orgUsers.map((u) => [u.id, u.name]));
+
     return docs.map((doc) => {
       const config = normalizeCleaningDocumentConfig(
         doc.config
@@ -89,21 +103,26 @@ export const cleaningAdapter: JournalAdapter = {
           from: toDateKey(doc.dateFrom),
           to: toDateKey(doc.dateTo),
         },
-        rows: (config.responsiblePairs ?? []).map<AdapterRow>((pair) => ({
-          rowKey: pair.id,
-          label: pair.cleaningUserName || pair.cleaningTitle,
-          sublabel: pair.controlUserName
-            ? `Контроль: ${pair.controlUserName}`
-            : pair.controlTitle,
-          responsibleUserId: pair.cleaningUserId,
-        })),
+        rows:
+          config.cleaningMode === "rooms"
+            ? buildRoomsModeRows(config, roomNameById, userNameById)
+            : (config.responsiblePairs ?? []).map<AdapterRow>((pair) => ({
+                rowKey: pair.id,
+                label: pair.cleaningUserName || pair.cleaningTitle,
+                sublabel: pair.controlUserName
+                  ? `Контроль: ${pair.controlUserName}`
+                  : pair.controlTitle,
+                responsibleUserId: pair.cleaningUserId,
+              })),
       };
-      // Stash extra context the schedule/description hooks need —
-      // typed as private extras so types.ts stays journal-agnostic.
       (adapterDoc as AdapterDocument & {
         _skipWeekends?: boolean;
         _control?: string;
+        _cleaningMode?: "pairs" | "rooms";
       })._skipWeekends = Boolean(config.skipWeekends);
+      (adapterDoc as AdapterDocument & {
+        _cleaningMode?: "pairs" | "rooms";
+      })._cleaningMode = config.cleaningMode ?? "pairs";
       return adapterDoc;
     });
   },
@@ -267,6 +286,23 @@ export const cleaningAdapter: JournalAdapter = {
     const config = normalizeCleaningDocumentConfig(
       doc.config
     ) as CleaningDocumentConfig;
+
+    // Rooms-mode: rowKey формата `room::{roomId}::cleaner::{cleanerUserId}`.
+    // Создаём/обновляем JournalDocumentEntry с информацией кто и когда
+    // убрался в этом помещении.
+    const parsed = parseRoomsModeRowKey(rowKey);
+    if (parsed && config.cleaningMode === "rooms") {
+      return applyRoomsModeCompletion({
+        documentId: doc.id,
+        organizationId: doc.organizationId,
+        roomId: parsed.roomId,
+        cleanerUserId: parsed.cleanerUserId,
+        dateKey: todayKey,
+        completed,
+      });
+    }
+
+    // Старая логика — pairs-mode: пишем mark в matrix.
     config.matrix = config.matrix ?? {};
     config.matrix[rowKey] = config.matrix[rowKey] ?? {};
     const before = config.matrix[rowKey][todayKey] ?? "";
@@ -282,3 +318,130 @@ export const cleaningAdapter: JournalAdapter = {
     return true;
   },
 };
+
+/* =========================================================
+ * Rooms-mode helpers
+ * ========================================================= */
+
+function buildRoomsModeRows(
+  config: CleaningDocumentConfig,
+  roomNameById: Map<string, string>,
+  userNameById: Map<string, string>
+): AdapterRow[] {
+  const rooms = config.selectedRoomIds ?? [];
+  const cleaners = config.selectedCleanerUserIds ?? [];
+  const rows: AdapterRow[] = [];
+  for (const roomId of rooms) {
+    const roomName = roomNameById.get(roomId);
+    if (!roomName) continue;
+    for (const cleanerId of cleaners) {
+      const cleanerName = userNameById.get(cleanerId);
+      if (!cleanerName) continue;
+      rows.push({
+        rowKey: `room::${roomId}::cleaner::${cleanerId}`,
+        label: `Уборка · ${roomName}`,
+        sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
+        responsibleUserId: cleanerId,
+      });
+    }
+  }
+  return rows;
+}
+
+function parseRoomsModeRowKey(
+  rowKey: string
+): { roomId: string; cleanerUserId: string } | null {
+  // Формат: `room::{roomId}::cleaner::{cleanerUserId}`
+  const m = /^room::([^:]+)::cleaner::([^:]+)$/.exec(rowKey);
+  if (!m) return null;
+  return { roomId: m[1], cleanerUserId: m[2] };
+}
+
+/**
+ * Race-resolution + persist завершения уборки помещения.
+ *
+ * Логика:
+ *   - Если у этого documentId+roomId+dateKey уже есть завершённая
+ *     запись (другой уборщик был первым) — возвращаем false без
+ *     перезаписи. Race-победитель не меняется.
+ *   - Иначе создаём JournalDocumentEntry с
+ *     data: { kind, roomId, dateKey, cleanerUserId, completedAt }.
+ *
+ * Контролёр получит сводную задачу cron'ом cleaning-control-digest
+ * (см. /api/cron/cleaning-control-digest) и его complete пометит
+ * controllerCompletedAt всем сегодняшним entries дня.
+ */
+async function applyRoomsModeCompletion(args: {
+  documentId: string;
+  organizationId: string;
+  roomId: string;
+  cleanerUserId: string;
+  dateKey: string;
+  completed: boolean;
+}): Promise<boolean> {
+  if (!args.completed) {
+    // Реоткрытие — не трогаем существующую запись (другой уборщик мог
+    // её закрыть). Если хотим reopen — это явное действие, пока not implemented.
+    return false;
+  }
+
+  // dateKey "YYYY-MM-DD" → Date (UTC midnight). Совпадает с тем как
+  // hygiene-document.toDateKey работает.
+  const date = new Date(`${args.dateKey}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return false;
+
+  // Уже есть запись по этому (room, date) — другой уборщик был первым?
+  // findFirst по data JSON-path — медленнее unique-constraint, но для
+  // race-checking (1 раз на complete) acceptable.
+  const existing = await db.journalDocumentEntry.findFirst({
+    where: {
+      documentId: args.documentId,
+      date,
+      AND: [
+        { data: { path: ["roomId"], equals: args.roomId } },
+        { data: { path: ["kind"], equals: "cleaning_room" } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (existing) {
+    // Race lost — другой cleaner был первым. TF-task pipeline всё равно
+    // пометит remote как completed, но новую entry не создаём.
+    return false;
+  }
+
+  // Idempotency через `(documentId, employeeId, date)` unique-constraint:
+  // если этот же cleaner повторно дёрнул complete на той же задаче —
+  // upsert не падает.
+  await db.journalDocumentEntry.upsert({
+    where: {
+      documentId_employeeId_date: {
+        documentId: args.documentId,
+        employeeId: args.cleanerUserId,
+        date,
+      },
+    },
+    create: {
+      documentId: args.documentId,
+      employeeId: args.cleanerUserId,
+      date,
+      data: {
+        kind: "cleaning_room",
+        roomId: args.roomId,
+        dateKey: args.dateKey,
+        cleanerUserId: args.cleanerUserId,
+        completedAt: new Date().toISOString(),
+      },
+    },
+    update: {
+      data: {
+        kind: "cleaning_room",
+        roomId: args.roomId,
+        dateKey: args.dateKey,
+        cleanerUserId: args.cleanerUserId,
+        completedAt: new Date().toISOString(),
+      },
+    },
+  });
+  return true;
+}
