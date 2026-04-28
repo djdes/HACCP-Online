@@ -158,11 +158,72 @@ export function CleaningDocumentClient(props: Props) {
   }
   const roleOptions = useMemo(() => getDistinctRoleLabels(props.users), [props.users]);
   const dayKeys = useMemo(() => buildDateKeys(props.dateFrom, props.dateTo), [props.dateFrom, props.dateTo]);
-  const rows = useMemo<RowDescriptor[]>(() => [
-    ...config.rooms.map((room) => ({ id: room.id, kind: "room" as const, room })),
-    ...config.cleaningResponsibles.map((responsible) => ({ id: responsible.id, kind: "cleaning" as const, responsible })),
-    ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
-  ], [config]);
+
+  const isRoomsMode = config.cleaningMode === "rooms";
+
+  // Для rooms-mode: подгружаем имя комнаты из buildings и инициалы юзеров.
+  const buildingsRoomMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (props.buildings ?? []).forEach((b) =>
+      b.rooms.forEach((r) => m.set(r.id, r.name))
+    );
+    return m;
+  }, [props.buildings]);
+  const userInitialsById = useMemo(() => {
+    const m = new Map<string, string>();
+    props.users.forEach((u) => {
+      const parts = u.name.trim().split(/\s+/);
+      const ini = parts
+        .map((p) => p[0]?.toUpperCase() ?? "")
+        .slice(0, 3)
+        .join("");
+      m.set(u.id, ini);
+    });
+    return m;
+  }, [props.users]);
+
+  const rows = useMemo<RowDescriptor[]>(() => {
+    if (isRoomsMode) {
+      // Rooms-mode: row = одно помещение из selectedRoomIds.
+      return (config.selectedRoomIds ?? []).map((roomId) => {
+        const stub: CleaningRoomItem = {
+          id: roomId,
+          areaId: null,
+          name: buildingsRoomMap.get(roomId) ?? "Помещение",
+          detergent: "",
+          currentScope: [],
+          generalScope: [],
+        };
+        return { id: roomId, kind: "room" as const, room: stub };
+      });
+    }
+    return [
+      ...config.rooms.map((room) => ({ id: room.id, kind: "room" as const, room })),
+      ...config.cleaningResponsibles.map((responsible) => ({ id: responsible.id, kind: "cleaning" as const, responsible })),
+      ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
+    ];
+  }, [config, isRoomsMode, buildingsRoomMap]);
+
+  /** Значение ячейки. В rooms-mode — инициалы cleaner-а из
+   *  JournalDocumentEntry с kind=cleaning_room. В pairs-mode — старая
+   *  config.matrix логика. */
+  function cellValue(row: RowDescriptor, dateKey: string): string {
+    if (!isRoomsMode || row.kind !== "room") {
+      return config.matrix[row.id]?.[dateKey] || "";
+    }
+    for (const e of props.initialEntries) {
+      const d = e.data as Record<string, unknown> | null;
+      if (
+        d?.kind === "cleaning_room" &&
+        d?.roomId === row.id &&
+        d?.dateKey === dateKey
+      ) {
+        const cleanerId = String(d.cleanerUserId ?? "");
+        return userInitialsById.get(cleanerId) ?? "";
+      }
+    }
+    return "";
+  }
 
   useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
 
@@ -290,6 +351,9 @@ export function CleaningDocumentClient(props: Props) {
 
   async function updateCell(row: RowDescriptor, dateKey: string) {
     if (props.status !== "active") return;
+    // В rooms-mode ячейки read-only — заполняются TasksFlow webhook'ом
+    // когда уборщик закрывает свою задачу. Прямой клик игнорируем.
+    if (isRoomsMode) return;
     const currentValue = config.matrix[row.id]?.[dateKey] || "";
     const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
     await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
@@ -463,7 +527,7 @@ export function CleaningDocumentClient(props: Props) {
               const expanded = expandedRowId === row.id;
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const subtitle = row.kind === "room" ? row.room.detergent : `${row.responsible.code} · ${row.responsible.userName || "—"}`;
-              const filledCount = dayKeys.reduce((acc, dk) => acc + (config.matrix[row.id]?.[dk] ? 1 : 0), 0);
+              const filledCount = dayKeys.reduce((acc, dk) => acc + (cellValue(row, dk) ? 1 : 0), 0);
               const isSelected = selection.includes(row.id);
               return (
                 <div key={row.id} className="rounded-2xl border border-[#ececf4] bg-white">
@@ -484,12 +548,12 @@ export function CleaningDocumentClient(props: Props) {
                     <div className="border-t border-[#ececf4] p-3">
                       <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-1.5">
                         {dayKeys.map((dateKey) => {
-                          const cellValue = config.matrix[row.id]?.[dateKey] || "";
+                          const cellVal = cellValue(row, dateKey);
                           const weekend = isWeekend(dateKey);
                           return (
-                            <button key={dateKey} type="button" onClick={() => { updateCell(row, dateKey).catch(() => {}); }} disabled={props.status !== "active"} className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 ${cellValue ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]" : weekend ? "border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]" : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"}`}>
+                            <button key={dateKey} type="button" onClick={() => { updateCell(row, dateKey).catch(() => {}); }} disabled={props.status !== "active" || isRoomsMode} className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 ${cellVal ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]" : weekend ? "border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]" : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"}`}>
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
-                              <span className="text-[11px] leading-none">{cellValue || "—"}</span>
+                              <span className="text-[11px] leading-none">{cellVal || "—"}</span>
                             </button>
                           );
                         })}
@@ -527,7 +591,7 @@ export function CleaningDocumentClient(props: Props) {
                 <td className="border border-black p-2 text-center">{!printMode ? <Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /> : null}</td>
                 <td className="border border-black p-3 align-middle"><div className="flex items-center justify-between gap-3"><button type="button" className="text-left hover:text-[#5863f8]" disabled={printMode || props.status !== "active"} onClick={() => row.kind === "room" ? setRoomDialog(buildRoomState(row.room)) : setResponsibleDialog(buildResponsibleState(row.kind, row.responsible))}>{title}</button>{!printMode && props.status === "active" ? <Pencil className="size-4 text-[#7a7f93]" /> : null}</div></td>
                 <td className="border border-black p-3">{secondColumn}</td>
-                {dayKeys.map((dateKey) => <td key={dateKey} className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"}`} onClick={() => updateCell(row, dateKey)}>{config.matrix[row.id]?.[dateKey] || ""}</td>)}
+                {dayKeys.map((dateKey) => <td key={dateKey} className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" && !isRoomsMode ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"}`} onClick={() => updateCell(row, dateKey)}>{cellValue(row, dateKey)}</td>)}
               </tr>;
             })}
           </tbody></table>
