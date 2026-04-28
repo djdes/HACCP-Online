@@ -93,6 +93,22 @@ export async function POST(request: Request) {
   }
   const organizationId = getActiveOrgId(session);
 
+  // `force=true` (из кнопки «Пересоздать все»): удаляем все локальные
+  // TasksFlowTaskLink перед массовым назначением. Это нужно когда юзер
+  // удалил задачи на стороне TasksFlow, а локальные связки остались
+  // (orphan) и блокируют создание новых через alreadyLinked.
+  // Внимание: сами задачи в TF не трогаем — могут остаться как мусор;
+  // UI должен предупредить юзера.
+  let force = false;
+  try {
+    const body = (await request.clone().json().catch(() => null)) as
+      | { force?: unknown }
+      | null;
+    force = body?.force === true;
+  } catch {
+    /* пустое тело — force=false */
+  }
+
   const integration = await db.tasksFlowIntegration.findFirst({
     where: { organizationId, enabled: true },
   });
@@ -104,6 +120,23 @@ export async function POST(request: Request) {
       },
       { status: 400 }
     );
+  }
+
+  if (force) {
+    const wiped = await db.tasksFlowTaskLink.deleteMany({
+      where: { integrationId: integration.id },
+    });
+    await db.auditLog.create({
+      data: {
+        organizationId,
+        userId: session.user.id,
+        userName: session.user.name ?? session.user.email ?? null,
+        action: "tasksflow.bulk_assign.force_wipe",
+        entity: "TasksFlowTaskLink",
+        entityId: integration.id,
+        details: { wiped: wiped.count },
+      },
+    });
   }
 
   // The selected set is every active template minus disabled journal codes.
