@@ -42,6 +42,7 @@ import {
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
+import { ThemeQuickSwitch } from "@/components/theme/theme-quick-switch";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
 // отдельной pill-кнопкой в шапке (см. разметку ниже), т.к. это самый
@@ -391,6 +392,8 @@ export function Header({
           <OfflineIndicator />
           <NotificationsBell />
           <FeedbackDialog telegramBotUsername={telegramBotUsername} />
+
+          <ThemeQuickSwitch />
 
           {fullAccess ? (
             <Link

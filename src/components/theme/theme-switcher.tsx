@@ -1,20 +1,17 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
-import { useSiteTheme, type SiteTheme } from "./site-theme";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useSiteTheme, type SiteTheme, type ThemeMode } from "./site-theme";
 import { cn } from "@/lib/utils";
 
 /**
- * Segmented dark/light toggle, rendered on /settings (and anywhere else
- * the user should be able to flip the dashboard theme).
- *
- * Визуальный стиль: soft-indigo сегментный контрол — вписывается и в
- * light, и в dark, акцент идёт через `--app-indigo`. Превью слева
- * показывает текущее «ощущение» темы (ночное/дневное) как
- * tactile-подсказка.
+ * Settings-страница: подробная карточка с превью + 3 режима (system/light/dark)
+ * + checkbox «менять по времени суток». В header'е есть компактная версия —
+ * `ThemeQuickSwitch`. Источник истины состояния — site-theme provider.
  */
 export function ThemeSwitcher({ className }: { className?: string }) {
-  const { theme, setTheme } = useSiteTheme();
+  const { theme, mode, autoBySchedule, setMode, setAutoBySchedule } =
+    useSiteTheme();
 
   return (
     <div
@@ -33,8 +30,9 @@ export function ThemeSwitcher({ className }: { className?: string }) {
           </h3>
           <p className="mt-1.5 max-w-[420px] text-[13px] leading-[1.55] text-[#6f7282]">
             Светлая — привычный бело-индиго как на лендинге. Тёмная — для
-            поздней смены и слабого освещения в цехе. Влияет только на
-            личный кабинет; лендинг и форма входа остаются светлыми.
+            поздней смены и слабого освещения в цехе. Системная — синхронизация
+            с настройками устройства. Влияет только на личный кабинет; лендинг
+            и форма входа остаются светлыми.
           </p>
         </div>
 
@@ -44,60 +42,91 @@ export function ThemeSwitcher({ className }: { className?: string }) {
       <div
         role="radiogroup"
         aria-label="Тема дашборда"
-        className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-1.5"
+        className={cn(
+          "mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-1.5",
+          autoBySchedule && "opacity-60"
+        )}
       >
-        <ThemeOption
+        <ModeOption
+          label="Системная"
+          icon={Monitor}
+          active={mode === "system"}
+          disabled={autoBySchedule}
+          onSelect={() => setMode("system")}
+        />
+        <ModeOption
           label="Светлая"
           icon={Sun}
-          active={theme === "light"}
-          onSelect={() => setTheme("light")}
-          tone="light"
+          active={mode === "light"}
+          disabled={autoBySchedule}
+          onSelect={() => setMode("light")}
         />
-        <ThemeOption
+        <ModeOption
           label="Тёмная"
           icon={Moon}
-          active={theme === "dark"}
-          onSelect={() => setTheme("dark")}
-          tone="dark"
+          active={mode === "dark"}
+          disabled={autoBySchedule}
+          onSelect={() => setMode("dark")}
         />
       </div>
+
+      <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 hover:bg-[#f5f6ff]">
+        <input
+          type="checkbox"
+          checked={autoBySchedule}
+          onChange={(e) => setAutoBySchedule(e.target.checked)}
+          className="mt-0.5 size-4 cursor-pointer accent-[#5566f6]"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-medium text-[#0b1024]">
+            Менять по времени суток
+          </div>
+          <div className="mt-1 text-[12px] leading-[1.5] text-[#6f7282]">
+            С 7:00 до 19:00 — светлая, ночью — тёмная. Перекрывает выбор
+            сверху, пока включено. Удобно если работаете и днём, и в ночную
+            смену — глазам легче.
+          </div>
+        </div>
+      </label>
     </div>
   );
 }
 
-function ThemeOption({
+function ModeOption({
   label,
   icon: Icon,
   active,
+  disabled,
   onSelect,
-  tone,
 }: {
   label: string;
   icon: typeof Sun;
   active: boolean;
+  disabled?: boolean;
   onSelect: () => void;
-  tone: "light" | "dark";
 }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={active}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
-        "group flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-[14px] font-semibold transition-all",
-        active
+        "group flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-[13px] font-semibold transition-all sm:text-[14px]",
+        disabled && "cursor-not-allowed",
+        !disabled && active
           ? "border-[#5566f6] bg-white text-[#0b1024] shadow-[0_4px_18px_-10px_rgba(85,102,246,0.45)]"
-          : "border-transparent bg-transparent text-[#6f7282] hover:bg-white/60 hover:text-[#0b1024]"
+          : !disabled &&
+              "border-transparent bg-transparent text-[#6f7282] hover:bg-white/60 hover:text-[#0b1024]",
+          disabled && "border-transparent bg-transparent text-[#9b9fb3]"
       )}
     >
       <span
         className={cn(
           "flex size-7 items-center justify-center rounded-lg transition-colors",
-          active
-            ? tone === "dark"
-              ? "bg-[#0b1024] text-white"
-              : "bg-[#5566f6] text-white"
+          !disabled && active
+            ? "bg-[#5566f6] text-white"
             : "bg-[#eef1ff] text-[#5566f6]"
         )}
       >
@@ -110,7 +139,7 @@ function ThemeOption({
 
 /**
  * Mini-макет браузерного окна: показывает как будет выглядеть текущая
- * тема. Меняется синхронно с переключением — тактильная подсказка «да,
+ * effective тема. Меняется синхронно — тактильная подсказка «да,
  * переключилось».
  */
 function ThemePreview({ theme }: { theme: SiteTheme }) {
@@ -124,7 +153,6 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
         background: isDark ? "#0b0d1a" : "#fafbff",
       }}
     >
-      {/* traffic lights */}
       <div
         className="flex items-center gap-1.5 border-b px-3 py-2"
         style={{
@@ -146,7 +174,6 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
         />
       </div>
       <div className="space-y-2 p-3">
-        {/* hero */}
         <div
           className="rounded-lg p-2"
           style={{ background: isDark ? "#13172e" : "#0b1024" }}
@@ -160,7 +187,6 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
             style={{ background: "rgba(255,255,255,0.8)" }}
           />
         </div>
-        {/* cards row */}
         <div className="grid grid-cols-3 gap-1.5">
           {[0, 1, 2].map((i) => (
             <div
@@ -173,7 +199,6 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
             />
           ))}
         </div>
-        {/* list rows */}
         {[0, 1].map((i) => (
           <div
             key={i}
@@ -188,3 +213,6 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
     </div>
   );
 }
+
+/** Re-export для импортёров, которым нужен тип. */
+export type { ThemeMode };

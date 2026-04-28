@@ -1,5 +1,12 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect --
+ * Этот файл — provider темы с legit hydration pattern: server рендерит
+ * с initialTheme из БД, client читает localStorage и при необходимости
+ * пересинхронизируется. SSR-mismatch предотвращается inline-скриптом
+ * SiteThemeBootstrap, который выставляет data-app-theme до hydration.
+ */
+
 import {
   createContext,
   useCallback,
@@ -10,28 +17,82 @@ import {
 } from "react";
 
 export type SiteTheme = "dark" | "light";
+/** Что юзер выбрал в UI. effective theme считается из этого + autoBySchedule. */
+export type ThemeMode = "system" | "light" | "dark";
 
-/**
- * Single shared localStorage key — site, Mini App and any future surface
- * read/write the same value, so toggling the theme in any one of them
- * propagates across tabs/instances on the same device immediately
- * (storage event). The DB column `User.themePreference` syncs across
- * devices on every page-load via the layout's `initialTheme` prop.
- */
-const STORAGE_KEY = "wesetup-app-theme";
+const STORAGE_KEY = "wesetup-app-theme"; // effective light/dark (для bootstrap)
+const STORAGE_MODE_KEY = "wesetup-theme-mode"; // "system" | "light" | "dark"
+const STORAGE_AUTO_KEY = "wesetup-theme-auto-schedule"; // "1" | "0"
 const ATTRIBUTE = "data-app-theme";
 const CUSTOM_EVENT = "wesetup-theme-change";
 
 /** Legacy key used briefly by the Mini App; we read it once for migration. */
 const LEGACY_MINI_KEY = "wesetup-mini-theme";
 
+/** Часы дневного времени — в этот промежуток выбираем светлую (если autoBySchedule). */
+const DAY_HOUR_START = 7;
+const DAY_HOUR_END = 19; // [7..19) — день, остальное — ночь
+
 type Ctx = {
+  /** Effective theme — то что реально применяется к DOM. */
   theme: SiteTheme;
-  setTheme: (t: SiteTheme) => void;
+  /** То что юзер выбрал в UI: system / light / dark. */
+  mode: ThemeMode;
+  /** Включена ли авто-смена по времени суток. */
+  autoBySchedule: boolean;
+  setMode: (m: ThemeMode) => void;
+  setAutoBySchedule: (v: boolean) => void;
+  /** Quick toggle между light/dark — пишет конкретный mode и выключает auto. */
   toggle: () => void;
+  /** Backward-compat (раньше был setTheme в settings page) — пишет mode напрямую. */
+  setTheme: (t: SiteTheme) => void;
 };
 
 const SiteThemeContext = createContext<Ctx | null>(null);
+
+function isDayHour(hour: number): boolean {
+  return hour >= DAY_HOUR_START && hour < DAY_HOUR_END;
+}
+
+function computeEffective(
+  mode: ThemeMode,
+  autoBySchedule: boolean,
+  fallback: SiteTheme
+): SiteTheme {
+  if (autoBySchedule) {
+    const hour = new Date().getHours();
+    return isDayHour(hour) ? "light" : "dark";
+  }
+  if (mode === "light") return "light";
+  if (mode === "dark") return "dark";
+  // system
+  if (typeof window !== "undefined" && window.matchMedia) {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  return fallback;
+}
+
+function readStoredMode(): ThemeMode | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(STORAGE_MODE_KEY);
+    if (v === "system" || v === "light" || v === "dark") return v;
+  } catch {
+    /* storage blocked */
+  }
+  return null;
+}
+
+function readStoredAuto(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(STORAGE_AUTO_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function readInitialThemeFromStorage(fallback: SiteTheme): SiteTheme {
   if (typeof window === "undefined") return fallback;
@@ -51,38 +112,49 @@ export function SiteThemeProvider({
   initialTheme = "light",
 }: {
   children: ReactNode;
-  /** Server-loaded `User.themePreference`; used as the seed when
-      localStorage is empty (first visit on this device). After that
-      localStorage wins and survives reloads/SSR mismatches. */
+  /** Server-loaded `User.themePreference`; используется как seed на первом
+      визите этого устройства (когда localStorage пуст). После этого
+      localStorage побеждает и переживает reload/SSR mismatch. */
   initialTheme?: SiteTheme;
 }) {
+  const [mode, setModeState] = useState<ThemeMode>("system");
+  const [autoBySchedule, setAutoState] = useState<boolean>(false);
   const [theme, setThemeState] = useState<SiteTheme>(initialTheme);
 
+  // Hydrate из localStorage (см. file-level eslint-disable выше — это
+  // legit hydration pattern, SSR-mismatch снимается SiteThemeBootstrap).
   useEffect(() => {
-    // localStorage > server initialTheme. Если в этом браузере уже был
-    // выбор — он живёт до момента, когда пользователь сам переключит
-    // тему через настройки. Сервер NEVER overrides local choice — иначе
-    // сетевой сбой при persist приводил бы к откату темы при reload
-    // (баг 2026-04-25 «при reload тема слетает на светлую»).
-    const fromStorage = readInitialThemeFromStorage(initialTheme);
-    setThemeState(fromStorage);
-    applyThemeToDOM(fromStorage);
+    const storedMode = readStoredMode();
+    const storedAuto = readStoredAuto();
+    const storedEffective = readInitialThemeFromStorage(initialTheme);
 
-    // Seed localStorage из initialTheme на самой первой загрузке (когда
-    // ключа ещё нет) — чтобы offline / другие табы видели тот же выбор.
+    // Если mode не сохранён — пробуем восстановить из effective:
+    //  light/dark в storage → юзер явно выбрал → mode="light"|"dark"
+    //  пусто → mode="system"
+    const effectiveMode: ThemeMode =
+      storedMode ?? (storedEffective === "dark" ? "dark" : "light");
+
+    setModeState(effectiveMode);
+    setAutoState(storedAuto);
+
+    const next = computeEffective(effectiveMode, storedAuto, storedEffective);
+    setThemeState(next);
+    applyThemeToDOM(next);
+
+    // Seed effective storage для bootstrap script на следующем reload.
     if (typeof window !== "undefined") {
       try {
-        if (window.localStorage.getItem(STORAGE_KEY) === null) {
-          window.localStorage.setItem(STORAGE_KEY, fromStorage);
+        window.localStorage.setItem(STORAGE_KEY, next);
+        if (storedMode === null) {
+          window.localStorage.setItem(STORAGE_MODE_KEY, effectiveMode);
         }
       } catch {
-        /* storage blocked — ничего не делаем */
+        /* storage blocked */
       }
     }
   }, [initialTheme]);
 
-  // Cross-tab/cross-instance sync. If user toggles theme in another tab or
-  // in the embedded Mini App, this tab follows.
+  // Cross-tab/cross-instance sync.
   useEffect(() => {
     function onCustom(e: Event) {
       const next = (e as CustomEvent<SiteTheme>).detail;
@@ -92,10 +164,18 @@ export function SiteThemeProvider({
       }
     }
     function onStorage(e: StorageEvent) {
-      if (e.key !== STORAGE_KEY) return;
-      if (e.newValue === "light" || e.newValue === "dark") {
-        setThemeState(e.newValue);
-        applyThemeToDOM(e.newValue);
+      if (e.key === STORAGE_KEY) {
+        if (e.newValue === "light" || e.newValue === "dark") {
+          setThemeState(e.newValue);
+          applyThemeToDOM(e.newValue);
+        }
+      } else if (e.key === STORAGE_MODE_KEY) {
+        const v = e.newValue;
+        if (v === "system" || v === "light" || v === "dark") {
+          setModeState(v);
+        }
+      } else if (e.key === STORAGE_AUTO_KEY) {
+        setAutoState(e.newValue === "1");
       }
     }
     window.addEventListener(CUSTOM_EVENT, onCustom);
@@ -106,33 +186,95 @@ export function SiteThemeProvider({
     };
   }, []);
 
-  const setTheme = useCallback((next: SiteTheme) => {
-    setThemeState(next);
-    applyThemeToDOM(next);
+  // Live-recompute effective theme when mode / auto-schedule / system pref / time changes.
+  useEffect(() => {
+    function recompute() {
+      const next = computeEffective(mode, autoBySchedule, theme);
+      if (next !== theme) {
+        setThemeState(next);
+        applyThemeToDOM(next);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, next);
+          window.dispatchEvent(
+            new CustomEvent<SiteTheme>(CUSTOM_EVENT, { detail: next })
+          );
+        } catch {
+          /* ignore */
+        }
+        void persistThemeToServer(next);
+      }
+    }
+
+    // a) System preference change (prefers-color-scheme)
+    let mqlCleanup: (() => void) | null = null;
+    if (mode === "system" && !autoBySchedule && typeof window !== "undefined") {
+      const mql = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => recompute();
+      // Safari < 14 нужен addListener
+      if (mql.addEventListener) {
+        mql.addEventListener("change", handler);
+        mqlCleanup = () => mql.removeEventListener("change", handler);
+      }
+    }
+
+    // b) Auto-by-schedule: проверять каждые 5 минут (час пересёк границу).
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    if (autoBySchedule) {
+      recompute(); // immediate apply при включении
+      intervalId = setInterval(recompute, 5 * 60 * 1000);
+    }
+
+    return () => {
+      if (mqlCleanup) mqlCleanup();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [mode, autoBySchedule, theme]);
+
+  const setMode = useCallback((next: ThemeMode) => {
+    setModeState(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, next);
+      window.localStorage.setItem(STORAGE_MODE_KEY, next);
     } catch {
       /* ignore */
     }
+  }, []);
+
+  const setAutoBySchedule = useCallback((next: boolean) => {
+    setAutoState(next);
     try {
-      window.dispatchEvent(
-        new CustomEvent<SiteTheme>(CUSTOM_EVENT, { detail: next })
-      );
+      window.localStorage.setItem(STORAGE_AUTO_KEY, next ? "1" : "0");
     } catch {
       /* ignore */
     }
-    // Persist в БД best-effort — для cross-device sync на новом устройстве.
-    // На текущем устройстве источник истины — localStorage, поэтому если
-    // fetch упадёт, тема всё равно сохранится локально.
-    void persistThemeToServer(next);
   }, []);
 
   const toggle = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }, [setTheme, theme]);
+    // Quick toggle — отключает auto (юзер явно выбрал), флипает mode.
+    setAutoBySchedule(false);
+    setMode(theme === "dark" ? "light" : "dark");
+  }, [setAutoBySchedule, setMode, theme]);
+
+  const setTheme = useCallback(
+    (next: SiteTheme) => {
+      // Backward-compat: явный выбор light/dark — отключает auto, ставит mode.
+      setAutoBySchedule(false);
+      setMode(next);
+    },
+    [setAutoBySchedule, setMode]
+  );
 
   return (
-    <SiteThemeContext.Provider value={{ theme, setTheme, toggle }}>
+    <SiteThemeContext.Provider
+      value={{
+        theme,
+        mode,
+        autoBySchedule,
+        setMode,
+        setAutoBySchedule,
+        toggle,
+        setTheme,
+      }}
+    >
       {children}
     </SiteThemeContext.Provider>
   );
@@ -143,8 +285,12 @@ export function useSiteTheme(): Ctx {
   if (!ctx) {
     return {
       theme: "light",
-      setTheme: () => {},
+      mode: "system",
+      autoBySchedule: false,
+      setMode: () => {},
+      setAutoBySchedule: () => {},
       toggle: () => {},
+      setTheme: () => {},
     };
   }
   return ctx;
@@ -169,8 +315,6 @@ async function persistThemeToServer(theme: SiteTheme): Promise<void> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ theme }),
-      // No need to wait or surface errors — localStorage already carries
-      // the value for this device. Cross-device sync is best-effort.
       keepalive: true,
     });
   } catch {
@@ -179,18 +323,43 @@ async function persistThemeToServer(theme: SiteTheme): Promise<void> {
 }
 
 /**
- * Inline `<script>` that runs before React hydrates and applies the saved
- * theme to all `.app-shell` containers. Без этого light-default
- * пользователи, выбравшие dark, получали бы вспышку белого при каждой
- * навигации.
+ * Inline `<script>` который запускается до hydration и применяет
+ * сохранённое предпочтение к `.app-shell`. Учитывает mode + autoBySchedule
+ * чтобы не было flash:
+ *   1. Если autoBySchedule — выбирает по часу.
+ *   2. Иначе если mode=system — спрашивает matchMedia.
+ *   3. Иначе берёт mode напрямую (light/dark).
+ *   4. Fallback — старый ключ STORAGE_KEY (effective).
  */
 export function SiteThemeBootstrap() {
-  const code = `(function(){try{var k=${JSON.stringify(
-    STORAGE_KEY
-  )};var t=localStorage.getItem(k);if(t!=='light'&&t!=='dark'){t=localStorage.getItem(${JSON.stringify(
-    LEGACY_MINI_KEY
-  )});}if(t==='light'||t==='dark'){var els=document.querySelectorAll('.app-shell');for(var i=0;i<els.length;i++){els[i].setAttribute(${JSON.stringify(
-    ATTRIBUTE
-  )},t);}var m=document.querySelector('meta[name="theme-color"]');if(m&&t==='dark'){m.setAttribute('content','#0b0d1a');}}}catch(e){}})();`;
+  const code = `(function(){try{
+    var modeKey=${JSON.stringify(STORAGE_MODE_KEY)};
+    var autoKey=${JSON.stringify(STORAGE_AUTO_KEY)};
+    var effectiveKey=${JSON.stringify(STORAGE_KEY)};
+    var legacyKey=${JSON.stringify(LEGACY_MINI_KEY)};
+    var attr=${JSON.stringify(ATTRIBUTE)};
+    var t=null;
+    var auto=localStorage.getItem(autoKey)==='1';
+    var mode=localStorage.getItem(modeKey);
+    if(auto){
+      var h=new Date().getHours();
+      t=(h>=${DAY_HOUR_START}&&h<${DAY_HOUR_END})?'light':'dark';
+    } else if(mode==='light'||mode==='dark'){
+      t=mode;
+    } else if(mode==='system'){
+      try{
+        t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      }catch(_){t='light';}
+    } else {
+      t=localStorage.getItem(effectiveKey);
+      if(t!=='light'&&t!=='dark'){t=localStorage.getItem(legacyKey);}
+    }
+    if(t==='light'||t==='dark'){
+      var els=document.querySelectorAll('.app-shell');
+      for(var i=0;i<els.length;i++){els[i].setAttribute(attr,t);}
+      var m=document.querySelector('meta[name="theme-color"]');
+      if(m&&t==='dark'){m.setAttribute('content','#0b0d1a');}
+    }
+  }catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
