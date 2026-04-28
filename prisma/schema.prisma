@@ -126,6 +126,7 @@ model Organization {
   formFillTimings          FormFillTiming[]
   employeeJoinTokens       EmployeeJoinToken[]
   buildings                Building[]
+  journalTaskClaims        JournalTaskClaim[]
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько
@@ -269,6 +270,7 @@ model User {
   closedJournalEvents         JournalCloseEvent[]      @relation("ClosedBy")
   reopenedJournalEvents       JournalCloseEvent[]      @relation("ReopenedBy")
   formFillTimings             FormFillTiming[]
+  journalTaskClaims           JournalTaskClaim[]
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -774,6 +776,77 @@ model JournalTemplate {
   formFillTimings    FormFillTiming[]
 
   @@index([defaultAssigneeId])
+}
+
+/// Race-claim для пула общих задач журнала (rooms, fridges, areas …).
+/// Сотрудник нажимает «Взять» в мини-аппе — атомарный INSERT по
+/// уникальному ключу `(organizationId, journalCode, scopeKey)` решает,
+/// кто первый. Остальные клиенты при следующем рендере видят занято.
+///
+/// scopeKey формат: `room:<roomId>:<YYYY-MM-DD>` для уборки,
+/// `fridge:<equipmentId>:<shift>:<YYYY-MM-DD>` для холодильников и т.п.
+/// Date-component включён в ключ — на следующий день всё снова свободно.
+///
+/// One-active-task rule: пока у юзера есть claim со status="active", он
+/// не может взять другую задачу — клиент проверяет через
+/// `getActiveClaimForUser`. Серверная защита в API endpoint claim.
+///
+/// status:
+///   "active"    — взято, в работе, никто другой не может взять
+///   "completed" — задача выполнена, записан entryId на JournalDocumentEntry
+///   "released"  — отпустил без выполнения (передумал, передал коллеге)
+///   "expired"   — auto-cleanup cron'ом если active более N часов без
+///                 завершения (см. /api/cron/journal-claim-expire)
+model JournalTaskClaim {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  journalCode    String
+  /// Уникальный ключ задачи внутри (organizationId, journalCode).
+  /// Включает date-component для дневного scope (см. doc выше).
+  scopeKey       String
+  /// Human-readable label для UI ("Зона 2 — Холодный цех", "Холодильник 1 утро").
+  scopeLabel     String
+  /// Дата задачи (UTC midnight) — для фильтрации в списках per-date.
+  /// Дублирует часть scopeKey, но дешевле для индекса.
+  dateKey        DateTime
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         String       @default("active")
+  claimedAt      DateTime     @default(now())
+  completedAt    DateTime?
+  releasedAt     DateTime?
+  /// Свободный hint для UI — какой это был журнал/документ ("Уборка
+  /// 28.04 — Холодный цех"). Используется в one-active-task tooltip.
+  parentHint     String?
+  /// FK на JournalDocumentEntry или JournalEntry, созданный при completion.
+  /// Может быть null если completion ещё не написало entry.
+  entryId        String?
+  /// Для TasksFlow mirror — id задачи в TF, если она была создана.
+  /// Если zero — claim только в WeSetup.
+  tasksFlowTaskId String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  /// Ключ к race-resolution: `INSERT ON CONFLICT DO NOTHING` через unique.
+  /// Допускается несколько записей с тем же scopeKey разных статусов
+  /// (released/expired не блокируют новые active), поэтому unique
+  /// должен быть partial — увы, Prisma не умеет partial unique напрямую,
+  /// поэтому моделируем через композитный unique с включением status:
+  /// одна active-claim максимум. Старые released/expired не попадают
+  /// под constraint потому что мы их не маппим в active status.
+  ///
+  /// Реализация: проверка перед INSERT в API +
+  /// (organizationId, journalCode, scopeKey, status) unique. Так как
+  /// Prisma поддерживает только не-partial — даём простой unique по
+  /// (organizationId, journalCode, scopeKey, status), что значит
+  /// «один active per scope, один released per scope, и т.д.» — для
+  /// active это и нужно. Released/completed мы будем хранить только
+  /// одной строкой scope-а.
+  @@unique([organizationId, journalCode, scopeKey, status])
+  @@index([userId, status])
+  @@index([organizationId, journalCode, dateKey])
+  @@index([organizationId, status])
 }
 
 /// Событие закрытия журнала за день — отдельное от обычных entry.
