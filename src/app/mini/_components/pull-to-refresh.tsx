@@ -1,0 +1,147 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+
+/**
+ * Pull-to-refresh для Mini App.
+ *
+ * Когда пользователь свайпает вниз от верха страницы (`scrollTop === 0`) на
+ * >= 64 px, вызывается `onRefresh()`. Пока promise не завершится, шапка
+ * показывает крутящийся индикатор. Логика чисто touch-based — на десктопе
+ * эффекта не будет (mouse wheel не триггерит). Это намеренно: pull-to-refresh
+ * — мобильный паттерн, на десктопе у пользователя есть Ctrl+R.
+ *
+ * Не блокирует естественный скролл: пока scrollTop > 0, gesture-handler
+ * молчит. Только когда страница уже наверху и палец продолжает тянуть вниз —
+ * мы перехватываем и переводим жест в индикатор.
+ */
+const ACTIVATION_THRESHOLD = 64;
+const MAX_PULL = 120;
+
+type PullPhase = "idle" | "pulling" | "armed" | "refreshing";
+
+export function PullToRefresh({
+  onRefresh,
+  children,
+}: {
+  onRefresh: () => Promise<void>;
+  children: React.ReactNode;
+}) {
+  const [phase, setPhase] = useState<PullPhase>("idle");
+  const [pull, setPull] = useState(0);
+  const startY = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const reset = useCallback(() => {
+    setPhase("idle");
+    setPull(0);
+    startY.current = null;
+  }, []);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    function onTouchStart(e: TouchEvent) {
+      if (window.scrollY > 4) return; // already scrolled — let normal scroll handle it
+      const t = e.touches[0];
+      if (!t) return;
+      startY.current = t.clientY;
+      setPhase("pulling");
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (startY.current === null) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const delta = t.clientY - startY.current;
+      if (delta <= 0) {
+        // user swiped up — cancel
+        reset();
+        return;
+      }
+      // dampening — позволяет тянуть, но всё медленнее по мере удаления
+      const damped = Math.min(MAX_PULL, delta * 0.55);
+      setPull(damped);
+      setPhase(damped >= ACTIVATION_THRESHOLD ? "armed" : "pulling");
+      // блокируем нативный bounce только когда уже тянем — иначе мешать
+      // обычному скроллу
+      if (delta > 4 && e.cancelable) e.preventDefault();
+    }
+
+    async function onTouchEnd() {
+      if (phase !== "armed") {
+        reset();
+        return;
+      }
+      setPhase("refreshing");
+      try {
+        await onRefresh();
+      } finally {
+        setPull(0);
+        setPhase("idle");
+        startY.current = null;
+      }
+    }
+
+    node.addEventListener("touchstart", onTouchStart, { passive: true });
+    node.addEventListener("touchmove", onTouchMove, { passive: false });
+    node.addEventListener("touchend", onTouchEnd);
+    node.addEventListener("touchcancel", reset);
+    return () => {
+      node.removeEventListener("touchstart", onTouchStart);
+      node.removeEventListener("touchmove", onTouchMove);
+      node.removeEventListener("touchend", onTouchEnd);
+      node.removeEventListener("touchcancel", reset);
+    };
+  }, [onRefresh, phase, reset]);
+
+  const indicatorOpacity = Math.min(1, pull / ACTIVATION_THRESHOLD);
+  const isActive = phase === "armed" || phase === "refreshing";
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Indicator — sticky над контентом, появляется по мере pull. */}
+      <div
+        className="pointer-events-none absolute left-0 right-0 top-0 flex justify-center"
+        style={{
+          transform: `translateY(${
+            phase === "refreshing" ? 16 : Math.max(0, pull - 28)
+          }px)`,
+          opacity: phase === "refreshing" ? 1 : indicatorOpacity,
+          transition: phase === "refreshing" ? "transform 0.2s ease" : undefined,
+        }}
+      >
+        <div
+          className="flex size-8 items-center justify-center rounded-full"
+          style={{
+            background: "var(--mini-surface-1)",
+            border: "1px solid var(--mini-divider-strong)",
+            color: isActive ? "var(--mini-lime)" : "var(--mini-text-muted)",
+          }}
+        >
+          <Loader2
+            className={`size-4 ${phase === "refreshing" ? "animate-spin" : ""}`}
+          />
+        </div>
+      </div>
+
+      {/* Контент сдвигается вниз ровно на pull, чтобы индикатор был
+          визуально «отделён» от хедера и не накрывал текст. */}
+      <div
+        style={{
+          transform: `translateY(${
+            phase === "refreshing" ? 36 : pull
+          }px)`,
+          transition:
+            phase === "idle" || phase === "refreshing"
+              ? "transform 0.25s ease"
+              : undefined,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}

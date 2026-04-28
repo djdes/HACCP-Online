@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import { getTelegramWebApp } from "./_components/telegram-web-app";
 import { QrScannerButton } from "./_components/qr-scanner";
 import { GeoReminder } from "./_components/geo-reminder";
 import { MiniHomeSkeleton } from "./_components/mini-home-skeleton";
+import { PullToRefresh } from "./_components/pull-to-refresh";
 
 type LocalState =
   | { kind: "init" }
@@ -137,6 +138,31 @@ export default function MiniHomePage() {
     router.replace(nextPath);
   }, [nextPath, router, status]);
 
+  // Вынесли в useCallback, чтобы тот же путь использовался и для
+  // первоначальной загрузки, и для pull-to-refresh — без дублирования
+  // обработки ошибок и без копирования URL.
+  const fetchHome = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/mini/home", { cache: "no-store" });
+      if (!resp.ok) {
+        const body = (await resp.json().catch(() => ({ error: "" }))) as {
+          error?: string;
+        };
+        throw new Error(body.error || `HTTP ${resp.status}`);
+      }
+      const data = (await resp.json()) as HomeData;
+      setHome(data);
+      // На успешном refetch сбрасываем error-state — пользователь
+      // вытянул вниз, мы заново вошли в norma flow.
+      setLocalState((prev) => (prev.kind === "error" ? { kind: "init" } : prev));
+    } catch (err) {
+      setLocalState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Не удалось загрузить данные",
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (
       status !== "authenticated" ||
@@ -149,23 +175,12 @@ export default function MiniHomePage() {
     fetchStarted.current = true;
     void (async () => {
       try {
-        const resp = await fetch("/api/mini/home", { cache: "no-store" });
-        if (!resp.ok) {
-          const body = (await resp.json().catch(() => ({ error: "" }))) as {
-            error?: string;
-          };
-          throw new Error(body.error || `HTTP ${resp.status}`);
-        }
-        const data = (await resp.json()) as HomeData;
-        setHome(data);
-      } catch (err) {
-        setLocalState({
-          kind: "error",
-          message: err instanceof Error ? err.message : "Не удалось загрузить данные",
-        });
+        await fetchHome();
+      } catch {
+        /* errors уже разложены в setLocalState */
       }
     })();
-  }, [nextPath, status]);
+  }, [fetchHome, nextPath, status]);
 
   if (localState.kind === "no-telegram") {
     return (
@@ -250,6 +265,7 @@ export default function MiniHomePage() {
   const completion = total === 0 ? 0 : Math.round((filled / total) * 100);
 
   return (
+    <PullToRefresh onRefresh={fetchHome}>
     <div className="flex flex-1 flex-col gap-5 pb-28">
       {/* Editorial hero — «Сегодня» + progress ring */}
       <header className="mini-reveal relative">
@@ -515,6 +531,7 @@ export default function MiniHomePage() {
         )}
       </section>
     </div>
+    </PullToRefresh>
   );
 }
 
