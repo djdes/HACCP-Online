@@ -107,19 +107,31 @@ export const escapeTelegramHtml = escapeHtml;
 
 /**
  * Personalize Telegram-сообщение — заменяет {name}, {timeOfDay},
- * {dayOfWeek} в тексте на реальные значения. Не трогает текст без
- * placeholder'ов. Снижает reminder fatigue: «Иван, утренняя гигиена»
- * вместо генерического «у вас задача».
+ * {dayOfWeek}, {greeting} в тексте на реальные значения. Не трогает
+ * текст без placeholder'ов. Снижает reminder fatigue: «Иван, утренняя
+ * гигиена» вместо генерического «у вас задача».
+ *
+ * Placeholder'ы:
+ *  • `{name}` — первое слово из `ctx.name`, HTML-escape'нуто (parse_mode
+ *    HTML); если имя пустое — слово «сотрудник».
+ *  • `{timeOfDay}` — «ночью» / «утром» / «днём» / «вечером».
+ *  • `{dayOfWeek}` — название дня недели в винительном падеже («понедельник»,
+ *    «среду», «пятницу»…). Подходит для «в {dayOfWeek}».
+ *  • `{greeting}` — корректное приветствие по часу с правильным родом:
+ *    «Доброе утро» / «Добрый день» / «Добрый вечер» / «Доброй ночи».
  *
  * Использование: callers могут просто включать {name} в template
  * и не думать о том как достать имя — notifyEmployee сделает за них.
+ *
+ * Вторым аргументом можно передать `now` — нужно для тестов с
+ * детерминированным временем; в проде по умолчанию берётся `new Date()`.
  */
 export function personalizeMessage(
   text: string,
-  ctx: { name?: string | null }
+  ctx: { name?: string | null; now?: Date }
 ): string {
-  if (!text.includes("{") ) return text;
-  const now = new Date();
+  if (!text.includes("{")) return text;
+  const now = ctx.now ?? new Date();
   const hour = now.getHours();
   const timeOfDay =
     hour < 6
@@ -129,6 +141,14 @@ export function personalizeMessage(
         : hour < 18
           ? "днём"
           : "вечером";
+  const greeting =
+    hour < 6
+      ? "Доброй ночи"
+      : hour < 12
+        ? "Доброе утро"
+        : hour < 18
+          ? "Добрый день"
+          : "Добрый вечер";
   const days = [
     "воскресенье",
     "понедельник",
@@ -140,10 +160,14 @@ export function personalizeMessage(
   ];
   const dayOfWeek = days[now.getDay()];
   const firstName = (ctx.name ?? "").trim().split(/\s+/)[0] ?? "";
+  // HTML-escape only the user-provided field. Greeting/timeOfDay/dayOfWeek
+  // are static literals and safe to interpolate without escaping.
+  const safeName = escapeHtml(firstName || "сотрудник");
   return text
-    .replace(/\{name\}/g, firstName || "сотрудник")
+    .replace(/\{name\}/g, safeName)
     .replace(/\{timeOfDay\}/g, timeOfDay)
-    .replace(/\{dayOfWeek\}/g, dayOfWeek);
+    .replace(/\{dayOfWeek\}/g, dayOfWeek)
+    .replace(/\{greeting\}/g, greeting);
 }
 
 const MAX_RETRIES = 3;
@@ -350,10 +374,13 @@ export async function notifyEmployee(
   if (!user || !user.isActive || !user.telegramChatId) {
     return;
   }
-  // Persoналиize: подставляем {name}, {timeOfDay}, {dayOfWeek} в
-  // text. Callers могут пропустить — без placeholder'ов helper
-  // ничего не делает.
-  text = personalizeMessage(text, { name: user.name });
+  // Persoналиize: подставляем {name}, {timeOfDay}, {dayOfWeek},
+  // {greeting} в text. Callers могут пропустить — без placeholder'ов
+  // helper ничего не делает.
+  text = personalizeMessage(text, {
+    name: user.name,
+    now: opts?.policy?.now,
+  });
 
   if (
     await shouldSkipTelegramSendOnRerun({
@@ -503,7 +530,12 @@ export async function notifyOrganization(
       telegramChatId: { not: null },
       isActive: true,
     },
-    select: { id: true, telegramChatId: true, notificationPrefs: true },
+    select: {
+      id: true,
+      name: true,
+      telegramChatId: true,
+      notificationPrefs: true,
+    },
   });
 
   // Filter by notification preference if type is specified
@@ -524,10 +556,18 @@ export async function notifyOrganization(
 
   await Promise.allSettled(
     filtered.map((u) =>
-      sendTelegramMessage(u.telegramChatId!, message, {
-        userId: (u as { id?: string }).id ?? null,
-        reply_markup: replyMarkup,
-      })
+      // Persoналиize per-user: каждый менеджер видит своё имя и
+      // приветствие. Без placeholder'ов в `message` — `personalizeMessage`
+      // отдаёт текст без изменений, так что callers без шаблонов
+      // не страдают.
+      sendTelegramMessage(
+        u.telegramChatId!,
+        personalizeMessage(message, { name: u.name }),
+        {
+          userId: u.id ?? null,
+          reply_markup: replyMarkup,
+        }
+      )
     )
   );
 }

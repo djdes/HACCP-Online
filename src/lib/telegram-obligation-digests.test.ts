@@ -9,7 +9,6 @@ import {
 test("buildStaffObligationDigest returns null when there are no open obligations", () => {
   const digest = buildStaffObligationDigest({
     userId: "user_1",
-    staffName: "Ivan",
     openObligations: [],
     miniAppBaseUrl: "https://wesetup.ru/mini",
     now: new Date("2026-04-20T06:30:00.000Z"),
@@ -18,10 +17,9 @@ test("buildStaffObligationDigest returns null when there are no open obligations
   assert.equal(digest, null);
 });
 
-test("buildStaffObligationDigest builds a morning payload with the next exact action CTA and daily dedupe key", () => {
+test("buildStaffObligationDigest builds a personalize-able payload with the next exact action CTA and daily dedupe key", () => {
   const digest = buildStaffObligationDigest({
     userId: "user_1",
-    staffName: "Ivan",
     openObligations: [
       {
         id: "obl_1",
@@ -50,17 +48,17 @@ test("buildStaffObligationDigest builds a morning payload with the next exact ac
     label: "Открыть задачу",
     url: "https://wesetup.ru/mini/o/obl_1",
   });
-  assert.match(digest?.body ?? "", /Доброе утро, Ivan!/);
+  // Builder возвращает template c placeholder'ами — реальные значения
+  // подставит `personalizeMessage` в `notifyEmployee`. Это позволяет
+  // приветствию учитывать момент отправки, а не момент сборки дайджеста.
+  assert.match(digest?.body ?? "", /\{greeting\}, \{name\}!/);
   assert.match(digest?.body ?? "", /Открыто задач: 2/);
-  assert.match(
-    digest?.body ?? "",
-    /Следующее действие: Входной контроль/
-  );
+  assert.match(digest?.body ?? "", /Следующее действие: Входной контроль/);
   assert.match(digest?.body ?? "", /• Входной контроль/);
   assert.match(digest?.body ?? "", /• Журнал гигиены/);
 });
 
-test("buildManagerObligationDigest builds a summary payload with cabinet CTA and organization-scoped daily dedupe key", () => {
+test("buildManagerObligationDigest builds a personalize-able summary with cabinet CTA and organization-scoped daily dedupe key", () => {
   const digest = buildManagerObligationDigest({
     organizationId: "org_1",
     organizationName: "Kitchen 21",
@@ -87,7 +85,8 @@ test("buildManagerObligationDigest builds a summary payload with cabinet CTA and
     done: 6,
     employeesWithPending: 2,
   });
-  assert.match(digest.body, /Доброе утро, Kitchen 21!/);
+  assert.match(digest.body, /\{greeting\}, \{name\}!/);
+  assert.match(digest.body, /<b>Kitchen 21<\/b>/);
   assert.match(digest.body, /Открыто: 4 · Выполнено: 6/);
   assert.match(digest.body, /Сотрудников с открытыми задачами: 2/);
 });
@@ -95,7 +94,6 @@ test("buildManagerObligationDigest builds a summary payload with cabinet CTA and
 test("digest builders escape HTML-sensitive dynamic labels", () => {
   const staffDigest = buildStaffObligationDigest({
     userId: "user_1",
-    staffName: "Ivan <admin>",
     openObligations: [
       {
         id: "obl_1",
@@ -124,10 +122,8 @@ test("digest builders escape HTML-sensitive dynamic labels", () => {
   });
 
   assert.ok(staffDigest);
-  assert.match(staffDigest?.body ?? "", /Ivan &lt;admin&gt;/);
   assert.match(staffDigest?.body ?? "", /Incoming &lt;check&gt;/);
   assert.match(staffDigest?.body ?? "", /Shift &amp; cleanup/);
-  assert.equal(staffDigest?.body.includes("<admin>"), false);
   assert.equal(staffDigest?.body.includes("<check>"), false);
   assert.match(managerDigest.body, /Kitchen &lt;21&gt; &amp; Co/);
   assert.equal(managerDigest.body.includes("<21>"), false);

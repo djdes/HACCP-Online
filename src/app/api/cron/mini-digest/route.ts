@@ -198,7 +198,6 @@ export async function runMiniDigestCron(
 
     const digest = buildStaffObligationDigest({
       userId: user.id,
-      staffName: user.name?.trim() || "Сотрудник",
       openObligations,
       miniAppBaseUrl: args.miniAppBaseUrl,
       now: requestNow,

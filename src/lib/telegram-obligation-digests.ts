@@ -72,7 +72,14 @@ function formatObligationList(openObligations: OpenJournalObligation[]): string[
 
 export function buildStaffObligationDigest(args: {
   userId: string;
-  staffName: string;
+  /**
+   * Имя сотрудника передаётся для обратной совместимости. В новом
+   * шаблоне используется placeholder `{name}` — реальное имя
+   * подставляется в `notifyEmployee.personalizeMessage()`. Аргумент
+   * игнорируется при формировании body, но оставлен на случай если
+   * caller захочет переключиться на explicit-имя в будущем.
+   */
+  staffName?: string;
   openObligations: OpenJournalObligation[];
   miniAppBaseUrl: string | null;
   now?: Date;
@@ -99,8 +106,13 @@ export function buildStaffObligationDigest(args: {
           }
         : null;
 
+  // {greeting} и {name} разворачивает personalizeMessage в notifyEmployee:
+  // приветствие по времени дня + имя получателя из User.name. Если по
+  // какой-то причине caller шлёт без personalize (raw sendTelegramMessage)
+  // — placeholder'ы останутся в тексте, но это безопасный fallback, а не
+  // утечка PII.
   const body = [
-    `Доброе утро, ${escapeTelegramText(args.staffName)}!`,
+    `{greeting}, {name}!`,
     "",
     `Открыто задач: ${args.openObligations.length}`,
     nextObligation
@@ -131,11 +143,16 @@ export function buildManagerObligationDigest(args: {
   const now = args.now ?? new Date();
   const cabinetUrl = normalizeUrl(args.cabinetUrl);
 
+  // {greeting}, {name} раскрываются в notifyEmployee — менеджер увидит
+  // своё имя и приветствие по времени дня. organizationName идёт в
+  // подзаголовок как контекст: один менеджер может управлять несколькими
+  // организациями (например, ROOT в impersonation).
   return {
     kind: "manager",
     body: [
-      `Доброе утро, ${escapeTelegramText(args.organizationName)}!`,
+      `{greeting}, {name}!`,
       "",
+      `<b>${escapeTelegramText(args.organizationName)}</b>`,
       `Открыто: ${args.summary.pending} · Выполнено: ${args.summary.done}`,
       `Всего обязательств: ${args.summary.total}`,
       `Сотрудников с открытыми задачами: ${args.summary.employeesWithPending}`,
