@@ -104,18 +104,28 @@ function RowDialog(props: {
 
   useEffect(() => {
     if (!props.open) return;
+    if (props.initialRow) {
+      setRow(props.initialRow);
+      return;
+    }
     const fallbackUser =
       props.users.find((user) => user.id === props.config.defaultResponsibleUserId) ||
       props.users[0] ||
       null;
+    // A7 — auto-fill current HH:MM для новой строки. Минуты — точные
+    // (шаг select'а = 1), юзер всегда может перевыбрать.
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
     setRow(
-      props.initialRow ||
-        createIntensiveCoolingRow({
-          responsibleUserId: fallbackUser?.id || "",
-          responsibleTitle:
-            props.config.defaultResponsibleTitle ||
-            getResponsibleTitleByRole(fallbackUser?.role),
-        })
+      createIntensiveCoolingRow({
+        responsibleUserId: fallbackUser?.id || "",
+        responsibleTitle:
+          props.config.defaultResponsibleTitle ||
+          getResponsibleTitleByRole(fallbackUser?.role),
+        productionHour: hh,
+        productionMinute: mm,
+      })
     );
   }, [props.config, props.initialRow, props.open, props.users]);
 

@@ -247,9 +247,21 @@ function EntryDialog(props: {
 
   useEffect(() => {
     if (!props.open) return;
-    setEntry(
-      props.initial?.data || createEmptyPestControlEntry(props.users, new Date().toISOString().slice(0, 10))
-    );
+    if (props.initial?.data) {
+      setEntry(props.initial.data);
+      return;
+    }
+    // A7 — auto-fill current HH:MM для новой записи. Шаг select'а минут =
+    // 5, поэтому округляем; юзер всегда может сбросить через "--".
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String((Math.round(now.getMinutes() / 5) * 5) % 60).padStart(2, "0");
+    setEntry({
+      ...createEmptyPestControlEntry(props.users, new Date().toISOString().slice(0, 10)),
+      timeSpecified: true,
+      performedHour: hh,
+      performedMinute: mm,
+    });
   }, [props.initial, props.open, props.users]);
 
   const employeeOptions = getPestControlUsersForRole(props.users, entry.acceptedRole);
