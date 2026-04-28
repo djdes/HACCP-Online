@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/integration-crypto";
 import { getAdapter } from "@/lib/tasksflow-adapters";
@@ -127,6 +128,53 @@ export async function POST(request: Request) {
   }
 
   const todayKey = toDateKey(new Date());
+
+  // Idempotency: TasksFlow при сетевых сбоях / таймаутах может сделать
+  // несколько retry-вызовов с тем же payload. Адаптеры с append-семантикой
+  // (acceptance/complaint/accident/breakdown/ppe/staff-training/traceability/
+  // metal-impurity/disinfectant/glass-list/audit-report) на каждый вызов
+  // создают НОВУЮ строку — это даёт дубли в журнале.
+  //
+  // Дедуп через AuditLog без schema change: считаем sha256 от
+  // (integrationId | taskId | isCompleted | stableJSON(values) | todayKey).
+  // Если такой entityId уже записан в `tasksflow_complete_event` за
+  // последний час — это retry, отвечаем кэшированным результатом
+  // и НЕ применяем повторно. Если payload отличается (юзер
+  // отредактировал данные) — хэш другой, обработка идёт штатно.
+  const eventId = createHash("sha256")
+    .update(
+      [
+        integration.id,
+        payload.taskId,
+        payload.isCompleted ? "1" : "0",
+        stableStringify(sanitized),
+        todayKey,
+      ].join("\0"),
+    )
+    .digest("hex");
+
+  const sinceHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const dedup = await db.auditLog.findFirst({
+    where: {
+      entity: "tasksflow_complete_event",
+      entityId: eventId,
+      createdAt: { gte: sinceHourAgo },
+    },
+    select: { details: true },
+  });
+  if (dedup) {
+    const cached =
+      dedup.details && typeof dedup.details === "object"
+        ? (dedup.details as Record<string, unknown>)
+        : {};
+    return NextResponse.json({
+      ok: true,
+      applied: Boolean(cached.applied),
+      todayKey,
+      deduped: true,
+    });
+  }
+
   const changed = await adapter.applyRemoteCompletion({
     documentId: link.journalDocumentId,
     rowKey: link.rowKey,
@@ -144,7 +192,40 @@ export async function POST(request: Request) {
     },
   });
 
+  // Записываем audit AFTER успешной apply — иначе при ошибке adapter'а
+  // следующий retry сразу dedupнется и журнал останется без записи.
+  await db.auditLog.create({
+    data: {
+      organizationId: integration.organizationId,
+      action: "tasksflow_complete",
+      entity: "tasksflow_complete_event",
+      entityId: eventId,
+      details: {
+        taskId: payload.taskId,
+        isCompleted: payload.isCompleted,
+        journalCode: link.journalCode,
+        rowKey: link.rowKey,
+        applied: changed,
+        todayKey,
+      },
+    },
+  });
+
   return NextResponse.json({ ok: true, applied: changed, todayKey });
+}
+
+/** Stable JSON for hashing — keys sorted, undefined skipped, null preserved. */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value ?? null);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
 }
 
 /** Best-effort narrow of unknown values to the shape adapters expect. */
