@@ -62,7 +62,23 @@ export function JournalPeriodsClient({ initial }: { initial: Item[] }) {
         toast.error(d?.error ?? "Не удалось сохранить");
         return;
       }
-      toast.success("Сохранено");
+      const data = (await res.json().catch(() => ({}))) as {
+        applied?: Array<{ code: string; action: string }>;
+      };
+      const updatedEmpty = (data.applied ?? []).filter(
+        (a) => a.action === "updated_empty"
+      ).length;
+      const skipped = (data.applied ?? []).filter(
+        (a) => a.action === "skipped_has_entries"
+      ).length;
+      let msg = "Сохранено";
+      if (updatedEmpty > 0) {
+        msg += ` · переcreate без потерь: ${updatedEmpty}`;
+      }
+      if (skipped > 0) {
+        msg += ` · с записями (применится со следующего цикла): ${skipped}`;
+      }
+      toast.success(msg);
       router.refresh();
     } finally {
       setSaving(false);

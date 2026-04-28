@@ -5,6 +5,7 @@ import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   parseJournalPeriodsJson,
+  resolveJournalPeriod,
   type JournalPeriodOverrideMap,
 } from "@/lib/journal-period";
 
@@ -88,11 +89,92 @@ export async function PUT(request: Request) {
     }
   }
 
+  // Сохраняем старую map чтобы понять какие коды реально изменились —
+  // только для них имеет смысл проверять активные документы.
+  const beforeOrg = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { journalPeriods: true },
+  });
+  const beforeMap = parseJournalPeriodsJson(beforeOrg?.journalPeriods ?? null);
+
   const map: JournalPeriodOverrideMap = body.periods;
   await db.organization.update({
     where: { id: orgId },
     data: { journalPeriods: map },
   });
 
-  return NextResponse.json({ ok: true, periods: map });
+  // «При первой возможности» — пробегаем по template'ам, у которых
+  // запись изменилась (kind/days). Для каждой:
+  //   • Если активного документа нет — пропускаем (cron auto-create
+  //     создаст по новой настройке).
+  //   • Если активный документ ПУСТОЙ (нет JournalDocumentEntry) —
+  //     обновляем dateFrom/dateTo и title сразу. Безопасно, потому что
+  //     заполнений нет.
+  //   • Если активный с записями — НЕ трогаем (потеряли бы данные).
+  //     Документ доживёт свой цикл, следующий создастся по новой настройке.
+  const now = new Date();
+  const allCodes = new Set([...Object.keys(beforeMap), ...Object.keys(map)]);
+  const result: Array<{
+    code: string;
+    action: "updated_empty" | "skipped_has_entries" | "no_active" | "no_change";
+  }> = [];
+
+  for (const code of allCodes) {
+    const beforeKey = JSON.stringify(beforeMap[code] ?? null);
+    const afterKey = JSON.stringify(map[code] ?? null);
+    if (beforeKey === afterKey) continue;
+
+    const tpl = await db.journalTemplate.findFirst({
+      where: { code, isActive: true },
+      select: { id: true, name: true },
+    });
+    if (!tpl) continue;
+
+    const active = await db.journalDocument.findFirst({
+      where: {
+        organizationId: orgId,
+        templateId: tpl.id,
+        status: "active",
+        dateFrom: { lte: now },
+        dateTo: { gte: now },
+      },
+      select: {
+        id: true,
+        dateFrom: true,
+        dateTo: true,
+        _count: { select: { entries: true } },
+      },
+    });
+    if (!active) {
+      result.push({ code, action: "no_active" });
+      continue;
+    }
+
+    const period = resolveJournalPeriod(code, now, map);
+    const sameRange =
+      period.dateFrom.getTime() === active.dateFrom.getTime() &&
+      period.dateTo.getTime() === active.dateTo.getTime();
+    if (sameRange) {
+      result.push({ code, action: "no_change" });
+      continue;
+    }
+
+    if (active._count.entries > 0) {
+      result.push({ code, action: "skipped_has_entries" });
+      continue;
+    }
+
+    // Пустой документ — обновляем под новые даты сразу.
+    await db.journalDocument.update({
+      where: { id: active.id },
+      data: {
+        dateFrom: period.dateFrom,
+        dateTo: period.dateTo,
+        title: `${tpl.name} · ${period.label}`,
+      },
+    });
+    result.push({ code, action: "updated_empty" });
+  }
+
+  return NextResponse.json({ ok: true, periods: map, applied: result });
 }
