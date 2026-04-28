@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import { QrCode } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
 
+/**
+ * Расшифровка содержимого QR-кода → путь внутри Mini App.
+ *
+ * Поддерживает несколько форматов наклеек:
+ *  - Полный URL `https://wesetup.ru/mini/...` — вырезаем pathname+search.
+ *  - Короткий URL `https://wesetup.ru/qr/<slug>` — парсим slug:
+ *      • `cold-<n>`        → температурный журнал, query ?cold=<n>;
+ *      • `eq-<uuid|num>`   → /mini/equipment?q=<uuid|num>;
+ *      • `journal-<code>`  → /mini/journals/<code>;
+ *      • остальное         → /mini/journals?qr=<slug> (let caller deal).
+ *  - Просто journal-код (`general_cleaning`) — открыть журнал.
+ *  - UUID / число (вероятно equipment ID) — открыть карточку оборудования.
+ */
 function resolveQrDestination(text: string): string | null {
   const trimmed = text.trim();
 
@@ -16,10 +29,31 @@ function resolveQrDestination(text: string): string | null {
         return url.pathname + url.search;
       }
     } catch {
-      // Not a full URL — try path-only
       const idx = trimmed.indexOf("/mini/");
       if (idx >= 0) return trimmed.slice(idx);
     }
+  }
+
+  // Wesetup short QR link: https://wesetup.ru/qr/<slug>
+  // Хост/протокол необязательны — парсим даже если на наклейке без https.
+  const qrMatch = trimmed.match(/(?:https?:\/\/[^/]+)?\/qr\/([^?\s]+)/i);
+  if (qrMatch?.[1]) {
+    const slug = qrMatch[1];
+    if (/^cold-\d+$/i.test(slug)) {
+      const num = slug.split("-")[1];
+      return `/mini/journals/cold_equipment_control?cold=${encodeURIComponent(num)}`;
+    }
+    if (/^eq-[0-9a-f-]+$/i.test(slug)) {
+      return `/mini/equipment?q=${encodeURIComponent(slug.slice(3))}`;
+    }
+    if (/^journal-[a-z_]+$/i.test(slug)) {
+      return `/mini/journals/${slug.slice(8)}`;
+    }
+    // Generic fallback — кидаем slug в /mini/journals как ?qr=, пусть
+    // дальше journal-список сам решит что показать (или сделает empty
+    // state). Без этого QR с неизвестным slug просто молча игнорируется,
+    // что хуже чем зайти на список.
+    return `/mini/journals?qr=${encodeURIComponent(slug)}`;
   }
 
   // Journal code (e.g. "general_cleaning", "hygiene")
@@ -34,6 +68,9 @@ function resolveQrDestination(text: string): string | null {
 
   return null;
 }
+
+/** Exposed for unit tests — pure function, без DOM. */
+export const __resolveQrDestinationForTests = resolveQrDestination;
 
 export function QrScannerButton() {
   const router = useRouter();
