@@ -18,6 +18,7 @@ import { QrScannerButton } from "./_components/qr-scanner";
 import { GeoReminder } from "./_components/geo-reminder";
 import { MiniHomeSkeleton } from "./_components/mini-home-skeleton";
 import { PullToRefresh } from "./_components/pull-to-refresh";
+import { MyShiftButton } from "./_components/my-shift-button";
 
 type LocalState =
   | { kind: "init" }
@@ -355,6 +356,11 @@ export default function MiniHomePage() {
       {home.areas && home.areas.length > 0 ? (
         <GeoReminder areas={home.areas} />
       ) : null}
+
+      {/* «Я вышел / закончил смену» — self-service для линейного
+          сотрудника. Manager-режим тоже видит кнопку: иногда
+          руководитель сам подменяет смену, и ему нужно открыть/закрыть. */}
+      {!isReadonly ? <MyShiftButton /> : null}
 
       {isReadonly ? (
         <section
