@@ -22,7 +22,7 @@ import {
   Wifi,
   XCircle,
 } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
   if (!hasFullWorkspaceAccess(session.user)) {
     redirect("/journals");
   }
-  const organizationId = session.user.organizationId;
+  const organizationId = getActiveOrgId(session);
 
   const now = new Date();
   // UTC-midnight — matches how `JournalDocumentEntry.date` is stored

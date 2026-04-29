@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, Plus } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 const STATUS_INFO: Record<string, { label: string; className: string }> = {
@@ -36,7 +36,7 @@ export default async function BatchesPage({
   const now = new Date();
 
   const where: Record<string, unknown> = {
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
   };
   if (filters.status && filters.status !== "all") {
     where.status = filters.status;
@@ -47,19 +47,19 @@ export default async function BatchesPage({
     Promise.all([
       db.batch.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           status: "received",
         },
       }),
       db.batch.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           status: "in_production",
         },
       }),
       db.batch.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           expiryDate: {
             lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
           },

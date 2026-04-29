@@ -1,5 +1,5 @@
 import { GraduationCap } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { CompetencyCell } from "@/components/competencies/competency-cell";
 
@@ -22,7 +22,7 @@ const LEVEL_LABELS = ["Не обучен", "Базовый", "Средний", "
 
 export default async function CompetenciesPage() {
   const session = await requireAuth();
-  const orgId = session.user.organizationId;
+  const orgId = getActiveOrgId(session);
 
   const [users, competencies] = await Promise.all([
     db.user.findMany({

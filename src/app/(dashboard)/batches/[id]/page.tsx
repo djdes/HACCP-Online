@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Package } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,14 +35,14 @@ export default async function BatchDetailPage({
   const session = await requireAuth();
 
   const batch = await db.batch.findUnique({ where: { id } });
-  if (!batch || batch.organizationId !== session.user.organizationId) {
+  if (!batch || batch.organizationId !== getActiveOrgId(session)) {
     notFound();
   }
 
   // Find related journal entries
   const relatedEntries = await db.journalEntry.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       data: { path: ["batchCode"], equals: batch.code },
     },
     include: {

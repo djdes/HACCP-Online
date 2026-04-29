@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 type PlanItem = {
@@ -40,7 +40,7 @@ export default async function PlansPage() {
 
   const plans = await db.productionPlan.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       date: { gte: weekStart, lte: weekEnd },
     },
     orderBy: { date: "asc" },

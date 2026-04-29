@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ export default async function CapaDetailPage({
   const session = await requireAuth();
 
   const ticket = await db.capaTicket.findUnique({ where: { id } });
-  if (!ticket || ticket.organizationId !== session.user.organizationId) {
+  if (!ticket || ticket.organizationId !== getActiveOrgId(session)) {
     notFound();
   }
 

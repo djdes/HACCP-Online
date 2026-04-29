@@ -1316,7 +1316,7 @@ export default async function JournalDocumentsPage({
   // turned this journal off, we shouldn't silently 404 — point the user
   // at the setting instead so they can re-enable it.
   const orgSettings = await db.organization.findUnique({
-    where: { id: session.user.organizationId },
+    where: { id: getActiveOrgId(session) },
     select: { disabledJournalCodes: true },
   });
   const disabledCodes = Array.isArray(orgSettings?.disabledJournalCodes)
@@ -1346,14 +1346,14 @@ export default async function JournalDocumentsPage({
 
   const orgUsers = await db.user.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
   const todaySummary = await getTemplateTodaySummary(
-    session.user.organizationId,
+    getActiveOrgId(session),
     template.id,
     template.code
   );
@@ -1384,7 +1384,7 @@ export default async function JournalDocumentsPage({
 
   await normalizeDemoJournalSampleCorpus({
     templateId: template.id,
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
     enabled: shouldNormalizeDemoSamples,
   });
 
@@ -1394,7 +1394,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples) {
       await ensureStaffJournalSampleDocuments({
         templateCode: resolvedCode,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         users: orgUsers,
         createdById: session.user.id,
@@ -1403,7 +1403,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1457,7 +1457,7 @@ export default async function JournalDocumentsPage({
     const scanConfig = getScanJournalConfig(resolvedCode);
     await ensureScanOnlySampleDocuments({
       templateId: template.id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       createdById: session.user.id,
       title: scanConfig?.title || template.name,
       defaultResponsibleTitle: scanConfig?.defaultResponsibleTitle || null,
@@ -1466,7 +1466,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1505,7 +1505,7 @@ export default async function JournalDocumentsPage({
     // Auto-seed one active sample document if none exist (demo org only)
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -1515,7 +1515,7 @@ export default async function JournalDocumentsPage({
       const doc = await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: MED_BOOK_DOCUMENT_TITLE,
           status: "active",
           dateFrom: now,
@@ -1579,7 +1579,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -1592,7 +1592,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: MED_BOOK_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: closedFrom,
@@ -1606,7 +1606,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1631,7 +1631,7 @@ export default async function JournalDocumentsPage({
   if (shouldNormalizeDemoSamples && resolvedCode === PERISHABLE_REJECTION_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -1646,7 +1646,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
           status: "active",
           dateFrom,
@@ -1661,7 +1661,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -1674,7 +1674,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: closedFrom,
@@ -1687,7 +1687,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1715,7 +1715,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -1723,14 +1723,14 @@ export default async function JournalDocumentsPage({
     if (existingCount === 0) {
       const [areas, equipment, products] = await Promise.all([
         db.area.findMany({
-          where: { organizationId: session.user.organizationId },
+          where: { organizationId: getActiveOrgId(session) },
           select: { name: true },
           orderBy: { name: "asc" },
         }),
         db.equipment.findMany({
           where: {
             area: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
             },
           },
           select: { name: true },
@@ -1738,7 +1738,7 @@ export default async function JournalDocumentsPage({
           take: 10,
         }),
         db.product.findMany({
-          where: { organizationId: session.user.organizationId, isActive: true },
+          where: { organizationId: getActiveOrgId(session), isActive: true },
           select: { name: true },
           orderBy: { name: "asc" },
           take: 10,
@@ -1756,7 +1756,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: glassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
           status: "active",
           dateFrom: new Date(glassListConfig.documentDate),
@@ -1773,7 +1773,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -1784,14 +1784,14 @@ export default async function JournalDocumentsPage({
     if (!glassListStatuses.has("closed")) {
       const [areas, equipment, products] = await Promise.all([
         db.area.findMany({
-          where: { organizationId: session.user.organizationId },
+          where: { organizationId: getActiveOrgId(session) },
           select: { name: true },
           orderBy: { name: "asc" },
         }),
         db.equipment.findMany({
           where: {
             area: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
             },
           },
           select: { name: true },
@@ -1799,7 +1799,7 @@ export default async function JournalDocumentsPage({
           take: 10,
         }),
         db.product.findMany({
-          where: { organizationId: session.user.organizationId, isActive: true },
+          where: { organizationId: getActiveOrgId(session), isActive: true },
           select: { name: true },
           orderBy: { name: "asc" },
           take: 10,
@@ -1817,7 +1817,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: closedGlassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: new Date(closedGlassListConfig.documentDate),
@@ -1832,7 +1832,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1866,7 +1866,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples) {
       await ensureGlassControlSampleDocuments({
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdById: session.user.id,
         users: orgUsers,
       });
@@ -1874,7 +1874,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1904,7 +1904,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -1923,7 +1923,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: STAFF_TRAINING_DOCUMENT_TITLE,
           status: "active",
           dateFrom,
@@ -1941,7 +1941,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -1955,7 +1955,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: STAFF_TRAINING_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
@@ -1971,7 +1971,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -1999,7 +1999,7 @@ export default async function JournalDocumentsPage({
   if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -2021,7 +2021,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
           status: "active",
           dateFrom: new Date(Date.UTC(year, 0, 1)),
@@ -2036,7 +2036,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -2061,7 +2061,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
@@ -2076,7 +2076,7 @@ export default async function JournalDocumentsPage({
       (
         await db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: { status: true },
@@ -2089,7 +2089,7 @@ export default async function JournalDocumentsPage({
       const equipmentSource = await db.equipment.findMany({
         where: {
           area: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
         },
         select: {
@@ -2117,7 +2117,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
           status: "closed",
           dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
@@ -2130,7 +2130,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -2157,7 +2157,7 @@ export default async function JournalDocumentsPage({
   if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
     const existingCount = await db.journalDocument.count({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
       },
     });
@@ -2167,7 +2167,7 @@ export default async function JournalDocumentsPage({
       const equipmentSource = await db.equipment.findMany({
         where: {
           area: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
         },
         select: {
@@ -2195,7 +2195,7 @@ export default async function JournalDocumentsPage({
       await db.journalDocument.create({
         data: {
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
           status: "active",
           dateFrom: new Date(Date.UTC(year, 0, 1)),
@@ -2208,7 +2208,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -2243,7 +2243,7 @@ export default async function JournalDocumentsPage({
       await ensureSourceStyleTrackedSampleDocuments({
         templateCode: resolvedCode,
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         users: orgUsers,
         createdById: session.user.id,
         templateFields: parsedTemplateFields,
@@ -2257,7 +2257,7 @@ export default async function JournalDocumentsPage({
     ) {
       const existingBasicDocumentCount = await db.journalDocument.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
         },
       });
@@ -2270,7 +2270,7 @@ export default async function JournalDocumentsPage({
                 await db.equipment.findMany({
                   where: {
                     area: {
-                      organizationId: session.user.organizationId,
+                      organizationId: getActiveOrgId(session),
                     },
                   },
                   select: {
@@ -2292,7 +2292,7 @@ export default async function JournalDocumentsPage({
           data: [
             {
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: getJournalDocumentDefaultTitle(resolvedCode),
               status: "active",
               dateFrom: activeFrom,
@@ -2313,7 +2313,7 @@ export default async function JournalDocumentsPage({
             },
             {
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: getJournalDocumentDefaultTitle(resolvedCode),
               status: "closed",
               dateFrom: closedFrom,
@@ -2340,7 +2340,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
       const existingCleaningCount = await db.journalDocument.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
         },
       });
@@ -2349,7 +2349,7 @@ export default async function JournalDocumentsPage({
         const period = getCleaningCreatePeriodBounds();
         const cleaningAreas = await db.area.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             id: true,
@@ -2369,7 +2369,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getJournalDocumentDefaultTitle(resolvedCode),
             status: "active",
             dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
@@ -2389,7 +2389,7 @@ export default async function JournalDocumentsPage({
         (
           await db.journalDocument.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               templateId: template.id,
             },
             select: { status: true },
@@ -2403,7 +2403,7 @@ export default async function JournalDocumentsPage({
         const period = getCleaningCreatePeriodBounds(closedReferenceDate);
         const cleaningAreas = await db.area.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             id: true,
@@ -2423,7 +2423,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getJournalDocumentDefaultTitle(resolvedCode),
             status: "closed",
             dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
@@ -2440,7 +2440,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
       const existingDocument = await db.journalDocument.findFirst({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
         },
         orderBy: { dateFrom: "asc" },
@@ -2453,7 +2453,7 @@ export default async function JournalDocumentsPage({
           data: [
             {
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: seed.active.title,
               status: "active",
               dateFrom: seed.active.dateFrom,
@@ -2462,7 +2462,7 @@ export default async function JournalDocumentsPage({
             },
             ...seed.closed.map((item) => ({
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: item.title,
               status: "closed" as const,
               dateFrom: item.dateFrom,
@@ -2477,7 +2477,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE) {
       await ensureTraceabilitySampleDocuments({
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdById: session.user.id,
         users: orgUsers,
       });
@@ -2486,7 +2486,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
       await ensureIntensiveCoolingSampleDocuments({
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdById: session.user.id,
         users: orgUsers,
       });
@@ -2496,7 +2496,7 @@ export default async function JournalDocumentsPage({
       const [products, batches, existingDocuments] = await Promise.all([
         db.product.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: { name: true },
@@ -2504,7 +2504,7 @@ export default async function JournalDocumentsPage({
         }),
         db.batch.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             code: true,
@@ -2519,7 +2519,7 @@ export default async function JournalDocumentsPage({
         }),
         db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           select: {
@@ -2535,7 +2535,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
             status: "active",
             dateFrom: sampleDate,
@@ -2564,7 +2564,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: sampleDate,
@@ -2579,7 +2579,7 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
       await ensurePestControlSampleDocuments({
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdById: session.user.id,
         users: orgUsers,
       });
@@ -2587,7 +2587,7 @@ export default async function JournalDocumentsPage({
 
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -2597,7 +2597,7 @@ export default async function JournalDocumentsPage({
     if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
       const products = await db.product.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           isActive: true,
         },
         select: { name: true },
@@ -2665,14 +2665,14 @@ export default async function JournalDocumentsPage({
     if (shouldNormalizeDemoSamples && resolvedCode === SANITATION_DAY_TEMPLATE_CODE) {
       await ensureSanitationDaySampleDocuments({
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdById: session.user.id,
         users: orgUsers,
       });
 
       const sanitationDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -2705,7 +2705,7 @@ export default async function JournalDocumentsPage({
 
     if (resolvedCode === DISINFECTANT_TEMPLATE_CODE) {
       const existingDis = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
       const disStatuses = new Set(existingDis.map((d) => d.status));
@@ -2734,7 +2734,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: DISINFECTANT_DOCUMENT_TITLE,
             status: "active",
             dateFrom: now,
@@ -2751,7 +2751,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: DISINFECTANT_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: closedFrom,
@@ -2766,7 +2766,7 @@ export default async function JournalDocumentsPage({
 
       const disDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -2791,7 +2791,7 @@ export default async function JournalDocumentsPage({
 
     if (shouldNormalizeDemoSamples && resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
       const existingTP = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
 
@@ -2806,7 +2806,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${now.getUTCFullYear()}`,
             status: "active",
             dateFrom: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
@@ -2827,7 +2827,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${previousYear.getUTCFullYear()}`,
             status: "closed",
             dateFrom: previousYear,
@@ -2842,7 +2842,7 @@ export default async function JournalDocumentsPage({
 
       const tpDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -2869,7 +2869,7 @@ export default async function JournalDocumentsPage({
 
     if (shouldNormalizeDemoSamples && resolvedCode === AUDIT_PLAN_TEMPLATE_CODE) {
       const existingAuditPlans = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
       const auditPlanStatuses = new Set(existingAuditPlans.map((document) => document.status));
@@ -2883,7 +2883,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: AUDIT_PLAN_DOCUMENT_TITLE,
             status: "active",
             dateFrom: new Date(defaultConfig.documentDate),
@@ -2901,7 +2901,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: AUDIT_PLAN_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: new Date("2025-01-15T00:00:00.000Z"),
@@ -2914,7 +2914,7 @@ export default async function JournalDocumentsPage({
 
       const auditPlanDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -2945,7 +2945,7 @@ export default async function JournalDocumentsPage({
     if (resolvedCode === EQUIPMENT_CLEANING_TEMPLATE_CODE) {
       const existingEquipmentCleaningCount = await db.journalDocument.count({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
         },
       });
@@ -2956,7 +2956,7 @@ export default async function JournalDocumentsPage({
           data: [
             {
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: getEquipmentCleaningDocumentTitle(),
               status: "active",
               dateFrom: activeFrom,
@@ -2966,7 +2966,7 @@ export default async function JournalDocumentsPage({
             },
             {
               templateId: template.id,
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               title: getEquipmentCleaningDocumentTitle(),
               status: "closed",
               dateFrom: closedFrom,
@@ -2980,7 +2980,7 @@ export default async function JournalDocumentsPage({
 
       const equipmentCleaningDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3012,14 +3012,14 @@ export default async function JournalDocumentsPage({
       const [allMetalDocuments, metalUsers, metalProducts, metalSuppliers] = await Promise.all([
         db.journalDocument.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             templateId: template.id,
           },
           orderBy: { createdAt: "asc" },
         }),
         db.user.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: { id: true, name: true, role: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
@@ -3027,7 +3027,7 @@ export default async function JournalDocumentsPage({
         }),
         db.product.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: { name: true },
@@ -3036,7 +3036,7 @@ export default async function JournalDocumentsPage({
         }),
         db.batch.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             supplier: { not: null },
           },
           select: { supplier: true },
@@ -3068,7 +3068,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: METAL_IMPURITY_DOCUMENT_TITLE,
             status: "active",
             dateFrom: new Date(config.startDate),
@@ -3097,7 +3097,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: METAL_IMPURITY_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: new Date(config.startDate),
@@ -3114,7 +3114,7 @@ export default async function JournalDocumentsPage({
         ? allMetalDocuments.filter((document) => document.status === activeTab)
         : await db.journalDocument.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               templateId: template.id,
               status: activeTab,
             },
@@ -3144,14 +3144,14 @@ export default async function JournalDocumentsPage({
         await Promise.all([
           db.journalDocument.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               templateId: template.id,
             },
             orderBy: { createdAt: "asc" },
           }),
           db.user.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               isActive: true,
             },
             select: { id: true, name: true, role: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
@@ -3159,7 +3159,7 @@ export default async function JournalDocumentsPage({
           }),
           db.product.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               isActive: true,
             },
             select: { name: true },
@@ -3168,7 +3168,7 @@ export default async function JournalDocumentsPage({
           }),
           db.batch.findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
               supplier: { not: null },
             },
             select: { supplier: true },
@@ -3202,7 +3202,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getAcceptanceDocumentTitle(resolvedCode),
             status: "active",
             dateFrom: new Date("2025-03-01"),
@@ -3230,7 +3230,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getAcceptanceDocumentTitle(resolvedCode),
             status: "closed",
             dateFrom: new Date("2025-02-01"),
@@ -3248,7 +3248,7 @@ export default async function JournalDocumentsPage({
           ? allAcceptanceDocuments.filter((document) => document.status === activeTab)
           : await db.journalDocument.findMany({
               where: {
-                organizationId: session.user.organizationId,
+                organizationId: getActiveOrgId(session),
                 templateId: template.id,
                 status: activeTab,
               },
@@ -3277,7 +3277,7 @@ export default async function JournalDocumentsPage({
 
     if (shouldNormalizeDemoSamples && resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
       const existingBH = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
       const bhStatuses = new Set(existingBH.map((d) => d.status));
@@ -3285,7 +3285,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
             status: "active",
             dateFrom: new Date("2021-10-28"),
@@ -3299,7 +3299,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: new Date("2021-09-28"),
@@ -3312,7 +3312,7 @@ export default async function JournalDocumentsPage({
 
       const bhDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3337,7 +3337,7 @@ export default async function JournalDocumentsPage({
 
     if (shouldNormalizeDemoSamples && resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
       const existingAccidentDocuments = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
       const accidentStatuses = new Set(existingAccidentDocuments.map((d) => d.status));
@@ -3345,7 +3345,7 @@ export default async function JournalDocumentsPage({
       if (!accidentStatuses.has("active")) {
         const areaNames = (
           await db.area.findMany({
-            where: { organizationId: session.user.organizationId },
+            where: { organizationId: getActiveOrgId(session) },
             select: { name: true },
             orderBy: { name: "asc" },
           })
@@ -3354,7 +3354,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: ACCIDENT_DOCUMENT_TITLE,
             status: "active",
             dateFrom: new Date("2021-10-01"),
@@ -3370,7 +3370,7 @@ export default async function JournalDocumentsPage({
       if (!accidentStatuses.has("closed")) {
         const areaNames = (
           await db.area.findMany({
-            where: { organizationId: session.user.organizationId },
+            where: { organizationId: getActiveOrgId(session) },
             select: { name: true },
             orderBy: { name: "asc" },
           })
@@ -3379,7 +3379,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: ACCIDENT_DOCUMENT_TITLE,
             status: "closed",
             dateFrom: new Date("2021-09-01"),
@@ -3395,7 +3395,7 @@ export default async function JournalDocumentsPage({
 
       const accidentDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3421,7 +3421,7 @@ export default async function JournalDocumentsPage({
       if (shouldNormalizeDemoSamples) {
         await ensurePpeIssuanceSampleDocuments({
           templateId: template.id,
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           createdById: session.user.id,
           users: orgUsers,
         });
@@ -3429,7 +3429,7 @@ export default async function JournalDocumentsPage({
 
       const ppeDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3455,7 +3455,7 @@ export default async function JournalDocumentsPage({
 
     if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE) {
       const existingChecklistDocuments = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         orderBy: { dateFrom: "desc" },
       });
 
@@ -3466,7 +3466,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: CLEANING_VENTILATION_CHECKLIST_TITLE,
             status: "active",
             dateFrom: new Date(activeDateFrom),
@@ -3485,7 +3485,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: CLEANING_VENTILATION_CHECKLIST_TITLE,
             status: "closed",
             dateFrom: new Date(closedDateFrom),
@@ -3498,7 +3498,7 @@ export default async function JournalDocumentsPage({
 
       const checklistDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3527,7 +3527,7 @@ export default async function JournalDocumentsPage({
 
     if (isSanitaryDayChecklistTemplate(resolvedCode)) {
       const existingSdc = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: session.user.organizationId },
+        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
         select: { status: true },
       });
 
@@ -3536,7 +3536,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getSanitaryDayChecklistTitle(resolvedCode),
             status: "active",
             dateFrom: today,
@@ -3553,7 +3553,7 @@ export default async function JournalDocumentsPage({
         await db.journalDocument.create({
           data: {
             templateId: template.id,
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             title: getSanitaryDayChecklistTitle(resolvedCode),
             status: "closed",
             dateFrom: closedFrom,
@@ -3566,7 +3566,7 @@ export default async function JournalDocumentsPage({
 
       const sdcDocuments = await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
         },
@@ -3770,7 +3770,7 @@ export default async function JournalDocumentsPage({
   if (resolvedCode === COMPLAINT_REGISTER_TEMPLATE_CODE) {
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -3795,7 +3795,7 @@ export default async function JournalDocumentsPage({
   if (resolvedCode === AUDIT_PROTOCOL_TEMPLATE_CODE) {
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -3820,7 +3820,7 @@ export default async function JournalDocumentsPage({
   if (resolvedCode === AUDIT_REPORT_TEMPLATE_CODE) {
     const documents = await db.journalDocument.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
       },
@@ -3844,7 +3844,7 @@ export default async function JournalDocumentsPage({
 
   const entries = await db.journalEntry.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       templateId: template.id,
     },
     orderBy: { createdAt: "desc" },

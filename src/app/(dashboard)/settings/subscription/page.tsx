@@ -1,5 +1,5 @@
 import { Coins, Users } from "lucide-react";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireRole, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { SubscriptionManager } from "@/components/settings/subscription-manager";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
@@ -8,7 +8,7 @@ export default async function SubscriptionPage() {
   const session = await requireRole(["owner"]);
 
   const org = await db.organization.findUnique({
-    where: { id: session.user.organizationId },
+    where: { id: getActiveOrgId(session) },
     select: {
       subscriptionPlan: true,
       subscriptionEnd: true,

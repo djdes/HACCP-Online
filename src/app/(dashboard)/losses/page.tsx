@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, TrendingDown } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -16,7 +16,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default async function LossesPage() {
   const session = await requireAuth();
-  const orgId = session.user.organizationId;
+  const orgId = getActiveOrgId(session);
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

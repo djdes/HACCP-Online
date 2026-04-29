@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
  *
  * Пример:
  *   await audit({
- *     orgId: session.user.organizationId,
+ *     orgId: getActiveOrgId(session),
  *     action: "user.role_changed",
  *     entity: "user",
  *     entityId: userId,

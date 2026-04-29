@@ -1,4 +1,4 @@
-import { isImpersonating, requireAuth } from "@/lib/auth-helpers";
+import { isImpersonating, requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { AuthSessionProvider } from "@/components/layout/session-provider";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
@@ -32,7 +32,7 @@ export default async function DashboardLayout({
   const activeOrgId =
     isImpersonating(session) && session.user.actingAsOrganizationId
       ? session.user.actingAsOrganizationId
-      : session.user.organizationId;
+      : getActiveOrgId(session);
 
   const [impersonatedOrg, profile, brandedOrg] = await Promise.all([
     isImpersonating(session) && session.user.actingAsOrganizationId

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiTokenManager } from "./api-token-manager";
@@ -12,7 +12,7 @@ export default async function ExternalApiSettingsPage() {
   const session = await requireAuth();
   if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
   const org = await db.organization.findUnique({
-    where: { id: session.user.organizationId },
+    where: { id: getActiveOrgId(session) },
     select: { name: true, externalApiToken: true },
   });
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, User, MapPin, Wrench, Clock, Wifi, CheckCircle2, XCircle } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { EntryApprovalActions } from "@/components/journals/entry-approval";
@@ -109,7 +109,7 @@ export default async function EntryDetailPage({
     },
   });
 
-  if (!entry || entry.organizationId !== session.user.organizationId) {
+  if (!entry || entry.organizationId !== getActiveOrgId(session)) {
     notFound();
   }
 

@@ -52,7 +52,7 @@ export default async function ReportsPage() {
       select: { id: true, code: true, name: true },
     }),
     db.area.findMany({
-      where: { organizationId: session.user.organizationId },
+      where: { organizationId: getActiveOrgId(session) },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

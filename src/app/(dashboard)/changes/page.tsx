@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { GitBranch, Plus } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 const STATUS_INFO: Record<string, { label: string; className: string }> = {
@@ -24,7 +24,7 @@ export default async function ChangesPage() {
   const session = await requireAuth();
 
   const changes = await db.changeRequest.findMany({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: getActiveOrgId(session) },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

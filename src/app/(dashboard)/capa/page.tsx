@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Clock, Plus } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { CapaAutoDetectButton } from "@/components/capa/auto-detect-button";
 
@@ -45,7 +45,7 @@ export default async function CapaPage() {
 
   const tickets: Awaited<ReturnType<typeof db.capaTicket.findMany>> =
     await db.capaTicket.findMany({
-      where: { organizationId: session.user.organizationId },
+      where: { organizationId: getActiveOrgId(session) },
       orderBy: [{ createdAt: "desc" }],
       take: 200,
     });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, NotebookPen } from "lucide-react";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
@@ -32,7 +32,7 @@ export default async function NewJournalEntryPage({
   // If the manager disabled this journal, don't let users create new
   // entries. Existing ones stay in the DB (reversible via settings).
   const org = await db.organization.findUnique({
-    where: { id: session.user.organizationId },
+    where: { id: getActiveOrgId(session) },
     select: { disabledJournalCodes: true },
   });
   const disabledCodes = Array.isArray(org?.disabledJournalCodes)
@@ -60,13 +60,13 @@ export default async function NewJournalEntryPage({
 
   const [areas, equipment, employees, products] = await Promise.all([
     db.area.findMany({
-      where: { organizationId: session.user.organizationId },
+      where: { organizationId: getActiveOrgId(session) },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     db.equipment.findMany({
       where: {
-        area: { organizationId: session.user.organizationId },
+        area: { organizationId: getActiveOrgId(session) },
       },
       select: {
         id: true,
@@ -80,7 +80,7 @@ export default async function NewJournalEntryPage({
     }),
     db.user.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         isActive: true,
       },
       select: { id: true, name: true },
@@ -88,7 +88,7 @@ export default async function NewJournalEntryPage({
     }),
     db.product.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         isActive: true,
       },
       select: {

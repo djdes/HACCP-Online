@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { TrackedDocumentClient } from "@/components/journals/tracked-document-client";
 import { ScanJournalDocumentClient } from "@/components/journals/scan-journal-document-client";
@@ -212,12 +212,12 @@ export default async function JournalDocumentPage({
         },
       }),
       db.organization.findUnique({
-        where: { id: session.user.organizationId },
+        where: { id: getActiveOrgId(session) },
         select: { name: true, disabledJournalCodes: true },
       }),
       db.user.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           isActive: true,
         },
         select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
@@ -226,7 +226,7 @@ export default async function JournalDocumentPage({
       db.equipment.findMany({
         where: {
           area: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
         },
         select: { id: true, name: true },
@@ -238,7 +238,7 @@ export default async function JournalDocumentPage({
       // to decide whether to auto-poll for completions and whether to
       // render the «Sync from TasksFlow» button.
       db.tasksFlowIntegration.findUnique({
-        where: { organizationId: session.user.organizationId },
+        where: { organizationId: getActiveOrgId(session) },
         select: { enabled: true },
       }),
     ]);
@@ -257,7 +257,7 @@ export default async function JournalDocumentPage({
 
   if (
     !document ||
-    document.organizationId !== session.user.organizationId ||
+    document.organizationId !== getActiveOrgId(session) ||
     document.template.code !== resolvedCode
   ) {
     notFound();
@@ -929,7 +929,7 @@ export default async function JournalDocumentPage({
 
   if (document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE) {
     const buildings = await db.building.findMany({
-      where: { organizationId: session.user.organizationId },
+      where: { organizationId: getActiveOrgId(session) },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
         rooms: {

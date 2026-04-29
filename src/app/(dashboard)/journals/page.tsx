@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
@@ -35,7 +35,7 @@ export default async function JournalsPage() {
       orderBy: { sortOrder: "asc" },
     }),
     db.organization.findUnique({
-      where: { id: session.user.organizationId },
+      where: { id: getActiveOrgId(session) },
       select: { disabledJournalCodes: true },
     }),
   ]);
@@ -51,7 +51,7 @@ export default async function JournalsPage() {
     : templates.filter((t) => !disabledCodes.has(t.code));
 
   const filledTodayIds = await getTemplatesFilledToday(
-    session.user.organizationId,
+    getActiveOrgId(session),
     new Date(),
     visibleTemplates.map((t) => ({ id: t.id, code: t.code })),
     disabledCodes
@@ -64,7 +64,7 @@ export default async function JournalsPage() {
     (
       await db.journalDocument.findMany({
         where: {
-          organizationId: session.user.organizationId,
+          organizationId: getActiveOrgId(session),
           status: "active",
           dateFrom: { lte: new Date() },
           dateTo: { gte: new Date() },
