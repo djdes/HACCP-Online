@@ -37,7 +37,35 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  // Базовая валидация — раньше принимали что угодно, productName=undefined
+  // и quantity=NaN ломали Prisma и UI.
+  const body = await req.json().catch(() => null);
+  if (
+    !body ||
+    typeof body.productName !== "string" ||
+    body.productName.trim().length === 0
+  ) {
+    return NextResponse.json(
+      { error: "productName обязателен" },
+      { status: 400 }
+    );
+  }
+  const quantity = Number(body.quantity);
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    return NextResponse.json(
+      { error: "quantity должен быть положительным числом" },
+      { status: 400 }
+    );
+  }
+  let expiryDate: Date | null = null;
+  if (body.expiryDate) {
+    const d = new Date(body.expiryDate);
+    if (Number.isNaN(d.getTime())) {
+      return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
+    }
+    expiryDate = d;
+  }
+
   const orgId = getActiveOrgId(session);
 
   // Generate batch code: B-YYYYMMDD-NNN
@@ -57,13 +85,17 @@ export async function POST(req: NextRequest) {
     data: {
       code,
       organizationId: orgId,
-      productName: body.productName,
-      supplier: body.supplier || null,
-      quantity: Number(body.quantity),
-      unit: body.unit || "kg",
-      expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
-      sourceEntryId: body.sourceEntryId || null,
-      notes: body.notes || null,
+      productName: body.productName.trim().slice(0, 200),
+      supplier:
+        typeof body.supplier === "string"
+          ? body.supplier.trim().slice(0, 200)
+          : null,
+      quantity,
+      unit: typeof body.unit === "string" ? body.unit.slice(0, 20) : "kg",
+      expiryDate,
+      sourceEntryId:
+        typeof body.sourceEntryId === "string" ? body.sourceEntryId : null,
+      notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : null,
       createdById: session.user.id,
     },
   });

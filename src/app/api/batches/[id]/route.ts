@@ -32,15 +32,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const data: Record<string, unknown> = {};
+
+  // Allowlist для status — иначе UI-фильтры (active/consumed/expired)
+  // ломаются на «yolo»-значениях из прямого fetch'а.
+  const VALID_STATUSES = ["active", "consumed", "expired", "rejected", "quarantine"];
+  if (typeof body.status === "string" && VALID_STATUSES.includes(body.status)) {
+    data.status = body.status;
+  }
+  if (typeof body.productName === "string" && body.productName.trim()) {
+    data.productName = body.productName.trim().slice(0, 200);
+  }
+  if (body.notes !== undefined) {
+    if (body.notes === null) {
+      data.notes = null;
+    } else if (typeof body.notes === "string") {
+      data.notes = body.notes.slice(0, 2000);
+    }
+  }
+  if (body.expiryDate) {
+    const d = new Date(body.expiryDate);
+    if (!Number.isNaN(d.getTime())) {
+      data.expiryDate = d;
+    }
+  }
+
   const updated = await db.batch.update({
     where: { id },
-    data: {
-      ...(body.status && { status: body.status }),
-      ...(body.productName && { productName: body.productName }),
-      ...(body.notes !== undefined && { notes: body.notes }),
-      ...(body.expiryDate && { expiryDate: new Date(body.expiryDate) }),
-    },
+    data,
   });
 
   return NextResponse.json(updated);
