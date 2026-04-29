@@ -321,7 +321,6 @@ export async function runMiniDigestCron(
 }
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const result = await runMiniDigestCron({

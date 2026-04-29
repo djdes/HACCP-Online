@@ -15,7 +15,6 @@ export const dynamic = "force-dynamic";
  * вероятность не дойти до 80%). Дедупликация: один push на org в день.
  */
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const now = new Date();

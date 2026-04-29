@@ -23,7 +23,6 @@ const INACTIVITY_DAYS = 30;
 const PROTECTED_PLANS = ["paused", "cancelled"]; // не двигаем
 
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const cutoff = new Date(

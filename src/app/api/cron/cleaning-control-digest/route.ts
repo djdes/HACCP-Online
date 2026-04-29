@@ -32,7 +32,6 @@ export const dynamic = "force-dynamic";
  * пропускаем.
  */
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const integrations = await db.tasksFlowIntegration.findMany({

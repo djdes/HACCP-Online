@@ -33,7 +33,6 @@ export const dynamic = "force-dynamic";
  * 06:00-22:00 MSK, на /api/cron/shift-watcher.
  */
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const now = new Date();

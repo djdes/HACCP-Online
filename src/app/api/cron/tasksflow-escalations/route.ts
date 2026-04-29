@@ -43,7 +43,6 @@ function readHourThreshold(envKey: string, fallback: number): number {
 }
 
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const l1Hours = readHourThreshold("TASKSFLOW_ESCALATE_L1_HOURS", 24);

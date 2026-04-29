@@ -23,7 +23,6 @@ export const dynamic = "force-dynamic";
  * понедельник 06:00 UTC = 09:00 MSK.
  */
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const orgs = await db.organization.findMany({
