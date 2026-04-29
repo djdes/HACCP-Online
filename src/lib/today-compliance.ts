@@ -151,6 +151,7 @@ async function rollupDocumentForDay(
     where: {
       documentId,
       date: { gte: lookbackStart, lt: todayEnd },
+      NOT: { data: { path: ["_autoSeeded"], equals: true } },
     },
     select: { date: true },
   });
@@ -259,7 +260,11 @@ async function rollupEntryDataDocumentForDay(
       return { todayCount: 0, expectedCount: 0, filled: false };
     }
     const entries = await db.journalDocumentEntry.findMany({
-      where: { documentId, date: { gte: todayStart, lt: todayEnd } },
+      where: {
+        documentId,
+        date: { gte: todayStart, lt: todayEnd },
+        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      },
       select: { data: true },
     });
     const recordedIds = new Set<string>();
@@ -314,7 +319,11 @@ async function rollupEntryDataDocumentForDay(
       return { todayCount: 0, expectedCount: 0, filled: false };
     }
     const entries = await db.journalDocumentEntry.findMany({
-      where: { documentId, date: { gte: todayStart, lt: todayEnd } },
+      where: {
+        documentId,
+        date: { gte: todayStart, lt: todayEnd },
+        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      },
       select: { data: true },
     });
     let todayCount = 0;
@@ -373,7 +382,11 @@ async function rollupEntryDataDocumentForDay(
       return { todayCount: 0, expectedCount: 0, filled: false };
     }
     const entries = await db.journalDocumentEntry.findMany({
-      where: { documentId, date: { gte: todayStart, lt: todayEnd } },
+      where: {
+        documentId,
+        date: { gte: todayStart, lt: todayEnd },
+        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      },
       select: { data: true },
     });
     let todayCount = 0;
@@ -615,6 +628,11 @@ export async function getTemplatesFilledToday(
     where: {
       documentId: { in: dailyDocIds },
       date: { gte: lookbackStart, lt: todayEnd },
+      // Исключаем авто-сид'ы (созданные при пересоздании документа,
+      // когда у пользователя ещё ноль фактических заполнений).
+      // См. journal-document-entries-seed.ts. Без этого баннер
+      // «Сегодня журнал уже заполнялся» показывается на пустом доке.
+      NOT: { data: { path: ["_autoSeeded"], equals: true } },
     },
     _count: { _all: true },
   });

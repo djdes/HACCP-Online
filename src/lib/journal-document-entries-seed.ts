@@ -117,7 +117,12 @@ export async function seedEntriesForDocument(input: {
         documentId,
         employeeId: responsibleUserId,
         date,
-        data: {} as never,
+        // Маркер «авто-сид»: эта entry создана при создании документа,
+// чтобы у журнала появилась структура rows. Заполненной её
+// считать НЕЛЬЗЯ — иначе compliance-метрики и баннер «уже
+// заполнялся» врут. После того как сотрудник сохранит запись
+// — upsert перезатирает data, и маркер исчезает.
+data: { _autoSeeded: true } as never,
       })),
       skipDuplicates: true,
     });
@@ -163,7 +168,12 @@ export async function seedEntriesForDocument(input: {
           documentId,
           employeeId: emp.id,
           date,
-          data: {} as never,
+          // Маркер «авто-сид»: эта entry создана при создании документа,
+// чтобы у журнала появилась структура rows. Заполненной её
+// считать НЕЛЬЗЯ — иначе compliance-метрики и баннер «уже
+// заполнялся» врут. После того как сотрудник сохранит запись
+// — upsert перезатирает data, и маркер исчезает.
+data: { _autoSeeded: true } as never,
         });
       }
     }
