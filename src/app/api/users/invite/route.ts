@@ -11,7 +11,7 @@ import {
   inviteExpiresAt,
 } from "@/lib/invite-tokens";
 import {
-  isManagerRole,
+  isManagementRole,
   toCanonicalUserRole,
   USER_ROLE_VALUES,
 } from "@/lib/user-roles";
@@ -42,7 +42,10 @@ export async function POST(request: Request) {
     if (!session) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
-    if (!isManagerRole(session.user.role) && !session.user.isRoot) {
+    // head_chef нанимает поваров напрямую — должен мочь рассылать
+    // email-приглашения. Раньше: только manager (плюс isRoot).
+    // Согласовано с /api/staff/[id]/invite-tg (commit ab1d96dd).
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -104,9 +107,12 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Некорректные данные", details: error },
+        {
+          error: error.issues[0]?.message ?? "Некорректные данные",
+          details: error.issues,
+        },
         { status: 400 }
       );
     }
