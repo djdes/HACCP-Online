@@ -487,6 +487,36 @@ export default function MiniHomePage() {
         </section>
       ) : null}
 
+      {!isReadonly ? (
+        <Link
+          href="/mini/today"
+          className="mini-reveal flex items-center gap-3 rounded-3xl border px-4 py-3.5"
+          style={{
+            background: "var(--mini-card)",
+            borderColor: "var(--mini-border)",
+          }}
+        >
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-2xl"
+            style={{
+              background: "var(--mini-lime)",
+              color: "var(--mini-text-on-lime)",
+            }}
+          >
+            ⚡
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold" style={{ color: "var(--mini-text)" }}>
+              Сегодня — все задачи
+            </div>
+            <div className="text-[12px]" style={{ color: "var(--mini-text-muted)" }}>
+              Race-claim · возьми задачу первым
+            </div>
+          </div>
+          <span style={{ color: "var(--mini-text-faint)" }}>→</span>
+        </Link>
+      ) : null}
+
       <section className="space-y-2">
         <div className="flex items-baseline justify-between px-1">
           <h2 className="mini-eyebrow">
