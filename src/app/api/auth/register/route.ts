@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { registerSchema } from "@/lib/validators";
@@ -61,9 +62,12 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Некорректные данные", details: error },
+        {
+          error: error.issues[0]?.message ?? "Некорректные данные",
+          details: error.issues,
+        },
         { status: 400 }
       );
     }

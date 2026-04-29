@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
@@ -66,9 +67,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ area }, { status: 201 });
   } catch (error) {
-    if (error instanceof Error && error.name === "ZodError") {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Некорректные данные", details: error },
+        {
+          error: error.issues[0]?.message ?? "Некорректные данные",
+          details: error.issues,
+        },
         { status: 400 }
       );
     }
