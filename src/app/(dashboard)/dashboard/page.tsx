@@ -25,6 +25,7 @@ import {
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
@@ -106,6 +107,14 @@ function getEntryData(data: unknown): EntryData {
 
 export default async function DashboardPage() {
   const session = await requireAuth();
+  // Заведующая (head_chef) и не-admin'ы не должны видеть «журналы» —
+  // редирект на verification page или на mini-app.
+  if (!hasCapability(session.user, "journals.view")) {
+    if (hasCapability(session.user, "tasks.verify")) {
+      redirect("/verifications");
+    }
+    redirect("/mini/today");
+  }
   if (!hasFullWorkspaceAccess(session.user)) {
     redirect("/journals");
   }

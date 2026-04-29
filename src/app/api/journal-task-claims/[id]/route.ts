@@ -91,6 +91,7 @@ export async function POST(
             claimId: id,
             userId,
             entryId: body.entryId,
+            completionData: body.data,
           });
 
   const result = await fn();

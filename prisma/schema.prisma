@@ -271,9 +271,22 @@ model User {
   reopenedJournalEvents       JournalCloseEvent[]      @relation("ReopenedBy")
   formFillTimings             FormFillTiming[]
   journalTaskClaims           JournalTaskClaim[]
+  verifiedClaims              JournalTaskClaim[]       @relation("ClaimVerifier")
+  /// Permission preset — пресет прав доступа. Перекрывает legacy `role`
+  /// для UI-gating и terminology. Пресеты:
+  ///   "admin"     — полный доступ, видит журналы как журналы
+  ///   "head_chef" — заведующая, видит staff + verification, не видит журналы
+  ///   "cook"      — повар, только мини-апп задачи
+  ///   "waiter"    — официант, только мини-апп задачи
+  ///   "seller"    — продавец, мини-апп задачи + приёмка
+  ///   "cashier"   — кассир, мини-апп задачи + списания
+  ///   "cleaner"   — уборщик, только мини-апп задачи (узкий список)
+  /// null → derive from role (legacy).
+  permissionPreset            String?
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
+  @@index([permissionPreset])
 }
 
 /// A custom job title (должность) an organisation has chosen to use.
@@ -825,6 +838,18 @@ model JournalTaskClaim {
   /// Для TasksFlow mirror — id задачи в TF, если она была создана.
   /// Если zero — claim только в WeSetup.
   tasksFlowTaskId String?
+  /// Verification от заведующей. После того как сотрудник завершил
+  /// задачу (status=completed), заведующая получает её на проверку.
+  /// pending — ждёт; approved — заведующая подтвердила; rejected —
+  /// отклонила (сотрудник должен переделать).
+  verificationStatus String?
+  verifiedById       String?
+  verifiedBy         User?    @relation("ClaimVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt         DateTime?
+  verifierComment    String?
+  /// Снимок form-data на момент complete'а — для verification UI
+  /// (чтобы заведующая видела, что именно ввёл сотрудник).
+  completionData     Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 

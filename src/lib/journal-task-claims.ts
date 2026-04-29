@@ -173,6 +173,8 @@ export async function completeJournalTask(args: {
   claimId: string;
   userId: string;
   entryId?: string;
+  /** Снимок form-data — для verification UI заведующей. */
+  completionData?: Record<string, unknown>;
 }): Promise<{ ok: boolean; reason?: string }> {
   const claim = await db.journalTaskClaim.findUnique({
     where: { id: args.claimId },
@@ -187,6 +189,12 @@ export async function completeJournalTask(args: {
       status: "completed",
       completedAt: new Date(),
       entryId: args.entryId ?? claim.entryId ?? null,
+      verificationStatus: "pending",
+      // Перезаписываем completionData при каждом complete (например, после
+      // переделки от заведующей — новые данные).
+      ...(args.completionData
+        ? { completionData: args.completionData as never }
+        : {}),
     },
   });
   return { ok: true };

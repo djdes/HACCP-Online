@@ -331,11 +331,11 @@ export default function MiniHomePage() {
                     home.mode === "staff"
                       ? pluralRu(
                           home.now.length,
-                          "журнал к заполнению",
-                          "журнала к заполнению",
-                          "журналов к заполнению"
+                          "задача в работе",
+                          "задачи в работе",
+                          "задач в работе"
                         )
-                      : pluralRu(filled, "заполнен сегодня", "заполнено сегодня", "заполнено сегодня")
+                      : pluralRu(filled, "выполнена сегодня", "выполнено сегодня", "выполнено сегодня")
                   }
                   tone={
                     home.mode === "staff" && home.now.length > 0 ? "amber" : "lime"
@@ -343,7 +343,7 @@ export default function MiniHomePage() {
                 />
                 <HeroStat
                   value={total}
-                  label={pluralRu(total, "журнал всего", "журнала всего", "журналов всего")}
+                  label={pluralRu(total, "задача всего", "задачи всего", "задач всего")}
                   tone="neutral"
                 />
               </>
@@ -371,7 +371,7 @@ export default function MiniHomePage() {
             color: "var(--mini-amber)",
           }}
         >
-          Режим просмотра — заполнять журналы нельзя, только листать.
+          Режим просмотра — выполнять задачи нельзя, только листать.
         </section>
       ) : null}
 
@@ -434,7 +434,7 @@ export default function MiniHomePage() {
         >
           <CheckCircle2 className="size-5 shrink-0" strokeWidth={2} />
           <span style={{ color: "var(--mini-text)" }}>
-            Смена закрыта. Все журналы на сегодня заполнены.
+            Смена закрыта. Все задачи на сегодня выполнены.
           </span>
         </section>
       ) : null}
@@ -520,7 +520,7 @@ export default function MiniHomePage() {
       <section className="space-y-2">
         <div className="flex items-baseline justify-between px-1">
           <h2 className="mini-eyebrow">
-            {isReadonly ? "Доступно" : "Все мои журналы"}
+            {isReadonly ? "Доступно" : "Все мои задачи"}
           </h2>
           <span
             className="mini-mono"
@@ -542,7 +542,7 @@ export default function MiniHomePage() {
               color: "var(--mini-text-muted)",
             }}
           >
-            Руководитель ещё не дал доступ ни к одному журналу.
+            Руководитель ещё не дал доступ ни к одной задаче.
           </div>
         ) : (
           home.all.map((journal, idx) => (
