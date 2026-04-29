@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { resolveOrgFromTasksflowBearerOrSession } from "@/lib/tasksflow-auth";
 import { pullCompletionsForOrganization } from "@/lib/tasksflow-sync";
 
 export const runtime = "nodejs";
@@ -14,15 +13,14 @@ export const dynamic = "force-dynamic";
  * Used as a fallback while TasksFlow doesn't yet ship outbound
  * webhooks. The cleaning document UI calls this on mount so the user
  * sees today's marks immediately on open without waiting for cron.
+ *
+ * Auth: WeSetup admin session ИЛИ `Bearer tfk_…` (TasksFlow-side
+ * `/api/wesetup/sync-tasks` proxy).
  */
-export async function POST() {
-  const auth = await requireApiAuth();
+export async function POST(request: Request) {
+  const auth = await resolveOrgFromTasksflowBearerOrSession(request);
   if (!auth.ok) return auth.response;
-  const session = auth.session;
-  if (!hasFullWorkspaceAccess(session.user)) {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
-  }
-  const orgId = getActiveOrgId(session);
+  const orgId = auth.organizationId;
   const summary = await pullCompletionsForOrganization({
     organizationId: orgId,
   }).catch((error) => {

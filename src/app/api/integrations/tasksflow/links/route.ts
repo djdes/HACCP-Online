@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { resolveOrgFromTasksflowBearerOrSession } from "@/lib/tasksflow-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,15 +9,14 @@ export const dynamic = "force-dynamic";
  * Per-employee mapping for the active org. Joins WeSetup `User` rows with
  * any existing `TasksFlowUserLink` so the settings UI can render one row
  * per employee with status «Связан / Не найден / Без телефона».
+ *
+ * Auth: либо WeSetup admin session (UI вызов из /settings/integrations),
+ * либо `Bearer tfk_…` (TasksFlow proxy `/api/wesetup/links`).
  */
-export async function GET() {
-  const auth = await requireApiAuth();
+export async function GET(request: Request) {
+  const auth = await resolveOrgFromTasksflowBearerOrSession(request);
   if (!auth.ok) return auth.response;
-  const session = auth.session;
-  if (!hasFullWorkspaceAccess(session.user)) {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
-  }
-  const orgId = getActiveOrgId(session);
+  const orgId = auth.organizationId;
 
   const integration = await db.tasksFlowIntegration.findUnique({
     where: { organizationId: orgId },

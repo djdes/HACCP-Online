@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { resolveOrgFromTasksflowBearerOrSession } from "@/lib/tasksflow-auth";
 import {
   TasksFlowError,
   normalizeRussianPhone,
@@ -27,14 +26,10 @@ export const dynamic = "force-dynamic";
  *
  * Returns counts so the UI can show "Связано 7 из 12 сотрудников".
  */
-export async function POST() {
-  const auth = await requireApiAuth();
+export async function POST(request: Request) {
+  const auth = await resolveOrgFromTasksflowBearerOrSession(request);
   if (!auth.ok) return auth.response;
-  const session = auth.session;
-  if (!hasFullWorkspaceAccess(session.user)) {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
-  }
-  const orgId = getActiveOrgId(session);
+  const orgId = auth.organizationId;
   const integration = await db.tasksFlowIntegration.findUnique({
     where: { organizationId: orgId },
     select: { id: true, baseUrl: true, apiKeyEncrypted: true, enabled: true },

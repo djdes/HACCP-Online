@@ -1,6 +1,11 @@
 import type { TasksFlowIntegration, TasksFlowTaskLink } from "@prisma/client";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/integration-crypto";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export function extractTasksFlowBearer(authHeader: string): string | null {
   const match = /^Bearer\s+(tfk_[A-Za-z0-9_-]+)$/.exec(authHeader);
@@ -26,6 +31,72 @@ export async function getMatchingTasksFlowIntegrations(
     }
   }
   return matches;
+}
+
+/**
+ * Dual-auth: либо WeSetup admin session (cookie), либо `Bearer tfk_…`,
+ * который смапится на TasksFlowIntegration → её organizationId. Это
+ * нужно для эндпоинтов которые раньше принимали только session
+ * (sync-users / sync-tasks / sync-hierarchy / bulk-assign-today /
+ * links) — теперь TasksFlow-side proxy может звонить им под своим
+ * tfk_ ключом без прокидывания cookie WeSetup'а.
+ *
+ * Bearer проверяется первым: если он есть и валидный — авторизуемся
+ * как организация интеграции. Если Bearer есть но битый — сразу 401,
+ * не fallback'имся на session (нельзя «подменить» ключ кукой).
+ */
+export async function resolveOrgFromTasksflowBearerOrSession(
+  request: Request,
+): Promise<
+  | { ok: true; organizationId: string; source: "tf-key" | "session" }
+  | { ok: false; response: NextResponse }
+> {
+  const auth = request.headers.get("authorization") ?? "";
+  const presented = extractTasksFlowBearer(auth);
+  if (presented) {
+    const matches = await getMatchingTasksFlowIntegrations(presented);
+    if (matches.length === 0) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "Invalid TasksFlow API key" },
+          { status: 401 },
+        ),
+      };
+    }
+    // tfk_ ключ привязан к одной интеграции → одна организация.
+    return {
+      ok: true,
+      organizationId: matches[0].organizationId,
+      source: "tf-key",
+    };
+  }
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Не авторизован" }, { status: 401 }),
+    };
+  }
+  if (
+    !hasFullWorkspaceAccess({
+      role: session.user.role,
+      isRoot: session.user.isRoot,
+    })
+  ) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Недостаточно прав" },
+        { status: 403 },
+      ),
+    };
+  }
+  return {
+    ok: true,
+    organizationId: getActiveOrgId(session),
+    source: "session",
+  };
 }
 
 export async function findTaskLinkForAuthorizedIntegrations(params: {

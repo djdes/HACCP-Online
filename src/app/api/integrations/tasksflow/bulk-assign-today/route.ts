@@ -3,6 +3,14 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import {
+  getDbRoleValuesWithLegacy,
+  MANAGEMENT_ROLES,
+} from "@/lib/user-roles";
+import {
+  extractTasksFlowBearer,
+  getMatchingTasksFlowIntegrations,
+} from "@/lib/tasksflow-auth";
 import { db } from "@/lib/db";
 import {
   TasksFlowError,
@@ -91,9 +99,14 @@ export async function POST(request: Request) {
   // и organizationId передаётся прямо в body. Секрет НЕ должен попадать
   // в публичные логи.
   const internalSecret = request.headers.get("x-internal-trigger");
-  let body: { force?: unknown; organizationId?: unknown } | null = null;
+  type BulkAssignBody = { force?: unknown; organizationId?: unknown };
+  let body: BulkAssignBody | null = null;
   try {
-    body = (await request.clone().json().catch(() => null)) as typeof body;
+    const parsed = (await request
+      .clone()
+      .json()
+      .catch(() => null)) as BulkAssignBody | null;
+    body = parsed;
   } catch {
     /* пустое тело — fall through */
   }
@@ -138,19 +151,58 @@ export async function POST(request: Request) {
     }
     actingUser = mgmt;
   } else {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Сначала пробуем `Bearer tfk_…` — TasksFlow proxy шлёт ключ
+    // интеграции без cookie. Подставляем management-юзера org как
+    // actingUser, чтобы AuditLog/уведомления имели реального
+    // пользователя (синтетический id здесь упёрся бы в FK).
+    const presentedKey = extractTasksFlowBearer(
+      request.headers.get("authorization") ?? "",
+    );
+    let bearerOrg: string | null = null;
+    if (presentedKey) {
+      const matches = await getMatchingTasksFlowIntegrations(presentedKey);
+      if (matches.length === 0) {
+        return NextResponse.json(
+          { error: "Invalid TasksFlow API key" },
+          { status: 401 },
+        );
+      }
+      bearerOrg = matches[0].organizationId;
     }
-    if (!hasFullWorkspaceAccess({ role: session.user.role, isRoot: session.user.isRoot })) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (bearerOrg) {
+      organizationId = bearerOrg;
+      const mgmt = await db.user.findFirst({
+        where: {
+          organizationId,
+          isActive: true,
+          archivedAt: null,
+          role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
+        },
+        select: { id: true, name: true, email: true },
+        orderBy: { createdAt: "asc" },
+      });
+      if (!mgmt) {
+        return NextResponse.json(
+          { error: "Нет management-юзера в org для tfk-trigger" },
+          { status: 400 },
+        );
+      }
+      actingUser = mgmt;
+    } else {
+      const session = await getServerSession(authOptions);
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (!hasFullWorkspaceAccess({ role: session.user.role, isRoot: session.user.isRoot })) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      organizationId = getActiveOrgId(session);
+      actingUser = {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+      };
     }
-    organizationId = getActiveOrgId(session);
-    actingUser = {
-      id: session.user.id,
-      name: session.user.name ?? null,
-      email: session.user.email ?? null,
-    };
   }
 
   const integration = await db.tasksFlowIntegration.findFirst({
