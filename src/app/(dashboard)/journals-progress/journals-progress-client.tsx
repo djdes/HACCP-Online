@@ -88,7 +88,6 @@ export function JournalsProgressClient() {
         document.removeEventListener("visibilitychange", onVisible);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inProgress = items.filter((i) => i.status === "in_progress");

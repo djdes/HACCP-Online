@@ -158,7 +158,6 @@ export function JournalResponsiblesClient({
       if (prevDirty) return prev;
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journals]);
 
   const dirty = diff(base, curr);

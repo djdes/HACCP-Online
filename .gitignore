@@ -83,3 +83,7 @@ public/screenshots/
 .agent/haccp-*.txt
 .agent/haccp-*.html
 
+
+# ESLint output
+eslint-report.json
+

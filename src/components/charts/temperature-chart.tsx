@@ -222,7 +222,6 @@ export function TemperatureChart({ equipmentList }: TemperatureChartProps) {
                     domain={["auto", "auto"]}
                     unit="\u00B0C"
                   />
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip
                     formatter={(value: any, name: any) => {
                       const v = Number(value ?? 0);

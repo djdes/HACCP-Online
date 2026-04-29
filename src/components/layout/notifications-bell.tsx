@@ -134,7 +134,6 @@ export function NotificationsBell() {
     // happens after an async fetch resolves — not in the effect body itself —
     // so the react-hooks/set-state-in-effect rule's concern (synchronous
     // cascading renders) doesn't apply here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const t = setInterval(load, REFRESH_INTERVAL_MS);
     return () => clearInterval(t);
