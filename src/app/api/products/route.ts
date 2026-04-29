@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagerRole } from "@/lib/user-roles";
 
@@ -13,7 +14,7 @@ export async function GET() {
 
     const products = await db.product.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         isActive: true,
       },
       orderBy: { name: "asc" },
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
         category: category?.trim() || null,
         storageTemp: storageTemp?.trim() || null,
         shelfLifeDays: shelfLifeDays ? Number(shelfLifeDays) : null,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
       },
     });
 
@@ -92,7 +93,7 @@ export async function PUT(request: Request) {
     }
 
     const product = await db.product.findFirst({
-      where: { id, organizationId: session.user.organizationId },
+      where: { id, organizationId: getActiveOrgId(session) },
     });
 
     if (!product) {
@@ -143,7 +144,7 @@ export async function DELETE(request: Request) {
 
     // Verify product belongs to this organization
     const product = await db.product.findFirst({
-      where: { id, organizationId: session.user.organizationId },
+      where: { id, organizationId: getActiveOrgId(session) },
     });
 
     if (!product) {

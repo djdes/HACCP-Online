@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get("to");
 
   const where: Record<string, unknown> = {
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
   };
   if (from || to) {
     const dateFilter: Record<string, Date> = {};
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
   const category = autoCategorize(body.category, body.cause, body.productName);
   const record = await db.lossRecord.create({
     data: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       category,
       productName: body.productName,
       quantity: Number(body.quantity),

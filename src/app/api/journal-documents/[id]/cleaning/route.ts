@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   applyCleaningAutoFillToConfig,
@@ -37,7 +38,7 @@ export async function POST(
     }),
     db.user.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         isActive: true,
       },
       select: { id: true, name: true, role: true, positionTitle: true },
@@ -45,14 +46,14 @@ export async function POST(
     }),
     db.area.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
 
-  if (!document || document.organizationId !== session.user.organizationId) {
+  if (!document || document.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
 

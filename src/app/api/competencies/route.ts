@@ -1,6 +1,7 @@
 import { getServerSession } from "@/lib/server-session";
 import { ZodError } from "zod";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { competencySchema } from "@/lib/validators";
@@ -11,7 +12,7 @@ export async function GET(_req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
   const competencies = await db.staffCompetency.findMany({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: getActiveOrgId(session) },
     orderBy: [{ userId: "asc" }, { skill: "asc" }],
   });
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   // Verify target user belongs to the same organization — prevents
   // cross-tenant writes via crafted userId in body.
   const targetUser = await db.user.findFirst({
-    where: { id: data.userId, organizationId: session.user.organizationId },
+    where: { id: data.userId, organizationId: getActiveOrgId(session) },
     select: { id: true },
   });
   if (!targetUser) {
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   const competency = await db.staffCompetency.upsert({
     where: {
       organizationId_userId_skill: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         userId: data.userId,
         skill: data.skill,
       },
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
       notes: data.notes ?? null,
     },
     create: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       userId: data.userId,
       skill: data.skill,
       level: data.level,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { generateJournalDocumentPdf } from "@/lib/document-pdf";
 
 function wantsBrowserPage(request: Request) {
@@ -55,7 +56,7 @@ export async function GET(
     const { id } = await params;
     const { buffer, fileName } = await generateJournalDocumentPdf({
       documentId: id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
     });
 
     const uint8 = new Uint8Array(buffer);

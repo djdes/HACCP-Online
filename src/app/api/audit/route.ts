@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagerRole } from "@/lib/user-roles";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     const action = searchParams.get("action");
 
     const where: Record<string, string> = {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
     };
 
     if (entity) {

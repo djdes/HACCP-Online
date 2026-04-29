@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { isManagementRole } from "@/lib/user-roles";
@@ -14,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const change = await db.changeRequest.findUnique({ where: { id } });
-  if (!change || change.organizationId !== session.user.organizationId) {
+  if (!change || change.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

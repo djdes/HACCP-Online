@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search");
 
   const where: Record<string, unknown> = {
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
   };
   if (status && status !== "all") where.status = status;
   if (search) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const orgId = session.user.organizationId;
+  const orgId = getActiveOrgId(session);
 
   // Generate batch code: B-YYYYMMDD-NNN
   const today = new Date();

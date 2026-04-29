@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 // Barcode lookup — finds product by barcode OR name, auto-computes expiryDate
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
 
     const product = await db.product.findFirst({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         isActive: true,
         ...(barcode
           ? { barcode }

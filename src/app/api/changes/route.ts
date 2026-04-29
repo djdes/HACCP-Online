@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -8,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const changes = await db.changeRequest.findMany({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: getActiveOrgId(session) },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -24,13 +25,13 @@ export async function POST(req: NextRequest) {
 
   // Auto-increment version
   const lastChange = await db.changeRequest.findFirst({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: getActiveOrgId(session) },
     orderBy: { version: "desc" },
   });
 
   const change = await db.changeRequest.create({
     data: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       title: body.title,
       changeType: body.changeType || "recipe",
       description: body.description || null,

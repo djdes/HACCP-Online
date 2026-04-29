@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole, isManagerRole } from "@/lib/user-roles";
 
@@ -25,7 +26,7 @@ export async function PUT(
       include: { area: { select: { organizationId: true } } },
     });
 
-    if (!equipment || equipment.area.organizationId !== session.user.organizationId) {
+    if (!equipment || equipment.area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json({ error: "Оборудование не найдено" }, { status: 404 });
     }
 
@@ -38,7 +39,7 @@ export async function PUT(
 
     if (areaId) {
       const area = await db.area.findFirst({
-        where: { id: areaId, organizationId: session.user.organizationId },
+        where: { id: areaId, organizationId: getActiveOrgId(session) },
       });
       if (!area) {
         return NextResponse.json({ error: "Цех не найден" }, { status: 400 });
@@ -86,7 +87,7 @@ export async function DELETE(
       include: { area: { select: { organizationId: true } } },
     });
 
-    if (!equipment || equipment.area.organizationId !== session.user.organizationId) {
+    if (!equipment || equipment.area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json({ error: "Оборудование не найдено" }, { status: 404 });
     }
 

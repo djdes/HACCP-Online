@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
@@ -48,14 +49,14 @@ export async function GET(
     },
   });
 
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
   // Load org employees for the grid rows
   const employees = await db.user.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: { id: true, name: true, role: true, positionTitle: true },
@@ -78,7 +79,7 @@ export async function PATCH(
   }
 
   const doc = await db.journalDocument.findUnique({ where: { id } });
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
@@ -99,7 +100,7 @@ export async function PATCH(
     needsTemplateLookup
       ? await db.user.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: { id: true, name: true, role: true, positionTitle: true },
@@ -260,7 +261,7 @@ export async function PATCH(
   ) {
     void syncDocumentToTasksFlow({
       documentId: id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
     }).catch((err) => {
       console.error("[tasksflow-sync] patch hook failed", err);
     });
@@ -282,7 +283,7 @@ export async function DELETE(
   }
 
   const doc = await db.journalDocument.findUnique({ where: { id } });
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 

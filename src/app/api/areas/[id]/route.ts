@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole, isManagerRole } from "@/lib/user-roles";
 
@@ -21,7 +22,7 @@ export async function PUT(
     }
 
     const area = await db.area.findUnique({ where: { id } });
-    if (!area || area.organizationId !== session.user.organizationId) {
+    if (!area || area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json({ error: "Цех не найден" }, { status: 404 });
     }
 
@@ -64,7 +65,7 @@ export async function DELETE(
     }
 
     const area = await db.area.findUnique({ where: { id } });
-    if (!area || area.organizationId !== session.user.organizationId) {
+    if (!area || area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json({ error: "Цех не найден" }, { status: 404 });
     }
 

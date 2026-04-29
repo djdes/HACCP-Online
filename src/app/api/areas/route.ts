@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { areaSchema } from "@/lib/validators";
 import { isManagementRole } from "@/lib/user-roles";
@@ -17,7 +18,7 @@ export async function GET() {
     }
 
     const areas = await db.area.findMany({
-      where: { organizationId: session.user.organizationId },
+      where: { organizationId: getActiveOrgId(session) },
       orderBy: { name: "asc" },
       include: {
         _count: { select: { equipment: true } },
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
       data: {
         name: validatedData.name,
         description: validatedData.description || null,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
       },
     });
 

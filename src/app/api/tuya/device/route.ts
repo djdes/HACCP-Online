@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getDeviceTemperature } from "@/lib/tuya";
 
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
 
     if (
       !equipment ||
-      equipment.area.organizationId !== session.user.organizationId
+      equipment.area.organizationId !== getActiveOrgId(session)
     ) {
       return NextResponse.json(
         { error: "Оборудование не найдено" },

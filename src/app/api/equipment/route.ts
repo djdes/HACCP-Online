@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { equipmentSchema } from "@/lib/validators";
 import { isManagementRole } from "@/lib/user-roles";
@@ -18,7 +19,7 @@ export async function GET() {
 
     const equipment = await db.equipment.findMany({
       where: {
-        area: { organizationId: session.user.organizationId },
+        area: { organizationId: getActiveOrgId(session) },
       },
       orderBy: { name: "asc" },
       include: {
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       where: { id: validatedData.areaId },
     });
 
-    if (!area || area.organizationId !== session.user.organizationId) {
+    if (!area || area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json(
         { error: "Цех не найден" },
         { status: 404 }

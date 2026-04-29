@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 
 interface TemperaturePoint {
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
       },
     });
 
-    if (!equipment || equipment.area.organizationId !== session.user.organizationId) {
+    if (!equipment || equipment.area.organizationId !== getActiveOrgId(session)) {
       return NextResponse.json(
         { error: "Оборудование не найдено" },
         { status: 404 }
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
       where: {
         templateId: template.id,
         equipmentId: equipmentId,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         createdAt: { gte: since },
       },
       orderBy: { createdAt: "asc" },

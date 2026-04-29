@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { isManagementRole } from "@/lib/user-roles";
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {
       templateId: template.id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       createdAt: {
         gte: new Date(from),
         lte: new Date(to + "T23:59:59.999Z"),

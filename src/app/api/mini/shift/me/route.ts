@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireApiAuth } from "@/lib/auth-helpers";
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
   if (parsed.data.action === "start") {
     const shift = await findOrUpsertTodaysShift({
       userId: session.user.id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       desiredStatus: "working",
     });
     return NextResponse.json({

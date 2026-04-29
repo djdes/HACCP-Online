@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 
@@ -53,7 +54,7 @@ export async function POST(
   const { id: documentId } = await params;
   const document = await getAuthorizedDocument(
     documentId,
-    session.user.organizationId
+    getActiveOrgId(session)
   );
 
   if (document === null) {
@@ -94,7 +95,7 @@ export async function POST(
   const employee = await db.user.findFirst({
     where: {
       id: body.acceptedEmployeeId,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: { id: true },
@@ -163,7 +164,7 @@ export async function PATCH(
   const { id: documentId } = await params;
   const document = await getAuthorizedDocument(
     documentId,
-    session.user.organizationId
+    getActiveOrgId(session)
   );
 
   if (document === null) {
@@ -216,7 +217,7 @@ export async function PATCH(
   const employee = await db.user.findFirst({
     where: {
       id: body.acceptedEmployeeId,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: { id: true },
@@ -288,7 +289,7 @@ export async function DELETE(
   const { id: documentId } = await params;
   const document = await getAuthorizedDocument(
     documentId,
-    session.user.organizationId
+    getActiveOrgId(session)
   );
 
   if (document === null) {

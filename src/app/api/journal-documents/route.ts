@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   buildColdEquipmentConfigFromEquipment,
@@ -115,7 +116,7 @@ export async function GET(request: Request) {
 
   const documents = await db.journalDocument.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       templateId: template.id,
       status,
     },
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
           await db.equipment.findMany({
             where: {
               area: {
-                organizationId: session.user.organizationId,
+                organizationId: getActiveOrgId(session),
               },
             },
             select: {
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.user.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: {
@@ -190,7 +191,7 @@ export async function POST(request: Request) {
 
   const allUsers = await db.user.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: {
@@ -209,7 +210,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
       ? await db.product.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             isActive: true,
           },
           select: {
@@ -223,7 +224,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
       ? await db.batch.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             supplier: { not: null },
           },
           select: {
@@ -238,7 +239,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
       ? await db.batch.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             code: true,
@@ -257,7 +258,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
       ? await db.area.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             name: true,
@@ -271,7 +272,7 @@ export async function POST(request: Request) {
       ? await db.equipment.findMany({
           where: {
             area: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
             },
           },
           select: {
@@ -285,7 +286,7 @@ export async function POST(request: Request) {
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.area.findMany({
           where: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
           },
           select: {
             id: true,
@@ -305,7 +306,7 @@ export async function POST(request: Request) {
       ? await db.equipment.findMany({
           where: {
             area: {
-              organizationId: session.user.organizationId,
+              organizationId: getActiveOrgId(session),
             },
           },
           select: {
@@ -506,7 +507,7 @@ export async function POST(request: Request) {
   const doc = await db.journalDocument.create({
     data: {
       templateId: template.id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       title: title || template.name,
       config: normalizedDocumentState.config as Prisma.InputJsonValue | undefined,
       dateFrom: new Date(dateFrom),

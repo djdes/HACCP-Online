@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
@@ -47,7 +48,7 @@ export async function POST(
     },
   });
 
-  if (!document || document.organizationId !== session.user.organizationId) {
+  if (!document || document.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
 
@@ -111,7 +112,7 @@ export async function POST(
 
   const users = await db.user.findMany({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       isActive: true,
     },
     select: { id: true, role: true },

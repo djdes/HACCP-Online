@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
@@ -45,7 +46,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const document = await loadDocument(id, session.user.organizationId);
+  const document = await loadDocument(id, getActiveOrgId(session));
   if (!document) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
@@ -67,7 +68,7 @@ export async function POST(
   const employee = await db.user.findFirst({
     where: {
       id: employeeId,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
     },
     select: { id: true },
   });
@@ -103,7 +104,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const document = await loadDocument(id, session.user.organizationId);
+  const document = await loadDocument(id, getActiveOrgId(session));
   if (!document) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
@@ -167,7 +168,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const document = await loadDocument(id, session.user.organizationId);
+  const document = await loadDocument(id, getActiveOrgId(session));
   if (!document) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }

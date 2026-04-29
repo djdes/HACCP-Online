@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { PLANS, isValidPlanId } from "@/lib/plans";
 import { isManagerRole } from "@/lib/user-roles";
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const idempotenceKey = `${session.user.organizationId}-${plan}-${Date.now()}`;
+    const idempotenceKey = `${getActiveOrgId(session)}-${plan}-${Date.now()}`;
 
     // YooKassa requires a 15s-or-less response; abort if it takes longer.
     const controller = new AbortController();
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
           },
           description: `HACCP-Online: тариф "${planInfo.name}" (${planInfo.durationDays} дн)`,
           metadata: {
-            organizationId: session.user.organizationId,
+            organizationId: getActiveOrgId(session),
             plan,
           },
           save_payment_method: true,
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     // server. Field is historically named yookassaShopId but stores the pending
     // payment identifier.
     await db.organization.update({
-      where: { id: session.user.organizationId },
+      where: { id: getActiveOrgId(session) },
       data: { yookassaShopId: payment.id },
     });
 

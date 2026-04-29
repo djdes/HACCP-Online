@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const priority = searchParams.get("priority");
 
   const where: Record<string, unknown> = {
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
   };
   if (status && status !== "all") where.status = status;
   if (priority && priority !== "all") where.priority = priority;
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const ticket = await db.capaTicket.create({
     data: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       title: body.title,
       description: body.description || null,
       priority: body.priority || "medium",

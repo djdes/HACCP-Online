@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { normalizePhone, formatPhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
@@ -59,7 +60,7 @@ export async function PUT(request: Request) {
   // TF worker). Enforce softly here.
   const dup = await db.user.findFirst({
     where: {
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       phone: normalized,
       id: { not: session.user.id },
       archivedAt: null,
@@ -81,7 +82,7 @@ export async function PUT(request: Request) {
   });
 
   const link = await tryAutolinkTasksflowByPhone({
-    organizationId: session.user.organizationId,
+    organizationId: getActiveOrgId(session),
     weSetupUserId: session.user.id,
     phone: normalized,
   });
@@ -106,7 +107,7 @@ export async function DELETE() {
   // so an out-of-date bind doesn't keep firing tasks at the wrong
   // number.
   const integrations = await db.tasksFlowIntegration.findMany({
-    where: { organizationId: session.user.organizationId },
+    where: { organizationId: getActiveOrgId(session) },
     select: { id: true },
   });
   if (integrations.length > 0) {

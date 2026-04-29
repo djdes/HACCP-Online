@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import * as XLSX from "xlsx";
 
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
           ? String(mapped.storageTemp).trim()
           : null,
         shelfLifeDays: shelfDays,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
       });
     }
 

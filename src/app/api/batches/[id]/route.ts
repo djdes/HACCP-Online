@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { isManagementRole } from "@/lib/user-roles";
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const batch = await db.batch.findUnique({ where: { id } });
-  if (!batch || batch.organizationId !== session.user.organizationId) {
+  if (!batch || batch.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const batch = await db.batch.findUnique({ where: { id } });
-  if (!batch || batch.organizationId !== session.user.organizationId) {
+  if (!batch || batch.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 

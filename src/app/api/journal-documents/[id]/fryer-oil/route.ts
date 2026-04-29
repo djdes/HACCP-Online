@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { normalizeFryerOilEntryData, FRYER_OIL_TEMPLATE_CODE } from "@/lib/fryer-oil-document";
 import { getServerSession } from "@/lib/server-session";
@@ -44,7 +45,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  const document = await getDocument(documentId, session.user.organizationId);
+  const document = await getDocument(documentId, getActiveOrgId(session));
   if (!document || document.template?.code !== FRYER_OIL_TEMPLATE_CODE) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
@@ -55,7 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = (await request.json().catch(() => null)) as { data?: unknown } | null;
   const data = normalizeFryerOilEntryData(body?.data);
   const employee = await db.user.findFirst({
-    where: { organizationId: session.user.organizationId, isActive: true },
+    where: { organizationId: getActiveOrgId(session), isActive: true },
     select: { id: true },
     orderBy: { name: "asc" },
   });
@@ -80,7 +81,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  const document = await getDocument(documentId, session.user.organizationId);
+  const document = await getDocument(documentId, getActiveOrgId(session));
   if (!document || document.template?.code !== FRYER_OIL_TEMPLATE_CODE) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
@@ -112,7 +113,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  const document = await getDocument(documentId, session.user.organizationId);
+  const document = await getDocument(documentId, getActiveOrgId(session));
   if (!document || document.template?.code !== FRYER_OIL_TEMPLATE_CODE) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }

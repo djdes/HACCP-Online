@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 import {
@@ -35,13 +36,13 @@ export async function GET() {
   });
   const [allowedCodes, disabledCodes, perms, areas, scope] = await Promise.all([
     getAllowedJournalCodes(actor),
-    getDisabledJournalCodes(session.user.organizationId),
+    getDisabledJournalCodes(getActiveOrgId(session)),
     getUserPermissions(session.user.id),
     db.area.findMany({
-      where: { organizationId: session.user.organizationId, lat: { not: null }, lng: { not: null } },
+      where: { organizationId: getActiveOrgId(session), lat: { not: null }, lng: { not: null } },
       select: { id: true, name: true, lat: true, lng: true },
     }),
-    getManagerScope(session.user.id, session.user.organizationId),
+    getManagerScope(session.user.id, getActiveOrgId(session)),
   ]);
   const fullAccess = hasFullWorkspaceAccess({
     role: session.user.role,
@@ -87,14 +88,14 @@ export async function GET() {
   if (isManagerLike) {
     try {
       await syncDailyJournalObligationsForOrganization(
-        session.user.organizationId,
+        getActiveOrgId(session),
         requestNow
       );
     } catch (syncErr) {
       console.error("[mini:home] org sync failed:", syncErr);
     }
     const summary = await getManagerObligationSummary(
-      session.user.organizationId,
+      getActiveOrgId(session),
       requestNow
     );
 
@@ -132,7 +133,7 @@ export async function GET() {
   try {
     await syncDailyJournalObligationsForUser({
       userId: session.user.id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       now: requestNow,
     });
   } catch (syncErr) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 
@@ -29,7 +30,7 @@ export async function PATCH(
     where: { id },
   });
 
-  if (!entry || entry.organizationId !== session.user.organizationId) {
+  if (!entry || entry.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
   }
 

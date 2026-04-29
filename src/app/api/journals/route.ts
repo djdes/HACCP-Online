@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import type { Prisma } from "@prisma/client";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendTemperatureAlertEmail, sendDeviationAlertEmail } from "@/lib/email";
@@ -155,6 +156,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Используем getActiveOrgId — иначе ROOT, импесонирующий клиента,
+    // создаёт записи в platform-org вместо клиентской.
+    const organizationId = getActiveOrgId(session);
+
     const body = await request.json();
     const parsed = journalEntrySchema.parse(body);
     const { templateCode, areaId, equipmentId, data } = parsed;
@@ -173,7 +178,7 @@ export async function POST(request: Request) {
     const entry = await db.journalEntry.create({
       data: {
         templateId: template.id,
-        organizationId: session.user.organizationId,
+        organizationId: organizationId,
         filledById: session.user.id,
         areaId: areaId || null,
         equipmentId: equipmentId || null,
@@ -214,14 +219,14 @@ export async function POST(request: Request) {
               `Допустимый диапазон: ${esc(rangeStr)}°C\n` +
               `Сотрудник: ${esc(filledByName)}`;
 
-            notifyOrganization(session.user.organizationId, message, ["owner", "technologist"], "temperature").catch(
+            notifyOrganization(organizationId, message, ["owner", "technologist"], "temperature").catch(
               (err) => console.error("Telegram notification error:", err)
             );
 
             db.user
               .findMany({
                 where: {
-                  organizationId: session.user.organizationId,
+                  organizationId: organizationId,
                   role: { in: ["owner", "technologist"] },
                   isActive: true,
                 },
@@ -260,7 +265,7 @@ export async function POST(request: Request) {
             `Журнал: ${esc(template.name)}\n` +
             `Сотрудник: ${esc(filledByName)}`;
 
-          notifyOrganization(session.user.organizationId, telegramMsg, ["owner", "technologist"], "deviations").catch(
+          notifyOrganization(organizationId, telegramMsg, ["owner", "technologist"], "deviations").catch(
             (err) => console.error("Telegram deviation alert error:", err)
           );
         }
@@ -269,7 +274,7 @@ export async function POST(request: Request) {
         db.user
           .findMany({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: organizationId,
               role: { in: ["owner", "technologist"] },
               isActive: true,
             },
@@ -320,7 +325,7 @@ export async function POST(request: Request) {
         try {
           const existing = await db.capaTicket.findFirst({
             where: {
-              organizationId: session.user.organizationId,
+              organizationId: organizationId,
               sourceType: "auto_deviation",
               sourceEntryId: entry.id,
               status: { not: "closed" },
@@ -331,7 +336,7 @@ export async function POST(request: Request) {
             const trigger = capaTriggers[0];
             await db.capaTicket.create({
               data: {
-                organizationId: session.user.organizationId,
+                organizationId: organizationId,
                 title: `${trigger.suffix} · ${template.name}`,
                 description:
                   `Автоматически открыт CAPA по записи журнала «${template.name}» от ${filledByName}. ` +
@@ -356,7 +361,7 @@ export async function POST(request: Request) {
       if (capaTriggers.length > 0) {
         try {
           const { dispatchWebhooks } = await import("@/lib/webhook-dispatch");
-          dispatchWebhooks(session.user.organizationId, "journal.deviation", {
+          dispatchWebhooks(organizationId, "journal.deviation", {
             templateCode,
             templateName: template.name,
             entryId: entry.id,

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
 import { isManagementRole } from "@/lib/user-roles";
@@ -49,7 +50,7 @@ export async function PUT(
     where: { id: documentId },
     include: { template: { select: { code: true } } },
   });
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
@@ -66,7 +67,7 @@ export async function PUT(
 
   // Verify employee belongs to org
   const employee = await db.user.findFirst({
-    where: { id: employeeId, organizationId: session.user.organizationId },
+    where: { id: employeeId, organizationId: getActiveOrgId(session) },
   });
   if (!employee) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
@@ -154,7 +155,7 @@ export async function PUT(
 
   maybeTriggerColdEquipmentCapaDetection(
     doc.template?.code,
-    session.user.organizationId
+    getActiveOrgId(session)
   );
 
   return NextResponse.json({ entry });
@@ -176,7 +177,7 @@ export async function PATCH(
     where: { id: documentId },
     include: { template: { select: { code: true } } },
   });
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
@@ -206,7 +207,7 @@ export async function PATCH(
   const employees = await db.user.findMany({
     where: {
       id: { in: candidateEmployeeIds },
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
     },
     select: { id: true, name: true, role: true, positionTitle: true },
   });
@@ -297,7 +298,7 @@ export async function PATCH(
 
     maybeTriggerColdEquipmentCapaDetection(
       doc.template?.code,
-      session.user.organizationId
+      getActiveOrgId(session)
     );
 
     return NextResponse.json({ entries: result });
@@ -325,7 +326,7 @@ export async function DELETE(
     where: { id: documentId },
     include: { template: { select: { code: true } } },
   });
-  if (!doc || doc.organizationId !== session.user.organizationId) {
+  if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 

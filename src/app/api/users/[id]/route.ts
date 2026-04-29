@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import {
@@ -46,7 +47,7 @@ export async function PUT(
     }
 
     const user = await db.user.findFirst({
-      where: { id, organizationId: session.user.organizationId },
+      where: { id, organizationId: getActiveOrgId(session) },
     });
 
     if (!user) {
@@ -124,7 +125,7 @@ export async function PUT(
     if (wasActive && isActive === false) {
       performOffboarding({
         userId: id,
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         actorId: session.user.id,
         actorName: session.user.name ?? null,
       }).catch((err) => {
@@ -137,7 +138,7 @@ export async function PUT(
     // response doesn't stall the PUT.
     if (normalizedPhone) {
       tryAutolinkTasksflowByPhone({
-        organizationId: session.user.organizationId,
+        organizationId: getActiveOrgId(session),
         weSetupUserId: id,
         phone: normalizedPhone,
         name: updated.name,
@@ -154,7 +155,7 @@ export async function PUT(
         ? `${updated.name}, ${updated.positionTitle}`
         : updated.name;
       const notifications = await db.notification.findMany({
-        where: { organizationId: session.user.organizationId },
+        where: { organizationId: getActiveOrgId(session) },
         select: { id: true, items: true },
       });
       for (const n of notifications) {
@@ -216,7 +217,7 @@ export async function DELETE(
     }
 
     const user = await db.user.findFirst({
-      where: { id, organizationId: session.user.organizationId },
+      where: { id, organizationId: getActiveOrgId(session) },
     });
 
     if (!user) {
@@ -231,7 +232,7 @@ export async function DELETE(
     // Auto-offboarding запускаем в DELETE так же. Fire-and-forget.
     performOffboarding({
       userId: id,
-      organizationId: session.user.organizationId,
+      organizationId: getActiveOrgId(session),
       actorId: session.user.id,
       actorName: session.user.name ?? null,
     }).catch((err) => {

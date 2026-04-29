@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { writeFile } from "fs/promises";
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     await logAudit({
-      organizationId: session.user.organizationId ?? "",
+      organizationId: getActiveOrgId(session) ?? "",
       userId: session.user.id,
       userName: session.user.name ?? undefined,
       action: "attachment.upload",
