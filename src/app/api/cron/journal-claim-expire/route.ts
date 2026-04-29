@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { expireStaleClaims } from "@/lib/journal-task-claims";
+import { checkCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +18,9 @@ export const dynamic = "force-dynamic";
  */
 async function handle(request: Request) {
   const url = new URL(request.url);
-  if (url.searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
   const expired = await expireStaleClaims(4);
   return NextResponse.json({ ok: true, expired });

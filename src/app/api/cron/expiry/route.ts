@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendComplianceReminderEmail } from "@/lib/email";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
@@ -9,9 +10,10 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get("secret");
 
-    if (secret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
+  }
 
     // Find products expiring within the next 3 days
     // Look at incoming_control journal entries with expiryDate field

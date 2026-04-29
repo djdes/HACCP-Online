@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import {
   notifyEmployee,
   notifyOrganization,
@@ -43,8 +44,9 @@ function readHourThreshold(envKey: string, fallback: number): number {
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
 
   const l1Hours = readHourThreshold("TASKSFLOW_ESCALATE_L1_HOURS", 24);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { buildLosses1cCsv } from "@/lib/losses-1c-export";
 
 export const runtime = "nodejs";
@@ -23,8 +24,9 @@ export const dynamic = "force-dynamic";
  */
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
 
   const orgs = await db.organization.findMany({

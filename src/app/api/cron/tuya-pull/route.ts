@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { getDeviceTemperature } from "@/lib/tuya";
 import { pickPrimaryManager } from "@/lib/user-roles";
 import { maybeCreateRealtimeCapa } from "@/lib/iot-violation-capa";
@@ -75,8 +76,9 @@ function nearestControlTime(now: Date, controlTimes: string[]): string | null {
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
 
   const now = new Date();

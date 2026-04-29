@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { tasksflowClientFor } from "@/lib/tasksflow-client";
 
 export const runtime = "nodejs";
@@ -34,8 +35,9 @@ const SNAPSHOT_DIR = "/var/www/wesetupru/data/tasksflow-snapshots";
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
 
   const integrations = await db.tasksFlowIntegration.findMany({

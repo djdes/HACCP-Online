@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { predictComplianceForecast } from "@/lib/compliance-predict";
 import { notifyOrganization } from "@/lib/telegram";
 
@@ -15,8 +16,9 @@ export const dynamic = "force-dynamic";
  */
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
 
   const now = new Date();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { checkCronSecret } from "@/lib/cron-auth";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { notifyOrganization } from "@/lib/telegram";
 
@@ -109,8 +110,9 @@ async function buildContext(orgId: string, weekStart: Date, weekEnd: Date) {
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  {
+    const cronAuth = checkCronSecret(request);
+    if (cronAuth) return cronAuth;
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({
