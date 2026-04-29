@@ -60,13 +60,12 @@ export default async function OnboardingPage() {
     buildingsCount,
     roomsCount,
     equipmentCount,
-    docsWithResponsibleCount,
-    docsTotalCount,
     managerScopesCount,
     tfIntegration,
     inspectorTokensCount,
     bonusJournalsCount,
     activeTemplatesCount,
+    journalsWithResponsiblesCount,
   ] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
@@ -103,16 +102,6 @@ export default async function OnboardingPage() {
     db.building.count({ where: { organizationId } }),
     db.room.count({ where: { building: { organizationId } } }),
     db.equipment.count({ where: { area: { organizationId } } }),
-    db.journalDocument.count({
-      where: {
-        organizationId,
-        status: "active",
-        responsibleUserId: { not: null },
-      },
-    }),
-    db.journalDocument.count({
-      where: { organizationId, status: "active" },
-    }),
     db.managerScope.count({ where: { organizationId } }),
     db.tasksFlowIntegration.findFirst({
       where: { organizationId, enabled: true },
@@ -125,6 +114,24 @@ export default async function OnboardingPage() {
       where: { isActive: true, bonusAmountKopecks: { gt: 0 } },
     }),
     db.journalTemplate.count({ where: { isActive: true } }),
+    // Сколько шаблонов уже имеет хотя бы одну ответственную должность
+    // (per-position access rows). Используем для метрики «Ответственные
+    // за журналы» — показывает «12/35 настроено».
+    db.journalTemplate
+      .findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          _count: {
+            select: {
+              positionAccess: { where: { organizationId } },
+            },
+          },
+        },
+      })
+      .then(
+        (rows) => rows.filter((r) => r._count.positionAccess > 0).length
+      ),
   ]);
 
   const disabled = Array.isArray(org?.disabledJournalCodes)
@@ -239,22 +246,23 @@ export default async function OnboardingPage() {
     },
     {
       title: "Ответственные за журналы",
-      description: "Кто отвечает за каждый активный документ",
-      href: "/settings/journal-access",
+      description:
+        "Кто заполняет каждый журнал. Один клик — умные пресеты по ХАССП (бракераж → шеф, уборка → уборщикам)",
+      href: "/settings/journal-responsibles",
       icon: Network,
       priority: "required",
       state:
-        docsTotalCount === 0
+        enabledTemplatesCount === 0
           ? "empty"
-          : docsWithResponsibleCount === docsTotalCount
+          : journalsWithResponsiblesCount >= enabledTemplatesCount
             ? "complete"
-            : docsWithResponsibleCount > 0
+            : journalsWithResponsiblesCount > 0
               ? "partial"
               : "empty",
-      metric: `${docsWithResponsibleCount}/${docsTotalCount}`,
+      metric: `${journalsWithResponsiblesCount}/${enabledTemplatesCount} настроено`,
       issue:
-        docsWithResponsibleCount < docsTotalCount
-          ? `${docsTotalCount - docsWithResponsibleCount} журналов без ответственного`
+        journalsWithResponsiblesCount < enabledTemplatesCount
+          ? `${enabledTemplatesCount - journalsWithResponsiblesCount} без ответственных — TasksFlow их пропустит`
           : undefined,
     },
 

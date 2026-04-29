@@ -4,16 +4,23 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  ChevronDown,
+  ChevronRight,
   Loader2,
   Plus,
   Save,
   Search,
   Sparkles,
   Wand2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { RESPONSIBLE_PRESETS } from "@/lib/journal-responsible-presets";
+import {
+  CATEGORY_LABELS,
+  MODE_LABELS,
+  getJournalResponsibilityMeta,
+  matchPositionsForJournal,
+  type JournalCategory,
+} from "@/lib/journal-responsible-presets";
 
 type Position = {
   id: string;
@@ -60,6 +67,25 @@ function diff(base: Selection, curr: Selection): Set<string> {
   return changed;
 }
 
+const CATEGORY_ORDER: JournalCategory[] = [
+  "health",
+  "cleaning",
+  "temperature",
+  "production",
+  "intake",
+  "equipment",
+  "training",
+  "incidents",
+  "audit",
+  "other",
+];
+
+const MODE_TONE: Record<string, string> = {
+  "per-employee": "bg-[#eef1ff] text-[#3848c7]",
+  shared: "bg-[#ecfdf5] text-[#136b2a]",
+  single: "bg-[#fff8eb] text-[#a13a32]",
+};
+
 export function JournalResponsiblesClient({ positions, journals }: Props) {
   const router = useRouter();
   const [base, setBase] = useState<Selection>(() => toSelection(journals));
@@ -67,25 +93,49 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
+    () => new Set()
+  );
 
   const dirty = diff(base, curr);
-
-  const q = query.trim().toLowerCase();
-  const filteredJournals = useMemo(
-    () =>
-      journals.filter(
-        (j) =>
-          !q ||
-          j.name.toLowerCase().includes(q) ||
-          j.code.toLowerCase().includes(q)
-      ),
-    [journals, q]
-  );
 
   const positionsById = useMemo(
     () => new Map(positions.map((p) => [p.id, p])),
     [positions]
   );
+
+  // Build journal entries with meta + group by category.
+  const enriched = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return journals
+      .map((j) => {
+        const meta = getJournalResponsibilityMeta(j.code);
+        return {
+          ...j,
+          meta,
+          category: (meta?.category ?? "other") as JournalCategory,
+        };
+      })
+      .filter(
+        (j) =>
+          !q ||
+          j.name.toLowerCase().includes(q) ||
+          j.code.toLowerCase().includes(q) ||
+          (j.meta?.who ?? "").toLowerCase().includes(q)
+      );
+  }, [journals, query]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<JournalCategory, typeof enriched>();
+    for (const j of enriched) {
+      const list = map.get(j.category) ?? [];
+      list.push(j);
+      map.set(j.category, list);
+    }
+    return CATEGORY_ORDER.map(
+      (cat) => [cat, map.get(cat) ?? []] as const
+    ).filter(([, list]) => list.length > 0);
+  }, [enriched]);
 
   function togglePosition(code: string, positionId: string) {
     setCurr((prev) => {
@@ -99,30 +149,26 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
   }
 
   function applyJournalPreset(code: string) {
-    const preset = RESPONSIBLE_PRESETS.find((p) =>
-      p.journalCodes.includes(code)
-    );
-    if (!preset) {
-      toast.error("Для этого журнала нет умного пресета");
+    const meta = getJournalResponsibilityMeta(code);
+    if (!meta) {
+      toast.error("Для этого журнала не описан умный пресет");
       return;
     }
-    const matched = positions.filter((p) => {
-      if (preset.positionKeywords.length === 0) return true;
-      const lower = p.name.toLowerCase();
-      return preset.positionKeywords.some((kw) => lower.includes(kw));
-    });
-    if (matched.length === 0) {
+    const matchedIds = matchPositionsForJournal(code, positions);
+    if (matchedIds.length === 0) {
       toast.error(
-        `Не нашёл должности подходящие под «${preset.label}». Создайте/переименуйте.`
+        `Не нашёл должности под ключевые слова: ${meta.keywords.join(", ")}. Заведите подходящую должность или добавьте вручную.`
       );
       return;
     }
     setCurr((prev) => {
       const copy = new Map(prev);
-      copy.set(code, new Set(matched.map((m) => m.id)));
+      copy.set(code, new Set(matchedIds));
       return copy;
     });
-    toast.success(`«${preset.label}» — ${matched.length} должн.`);
+    toast.success(
+      `${meta.code} ← ${matchedIds.length} должн. (${meta.keywords.join(", ")})`
+    );
   }
 
   async function applyAllPresets() {
@@ -130,7 +176,8 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
     if (
       !window.confirm(
         "Применить умные пресеты ко ВСЕМ журналам? Существующие назначения " +
-          "по охваченным журналам будут перезаписаны."
+          "будут перезаписаны на каждом журнале, для которого нашлась " +
+          "подходящая должность."
       )
     )
       return;
@@ -193,14 +240,23 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
     setCurr(new Map(base));
   }
 
+  function toggleCategory(cat: JournalCategory) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-5">
-      {/* Top bar: smart presets + search + save */}
+      {/* Top bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4">
         <button
           type="button"
           onClick={applyAllPresets}
-          disabled={applying}
+          disabled={applying || positions.length === 0}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-br from-[#5566f6] to-[#7a5cff] px-4 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.6)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {applying ? (
@@ -216,7 +272,7 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск журнала…"
+            placeholder="Поиск по журналу или роли…"
             className="h-11 w-[280px] rounded-2xl border border-[#dcdfed] bg-[#fafbff] pl-9 pr-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
@@ -262,103 +318,145 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
         </div>
       ) : null}
 
-      {/* Journals list */}
-      <div className="grid gap-3">
-        {filteredJournals.map((j) => {
-          const set = curr.get(j.code) ?? new Set<string>();
-          const isDirty = dirty.has(j.code);
-          const hasPreset = RESPONSIBLE_PRESETS.some((p) =>
-            p.journalCodes.includes(j.code)
-          );
+      {/* Grouped journals */}
+      <div className="space-y-5">
+        {grouped.map(([cat, items]) => {
+          const isCollapsed = collapsed.has(cat);
           return (
-            <div
-              key={j.code}
-              className={`rounded-2xl border bg-white p-4 transition-colors ${
-                isDirty ? "border-[#ffe9b0] bg-[#fff8eb]/40" : "border-[#ececf4]"
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
-                    {j.name}
-                  </div>
-                  {j.description ? (
-                    <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-[#6f7282]">
-                      {j.description}
-                    </div>
-                  ) : null}
-                </div>
-                {hasPreset ? (
-                  <button
-                    type="button"
-                    onClick={() => applyJournalPreset(j.code)}
-                    className="inline-flex h-8 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12px] text-[#5566f6] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-                    title="Подставить должности по умолчанию"
-                  >
-                    <Sparkles className="size-3.5" />
-                    Умный пресет
-                  </button>
-                ) : null}
-              </div>
+            <section key={cat} className="space-y-3">
+              <button
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                className="group flex w-full items-center gap-2 rounded-xl px-1 text-left"
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="size-4 text-[#6f7282] transition-transform" />
+                ) : (
+                  <ChevronDown className="size-4 text-[#6f7282] transition-transform" />
+                )}
+                <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-[#0b1024]">
+                  {CATEGORY_LABELS[cat]}
+                </h2>
+                <span className="text-[12px] text-[#9b9fb3]">
+                  · {items.length}
+                </span>
+              </button>
 
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {set.size === 0 ? (
-                  <span className="rounded-full bg-[#fff4f2] px-2.5 py-1 text-[11px] font-medium text-[#a13a32]">
-                    Никто не назначен
-                  </span>
-                ) : null}
-                {[...set].map((pid) => {
-                  const p = positionsById.get(pid);
-                  if (!p) return null;
-                  return (
-                    <button
-                      type="button"
-                      key={pid}
-                      onClick={() => togglePosition(j.code, pid)}
-                      className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2.5 py-1 text-[12px] font-medium text-[#3848c7] hover:bg-[#fff4f2] hover:text-[#a13a32]"
-                      title="Снять"
-                    >
-                      <Check className="size-3" />
-                      {p.name}
-                      <span className="text-[10px] text-[#9b9fb3]">
-                        ({p.activeUsers})
-                      </span>
-                      <X className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Add position picker */}
-              <details className="group mt-3">
-                <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[12px] text-[#6f7282] hover:text-[#5566f6]">
-                  <Plus className="size-3.5" />
-                  Добавить должность
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {positions
-                    .filter((p) => !set.has(p.id))
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => togglePosition(j.code, p.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-[#dcdfed] bg-[#fafbff] px-2.5 py-1 text-[12px] text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+              {isCollapsed ? null : (
+                <div className="grid gap-2.5">
+                  {items.map((j) => {
+                    const set = curr.get(j.code) ?? new Set<string>();
+                    const isDirty = dirty.has(j.code);
+                    const meta = j.meta;
+                    return (
+                      <div
+                        key={j.code}
+                        className={`rounded-2xl border bg-white p-4 transition-colors ${
+                          isDirty
+                            ? "border-[#ffe9b0] bg-[#fff8eb]/40"
+                            : "border-[#ececf4]"
+                        }`}
                       >
-                        <Plus className="size-3" />
-                        {p.name}
-                        <span className="text-[10px] text-[#9b9fb3]">
-                          ({p.activeUsers})
-                        </span>
-                      </button>
-                    ))}
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
+                                {j.name}
+                              </div>
+                              {meta ? (
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${MODE_TONE[meta.mode] ?? "bg-[#fafbff] text-[#6f7282]"}`}
+                                >
+                                  {MODE_LABELS[meta.mode]}
+                                </span>
+                              ) : null}
+                            </div>
+                            {meta?.who ? (
+                              <p className="mt-1.5 text-[12px] leading-relaxed text-[#3c4053]">
+                                {meta.who}
+                              </p>
+                            ) : j.description ? (
+                              <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-[#6f7282]">
+                                {j.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          {meta ? (
+                            <button
+                              type="button"
+                              onClick={() => applyJournalPreset(j.code)}
+                              className="inline-flex h-8 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12px] text-[#5566f6] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                              title={`Подставить должности по keywords: ${meta.keywords.join(", ") || "(всем)"}`}
+                            >
+                              <Sparkles className="size-3.5" />
+                              Умный пресет
+                            </button>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {set.size === 0 ? (
+                            <span className="rounded-full bg-[#fff4f2] px-2.5 py-1 text-[11px] font-medium text-[#a13a32]">
+                              Никто не назначен
+                            </span>
+                          ) : null}
+                          {[...set].map((pid) => {
+                            const p = positionsById.get(pid);
+                            if (!p) return null;
+                            return (
+                              <button
+                                type="button"
+                                key={pid}
+                                onClick={() => togglePosition(j.code, pid)}
+                                className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2.5 py-1 text-[12px] font-medium text-[#3848c7] transition-colors hover:bg-[#fff4f2] hover:text-[#a13a32]"
+                                title="Снять"
+                              >
+                                <Check className="size-3" />
+                                {p.name}
+                                <span className="text-[10px] text-[#9b9fb3]">
+                                  ({p.activeUsers})
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <details className="mt-3">
+                          <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[12px] text-[#6f7282] hover:text-[#5566f6]">
+                            <Plus className="size-3.5" />
+                            Добавить должность
+                          </summary>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {positions
+                              .filter((p) => !set.has(p.id))
+                              .map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() =>
+                                    togglePosition(j.code, p.id)
+                                  }
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#dcdfed] bg-[#fafbff] px-2.5 py-1 text-[12px] text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+                                >
+                                  <Plus className="size-3" />
+                                  {p.name}
+                                  <span className="text-[10px] text-[#9b9fb3]">
+                                    ({p.activeUsers})
+                                  </span>
+                                </button>
+                              ))}
+                          </div>
+                        </details>
+                      </div>
+                    );
+                  })}
                 </div>
-              </details>
-            </div>
+              )}
+            </section>
           );
         })}
 
-        {filteredJournals.length === 0 ? (
+        {grouped.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-8 text-center text-[14px] text-[#6f7282]">
             Не найдено журналов под «{query}».
           </div>

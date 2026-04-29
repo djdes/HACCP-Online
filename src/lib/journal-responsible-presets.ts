@@ -1,162 +1,414 @@
 /**
- * Smart presets для назначения должностей-ответственных за журналы.
- * Используется и на сервере (apply-presets API), и на клиенте (UI кнопки).
+ * Per-journal metadata + smart-preset rules. Каждый журнал ХАССП/СанПиН
+ * имеет свой паттерн заполнения — некоторые ведутся всей бригадой
+ * (уборка, гигиена сотрудников), некоторые — одним конкретным
+ * человеком (бракераж готовой продукции, аудит). Этот файл описывает,
+ * КТО на практике заполняет каждый журнал, и используется и на сервере
+ * (apply-presets API), и в UI (подсказки на карточке журнала).
  *
- * Каждое правило: набор `journalCodes` + набор `positionKeywords`.
- * Для каждого кода вычисляем: какие позиции из текущей орги матчат
- * keyword'ы по имени → они становятся ответственными за этот журнал.
+ * Источники: реальная практика общепита по СП 2.3/2.4.3590-20,
+ * ТР ТС 021/2011, методические рекомендации Роспотребнадзора по ХАССП.
  *
- * Если у журнала ни одна позиция не подошла (например, в орге нет
- * «уборщицы»), журнал пропускается — не дефолтим в «всем». В таком
- * случае админу нужно либо завести должность с подходящим именем,
- * либо проставить руками.
+ * Структура:
+ *   - `who`: одна фраза «кто заполняет» — показываем юзеру.
+ *   - `keywords`: подстроки, по которым матчим имена должностей в орге.
+ *     Lowercase. Если ни одна не подошла — журнал останется без
+ *     назначения (не дефолтим в «всем»).
+ *   - `mode`: подсказка про fillMode шаблона (per-employee / shared /
+ *     single). UI показывает label вверху карточки.
+ *   - `category`: для группировки в UI и в списке пресетов.
  */
-export type ResponsiblePreset = {
-  /** Internal id для UI */
-  id: string;
-  /** Человекочитаемый label */
-  label: string;
-  /** Краткое описание для подсказки */
-  description: string;
-  /** Какие журналы попадают под это правило */
-  journalCodes: readonly string[];
-  /** По имени должности — ищем по подстроке (lowercase) */
-  positionKeywords: readonly string[];
+
+export type ResponsibilityMode =
+  | "per-employee" // строка-на-сотрудника (гигиена, здоровье, медкнижки)
+  | "shared" // одна запись на смену, может заполнять любой из набора (уборка, климат)
+  | "single"; // конкретный «ответственный» (шеф-повар на бракераж, директор на аварии)
+
+export type JournalCategory =
+  | "cleaning"
+  | "temperature"
+  | "intake"
+  | "health"
+  | "equipment"
+  | "training"
+  | "incidents"
+  | "audit"
+  | "production"
+  | "other";
+
+export type JournalResponsibilityMeta = {
+  code: string;
+  who: string;
+  keywords: readonly string[];
+  mode: ResponsibilityMode;
+  category: JournalCategory;
+  /**
+   * `true` если на практике это «один назначенный человек» (а не «любой
+   * из должности»). UI подсказывает выбрать конкретного сотрудника как
+   * defaultAssignee, а не просто положить должность.
+   */
+  preferNamedPerson?: boolean;
 };
 
-export const RESPONSIBLE_PRESETS: readonly ResponsiblePreset[] = [
+/**
+ * Per-journal exhaustive map. Если код добавлен в ACTIVE_JOURNAL_CATALOG,
+ * добавляйте его и сюда — иначе UI «Умный пресет» для него не сработает.
+ */
+export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] = [
+  // ═══ HEALTH & HYGIENE ═══
   {
-    id: "cleaning-to-cleaners",
-    label: "Уборка → уборщикам",
-    description:
-      "Все журналы уборки и санитарии — на сотрудников клининга",
-    journalCodes: [
-      "cleaning",
-      "general_cleaning",
-      "cleaning_ventilation_checklist",
-      "sanitary_day_checklist",
-      "sanitation_day",
-      "uv_lamp_runtime",
-      "disinfectant_usage",
-      "equipment_cleaning",
-    ],
-    positionKeywords: ["уборщ", "клинер", "клининг", "санитар"],
+    code: "hygiene",
+    who: "Шеф-повар или дежурный заведующий перед сменой осматривает каждого сотрудника (чистая форма, отсутствие порезов, маникюр в норме) и ставит «допущен/не допущен».",
+    keywords: ["шеф", "повар", "заведующ", "управляющ", "менеджер"],
+    mode: "per-employee",
+    category: "health",
   },
   {
-    id: "temperature-to-cooks",
-    label: "Температура → поварам",
-    description: "Контроль холода, климата, фритюра — у кухни",
-    journalCodes: [
-      "climate_control",
-      "cold_equipment_control",
-      "intensive_cooling",
-      "fryer_oil",
-      "finished_product",
-      "perishable_rejection",
-    ],
-    positionKeywords: ["повар", "шеф", "кух", "технолог", "су-шеф"],
+    code: "health_check",
+    who: "То же что гигиенический журнал — ХАССП на практике объединяет «здоровье» и «гигиену» в одну ежедневную проверку.",
+    keywords: ["шеф", "повар", "заведующ", "управляющ", "менеджер"],
+    mode: "per-employee",
+    category: "health",
   },
   {
-    id: "intake-to-storekeepers",
-    label: "Приёмка → товароведам",
-    description:
-      "Входной контроль, приёмка сырья, прослеживаемость",
-    journalCodes: [
-      "incoming_control",
-      "incoming_raw_materials_control",
-      "metal_impurity",
-      "traceability_test",
-      "supplier_audit",
-    ],
-    positionKeywords: ["товаровед", "кладов", "снабж", "приём"],
+    code: "med_books",
+    who: "Менеджер / отдел кадров ведёт реестр сроков годности медкнижек всех сотрудников.",
+    keywords: ["менеджер", "управляющ", "директор", "кадр"],
+    mode: "single",
+    category: "health",
+    preferNamedPerson: true,
+  },
+
+  // ═══ TEMPERATURE / CLIMATE ═══
+  {
+    code: "climate_control",
+    who: "Дежурный повар или товаровед измеряет температуру и влажность в производственных и складских помещениях 2–3 раза в смену.",
+    keywords: ["повар", "технолог", "товаровед", "кладов"],
+    mode: "shared",
+    category: "temperature",
   },
   {
-    id: "health-to-everyone",
-    label: "Здоровье и гигиена → всем",
-    description:
-      "Гигиенический журнал, здоровье, медкнижки — заполняют все",
-    journalCodes: ["hygiene", "health_check", "med_books"],
-    positionKeywords: [],
+    code: "cold_equipment_control",
+    who: "Дежурный повар утром и вечером записывает температуру каждой холодильной/морозильной камеры. На крупных кухнях — отдельный сотрудник на цех.",
+    keywords: ["повар", "шеф", "су-шеф"],
+    mode: "shared",
+    category: "temperature",
   },
   {
-    id: "equipment-to-maintainers",
-    label: "Оборудование → техникам",
-    description:
-      "Калибровка, ТО, поломки, стекло — у инженеров и техобслуги",
-    journalCodes: [
-      "equipment_calibration",
-      "equipment_maintenance",
-      "breakdown_history",
-      "glass_control",
-      "glass_items_list",
-    ],
-    positionKeywords: ["техник", "инженер", "механик", "слесар"],
+    code: "intensive_cooling",
+    who: "Повар, который готовит горячее блюдо, фиксирует время и температуру при охлаждении (CCP по ХАССП — критическая контрольная точка).",
+    keywords: ["повар", "шеф", "су-шеф", "технолог"],
+    mode: "shared",
+    category: "temperature",
   },
   {
-    id: "training-to-managers",
-    label: "Обучение → руководителям",
-    description:
-      "План обучения, инструктажи — на менеджмент",
-    journalCodes: [
-      "training_plan",
-      "training_attendance",
-      "training_attestation",
-      "instruction_attendance",
-    ],
-    positionKeywords: ["менеджер", "управляющ", "директор", "заведующ"],
+    code: "fryer_oil",
+    who: "Повар горячего цеха ежедневно проверяет качество фритюрного жира (цвет, запах, тестер на полярные соединения) и записывает замену.",
+    keywords: ["повар", "шеф"],
+    mode: "shared",
+    category: "temperature",
+  },
+
+  // ═══ CLEANING ═══
+  {
+    code: "cleaning",
+    who: "Уборщица или клинер по итогам уборки помещения ставит подпись + указывает использованное средство.",
+    keywords: ["уборщ", "клинер", "клининг", "санитар", "технич"],
+    mode: "shared",
+    category: "cleaning",
   },
   {
-    id: "incidents-to-managers",
-    label: "Несчастные случаи → руководителям",
-    description:
-      "Аварии, жалобы, инциденты — у директора и менеджмента",
-    journalCodes: [
-      "accident_journal",
-      "complaint_register",
-      "audit_plan",
-      "audit_protocol",
-      "audit_report",
-    ],
-    positionKeywords: ["менеджер", "управляющ", "директор", "заведующ"],
+    code: "general_cleaning",
+    who: "Бригада уборки + менеджер. Раз в месяц генеральная уборка по графику, акт подписывают уборщицы и контролирует управляющий.",
+    keywords: ["уборщ", "клинер", "клининг", "санитар", "менеджер", "управляющ"],
+    mode: "shared",
+    category: "cleaning",
   },
-] as const;
+  {
+    code: "cleaning_ventilation_checklist",
+    who: "Дежурный по смене (уборщица или повар) перед открытием/закрытием помещения проветривает и проверяет санитарное состояние по чек-листу.",
+    keywords: ["уборщ", "клинер", "повар", "технич"],
+    mode: "shared",
+    category: "cleaning",
+  },
+  {
+    code: "uv_lamp_runtime",
+    who: "Тот, кто включает/выключает бактерицидную лампу (обычно уборщица или дежурный повар) — фиксирует время старта и стопа.",
+    keywords: ["уборщ", "клинер", "повар", "технич"],
+    mode: "shared",
+    category: "cleaning",
+  },
+  {
+    code: "disinfectant_usage",
+    who: "Старшая уборщица или клининг-менеджер записывает приход/расход дезсредств и концентрации рабочих растворов.",
+    keywords: ["уборщ", "клинер", "клининг", "технолог"],
+    mode: "shared",
+    category: "cleaning",
+  },
+  {
+    code: "sanitary_day_control",
+    who: "Бригада уборки делает санитарный день раз в месяц по чек-листу, контролирует менеджер.",
+    keywords: ["уборщ", "клинер", "санитар", "менеджер"],
+    mode: "shared",
+    category: "cleaning",
+  },
+  {
+    code: "equipment_cleaning",
+    who: "Повар или уборщица после смены моет оборудование (миксер, слайсер, мясорубку), записывает дату и средство.",
+    keywords: ["уборщ", "клинер", "повар"],
+    mode: "shared",
+    category: "cleaning",
+  },
+
+  // ═══ INTAKE / RECEIVING ═══
+  {
+    code: "incoming_control",
+    who: "Товаровед или зав.складом принимает поставку, сверяет с накладной, проверяет температурный режим, целостность упаковки.",
+    keywords: ["товаровед", "кладов", "снабж", "приём", "зав"],
+    mode: "shared",
+    category: "intake",
+  },
+  {
+    code: "incoming_raw_materials_control",
+    who: "То же что «приёмка» — слитый журнал входного контроля.",
+    keywords: ["товаровед", "кладов", "снабж", "приём"],
+    mode: "shared",
+    category: "intake",
+  },
+  {
+    code: "perishable_rejection",
+    who: "Шеф-повар или товаровед при приёмке отбраковывает скоропорт (мясо, рыбу, молочку) с истекшим сроком или признаками порчи.",
+    keywords: ["шеф", "повар", "товаровед", "технолог"],
+    mode: "shared",
+    category: "intake",
+  },
+  {
+    code: "metal_impurity",
+    who: "Технолог / товаровед пропускает сырьё через металлодетектор или магнит-ловушку и записывает результат.",
+    keywords: ["технолог", "товаровед"],
+    mode: "shared",
+    category: "intake",
+  },
+  {
+    code: "traceability_test",
+    who: "Технолог или менеджер качества раз в квартал проводит учения по прослеживаемости — отслеживает партию по цепочке от поставщика до тарелки.",
+    keywords: ["технолог", "менеджер", "управляющ", "директор"],
+    mode: "single",
+    category: "intake",
+    preferNamedPerson: true,
+  },
+
+  // ═══ PRODUCTION ═══
+  {
+    code: "finished_product",
+    who: "Бракеражная комиссия (минимум 3 человека, обычно шеф-повар + су-шеф + менеджер) пробует и оценивает каждое блюдо перед выдачей. CCP по ХАССП.",
+    keywords: ["шеф", "повар", "технолог", "менеджер", "управляющ"],
+    mode: "single",
+    category: "production",
+    preferNamedPerson: true,
+  },
+  {
+    code: "product_writeoff",
+    who: "Акт забраковки: подписывают шеф-повар, товаровед и управляющий — комиссия из 3 человек.",
+    keywords: ["шеф", "повар", "товаровед", "менеджер", "управляющ", "директор"],
+    mode: "single",
+    category: "production",
+    preferNamedPerson: true,
+  },
+
+  // ═══ EQUIPMENT ═══
+  {
+    code: "equipment_calibration",
+    who: "Технолог или назначенный инженер ведёт график поверки термометров, весов, психрометров (раз в год обычно).",
+    keywords: ["технолог", "инженер", "техник", "механик"],
+    mode: "single",
+    category: "equipment",
+    preferNamedPerson: true,
+  },
+  {
+    code: "equipment_maintenance",
+    who: "Инженер или техник по графику делает ТО оборудования (печи, холодильники, посудомойки).",
+    keywords: ["инженер", "техник", "механик", "слесар"],
+    mode: "single",
+    category: "equipment",
+    preferNamedPerson: true,
+  },
+  {
+    code: "breakdown_history",
+    who: "Тот же инженер фиксирует поломки и проведённый ремонт по карточке оборудования.",
+    keywords: ["инженер", "техник", "механик", "слесар"],
+    mode: "single",
+    category: "equipment",
+    preferNamedPerson: true,
+  },
+  {
+    code: "glass_items_list",
+    who: "Менеджер один раз заводит перечень стеклянных и хрупких предметов (лампы, бокалы, графины).",
+    keywords: ["менеджер", "управляющ", "директор", "технолог"],
+    mode: "single",
+    category: "equipment",
+    preferNamedPerson: true,
+  },
+  {
+    code: "glass_control",
+    who: "Дежурный по смене (повар или уборщица) проверяет целостность стеклянных предметов из перечня и фиксирует «всё цело» / «бой».",
+    keywords: ["повар", "уборщ", "клинер"],
+    mode: "shared",
+    category: "equipment",
+  },
+
+  // ═══ TRAINING ═══
+  {
+    code: "training_plan",
+    who: "Менеджер или технолог раз в год составляет план обучения и инструктажей для всех сотрудников.",
+    keywords: ["менеджер", "управляющ", "директор", "технолог"],
+    mode: "single",
+    category: "training",
+    preferNamedPerson: true,
+  },
+  {
+    code: "staff_training",
+    who: "Менеджер ведёт журнал, сотрудник расписывается в прохождении инструктажа (вводный, первичный, повторный, внеплановый).",
+    keywords: ["менеджер", "управляющ", "директор", "технолог", "кадр"],
+    mode: "per-employee",
+    category: "training",
+  },
+  {
+    code: "ppe_issuance",
+    who: "Товаровед или менеджер фиксирует выдачу СИЗ (перчатки, фартуки, маски) под подпись сотрудника.",
+    keywords: ["товаровед", "кладов", "менеджер", "управляющ"],
+    mode: "per-employee",
+    category: "training",
+  },
+
+  // ═══ INCIDENTS ═══
+  {
+    code: "accident_journal",
+    who: "Управляющий или директор регистрирует ЧП — пожар, травма, отравление, отключение электричества — и принятые меры.",
+    keywords: ["менеджер", "управляющ", "директор"],
+    mode: "single",
+    category: "incidents",
+    preferNamedPerson: true,
+  },
+  {
+    code: "complaint_register",
+    who: "Менеджер зала или администратор записывает жалобы гостей и предпринятые действия.",
+    keywords: ["менеджер", "управляющ", "администратор", "директор"],
+    mode: "single",
+    category: "incidents",
+    preferNamedPerson: true,
+  },
+  {
+    code: "pest_control",
+    who: "Менеджер или директор отмечает визиты подрядчика (СЭС/договор на дезинсекцию) и собственные осмотры на наличие следов грызунов/насекомых.",
+    keywords: ["менеджер", "управляющ", "директор", "технолог"],
+    mode: "single",
+    category: "incidents",
+    preferNamedPerson: true,
+  },
+
+  // ═══ AUDIT ═══
+  {
+    code: "audit_plan",
+    who: "Технолог или менеджер качества составляет годовой план внутренних аудитов.",
+    keywords: ["технолог", "менеджер", "управляющ", "директор"],
+    mode: "single",
+    category: "audit",
+    preferNamedPerson: true,
+  },
+  {
+    code: "audit_protocol",
+    who: "Аудитор (обычно технолог или внешний эксперт) фиксирует результаты проверок по чек-листу.",
+    keywords: ["технолог", "менеджер", "управляющ"],
+    mode: "single",
+    category: "audit",
+    preferNamedPerson: true,
+  },
+  {
+    code: "audit_report",
+    who: "Тот же аудитор пишет отчёт по итогам аудита с CAPA (корректирующими действиями).",
+    keywords: ["технолог", "менеджер", "управляющ"],
+    mode: "single",
+    category: "audit",
+    preferNamedPerson: true,
+  },
+];
+
+const META_BY_CODE = new Map<string, JournalResponsibilityMeta>(
+  JOURNAL_RESPONSIBILITY_META.map((m) => [m.code, m])
+);
+
+export function getJournalResponsibilityMeta(
+  code: string
+): JournalResponsibilityMeta | null {
+  return META_BY_CODE.get(code) ?? null;
+}
+
+export const CATEGORY_LABELS: Record<JournalCategory, string> = {
+  cleaning: "Уборка и санитария",
+  temperature: "Температура и холод",
+  intake: "Приёмка и сырьё",
+  health: "Гигиена сотрудников",
+  equipment: "Оборудование",
+  training: "Обучение и СИЗ",
+  incidents: "Инциденты и ЧП",
+  audit: "Аудиты и контроль",
+  production: "Бракераж и выпуск",
+  other: "Прочее",
+};
+
+export const MODE_LABELS: Record<ResponsibilityMode, string> = {
+  "per-employee": "На каждого сотрудника",
+  shared: "Общая запись на смену",
+  single: "Один ответственный",
+};
 
 /**
- * Применить ВСЕ пресеты к набору позиций.
- * Возвращает Map<journalCode, Set<positionId>>: для какого журнала
- * какие позиции должны стать ответственными.
- *
- * Если для журнала ни одна позиция не подошла — он не попадает в
- * результат (значит, оставляем как есть; не стираем существующее).
+ * Подобрать должности из орги под keywords конкретного журнала.
+ * Возвращает ids подходящих должностей. Если ни одна не подошла —
+ * пустой массив (на клиенте показываем подсказку «нет подходящих
+ * должностей, заведите/переименуйте»).
+ */
+export function matchPositionsForJournal(
+  code: string,
+  positions: ReadonlyArray<{ id: string; name: string }>
+): string[] {
+  const meta = getJournalResponsibilityMeta(code);
+  if (!meta) return [];
+  if (meta.keywords.length === 0) return positions.map((p) => p.id);
+  const matched: string[] = [];
+  for (const p of positions) {
+    const lower = p.name.toLowerCase();
+    if (meta.keywords.some((kw) => lower.includes(kw))) {
+      matched.push(p.id);
+    }
+  }
+  return matched;
+}
+
+/**
+ * Применить умные пресеты для всех журналов из meta-каталога.
+ * Возвращает Map<code, Set<positionId>> — что класть в БД.
  */
 export function computePresetAssignments(
   positions: ReadonlyArray<{ id: string; name: string }>
 ): Map<string, Set<string>> {
   const result = new Map<string, Set<string>>();
-  for (const preset of RESPONSIBLE_PRESETS) {
-    const matchedPositionIds: string[] = [];
-    for (const p of positions) {
-      const lower = p.name.toLowerCase();
-      if (preset.positionKeywords.length === 0) {
-        // «всем» — но только сотрудникам, не всем-всем. Если правило
-        // «health-to-everyone» — кладём все позиции. Но это слишком
-        // громко: оставим только если у позиции имя содержит хоть
-        // одну из «работа-на-кухне» меток. Иначе health-журналы попадут
-        // даже на admin'а / директора, что странно. Решение: keywords=[]
-        // → всех, без фильтра. Админ может потом снять.
-        matchedPositionIds.push(p.id);
-        continue;
-      }
-      if (preset.positionKeywords.some((kw) => lower.includes(kw))) {
-        matchedPositionIds.push(p.id);
-      }
-    }
-    if (matchedPositionIds.length === 0) continue;
-    for (const code of preset.journalCodes) {
-      const set = result.get(code) ?? new Set<string>();
-      for (const pid of matchedPositionIds) set.add(pid);
-      result.set(code, set);
-    }
+  for (const meta of JOURNAL_RESPONSIBILITY_META) {
+    const ids = matchPositionsForJournal(meta.code, positions);
+    if (ids.length === 0) continue;
+    result.set(meta.code, new Set(ids));
   }
   return result;
 }
+
+// Back-compat: старый API экспортировал RESPONSIBLE_PRESETS как массив.
+// Оставляем алиас, генерируя группы из category — для UI который
+// показывает «Применить уборку», «Применить температуру» и т.д.
+export type ResponsiblePreset = {
+  id: string;
+  label: string;
+  description: string;
+  journalCodes: readonly string[];
+  positionKeywords: readonly string[];
+};
