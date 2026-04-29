@@ -63,7 +63,13 @@ async function rewriteSessionToken(
   decoded.actingAsOrganizationId = next;
 
   const maxAgeSec = 30 * 24 * 60 * 60;
-  const fresh = await encode({ token: decoded, secret, maxAge: maxAgeSec });
+  // decode возвращает Record<string, unknown>, encode хочет JWT; для
+  // re-encode достаточно cast — все нужные поля уже есть в decoded.
+  const fresh = await encode({
+    token: decoded as Parameters<typeof encode>[0]["token"],
+    secret,
+    maxAge: maxAgeSec,
+  });
 
   cookieStore.set(cookieName, fresh, {
     httpOnly: true,

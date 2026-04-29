@@ -107,6 +107,7 @@ export async function POST(request: Request) {
         organizationName: user.organization.name,
         isRoot: user.isRoot === true,
         actingAsOrganizationId: null,
+        permissionPreset: user.permissionPreset ?? null,
       },
     });
 

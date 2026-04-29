@@ -258,11 +258,19 @@ async function autoOnboardToTasksflow(args: {
     //    есть, вернёт существующего (либо 409 — обрабатываем).
     let remote: { id: number; workerId: number; phone: string } | null = null;
     try {
-      remote = await client.createUser({
+      const created = await client.createUser({
         phone: normalized,
         name: args.name,
         position: args.positionName,
       });
+      // TF возвращает TasksFlowUser без отдельного workerId — у обычного
+      // юзера user.id и есть worker.id (admin исключение, но мы сюда
+      // только не-admin'ов отправляем).
+      remote = {
+        id: created.id,
+        workerId: created.id,
+        phone: created.phone,
+      };
     } catch (err) {
       if (err instanceof TasksFlowError && (err.status === 409 || err.status === 400)) {
         // Уже существует — найдём через listUsers.
@@ -272,7 +280,7 @@ async function autoOnboardToTasksflow(args: {
             (u) => normalizeRussianPhone(u.phone) === normalized
           );
           if (hit) {
-            remote = { id: hit.id, workerId: hit.workerId, phone: hit.phone };
+            remote = { id: hit.id, workerId: hit.id, phone: hit.phone };
           }
         } catch (e) {
           console.warn("[join/auto-onboard] listUsers failed", e);

@@ -71,42 +71,43 @@ export async function POST() {
       continue;
     }
     try {
-      // Закрываем все active документы этого шаблона.
-      const existing = await db.journalDocument.findMany({
-        where: { organizationId, templateId: tpl.id, status: "active" },
-        select: { id: true },
-      });
-      if (existing.length > 0) {
-        await db.journalDocument.updateMany({
-          where: {
-            id: { in: existing.map((d) => d.id) },
-          },
-          data: { status: "closed" },
-        });
-        closed += existing.length;
-      }
-
-      // Создаём свежий документ на текущий период с подтянутыми из
-      // settings ответственными и дефолтным config'ом.
+      // Считаем prefill ВНЕ транзакции — он сам делает много read-only
+      // запросов (org JSON, candidates), нет смысла держать lock.
       const period = resolveJournalPeriod(tpl.code, now, overrides);
       const prefill = await prefillResponsiblesForNewDocument({
         organizationId,
         journalCode: tpl.code,
         baseConfig: {},
       });
-      const newDoc = await db.journalDocument.create({
-        data: {
-          organizationId,
-          templateId: tpl.id,
-          title: `${tpl.name} · ${period.label}`,
-          dateFrom: period.dateFrom,
-          dateTo: period.dateTo,
-          status: "active",
-          autoFill: false,
-          config: prefill.config as never,
-          responsibleUserId: prefill.responsibleUserId,
-        },
-        select: { id: true, dateFrom: true, dateTo: true },
+      // Атомарно: close existing + create new. Если что-то фейлит —
+      // откатим. Без этого можно остаться с закрытыми старыми и без
+      // нового → юзер открывает /journals и видит пустой журнал.
+      const newDoc = await db.$transaction(async (tx) => {
+        const existing = await tx.journalDocument.findMany({
+          where: { organizationId, templateId: tpl.id, status: "active" },
+          select: { id: true },
+        });
+        if (existing.length > 0) {
+          await tx.journalDocument.updateMany({
+            where: { id: { in: existing.map((d) => d.id) } },
+            data: { status: "closed" },
+          });
+          closed += existing.length;
+        }
+        return tx.journalDocument.create({
+          data: {
+            organizationId,
+            templateId: tpl.id,
+            title: `${tpl.name} · ${period.label}`,
+            dateFrom: period.dateFrom,
+            dateTo: period.dateTo,
+            status: "active",
+            autoFill: false,
+            config: prefill.config as never,
+            responsibleUserId: prefill.responsibleUserId,
+          },
+          select: { id: true, dateFrom: true, dateTo: true },
+        });
       });
       // Сидим entries (по дням периода / по сотрудникам × дни) для
       // журналов где это имеет смысл (climate, cold_equipment, hygiene

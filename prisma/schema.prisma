@@ -155,6 +155,7 @@ model Organization {
   employeeJoinTokens       EmployeeJoinToken[]
   buildings                Building[]
   journalTaskClaims        JournalTaskClaim[]
+  tasksFlowIntegration     TasksFlowIntegration?
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько
@@ -1364,6 +1365,7 @@ model JournalExternalLog {
 model TasksFlowIntegration {
   id                 String              @id @default(cuid())
   organizationId     String              @unique
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   baseUrl            String
   /// AES-256-GCM ciphertext: `iv(base64).tag(base64).ciphertext(base64)`.
   apiKeyEncrypted    String

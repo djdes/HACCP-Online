@@ -662,18 +662,35 @@ export async function POST(request: Request) {
         }
       }
 
-      await db.tasksFlowTaskLink.create({
-        data: {
-          integrationId: integration.id,
-          journalCode: tpl.code,
-          journalDocumentId: doc.id,
-          rowKey: row.rowKey,
-          tasksflowTaskId: created.id,
-          remoteStatus: created.isCompleted ? "completed" : "active",
-          lastDirection: "push",
-        },
-      });
-      report.created += 1;
+      // Race-safe: если параллельный bulk-assign уже создал link с
+      // тем же (integrationId, journalDocumentId, rowKey) — словим
+      // P2002 на уникальном индексе. В этом случае:
+      //   • TF-таск мы уже успели создать (выше) — это даст дубль в TF
+      //   • Локальный link не пишется (он уже есть)
+      //   • Считаем это alreadyLinked, не ошибкой
+      // Дубль в TF почистится через cleanup-pending.
+      try {
+        await db.tasksFlowTaskLink.create({
+          data: {
+            integrationId: integration.id,
+            journalCode: tpl.code,
+            journalDocumentId: doc.id,
+            rowKey: row.rowKey,
+            tasksflowTaskId: created.id,
+            remoteStatus: created.isCompleted ? "completed" : "active",
+            lastDirection: "push",
+          },
+        });
+        report.created += 1;
+      } catch (err) {
+        // Prisma P2002 = unique constraint violation
+        const code = (err as { code?: string } | null)?.code;
+        if (code === "P2002") {
+          report.alreadyLinked += 1;
+        } else {
+          report.errors += 1;
+        }
+      }
       takenRowKeys.add(row.rowKey);
     }
 
