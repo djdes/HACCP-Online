@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { isPublicHttpsUrl } from "@/lib/url-allowlist";
 
 /**
  * K10 — Outbound webhooks для Zapier/Make/N8N integration.
@@ -8,7 +10,15 @@ import { db } from "@/lib/db";
  * etc.), мы шлём POST на каждый URL с JSON-телом.
  *
  * НЕ ждём ответа — fire-and-forget. Не блокирует business logic.
- * Если URL упал — логируем в console, не padaем.
+ * Если URL упал — логируем в console, не padaem.
+ *
+ * Безопасность:
+ *   - HMAC-SHA256 подпись body в заголовке `X-Wesetup-Signature`.
+ *     Receiver валидирует через WEBHOOK_HMAC_SECRET. Без этого
+ *     любой кто узнал URL мог бы forge'ить события.
+ *   - Каждый URL re-валидируется через isPublicHttpsUrl на момент
+ *     отправки — defense-in-depth, на случай если в DB просочились
+ *     internal-адреса до введения allowlist'а в settings/webhooks.
  *
  * Пример event names:
  *   - "capa.created"
@@ -40,26 +50,48 @@ export async function dispatchWebhooks(
     payload,
   });
 
+  // HMAC подпись. Если секрет не задан — отправляем без подписи
+  // (legacy customers не сломаются), но логируем warning.
+  const hmacSecret = (process.env.WEBHOOK_HMAC_SECRET ?? "").trim();
+  let signatureHeader: string | undefined;
+  if (hmacSecret) {
+    const sig = crypto.createHmac("sha256", hmacSecret).update(body).digest("hex");
+    signatureHeader = `sha256=${sig}`;
+  } else {
+    console.warn(
+      "[webhook] WEBHOOK_HMAC_SECRET не задан — webhook'и идут без подписи. Receiver не может валидировать источник."
+    );
+  }
+
   // Fire-and-forget на все URLs параллельно.
   await Promise.allSettled(
-    org.webhookUrls.map((url) =>
-      fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Wesetup-Event": event,
-          "User-Agent": "WeSetup-Webhook/1.0",
-        },
-        body,
-        // 5s timeout через AbortSignal — медленный URL не должен
-        // блокировать основной запрос.
-        signal: AbortSignal.timeout(5000),
-      }).catch((err) => {
-        console.warn(
-          `[webhook] ${event} → ${url} failed:`,
-          err instanceof Error ? err.message : err
-        );
+    org.webhookUrls
+      .filter((url) => {
+        if (typeof url !== "string" || !isPublicHttpsUrl(url)) {
+          console.warn(`[webhook] ${event} → "${url}" пропущен (не публичный http(s))`);
+          return false;
+        }
+        return true;
       })
-    )
+      .map((url) =>
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Wesetup-Event": event,
+            "User-Agent": "WeSetup-Webhook/1.0",
+            ...(signatureHeader ? { "X-Wesetup-Signature": signatureHeader } : {}),
+          },
+          body,
+          // 5s timeout через AbortSignal — медленный URL не должен
+          // блокировать основной запрос.
+          signal: AbortSignal.timeout(5000),
+        }).catch((err) => {
+          console.warn(
+            `[webhook] ${event} → ${url} failed:`,
+            err instanceof Error ? err.message : err
+          );
+        })
+      )
   );
 }
