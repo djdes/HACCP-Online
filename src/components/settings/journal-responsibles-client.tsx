@@ -132,6 +132,7 @@ export function JournalResponsiblesClient({
     null
   );
   const [resyncing, setResyncing] = useState(false);
+  const [recreating, setRecreating] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
@@ -566,6 +567,40 @@ export function JournalResponsiblesClient({
     }
   }
 
+  async function recreateDocuments() {
+    if (recreating) return;
+    if (
+      !window.confirm(
+        "«Пересоздать документы» закроет все ТЕКУЩИЕ активные документы и " +
+          "создаст свежие — с дефолтными строками и подтянутыми из настроек " +
+          "ответственными. Заполненные ранее записи останутся в закрытых " +
+          "документах (можно открыть для отчёта).\n\nПродолжить?"
+      )
+    )
+      return;
+    setRecreating(true);
+    try {
+      const res = await fetch(
+        "/api/settings/journal-responsibles/recreate-documents",
+        { method: "POST" }
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error ?? "Ошибка пересоздания");
+        return;
+      }
+      toast.success(
+        `Закрыто: ${data?.closed ?? 0}, создано новых: ${data?.created ?? 0}` +
+          (data?.errorsTotal ? `, ошибок: ${data.errorsTotal}` : "")
+      );
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setRecreating(false);
+    }
+  }
+
   function toggleCategory(cat: JournalCategory) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -596,7 +631,7 @@ export function JournalResponsiblesClient({
         <button
           type="button"
           onClick={resyncAll}
-          disabled={resyncing}
+          disabled={resyncing || recreating}
           title="Перезаписать ФИО ответственных в шапке всех активных документов на текущие из настроек. Полезно если документы создавались до изменений."
           className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -606,6 +641,21 @@ export function JournalResponsiblesClient({
             <Sparkles className="size-4 text-[#5566f6]" />
           )}
           Перезаписать в документах
+        </button>
+
+        <button
+          type="button"
+          onClick={recreateDocuments}
+          disabled={recreating || resyncing}
+          title="Закрыть все активные документы и создать свежие со строками по умолчанию и текущими ответственными. Старые записи сохранятся в закрытых документах."
+          className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#ffd2cd] bg-white px-4 text-[13px] font-medium text-[#a13a32] hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {recreating ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Wand2 className="size-4" />
+          )}
+          Пересоздать документы
         </button>
 
         <div className="relative ml-auto flex items-center">
