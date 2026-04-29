@@ -114,6 +114,15 @@ model Organization {
   /// instruction?, checklist?: string[] } ] } }.
   /// Управляется в /settings/journal-pipelines.
   journalPipelinesJson     Json                       @default("{}")
+  /// Per-journal responsible USERS (поверх per-position eligibility
+  /// в `JobPositionJournalAccess`). Структура:
+  /// { [journalCode]: { [slotId]: userId } }. У разных журналов
+  /// разные slotId — например, у бракеража готовой продукции 3 слота
+  /// (chef/member1/member2 — комиссия), у уборки 2 (supervisor/
+  /// controller), у большинства один (main). Схема описана в
+  /// src/lib/journal-responsible-schemas.ts. Управляется в
+  /// /settings/journal-responsibles.
+  journalResponsibleUsersJson Json                     @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

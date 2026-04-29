@@ -90,8 +90,9 @@ export async function POST() {
     const cascade = await cascadeResponsibleToActiveDocuments({
       organizationId,
       templateId,
+      journalCode: code,
       positionIds: [...positionIds],
-      responsibleUserId: null,
+      slotUsers: undefined,
     });
     documentsUpdated += cascade.documentsUpdated;
     journalsUpdated += 1;

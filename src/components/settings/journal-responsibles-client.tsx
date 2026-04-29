@@ -11,7 +11,6 @@ import {
   Save,
   Search,
   Sparkles,
-  User,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +21,7 @@ import {
   matchPositionsForJournal,
   type JournalCategory,
 } from "@/lib/journal-responsible-presets";
+import { getSchemaForJournal } from "@/lib/journal-responsible-schemas";
 
 type Position = {
   id: string;
@@ -36,12 +36,14 @@ type UserItem = {
   jobPositionId: string | null;
 };
 
+type SlotUserMap = Record<string, string | null>;
+
 type Journal = {
   code: string;
   name: string;
   description: string | null;
   initialPositionIds: string[];
-  initialResponsibleUserId: string | null;
+  initialSlotUsers: SlotUserMap;
 };
 
 type Props = {
@@ -52,17 +54,25 @@ type Props = {
 
 type Selection = {
   positions: Map<string, Set<string>>; // code -> positionIds
-  responsibles: Map<string, string | null>; // code -> userId
+  slots: Map<string, SlotUserMap>; // code -> { slotId: userId }
 };
 
 function toSelection(journals: Journal[]): Selection {
   const positions = new Map<string, Set<string>>();
-  const responsibles = new Map<string, string | null>();
+  const slots = new Map<string, SlotUserMap>();
   for (const j of journals) {
     positions.set(j.code, new Set(j.initialPositionIds));
-    responsibles.set(j.code, j.initialResponsibleUserId);
+    slots.set(j.code, { ...j.initialSlotUsers });
   }
-  return { positions, responsibles };
+  return { positions, slots };
+}
+
+function slotMapsEqual(a: SlotUserMap, b: SlotUserMap): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    if ((a[k] ?? null) !== (b[k] ?? null)) return false;
+  }
+  return true;
 }
 
 function diff(base: Selection, curr: Selection): Set<string> {
@@ -80,8 +90,8 @@ function diff(base: Selection, curr: Selection): Set<string> {
       }
     }
   }
-  for (const [code, userId] of curr.responsibles.entries()) {
-    if ((base.responsibles.get(code) ?? null) !== userId) {
+  for (const [code, slotMap] of curr.slots.entries()) {
+    if (!slotMapsEqual(base.slots.get(code) ?? {}, slotMap)) {
       changed.add(code);
     }
   }
@@ -155,35 +165,90 @@ export function JournalResponsiblesClient({
   );
 
   /**
-   * Из набора должностей и текущего полного списка users — выбираем
-   * первого alphabetical-сотрудника, чья должность входит в набор.
-   * Используется как «дефолтный ответственный по умолчанию» когда юзер
-   * только что задал должности.
+   * Сотрудники для конкретного слота: фильтр по выбранным должностям +
+   * по slot.positionKeywords (если заданы). Если ничего не подошло — всех.
+   * Исключаем ids, которые уже взяты другими слотами этого же журнала.
    */
-  function pickDefaultResponsible(positionIds: Set<string>): string | null {
-    const sorted = [...users].sort((a, b) =>
-      a.name.localeCompare(b.name, "ru")
+  function eligibleUsersForSlot(
+    journalCode: string,
+    slotId: string
+  ): UserItem[] {
+    const schema = getSchemaForJournal(journalCode);
+    const slot = schema.slots.find((s) => s.id === slotId);
+    const positionSet = curr.positions.get(journalCode);
+    const slotMap = curr.slots.get(journalCode) ?? {};
+    const usedIds = new Set(
+      Object.entries(slotMap)
+        .filter(([sid, uid]) => sid !== slotId && uid)
+        .map(([, uid]) => uid as string)
     );
-    for (const u of sorted) {
-      if (u.jobPositionId && positionIds.has(u.jobPositionId)) return u.id;
+
+    let pool = users;
+    if (positionSet && positionSet.size > 0) {
+      pool = pool.filter(
+        (u) => u.jobPositionId && positionSet.has(u.jobPositionId)
+      );
     }
-    return null;
+    if (slot?.positionKeywords && slot.positionKeywords.length > 0) {
+      const positionsById = new Map(positions.map((p) => [p.id, p]));
+      const filtered = pool.filter((u) => {
+        if (!u.jobPositionId) return false;
+        const pos = positionsById.get(u.jobPositionId);
+        if (!pos) return false;
+        const lower = pos.name.toLowerCase();
+        return slot.positionKeywords!.some((kw) => lower.includes(kw));
+      });
+      // Если по keywords никого нет — даём весь pool, не оставляем
+      // юзера с пустым select'ом.
+      if (filtered.length > 0) pool = filtered;
+    }
+    return [...pool]
+      .filter((u) => !usedIds.has(u.id))
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
   }
 
   /**
-   * Сотрудники, чья должность входит в выбранные для журнала. Сортировка
-   * по алфавиту. Если ни одна должность не выбрана — отдаём всех (юзер
-   * может вручную поставить любого ответственного).
+   * Авто-подбор слотов на стороне клиента — для UI feedback после
+   * presets. Сервер делает то же независимо. Алгоритм: пробегаем по
+   * слотам, для каждого ищем подходящего без дубликатов.
    */
-  function eligibleUsersForJournal(code: string): UserItem[] {
-    const set = curr.positions.get(code);
-    const filtered =
-      set && set.size > 0
-        ? users.filter(
-            (u) => u.jobPositionId && set.has(u.jobPositionId)
-          )
-        : users;
-    return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  function pickSlotUsersForJournal(
+    journalCode: string,
+    positionIds: Set<string>
+  ): SlotUserMap {
+    const schema = getSchemaForJournal(journalCode);
+    const positionsById = new Map(positions.map((p) => [p.id, p]));
+    const result: SlotUserMap = {};
+    const usedIds = new Set<string>();
+    for (const slot of schema.slots) {
+      let pool = users;
+      if (positionIds.size > 0) {
+        pool = pool.filter(
+          (u) => u.jobPositionId && positionIds.has(u.jobPositionId)
+        );
+      }
+      if (slot.positionKeywords && slot.positionKeywords.length > 0) {
+        const filtered = pool.filter((u) => {
+          if (!u.jobPositionId) return false;
+          const pos = positionsById.get(u.jobPositionId);
+          if (!pos) return false;
+          const lower = pos.name.toLowerCase();
+          return slot.positionKeywords!.some((kw) => lower.includes(kw));
+        });
+        if (filtered.length > 0) pool = filtered;
+      }
+      const sorted = [...pool].sort((a, b) =>
+        a.name.localeCompare(b.name, "ru")
+      );
+      const pick = sorted.find((u) => !usedIds.has(u.id));
+      if (pick) {
+        result[slot.id] = pick.id;
+        usedIds.add(pick.id);
+      } else {
+        result[slot.id] = null;
+      }
+    }
+    return result;
   }
 
   // Build journal entries with meta + group by category.
@@ -227,25 +292,34 @@ export function JournalResponsiblesClient({
       else set.add(positionId);
       positions.set(code, set);
 
-      // Если responsible сейчас НЕ принадлежит ни одной из выбранных
-      // должностей — авто-перевыбираем (или null если никого нет).
-      const responsibles = new Map(prev.responsibles);
-      const currentResp = responsibles.get(code) ?? null;
-      const respUser = currentResp ? usersById.get(currentResp) : null;
-      const respFits =
-        respUser?.jobPositionId && set.has(respUser.jobPositionId);
-      if (!respFits) {
-        responsibles.set(code, pickDefaultResponsible(set));
+      // Если кто-то из текущих slot users не помещается в новые
+      // должности — снимаем его. Сервер при сохранении подберёт нового.
+      const slots = new Map(prev.slots);
+      const slotMap = { ...(slots.get(code) ?? {}) };
+      let mutated = false;
+      for (const [slotId, userId] of Object.entries(slotMap)) {
+        if (!userId) continue;
+        const u = usersById.get(userId);
+        if (
+          set.size > 0 &&
+          (!u?.jobPositionId || !set.has(u.jobPositionId))
+        ) {
+          slotMap[slotId] = null;
+          mutated = true;
+        }
       }
-      return { positions, responsibles };
+      if (mutated) slots.set(code, slotMap);
+      return { positions, slots };
     });
   }
 
-  function setResponsible(code: string, userId: string | null) {
+  function setSlotUser(code: string, slotId: string, userId: string | null) {
     setCurr((prev) => {
-      const responsibles = new Map(prev.responsibles);
-      responsibles.set(code, userId);
-      return { positions: prev.positions, responsibles };
+      const slots = new Map(prev.slots);
+      const slotMap = { ...(slots.get(code) ?? {}) };
+      slotMap[slotId] = userId;
+      slots.set(code, slotMap);
+      return { positions: prev.positions, slots };
     });
   }
 
@@ -263,27 +337,27 @@ export function JournalResponsiblesClient({
       return;
     }
     const matchedSet = new Set(matchedIds);
-    const respUserId = pickDefaultResponsible(matchedSet);
+    const slotMap = pickSlotUsersForJournal(code, matchedSet);
     setCurr((prev) => {
       const positions = new Map(prev.positions);
-      const responsibles = new Map(prev.responsibles);
+      const slots = new Map(prev.slots);
       positions.set(code, matchedSet);
-      responsibles.set(code, respUserId);
-      return { positions, responsibles };
+      slots.set(code, slotMap);
+      return { positions, slots };
     });
+    const filledSlots = Object.values(slotMap).filter(Boolean).length;
     toast.success(
-      respUserId
-        ? `${meta.code} ← ${matchedIds.length} должн., ответственный «${usersById.get(respUserId)?.name ?? "?"}»`
-        : `${meta.code} ← ${matchedIds.length} должн. (нет сотрудников в этих должностях)`
+      filledSlots > 0
+        ? `${meta.code} ← ${matchedIds.length} должн., ${filledSlots} ответственн.`
+        : `${meta.code} ← ${matchedIds.length} должн. (нет подходящих сотрудников)`
     );
   }
 
-  type Assignment = { positionIds: Set<string>; responsibleUserId: string | null };
+  type Assignment = {
+    positionIds: Set<string>;
+    slotUsers: SlotUserMap;
+  };
 
-  /**
-   * Считает локально что именно поменяется на наборе журналов.
-   * Если ни одна должность не подошла — журнал в результат не попадает.
-   */
   function computeAssignmentsFor(
     codes: readonly string[]
   ): Map<string, Assignment> {
@@ -294,16 +368,12 @@ export function JournalResponsiblesClient({
       const positionSet = new Set(matched);
       result.set(code, {
         positionIds: positionSet,
-        responsibleUserId: pickDefaultResponsible(positionSet),
+        slotUsers: pickSlotUsersForJournal(code, positionSet),
       });
     }
     return result;
   }
 
-  /**
-   * Вызывает PUT для каждого journal'а и возвращает число успехов/ошибок.
-   * Обновляет base+curr только для тех, что прошли — мгновенный UI.
-   */
   async function persistAssignments(
     assignments: Map<string, Assignment>
   ): Promise<{ ok: number; failed: number }> {
@@ -319,13 +389,19 @@ export function JournalResponsiblesClient({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               positionIds: [...a.positionIds],
-              responsibleUserId: a.responsibleUserId,
+              slotUsers: a.slotUsers,
             }),
           }
         );
         if (res.ok) {
           ok += 1;
-          successful.set(code, a);
+          // Сервер мог авто-подобрать недостающие slot users.
+          const data = await res.json().catch(() => null);
+          const serverSlots = (data?.slotUsers ?? a.slotUsers) as SlotUserMap;
+          successful.set(code, {
+            positionIds: a.positionIds,
+            slotUsers: serverSlots,
+          });
         } else {
           failed += 1;
         }
@@ -336,12 +412,12 @@ export function JournalResponsiblesClient({
     if (successful.size > 0) {
       const updateBoth = (prev: Selection): Selection => {
         const positions = new Map(prev.positions);
-        const responsibles = new Map(prev.responsibles);
+        const slots = new Map(prev.slots);
         for (const [code, a] of successful) {
           positions.set(code, new Set(a.positionIds));
-          responsibles.set(code, a.responsibleUserId);
+          slots.set(code, { ...a.slotUsers });
         }
-        return { positions, responsibles };
+        return { positions, slots };
       };
       setCurr(updateBoth);
       setBase(updateBoth);
@@ -435,7 +511,7 @@ export function JournalResponsiblesClient({
       for (const code of dirty) {
         dirtyAssignments.set(code, {
           positionIds: curr.positions.get(code) ?? new Set<string>(),
-          responsibleUserId: curr.responsibles.get(code) ?? null,
+          slotUsers: curr.slots.get(code) ?? {},
         });
       }
       const { ok, failed } = await persistAssignments(dirtyAssignments);
@@ -459,7 +535,9 @@ export function JournalResponsiblesClient({
       positions: new Map(
         [...base.positions].map(([k, v]) => [k, new Set(v)])
       ),
-      responsibles: new Map(base.responsibles),
+      slots: new Map(
+        [...base.slots].map(([k, v]) => [k, { ...v }])
+      ),
     });
   }
 
@@ -590,10 +668,10 @@ export function JournalResponsiblesClient({
                 <div className="grid gap-2.5">
                   {items.map((j) => {
                     const set = curr.positions.get(j.code) ?? new Set<string>();
-                    const respUserId = curr.responsibles.get(j.code) ?? null;
+                    const slotMap = curr.slots.get(j.code) ?? {};
                     const isDirty = dirty.has(j.code);
                     const meta = j.meta;
-                    const eligibleUsers = eligibleUsersForJournal(j.code);
+                    const schema = getSchemaForJournal(j.code);
                     return (
                       <div
                         key={j.code}
@@ -694,40 +772,90 @@ export function JournalResponsiblesClient({
                           </div>
                         </details>
 
-                        {/* Конкретный сотрудник — попадает в шапку
-                            активного документа, в printable-PDF и в
-                            «Ответственное лицо» в TasksFlow-задачах. */}
-                        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
-                          <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#3c4053]">
-                            <User className="size-3.5 text-[#5566f6]" />
-                            Главный ответственный
-                          </div>
-                          <select
-                            value={respUserId ?? ""}
-                            onChange={(e) =>
-                              setResponsible(j.code, e.target.value || null)
-                            }
-                            disabled={eligibleUsers.length === 0}
-                            className="flex-1 min-w-[200px] rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
-                          >
-                            <option value="">— не выбран —</option>
-                            {eligibleUsers.map((u) => {
-                              const pos = u.jobPositionId
-                                ? positionsById.get(u.jobPositionId)
-                                : null;
-                              return (
-                                <option key={u.id} value={u.id}>
-                                  {u.name}
-                                  {pos ? ` · ${pos.name}` : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          {eligibleUsers.length === 0 && set.size > 0 ? (
-                            <span className="text-[11px] text-[#a13a32]">
-                              нет сотрудников в выбранных должностях
-                            </span>
-                          ) : null}
+                        {/* Slot pickers — по одному на каждый «слот»
+                            ответственного из schema этого журнала.
+                            Например, у бракеража готовой продукции 3
+                            слота (комиссия), у уборки 2, у большинства 1. */}
+                        <div className="mt-3 space-y-2">
+                          {schema.slots.map((slot, slotIdx) => {
+                            const userId = slotMap[slot.id] ?? null;
+                            const eligibleForSlot = eligibleUsersForSlot(
+                              j.code,
+                              slot.id
+                            );
+                            // Сюда добавляем текущего юзера, если он не
+                            // в pool (например, изменили должности и он
+                            // выпал из фильтра — пусть всё равно покажется
+                            // как «выбран», чтобы юзер не запутался).
+                            const showCurrent = userId
+                              ? !eligibleForSlot.find((u) => u.id === userId) &&
+                                usersById.get(userId)
+                              : null;
+                            return (
+                              <div
+                                key={slot.id}
+                                className="flex flex-wrap items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5"
+                              >
+                                <div className="flex min-w-[180px] flex-col">
+                                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#3c4053]">
+                                    <span className="flex size-5 items-center justify-center rounded-full bg-[#eef1ff] text-[10px] font-semibold text-[#3848c7]">
+                                      {slotIdx + 1}
+                                    </span>
+                                    {slot.label}
+                                    {slot.primary ? (
+                                      <span className="rounded-full bg-[#fff8eb] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#a13a32]">
+                                        primary
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {slot.hint ? (
+                                    <div className="mt-0.5 text-[11px] leading-snug text-[#9b9fb3]">
+                                      {slot.hint}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                  <select
+                                    value={userId ?? ""}
+                                    onChange={(e) =>
+                                      setSlotUser(
+                                        j.code,
+                                        slot.id,
+                                        e.target.value || null
+                                      )
+                                    }
+                                    disabled={
+                                      eligibleForSlot.length === 0 && !showCurrent
+                                    }
+                                    className="w-full rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
+                                  >
+                                    <option value="">— не выбран —</option>
+                                    {showCurrent ? (
+                                      <option value={userId ?? ""}>
+                                        {showCurrent.name} (вне фильтра)
+                                      </option>
+                                    ) : null}
+                                    {eligibleForSlot.map((u) => {
+                                      const pos = u.jobPositionId
+                                        ? positionsById.get(u.jobPositionId)
+                                        : null;
+                                      return (
+                                        <option key={u.id} value={u.id}>
+                                          {u.name}
+                                          {pos ? ` · ${pos.name}` : ""}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                  {eligibleForSlot.length === 0 && !showCurrent ? (
+                                    <div className="mt-1 text-[11px] text-[#a13a32]">
+                                      Нет подходящих сотрудников. Заведите/назначьте.
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );

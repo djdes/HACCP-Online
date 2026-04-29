@@ -11,18 +11,14 @@ export const dynamic = "force-dynamic";
  * PUT /api/settings/journal-responsibles/<code>
  * Body: {
  *   positionIds: string[],
- *   responsibleUserId?: string | null  // конкретный сотрудник
+ *   slotUsers?: { [slotId: string]: string | null }
  * }
  *
- * Сохраняет:
  *   1. JobPositionJournalAccess — eligibility должностей для bulk-assign.
- *   2. Каскадно ставит responsibleUserId на ВСЕХ активных документах
- *      этого журнала (текущая орга). Юзер просил «всё сразу же
- *      заполнялось в документ» — это про этот шаг.
- *
- * Если responsibleUserId не передан — подбирается первый подходящий
- * сотрудник из выбранных должностей (alphabetical), чтобы документ
- * сразу получил конкретного ответственного.
+ *   2. Сохраняет slotUsers в Organization.journalResponsibleUsersJson
+ *      (per-slot карта; у каждого журнала своя схема слотов).
+ *   3. Каскадно ставит responsibleUserId на ВСЕХ активных документах
+ *      этого журнала (берётся primary-slot из schema).
  */
 export async function PUT(
   request: NextRequest,
@@ -54,12 +50,17 @@ export async function PUT(
       )
     : [];
 
-  const responsibleUserIdRaw = (body as { responsibleUserId?: unknown } | null)
-    ?.responsibleUserId;
-  const responsibleUserId: string | null =
-    typeof responsibleUserIdRaw === "string" && responsibleUserIdRaw.length > 0
-      ? responsibleUserIdRaw
-      : null;
+  const slotUsersRaw = (body as { slotUsers?: unknown } | null)?.slotUsers;
+  const slotUsers: Record<string, string | null> = {};
+  if (slotUsersRaw && typeof slotUsersRaw === "object") {
+    for (const [slotId, userId] of Object.entries(
+      slotUsersRaw as Record<string, unknown>
+    )) {
+      if (typeof slotId !== "string") continue;
+      slotUsers[slotId] =
+        typeof userId === "string" && userId.length > 0 ? userId : null;
+    }
+  }
 
   if (positionIds.length > 0) {
     const owned = await db.jobPosition.findMany({
@@ -69,6 +70,28 @@ export async function PUT(
     if (owned.length !== positionIds.length) {
       return NextResponse.json(
         { error: "Некоторые должности не принадлежат организации" },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Защита от подмены чужих userId.
+  const userIds = Object.values(slotUsers).filter(
+    (v): v is string => typeof v === "string" && v.length > 0
+  );
+  if (userIds.length > 0) {
+    const owned = await db.user.findMany({
+      where: {
+        id: { in: userIds },
+        organizationId,
+        isActive: true,
+        archivedAt: null,
+      },
+      select: { id: true },
+    });
+    if (owned.length !== new Set(userIds).size) {
+      return NextResponse.json(
+        { error: "Некоторые сотрудники не принадлежат организации" },
         { status: 400 }
       );
     }
@@ -91,19 +114,18 @@ export async function PUT(
       : []),
   ]);
 
-  // Каскад в активные документы — мгновенный эффект «появилось в шапке
-  // печатной версии и на странице документа».
   const cascade = await cascadeResponsibleToActiveDocuments({
     organizationId,
     templateId: template.id,
+    journalCode: code,
     positionIds,
-    responsibleUserId,
+    slotUsers,
   });
 
   return NextResponse.json({
     ok: true,
     count: positionIds.length,
     documentsUpdated: cascade.documentsUpdated,
-    pickedUserId: cascade.pickedUserId,
+    slotUsers: cascade.savedSlots,
   });
 }

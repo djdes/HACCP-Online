@@ -13,9 +13,8 @@ export default async function JournalResponsiblesPage() {
   const session = await requireAuth();
   if (!hasCapability(session.user, "admin.full")) redirect("/settings");
   const organizationId = getActiveOrgId(session);
-  const now = new Date();
 
-  const [positions, users, templates, accessRows, activeDocs] = await Promise.all([
+  const [positions, users, templates, accessRows, org] = await Promise.all([
     db.jobPosition.findMany({
       where: { organizationId },
       orderBy: [{ categoryKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -45,17 +44,9 @@ export default async function JournalResponsiblesPage() {
       where: { organizationId },
       select: { jobPositionId: true, templateId: true },
     }),
-    db.journalDocument.findMany({
-      where: {
-        organizationId,
-        status: "active",
-        dateFrom: { lte: now },
-        dateTo: { gte: now },
-      },
-      select: {
-        templateId: true,
-        responsibleUserId: true,
-      },
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { journalResponsibleUsersJson: true },
     }),
   ]);
 
@@ -69,33 +60,11 @@ export default async function JournalResponsiblesPage() {
     positionsByJournal.set(code, list);
   }
 
-  // Который сейчас стоит ответственным на активных документах журнала.
-  // Если документов несколько и у них разные responsibleUserId — берём
-  // самого частого (mode). Если у всех null — null.
-  const docsByCode = new Map<string, (string | null)[]>();
-  for (const d of activeDocs) {
-    const code = templateIdToCode.get(d.templateId);
-    if (!code) continue;
-    const list = docsByCode.get(code) ?? [];
-    list.push(d.responsibleUserId);
-    docsByCode.set(code, list);
-  }
-  function pickModeUserId(list: (string | null)[]): string | null {
-    const counts = new Map<string, number>();
-    for (const id of list) {
-      if (!id) continue;
-      counts.set(id, (counts.get(id) ?? 0) + 1);
-    }
-    let best: string | null = null;
-    let bestCount = 0;
-    for (const [id, c] of counts) {
-      if (c > bestCount) {
-        best = id;
-        bestCount = c;
-      }
-    }
-    return best;
-  }
+  // Карта slot users из Organization.journalResponsibleUsersJson.
+  const orgSlotUsers = (org?.journalResponsibleUsersJson ?? {}) as Record<
+    string,
+    Record<string, string | null>
+  >;
 
   const journals = ACTIVE_JOURNAL_CATALOG.map((j) => {
     const tpl = templates.find((t) => t.code === j.code);
@@ -104,7 +73,7 @@ export default async function JournalResponsiblesPage() {
       name: j.name,
       description: tpl?.description ?? null,
       initialPositionIds: positionsByJournal.get(j.code) ?? [],
-      initialResponsibleUserId: pickModeUserId(docsByCode.get(j.code) ?? []),
+      initialSlotUsers: orgSlotUsers[j.code] ?? {},
     };
   });
 
