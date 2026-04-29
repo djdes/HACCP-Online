@@ -147,7 +147,7 @@ export default async function OnboardingPage() {
     {
       title: "Информация об организации",
       description: "Название, ИНН, адрес — для договоров и printable PDF",
-      href: "/settings",
+      href: "/settings/organization",
       icon: Building2,
       priority: "required",
       state:

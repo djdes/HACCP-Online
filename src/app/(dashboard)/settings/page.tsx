@@ -44,6 +44,14 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
+    title: "Информация об организации",
+    description: "Название, ИНН, адрес, бренд, часовой пояс — для договоров и printable PDF",
+    href: "/settings/organization",
+    icon: Building2,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
     title: "Цеха и участки",
     description: "Производственные зоны и помещения",
     href: "/settings/areas",
