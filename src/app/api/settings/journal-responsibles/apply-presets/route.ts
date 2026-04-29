@@ -3,6 +3,7 @@ import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { computePresetAssignments } from "@/lib/journal-responsible-presets";
+import { cascadeResponsibleToActiveDocuments } from "@/lib/journal-responsibles-cascade";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,12 @@ export const dynamic = "force-dynamic";
  * ПЕРЕЗАПИСЫВАЮТСЯ. Журналы, не покрытые ни одним пресетом, остаются
  * как есть.
  *
- * Возвращает summary: сколько журналов получили хотя бы одну позицию.
+ * Дополнительно для каждого затронутого журнала каскадно ставит
+ * responsibleUserId на ВСЕХ активных документах — выбираем первого
+ * подходящего сотрудника (alphabetical) из назначенных должностей.
+ * Это даёт «всё сразу же заполнено в документе» эффект.
+ *
+ * Возвращает summary: сколько журналов и сколько документов обновлено.
  */
 export async function POST() {
   const auth = await requireApiAuth();
@@ -49,6 +55,7 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       journalsUpdated: 0,
+      documentsUpdated: 0,
       message:
         "Ни одна должность не подошла под имена пресетов (например, нет " +
         "«уборщицы», «повара» и т.д.). Переименуйте должности или " +
@@ -64,6 +71,7 @@ export async function POST() {
   const idByCode = new Map(templates.map((t) => [t.code, t.id]));
 
   let journalsUpdated = 0;
+  let documentsUpdated = 0;
   for (const [code, positionIds] of assignments.entries()) {
     const templateId = idByCode.get(code);
     if (!templateId) continue;
@@ -79,8 +87,19 @@ export async function POST() {
         })),
       }),
     ]);
+    const cascade = await cascadeResponsibleToActiveDocuments({
+      organizationId,
+      templateId,
+      positionIds: [...positionIds],
+      responsibleUserId: null,
+    });
+    documentsUpdated += cascade.documentsUpdated;
     journalsUpdated += 1;
   }
 
-  return NextResponse.json({ ok: true, journalsUpdated });
+  return NextResponse.json({
+    ok: true,
+    journalsUpdated,
+    documentsUpdated,
+  });
 }

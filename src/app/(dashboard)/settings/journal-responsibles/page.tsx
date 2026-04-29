@@ -13,8 +13,9 @@ export default async function JournalResponsiblesPage() {
   const session = await requireAuth();
   if (!hasCapability(session.user, "admin.full")) redirect("/settings");
   const organizationId = getActiveOrgId(session);
+  const now = new Date();
 
-  const [positions, templates, accessRows] = await Promise.all([
+  const [positions, users, templates, accessRows, activeDocs] = await Promise.all([
     db.jobPosition.findMany({
       where: { organizationId },
       orderBy: [{ categoryKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -27,6 +28,15 @@ export default async function JournalResponsiblesPage() {
         },
       },
     }),
+    db.user.findMany({
+      where: { organizationId, isActive: true, archivedAt: null },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        jobPositionId: true,
+      },
+    }),
     db.journalTemplate.findMany({
       where: { code: { in: ACTIVE_JOURNAL_CATALOG.map((j) => j.code) } },
       select: { id: true, code: true, name: true, description: true },
@@ -34,6 +44,18 @@ export default async function JournalResponsiblesPage() {
     db.jobPositionJournalAccess.findMany({
       where: { organizationId },
       select: { jobPositionId: true, templateId: true },
+    }),
+    db.journalDocument.findMany({
+      where: {
+        organizationId,
+        status: "active",
+        dateFrom: { lte: now },
+        dateTo: { gte: now },
+      },
+      select: {
+        templateId: true,
+        responsibleUserId: true,
+      },
     }),
   ]);
 
@@ -47,6 +69,34 @@ export default async function JournalResponsiblesPage() {
     positionsByJournal.set(code, list);
   }
 
+  // Который сейчас стоит ответственным на активных документах журнала.
+  // Если документов несколько и у них разные responsibleUserId — берём
+  // самого частого (mode). Если у всех null — null.
+  const docsByCode = new Map<string, (string | null)[]>();
+  for (const d of activeDocs) {
+    const code = templateIdToCode.get(d.templateId);
+    if (!code) continue;
+    const list = docsByCode.get(code) ?? [];
+    list.push(d.responsibleUserId);
+    docsByCode.set(code, list);
+  }
+  function pickModeUserId(list: (string | null)[]): string | null {
+    const counts = new Map<string, number>();
+    for (const id of list) {
+      if (!id) continue;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    let best: string | null = null;
+    let bestCount = 0;
+    for (const [id, c] of counts) {
+      if (c > bestCount) {
+        best = id;
+        bestCount = c;
+      }
+    }
+    return best;
+  }
+
   const journals = ACTIVE_JOURNAL_CATALOG.map((j) => {
     const tpl = templates.find((t) => t.code === j.code);
     return {
@@ -54,6 +104,7 @@ export default async function JournalResponsiblesPage() {
       name: j.name,
       description: tpl?.description ?? null,
       initialPositionIds: positionsByJournal.get(j.code) ?? [],
+      initialResponsibleUserId: pickModeUserId(docsByCode.get(j.code) ?? []),
     };
   });
 
@@ -84,10 +135,11 @@ export default async function JournalResponsiblesPage() {
                 Ответственные за журналы
               </h1>
               <p className="mt-2 max-w-[680px] text-[14px] text-white/70">
-                Кто из должностей заполняет каждый журнал. Применяется
-                при «Отправить всем в TasksFlow» и при автосоздании
-                задач. Жми «Умные пресеты» — система разложит уборку
-                на уборщиков, температуру на поваров и так далее.
+                Кто из должностей заполняет каждый журнал и какой именно
+                сотрудник идёт в шапку документа. Изменения мгновенно
+                каскадируются в активные документы и в pdf-печать.
+                Жми «Умные пресеты» — система разложит уборку на
+                уборщиков, температуру на поваров и так далее.
               </p>
             </div>
           </div>
@@ -100,6 +152,11 @@ export default async function JournalResponsiblesPage() {
           name: p.name,
           categoryKey: p.categoryKey,
           activeUsers: p._count.users,
+        }))}
+        users={users.map((u) => ({
+          id: u.id,
+          name: u.name,
+          jobPositionId: u.jobPositionId,
         }))}
         journals={journals}
       />

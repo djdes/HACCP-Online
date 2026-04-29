@@ -11,6 +11,7 @@ import {
   Save,
   Search,
   Sparkles,
+  User,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,30 +30,45 @@ type Position = {
   activeUsers: number;
 };
 
+type UserItem = {
+  id: string;
+  name: string;
+  jobPositionId: string | null;
+};
+
 type Journal = {
   code: string;
   name: string;
   description: string | null;
   initialPositionIds: string[];
+  initialResponsibleUserId: string | null;
 };
 
 type Props = {
   positions: Position[];
+  users: UserItem[];
   journals: Journal[];
 };
 
-type Selection = Map<string, Set<string>>; // code -> positionIds
+type Selection = {
+  positions: Map<string, Set<string>>; // code -> positionIds
+  responsibles: Map<string, string | null>; // code -> userId
+};
 
 function toSelection(journals: Journal[]): Selection {
-  const m: Selection = new Map();
-  for (const j of journals) m.set(j.code, new Set(j.initialPositionIds));
-  return m;
+  const positions = new Map<string, Set<string>>();
+  const responsibles = new Map<string, string | null>();
+  for (const j of journals) {
+    positions.set(j.code, new Set(j.initialPositionIds));
+    responsibles.set(j.code, j.initialResponsibleUserId);
+  }
+  return { positions, responsibles };
 }
 
 function diff(base: Selection, curr: Selection): Set<string> {
   const changed = new Set<string>();
-  for (const [code, set] of curr.entries()) {
-    const baseSet = base.get(code) ?? new Set<string>();
+  for (const [code, set] of curr.positions.entries()) {
+    const baseSet = base.positions.get(code) ?? new Set<string>();
     if (set.size !== baseSet.size) {
       changed.add(code);
       continue;
@@ -62,6 +78,11 @@ function diff(base: Selection, curr: Selection): Set<string> {
         changed.add(code);
         break;
       }
+    }
+  }
+  for (const [code, userId] of curr.responsibles.entries()) {
+    if ((base.responsibles.get(code) ?? null) !== userId) {
+      changed.add(code);
     }
   }
   return changed;
@@ -86,7 +107,11 @@ const MODE_TONE: Record<string, string> = {
   single: "bg-[#fff8eb] text-[#a13a32]",
 };
 
-export function JournalResponsiblesClient({ positions, journals }: Props) {
+export function JournalResponsiblesClient({
+  positions,
+  users,
+  journals,
+}: Props) {
   const router = useRouter();
   const [base, setBase] = useState<Selection>(() => toSelection(journals));
   const [curr, setCurr] = useState<Selection>(() => toSelection(journals));
@@ -98,6 +123,11 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
   );
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
+  );
+
+  const usersById = useMemo(
+    () => new Map(users.map((u) => [u.id, u])),
+    [users]
   );
 
   // Если родительская server-component дёрнула router.refresh() и
@@ -123,6 +153,38 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
     () => new Map(positions.map((p) => [p.id, p])),
     [positions]
   );
+
+  /**
+   * Из набора должностей и текущего полного списка users — выбираем
+   * первого alphabetical-сотрудника, чья должность входит в набор.
+   * Используется как «дефолтный ответственный по умолчанию» когда юзер
+   * только что задал должности.
+   */
+  function pickDefaultResponsible(positionIds: Set<string>): string | null {
+    const sorted = [...users].sort((a, b) =>
+      a.name.localeCompare(b.name, "ru")
+    );
+    for (const u of sorted) {
+      if (u.jobPositionId && positionIds.has(u.jobPositionId)) return u.id;
+    }
+    return null;
+  }
+
+  /**
+   * Сотрудники, чья должность входит в выбранные для журнала. Сортировка
+   * по алфавиту. Если ни одна должность не выбрана — отдаём всех (юзер
+   * может вручную поставить любого ответственного).
+   */
+  function eligibleUsersForJournal(code: string): UserItem[] {
+    const set = curr.positions.get(code);
+    const filtered =
+      set && set.size > 0
+        ? users.filter(
+            (u) => u.jobPositionId && set.has(u.jobPositionId)
+          )
+        : users;
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }
 
   // Build journal entries with meta + group by category.
   const enriched = useMemo(() => {
@@ -159,12 +221,31 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
 
   function togglePosition(code: string, positionId: string) {
     setCurr((prev) => {
-      const copy = new Map(prev);
-      const set = new Set(copy.get(code) ?? new Set<string>());
+      const positions = new Map(prev.positions);
+      const set = new Set(positions.get(code) ?? new Set<string>());
       if (set.has(positionId)) set.delete(positionId);
       else set.add(positionId);
-      copy.set(code, set);
-      return copy;
+      positions.set(code, set);
+
+      // Если responsible сейчас НЕ принадлежит ни одной из выбранных
+      // должностей — авто-перевыбираем (или null если никого нет).
+      const responsibles = new Map(prev.responsibles);
+      const currentResp = responsibles.get(code) ?? null;
+      const respUser = currentResp ? usersById.get(currentResp) : null;
+      const respFits =
+        respUser?.jobPositionId && set.has(respUser.jobPositionId);
+      if (!respFits) {
+        responsibles.set(code, pickDefaultResponsible(set));
+      }
+      return { positions, responsibles };
+    });
+  }
+
+  function setResponsible(code: string, userId: string | null) {
+    setCurr((prev) => {
+      const responsibles = new Map(prev.responsibles);
+      responsibles.set(code, userId);
+      return { positions: prev.positions, responsibles };
     });
   }
 
@@ -181,27 +262,40 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
       );
       return;
     }
+    const matchedSet = new Set(matchedIds);
+    const respUserId = pickDefaultResponsible(matchedSet);
     setCurr((prev) => {
-      const copy = new Map(prev);
-      copy.set(code, new Set(matchedIds));
-      return copy;
+      const positions = new Map(prev.positions);
+      const responsibles = new Map(prev.responsibles);
+      positions.set(code, matchedSet);
+      responsibles.set(code, respUserId);
+      return { positions, responsibles };
     });
     toast.success(
-      `${meta.code} ← ${matchedIds.length} должн. (${meta.keywords.join(", ")})`
+      respUserId
+        ? `${meta.code} ← ${matchedIds.length} должн., ответственный «${usersById.get(respUserId)?.name ?? "?"}»`
+        : `${meta.code} ← ${matchedIds.length} должн. (нет сотрудников в этих должностях)`
     );
   }
 
+  type Assignment = { positionIds: Set<string>; responsibleUserId: string | null };
+
   /**
-   * Считает локально что именно поменяется на наборе журналов:
-   * Map<journalCode, Set<positionId>>. Если ни одна должность не
-   * подошла — журнал в результат не попадает.
+   * Считает локально что именно поменяется на наборе журналов.
+   * Если ни одна должность не подошла — журнал в результат не попадает.
    */
-  function computeAssignmentsFor(codes: readonly string[]): Map<string, Set<string>> {
-    const result = new Map<string, Set<string>>();
+  function computeAssignmentsFor(
+    codes: readonly string[]
+  ): Map<string, Assignment> {
+    const result = new Map<string, Assignment>();
     for (const code of codes) {
       const matched = matchPositionsForJournal(code, positions);
       if (matched.length === 0) continue;
-      result.set(code, new Set(matched));
+      const positionSet = new Set(matched);
+      result.set(code, {
+        positionIds: positionSet,
+        responsibleUserId: pickDefaultResponsible(positionSet),
+      });
     }
     return result;
   }
@@ -211,24 +305,27 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
    * Обновляет base+curr только для тех, что прошли — мгновенный UI.
    */
   async function persistAssignments(
-    assignments: Map<string, Set<string>>
+    assignments: Map<string, Assignment>
   ): Promise<{ ok: number; failed: number }> {
     let ok = 0;
     let failed = 0;
-    const successful = new Map<string, Set<string>>();
-    for (const [code, set] of assignments) {
+    const successful = new Map<string, Assignment>();
+    for (const [code, a] of assignments) {
       try {
         const res = await fetch(
           `/api/settings/journal-responsibles/${code}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ positionIds: [...set] }),
+            body: JSON.stringify({
+              positionIds: [...a.positionIds],
+              responsibleUserId: a.responsibleUserId,
+            }),
           }
         );
         if (res.ok) {
           ok += 1;
-          successful.set(code, set);
+          successful.set(code, a);
         } else {
           failed += 1;
         }
@@ -237,17 +334,17 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
       }
     }
     if (successful.size > 0) {
-      // Мгновенно обновляем локальный state — UI меняется без refresh.
-      setCurr((prev) => {
-        const copy = new Map(prev);
-        for (const [code, set] of successful) copy.set(code, new Set(set));
-        return copy;
-      });
-      setBase((prev) => {
-        const copy = new Map(prev);
-        for (const [code, set] of successful) copy.set(code, new Set(set));
-        return copy;
-      });
+      const updateBoth = (prev: Selection): Selection => {
+        const positions = new Map(prev.positions);
+        const responsibles = new Map(prev.responsibles);
+        for (const [code, a] of successful) {
+          positions.set(code, new Set(a.positionIds));
+          responsibles.set(code, a.responsibleUserId);
+        }
+        return { positions, responsibles };
+      };
+      setCurr(updateBoth);
+      setBase(updateBoth);
     }
     return { ok, failed };
   }
@@ -334,25 +431,20 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
     if (saving || dirty.size === 0) return;
     setSaving(true);
     try {
-      let ok = 0;
-      let failed = 0;
+      const dirtyAssignments = new Map<string, Assignment>();
       for (const code of dirty) {
-        const set = curr.get(code) ?? new Set<string>();
-        const res = await fetch(`/api/settings/journal-responsibles/${code}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ positionIds: [...set] }),
+        dirtyAssignments.set(code, {
+          positionIds: curr.positions.get(code) ?? new Set<string>(),
+          responsibleUserId: curr.responsibles.get(code) ?? null,
         });
-        if (res.ok) ok += 1;
-        else failed += 1;
       }
+      const { ok, failed } = await persistAssignments(dirtyAssignments);
       if (failed > 0) {
         toast.error(
           `Сохранено: ${ok}, не удалось: ${failed}. Попробуйте ещё раз.`
         );
       } else {
         toast.success(`Сохранено · журналов: ${ok}`);
-        setBase(new Map(curr));
         router.refresh();
       }
     } catch (err) {
@@ -363,7 +455,12 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
   }
 
   function discard() {
-    setCurr(new Map(base));
+    setCurr({
+      positions: new Map(
+        [...base.positions].map(([k, v]) => [k, new Set(v)])
+      ),
+      responsibles: new Map(base.responsibles),
+    });
   }
 
   function toggleCategory(cat: JournalCategory) {
@@ -492,9 +589,11 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
               {isCollapsed ? null : (
                 <div className="grid gap-2.5">
                   {items.map((j) => {
-                    const set = curr.get(j.code) ?? new Set<string>();
+                    const set = curr.positions.get(j.code) ?? new Set<string>();
+                    const respUserId = curr.responsibles.get(j.code) ?? null;
                     const isDirty = dirty.has(j.code);
                     const meta = j.meta;
+                    const eligibleUsers = eligibleUsersForJournal(j.code);
                     return (
                       <div
                         key={j.code}
@@ -594,6 +693,42 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
                               ))}
                           </div>
                         </details>
+
+                        {/* Конкретный сотрудник — попадает в шапку
+                            активного документа, в printable-PDF и в
+                            «Ответственное лицо» в TasksFlow-задачах. */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
+                          <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#3c4053]">
+                            <User className="size-3.5 text-[#5566f6]" />
+                            Главный ответственный
+                          </div>
+                          <select
+                            value={respUserId ?? ""}
+                            onChange={(e) =>
+                              setResponsible(j.code, e.target.value || null)
+                            }
+                            disabled={eligibleUsers.length === 0}
+                            className="flex-1 min-w-[200px] rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
+                          >
+                            <option value="">— не выбран —</option>
+                            {eligibleUsers.map((u) => {
+                              const pos = u.jobPositionId
+                                ? positionsById.get(u.jobPositionId)
+                                : null;
+                              return (
+                                <option key={u.id} value={u.id}>
+                                  {u.name}
+                                  {pos ? ` · ${pos.name}` : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          {eligibleUsers.length === 0 && set.size > 0 ? (
+                            <span className="text-[11px] text-[#a13a32]">
+                              нет сотрудников в выбранных должностях
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}

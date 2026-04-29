@@ -2,21 +2,27 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
+import { cascadeResponsibleToActiveDocuments } from "@/lib/journal-responsibles-cascade";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * PUT /api/settings/journal-responsibles/<code>
- * Body: { positionIds: string[] }
+ * Body: {
+ *   positionIds: string[],
+ *   responsibleUserId?: string | null  // конкретный сотрудник
+ * }
  *
- * Перезаписывает JobPositionJournalAccess для конкретного шаблона
- * в текущей орге, без побочных эффектов на template.fillMode /
- * defaultAssigneeId / bonusAmountKopecks (в отличие от
- * /api/settings/journals/[code]/distribution, который дёргает всё).
+ * Сохраняет:
+ *   1. JobPositionJournalAccess — eligibility должностей для bulk-assign.
+ *   2. Каскадно ставит responsibleUserId на ВСЕХ активных документах
+ *      этого журнала (текущая орга). Юзер просил «всё сразу же
+ *      заполнялось в документ» — это про этот шаг.
  *
- * Используется страницей /settings/journal-responsibles — там админ
- * хочет тонко править только список ответственных должностей.
+ * Если responsibleUserId не передан — подбирается первый подходящий
+ * сотрудник из выбранных должностей (alphabetical), чтобы документ
+ * сразу получил конкретного ответственного.
  */
 export async function PUT(
   request: NextRequest,
@@ -48,6 +54,13 @@ export async function PUT(
       )
     : [];
 
+  const responsibleUserIdRaw = (body as { responsibleUserId?: unknown } | null)
+    ?.responsibleUserId;
+  const responsibleUserId: string | null =
+    typeof responsibleUserIdRaw === "string" && responsibleUserIdRaw.length > 0
+      ? responsibleUserIdRaw
+      : null;
+
   if (positionIds.length > 0) {
     const owned = await db.jobPosition.findMany({
       where: { id: { in: positionIds }, organizationId },
@@ -78,5 +91,19 @@ export async function PUT(
       : []),
   ]);
 
-  return NextResponse.json({ ok: true, count: positionIds.length });
+  // Каскад в активные документы — мгновенный эффект «появилось в шапке
+  // печатной версии и на странице документа».
+  const cascade = await cascadeResponsibleToActiveDocuments({
+    organizationId,
+    templateId: template.id,
+    positionIds,
+    responsibleUserId,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    count: positionIds.length,
+    documentsUpdated: cascade.documentsUpdated,
+    pickedUserId: cascade.pickedUserId,
+  });
 }
