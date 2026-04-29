@@ -27,23 +27,72 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(tickets);
 }
 
+const VALID_PRIORITIES = ["low", "medium", "high", "critical"];
+const VALID_CATEGORIES = [
+  "hygiene",
+  "quality",
+  "process",
+  "equipment",
+  "training",
+  "other",
+];
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  const orgId = getActiveOrgId(session);
+
+  // Базовая валидация input — раньше принимали любой мусор.
+  if (!body || typeof body.title !== "string" || body.title.trim().length === 0) {
+    return NextResponse.json({ error: "Заголовок обязателен" }, { status: 400 });
+  }
+  const title = body.title.trim().slice(0, 200);
+  const priority =
+    typeof body.priority === "string" && VALID_PRIORITIES.includes(body.priority)
+      ? body.priority
+      : "medium";
+  const category =
+    typeof body.category === "string" && VALID_CATEGORIES.includes(body.category)
+      ? body.category
+      : "other";
+
+  // SLA: положительное число от 1 до 720 часов (= 30 дней).
+  let slaHours = 24;
+  if (typeof body.slaHours === "number" && body.slaHours > 0 && body.slaHours <= 720) {
+    slaHours = Math.floor(body.slaHours);
+  }
+
+  // assignedToId — должен быть юзером той же org. Раньше принимался
+  // любой UUID → cross-tenant FK.
+  let assignedToId: string | null = null;
+  if (typeof body.assignedToId === "string" && body.assignedToId) {
+    const assignee = await db.user.findFirst({
+      where: { id: body.assignedToId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!assignee) {
+      return NextResponse.json(
+        { error: "Сотрудник не найден" },
+        { status: 404 }
+      );
+    }
+    assignedToId = assignee.id;
+  }
 
   const ticket = await db.capaTicket.create({
     data: {
-      organizationId: getActiveOrgId(session),
-      title: body.title,
-      description: body.description || null,
-      priority: body.priority || "medium",
-      category: body.category || "other",
-      sourceType: body.sourceType || null,
-      sourceEntryId: body.sourceEntryId || null,
-      assignedToId: body.assignedToId || null,
-      slaHours: body.slaHours || 24,
+      organizationId: orgId,
+      title,
+      description:
+        typeof body.description === "string" ? body.description.slice(0, 5000) : null,
+      priority,
+      category,
+      sourceType: typeof body.sourceType === "string" ? body.sourceType : null,
+      sourceEntryId: typeof body.sourceEntryId === "string" ? body.sourceEntryId : null,
+      assignedToId,
+      slaHours,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       createdById: session.user.id,
     },
