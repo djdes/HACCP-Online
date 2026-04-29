@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Loader2, RefreshCcw } from "lucide-react";
+import { Send, Loader2, RefreshCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBulkAssignToastMessage } from "@/lib/tasksflow-bulk-assign-toast";
 
@@ -36,7 +36,9 @@ export function BulkAssignTodayButton({
   unfilledCount: number;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"idle" | "send" | "force">("idle");
+  const [busy, setBusy] = useState<"idle" | "send" | "force" | "cleanup">(
+    "idle"
+  );
 
   async function run(force: boolean) {
     if (busy !== "idle") return;
@@ -99,6 +101,44 @@ export function BulkAssignTodayButton({
     void run(true);
   }
 
+  async function handleCleanup() {
+    if (busy !== "idle") return;
+    const ok = window.confirm(
+      "«Очистить невыполненные» удалит ВСЕ незавершённые задачи в TasksFlow, " +
+        "которые были созданы из этого аккаунта WeSetup. Выполненные задачи " +
+        "НЕ трогаем — они нужны для compliance-истории.\n\nПродолжить?"
+    );
+    if (!ok) return;
+    setBusy("cleanup");
+    try {
+      const response = await fetch(
+        "/api/integrations/tasksflow/cleanup-pending",
+        { method: "POST" }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        toast.error(data?.error ?? "Не удалось очистить");
+        return;
+      }
+      const total =
+        (data?.deletedTfTasks ?? 0) + (data?.alreadyGone ?? 0);
+      if (total === 0) {
+        toast.success(data?.message ?? "Нет невыполненных задач");
+      } else {
+        toast.success(
+          `Очищено: ${data?.deletedTfTasks ?? 0} задач в TasksFlow${
+            data?.alreadyGone ? ` (+${data.alreadyGone} уже были удалены)` : ""
+          }`
+        );
+      }
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setBusy("idle");
+    }
+  }
+
   const sendDisabled = busy !== "idle" || unfilledCount === 0;
   const forceDisabled = busy !== "idle";
 
@@ -135,6 +175,20 @@ export function BulkAssignTodayButton({
           <RefreshCcw className="size-4" />
         )}
         {busy === "force" ? "Пересоздаём…" : "Пересоздать все"}
+      </button>
+      <button
+        type="button"
+        onClick={handleCleanup}
+        disabled={busy !== "idle"}
+        title="Удалить ВСЕ незавершённые задачи в TasksFlow, созданные из этого аккаунта WeSetup. Выполненные не трогает."
+        className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#ffd2cd] bg-white px-3 text-[13px] font-medium text-[#a13a32] transition-colors hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy === "cleanup" ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Trash2 className="size-4" />
+        )}
+        {busy === "cleanup" ? "Очищаем…" : "Очистить невыполненные"}
       </button>
     </div>
   );
