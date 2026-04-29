@@ -25,6 +25,7 @@ import {
 import { resolveJournalPeriod } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
+import { ensureTasksflowUserLinks } from "@/lib/tasksflow-ensure-links";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
@@ -235,6 +236,17 @@ export async function POST(request: Request) {
       },
     });
   }
+
+  // Лёгкий sync TF-юзеров перед фан-аутом — избегаем «Дежурные
+  // ответственные не привязаны к TasksFlow» когда админ только что
+  // назначил ответственных в settings, а кто-то из них ещё не имеет
+  // TasksFlowUserLink. Создаёт remote-юзеров для тех у кого есть
+  // phone, линкует, тех у кого нет — пропускает молча. Если TF
+  // недоступен — proceed without (warn в логе).
+  const linkSyncResult = await ensureTasksflowUserLinks({
+    organizationId,
+    integration,
+  });
 
   // The selected set is every active template minus disabled journal codes.
   // Aperiodic templates are required here too, because this fan-out follows
@@ -705,5 +717,9 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ ...summary, byJournal: reports });
+  return NextResponse.json({
+    ...summary,
+    byJournal: reports,
+    tfUserSync: linkSyncResult,
+  });
 }
