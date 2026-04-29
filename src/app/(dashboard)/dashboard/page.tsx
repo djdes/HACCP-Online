@@ -29,6 +29,7 @@ import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
+import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
@@ -419,6 +420,10 @@ export default async function DashboardPage() {
 
         <div className="mt-5">
           <AnomaliesCard />
+        </div>
+
+        <div className="mt-5">
+          <LiveClaimsCard />
         </div>
 
         {complianceItems.length > 0 && (
