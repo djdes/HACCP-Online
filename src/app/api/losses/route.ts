@@ -64,18 +64,67 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (
+    !body ||
+    typeof body.productName !== "string" ||
+    body.productName.trim().length === 0
+  ) {
+    return NextResponse.json(
+      { error: "productName обязателен" },
+      { status: 400 }
+    );
+  }
+  const quantity = Number(body.quantity);
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    return NextResponse.json(
+      { error: "quantity должен быть положительным числом" },
+      { status: 400 }
+    );
+  }
+  let costRub: number | null = null;
+  if (body.costRub !== undefined && body.costRub !== null) {
+    const cost = Number(body.costRub);
+    if (!Number.isFinite(cost) || cost < 0) {
+      return NextResponse.json(
+        { error: "costRub должен быть положительным числом" },
+        { status: 400 }
+      );
+    }
+    costRub = cost;
+  }
+
+  const orgId = getActiveOrgId(session);
+
+  // areaId — должна принадлежать той же org. Иначе менеджер компании
+  // A мог привязать loss-record к area компании B (cross-tenant FK,
+  // analytics ломается).
+  let areaId: string | null = null;
+  if (typeof body.areaId === "string" && body.areaId) {
+    const area = await db.area.findFirst({
+      where: { id: body.areaId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!area) {
+      return NextResponse.json(
+        { error: "Помещение не найдено" },
+        { status: 404 }
+      );
+    }
+    areaId = area.id;
+  }
+
   const category = autoCategorize(body.category, body.cause, body.productName);
   const record = await db.lossRecord.create({
     data: {
-      organizationId: getActiveOrgId(session),
+      organizationId: orgId,
       category,
-      productName: body.productName,
-      quantity: Number(body.quantity),
-      unit: body.unit || "kg",
-      costRub: body.costRub ? Number(body.costRub) : null,
-      cause: body.cause || null,
-      areaId: body.areaId || null,
+      productName: body.productName.trim().slice(0, 200),
+      quantity,
+      unit: typeof body.unit === "string" ? body.unit.slice(0, 20) : "kg",
+      costRub,
+      cause: typeof body.cause === "string" ? body.cause.slice(0, 2000) : null,
+      areaId,
       createdById: session.user.id,
     },
   });
