@@ -3,6 +3,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { isManagementRole } from "@/lib/user-roles";
 import * as XLSX from "xlsx";
 
 // Hard limit on the uploaded spreadsheet to prevent OOM when parsing into memory.
@@ -95,7 +96,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (session.user.role === "operator") {
+    // Раньше: только legacy "operator" блокировался — после миграции
+    // схемы "cook"/"waiter"/"cleaner" могли импортировать каталог
+    // (overwrite product DB всей организации). Теперь проверяем
+    // management role (manager + head_chef + legacy owner/technologist).
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
