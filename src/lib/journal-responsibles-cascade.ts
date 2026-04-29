@@ -7,6 +7,7 @@ import {
   hasDocumentConfigPatcher,
   patchDocumentConfig,
 } from "@/lib/journal-responsibles-doc-patchers";
+import { getDefaultConfigForJournal } from "@/lib/journal-default-configs";
 
 /**
  * Каскад изменений «ответственных за журнал» в реальные JournalDocument'ы
@@ -163,8 +164,20 @@ export async function cascadeResponsibleToActiveDocuments(input: {
 
     let documentsUpdated = 0;
     for (const doc of docs) {
+      // Если существующий config пустой ({}), подменяем дефолтным от
+      // соответствующей default-функции, чтобы у документа появились
+      // строки/зоны/оборудование. Это backfill для документов,
+      // созданных ДО prefill-фикса. Не трогаем конфиги где уже есть
+      // данные — иначе затрём пользовательские правки.
+      const cfgObj =
+        doc.config && typeof doc.config === "object" && !Array.isArray(doc.config)
+          ? (doc.config as Record<string, unknown>)
+          : {};
+      const isEmpty = Object.keys(cfgObj).length === 0;
+      const baseCfg = isEmpty ? getDefaultConfigForJournal(journalCode) : cfgObj;
+
       const patched = hasDocumentConfigPatcher(journalCode)
-        ? patchDocumentConfig(journalCode, doc.config, slotUsers, {
+        ? patchDocumentConfig(journalCode, baseCfg, slotUsers, {
             getName: (id) => (id ? userNameMap.get(id) ?? "" : ""),
             getPositionTitle: (id) => (id ? userPosMap.get(id) ?? "" : ""),
           })
@@ -176,6 +189,10 @@ export async function cascadeResponsibleToActiveDocuments(input: {
       }
       if (patched) {
         data.config = patched as never;
+      } else if (isEmpty && Object.keys(baseCfg).length > 0) {
+        // Patcher отсутствует, но дефолт для журнала есть — записываем
+        // его, чтобы документ перестал быть пустым.
+        data.config = baseCfg as never;
       }
       if (Object.keys(data).length === 0) continue;
 
@@ -232,7 +249,15 @@ export async function prefillResponsiblesForNewDocument(input: {
   responsibleUserId: string | null;
 }> {
   const { organizationId, journalCode } = input;
-  const baseConfig = input.baseConfig ?? {};
+  // Если caller передал baseConfig — уважаем его. Иначе берём дефолт
+  // для журнала: для cleaning — массивы responsibles, для climate —
+  // точки контроля, для general_cleaning — список помещений и т.д.
+  // Без этого многие документы создавались с {} → bulk-assign-today
+  // потом сообщал «у журнала нет строк для назначения».
+  const baseConfig =
+    input.baseConfig && Object.keys(input.baseConfig).length > 0
+      ? input.baseConfig
+      : getDefaultConfigForJournal(journalCode);
 
   // 1. Читаем сохранённые слоты из Organization JSON.
   const org = await db.organization.findUnique({
