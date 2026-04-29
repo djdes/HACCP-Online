@@ -91,6 +91,13 @@ export async function POST(request: Request) {
 
   // Free-tier rate-limit: проверяем aiMonthlyMessagesLeft на org.
   // -1 = unlimited (Pro tier), 0 — отказ + upgrade-CTA.
+  //
+  // КРИТИЧНО: декремент атомарный (updateMany с условием > 0) чтобы
+  // не было race-condition: раньше «прочитали → call Anthropic →
+  // decrement» допускал ситуацию когда два concurrent-запроса оба
+  // прошли проверку с left=1, оба декрементировали → DB становилась
+  // -1, а -1 = unlimited по нашей семантике. Org получала бесплатный
+  // безлимит.
   const { db } = await import("@/lib/db");
   const { getActiveOrgId } = await import("@/lib/auth-helpers");
   const orgId = getActiveOrgId(auth.session);
@@ -100,15 +107,25 @@ export async function POST(request: Request) {
   });
   const left = org?.aiMonthlyMessagesLeft ?? 0;
   const isUnlimited = left < 0;
-  if (!isUnlimited && left <= 0) {
-    return NextResponse.json(
-      {
-        error: `Месячный лимит AI-сообщений исчерпан (${org?.aiMonthlyQuota ?? 20} в месяц). Перейдите на тариф Pro для безлимитного доступа.`,
-        quotaExceeded: true,
-        quota: org?.aiMonthlyQuota ?? 20,
-      },
-      { status: 402 }
-    );
+  let messagesLeft: number = isUnlimited ? -1 : 0;
+  if (!isUnlimited) {
+    // Атомарный декремент только если > 0. Если строк не обновилось —
+    // квота исчерпана (либо параллельный запрос забрал последний токен).
+    const updateResult = await db.organization.updateMany({
+      where: { id: orgId, aiMonthlyMessagesLeft: { gt: 0 } },
+      data: { aiMonthlyMessagesLeft: { decrement: 1 } },
+    });
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        {
+          error: `Месячный лимит AI-сообщений исчерпан (${org?.aiMonthlyQuota ?? 20} в месяц). Перейдите на тариф Pro для безлимитного доступа.`,
+          quotaExceeded: true,
+          quota: org?.aiMonthlyQuota ?? 20,
+        },
+        { status: 402 }
+      );
+    }
+    messagesLeft = Math.max(0, left - 1);
   }
 
   let parsed;
@@ -155,21 +172,6 @@ export async function POST(request: Request) {
     const textBlock = response.content.find((b) => b.type === "text");
     const reply = textBlock && textBlock.type === "text" ? textBlock.text : "";
 
-    // Decrement quota — best-effort. Не валит ответ при ошибке write'а.
-    let messagesLeft = isUnlimited ? -1 : Math.max(0, left - 1);
-    if (!isUnlimited) {
-      try {
-        const updated = await db.organization.update({
-          where: { id: orgId },
-          data: { aiMonthlyMessagesLeft: { decrement: 1 } },
-          select: { aiMonthlyMessagesLeft: true },
-        });
-        messagesLeft = Math.max(0, updated.aiMonthlyMessagesLeft);
-      } catch (err) {
-        console.warn("[sanpin-chat] quota decrement failed", err);
-      }
-    }
-
     return NextResponse.json({
       reply,
       messagesLeft,
@@ -189,6 +191,18 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[sanpin-chat] anthropic error", err);
+    // Refund квоты при ошибке Anthropic — пользователь не должен
+    // терять сообщение из-за того что у нас сломался upstream.
+    if (!isUnlimited) {
+      await db.organization
+        .update({
+          where: { id: orgId },
+          data: { aiMonthlyMessagesLeft: { increment: 1 } },
+        })
+        .catch((refundErr) =>
+          console.warn("[sanpin-chat] quota refund failed", refundErr)
+        );
+    }
     return NextResponse.json(
       {
         error:
