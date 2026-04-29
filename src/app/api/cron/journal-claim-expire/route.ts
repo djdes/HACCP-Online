@@ -17,11 +17,8 @@ export const dynamic = "force-dynamic";
  * Cadence: hourly. CRON_SECRET в query.
  */
 async function handle(request: Request) {
-  const url = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const expired = await expireStaleClaims(4);
   return NextResponse.json({ ok: true, expired });
 }

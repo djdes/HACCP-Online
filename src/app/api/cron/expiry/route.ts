@@ -7,11 +7,8 @@ import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 export async function POST(request: Request) {
   try {
-    {
     const cronAuth = checkCronSecret(request);
     if (cronAuth) return cronAuth;
-  }
-
     // Find products expiring within the next 3 days
     // Look at incoming_control journal entries with expiryDate field
     const template = await db.journalTemplate.findUnique({

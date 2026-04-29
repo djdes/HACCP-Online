@@ -35,11 +35,8 @@ const SNAPSHOT_DIR = "/var/www/wesetupru/data/tasksflow-snapshots";
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const integrations = await db.tasksFlowIntegration.findMany({
     where: { enabled: true },
     select: {

@@ -14,11 +14,8 @@ export const dynamic = "force-dynamic";
  * Идемпотентно — повторный вызов в тот же день безопасен.
  */
 async function handle(request: Request) {
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   // Reset для всех org разом — устанавливаем left = quota.
   // Для unlimited (quota < 0) тоже устанавливаем — обнуление не страшно.
   const orgs = await db.organization.findMany({

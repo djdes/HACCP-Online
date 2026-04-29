@@ -205,10 +205,8 @@ function buildDigestMessage(d: {
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const orgIdFilter = searchParams.get("orgId"); // for testing single org
 
   const now = new Date();

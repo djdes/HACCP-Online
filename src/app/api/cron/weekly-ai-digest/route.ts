@@ -110,10 +110,8 @@ async function buildContext(orgId: string, weekStart: Date, weekEnd: Date) {
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({
       ok: true,

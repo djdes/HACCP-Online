@@ -24,11 +24,8 @@ const ARCHIVE_AGE_DAYS = 365;
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const cutoff = new Date(
     Date.now() - ARCHIVE_AGE_DAYS * 24 * 60 * 60 * 1000
   );

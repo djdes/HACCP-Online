@@ -33,11 +33,8 @@ const CRITICAL_ACTIONS = [
 
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const cutoffNormal = new Date(
     Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
   );

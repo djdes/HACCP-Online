@@ -74,11 +74,8 @@ function nearestControlTime(now: Date, controlTimes: string[]): string | null {
 }
 
 async function handle(request: Request) {
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const now = new Date();
   const todayStart = utcDayStart(now);
   const todayEnd = new Date(todayStart);

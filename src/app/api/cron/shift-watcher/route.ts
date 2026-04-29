@@ -34,11 +34,8 @@ export const dynamic = "force-dynamic";
  */
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const now = new Date();
   const currentDayStart = new Date(now);
   currentDayStart.setUTCHours(0, 0, 0, 0);

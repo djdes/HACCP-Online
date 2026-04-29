@@ -22,11 +22,8 @@ export const dynamic = "force-dynamic";
  */
 async function handle(request: Request) {
   const { searchParams } = new URL(request.url);
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const force = searchParams.get("force") === "1";
 
   const templates = await db.journalTemplate.findMany({

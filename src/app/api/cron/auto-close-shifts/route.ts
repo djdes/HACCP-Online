@@ -23,11 +23,8 @@ export const dynamic = "force-dynamic";
  * skip.
  */
 async function handle(request: Request) {
-  {
-    const cronAuth = checkCronSecret(request);
-    if (cronAuth) return cronAuth;
-  }
-
+  const cronAuth = checkCronSecret(request);
+  if (cronAuth) return cronAuth;
   const now = new Date();
   const currentHourUtc = now.getUTCHours();
 
