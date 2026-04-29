@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -93,9 +93,29 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [applyingCategory, setApplyingCategory] = useState<JournalCategory | null>(
+    null
+  );
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
+
+  // Если родительская server-component дёрнула router.refresh() и
+  // обновила journals — пересинхронизируем локальный state. Без этого
+  // useState остаётся со «старым» снимком на момент монтирования.
+  useEffect(() => {
+    const next = toSelection(journals);
+    setBase(next);
+    setCurr((prev) => {
+      // Если у юзера есть несохранённые изменения, не сбрасываем — пусть
+      // dirty-индикатор остаётся. Перезаписываем только если prev==base
+      // (т.е. ничего не меняли локально).
+      const prevDirty = diff(toSelection(journals), prev).size > 0;
+      if (prevDirty) return prev;
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journals]);
 
   const dirty = diff(base, curr);
 
@@ -171,8 +191,73 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
     );
   }
 
+  /**
+   * Считает локально что именно поменяется на наборе журналов:
+   * Map<journalCode, Set<positionId>>. Если ни одна должность не
+   * подошла — журнал в результат не попадает.
+   */
+  function computeAssignmentsFor(codes: readonly string[]): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+    for (const code of codes) {
+      const matched = matchPositionsForJournal(code, positions);
+      if (matched.length === 0) continue;
+      result.set(code, new Set(matched));
+    }
+    return result;
+  }
+
+  /**
+   * Вызывает PUT для каждого journal'а и возвращает число успехов/ошибок.
+   * Обновляет base+curr только для тех, что прошли — мгновенный UI.
+   */
+  async function persistAssignments(
+    assignments: Map<string, Set<string>>
+  ): Promise<{ ok: number; failed: number }> {
+    let ok = 0;
+    let failed = 0;
+    const successful = new Map<string, Set<string>>();
+    for (const [code, set] of assignments) {
+      try {
+        const res = await fetch(
+          `/api/settings/journal-responsibles/${code}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ positionIds: [...set] }),
+          }
+        );
+        if (res.ok) {
+          ok += 1;
+          successful.set(code, set);
+        } else {
+          failed += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+    if (successful.size > 0) {
+      // Мгновенно обновляем локальный state — UI меняется без refresh.
+      setCurr((prev) => {
+        const copy = new Map(prev);
+        for (const [code, set] of successful) copy.set(code, new Set(set));
+        return copy;
+      });
+      setBase((prev) => {
+        const copy = new Map(prev);
+        for (const [code, set] of successful) copy.set(code, new Set(set));
+        return copy;
+      });
+    }
+    return { ok, failed };
+  }
+
   async function applyAllPresets() {
     if (applying) return;
+    if (positions.length === 0) {
+      toast.error("Сначала создайте должности и сотрудников");
+      return;
+    }
     if (
       !window.confirm(
         "Применить умные пресеты ко ВСЕМ журналам? Существующие назначения " +
@@ -183,24 +268,65 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
       return;
     setApplying(true);
     try {
-      const res = await fetch(
-        "/api/settings/journal-responsibles/apply-presets",
-        { method: "POST" }
-      );
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast.error(data?.error ?? "Ошибка");
+      const allCodes = journals.map((j) => j.code);
+      const assignments = computeAssignmentsFor(allCodes);
+      if (assignments.size === 0) {
+        toast.error(
+          "Ни одна должность не подошла под пресеты. Заведите должности " +
+            "вроде «Уборщица», «Повар», «Менеджер»."
+        );
         return;
       }
-      toast.success(
-        data?.message ??
-          `Готово · обновлено журналов: ${data?.journalsUpdated ?? 0}`
-      );
+      const { ok, failed } = await persistAssignments(assignments);
+      if (failed > 0) {
+        toast.error(`Готово · применено: ${ok}, не удалось: ${failed}`);
+      } else {
+        toast.success(`Применено к ${ok} журналам`);
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка сети");
     } finally {
       setApplying(false);
+    }
+  }
+
+  async function applyCategoryPresets(category: JournalCategory) {
+    if (applyingCategory) return;
+    if (positions.length === 0) {
+      toast.error("Сначала создайте должности и сотрудников");
+      return;
+    }
+    setApplyingCategory(category);
+    try {
+      const codesInCategory = journals
+        .filter((j) => {
+          const meta = getJournalResponsibilityMeta(j.code);
+          return (meta?.category ?? "other") === category;
+        })
+        .map((j) => j.code);
+      const assignments = computeAssignmentsFor(codesInCategory);
+      if (assignments.size === 0) {
+        toast.error(
+          `Не нашёл подходящих должностей для категории «${CATEGORY_LABELS[category]}». Заведите должность по теме (например, «Уборщица» для уборки).`
+        );
+        return;
+      }
+      const { ok, failed } = await persistAssignments(assignments);
+      if (failed > 0) {
+        toast.error(
+          `«${CATEGORY_LABELS[category]}» · применено: ${ok}, не удалось: ${failed}`
+        );
+      } else {
+        toast.success(
+          `«${CATEGORY_LABELS[category]}» · применено к ${ok} журналам`
+        );
+      }
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setApplyingCategory(null);
     }
   }
 
@@ -322,25 +448,46 @@ export function JournalResponsiblesClient({ positions, journals }: Props) {
       <div className="space-y-5">
         {grouped.map(([cat, items]) => {
           const isCollapsed = collapsed.has(cat);
+          const isApplyingThis = applyingCategory === cat;
           return (
             <section key={cat} className="space-y-3">
-              <button
-                type="button"
-                onClick={() => toggleCategory(cat)}
-                className="group flex w-full items-center gap-2 rounded-xl px-1 text-left"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="size-4 text-[#6f7282] transition-transform" />
-                ) : (
-                  <ChevronDown className="size-4 text-[#6f7282] transition-transform" />
-                )}
-                <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-[#0b1024]">
-                  {CATEGORY_LABELS[cat]}
-                </h2>
-                <span className="text-[12px] text-[#9b9fb3]">
-                  · {items.length}
-                </span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className="group flex flex-1 items-center gap-2 rounded-xl text-left"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="size-4 text-[#6f7282] transition-transform" />
+                  ) : (
+                    <ChevronDown className="size-4 text-[#6f7282] transition-transform" />
+                  )}
+                  <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-[#0b1024]">
+                    {CATEGORY_LABELS[cat]}
+                  </h2>
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    · {items.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyCategoryPresets(cat)}
+                  disabled={
+                    !!applyingCategory ||
+                    applying ||
+                    positions.length === 0
+                  }
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12px] font-medium text-[#5566f6] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
+                  title={`Применить умные пресеты для категории «${CATEGORY_LABELS[cat]}»`}
+                >
+                  {isApplyingThis ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Wand2 className="size-3.5" />
+                  )}
+                  Применить пресет
+                </button>
+              </div>
 
               {isCollapsed ? null : (
                 <div className="grid gap-2.5">
