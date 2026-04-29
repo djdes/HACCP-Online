@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { authenticateExternalRequest, tokenHint } from "@/lib/external/auth";
 
 export const runtime = "nodejs";
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
       where: {
         date: { gte: day, lt: nextDay },
         document: { organizationId, status: "active" },
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     }),

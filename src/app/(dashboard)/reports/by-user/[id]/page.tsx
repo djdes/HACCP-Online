@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function ByUserReportPage({
           employeeId: userId,
           document: { organizationId: orgId },
           createdAt: { gte: fromDate, lte: toDate },
+          ...NOT_AUTO_SEEDED,
         },
         orderBy: { createdAt: "desc" },
         take: 200,

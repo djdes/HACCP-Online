@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
@@ -152,6 +153,7 @@ export default async function DashboardPage() {
       where: {
         date: { gte: todayStart },
         document: { organizationId },
+        ...NOT_AUTO_SEEDED,
       },
     }),
     db.journalEntry.count({

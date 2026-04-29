@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
       where: {
         document: { organizationId: orgId },
         createdAt: { gte: periodFrom, lte: periodTo },
+        ...NOT_AUTO_SEEDED,
       },
     }),
     db.journalEntry.count({

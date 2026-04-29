@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
@@ -54,6 +55,7 @@ export async function GET(request: Request) {
         employeeId: userId,
         document: { organizationId: orgId },
         createdAt: { gte: since },
+        ...NOT_AUTO_SEEDED,
       },
     }),
   ]);

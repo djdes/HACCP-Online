@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { notifyOrganization } from "@/lib/telegram";
 
 export const runtime = "nodejs";
@@ -84,6 +85,7 @@ async function buildContext(orgId: string, weekStart: Date, weekEnd: Date) {
       where: {
         document: { organizationId: orgId },
         createdAt: { gte: weekStart, lt: weekEnd },
+        ...NOT_AUTO_SEEDED,
       },
     }),
     db.auditLog.count({

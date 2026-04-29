@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { ReportForm } from "@/components/reports/report-form";
 import { ComplianceBundleCard } from "@/components/reports/compliance-bundle-card";
 import { AiPeriodReportCard } from "@/components/reports/ai-period-report";
@@ -75,6 +76,7 @@ export default async function ReportsPage() {
       where: {
         document: { organizationId: orgId },
         createdAt: { gte: since7 },
+        ...NOT_AUTO_SEEDED,
       },
     }),
     db.journalEntry.count({
@@ -87,6 +89,7 @@ export default async function ReportsPage() {
       where: {
         document: { organizationId: orgId },
         createdAt: { gte: since14, lt: since7 },
+        ...NOT_AUTO_SEEDED,
       },
     }),
     db.capaTicket.count({

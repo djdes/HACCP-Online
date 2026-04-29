@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export async function GET() {
           where: {
             document: { organizationId, templateId: tpl.id },
             date: { gte: oneYearAgo },
+            ...NOT_AUTO_SEEDED,
           },
           select: { date: true, employeeId: true, data: true },
           orderBy: { date: "desc" },

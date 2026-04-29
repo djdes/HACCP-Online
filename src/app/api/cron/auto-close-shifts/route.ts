@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { closeJournalForDay, utcDayStart } from "@/lib/journal-close-events";
 
 export const runtime = "nodejs";
@@ -103,6 +104,7 @@ async function handle(request: Request) {
           where: {
             document: { organizationId: org.id, templateId: tplId },
             date: { gte: targetDate, lt: targetEnd },
+            ...NOT_AUTO_SEEDED,
           },
         }),
         db.journalEntry.count({
