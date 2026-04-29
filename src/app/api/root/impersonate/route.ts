@@ -33,9 +33,13 @@ async function rewriteSessionToken(
   const isHttps =
     process.env.NEXTAUTH_URL?.startsWith("https://") ||
     process.env.VERCEL === "1";
+  // Custom NextAuth cookie name из src/lib/auth.ts:
+  //   __Secure-haccp-online.session-token (https) / haccp-online.session-token (http).
+  // Был баг: использовалось дефолтное "next-auth.session-token", из-за чего
+  // импersonate всегда падал с «Cookie сессии не найден».
   const cookieName = isHttps
-    ? "__Secure-next-auth.session-token"
-    : "next-auth.session-token";
+    ? "__Secure-haccp-online.session-token"
+    : "haccp-online.session-token";
 
   const cookieStore = await cookies();
   const current = cookieStore.get(cookieName)?.value;
