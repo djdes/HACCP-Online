@@ -19,14 +19,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const data: Record<string, unknown> = {};
+
+  if (Array.isArray(body.items)) {
+    data.items = body.items;
+  }
+  // Allowlist для status — раньше можно было поставить любой string,
+  // ломая UI-фильтр (draft/active/completed/cancelled).
+  const VALID_STATUSES = ["draft", "active", "completed", "cancelled"];
+  if (typeof body.status === "string" && VALID_STATUSES.includes(body.status)) {
+    data.status = body.status;
+  }
+  if (body.notes !== undefined) {
+    if (body.notes === null) {
+      data.notes = null;
+    } else if (typeof body.notes === "string") {
+      data.notes = body.notes.slice(0, 2000);
+    }
+  }
+
   const updated = await db.productionPlan.update({
     where: { id },
-    data: {
-      ...(body.items && { items: body.items }),
-      ...(body.status && { status: body.status }),
-      ...(body.notes !== undefined && { notes: body.notes }),
-    },
+    data,
   });
 
   return NextResponse.json(updated);

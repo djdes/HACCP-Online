@@ -35,15 +35,35 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Некорректное тело" }, { status: 400 });
+  }
+  // date обязательна и валидная — раньше new Date(undefined) →
+  // InvalidDate → Prisma бросала 500.
+  if (!body.date) {
+    return NextResponse.json({ error: "date обязательна" }, { status: 400 });
+  }
+  const date = new Date(body.date);
+  if (Number.isNaN(date.getTime())) {
+    return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
+  }
+  const VALID_SHIFTS = ["morning", "day", "evening", "night"];
+  const shift =
+    typeof body.shift === "string" && VALID_SHIFTS.includes(body.shift)
+      ? body.shift
+      : "morning";
+  // items должен быть array — иначе UI не сможет рендерить JSON-колонку.
+  const items = Array.isArray(body.items) ? body.items : [];
+
   const plan = await db.productionPlan.create({
     data: {
       organizationId: getActiveOrgId(session),
-      date: new Date(body.date),
-      shift: body.shift || "morning",
-      items: body.items || [],
+      date,
+      shift,
+      items,
       status: "draft",
-      notes: body.notes || null,
+      notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : null,
       createdById: session.user.id,
     },
   });
