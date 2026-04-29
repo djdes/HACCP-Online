@@ -132,16 +132,16 @@ export function SanpinChatWidget() {
 
   return (
     <>
-      {/* FAB launcher */}
+      {/* FAB launcher — компактная иконка-кнопка */}
       {!open ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex h-14 items-center gap-2 rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] px-5 text-[14px] font-medium text-white shadow-[0_18px_40px_-12px_rgba(85,102,246,0.7)] transition-all hover:scale-105"
-          aria-label="AI-помощник по СанПиН"
+          className="fixed bottom-5 right-5 z-40 flex size-11 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white shadow-[0_12px_28px_-10px_rgba(85,102,246,0.6)] transition-all hover:scale-105"
+          aria-label="AI помощник по СанПиН"
+          title="AI помощник"
         >
-          <Sparkles className="size-5" />
-          <span className="hidden sm:inline">AI помощник</span>
+          <Sparkles className="size-4" />
         </button>
       ) : null}
 

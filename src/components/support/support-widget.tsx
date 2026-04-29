@@ -53,17 +53,17 @@ export function SupportWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 left-5 z-30 flex h-12 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium text-[#0b1024] shadow-[0_10px_30px_-10px_rgba(11,16,36,0.25)] ring-1 ring-[#ececf4] transition-all hover:scale-105"
+        className="fixed bottom-5 right-[68px] z-30 flex size-11 items-center justify-center rounded-full bg-white text-[#5566f6] shadow-[0_10px_24px_-10px_rgba(11,16,36,0.25)] ring-1 ring-[#ececf4] transition-all hover:scale-105"
         aria-label="Поддержка"
+        title="Поддержка"
       >
-        <MessageCircle className="size-4 text-[#5566f6]" />
-        <span className="hidden sm:inline">Поддержка</span>
+        <MessageCircle className="size-4" />
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-5 left-5 z-40 w-[calc(100vw-2.5rem)] max-w-sm rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
+    <div className="fixed bottom-5 right-5 z-40 w-[calc(100vw-2.5rem)] max-w-sm rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[15px] font-semibold text-[#0b1024]">
