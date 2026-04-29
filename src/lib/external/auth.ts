@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 export type ExternalAuthSource = "external" | "sensor" | "organization";
 
@@ -63,10 +64,13 @@ export async function authenticateExternalRequest(request: Request): Promise<Ext
     // Fall through to env-token comparison.
   }
 
-  if (external && token === external) {
+  // Constant-time сравнение env-токенов чтобы атакующий не мог
+  // восстановить EXTERNAL_API_TOKEN / SENSOR_API_TOKEN по timing'у
+  // (===, !== сравнивают посимвольно с early-exit).
+  if (timingSafeEqualStrings(token, external)) {
     return { ok: true, token, source: "external" };
   }
-  if (sensor && token === sensor) {
+  if (timingSafeEqualStrings(token, sensor)) {
     return { ok: true, token, source: "sensor" };
   }
 
