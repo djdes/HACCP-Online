@@ -111,10 +111,21 @@ export function JournalTaskPool({
       if (!res.ok) {
         throw new Error(data?.message || "Не удалось взять");
       }
-      await load();
+      // Если backend вернул свежий claim с id — сразу переходим на
+      // универсальную форму /mini/claim/[id] (быстрый ввод).
+      // Кастомный buildEntryPath по-прежнему имеет приоритет —
+      // используется например cleaning, у которого matrix-документ
+      // сложнее быстрой формы.
       if (buildEntryPath) {
+        await load();
         router.push(buildEntryPath(scope));
+        return;
       }
+      if (data?.claim?.id) {
+        router.push(`/mini/claim/${data.claim.id}`);
+        return;
+      }
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {

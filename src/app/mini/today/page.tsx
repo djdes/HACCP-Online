@@ -72,10 +72,13 @@ export default function MiniTodayPage() {
         }),
       });
       if (res.ok) {
-        await load();
-        if (scope.journalDocumentId) {
-          router.push(`/mini/documents/${scope.journalDocumentId}`);
+        const j = await res.json().catch(() => null);
+        if (j?.claim?.id) {
+          // Переходим на универсальную /mini/claim/[id] страницу
+          router.push(`/mini/claim/${j.claim.id}`);
+          return;
         }
+        await load();
       }
     } finally {
       setBusy(null);
