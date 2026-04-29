@@ -24,6 +24,7 @@ import {
 } from "@/lib/tasksflow-bulk-assign";
 import { resolveJournalPeriod } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
@@ -477,6 +478,19 @@ export async function POST(request: Request) {
           config: prefill.config as never,
           responsibleUserId: prefill.responsibleUserId,
         },
+      });
+      await seedEntriesForDocument({
+        documentId: doc.id,
+        journalCode: tpl.code,
+        organizationId,
+        dateFrom: doc.dateFrom,
+        dateTo: doc.dateTo,
+        responsibleUserId: prefill.responsibleUserId,
+      }).catch((err) => {
+        console.warn(
+          `[bulk-assign-today] seedEntries failed for ${tpl.code}`,
+          err
+        );
       });
       report.documentAutoCreated = true;
     }

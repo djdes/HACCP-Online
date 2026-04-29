@@ -19,6 +19,7 @@ import {
   resolveJournalPeriod,
 } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 
 export type CreateReport = {
   code: string;
@@ -98,7 +99,20 @@ export async function ensureActiveDocument(
       config: prefill.config as never,
       responsibleUserId: prefill.responsibleUserId,
     },
-    select: { id: true },
+    select: { id: true, dateFrom: true, dateTo: true },
+  });
+  await seedEntriesForDocument({
+    documentId: doc.id,
+    journalCode: args.templateCode,
+    organizationId: args.organizationId,
+    dateFrom: doc.dateFrom,
+    dateTo: doc.dateTo,
+    responsibleUserId: prefill.responsibleUserId,
+  }).catch((err) => {
+    console.warn(
+      `[journal-auto-create] seedEntries failed for ${args.templateCode}`,
+      err
+    );
   });
   return {
     code: args.templateCode,
@@ -263,7 +277,20 @@ export async function ensureNextPeriodDocument(
       config: prefillNext.config as never,
       responsibleUserId: prefillNext.responsibleUserId,
     },
-    select: { id: true },
+    select: { id: true, dateFrom: true, dateTo: true },
+  });
+  await seedEntriesForDocument({
+    documentId: doc.id,
+    journalCode: args.templateCode,
+    organizationId: args.organizationId,
+    dateFrom: doc.dateFrom,
+    dateTo: doc.dateTo,
+    responsibleUserId: prefillNext.responsibleUserId,
+  }).catch((err) => {
+    console.warn(
+      `[journal-auto-create:next] seedEntries failed for ${args.templateCode}`,
+      err
+    );
   });
   return {
     code: args.templateCode,

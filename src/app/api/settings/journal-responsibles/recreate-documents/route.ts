@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { resolveJournalPeriod, parseJournalPeriodsJson } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ export async function POST() {
         journalCode: tpl.code,
         baseConfig: {},
       });
-      await db.journalDocument.create({
+      const newDoc = await db.journalDocument.create({
         data: {
           organizationId,
           templateId: tpl.id,
@@ -104,6 +105,26 @@ export async function POST() {
           config: prefill.config as never,
           responsibleUserId: prefill.responsibleUserId,
         },
+        select: { id: true, dateFrom: true, dateTo: true },
+      });
+      // Сидим entries (по дням периода / по сотрудникам × дни) для
+      // журналов где это имеет смысл (climate, cold_equipment, hygiene
+      // и т.д. — см. PER_DAY_JOURNALS / PER_EMPLOYEE_PER_DAY_JOURNALS).
+      await seedEntriesForDocument({
+        documentId: newDoc.id,
+        journalCode: tpl.code,
+        organizationId,
+        dateFrom: newDoc.dateFrom,
+        dateTo: newDoc.dateTo,
+        responsibleUserId: prefill.responsibleUserId,
+      }).catch((err) => {
+        // Сидинг — best-effort: если не получилось (например, нет
+        // ответственного), документ всё равно остаётся создан, юзер
+        // сможет добавить строки руками.
+        console.warn(
+          `[recreate-documents] seedEntries failed for ${tpl.code}`,
+          err
+        );
       });
       created += 1;
     } catch (err) {
