@@ -37,7 +37,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (session.user.role === "operator") {
+    // Раньше: блокировался только legacy "operator". После миграции
+    // "cook"/"waiter"/"cleaner" могли создавать/править продукты,
+    // хотя UI /settings/products видят только management. Согласовываем
+    // с DELETE-эндпоинтом: только management.
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -81,7 +85,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (session.user.role === "operator") {
+    // Раньше: блокировался только legacy "operator". После миграции
+    // "cook"/"waiter"/"cleaner" могли создавать/править продукты,
+    // хотя UI /settings/products видят только management. Согласовываем
+    // с DELETE-эндпоинтом: только management.
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
