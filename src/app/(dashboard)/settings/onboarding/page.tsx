@@ -488,11 +488,16 @@ export default async function OnboardingPage() {
     finishMissing.push("Добавьте оборудование (холодильники)");
   if (enabledTemplatesCount === 0)
     finishMissing.push("Включите хотя бы один журнал");
+  // Должно совпадать с required-карточкой «Ответственные за журналы»
+  // (она требует journalsWithResponsiblesCount >= enabledTemplatesCount).
+  // Иначе CTA «Создать документы» открывается раньше чем step 7 закрыт.
   if (
     enabledTemplatesCount > 0 &&
-    journalsWithResponsiblesCount === 0
+    journalsWithResponsiblesCount < enabledTemplatesCount
   )
-    finishMissing.push("Назначьте ответственных за журналы");
+    finishMissing.push(
+      `Назначьте ответственных ещё для ${enabledTemplatesCount - journalsWithResponsiblesCount} журналов`
+    );
   const finishReady = finishMissing.length === 0;
 
   return (

@@ -163,9 +163,24 @@ export function OrganizationInfoForm({
         toast.error(data?.error ?? "Не нашли организацию");
         return;
       }
+      // Защита: если пользователь уже ввёл своё название и оно
+      // отличается от DaData — подтверждаем замену, иначе тихо
+      // затрём ввод.
+      let nextName = data.name || form.name;
+      if (
+        form.name &&
+        data.name &&
+        form.name.trim().toLowerCase() !==
+          (data.name as string).trim().toLowerCase()
+      ) {
+        const ok = window.confirm(
+          `Заменить «${form.name}» на «${data.name}» из ЕГРЮЛ?`
+        );
+        if (!ok) nextName = form.name;
+      }
       setForm((prev) => ({
         ...prev,
-        name: data.name || prev.name,
+        name: nextName,
         address: data.address || prev.address,
       }));
       toast.success(`Найдено: ${data.name}`);

@@ -7,6 +7,27 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * GET — preflight: считает что именно удалится. UI вызывает перед
+ * показом prompt'а, чтобы юзер видел количество в подтверждении.
+ */
+export async function GET() {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
+  if (!hasCapability(session.user, "admin.full")) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
+  const organizationId = getActiveOrgId(session);
+  const [docCount, entryCount] = await Promise.all([
+    db.journalDocument.count({ where: { organizationId } }),
+    db.journalDocumentEntry.count({
+      where: { document: { organizationId } },
+    }),
+  ]);
+  return NextResponse.json({ docCount, entryCount });
+}
+
+/**
  * POST /api/settings/journals/delete-all-documents
  *
  * Жёсткое удаление ВСЕХ JournalDocument'ов организации (и их entries

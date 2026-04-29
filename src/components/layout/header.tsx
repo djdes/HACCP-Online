@@ -218,17 +218,22 @@ export function Header({
         >
           {organizationLogoUrl ? (
             <>
+              {/* alt="" — декоративная картинка; имя орги уже даёт span
+                  ниже (он виден всегда: на mobile — слева вместо md:inline,
+                  на desktop — справа от лого). */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={organizationLogoUrl}
-                alt={organizationName}
+                alt=""
                 className="h-7 w-auto max-w-[140px] object-contain"
+                referrerPolicy="no-referrer"
+                loading="lazy"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
-              <span className="hidden text-[14px] font-semibold text-[#0b1024] md:inline">
-                {organizationName}
+              <span className="text-[14px] font-semibold text-[#0b1024]">
+                {organizationName || "WESETUP"}
               </span>
             </>
           ) : (

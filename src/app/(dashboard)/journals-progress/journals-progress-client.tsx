@@ -65,17 +65,28 @@ export function JournalsProgressClient() {
   useEffect(() => {
     const ctrl = new AbortController();
     load(false, ctrl.signal);
-    // Авто-обновление раз в 60 секунд — пока заведующая открыла страницу,
-    // данные подтягиваются «вживую» по мере того как сотрудники
-    // заполняют журналы. Не дёргаем сервер, если вкладка скрыта
-    // (visibilityState != 'visible') — экономим запросы.
+    // Авто-обновление раз в 60 секунд + immediate refresh при
+    // возвращении на вкладку (если был >30s в фоне). Иначе менеджер,
+    // открывший вкладку утром и вернувшийся через час, видит stale
+    // данные ещё минуту.
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       load(true, ctrl.signal);
     }, 60_000);
+    function onVisible() {
+      if (typeof document !== "undefined" && !document.hidden) {
+        load(true, ctrl.signal);
+      }
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       clearInterval(interval);
       ctrl.abort();
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

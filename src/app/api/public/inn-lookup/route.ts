@@ -90,15 +90,25 @@ export async function GET(request: Request) {
     }
 
     const d = first.data;
+    // Capping длин — DaData иногда отдаёт full_with_opf вида
+    // «ООО ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ ...» (200+ chars)
+    // или адреса с почтовым индексом, страной, доп. полями. Сервер
+    // /api/settings/organization режектит >200/500 — тут предупреждаем,
+    // обрезая ещё на этапе lookup.
+    const trim = (s: string | undefined | null, max: number): string =>
+      typeof s === "string" ? s.normalize("NFKC").trim().slice(0, max) : "";
     return NextResponse.json({
       ok: true,
       inn,
-      name: d.name?.short_with_opf ?? d.name?.full_with_opf ?? first.value ?? "",
-      address: d.address?.value ?? "",
-      directorName: d.management?.name ?? "",
-      okvedCode: d.okved ?? "",
-      status: d.state?.status ?? "",
-      opfType: d.opf?.type ?? "",
+      name: trim(
+        d.name?.short_with_opf ?? d.name?.full_with_opf ?? first.value,
+        200
+      ),
+      address: trim(d.address?.value, 500),
+      directorName: trim(d.management?.name, 200),
+      okvedCode: trim(d.okved, 50),
+      status: trim(d.state?.status, 50),
+      opfType: trim(d.opf?.type, 50),
     });
   } catch (err) {
     console.error("[inn-lookup] DaData error", err);

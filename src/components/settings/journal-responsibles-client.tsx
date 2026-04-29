@@ -571,10 +571,27 @@ export function JournalResponsiblesClient({
 
   async function deleteAllDocuments() {
     if (deleting) return;
+    // Preflight — узнаём сколько ИМЕННО удалится, показываем в
+    // prompt. Менеджер видит «удалится 33 документа, 1290 записей»
+    // и думает дважды, прежде чем напечатать «УДАЛИТЬ».
+    let counts: { docCount: number; entryCount: number } | null = null;
+    try {
+      const res = await fetch(
+        "/api/settings/journals/delete-all-documents",
+        { method: "GET" }
+      );
+      if (res.ok) counts = await res.json();
+    } catch {
+      /* preflight не критичен — продолжаем без счётчика */
+    }
+    const sizeHint = counts
+      ? `\n\nСейчас в БД: ${counts.docCount} документ(ов), ${counts.entryCount} запис(ей).`
+      : "";
     const phrase = window.prompt(
       "ВНИМАНИЕ: эта операция удалит ВСЕ документы журналов организации " +
-        "вместе с заполненными записями. Восстановить нельзя.\n\n" +
-        "Чтобы продолжить, введите слово «УДАЛИТЬ» (заглавными):"
+        "вместе с заполненными записями. Восстановить нельзя." +
+        sizeHint +
+        "\n\nЧтобы продолжить, введите слово «УДАЛИТЬ» (заглавными):"
     );
     if (phrase !== "УДАЛИТЬ") {
       if (phrase !== null) {

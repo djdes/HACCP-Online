@@ -2,6 +2,7 @@ import fs from "fs";
 import { jsPDF } from "jspdf";
 import autoTable, { type CellDef, type RowInput } from "jspdf-autotable";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
   getClimateDateLabel,
@@ -4794,7 +4795,16 @@ export async function generateJournalDocumentPdf(params: {
       organization: {
         select: { name: true, inn: true, address: true, phone: true },
       },
-      entries: { orderBy: [{ employeeId: "asc" }, { date: "asc" }] },
+      // Из PDF выкидываем _autoSeeded плейсхолдеры — иначе печатная
+      // форма показывает 30 пустых строк/«заполнено» там, где
+      // сотрудник реально ещё ничего не записал. Реальные записи
+      // (даже если пользователь оставил часть полей пустыми) в data
+      // содержат ключи помимо _autoSeeded — их NOT_AUTO_SEEDED
+      // пропускает.
+      entries: {
+        where: NOT_AUTO_SEEDED,
+        orderBy: [{ employeeId: "asc" }, { date: "asc" }],
+      },
     },
   });
 
