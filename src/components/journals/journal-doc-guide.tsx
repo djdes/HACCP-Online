@@ -110,16 +110,17 @@ function GuideSheet({
       aria-modal="true"
       aria-label="Инструкция по заполнению"
     >
-      {/* Backdrop. Без backdrop-blur — он подсаживал sub-pixel rendering
-          текста в самом sheet'е (composite-layer side-effect на части
-          GPU/драйверов), из-за чего весь контент sheet'а казался мыльным. */}
+      {/* Backdrop. z-0 — иначе position:absolute рисуется поверх sheet'а
+          (который flex-item с position:static), и 55%-ное затемнение
+          ложится прямо на содержимое модала, делая его выцветшим. */}
       <div
-        className="absolute inset-0 bg-[#0b1024]/55"
+        className="absolute inset-0 z-0 bg-[#0b1024]/55"
         onClick={onClose}
       />
 
-      {/* Sheet — slides from right on desktop, full-screen on mobile */}
-      <div className="ml-auto flex h-full w-full max-w-[640px] flex-col bg-white shadow-[0_0_60px_-10px_rgba(11,16,36,0.4)] sm:rounded-l-3xl">
+      {/* Sheet — slides from right on desktop, full-screen on mobile.
+          relative + z-10 — вытягивает над backdrop'ом. */}
+      <div className="relative z-10 ml-auto flex h-full w-full max-w-[640px] flex-col bg-white shadow-[0_0_60px_-10px_rgba(11,16,36,0.4)] sm:rounded-l-3xl">
         {/* Hero header */}
         <div className="relative overflow-hidden bg-[#0b1024] text-white">
           <div className="pointer-events-none absolute inset-0">
