@@ -30,10 +30,11 @@ export async function PUT(
       return NextResponse.json({ error: "Оборудование не найдено" }, { status: 404 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { name, type, areaId, serialNumber, tempMin, tempMax, tuyaDeviceId } = body;
 
-    if (!name || name.trim().length === 0) {
+    // Раньше: name.trim() крашил 500'кой если name был числом/null/object.
+    if (typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Название обязательно" }, { status: 400 });
     }
 
@@ -46,16 +47,39 @@ export async function PUT(
       }
     }
 
+    // tempMin/tempMax — finite numbers либо null. Раньше Number("abc")
+    // = NaN записывалось в БД, потом ломались температурные графики.
+    function parseTemp(value: unknown): number | null | "invalid" {
+      if (value === undefined || value === null || value === "") return null;
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "invalid";
+      return n;
+    }
+    const parsedTempMin = parseTemp(tempMin);
+    const parsedTempMax = parseTemp(tempMax);
+    if (parsedTempMin === "invalid" || parsedTempMax === "invalid") {
+      return NextResponse.json(
+        { error: "Температура должна быть числом" },
+        { status: 400 }
+      );
+    }
+
     const updated = await db.equipment.update({
       where: { id },
       data: {
-        name: name.trim(),
-        type: type || equipment.type,
-        areaId: areaId || equipment.areaId,
-        serialNumber: serialNumber?.trim() || null,
-        tempMin: tempMin !== undefined && tempMin !== "" ? Number(tempMin) : null,
-        tempMax: tempMax !== undefined && tempMax !== "" ? Number(tempMax) : null,
-        tuyaDeviceId: tuyaDeviceId?.trim() || null,
+        name: name.trim().slice(0, 200),
+        type: typeof type === "string" && type.trim() ? type.trim().slice(0, 50) : equipment.type,
+        areaId: typeof areaId === "string" && areaId ? areaId : equipment.areaId,
+        serialNumber:
+          typeof serialNumber === "string" && serialNumber.trim()
+            ? serialNumber.trim().slice(0, 100)
+            : null,
+        tempMin: parsedTempMin,
+        tempMax: parsedTempMax,
+        tuyaDeviceId:
+          typeof tuyaDeviceId === "string" && tuyaDeviceId.trim()
+            ? tuyaDeviceId.trim().slice(0, 100)
+            : null,
       },
     });
 

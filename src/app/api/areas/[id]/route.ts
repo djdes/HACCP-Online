@@ -26,18 +26,22 @@ export async function PUT(
       return NextResponse.json({ error: "Цех не найден" }, { status: 404 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { name, description } = body;
 
-    if (!name || name.trim().length === 0) {
+    // Раньше: name.trim() крашил если name был числом/null/object.
+    if (typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Название обязательно" }, { status: 400 });
     }
 
     const updated = await db.area.update({
       where: { id },
       data: {
-        name: name.trim(),
-        description: description?.trim() || null,
+        name: name.trim().slice(0, 200),
+        description:
+          typeof description === "string" && description.trim()
+            ? description.trim().slice(0, 1000)
+            : null,
       },
     });
 
