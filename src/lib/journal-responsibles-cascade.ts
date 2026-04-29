@@ -202,3 +202,124 @@ export async function cascadeResponsibleToActiveDocuments(input: {
     savedSlots: slotUsers,
   };
 }
+
+/**
+ * Используется при СОЗДАНИИ нового JournalDocument'а (auto-create cron,
+ * bulk-assign фан-аут, ручное создание на /journals/[code]). Подтягивает
+ * сохранённых в /settings/journal-responsibles слот-юзеров и патчит
+ * config + возвращает primary userId.
+ *
+ * Не пишет в БД — caller сам кладёт результат в `data` для create.
+ *
+ * Использование:
+ *   const filled = await prefillResponsiblesForNewDocument({
+ *     organizationId, journalCode, baseConfig
+ *   });
+ *   await db.journalDocument.create({
+ *     data: {
+ *       ...,
+ *       config: filled.config,
+ *       responsibleUserId: filled.responsibleUserId,
+ *     },
+ *   });
+ */
+export async function prefillResponsiblesForNewDocument(input: {
+  organizationId: string;
+  journalCode: string;
+  baseConfig?: Record<string, unknown>;
+}): Promise<{
+  config: Record<string, unknown>;
+  responsibleUserId: string | null;
+}> {
+  const { organizationId, journalCode } = input;
+  const baseConfig = input.baseConfig ?? {};
+
+  // 1. Читаем сохранённые слоты из Organization JSON.
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { journalResponsibleUsersJson: true },
+  });
+  const allSlots = (org?.journalResponsibleUsersJson ?? {}) as Record<
+    string,
+    SlotUserMap
+  >;
+  const slots: SlotUserMap = { ...(allSlots[journalCode] ?? {}) };
+
+  // 2. Если в orgSlots ничего нет — попробуем подобрать на лету через
+  // schema.keywords по активным сотрудникам с подходящими должностями.
+  // (Стандартная ситуация: новая орга, ещё не заходила в settings.)
+  const schema = getSchemaForJournal(journalCode);
+  const usedIds = new Set<string>(
+    Object.values(slots).filter((v): v is string => Boolean(v))
+  );
+  for (const slot of schema.slots) {
+    if (slots[slot.id]) continue;
+    const where: Record<string, unknown> = {
+      organizationId,
+      isActive: true,
+      archivedAt: null,
+    };
+    const candidates = await db.user.findMany({
+      where,
+      select: { id: true, jobPosition: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    });
+    const matched = slot.positionKeywords?.length
+      ? candidates.filter((u) => {
+          const n = (u.jobPosition?.name ?? "").toLowerCase();
+          return slot.positionKeywords!.some((kw) => n.includes(kw));
+        })
+      : candidates;
+    const pick = matched.find((u) => !usedIds.has(u.id));
+    if (pick) {
+      slots[slot.id] = pick.id;
+      usedIds.add(pick.id);
+    }
+  }
+
+  const primarySlotId = getPrimarySlotId(journalCode);
+  const primaryUserId = slots[primarySlotId] ?? null;
+
+  // 3. Валидация — оставляем только реально-существующих в орге.
+  const userIdsToCheck = Object.values(slots).filter(
+    (v): v is string => typeof v === "string" && v.length > 0
+  );
+  let validUserIds = new Set<string>();
+  let userNameMap = new Map<string, string>();
+  let userPosMap = new Map<string, string>();
+  if (userIdsToCheck.length > 0) {
+    const owned = await db.user.findMany({
+      where: {
+        id: { in: userIdsToCheck },
+        organizationId,
+        isActive: true,
+        archivedAt: null,
+      },
+      select: { id: true, name: true, jobPosition: { select: { name: true } } },
+    });
+    validUserIds = new Set(owned.map((u) => u.id));
+    userNameMap = new Map(owned.map((u) => [u.id, u.name] as const));
+    userPosMap = new Map(
+      owned.map((u) => [u.id, u.jobPosition?.name ?? ""] as const)
+    );
+    for (const [k, v] of Object.entries(slots)) {
+      if (v && !validUserIds.has(v)) slots[k] = null;
+    }
+  }
+
+  // 4. Патчим config через journal-specific patcher.
+  let config = baseConfig;
+  if (hasDocumentConfigPatcher(journalCode)) {
+    const patched = patchDocumentConfig(journalCode, baseConfig, slots, {
+      getName: (id) => (id ? userNameMap.get(id) ?? "" : ""),
+      getPositionTitle: (id) => (id ? userPosMap.get(id) ?? "" : ""),
+    });
+    if (patched) config = patched;
+  }
+
+  return {
+    config,
+    responsibleUserId:
+      primaryUserId && validUserIds.has(primaryUserId) ? primaryUserId : null,
+  };
+}

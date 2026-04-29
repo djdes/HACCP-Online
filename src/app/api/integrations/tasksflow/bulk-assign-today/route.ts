@@ -15,6 +15,7 @@ import {
   selectRowsForBulkAssign,
 } from "@/lib/tasksflow-bulk-assign";
 import { resolveJournalPeriod } from "@/lib/journal-period";
+import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
@@ -395,6 +396,14 @@ export async function POST(request: Request) {
       // год). Раньше тут всегда был monthBounds → документы создавались
       // некорректно.
       const period = resolveJournalPeriod(tpl.code, now);
+      // Подтягиваем сохранённых в /settings/journal-responsibles
+      // ответственных в config + responsibleUserId — чтобы новый
+      // документ сразу открывался с заполненными ФИО, а не пустой.
+      const prefill = await prefillResponsiblesForNewDocument({
+        organizationId,
+        journalCode: tpl.code,
+        baseConfig: {},
+      });
       doc = await db.journalDocument.create({
         data: {
           organizationId,
@@ -403,7 +412,8 @@ export async function POST(request: Request) {
           dateFrom: period.dateFrom,
           dateTo: period.dateTo,
           status: "active",
-          config: {},
+          config: prefill.config as never,
+          responsibleUserId: prefill.responsibleUserId,
         },
       });
       report.documentAutoCreated = true;

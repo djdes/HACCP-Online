@@ -18,6 +18,7 @@ import {
   parseJournalPeriodsJson,
   resolveJournalPeriod,
 } from "@/lib/journal-period";
+import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 
 export type CreateReport = {
   code: string;
@@ -79,6 +80,13 @@ export async function ensureActiveDocument(
   });
   const overrides = parseJournalPeriodsJson(orgRow?.journalPeriods ?? null);
   const period = resolveJournalPeriod(args.templateCode, now, overrides);
+  // Подтягиваем сохранённых в /settings/journal-responsibles
+  // ответственных в config + responsibleUserId.
+  const prefill = await prefillResponsiblesForNewDocument({
+    organizationId: args.organizationId,
+    journalCode: args.templateCode,
+    baseConfig: {},
+  });
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -87,7 +95,8 @@ export async function ensureActiveDocument(
       dateFrom: period.dateFrom,
       dateTo: period.dateTo,
       status: "active",
-      config: {},
+      config: prefill.config as never,
+      responsibleUserId: prefill.responsibleUserId,
     },
     select: { id: true },
   });
@@ -238,6 +247,11 @@ export async function ensureNextPeriodDocument(
     };
   }
 
+  const prefillNext = await prefillResponsiblesForNewDocument({
+    organizationId: args.organizationId,
+    journalCode: args.templateCode,
+    baseConfig: {},
+  });
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -246,7 +260,8 @@ export async function ensureNextPeriodDocument(
       dateFrom: nextPeriod.dateFrom,
       dateTo: nextPeriod.dateTo,
       status: "active",
-      config: {},
+      config: prefillNext.config as never,
+      responsibleUserId: prefillNext.responsibleUserId,
     },
     select: { id: true },
   });
