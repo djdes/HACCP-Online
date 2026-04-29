@@ -31,8 +31,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.correctiveAction !== undefined) data.correctiveAction = body.correctiveAction;
   if (body.preventiveAction !== undefined) data.preventiveAction = body.preventiveAction;
   if (body.verificationResult !== undefined) data.verificationResult = body.verificationResult;
-  if (body.assignedToId !== undefined) data.assignedToId = body.assignedToId;
-  if (body.priority !== undefined) data.priority = body.priority;
+  if (body.assignedToId !== undefined) {
+    // Scope-check: assignedToId должен быть юзером той же org. Иначе
+    // менеджер компании A мог назначить CAPA юзеру компании B
+    // (broken FK на UI компании B либо cross-tenant exposure через
+    // assigned-to фильтр).
+    if (body.assignedToId === null) {
+      data.assignedToId = null;
+    } else {
+      const assignee = await db.user.findFirst({
+        where: { id: body.assignedToId, organizationId: getActiveOrgId(session) },
+        select: { id: true },
+      });
+      if (!assignee) {
+        return NextResponse.json(
+          { error: "Сотрудник не найден" },
+          { status: 404 }
+        );
+      }
+      data.assignedToId = body.assignedToId;
+    }
+  }
+  if (body.priority !== undefined) {
+    // Принимаем только валидные значения priority — иначе UI может
+    // получить непонятный enum от другого CAPA-source'а.
+    const validPriorities = ["low", "medium", "high", "critical"];
+    if (typeof body.priority === "string" && validPriorities.includes(body.priority)) {
+      data.priority = body.priority;
+    }
+  }
 
   const updated = await db.capaTicket.update({ where: { id }, data });
   return NextResponse.json(updated);
