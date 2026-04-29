@@ -31,6 +31,7 @@ import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
+import { StaffTrainingCard } from "@/components/dashboard/staff-training-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
@@ -429,6 +430,10 @@ export default async function DashboardPage() {
 
         <div className="mt-5">
           <MedBooksExpiryCard />
+        </div>
+
+        <div className="mt-5">
+          <StaffTrainingCard />
         </div>
 
         {complianceItems.length > 0 && (
