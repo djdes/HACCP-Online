@@ -243,16 +243,17 @@ export default function MiniTodayPage() {
       {data.myActive ? (
         <div className="rounded-2xl border border-[#5566f6] bg-[#eef1ff] p-3 text-[13px] text-[#3848c7]">
           <Lock className="mr-1.5 inline size-4 align-text-bottom" />
-          В работе:&nbsp;
+          Сейчас делаешь:&nbsp;
           <span className="font-semibold">{data.myActive.scopeLabel}</span>
-          &nbsp;— завершите её прежде чем брать новые.
+          &nbsp;— закончи эту, тогда сможешь взять следующую.
         </div>
       ) : null}
 
       {data.groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-10 text-center text-[14px] text-[#6f7282]">
-          На сегодня нет активных задач. Попросите менеджера создать
-          документы журналов.
+          На сегодня задач пока нет.
+          <br />
+          Подойди к руководителю — спроси, что нужно сделать.
         </div>
       ) : null}
 
@@ -261,7 +262,13 @@ export default function MiniTodayPage() {
           <div className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
             {g.label} ({g.scopes.length})
           </div>
-          {g.scopes.map((s) => (
+          {/* Сортируем scopes так, чтобы «можно взять» и «у меня» были
+              сверху — сотрудник без опыта видит ровно то, что от него
+              ждут, без скролла мимо «занято коллегой». */}
+          {[...g.scopes].sort((a, b) => {
+            const order = { available: 0, mine: 1, taken: 2, completed: 3 };
+            return order[a.availability] - order[b.availability];
+          }).map((s) => (
             <ScopeRow
               key={s.scopeKey}
               scope={s}

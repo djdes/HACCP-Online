@@ -167,7 +167,27 @@ export function JournalsBrowser({
   ).length;
   const pendingTodayCount = enabledTemplates.length - filledTodayCount;
 
-  const filteredEnabled = filteredTemplates.filter((t) => !t.disabled);
+  // Сортируем включённые журналы так, чтобы «надо заполнить сегодня»
+  // были сверху — сотрудник без опыта работы с PC не должен сканировать
+  // 35 карточек чтобы найти что от него хотят. Внутри группы сохраняем
+  // оригинальный порядок (sortOrder из админки).
+  const filteredEnabled = filteredTemplates
+    .filter((t) => !t.disabled)
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => {
+      const score = (x: JournalTemplateListItem) => {
+        const isMandatory = x.isMandatorySanpin || x.isMandatoryHaccp;
+        const isDaily = ALL_DAILY_JOURNAL_CODES.has(x.code);
+        if (isMandatory && isDaily && !x.filledToday) return 0; // надо
+        if (isMandatory && isDaily && x.filledToday) return 2; // готово
+        return 1; // прочие — посередине
+      };
+      const sa = score(a.t);
+      const sb = score(b.t);
+      if (sa !== sb) return sa - sb;
+      return a.i - b.i;
+    })
+    .map(({ t }) => t);
   const filteredDisabled = filteredTemplates.filter((t) => t.disabled);
   const hasResults = filteredTemplates.length > 0;
 
