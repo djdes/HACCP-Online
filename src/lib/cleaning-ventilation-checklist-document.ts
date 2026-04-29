@@ -78,16 +78,30 @@ export function getCleaningVentilationPeriodicityLines(enabledVentilation: boole
   ];
 }
 
+// Канонические management-роли + legacy-наследие. После миграции
+// схемы новые орги создаются с manager/head_chef, старые могут иметь
+// owner/technologist. Раньше логика знала только legacy → новые
+// орги получали fallback "Сотрудник" и пустой список responsibles.
+const MANAGEMENT_ROLE_SET = new Set([
+  "manager",
+  "head_chef",
+  "owner",
+  "technologist",
+]);
+
 export function getRoleLabel(role: string) {
-  if (role === "owner" || role === "technologist") {
+  if (MANAGEMENT_ROLE_SET.has(role)) {
     return "Управляющий";
   }
   return "Сотрудник";
 }
 
 export function getPreferredResponsibleUserId(users: BasicUser[]) {
+  // Префиксная иерархия: новые → старые роли → любой.
   return (
+    users.find((user) => user.role === "manager")?.id ||
     users.find((user) => user.role === "owner")?.id ||
+    users.find((user) => user.role === "head_chef")?.id ||
     users.find((user) => user.role === "technologist")?.id ||
     users[0]?.id ||
     ""
@@ -102,8 +116,13 @@ export function getDefaultCleaningVentilationConfig(
     users.find((user) => user.id === mainResponsibleUserId)?.role || "owner"
   );
 
+  // Берём management-юзеров (новых и legacy) для default responsibles.
+  // Раньше: только legacy ["owner", "technologist", "operator"] —
+  // в новых органзациях с manager/head_chef возвращался пустой список.
   const defaultResponsibles = users
-    .filter((user) => ["owner", "technologist", "operator"].includes(user.role))
+    .filter((user) =>
+      MANAGEMENT_ROLE_SET.has(user.role) || user.role === "operator"
+    )
     .slice(0, 3)
     .map((user) => ({
       id: createId(),
