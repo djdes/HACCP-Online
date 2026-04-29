@@ -185,8 +185,17 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
+    title: "Ответственные за журналы",
+    description:
+      "Кто заполняет каждый журнал. Один клик — умные пресеты (уборка → уборщикам)",
+    href: "/settings/journal-responsibles",
+    icon: Network,
+    iconClass: "text-[#7a5cff]",
+    bgClass: "bg-[#f0edff]",
+  },
+  {
     title: "Иерархия журналов по должностям",
-    description: "Какие журналы получает каждая должность при «отправить всем»",
+    description: "Тот же выбор, но в виде матрицы должность × журнал — для power-юзеров",
     href: "/settings/journals-by-position",
     icon: Network,
     iconClass: "text-[#7a5cff]",
