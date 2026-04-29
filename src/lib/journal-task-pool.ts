@@ -77,18 +77,96 @@ export async function generatePoolForDay(args: {
       return poolCleaning({ organizationId: args.organizationId, today, todayKey });
     case "accident_journal":
     case "complaint_register":
+    case "breakdown_history":
+    case "ppe_issuance":
+    case "glass_items_list":
+    case "metal_impurity":
+    case "perishable_rejection":
+    case "product_writeoff":
+    case "traceability_test":
       // Event-based: pool = «один открытый event-slot на день».
       return poolGenericEvent({
         organizationId: args.organizationId,
         today,
         todayKey,
         journalCode,
-        label: journalCode === "accident_journal" ? "Регистрация ЧП" : "Жалоба",
+        label: GENERIC_EVENT_LABELS[journalCode] ?? "Запись за день",
+      });
+    case "general_cleaning":
+    case "sanitation_day_control":
+    case "sanitary_day_control":
+      // Периодические: per-day одна задача.
+      return poolGenericEvent({
+        organizationId: args.organizationId,
+        today,
+        todayKey,
+        journalCode,
+        label: GENERIC_EVENT_LABELS[journalCode] ?? journalCode,
+      });
+    case "pest_control":
+    case "intensive_cooling":
+    case "glass_control":
+      return poolGenericEvent({
+        organizationId: args.organizationId,
+        today,
+        todayKey,
+        journalCode,
+        label: GENERIC_EVENT_LABELS[journalCode] ?? journalCode,
+      });
+    case "uv_lamp_runtime":
+      return poolUvLamp({ organizationId: args.organizationId, today, todayKey });
+    case "equipment_maintenance":
+    case "equipment_calibration":
+    case "equipment_cleaning":
+      return poolEquipmentEvent({
+        organizationId: args.organizationId,
+        today,
+        todayKey,
+        journalCode,
+      });
+    case "audit_plan":
+    case "audit_protocol":
+    case "audit_report":
+      return poolGenericEvent({
+        organizationId: args.organizationId,
+        today,
+        todayKey,
+        journalCode,
+        label: GENERIC_EVENT_LABELS[journalCode] ?? journalCode,
+      });
+    case "training_plan":
+      return poolGenericEvent({
+        organizationId: args.organizationId,
+        today,
+        todayKey,
+        journalCode,
+        label: "План обучения — отметить выполнение",
       });
     default:
       return { journalCode, dateKey: todayKey, scopes: [], pool: false };
   }
 }
+
+const GENERIC_EVENT_LABELS: Record<string, string> = {
+  accident_journal: "Регистрация ЧП",
+  complaint_register: "Жалоба",
+  breakdown_history: "Поломка / починка",
+  ppe_issuance: "Выдача СИЗ",
+  glass_items_list: "Учёт стеклянной/пластиковой посуды",
+  metal_impurity: "Контроль металлопримесей",
+  perishable_rejection: "Утилизация скоропорта",
+  product_writeoff: "Списание продукции",
+  traceability_test: "Прослеживаемость",
+  general_cleaning: "Генеральная уборка",
+  sanitation_day_control: "Санитарный день",
+  sanitary_day_control: "Санитарный день",
+  pest_control: "Дератизация / дезинсекция",
+  intensive_cooling: "Интенсивное охлаждение",
+  glass_control: "Контроль стекла",
+  audit_plan: "План аудита",
+  audit_protocol: "Протокол аудита",
+  audit_report: "Отчёт аудита",
+};
 
 /* ---------- per-journal generators ---------- */
 
@@ -304,6 +382,80 @@ async function poolCleaning(args: {
       sublabel: r.building.name,
       journalDocumentId: doc.id,
     })),
+  };
+}
+
+async function poolUvLamp(args: {
+  organizationId: string;
+  today: Date;
+  todayKey: string;
+}): Promise<PoolForDayResult> {
+  // UV-лампы по их Equipment с типом uv_lamp / уф / ультра в названии.
+  const lamps = await db.equipment.findMany({
+    where: {
+      area: { organizationId: args.organizationId },
+      OR: [
+        { type: { contains: "uv", mode: "insensitive" } },
+        { type: { contains: "уф", mode: "insensitive" } },
+        { type: { contains: "ультра", mode: "insensitive" } },
+        { name: { contains: "уф", mode: "insensitive" } },
+        { name: { contains: "бактерицид", mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, name: true, area: { select: { name: true } } },
+    orderBy: { name: "asc" },
+  });
+  const doc = await activeDocFor(args.organizationId, "uv_lamp_runtime", args.today);
+  const scopes: TaskScope[] =
+    lamps.length > 0
+      ? lamps.map((l) => ({
+          scopeKey: `uv:${l.id}:${args.todayKey}`,
+          scopeLabel: `УФ-лампа · ${l.name}`,
+          sublabel: l.area?.name,
+          journalDocumentId: doc?.id,
+        }))
+      : [
+          {
+            scopeKey: `uv:default:${args.todayKey}`,
+            scopeLabel: "УФ-лампа — отметить наработку",
+            sublabel: doc?.title,
+            journalDocumentId: doc?.id,
+          },
+        ];
+  return { journalCode: "uv_lamp_runtime", dateKey: args.todayKey, pool: true, scopes };
+}
+
+async function poolEquipmentEvent(args: {
+  organizationId: string;
+  today: Date;
+  todayKey: string;
+  journalCode: string;
+}): Promise<PoolForDayResult> {
+  const equipment = await db.equipment.findMany({
+    where: { area: { organizationId: args.organizationId } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today);
+  // Один общий event-slot — событийный журнал. Сотрудник выберет
+  // оборудование уже в форме.
+  return {
+    journalCode: args.journalCode,
+    dateKey: args.todayKey,
+    pool: true,
+    scopes: [
+      {
+        scopeKey: `${args.journalCode}:${args.organizationId}:${args.todayKey}`,
+        scopeLabel:
+          args.journalCode === "equipment_maintenance"
+            ? "Тех. обслуживание оборудования"
+            : args.journalCode === "equipment_calibration"
+              ? "Поверка / калибровка"
+              : "Чистка оборудования",
+        sublabel: equipment.length > 0 ? `Доступно ${equipment.length} единиц` : doc?.title,
+        journalDocumentId: doc?.id,
+      },
+    ],
   };
 }
 

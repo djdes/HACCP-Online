@@ -130,6 +130,183 @@ const JOURNAL_FORMS: Record<
       { key: "notes", label: "Замечания", type: "text" },
     ],
   },
+  breakdown_history: {
+    submitLabel: "Записать поломку",
+    fields: [
+      { key: "equipmentName", label: "Оборудование", type: "text", required: true },
+      { key: "description", label: "Что сломалось", type: "text", required: true },
+      { key: "actionTaken", label: "Что сделано", type: "text" },
+    ],
+  },
+  ppe_issuance: {
+    submitLabel: "Записать выдачу СИЗ",
+    fields: [
+      { key: "ppeName", label: "Тип СИЗ", type: "text", required: true, placeholder: "перчатки/халат/маска" },
+      { key: "recipient", label: "Кому выдано", type: "text", required: true },
+      { key: "quantity", label: "Количество", type: "number" },
+    ],
+  },
+  glass_items_list: {
+    submitLabel: "Записать",
+    fields: [
+      { key: "itemName", label: "Наименование", type: "text", required: true },
+      { key: "material", label: "Материал (стекло/пластик/керамика)", type: "text" },
+      { key: "quantity", label: "Количество", type: "number" },
+      { key: "location", label: "Место хранения", type: "text" },
+    ],
+  },
+  glass_control: {
+    submitLabel: "Завершить контроль",
+    fields: [
+      { key: "checkedItems", label: "Что проверено", type: "text", required: true, placeholder: "стаканы, тарелки, посуда" },
+      { key: "damaged", label: "Найдены повреждения", type: "checkbox" },
+      { key: "actionTaken", label: "Действия (если повреждения)", type: "text" },
+    ],
+  },
+  metal_impurity: {
+    submitLabel: "Записать контроль",
+    fields: [
+      { key: "productName", label: "Продукт", type: "text", required: true },
+      { key: "batchNumber", label: "Номер партии", type: "text" },
+      { key: "metalDetected", label: "Металл обнаружен", type: "checkbox" },
+      { key: "actionTaken", label: "Действия", type: "text" },
+    ],
+  },
+  perishable_rejection: {
+    submitLabel: "Записать утилизацию",
+    fields: [
+      { key: "productName", label: "Продукт", type: "text", required: true },
+      { key: "quantity", label: "Количество", type: "text" },
+      { key: "reason", label: "Причина (просрочка/повреждение/др.)", type: "text", required: true },
+      { key: "disposalMethod", label: "Способ утилизации", type: "text" },
+    ],
+  },
+  product_writeoff: {
+    submitLabel: "Записать списание",
+    fields: [
+      { key: "productName", label: "Продукт", type: "text", required: true },
+      { key: "quantity", label: "Количество", type: "text", required: true },
+      { key: "costRub", label: "Стоимость, ₽", type: "number" },
+      { key: "reason", label: "Причина", type: "text", required: true },
+    ],
+  },
+  traceability_test: {
+    submitLabel: "Завершить проверку",
+    fields: [
+      { key: "productBatch", label: "Партия / продукт", type: "text", required: true },
+      { key: "supplier", label: "Поставщик", type: "text" },
+      { key: "destinationTraced", label: "Прослежен путь до потребителя", type: "checkbox" },
+      { key: "notes", label: "Замечания", type: "text" },
+    ],
+  },
+  general_cleaning: {
+    submitLabel: "Завершить генуборку",
+    fields: [
+      { key: "areaName", label: "Помещение / зона", type: "text", required: true },
+      { key: "completedSteps", label: "Что сделано", type: "text", required: true },
+      { key: "controllerName", label: "Контролёр", type: "text" },
+    ],
+  },
+  sanitation_day_control: {
+    submitLabel: "Завершить",
+    fields: [
+      { key: "completedSteps", label: "Что сделано", type: "text", required: true },
+      { key: "notes", label: "Замечания", type: "text" },
+    ],
+  },
+  sanitary_day_control: {
+    submitLabel: "Завершить",
+    fields: [
+      { key: "completedSteps", label: "Что сделано", type: "text", required: true },
+      { key: "notes", label: "Замечания", type: "text" },
+    ],
+  },
+  pest_control: {
+    submitLabel: "Завершить обработку",
+    fields: [
+      { key: "treatmentType", label: "Тип обработки (дератизация/дезинсекция)", type: "text", required: true },
+      { key: "agent", label: "Применённое средство", type: "text" },
+      { key: "areaTreated", label: "Обработанная зона", type: "text" },
+      { key: "contractorName", label: "Подрядчик / специалист", type: "text" },
+    ],
+  },
+  intensive_cooling: {
+    submitLabel: "Завершить охлаждение",
+    fields: [
+      { key: "productName", label: "Продукт", type: "text", required: true },
+      { key: "startTemp", label: "Температура старт (°C)", type: "number" },
+      { key: "endTemp", label: "Температура конец (°C)", type: "number" },
+      { key: "durationMinutes", label: "Время охлаждения, мин", type: "number" },
+    ],
+  },
+  uv_lamp_runtime: {
+    submitLabel: "Завершить",
+    fields: [
+      { key: "runtimeHours", label: "Наработка часов (с прошлой проверки)", type: "number", required: true },
+      { key: "totalHours", label: "Общий ресурс, ч", type: "number" },
+      { key: "lampOk", label: "Лампа исправна", type: "checkbox" },
+      { key: "notes", label: "Замечания", type: "text" },
+    ],
+  },
+  equipment_maintenance: {
+    submitLabel: "Записать обслуживание",
+    fields: [
+      { key: "equipmentName", label: "Оборудование", type: "text", required: true },
+      { key: "workType", label: "Тип работ (плановое/внеплановое)", type: "text" },
+      { key: "description", label: "Что сделано", type: "text", required: true },
+      { key: "performerName", label: "Исполнитель", type: "text" },
+    ],
+  },
+  equipment_calibration: {
+    submitLabel: "Записать поверку",
+    fields: [
+      { key: "equipmentName", label: "Прибор", type: "text", required: true },
+      { key: "method", label: "Метод поверки", type: "text" },
+      { key: "result", label: "Результат (годен/не годен)", type: "text" },
+      { key: "nextDate", label: "Следующая поверка", type: "date" },
+    ],
+  },
+  equipment_cleaning: {
+    submitLabel: "Завершить чистку",
+    fields: [
+      { key: "equipmentName", label: "Оборудование", type: "text", required: true },
+      { key: "method", label: "Метод чистки", type: "text" },
+      { key: "agent", label: "Моющее/санит. средство", type: "text" },
+      { key: "rinseTemp", label: "Температура ополаскивания (°C)", type: "number" },
+    ],
+  },
+  audit_plan: {
+    submitLabel: "Сохранить план",
+    fields: [
+      { key: "topic", label: "Тема аудита", type: "text", required: true },
+      { key: "date", label: "Дата проведения", type: "date" },
+      { key: "responsible", label: "Ответственный", type: "text" },
+    ],
+  },
+  audit_protocol: {
+    submitLabel: "Сохранить протокол",
+    fields: [
+      { key: "auditTopic", label: "Тема", type: "text", required: true },
+      { key: "findings", label: "Выявленные нарушения", type: "text" },
+      { key: "auditorName", label: "Аудитор", type: "text" },
+    ],
+  },
+  audit_report: {
+    submitLabel: "Сохранить отчёт",
+    fields: [
+      { key: "summary", label: "Резюме", type: "text", required: true },
+      { key: "actions", label: "Корректирующие действия", type: "text" },
+      { key: "nextAuditDate", label: "Дата следующего аудита", type: "date" },
+    ],
+  },
+  training_plan: {
+    submitLabel: "Записать выполнение",
+    fields: [
+      { key: "topic", label: "Тема обучения", type: "text", required: true },
+      { key: "completedBy", label: "Прошёл (ФИО)", type: "text" },
+      { key: "score", label: "Результат", type: "text" },
+    ],
+  },
 };
 
 type Field = {
