@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { isManagementRole } from "@/lib/user-roles";
 import { notifyEmployee } from "@/lib/telegram";
 import { db } from "@/lib/db";
 
@@ -12,8 +13,11 @@ export async function POST(req: NextRequest) {
   }
 
   const orgId = getActiveOrgId(session);
+  // Раньше: только role === "manager" — head_chef и legacy owner
+  // получали 403, хотя в остальной системе они — full management.
+  // Используем централизованный isManagementRole helper.
   const isManager =
-    session.user.isRoot === true || session.user.role === "manager";
+    session.user.isRoot === true || isManagementRole(session.user.role);
 
   if (!isManager) {
     return NextResponse.json({ error: "Only managers can send notifications" }, { status: 403 });

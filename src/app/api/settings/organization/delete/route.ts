@@ -31,8 +31,14 @@ export async function POST(request: Request) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
 
-  // Только owner — менеджер не может удалить весь бизнес.
-  if (auth.session.user.role !== "owner" && !auth.session.user.isRoot) {
+  // Owner-equivalent роли — тот, кто зарегистрировал org. После
+  // миграции схемы новые org создаются с role="manager", старые —
+  // с "owner". head_chef не должен удалять (его менеджер нанимает
+  // и увольняет, не наоборот). Раньше: только "owner" → новый
+  // менеджер не мог удалить даже свой собственный бизнес.
+  const role = auth.session.user.role;
+  const isOwnerLike = role === "owner" || role === "manager";
+  if (!isOwnerLike && !auth.session.user.isRoot) {
     return NextResponse.json(
       { error: "Только владелец может удалить организацию" },
       { status: 403 }
