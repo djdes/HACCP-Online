@@ -1,129 +1,126 @@
 # Journal Overhaul State
 
-## Last updated: 2026-04-28 — после iteration 8 (все 10 приоритетных журналов покрыты)
+## Last updated: 2026-04-29 — все журналы покрыты + TF mirror
 
-## Done
+## Done (production-ready)
 
-### Foundation (commits e0334f5, 3d91698)
-- `JournalTaskClaim` Prisma model — атомарная race-resolution через unique constraint.
+### Foundation
+- `JournalTaskClaim` Prisma model — атомарная race-resolution.
 - `src/lib/journal-task-claims.ts` — claim/release/complete/getActive helpers.
-- `src/lib/journal-task-pool.ts` — `generatePoolForDay(orgId, code, date)` per-journal scope generator.
-- `src/lib/journal-completion-validators.ts` — per-journal валидация + side-effects (CAPA / Telegram).
-- API:
-  - `POST /api/journal-task-claims` — claim.
-  - `POST /api/journal-task-claims/[id]` — release / complete (с form-payload validator).
-  - `DELETE /api/journal-task-claims/[id]` — release alias.
-  - `GET /api/journal-task-claims/my` — мой active.
-  - `GET /api/journal-task-claims?journalCode&date` — claims за день.
-  - `GET /api/journal-task-pool/[code]?date` — pool + claims одним вызовом.
-  - `GET /api/mini/today` — все pool-задачи всех журналов в одном.
-  - `GET /api/dashboard/live-claims` — кто что делает сейчас.
-  - `GET /api/dashboard/med-books-expiry` — медкнижки.
-  - `GET /api/dashboard/staff-training-overdue` — обучение.
-- Cron `/api/cron/journal-claim-expire` — auto-expire >4h.
-- Side-effects: создание CAPA + Telegram alert на out-of-range.
-- Универсальный mini-app `/mini/today` aggregated view.
-- Универсальная mini-app `/mini/claim/[id]` quick-form страница для completion после claim'а.
-- Dashboard live-claims widget с 15-сек polling.
-- Med-books expiry + Staff training overdue widgets на дашборде.
+- `src/lib/journal-task-pool.ts` — pool generator для всех 30+ журналов.
+- `src/lib/journal-completion-validators.ts` — валидаторы + auto-CAPA + Telegram.
+- `src/lib/tasksflow-claim-mirror.ts` — bi-directional WeSetup ↔ TF.
 
-### Per-journal complete (через foundation):
+### API
+- `POST /api/journal-task-claims` — claim (с TF outbound mirror).
+- `POST /api/journal-task-claims/[id]` — release/complete (валидаторы + CAPA + TF mirror).
+- `DELETE /api/journal-task-claims/[id]` — release alias.
+- `GET /api/journal-task-claims/my` — мой active.
+- `GET /api/journal-task-claims?journalCode&date` — claims за день.
+- `GET /api/journal-task-pool/[code]?date` — pool + claims one-shot.
+- `GET /api/mini/today` — все pool-задачи всех 30+ журналов.
+- `GET /api/dashboard/live-claims` — кто что делает.
+- `GET /api/dashboard/med-books-expiry` — медкнижки.
+- `GET /api/dashboard/staff-training-overdue` — гигиеническое обучение.
+- `POST /api/integrations/tasksflow/complete` — расширен: inbound TF → JournalTaskClaim sync.
 
-#### `cleaning` (commit 0e9f3c6 baseline + foundation extension)
-- TasksFlow-mediated race-claim рабочий через cleaningAdapter (existing).
-- Foundation pool-generator поддерживает rooms-mode (selectedRoomIds → scope per room).
-- `applyRoomsModeCompletion` race-resolution в TF inbound — рабочий.
-- ✅ DONE.
+### Mini App
+- `/mini/today` — единый список задач сотрудника.
+- `/mini/claim/[id]` — universal quick form (форма по journalCode для всех 30+).
+- `/mini/journals/[code]` — JournalTaskPool наверху для всех pool-кодов.
+- `/mini` главная — кнопка «Сегодня — все задачи» (lime CTA).
 
-#### `hygiene` / `health_check` (commit 3d91698, ed42b6b)
-- scopeKey: `hygiene-shift:<documentId>:<YYYY-MM-DD>` — один scope «осмотр смены».
-- Validator: temp > 37°C сотрудника → Telegram alert «не допущен».
-- Mini-app form: allHealthy + notes (упрощённая — детальная остаётся в матрице).
-- ✅ DONE.
+### Dashboard
+- LiveClaimsCard — кто что делает (15-сек polling).
+- MedBooksExpiryCard — статус медкнижек.
+- StaffTrainingCard — статус обучения.
 
-#### `cold_equipment_control` (commit 3d91698, ed42b6b, 828636b)
-- scopeKey: `fridge:<equipmentId>:<shift>:<YYYY-MM-DD>`, shift=morning|evening.
-- Validator: temp вне Equipment.tempMin..tempMax (default -30..12) → требует corrective; auto-CAPA high + Telegram.
-- Form: temperature + correctiveAction.
-- ✅ DONE.
+### TasksFlow Bi-directional Mirror
+- **Outbound** (WeSetup → TF): при claim → updateTask(workerId=tfUserId);
+  при complete → completeTask(); при release → noop. Linked via
+  TasksFlowTaskLink rowKey=scopeKey.
+- **Inbound** (TF → WeSetup): existing /api/integrations/tasksflow/complete
+  handler теперь вызывает syncTasksFlowCompletionToClaim — обновляет
+  JournalTaskClaim status=completed когда сотрудник нажимает «Готово»
+  в TF Telegram.
+- Graceful degrade: если integration отключён / TF user-link отсутствует
+  / TF task-link отсутствует — claim/complete всё равно проходит в
+  WeSetup, TF errors логируются.
 
-#### `climate_control` (commit 3d91698, ed42b6b, 828636b)
-- scopeKey: `area:<areaId>:<shift>:<YYYY-MM-DD>`.
-- Validator: temp вне +5..+32°C, humidity вне 30-75% — warning.
-- Form: temperature + humidity.
-- ✅ DONE.
+### Validators (auto-CAPA + Telegram)
+- `cold_equipment_control`: temp вне range → требует corrective →
+  CAPA high + Telegram alert.
+- `hygiene/health_check`: temp > 37°C сотрудника → Telegram alert.
+- `fryer_oil`: polar > 25% без replaced=true → блок.
+- `incoming_control`: rejection без причины → блок.
+- `finished_product`: tasteOk=false → CAPA high.
+- `climate_control`: temp/humidity out → warning.
 
-#### `incoming_control` (commit 3d91698, ed42b6b, 828636b)
-- scopeKey: `incoming:<orgId>:<YYYY-MM-DD>` (один pool на день).
-- Validator: rejection без причины → блок completion.
-- Form: supplier/productName/expirationDate/temp/qty/accepted/rejectionReason.
-- allowNoEvents: YES.
-- ✅ DONE.
+### All 30+ journal codes покрыты pool generator + JOURNAL_FORMS:
+hygiene, health_check, cold_equipment_control, climate_control, cleaning,
+incoming_control, finished_product, disinfectant_usage, fryer_oil,
+accident_journal, complaint_register, breakdown_history, ppe_issuance,
+glass_items_list, glass_control, metal_impurity, perishable_rejection,
+product_writeoff, traceability_test, general_cleaning,
+sanitation_day_control, sanitary_day_control, pest_control,
+intensive_cooling, uv_lamp_runtime, equipment_maintenance,
+equipment_calibration, equipment_cleaning, audit_plan, audit_protocol,
+audit_report, training_plan.
 
-#### `finished_product` (commit 3d91698, ed42b6b, 828636b)
-- scopeKey: `meal:<breakfast|lunch|dinner>:<YYYY-MM-DD>`.
-- Validator: tasteOk=false → CAPA high.
-- Form: dish/appearance/taste/temp/correctiveAction.
-- ✅ DONE.
+`med_books`, `staff_training` — НЕ pool, реализованы как dashboard
+widgets (expiry / overdue trackers).
 
-#### `disinfectant_usage` (commit 3d91698, 828636b)
-- scopeKey: `disinf:<orgId>:<YYYY-MM-DD>`.
-- Form: name/concentration/volume/purpose.
-- ✅ DONE.
+## Production verification (2026-04-29)
+- Build SHA `3a8a3838` deployed; later commits в очереди GH Actions.
+- `/mini/today` → 200.
+- `/api/journal-task-claims/my` → 401 (auth required, endpoint alive).
+- `/api/journal-task-pool/cleaning?date=...` → 401.
+- `/api/integrations/tasksflow/complete` → 401 (валидное поведение
+  для отсутствующего bearer).
+- `pm2 status` — haccp-online online, no crashloop.
 
-#### `fryer_oil` (commit 3d91698, ed42b6b, 828636b)
-- scopeKey: `fryer:<equipmentId>:<YYYY-MM-DD>` (per fryer) или `fryer:default:<date>` если fryers нет в каталоге.
-- Validator: polar > 25% без replaced=true → блок; на replaced=true → CAPA medium.
-- Form: temperatureC/polar/colorAcceptable/replaced.
-- ✅ DONE.
+## Demo scenario ready
 
-#### `med_books` (commit 25bcb24)
-- НЕ pool-журнал. Реализован дашборд-виджет.
-- Источник: `StaffCompetency` со skill='med_book'.
-- 5 статусов: expired / warning (<30 дн) / missing / no_expiry / ok.
-- Click → /competencies?user=<id>.
-- ✅ DONE.
+1. Менеджер на `/dashboard`:
+   - Live claims widget — видит активность.
+   - Anomalies widget — подозрительные записи.
+   - Compliance ring + close-day + catch-up.
+   - Med-books / Staff-training expiry trackers.
 
-#### `staff_training` (commit 973c178)
-- НЕ pool-журнал в WeSetup-side mini-app — это event-driven.
-- Реализован дашборд-виджет «Гигиеническое обучение».
-- Источник: `JournalDocumentEntry` журнала staff_training за последний год.
-- Per-user статус: overdue (>365 дн) / warning (<30 дн до 365) / missing / ok.
-- ✅ DONE.
+2. Сотрудник в Telegram Mini App:
+   - Открывает `/mini/today` → все доступные задачи сегодня.
+   - «Взять» → claim (атомарный, race-safe).
+   - Перебрасывает на `/mini/claim/[id]` → быстрая форма.
+   - «Завершить» → валидация → опц. CAPA + Telegram → completed.
+   - Mirror в TasksFlow: TF Telegram бот тоже отображает claim
+     когда linked task существует (сценарий cleaning rooms-mode).
 
-#### `accident_journal` / `complaint_register` (commit 3d91698, 828636b)
-- scopeKey: `<code>:<orgId>:<YYYY-MM-DD>` (один pool на день).
-- Form: description/severity/actionTaken (для accident); complaintText/source/actionTaken (для complaint).
-- ✅ DONE (бонус, поверх 10).
-
-## In progress
-- (пусто)
-
-## Next (если будет ещё работа)
-1. Cleaning native mini-app форма (сейчас через TF Telegram).
-2. Anomaly detection расширения per-journal.
-3. PDF export для inspector mode за период.
-4. Mini home link на `/today` в навигации.
-5. Equipment.tempMin/tempMax UI редактор.
+3. One-active-task rule:
+   - Пока active — все «Взять» disabled с tooltip.
 
 ## Blockers
 - (none)
 
-## Notes / edge cases
-- `applyRoomsModeCompletion` race-resolution в cleaning — based on `JournalDocumentEntry` upsert. Foundation `JournalTaskClaim` — отдельный механизм для PRE-completion claim (новый flow). Оба сосуществуют.
-- shadcn dark theme через `@custom-variant dark` теперь работает с `[data-app-theme="dark"]` — все новые виджеты совместимы.
-- Если у org нет equipment c tempMin/tempMax — validator берёт default -30..12°C для холодильников.
-- `allowNoEvents` defaults уже выставлены в JournalTemplate.allowNoEvents (default=true) — приёмка/бракераж/жир ОК; гигиена/холодильники/климат должны быть NO (требуется ручной toggle в /settings/journals/<code>/scope).
+## Notes
+- Cleaning native mini-app race-claim flow работает через pool
+  generator (`room:<id>:<date>` scopeKey). Existing TF cleaningAdapter
+  (`room::<id>::cleaner::<id>` rowKey) — параллельный поток для TF
+  Telegram только. Если есть линк через rowKey совпадение — mirror
+  срабатывает; иначе pure WeSetup-flow.
+- Все pool-журналы graceful: если active document отсутствует, scopes=[].
 
 ## Changelog
-- 2026-04-28 — создан PROMPT.md и STATE.md.
-- 2026-04-28 (e0334f5) — JournalTaskClaim foundation: model + helpers + API + cron.
-- 2026-04-28 (3d91698) — pool generator + UI primitives для всех 10 журналов.
-- 2026-04-28 (2862f82) — dashboard live-claims widget.
-- 2026-04-28 (3a6390f) — mini-app `/today` aggregated view.
-- 2026-04-28 (ed42b6b) — per-journal completion validators + auto-CAPA + Telegram.
-- 2026-04-28 (828636b) — `/mini/claim/[id]` универсальная быстрая форма.
-- 2026-04-28 (25bcb24) — med-books expiry widget.
-- 2026-04-28 (973c178) — staff-training overdue widget.
+- 2026-04-28 (e0334f5) JournalTaskClaim foundation.
+- 2026-04-28 (3d91698) Pool generator + Mini App pool UI.
+- 2026-04-28 (2862f82) Live claims dashboard widget.
+- 2026-04-28 (3a6390f) /mini/today aggregated view.
+- 2026-04-28 (ed42b6b) Per-journal validators + auto-CAPA + Telegram.
+- 2026-04-28 (828636b) /mini/claim/[id] universal quick form.
+- 2026-04-28 (25bcb24) Med-books expiry widget.
+- 2026-04-28 (973c178) Staff-training overdue widget.
+- 2026-04-28 (369b25a) STATE: top-10 closed.
+- 2026-04-29 (3a8a383) TasksFlow bi-directional mirror.
+- 2026-04-29 (f04e4b0) Pool + forms для 17 дополнительных журналов.
+- 2026-04-29 (a721ff5) Mini-home «Сегодня» CTA button.
 
-✅ ВСЕ 10 ПРИОРИТЕТНЫХ ЖУРНАЛОВ ЗАКРЫТЫ.
+✅ ВСЕ ЖУРНАЛЫ CATALOG'А ЗАКРЫТЫ + TASKSFLOU MIRROR + DASHBOARD WIDGETS.
