@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { getFillMode } from "@/lib/journal-routing";
+import { isMergedJournalCode } from "@/lib/journal-catalog";
 import { JournalsSettingsClient } from "./journals-settings-client";
 
 export const dynamic = "force-dynamic";
@@ -63,19 +64,26 @@ export default async function JournalsSettingsPage() {
     accessByTemplate.set(row.templateId, list);
   }
 
-  const items = templates.map((t) => ({
-    id: t.id,
-    code: t.code,
-    name: t.name,
-    description: t.description,
-    isMandatorySanpin: t.isMandatorySanpin,
-    isMandatoryHaccp: t.isMandatoryHaccp,
-    enabled: !disabled.has(t.code),
-    fillMode: getFillMode(t),
-    defaultAssigneeId: t.defaultAssigneeId,
-    allowedPositionIds: accessByTemplate.get(t.id) ?? [],
-    bonusAmountKopecks: t.bonusAmountKopecks,
-  }));
+  // Те же merged-журналы что и на /journals — исключаем из списка
+  // настроек, чтобы счётчики совпадали (33/33, а не 35/35). На
+  // практике health_check заполняется через hygiene, а
+  // incoming_raw_materials_control — через incoming_control; видеть
+  // их отдельно здесь только запутывает админа.
+  const items = templates
+    .filter((t) => !isMergedJournalCode(t.code))
+    .map((t) => ({
+      id: t.id,
+      code: t.code,
+      name: t.name,
+      description: t.description,
+      isMandatorySanpin: t.isMandatorySanpin,
+      isMandatoryHaccp: t.isMandatoryHaccp,
+      enabled: !disabled.has(t.code),
+      fillMode: getFillMode(t),
+      defaultAssigneeId: t.defaultAssigneeId,
+      allowedPositionIds: accessByTemplate.get(t.id) ?? [],
+      bonusAmountKopecks: t.bonusAmountKopecks,
+    }));
 
   return (
     <JournalsSettingsClient

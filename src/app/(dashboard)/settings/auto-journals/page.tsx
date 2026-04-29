@@ -4,6 +4,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { isMergedJournalCode } from "@/lib/journal-catalog";
 import { AutoJournalsClient } from "./auto-journals-client";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export default async function AutoJournalsPage() {
   const activeTemplateIds = new Set(activeDocs.map((d) => d.templateId));
 
   const items = templates
-    .filter((t) => !disabledSet.has(t.code))
+    .filter((t) => !disabledSet.has(t.code) && !isMergedJournalCode(t.code))
     .map((t) => ({
       id: t.id,
       code: t.code,

@@ -7,6 +7,7 @@ import {
   resolveJournalPeriodKind,
   type JournalPeriodKind,
 } from "@/lib/journal-period";
+import { isMergedJournalCode } from "@/lib/journal-catalog";
 import { JournalPeriodsClient } from "./journal-periods-client";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,9 @@ export default async function JournalPeriodsPage() {
   const overrides = parseJournalPeriodsJson(org?.journalPeriods ?? null);
 
   // Дефолтный kind, если override не задан — для подсказки в UI.
-  const initial = templates.map((t) => {
+  const initial = templates
+    .filter((t) => !isMergedJournalCode(t.code))
+    .map((t) => {
     const o = overrides[t.code];
     const defaultKind: JournalPeriodKind = resolveJournalPeriodKind(t.code);
     return {

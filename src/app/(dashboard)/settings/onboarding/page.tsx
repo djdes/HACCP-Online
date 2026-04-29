@@ -29,6 +29,7 @@ import {
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
+import { MERGED_JOURNAL_CODES } from "@/lib/journal-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -111,15 +112,29 @@ export default async function OnboardingPage() {
       where: { organizationId, revokedAt: null },
     }),
     db.journalTemplate.count({
-      where: { isActive: true, bonusAmountKopecks: { gt: 0 } },
+      where: {
+        isActive: true,
+        bonusAmountKopecks: { gt: 0 },
+        code: { notIn: Object.keys(MERGED_JOURNAL_CODES) },
+      },
     }),
-    db.journalTemplate.count({ where: { isActive: true } }),
+    db.journalTemplate.count({
+      where: {
+        isActive: true,
+        code: { notIn: Object.keys(MERGED_JOURNAL_CODES) },
+      },
+    }),
     // Сколько шаблонов уже имеет хотя бы одну ответственную должность
     // (per-position access rows). Используем для метрики «Ответственные
-    // за журналы» — показывает «12/35 настроено».
+    // за журналы» — показывает «12/33 настроено». merged-журналы
+    // (health_check, incoming_raw_materials_control) выкидываем — они
+    // не показываются в UI как отдельные.
     db.journalTemplate
       .findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          code: { notIn: Object.keys(MERGED_JOURNAL_CODES) },
+        },
         select: {
           id: true,
           _count: {

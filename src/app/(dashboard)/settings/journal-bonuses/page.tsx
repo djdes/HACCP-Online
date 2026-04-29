@@ -4,7 +4,10 @@ import { ArrowLeft, Coins } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
-import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import {
+  ACTIVE_JOURNAL_CATALOG,
+  isMergedJournalCode,
+} from "@/lib/journal-catalog";
 import { JournalBonusesEditor } from "@/components/settings/journal-bonuses-editor";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +44,9 @@ export default async function JournalBonusesPage() {
     templates.map((t) => [t.code, t.bonusAmountKopecks])
   );
 
-  const items = ACTIVE_JOURNAL_CATALOG.map((j) => ({
+  const items = ACTIVE_JOURNAL_CATALOG.filter(
+    (j) => !isMergedJournalCode(j.code)
+  ).map((j) => ({
     code: j.code,
     name: j.name,
     bonusKopecks: bonusByCode.get(j.code) ?? 0,
