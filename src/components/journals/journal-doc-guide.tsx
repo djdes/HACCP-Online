@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
@@ -95,9 +96,16 @@ function GuideSheet({
   guide: JournalDocGuide;
   onClose: () => void;
 }) {
-  return (
+  // Portal в document.body — чтобы sheet оказался ВНЕ .app-shell. Иначе
+  // dark-mode CSS-правила в app-theme.css переопределяют bg-white →
+  // var(--app-surface) внутри sheet'а и весь модал съезжает в dark-mode
+  // независимо от того что мы хотим. У гайда фиксированная light-палитра
+  // (тёмный hero + светлый body) — это часть design-system.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex"
+      className="fixed inset-0 z-[60] flex"
+      data-app-theme="light"
       role="dialog"
       aria-modal="true"
       aria-label="Инструкция по заполнению"
@@ -323,7 +331,8 @@ function GuideSheet({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
