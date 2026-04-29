@@ -475,6 +475,7 @@ export async function POST(request: Request) {
           dateFrom: period.dateFrom,
           dateTo: period.dateTo,
           status: "active",
+          autoFill: false,
           config: prefill.config as never,
           responsibleUserId: prefill.responsibleUserId,
         },

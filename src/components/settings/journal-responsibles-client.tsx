@@ -11,6 +11,7 @@ import {
   Save,
   Search,
   Sparkles,
+  Trash2,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -133,6 +134,7 @@ export function JournalResponsiblesClient({
   );
   const [resyncing, setResyncing] = useState(false);
   const [recreating, setRecreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
@@ -567,6 +569,48 @@ export function JournalResponsiblesClient({
     }
   }
 
+  async function deleteAllDocuments() {
+    if (deleting) return;
+    const phrase = window.prompt(
+      "ВНИМАНИЕ: эта операция удалит ВСЕ документы журналов организации " +
+        "вместе с заполненными записями. Восстановить нельзя.\n\n" +
+        "Чтобы продолжить, введите слово «УДАЛИТЬ» (заглавными):"
+    );
+    if (phrase !== "УДАЛИТЬ") {
+      if (phrase !== null) {
+        toast.error("Подтверждение не совпало — отменено");
+      }
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        "/api/settings/journals/delete-all-documents",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirmation: "УДАЛИТЬ" }),
+        }
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error ?? "Ошибка удаления");
+        return;
+      }
+      toast.success(
+        `Удалено документов: ${data?.deletedDocuments ?? 0}` +
+          (data?.deletedEntries
+            ? `, записей: ${data.deletedEntries}`
+            : "")
+      );
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function recreateDocuments() {
     if (recreating) return;
     if (
@@ -646,7 +690,7 @@ export function JournalResponsiblesClient({
         <button
           type="button"
           onClick={recreateDocuments}
-          disabled={recreating || resyncing}
+          disabled={recreating || resyncing || deleting}
           title="Закрыть все активные документы и создать свежие со строками по умолчанию и текущими ответственными. Старые записи сохранятся в закрытых документах."
           className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#ffd2cd] bg-white px-4 text-[13px] font-medium text-[#a13a32] hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -656,6 +700,21 @@ export function JournalResponsiblesClient({
             <Wand2 className="size-4" />
           )}
           Пересоздать документы
+        </button>
+
+        <button
+          type="button"
+          onClick={deleteAllDocuments}
+          disabled={deleting || recreating || resyncing}
+          title="Опасно: удалит ВСЕ документы журналов вместе с заполненными записями. Используется только для полного сброса."
+          className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#a13a32] px-4 text-[13px] font-medium text-white hover:bg-[#8b3128] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {deleting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Trash2 className="size-4" />
+          )}
+          Удалить все документы
         </button>
 
         <div className="relative ml-auto flex items-center">
