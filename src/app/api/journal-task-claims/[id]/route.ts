@@ -95,31 +95,43 @@ export async function POST(
 
   // На complete — если передан form-payload, валидируем и запускаем
   // side-effects (CAPA / Telegram) перед фиксацией claim'а.
+  //
+  // ВАЖНО: проверку ownership делаем ДО validateCompletion. Иначе
+  // юзер A мог бы триггерить side-effects (CAPA, Telegram alert) на
+  // claim'е юзера B — и завершение не происходит, но CAPA уже
+  // создан, заведующая получает ложный alert.
   let validationWarnings: { message: string }[] = [];
   if (body.action === "complete" && body.data) {
     const claim = await db.journalTaskClaim.findUnique({
       where: { id },
       include: { user: { select: { name: true } } },
     });
-    if (claim) {
-      const validation = await validateCompletion({
-        organizationId: claim.organizationId,
-        journalCode: claim.journalCode,
-        scopeKey: claim.scopeKey,
-        scopeLabel: claim.scopeLabel,
-        userId: claim.userId,
-        userName: claim.user.name,
-        data: body.data,
-      });
-      if (!validation.ok) {
-        return NextResponse.json(
-          { ok: false, reason: "validation_failed", errors: validation.errors },
-          { status: 400 }
-        );
-      }
-      validationWarnings = validation.warnings;
-      await runSideEffects(claim.organizationId, validation.sideEffects);
+    if (!claim) {
+      return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
     }
+    if (claim.userId !== userId) {
+      return NextResponse.json({ ok: false, reason: "not_owner" }, { status: 403 });
+    }
+    if (claim.status !== "active") {
+      return NextResponse.json({ ok: false, reason: "not_active" }, { status: 409 });
+    }
+    const validation = await validateCompletion({
+      organizationId: claim.organizationId,
+      journalCode: claim.journalCode,
+      scopeKey: claim.scopeKey,
+      scopeLabel: claim.scopeLabel,
+      userId: claim.userId,
+      userName: claim.user.name,
+      data: body.data,
+    });
+    if (!validation.ok) {
+      return NextResponse.json(
+        { ok: false, reason: "validation_failed", errors: validation.errors },
+        { status: 400 }
+      );
+    }
+    validationWarnings = validation.warnings;
+    await runSideEffects(claim.organizationId, validation.sideEffects);
   }
 
   const fn =
