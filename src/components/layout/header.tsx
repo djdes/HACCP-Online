@@ -307,6 +307,19 @@ export function Header({
           {isHeadChef ? (
             <>
               <Link
+                href="/team"
+                title="Моя команда"
+                className={cn(
+                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                  pathname === "/team"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Users className="size-4 shrink-0" />
+                <span className="truncate">Команда</span>
+              </Link>
+              <Link
                 href="/verifications"
                 title="Проверка задач"
                 className={cn(
@@ -318,19 +331,6 @@ export function Header({
               >
                 <ClipboardList className="size-4 shrink-0" />
                 <span className="truncate">Проверка</span>
-              </Link>
-              <Link
-                href="/settings/users"
-                title="Сотрудники"
-                className={cn(
-                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
-                  pathname === "/settings/users"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <Users className="size-4 shrink-0" />
-                <span className="truncate">Сотрудники</span>
               </Link>
             </>
           ) : null}

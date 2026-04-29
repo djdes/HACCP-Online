@@ -108,10 +108,10 @@ function getEntryData(data: unknown): EntryData {
 export default async function DashboardPage() {
   const session = await requireAuth();
   // Заведующая (head_chef) и не-admin'ы не должны видеть «журналы» —
-  // редирект на verification page или на mini-app.
+  // редирект на team-page или mini-app.
   if (!hasCapability(session.user, "journals.view")) {
     if (hasCapability(session.user, "tasks.verify")) {
-      redirect("/verifications");
+      redirect("/team");
     }
     redirect("/mini/today");
   }

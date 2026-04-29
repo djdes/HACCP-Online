@@ -3,6 +3,7 @@ import {
   tasksflowClientFor,
   TasksFlowError,
 } from "@/lib/tasksflow-client";
+import { effectivePreset } from "@/lib/permission-presets";
 
 /**
  * Bi-directional bridge между WeSetup `JournalTaskClaim` и TasksFlow.
@@ -43,6 +44,25 @@ export async function mirrorClaimToTasksFlow(args: {
   userId: string;
   event: ClaimMirrorEvent;
 }): Promise<{ tasksFlowTaskId?: number; mirrored: boolean; reason?: string }> {
+  // 0. Проверка preset'а пользователя — admin и head_chef не должны
+  // зеркалить свои claims в TasksFlow. TF отображает задачи назначенному
+  // worker'у, и если admin делает claim в WeSetup → у заведующей в TF
+  // вылезает чужая задача. Mirror только для линейного персонала.
+  const user = await db.user.findUnique({
+    where: { id: args.userId },
+    select: { permissionPreset: true, role: true, isRoot: true },
+  });
+  if (user) {
+    const preset = effectivePreset({
+      permissionPreset: user.permissionPreset,
+      role: user.role,
+      isRoot: user.isRoot,
+    });
+    if (preset === "admin" || preset === "head_chef") {
+      return { mirrored: false, reason: "preset_skipped" };
+    }
+  }
+
   // 1. Активная TF integration?
   const integration = await db.tasksFlowIntegration.findFirst({
     where: { organizationId: args.organizationId, enabled: true },
