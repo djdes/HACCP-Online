@@ -26,7 +26,14 @@ function LoginForm() {
         body: JSON.stringify(formData),
       });
       if (!res.ok) {
-        setError("Неверный email или пароль");
+        // Раньше ошибка всегда подменялась на «Неверный email или
+        // пароль». При rate-limit'е (429) пользователь продолжал
+        // тыкать и недоумевал. Теперь показываем серверный текст
+        // если есть — там и про rate-limit, и про пустые поля.
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(data?.error || "Неверный email или пароль");
         return;
       }
       router.push("/dashboard");
