@@ -36,7 +36,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const idempotenceKey = `${getActiveOrgId(session)}-${plan}-${Date.now()}`;
+    // Bucket в 5-минутные окна. Раньше: ${Date.now()} делал
+    // КАЖДЫЙ запрос уникальным — если юзер дважды нажал «Оплатить»,
+    // создавалось два независимых платежа в YooKassa (он списывал
+    // дважды, мы возвращали два разных confirmation URL'а). Теперь
+    // двойной клик в окне 5 мин → тот же idempotence key → YooKassa
+    // возвращает тот же payment.
+    const fiveMinBucket = Math.floor(Date.now() / (5 * 60 * 1000));
+    const idempotenceKey = `${getActiveOrgId(session)}-${plan}-${fiveMinBucket}`;
 
     // YooKassa requires a 15s-or-less response; abort if it takes longer.
     const controller = new AbortController();
