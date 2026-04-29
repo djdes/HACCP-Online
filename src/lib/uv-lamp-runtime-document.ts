@@ -129,7 +129,15 @@ export function buildDailyRange(from: string, to: string) {
 }
 
 export function getUvResponsibleOptions(users: { id: string; name: string; role: string }[]) {
-  const managementRoles = new Set(["owner", "technologist"]);
+  // Канонические + legacy management. Раньше: только owner+technologist
+  // — manager/head_chef в новых орг'ах попадали в staff, и UI выбора
+  // ответственного за УФ-лампы для них не работал.
+  const managementRoles = new Set([
+    "manager",
+    "head_chef",
+    "owner",
+    "technologist",
+  ]);
   const management = users.filter((user) => managementRoles.has(user.role));
   const staff = users.filter((user) => !managementRoles.has(user.role));
   return { management, staff };
@@ -149,7 +157,11 @@ export function getUvResponsibleTitleOptions(
   for (const user of users) {
     if (user.role === "owner") management.add("Руководитель");
     else if (user.role === "technologist" || user.role === "manager") management.add("Управляющий");
-    else if (user.role === "head_chef") staff.add("Шеф-повар");
+    // head_chef — это "Шеф-повар" по сути management (заведующий
+    // производством), не staff. Раньше попадал в staff из-за чего
+    // в выборке должности ответственного его не было видно как
+    // management option.
+    else if (user.role === "head_chef") management.add("Шеф-повар");
     else if (user.role === "cook") staff.add("Повар");
     else if (user.role === "waiter") staff.add("Официант");
   }

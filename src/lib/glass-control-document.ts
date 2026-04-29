@@ -91,7 +91,15 @@ export function normalizeGlassControlEntryData(
 export function getGlassControlResponsibleOptions(
   users: Array<{ id: string; name: string; role: string }>
 ) {
-  const managementRoles = new Set(["owner", "technologist"]);
+  // Канонические management-роли + legacy. Раньше: только legacy
+  // owner+technologist → у новых орг-ов в UI секция «Управление»
+  // была пустой, все попадали в «Сотрудники».
+  const managementRoles = new Set([
+    "manager",
+    "head_chef",
+    "owner",
+    "technologist",
+  ]);
   const management = users.filter((user) => managementRoles.has(user.role));
   const staff = users.filter((user) => !managementRoles.has(user.role));
 
