@@ -6,6 +6,12 @@ import {
   completeJournalTask,
   releaseJournalTask,
 } from "@/lib/journal-task-claims";
+import { db } from "@/lib/db";
+import {
+  validateCompletion,
+  type SideEffect,
+} from "@/lib/journal-completion-validators";
+import { notifyOrganization } from "@/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +29,10 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   action: z.enum(["release", "complete"]),
   entryId: z.string().optional(),
+  /** Form-payload для validator. Если задан — будет провалидирован
+   *  через journal-completion-validators до записи complete.
+   *  Side-effects (CAPA, Telegram) запускаются после успешной валидации. */
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(
@@ -41,6 +51,35 @@ export async function POST(
     body = bodySchema.parse(await request.json());
   } catch {
     return NextResponse.json({ error: "Невалидный запрос" }, { status: 400 });
+  }
+
+  // На complete — если передан form-payload, валидируем и запускаем
+  // side-effects (CAPA / Telegram) перед фиксацией claim'а.
+  let validationWarnings: { message: string }[] = [];
+  if (body.action === "complete" && body.data) {
+    const claim = await db.journalTaskClaim.findUnique({
+      where: { id },
+      include: { user: { select: { name: true } } },
+    });
+    if (claim) {
+      const validation = await validateCompletion({
+        organizationId: claim.organizationId,
+        journalCode: claim.journalCode,
+        scopeKey: claim.scopeKey,
+        scopeLabel: claim.scopeLabel,
+        userId: claim.userId,
+        userName: claim.user.name,
+        data: body.data,
+      });
+      if (!validation.ok) {
+        return NextResponse.json(
+          { ok: false, reason: "validation_failed", errors: validation.errors },
+          { status: 400 }
+        );
+      }
+      validationWarnings = validation.warnings;
+      await runSideEffects(claim.organizationId, validation.sideEffects);
+    }
   }
 
   const fn =
@@ -65,7 +104,38 @@ export async function POST(
       { status: map[result.reason ?? ""] ?? 500 }
     );
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, warnings: validationWarnings });
+}
+
+async function runSideEffects(organizationId: string, effects: SideEffect[]) {
+  for (const e of effects) {
+    if (e.kind === "create_capa") {
+      try {
+        await db.capaTicket.create({
+          data: {
+            organizationId,
+            title: e.title,
+            description: e.data ? JSON.stringify(e.data, null, 2) : null,
+            priority: e.severity === "high" ? "high" : e.severity === "low" ? "low" : "medium",
+            category: "journal-anomaly",
+            sourceType: "journal-claim",
+          },
+        });
+      } catch (err) {
+        console.error("[journal-claim] create_capa failed", err);
+      }
+    } else if (e.kind === "telegram_alert") {
+      try {
+        await notifyOrganization(
+          organizationId,
+          e.message,
+          e.recipients === "owners" ? ["owner", "manager"] : ["manager", "head_chef"]
+        );
+      } catch (err) {
+        console.error("[journal-claim] telegram_alert failed", err);
+      }
+    }
+  }
 }
 
 export async function DELETE(
