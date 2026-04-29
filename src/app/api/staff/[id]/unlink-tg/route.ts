@@ -7,7 +7,7 @@ import {
   StaffTelegramManagementError,
   unlinkStaffTelegram,
 } from "@/lib/staff-telegram-management";
-import { isManagerRole } from "@/lib/user-roles";
+import { isManagementRole } from "@/lib/user-roles";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,10 @@ export async function POST(
   if (!session) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
-  if (!isManagerRole(session.user.role) && !session.user.isRoot) {
+  // Согласовано с /api/staff/[id]/invite-tg (ab1d96dd): head_chef
+  // тоже управляет TG-привязками своих сотрудников. Раньше: только
+  // manager → head_chef мог пригласить через TG, но не отвязать.
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 

@@ -12,7 +12,7 @@ import {
   hashBotInviteToken,
 } from "@/lib/bot-invite-tokens";
 import {
-  isManagerRole,
+  isManagementRole,
   toCanonicalUserRole,
   USER_ROLE_VALUES,
 } from "@/lib/user-roles";
@@ -47,7 +47,10 @@ export async function POST(request: Request) {
     if (!session) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
-    if (!isManagerRole(session.user.role) && !session.user.isRoot) {
+    // Согласовано с /api/users/invite (a9347914): head_chef нанимает
+    // поваров напрямую и должен мочь рассылать TG-QR. Раньше: только
+    // manager.
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -113,7 +116,10 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Некорректные данные", details: error.issues },
+        {
+          error: error.issues[0]?.message ?? "Некорректные данные",
+          details: error.issues,
+        },
         { status: 400 }
       );
     }
