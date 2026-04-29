@@ -28,12 +28,14 @@ export const dynamic = "force-dynamic";
  */
 
 const bodySchema = z.object({
-  action: z.enum(["release", "complete"]),
+  action: z.enum(["release", "complete", "skip"]),
   entryId: z.string().optional(),
   /** Form-payload для validator. Если задан — будет провалидирован
    *  через journal-completion-validators до записи complete.
    *  Side-effects (CAPA, Telegram) запускаются после успешной валидации. */
   data: z.record(z.string(), z.unknown()).optional(),
+  /** Для action=skip — причина почему сегодня не требуется. */
+  skipReason: z.string().max(300).optional(),
 });
 
 export async function POST(
@@ -52,6 +54,43 @@ export async function POST(
     body = bodySchema.parse(await request.json());
   } catch {
     return NextResponse.json({ error: "Невалидный запрос" }, { status: 400 });
+  }
+
+  // На action=skip — задача отмечается как «сегодня не требуется».
+  // Без валидаторов, без side-effects. Заведующая видит causal reason
+  // в /verifications.
+  if (body.action === "skip") {
+    const claim = await db.journalTaskClaim.findUnique({ where: { id } });
+    if (!claim) {
+      return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
+    }
+    if (claim.userId !== userId) {
+      return NextResponse.json({ ok: false, reason: "not_owner" }, { status: 403 });
+    }
+    if (claim.status !== "active") {
+      return NextResponse.json({ ok: false, reason: "not_active" }, { status: 409 });
+    }
+    await db.journalTaskClaim.update({
+      where: { id },
+      data: {
+        status: "completed",
+        completedAt: new Date(),
+        verificationStatus: "approved", // skip не требует проверки заведующей
+        completionData: {
+          skipped: true,
+          reason: body.skipReason?.trim() || "Сегодня не требуется",
+        } as never,
+      },
+    });
+    // Mirror в TF (если есть) — completeTask, чтобы и там не висело.
+    void mirrorClaimToTasksFlow({
+      organizationId: claim.organizationId,
+      journalCode: claim.journalCode,
+      scopeKey: claim.scopeKey,
+      userId: claim.userId,
+      event: "complete",
+    }).catch(() => null);
+    return NextResponse.json({ ok: true, skipped: true });
   }
 
   // На complete — если передан form-payload, валидируем и запускаем

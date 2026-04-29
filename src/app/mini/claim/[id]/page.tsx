@@ -4,11 +4,12 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Loader2,
+  SkipForward,
   Thermometer,
-  AlertTriangle,
 } from "lucide-react";
 
 type Claim = {
@@ -329,6 +330,8 @@ export default function ClaimPage({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<{ message: string }[]>([]);
+  const [skipMode, setSkipMode] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -366,6 +369,31 @@ export default function ClaimPage({
       setWarnings(j?.warnings ?? []);
       // Через 1 сек возвращаемся на /mini/today
       setTimeout(() => router.push("/mini/today"), 1200);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function skipTask() {
+    if (!claim) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/journal-task-claims/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "skip",
+          skipReason: skipReason.trim() || "Сегодня не требуется",
+        }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.reason || "Ошибка");
+      }
+      setTimeout(() => router.push("/mini/today"), 800);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -448,15 +476,60 @@ export default function ClaimPage({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={submitting}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] disabled:opacity-60"
-      >
-        {submitting ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-        {form?.submitLabel || "Завершить"}
-      </button>
+      {skipMode ? (
+        <div className="space-y-3 rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] p-4">
+          <div className="text-[14px] font-medium text-[#0b1024]">
+            Сегодня не требуется заполнять?
+          </div>
+          <input
+            type="text"
+            value={skipReason}
+            onChange={(e) => setSkipReason(e.target.value)}
+            placeholder="Причина (например: поставщик не приехал)"
+            className="h-11 w-full rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSkipMode(false)}
+              disabled={submitting}
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[#dcdfed] bg-white text-[13px] text-[#3c4053]"
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={skipTask}
+              disabled={submitting}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#a13a32] text-[13px] font-medium text-white disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="size-3.5 animate-spin" /> : <SkipForward className="size-3.5" />}
+              Пропустить
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={submit}
+            disabled={submitting}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] disabled:opacity-60"
+          >
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+            {form?.submitLabel || "Завершить"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSkipMode(true)}
+            disabled={submitting}
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white text-[13px] text-[#6f7282]"
+          >
+            <SkipForward className="size-3.5" />
+            Сегодня не требуется
+          </button>
+        </div>
+      )}
     </div>
   );
 }

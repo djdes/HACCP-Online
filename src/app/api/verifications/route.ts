@@ -107,7 +107,8 @@ export async function GET(request: Request) {
   });
   const disabled = parseDisabledCodes(org?.disabledJournalCodes);
 
-  // 1) Pending review claims.
+  // 1) Pending review claims. Skipped (completionData.skipped=true)
+  // выпадают из верификации — они auto-approved.
   const pendingClaims = await db.journalTaskClaim.findMany({
     where: {
       organizationId,

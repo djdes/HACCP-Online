@@ -132,9 +132,12 @@ async function validateClimate(ctx: ScopeContext): Promise<ValidationResult> {
   const t = numField(ctx.data, ["temperature", "temp"]);
   const h = numField(ctx.data, ["humidity"]);
   const errors: ValidationResult["errors"] = [];
-  if (t === null) errors.push({ field: "temperature", message: "Не указана температура" });
-  if (h === null)
-    errors.push({ field: "humidity", message: "Не указана влажность" });
+  // Минимум — хотя бы одно из двух.
+  if (t === null && h === null) {
+    errors.push({
+      message: "Введите температуру или влажность (хотя бы одно поле)",
+    });
+  }
   const warnings: ValidationResult["warnings"] = [];
   // Нормы для пищевых производств: t = +5..+32°C, h = 30-75%.
   if (t !== null && (t < 5 || t > 32)) {
@@ -176,25 +179,43 @@ async function validateFryerOil(ctx: ScopeContext): Promise<ValidationResult> {
 }
 
 async function validateHygiene(ctx: ScopeContext): Promise<ValidationResult> {
-  // Hygiene scope = «осмотр смены», entries создаются батчем для всех
-  // сотрудников. Валидация — что хотя бы у одного employee есть запись.
+  // Mini App шлёт упрощённую форму: { allHealthy: boolean, notes: string }.
+  // Полная матричная форма (per-employee entries[]) — отдельный flow в
+  // Dashboard, мы её принимаем тоже но не требуем.
+  const allHealthy = boolField(ctx.data, ["allHealthy"]);
+  const notes = stringField(ctx.data, ["notes"]);
   const entries = arrField(ctx.data, ["entries"]);
   const errors: ValidationResult["errors"] = [];
   const sideEffects: SideEffect[] = [];
-  if (entries.length === 0) {
-    errors.push({ message: "Не указано ни одного сотрудника в осмотре" });
-  }
-  for (const e of entries) {
-    if (typeof e === "object" && e !== null) {
-      const obj = e as Record<string, unknown>;
-      if (typeof obj.temperatureC === "number" && obj.temperatureC > 37) {
-        sideEffects.push({
-          kind: "telegram_alert",
-          recipients: "managers",
-          message: `⚠️ Сотрудник ${obj.name ?? ""}: температура ${obj.temperatureC}°C — не допущен к работе`,
-        });
+
+  // Если есть matrix-entries — валидируем их.
+  if (entries.length > 0) {
+    for (const e of entries) {
+      if (typeof e === "object" && e !== null) {
+        const obj = e as Record<string, unknown>;
+        if (typeof obj.temperatureC === "number" && obj.temperatureC > 37) {
+          sideEffects.push({
+            kind: "telegram_alert",
+            recipients: "managers",
+            message: `⚠️ Сотрудник ${obj.name ?? ""}: температура ${obj.temperatureC}°C — не допущен к работе`,
+          });
+        }
       }
     }
+    return { ok: true, errors, warnings: [], sideEffects };
+  }
+
+  // Simplified форма: достаточно allHealthy=true ИЛИ allHealthy=false с notes.
+  if (allHealthy === false && (!notes || notes.trim().length < 3)) {
+    errors.push({
+      field: "notes",
+      message: "Если не все сотрудники допущены — укажите кто и почему",
+    });
+  }
+  if (allHealthy === null && (!notes || notes.trim().length < 3)) {
+    errors.push({
+      message: "Подтвердите чек-боксом «Все допущены» или опишите ситуацию",
+    });
   }
   return { ok: errors.length === 0, errors, warnings: [], sideEffects };
 }
@@ -204,11 +225,15 @@ async function validateIncoming(ctx: ScopeContext): Promise<ValidationResult> {
   const productName = stringField(ctx.data, ["productName"]);
   const accepted = boolField(ctx.data, ["accepted"]);
   const errors: ValidationResult["errors"] = [];
-  if (!supplier) errors.push({ field: "supplier", message: "Поставщик не указан" });
-  if (!productName) errors.push({ field: "productName", message: "Наименование товара не указано" });
+  // Минимум — поставщик ИЛИ продукт. Не оба.
+  if (!supplier && !productName) {
+    errors.push({
+      message: "Укажите хотя бы поставщика или товар",
+    });
+  }
   if (accepted === false) {
     const reason = stringField(ctx.data, ["rejectionReason"]);
-    if (!reason) {
+    if (!reason || reason.trim().length < 3) {
       errors.push({
         field: "rejectionReason",
         message: "Если товар отклонён — укажите причину",
@@ -223,7 +248,9 @@ async function validateFinishedProduct(ctx: ScopeContext): Promise<ValidationRes
   const tasteOk = boolField(ctx.data, ["tasteOk"]);
   const errors: ValidationResult["errors"] = [];
   const sideEffects: SideEffect[] = [];
-  if (!dish) errors.push({ field: "dish", message: "Не указано блюдо" });
+  if (!dish || dish.trim().length < 1) {
+    errors.push({ field: "dish", message: "Не указано блюдо" });
+  }
   if (tasteOk === false) {
     sideEffects.push({
       kind: "create_capa",
