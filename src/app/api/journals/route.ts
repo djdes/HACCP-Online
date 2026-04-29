@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendTemperatureAlertEmail, sendDeviationAlertEmail } from "@/lib/email";
 import { journalEntrySchema } from "@/lib/validators";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -260,7 +261,7 @@ export async function POST(request: Request) {
               .findMany({
                 where: {
                   organizationId: organizationId,
-                  role: { in: ["owner", "technologist"] },
+                  role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
                   isActive: true,
                 },
                 select: { email: true },
@@ -308,7 +309,7 @@ export async function POST(request: Request) {
           .findMany({
             where: {
               organizationId: organizationId,
-              role: { in: ["owner", "technologist"] },
+              role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
               isActive: true,
             },
             select: { email: true },
