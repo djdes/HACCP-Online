@@ -88,6 +88,12 @@ export default function MiniHomePage() {
   const searchParams = useSearchParams();
   const [localState, setLocalState] = useState<LocalState>({ kind: "init" });
   const [home, setHome] = useState<HomeData | null>(null);
+  const [shiftGate, setShiftGate] = useState<{
+    gateRequired: boolean;
+    shiftStarted: boolean;
+    today: string;
+  } | null>(null);
+  const [startingShift, setStartingShift] = useState(false);
   const signInStarted = useRef(false);
   const fetchStarted = useRef(false);
   const redirectStarted = useRef(false);
@@ -144,14 +150,25 @@ export default function MiniHomePage() {
   // обработки ошибок и без копирования URL.
   const fetchHome = useCallback(async () => {
     try {
-      const resp = await fetch("/api/mini/home", { cache: "no-store" });
-      if (!resp.ok) {
-        const body = (await resp.json().catch(() => ({ error: "" }))) as {
+      const [shiftResp, homeResp] = await Promise.all([
+        fetch("/api/mini/start-shift", { cache: "no-store" }),
+        fetch("/api/mini/home", { cache: "no-store" }),
+      ]);
+      if (shiftResp.ok) {
+        const shift = (await shiftResp.json()) as {
+          gateRequired: boolean;
+          shiftStarted: boolean;
+          today: string;
+        };
+        setShiftGate(shift);
+      }
+      if (!homeResp.ok) {
+        const body = (await homeResp.json().catch(() => ({ error: "" }))) as {
           error?: string;
         };
-        throw new Error(body.error || `HTTP ${resp.status}`);
+        throw new Error(body.error || `HTTP ${homeResp.status}`);
       }
-      const data = (await resp.json()) as HomeData;
+      const data = (await homeResp.json()) as HomeData;
       setHome(data);
       // На успешном refetch сбрасываем error-state — пользователь
       // вытянул вниз, мы заново вошли в norma flow.
@@ -163,6 +180,18 @@ export default function MiniHomePage() {
       });
     }
   }, []);
+
+  const startShift = useCallback(async () => {
+    setStartingShift(true);
+    try {
+      const res = await fetch("/api/mini/start-shift", { method: "POST" });
+      if (res.ok) {
+        await fetchHome();
+      }
+    } finally {
+      setStartingShift(false);
+    }
+  }, [fetchHome]);
 
   useEffect(() => {
     if (
@@ -250,6 +279,64 @@ export default function MiniHomePage() {
           style={{ color: "var(--mini-lime)" }}
         />
         Загружаем кабинет…
+      </div>
+    );
+  }
+
+  // Shift gate: для линейного персонала (gateRequired=true), пока
+  // нет WorkShift на сегодня — показываем ОДНУ кнопку «Начать смену»
+  // и НИЧЕГО больше. Каждый новый день эта проверка повторяется
+  // потому что WorkShift unique по (userId, date).
+  if (shiftGate?.gateRequired && !shiftGate.shiftStarted) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-12">
+        <div
+          className="rounded-3xl border p-8 text-center"
+          style={{
+            background: "var(--mini-card)",
+            borderColor: "var(--mini-border)",
+          }}
+        >
+          <div
+            className="mini-eyebrow"
+            style={{ color: "var(--mini-text-muted)" }}
+          >
+            {new Date(shiftGate.today).toLocaleDateString("ru-RU", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </div>
+          <div
+            className="mini-display mt-3"
+            style={{
+              fontSize: "32px",
+              color: "var(--mini-text)",
+            }}
+          >
+            Готов к работе?
+          </div>
+          <p
+            className="mt-3 text-[14px] leading-relaxed"
+            style={{ color: "var(--mini-text-muted)" }}
+          >
+            Нажми «Начать смену» чтобы получить задачи на сегодня.
+            Руководитель увидит, что ты вышел на работу.
+          </p>
+          <button
+            type="button"
+            onClick={startShift}
+            disabled={startingShift}
+            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-[16px] font-semibold disabled:opacity-60"
+            style={{
+              background: "var(--mini-lime)",
+              color: "var(--mini-text-on-lime)",
+            }}
+          >
+            {startingShift ? <Loader2 className="size-5 animate-spin" /> : <span>▶️</span>}
+            Начать смену
+          </button>
+        </div>
       </div>
     );
   }

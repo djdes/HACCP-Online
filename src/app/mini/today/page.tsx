@@ -3,6 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+// NOTE: терминология «задачи / Сегодня» — нейтральная, мини-апп
+// никогда не показывает слово «журнал». Сотрудник просто видит
+// чек-лист задач смены. Под капотом это journal-task-claim.
+
+type ShiftGate = {
+  gateRequired: boolean;
+  shiftStarted: boolean;
+  today: string;
+  preset: string;
+};
 import {
   ArrowLeft,
   CheckCircle2,
@@ -46,15 +56,45 @@ export default function MiniTodayPage() {
   const router = useRouter();
   const [data, setData] = useState<Payload | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [gate, setGate] = useState<ShiftGate | null>(null);
+  const [startingShift, setStartingShift] = useState(false);
+
+  async function loadGate() {
+    const res = await fetch("/api/mini/start-shift", { cache: "no-store" });
+    if (res.ok) setGate((await res.json()) as ShiftGate);
+  }
 
   async function load() {
     const res = await fetch("/api/mini/today", { cache: "no-store" });
     if (res.ok) setData((await res.json()) as Payload);
   }
 
+  async function startShift() {
+    setStartingShift(true);
+    try {
+      const res = await fetch("/api/mini/start-shift", { method: "POST" });
+      if (res.ok) {
+        await loadGate();
+        await load();
+      }
+    } finally {
+      setStartingShift(false);
+    }
+  }
+
   useEffect(() => {
-    void load();
+    (async () => {
+      await loadGate();
+      // Не загружаем задачи пока gate не пройден — иначе сотрудник
+      // мельком увидит список до того как нажал «Начать смену».
+    })();
   }, []);
+
+  useEffect(() => {
+    if (gate && (!gate.gateRequired || gate.shiftStarted)) {
+      void load();
+    }
+  }, [gate]);
 
   async function claim(scope: Scope) {
     if (!data) return;
@@ -97,6 +137,53 @@ export default function MiniTodayPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  // Shift gate: для линейного персонала без активной смены —
+  // показываем ОДНУ кнопку «Начать смену» и ничего больше. Это
+  // делает обязательной отметку начала рабочего дня — заведующая
+  // на Контрольной доске видит кто реально вышел на работу.
+  if (gate && gate.gateRequired && !gate.shiftStarted) {
+    return (
+      <div className="space-y-4 pb-24">
+        <Link
+          href="/mini"
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#6f7282]"
+        >
+          <ArrowLeft className="size-4" />
+          Главная
+        </Link>
+        <div className="rounded-3xl border border-[#ececf4] bg-[#0b1024] p-8 text-center text-white">
+          <div className="text-[12px] uppercase tracking-[0.16em] text-white/60">
+            {new Date(gate.today).toLocaleDateString("ru-RU", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </div>
+          <div className="mt-2 text-[24px] font-semibold leading-tight">
+            Готов к работе?
+          </div>
+          <p className="mt-3 text-[14px] leading-relaxed text-white/70">
+            Нажми «Начать смену» чтобы получить задачи на сегодня.
+            Руководитель увидит, что ты вышел на работу.
+          </p>
+          <button
+            type="button"
+            onClick={startShift}
+            disabled={startingShift}
+            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[16px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.7)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+          >
+            {startingShift ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <span>▶️</span>
+            )}
+            Начать смену
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!data) {
