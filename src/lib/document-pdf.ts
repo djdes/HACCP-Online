@@ -4791,7 +4791,9 @@ export async function generateJournalDocumentPdf(params: {
     where: { id: documentId },
     include: {
       template: true,
-      organization: { select: { name: true } },
+      organization: {
+        select: { name: true, inn: true, address: true, phone: true },
+      },
       entries: { orderBy: [{ employeeId: "asc" }, { date: "asc" }] },
     },
   });
@@ -4829,7 +4831,20 @@ export async function generateJournalDocumentPdf(params: {
 
   const templateCode = document.template.code;
   const dateKeys = buildDateKeys(document.dateFrom, document.dateTo);
-  const organizationName = document.organization?.name || 'ООО "Тест"';
+  // В шапку всех PDF'ов сразу подставляем «name · ИНН XXX · адрес»,
+  // если эти поля заполнены в /settings/organization. У инспектора СЭС
+  // должны быть реквизиты прямо на печатной форме без дополнительной
+  // сверки. Если что-то не задано — просто пропускаем разделитель.
+  const orgName = document.organization?.name || 'ООО "Тест"';
+  const orgInn = document.organization?.inn ?? null;
+  const orgAddress = document.organization?.address ?? null;
+  const organizationName = [
+    orgName,
+    orgInn ? `ИНН ${orgInn}` : null,
+    orgAddress,
+  ]
+    .filter((v): v is string => Boolean(v))
+    .join(" · ");
   const monthLabel = formatMonthLabel(document.dateFrom, document.dateTo);
   const employeeIds = document.entries.map((entry) => entry.employeeId);
   const entryMap: Record<string, Record<string, unknown>> = {};

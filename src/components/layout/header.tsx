@@ -94,6 +94,7 @@ type HeaderProps = {
   userName: string;
   userEmail: string;
   organizationName: string;
+  organizationLogoUrl?: string | null;
   userRole: string;
   positionTitle: string;
   isRoot: boolean;
@@ -104,6 +105,7 @@ export function Header({
   userName,
   userEmail,
   organizationName,
+  organizationLogoUrl,
   userRole,
   positionTitle,
   isRoot,
@@ -211,12 +213,29 @@ export function Header({
       <div className="flex h-14 items-center gap-2 px-3 md:gap-4 md:px-6">
         <Link
           href={homeHref}
-          className="shrink-0 flex items-baseline gap-2"
-          aria-label="WESETUP — на дашборд"
+          className="shrink-0 flex items-center gap-2"
+          aria-label={`${organizationName || "WESETUP"} — на дашборд`}
         >
-          <span className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]">
-            WESETUP
-          </span>
+          {organizationLogoUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={organizationLogoUrl}
+                alt={organizationName}
+                className="h-7 w-auto max-w-[140px] object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <span className="hidden text-[14px] font-semibold text-[#0b1024] md:inline">
+                {organizationName}
+              </span>
+            </>
+          ) : (
+            <span className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]">
+              WESETUP
+            </span>
+          )}
           <span
             className="hidden text-[10px] font-mono text-[#9b9fb3] sm:inline"
             title={`Build: ${buildInfo.buildTime}`}

@@ -15,6 +15,7 @@ import {
   Palette,
   Phone,
   Save,
+  Search,
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -75,6 +76,7 @@ export function OrganizationInfoForm({
   const router = useRouter();
   const [form, setForm] = useState<Form>(initial);
   const [saving, setSaving] = useState(false);
+  const [innLookup, setInnLookup] = useState(false);
 
   const dirty =
     form.name !== initial.name ||
@@ -134,6 +136,33 @@ export function OrganizationInfoForm({
 
   function discard() {
     setForm(initial);
+  }
+
+  async function lookupByInn() {
+    const inn = (form.inn ?? "").replace(/\D/g, "");
+    if (inn.length !== 10 && inn.length !== 12) {
+      toast.error("Введите ИНН (10 или 12 цифр)");
+      return;
+    }
+    setInnLookup(true);
+    try {
+      const res = await fetch(`/api/public/inn-lookup?inn=${inn}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        toast.error(data?.error ?? "Не нашли организацию");
+        return;
+      }
+      setForm((prev) => ({
+        ...prev,
+        name: data.name || prev.name,
+        address: data.address || prev.address,
+      }));
+      toast.success(`Найдено: ${data.name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setInnLookup(false);
+    }
   }
 
   return (
@@ -201,18 +230,34 @@ export function OrganizationInfoForm({
         </FormRow>
         <FormRow
           label="ИНН"
-          hint="10 цифр для юр.лица или 12 для ИП. Идёт в шапку журналов"
+          hint="10 цифр для юр.лица или 12 для ИП. По нему авто-заполняется название и адрес из ЕГРЮЛ"
           icon={<Hash className="size-4" />}
         >
-          <input
-            type="text"
-            value={form.inn ?? ""}
-            onChange={(e) => set("inn", e.target.value || null)}
-            className="form-input"
-            placeholder="7700123456"
-            inputMode="numeric"
-            maxLength={12}
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={form.inn ?? ""}
+              onChange={(e) => set("inn", e.target.value || null)}
+              className="form-input flex-1"
+              placeholder="7700123456"
+              inputMode="numeric"
+              maxLength={12}
+            />
+            <button
+              type="button"
+              onClick={lookupByInn}
+              disabled={innLookup || !form.inn}
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-2xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#5566f6] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
+              title="Найти название и адрес по ИНН (DaData / ЕГРЮЛ)"
+            >
+              {innLookup ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              Найти
+            </button>
+          </div>
         </FormRow>
         <FormRow
           label="Адрес"

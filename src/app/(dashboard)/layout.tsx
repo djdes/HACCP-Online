@@ -45,10 +45,11 @@ export default async function DashboardLayout({
       where: { id: session.user.id },
       select: { positionTitle: true, themePreference: true },
     }),
-    // H1 — white-label: читаем brandColor для override основного indigo.
+    // H1 — white-label: читаем brandColor для override основного
+    // indigo и logoUrl для замены WESETUP-лейбла в шапке.
     db.organization.findUnique({
       where: { id: activeOrgId },
-      select: { brandColor: true },
+      select: { brandColor: true, logoUrl: true },
     }),
   ]);
 
@@ -87,6 +88,7 @@ export default async function DashboardLayout({
             userName={session.user.name ?? "Пользователь"}
             userEmail={session.user.email ?? ""}
             organizationName={impersonatedName ?? session.user.organizationName ?? ""}
+            organizationLogoUrl={brandedOrg?.logoUrl ?? null}
             userRole={session.user.role ?? ""}
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
