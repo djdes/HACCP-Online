@@ -32,7 +32,7 @@ type TfTemplateReadiness = {
   allDoneToday: boolean;
 };
 
-async function getTasksFlowReadinessByTemplate(
+export async function getTasksFlowReadinessByTemplate(
   organizationId: string,
   todayStart: Date,
   activeDocs: Array<{ id: string; templateId: string }>
