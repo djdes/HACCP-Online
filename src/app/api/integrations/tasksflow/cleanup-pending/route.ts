@@ -15,24 +15,24 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/integrations/tasksflow/cleanup-pending
  *
- * Удаляет в TasksFlow все НЕвыполненные задачи, привязанные к этой
- * организации (через TasksFlowTaskLink). Полезно когда:
- *   • Тестировали и насоздавали мусор
- *   • Поменялись ответственные и старые задачи стали неактуальны
- *   • Просто хочется начать заполнение журналов с чистого листа
+ * Удаляет в TasksFlow ВСЕ незавершённые задачи компании этой
+ * интеграции — не только те что записаны в TasksFlowTaskLink.
  *
- * Логика:
- *   1. Берём все TasksFlowTaskLink для интеграции, у которых
- *      remoteStatus != "completed".
- *   2. Для каждого DELETE /api/tasks/:id на TF.
- *   3. Локальный TasksFlowTaskLink удаляем при любом исходе кроме
- *      400/404 (которые означают «задача уже удалена в TF»).
+ * Алгоритм:
+ *   1. listTasks() в TF — получаем все задачи которые видит наш
+ *      API-ключ (TF их же фильтрует по companyId ключа).
+ *   2. Фильтруем по `!isCompleted` — выполненные оставляем для
+ *      compliance-истории.
+ *   3. Если у интеграции задан tasksflowCompanyId — дополнительно
+ *      сужаем до своей компании (на случай ключей с расширенным
+ *      доступом).
+ *   4. DELETE каждую → удаляем локальный TasksFlowTaskLink если был.
  *
- * Не трогает:
- *   • Задачи без TasksFlowTaskLink (созданные вручную в TF, не через
- *     bulk-assign — мы про них не знаем).
- *   • Уже выполненные (remoteStatus = "completed") — они нужны для
- *     compliance-истории.
+ * Раньше чистили ТОЛЬКО по locale TasksFlowTaskLink, поэтому при 108
+ * задач в TF удалялось ~20 (только те что bulk-assign успел записать
+ * в local link). Остальные «осиротелые» задачи (созданные в TF
+ * вручную, импортированные, или потерявшие локальный link при
+ * прошлых force-wipe) — оставались висеть.
  */
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -59,62 +59,92 @@ export async function POST() {
     );
   }
 
-  const pendingLinks = await db.tasksFlowTaskLink.findMany({
-    where: {
-      integrationId: integration.id,
-      remoteStatus: { not: "completed" },
-    },
-    select: {
-      id: true,
-      tasksflowTaskId: true,
-      journalCode: true,
-      rowKey: true,
-    },
+  const client = tasksflowClientFor(integration);
+
+  // 1. Достаём все задачи которые видит ключ.
+  let allTasks;
+  try {
+    allTasks = await client.listTasks();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    return NextResponse.json(
+      { error: `TasksFlow listTasks failed: ${msg}` },
+      { status: 502 }
+    );
+  }
+
+  // 2. Фильтруем: только незавершённые + (если задан tasksflowCompanyId)
+  // только нашей компании.
+  const targetCompanyId = integration.tasksflowCompanyId ?? null;
+  const pending = allTasks.filter((t) => {
+    if (t.isCompleted) return false;
+    if (targetCompanyId !== null && t.companyId != null) {
+      if (t.companyId !== targetCompanyId) return false;
+    }
+    return true;
   });
 
-  if (pendingLinks.length === 0) {
+  if (pending.length === 0) {
     return NextResponse.json({
       ok: true,
       deletedTfTasks: 0,
       removedLocalLinks: 0,
+      totalScanned: allTasks.length,
       message: "Нет невыполненных задач — TasksFlow уже чистый",
     });
   }
 
-  const client = tasksflowClientFor(integration);
+  // 3. Грузим все локальные ссылки одним запросом, чтобы потом удалять
+  // их батчем по tfTaskId без N+1.
+  const taskIds = pending.map((t) => t.id);
+  const localLinks = await db.tasksFlowTaskLink.findMany({
+    where: {
+      integrationId: integration.id,
+      tasksflowTaskId: { in: taskIds },
+    },
+    select: { id: true, tasksflowTaskId: true },
+  });
+  const localByTfId = new Map(
+    localLinks.map((l) => [l.tasksflowTaskId, l.id])
+  );
 
   let deletedTfTasks = 0;
-  let removedLocalLinks = 0;
   let alreadyGone = 0;
+  let removedLocalLinks = 0;
   const errors: string[] = [];
 
-  for (const link of pendingLinks) {
+  for (const t of pending) {
+    let deletedRemotely = false;
     try {
-      await client.deleteTask(link.tasksflowTaskId);
+      await client.deleteTask(t.id);
       deletedTfTasks += 1;
+      deletedRemotely = true;
     } catch (err) {
-      // 404/410 — задача уже удалена в TF: чистим локальный link.
       if (
         err instanceof TasksFlowError &&
-        (err.status === 404 || err.status === 410 || err.status === 400)
+        (err.status === 404 || err.status === 410)
       ) {
         alreadyGone += 1;
+        deletedRemotely = true;
       } else {
         errors.push(
-          `${link.journalCode}/${link.rowKey}: ${err instanceof Error ? err.message : "unknown"}`
+          `task #${t.id} (${t.title ?? ""}): ${err instanceof Error ? err.message : "unknown"}`
         );
-        // Не удаляем локальный link, чтобы можно было повторить попытку.
-        continue;
       }
     }
-    await db.tasksFlowTaskLink
-      .delete({ where: { id: link.id } })
-      .then(() => {
-        removedLocalLinks += 1;
-      })
-      .catch(() => {
-        /* race с другим cleanup'ом — игнорируем */
-      });
+    if (deletedRemotely) {
+      const localId = localByTfId.get(t.id);
+      if (localId) {
+        await db.tasksFlowTaskLink
+          .delete({ where: { id: localId } })
+          .then(() => {
+            removedLocalLinks += 1;
+          })
+          .catch(() => {
+            /* race с другим cleanup'ом — игнорируем */
+          });
+      }
+    }
   }
 
   await db.auditLog.create({
@@ -126,9 +156,11 @@ export async function POST() {
       entity: "TasksFlowTaskLink",
       entityId: integration.id,
       details: {
+        totalScanned: allTasks.length,
+        pendingFound: pending.length,
         deletedTfTasks,
-        removedLocalLinks,
         alreadyGone,
+        removedLocalLinks,
         errorsCount: errors.length,
       },
     },
@@ -139,6 +171,8 @@ export async function POST() {
     deletedTfTasks,
     removedLocalLinks,
     alreadyGone,
+    totalScanned: allTasks.length,
+    pendingFound: pending.length,
     errors: errors.slice(0, 10),
     errorsTotal: errors.length,
   });
