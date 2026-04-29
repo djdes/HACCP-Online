@@ -82,6 +82,10 @@ export async function POST(
   }
 
   // Quota — общая с sanpin-chat. -1 = unlimited.
+  // Атомарный conditional decrement: read-then-decrement допускал
+  // race-condition при котором два параллельных запроса с left=1
+  // оба декрементировали → итоговое значение -1 → org получала
+  // бесплатный безлимит (потому что -1 = unlimited).
   const org = await db.organization.findUnique({
     where: { id: orgId },
     select: {
@@ -93,16 +97,22 @@ export async function POST(
   });
   const left = org?.aiMonthlyMessagesLeft ?? 0;
   const isUnlimited = left < 0;
-  if (!isUnlimited && left <= 0) {
-    return NextResponse.json(
-      {
-        error: `Месячный лимит AI-сообщений исчерпан (${
-          org?.aiMonthlyQuota ?? 20
-        }). Перейдите на тариф Pro.`,
-        quotaExceeded: true,
-      },
-      { status: 402 }
-    );
+  if (!isUnlimited) {
+    const updateResult = await db.organization.updateMany({
+      where: { id: orgId, aiMonthlyMessagesLeft: { gt: 0 } },
+      data: { aiMonthlyMessagesLeft: { decrement: 1 } },
+    });
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        {
+          error: `Месячный лимит AI-сообщений исчерпан (${
+            org?.aiMonthlyQuota ?? 20
+          }). Перейдите на тариф Pro.`,
+          quotaExceeded: true,
+        },
+        { status: 402 }
+      );
+    }
   }
 
   const userPrompt = `Контекст организации:
@@ -155,6 +165,15 @@ ${stepInstruction}`;
         .trim();
       parsed = JSON.parse(cleaned);
     } catch {
+      // Refund квоты — AI вернул мусор, пользователь не должен платить.
+      if (!isUnlimited) {
+        await db.organization
+          .update({
+            where: { id: orgId },
+            data: { aiMonthlyMessagesLeft: { increment: 1 } },
+          })
+          .catch(() => null);
+      }
       return NextResponse.json(
         {
           error: "AI вернул некорректный JSON",
@@ -165,22 +184,19 @@ ${stepInstruction}`;
     }
 
     if (!Array.isArray(parsed.suggestions) || parsed.suggestions.length === 0) {
+      // Refund квоты — Anthropic ответил, но контент бесполезный.
+      if (!isUnlimited) {
+        await db.organization
+          .update({
+            where: { id: orgId },
+            data: { aiMonthlyMessagesLeft: { increment: 1 } },
+          })
+          .catch(() => null);
+      }
       return NextResponse.json(
         { error: "AI не вернул suggestions" },
         { status: 502 }
       );
-    }
-
-    // Decrement quota best-effort.
-    if (!isUnlimited) {
-      try {
-        await db.organization.update({
-          where: { id: orgId },
-          data: { aiMonthlyMessagesLeft: { decrement: 1 } },
-        });
-      } catch (err) {
-        console.warn("[capa-suggest] quota decrement failed", err);
-      }
     }
 
     return NextResponse.json({
@@ -193,6 +209,18 @@ ${stepInstruction}`;
     });
   } catch (err) {
     console.error("[capa-suggest] anthropic error", err);
+    // Refund квоты — пользователь не должен терять сообщение из-за
+    // нашего upstream-сбоя.
+    if (!isUnlimited) {
+      await db.organization
+        .update({
+          where: { id: orgId },
+          data: { aiMonthlyMessagesLeft: { increment: 1 } },
+        })
+        .catch((refundErr) =>
+          console.warn("[capa-suggest] quota refund failed", refundErr)
+        );
+    }
     return NextResponse.json(
       {
         error: err instanceof Error ? `Ошибка AI: ${err.message}` : "Ошибка AI",
