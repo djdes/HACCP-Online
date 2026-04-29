@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { SlotUserMap } from "@/lib/journal-responsibles-cascade";
 
 /**
@@ -215,7 +216,7 @@ const PATCHERS: Record<string, Patcher> = {
     if (supervisor) {
       if (cleaningResponsibles.length === 0) {
         cleaningResponsibles.push({
-          id: `cleaning-resp-${Date.now()}`,
+          id: `cleaning-resp-${randomUUID()}`,
           kind: "cleaning",
           title: ctx.getPositionTitle(supervisor) || "Уборщик",
           userId: supervisor,
@@ -232,7 +233,7 @@ const PATCHERS: Record<string, Patcher> = {
     if (controller) {
       if (controlResponsibles.length === 0) {
         controlResponsibles.push({
-          id: `control-resp-${Date.now()}`,
+          id: `control-resp-${randomUUID()}`,
           kind: "control",
           title: ctx.getPositionTitle(controller) || "Контролёр",
           userId: controller,

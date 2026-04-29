@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardCheck, ClipboardX } from "lucide-react";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -37,6 +38,7 @@ export async function JournalsTodayWidget({ organizationId }: Props) {
       where: {
         date: { gte: day, lt: nextDay },
         document: { organizationId, status: "active" },
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     }),

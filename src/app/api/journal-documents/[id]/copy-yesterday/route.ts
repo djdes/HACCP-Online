@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
@@ -104,13 +105,16 @@ export async function POST(
     );
   }
 
+  // Из «вчера» исключаем _autoSeeded плейсхолдеры — иначе copy-yesterday
+  // склонировал бы пустые болванки как сегодняшнее «заполнение». Из
+  // «сегодня» — исключаем чтобы не считать seeded как «занятый день».
   const [yesterdayEntries, todayEntries] = await Promise.all([
     db.journalDocumentEntry.findMany({
-      where: { documentId, date: yesterday },
+      where: { documentId, date: yesterday, ...NOT_AUTO_SEEDED },
       select: { employeeId: true, data: true },
     }),
     db.journalDocumentEntry.findMany({
-      where: { documentId, date: today },
+      where: { documentId, date: today, ...NOT_AUTO_SEEDED },
       select: { employeeId: true },
     }),
   ]);

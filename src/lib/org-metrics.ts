@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * Метрики по одной организации для ROOT-дашборда. Считаются по сырым
@@ -85,7 +86,7 @@ export async function getAllOrgMetrics(
     // groupBy на JournalDocumentEntry по organizationId напрямую нельзя
     // (FK через document) — берём count через findMany + bucket по ходу.
     db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since30 } },
+      where: { createdAt: { gte: since30 }, ...NOT_AUTO_SEEDED },
       select: { document: { select: { organizationId: true } } },
     }),
     db.journalEntry.groupBy({
@@ -94,7 +95,7 @@ export async function getAllOrgMetrics(
       _count: { id: true },
     }),
     db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since7 } },
+      where: { createdAt: { gte: since7 }, ...NOT_AUTO_SEEDED },
       select: { document: { select: { organizationId: true } } },
     }),
     db.journalEntry.groupBy({
@@ -103,7 +104,7 @@ export async function getAllOrgMetrics(
       _count: { id: true },
     }),
     db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since14, lt: since7 } },
+      where: { createdAt: { gte: since14, lt: since7 }, ...NOT_AUTO_SEEDED },
       select: { document: { select: { organizationId: true } } },
     }),
     db.journalEntry.groupBy({

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * E1 — 12-месячный compliance тренд. Возвращает per-month
@@ -62,6 +63,7 @@ export async function getComplianceTrend(
         where: {
           document: { organizationId },
           createdAt: { gte: m.start, lt: m.end },
+          ...NOT_AUTO_SEEDED,
         },
         select: { document: { select: { templateId: true } } },
       }),

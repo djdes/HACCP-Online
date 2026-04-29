@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,7 +143,7 @@ export async function GET() {
     where: {
       date: { gte: start, lte: today },
       document: { organizationId },
-      NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      ...NOT_AUTO_SEEDED,
     },
     select: {
       id: true,

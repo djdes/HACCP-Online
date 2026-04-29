@@ -143,7 +143,12 @@ export default async function OnboardingPage() {
   const disabled = Array.isArray(org?.disabledJournalCodes)
     ? (org!.disabledJournalCodes as string[]).length
     : 0;
-  const enabledTemplatesCount = activeTemplatesCount - disabled;
+  // Math.max — защита от стейл disabledJournalCodes (записи на коды
+  // которые позже деактивировали глобально → counter уходил в минус).
+  const enabledTemplatesCount = Math.max(
+    0,
+    activeTemplatesCount - disabled
+  );
   const pipelinesCount = org?.journalPipelinesJson
     ? Object.keys(org.journalPipelinesJson as Record<string, unknown>).length
     : 0;
@@ -473,6 +478,8 @@ export default async function OnboardingPage() {
   // же параметрам, что и required-карточки, но в человеческих
   // формулировках для подсказки юзеру что именно ещё надо сделать.
   const finishMissing: string[] = [];
+  if (!org?.name || !org?.inn || !org?.address)
+    finishMissing.push("Заполните название, ИНН и адрес организации");
   if (positionsCount === 0) finishMissing.push("Создайте должности");
   if (activeUsersCount < 2) finishMissing.push("Добавьте сотрудников");
   if (buildingsCount === 0)

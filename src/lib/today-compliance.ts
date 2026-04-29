@@ -3,6 +3,7 @@ import {
   DAILY_JOURNAL_CODES,
   CONFIG_DAILY_CODES,
 } from "@/lib/daily-journal-codes";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export { DAILY_JOURNAL_CODES, CONFIG_DAILY_CODES };
 
@@ -151,7 +152,7 @@ async function rollupDocumentForDay(
     where: {
       documentId,
       date: { gte: lookbackStart, lt: todayEnd },
-      NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      ...NOT_AUTO_SEEDED,
     },
     select: { date: true },
   });
@@ -263,7 +264,7 @@ async function rollupEntryDataDocumentForDay(
       where: {
         documentId,
         date: { gte: todayStart, lt: todayEnd },
-        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+        ...NOT_AUTO_SEEDED,
       },
       select: { data: true },
     });
@@ -322,7 +323,7 @@ async function rollupEntryDataDocumentForDay(
       where: {
         documentId,
         date: { gte: todayStart, lt: todayEnd },
-        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+        ...NOT_AUTO_SEEDED,
       },
       select: { data: true },
     });
@@ -385,7 +386,7 @@ async function rollupEntryDataDocumentForDay(
       where: {
         documentId,
         date: { gte: todayStart, lt: todayEnd },
-        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+        ...NOT_AUTO_SEEDED,
       },
       select: { data: true },
     });
@@ -632,7 +633,7 @@ export async function getTemplatesFilledToday(
       // когда у пользователя ещё ноль фактических заполнений).
       // См. journal-document-entries-seed.ts. Без этого баннер
       // «Сегодня журнал уже заполнялся» показывается на пустом доке.
-      NOT: { data: { path: ["_autoSeeded"], equals: true } },
+      ...NOT_AUTO_SEEDED,
     },
     _count: { _all: true },
   });

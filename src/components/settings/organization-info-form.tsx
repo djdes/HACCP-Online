@@ -101,24 +101,35 @@ export function OrganizationInfoForm({
     if (saving || !dirty) return;
     setSaving(true);
     try {
+      // Шлём только изменённые поля — иначе legacy-значения
+      // (например, brandColor='#aabbccdd' с alpha) каждый раз попадают
+      // в валидатор и блокируют сохранение остальных полей.
+      const payload: Record<string, unknown> = {};
+      if (form.name !== initial.name) payload.name = form.name;
+      if (form.type !== initial.type) payload.type = form.type;
+      if (form.inn !== initial.inn) payload.inn = form.inn ?? "";
+      if (form.address !== initial.address)
+        payload.address = form.address ?? "";
+      if (form.phone !== initial.phone) payload.phone = form.phone ?? "";
+      if (form.accountantEmail !== initial.accountantEmail)
+        payload.accountantEmail = form.accountantEmail ?? "";
+      if (form.locale !== initial.locale) payload.locale = form.locale;
+      if (form.timezone !== initial.timezone) payload.timezone = form.timezone;
+      if (form.brandColor !== initial.brandColor)
+        payload.brandColor = form.brandColor ?? "";
+      if (form.logoUrl !== initial.logoUrl)
+        payload.logoUrl = form.logoUrl ?? "";
+      if (form.shiftEndHour !== initial.shiftEndHour)
+        payload.shiftEndHour = form.shiftEndHour;
+      if (form.lockPastDayEdits !== initial.lockPastDayEdits)
+        payload.lockPastDayEdits = form.lockPastDayEdits;
+      if (form.requireAdminForJournalEdit !== initial.requireAdminForJournalEdit)
+        payload.requireAdminForJournalEdit = form.requireAdminForJournalEdit;
+
       const res = await fetch("/api/settings/organization", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          type: form.type,
-          inn: form.inn ?? "",
-          address: form.address ?? "",
-          phone: form.phone ?? "",
-          accountantEmail: form.accountantEmail ?? "",
-          locale: form.locale,
-          timezone: form.timezone,
-          brandColor: form.brandColor ?? "",
-          logoUrl: form.logoUrl ?? "",
-          shiftEndHour: form.shiftEndHour,
-          lockPastDayEdits: form.lockPastDayEdits,
-          requireAdminForJournalEdit: form.requireAdminForJournalEdit,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -319,6 +330,16 @@ export function OrganizationInfoForm({
             onChange={(e) => set("timezone", e.target.value)}
             className="form-input"
           >
+            {/* Fallback option: если текущий timezone из БД не входит
+                в наш короткий список (Asia/Tashkent, Europe/Riga и
+                т.д.) — добавляем его как отдельную опцию, чтобы
+                <select> не «прыгнул» на первый вариант и тихо не
+                перезаписал данные. */}
+            {!TIMEZONE_OPTIONS.includes(form.timezone) && form.timezone ? (
+              <option value={form.timezone}>
+                {form.timezone.replace("_", " ")} (текущий)
+              </option>
+            ) : null}
             {TIMEZONE_OPTIONS.map((tz) => (
               <option key={tz} value={tz}>
                 {tz.replace("_", " ")}

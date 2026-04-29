@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * Compliance heatmap: матрица «templates × дни», цветовое чтение
@@ -70,6 +71,7 @@ export async function getComplianceHeatmap(
         where: {
           document: { organizationId },
           date: { gte: periodStart, lte: todayStart },
+          ...NOT_AUTO_SEEDED,
         },
         select: {
           date: true,
@@ -183,6 +185,7 @@ export async function getWeekdayHeatmap(
         where: {
           document: { organizationId },
           date: { gte: periodStart, lte: todayStart },
+          ...NOT_AUTO_SEEDED,
         },
         select: {
           date: true,

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * L1 — Baseline-predictor: «вероятность что сегодня compliance не
@@ -48,6 +49,7 @@ export async function predictComplianceForecast(
       where: {
         document: { organizationId },
         createdAt: { gte: todayStart, lte: refDate },
+        ...NOT_AUTO_SEEDED,
       },
     }),
   ]);
@@ -67,6 +69,7 @@ export async function predictComplianceForecast(
       where: {
         document: { organizationId },
         createdAt: { gte: since, lt: todayStart },
+        ...NOT_AUTO_SEEDED,
       },
       select: { createdAt: true },
     }),

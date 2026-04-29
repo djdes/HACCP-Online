@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * Топ-3 (или N) активных сотрудников за последние 30 дней по числу
@@ -32,6 +33,7 @@ export async function getWorkerLeaderboard(
       where: {
         document: { organizationId },
         createdAt: { gte: since },
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     }),
@@ -133,6 +135,7 @@ export async function getStrugglingWorkers(
       where: {
         document: { organizationId },
         createdAt: { gte: since },
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     }),

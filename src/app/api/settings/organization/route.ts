@@ -35,7 +35,10 @@ const VALID_LOCALES = new Set(["ru", "en"]);
 
 const TIMEZONE_PATTERN = /^[A-Za-z_]+\/[A-Za-z_/-]+$/;
 
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+// Принимаем 3- (#abc), 6- (#aabbcc) и 8-знач (#aabbccff) hex —
+// иначе legacy-данные с alpha или коротким shorthand блокируют
+// сохранение всей формы.
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const URL_PATTERN = /^https?:\/\/.+/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INN_PATTERN = /^\d{10}$|^\d{12}$/;

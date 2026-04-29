@@ -73,14 +73,27 @@ export async function POST() {
     );
   }
 
-  // 2. Фильтруем: только незавершённые + (если задан tasksflowCompanyId)
-  // только нашей компании.
+  // 2. Фильтруем: только незавершённые + только нашей компании.
+  // SAFETY: если у интеграции не задан tasksflowCompanyId — отказываем,
+  // иначе при ключе с cross-org доступом снесём чужие таски. Если у
+  // конкретной задачи companyId не пришёл — её тоже скипаем (default-deny).
   const targetCompanyId = integration.tasksflowCompanyId ?? null;
+  if (targetCompanyId === null) {
+    return NextResponse.json(
+      {
+        error:
+          "Интеграция не привязана к конкретной компании в TasksFlow " +
+          "(tasksflowCompanyId=null). Удалить безопасно невозможно — " +
+          "выполните «Синхронизация с TasksFlow» в настройках, чтобы " +
+          "проставить компанию.",
+      },
+      { status: 400 }
+    );
+  }
   const pending = allTasks.filter((t) => {
     if (t.isCompleted) return false;
-    if (targetCompanyId !== null && t.companyId != null) {
-      if (t.companyId !== targetCompanyId) return false;
-    }
+    if (t.companyId == null) return false;
+    if (t.companyId !== targetCompanyId) return false;
     return true;
   });
 

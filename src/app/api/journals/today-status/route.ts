@@ -7,6 +7,7 @@ import {
   CONFIG_DAILY_CODES,
 } from "@/lib/today-compliance";
 import { getTasksFlowReadinessByTemplate } from "@/lib/today-compliance";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +71,7 @@ export async function GET() {
       where: {
         documentId: { in: docIds },
         date: { gte: todayStart, lt: todayEnd },
-        NOT: { data: { path: ["_autoSeeded"], equals: true } },
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     });
