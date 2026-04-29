@@ -102,9 +102,11 @@ function GuideSheet({
       aria-modal="true"
       aria-label="Инструкция по заполнению"
     >
-      {/* Backdrop */}
+      {/* Backdrop. Без backdrop-blur — он подсаживал sub-pixel rendering
+          текста в самом sheet'е (composite-layer side-effect на части
+          GPU/драйверов), из-за чего весь контент sheet'а казался мыльным. */}
       <div
-        className="absolute inset-0 bg-[#0b1024]/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[#0b1024]/55"
         onClick={onClose}
       />
 
