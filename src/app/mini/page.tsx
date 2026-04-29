@@ -474,7 +474,7 @@ export default function MiniHomePage() {
                 letterSpacing: "0.08em",
               }}
             >
-              {String(home.now.length).padStart(2, "0")} / ОТКРЫТО
+              {home.now.length} {home.now.length === 1 ? "задача" : "задач"} ждёт
             </span>
           </div>
           {home.now.map((item, idx) => {
@@ -597,7 +597,7 @@ export default function MiniHomePage() {
               Сегодня — все задачи
             </div>
             <div className="text-[12px]" style={{ color: "var(--mini-text-muted)" }}>
-              Race-claim · возьми задачу первым
+              Кто первый нажал — тот и делает
             </div>
           </div>
           <span style={{ color: "var(--mini-text-faint)" }}>→</span>
@@ -617,7 +617,7 @@ export default function MiniHomePage() {
               letterSpacing: "0.08em",
             }}
           >
-            {String(home.all.length).padStart(2, "0")} · ЖУРНАЛОВ
+            всего {home.all.length}
           </span>
         </div>
         {home.all.length === 0 ? (

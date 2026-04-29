@@ -109,12 +109,13 @@ export function JournalsProgressClient() {
               </span>
               <div>
                 <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">
-                  Прогресс журналов
+                  {counts.untouched + counts.in_progress > 0
+                    ? `${counts.untouched + counts.in_progress} ${counts.untouched + counts.in_progress === 1 ? "журнал ждёт" : "журналов ждут"}`
+                    : "Все журналы готовы"}
                 </h1>
                 <p className="mt-2 max-w-[640px] text-[14px] text-white/70">
-                  Сводка за сегодня: какие журналы уже сделаны, какие в
-                  процессе, и какие ещё не начинали. Обновляется автоматически
-                  раз в минуту.
+                  Прогресс заполнения за сегодня. Кликни на журнал чтобы
+                  открыть его и проверить. Обновляется автоматически.
                 </p>
               </div>
             </div>
@@ -162,33 +163,28 @@ export function JournalsProgressClient() {
           Считаем прогресс…
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
+          {/* Большая левая колонка: «Нужно внимание» — собирает
+              незаполнено + начато-не-закончено. Заведующая видит
+              где ещё надо подтолкнуть сотрудников. */}
+          <div className="lg:col-span-2">
+            <Column
+              title={`Нужно внимание · ${untouched.length + inProgress.length}`}
+              subtitle="Не начаты или не закончены — проверь, подтолкни сотрудников"
+              tone="warn"
+              items={[...inProgress, ...untouched]}
+              emptyHint="Все журналы либо готовы, либо ещё не подошёл срок"
+            />
+          </div>
           <Column
-            title="Идёт заполнение"
-            subtitle="Кто-то уже начал — но не все строки или TasksFlow-задачи закрыты"
-            tone="warn"
-            items={inProgress}
-            emptyHint="Всё либо ещё не начато, либо уже сделано"
-          />
-          <Column
-            title="Готовы"
-            subtitle="Все TasksFlow-задачи выполнены или все строки заполнены"
+            title={`Готовы · ${completed.length}`}
+            subtitle="Все задачи закрыты"
             tone="success"
             items={completed}
             emptyHint="Пока ни один журнал не сделан полностью"
           />
         </div>
       )}
-
-      {!loading && untouched.length > 0 ? (
-        <Column
-          title="Не начаты"
-          subtitle="Сегодня к этим журналам никто не подошёл"
-          tone="muted"
-          items={untouched}
-          emptyHint=""
-        />
-      ) : null}
     </div>
   );
 }

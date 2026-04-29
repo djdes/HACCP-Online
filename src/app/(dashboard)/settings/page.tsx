@@ -370,9 +370,124 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* Card grid */}
+      {/* Card grid — сгруппирована по разделам, чтобы не оверлоадить
+          новый админ. Сначала «Старт» (быстрая настройка), потом
+          по логике действий. «Дополнительно» — collapsible, с
+          редко-нужными вещами. */}
+      <SettingsGroup
+        title="Старт"
+        subtitle="Минимум, чтобы запустить работу"
+        items={settingsCards.filter((c) =>
+          GROUP_START.has(c.href as string)
+        )}
+      />
+      <SettingsGroup
+        title="Команда и доступы"
+        subtitle="Сотрудники, должности, иерархия"
+        items={settingsCards.filter((c) =>
+          GROUP_TEAM.has(c.href as string)
+        )}
+      />
+      <SettingsGroup
+        title="Журналы"
+        subtitle="Что заполнять, кому, как и когда"
+        items={settingsCards.filter((c) =>
+          GROUP_JOURNALS.has(c.href as string)
+        )}
+      />
+      <SettingsGroup
+        title="Интеграции"
+        subtitle="TasksFlow, Telegram, бухгалтерия"
+        items={settingsCards.filter((c) =>
+          GROUP_INTEGRATIONS.has(c.href as string)
+        )}
+      />
+      <details className="group">
+        <summary className="cursor-pointer list-none px-1 py-2 text-[14px] font-semibold text-[#6f7282] hover:text-[#0b1024]">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90">▸</span>
+          Дополнительно — для опытных
+        </summary>
+        <div className="mt-3">
+          <SettingsGroup
+            title=""
+            subtitle=""
+            items={settingsCards.filter((c) =>
+              GROUP_ADVANCED.has(c.href as string)
+            )}
+          />
+        </div>
+      </details>
+    </div>
+  );
+}
+
+const GROUP_START = new Set([
+  "/settings/onboarding",
+  "/settings/organization",
+  "/settings/users",
+  "/settings/buildings",
+  "/settings/equipment",
+  "/settings/journals",
+]);
+const GROUP_TEAM = new Set([
+  "/settings/role-presets",
+  "/settings/staff-hierarchy",
+  "/settings/position-staff-visibility",
+  "/settings/permissions",
+  "/settings/schedule",
+  "/settings/phone",
+]);
+const GROUP_JOURNALS = new Set([
+  "/settings/journal-responsibles",
+  "/settings/journal-pipelines",
+  "/settings/journal-flow",
+  "/settings/journal-periods",
+  "/settings/journal-bonuses",
+  "/settings/auto-journals",
+  "/settings/journal-access",
+  "/settings/journals-by-position",
+  "/settings/areas",
+  "/settings/products",
+]);
+const GROUP_INTEGRATIONS = new Set([
+  "/settings/integrations/tasksflow",
+  "/settings/notifications",
+  "/settings/accounting",
+]);
+const GROUP_ADVANCED = new Set([
+  "/settings/api",
+  "/settings/backup",
+  "/settings/audit",
+  "/settings/compliance",
+  "/settings/inspector-portal",
+  "/sanpin",
+  "/settings/subscription",
+]);
+
+function SettingsGroup({
+  title,
+  subtitle,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  items: typeof settingsCards;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="space-y-3">
+      {title ? (
+        <div className="px-1">
+          <h2 className="text-[16px] font-semibold text-[#0b1024]">
+            {title}
+          </h2>
+          {subtitle ? (
+            <p className="mt-0.5 text-[12px] text-[#6f7282]">{subtitle}</p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {settingsCards.map((card) => {
+        {items.map((card) => {
           const Icon = card.icon;
           return (
             <Link key={card.href} href={card.href} className="group">
@@ -398,7 +513,7 @@ export default async function SettingsPage() {
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
 
