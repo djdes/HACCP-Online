@@ -8,6 +8,15 @@ import {
   LEGACY_SESSION_COOKIES,
   LEGACY_AUX_COOKIES,
 } from "@/lib/auth-cookies";
+import { loginRateLimiter } from "@/lib/rate-limit";
+
+// Pre-computed bcrypt hash для несуществующих email'ов. Без этого
+// ответ на «пользователь не найден» приходит в ~5ms, а на
+// «неверный пароль» — в ~100ms (bcrypt.compare). Атакующий замеряет
+// разницу и enumerate'ит существующие email'ы. Фейковый compare
+// выравнивает время.
+const DUMMY_BCRYPT_HASH =
+  "$2a$10$CwTycUXWue0Thq9StjUM0uJ8.lllkbczy3.0qVxgApY/I5p9mElqS";
 
 const MAX_AGE = 365 * 24 * 60 * 60;
 
@@ -69,20 +78,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Rate-limit на IP (5 попыток / 5 мин) — защита от brute-force.
+    // Кладём ключ комбинированный (IP + email-prefix) чтобы не банить
+    // всю сетку при попытках на один email.
+    const xff = request.headers.get("x-forwarded-for") ?? "";
+    const ip = xff.split(",")[0].trim() || "unknown";
+    const rlKey = `login:${ip}`;
+    if (!loginRateLimiter.consume(rlKey)) {
+      return NextResponse.json(
+        {
+          error: "Слишком много попыток входа. Подождите 5 минут.",
+        },
+        { status: 429 }
+      );
+    }
+
     const user = await db.user.findUnique({
       where: { email },
       include: { organization: true },
     });
 
-    if (!user || !user.isActive) {
-      return NextResponse.json(
-        { error: "Неверный email или пароль" },
-        { status: 401 }
-      );
-    }
+    // Anti user-enumeration: всегда делаем bcrypt.compare, даже если
+    // юзер не найден или неактивен. Иначе атакующий замеряет timing
+    // (ms) и understands какие email'ы существуют.
+    const passwordHashToCheck = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
+    const isPasswordValid = await bcrypt.compare(password, passwordHashToCheck);
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
+    if (!user || !user.isActive || !isPasswordValid) {
       return NextResponse.json(
         { error: "Неверный email или пароль" },
         { status: 401 }
