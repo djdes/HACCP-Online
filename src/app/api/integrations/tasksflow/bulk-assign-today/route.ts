@@ -390,8 +390,18 @@ export async function POST(request: Request) {
   const scopedUsers = filterSubordinates(activeUsersForScope, scope, actingUser.id);
   const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
   const scheduledUserIds = new Set(onDutyUsers.map((user) => user.userId));
+  // Читаем org-флаг bulkAssignRespectShifts. По умолчанию false —
+  // большинство орг'ов не держат график смен в актуальном виде, и
+  // shift-фильтр приводил к тому что «Отправить всем» молча
+  // пропускал почти все журналы. Если орг хочет учёт графика смен,
+  // включает флаг в настройках.
+  const orgFlags = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { bulkAssignRespectShifts: true },
+  });
+  const respectShifts = orgFlags?.bulkAssignRespectShifts === true;
   const candidateUserIds =
-    scheduledUserIds.size > 0
+    respectShifts && scheduledUserIds.size > 0
       ? new Set(
           [...scheduledUserIds].filter((userId) => scopedUserIds.has(userId))
         )

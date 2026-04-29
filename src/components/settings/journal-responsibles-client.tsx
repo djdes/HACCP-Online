@@ -131,6 +131,7 @@ export function JournalResponsiblesClient({
   const [applyingCategory, setApplyingCategory] = useState<JournalCategory | null>(
     null
   );
+  const [resyncing, setResyncing] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
@@ -541,6 +542,30 @@ export function JournalResponsiblesClient({
     });
   }
 
+  async function resyncAll() {
+    if (resyncing) return;
+    setResyncing(true);
+    try {
+      const res = await fetch(
+        "/api/settings/journal-responsibles/resync-all",
+        { method: "POST" }
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error ?? "Ошибка resync");
+        return;
+      }
+      toast.success(
+        `Перезаписано документов: ${data?.documentsUpdated ?? 0} (${data?.journalsProcessed ?? 0} журналов)`
+      );
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setResyncing(false);
+    }
+  }
+
   function toggleCategory(cat: JournalCategory) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -566,6 +591,21 @@ export function JournalResponsiblesClient({
             <Wand2 className="size-4" />
           )}
           Применить умные пресеты ко всем
+        </button>
+
+        <button
+          type="button"
+          onClick={resyncAll}
+          disabled={resyncing}
+          title="Перезаписать ФИО ответственных в шапке всех активных документов на текущие из настроек. Полезно если документы создавались до изменений."
+          className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {resyncing ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Sparkles className="size-4 text-[#5566f6]" />
+          )}
+          Перезаписать в документах
         </button>
 
         <div className="relative ml-auto flex items-center">
