@@ -21,21 +21,40 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  // Базовая валидация — раньше принимали что угодно. Пустой title
+  // или title-как-объект ломал UI и Prisma бросала truncate-error.
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body.title !== "string" || body.title.trim().length === 0) {
+    return NextResponse.json({ error: "Заголовок обязателен" }, { status: 400 });
+  }
+
+  const VALID_TYPES = ["recipe", "supplier", "process", "equipment", "other"];
+  const changeType =
+    typeof body.changeType === "string" && VALID_TYPES.includes(body.changeType)
+      ? body.changeType
+      : "recipe";
+
+  const orgId = getActiveOrgId(session);
 
   // Auto-increment version
   const lastChange = await db.changeRequest.findFirst({
-    where: { organizationId: getActiveOrgId(session) },
+    where: { organizationId: orgId },
     orderBy: { version: "desc" },
   });
 
   const change = await db.changeRequest.create({
     data: {
-      organizationId: getActiveOrgId(session),
-      title: body.title,
-      changeType: body.changeType || "recipe",
-      description: body.description || null,
-      riskAssessment: body.riskAssessment || null,
+      organizationId: orgId,
+      title: body.title.trim().slice(0, 200),
+      changeType,
+      description:
+        typeof body.description === "string"
+          ? body.description.slice(0, 5000)
+          : null,
+      riskAssessment:
+        typeof body.riskAssessment === "string"
+          ? body.riskAssessment.slice(0, 5000)
+          : null,
       version: (lastChange?.version || 0) + 1,
       requestedById: session.user.id,
     },

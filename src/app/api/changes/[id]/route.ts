@@ -19,16 +19,40 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
 
-  if (body.status) {
+  // Allowlist валидация status — без неё кто-то мог поставить
+  // "yolo" в БД, ломая UI-фильтр и audit-flow.
+  const VALID_STATUSES = [
+    "requested",
+    "pending",
+    "approved",
+    "rejected",
+    "implemented",
+    "cancelled",
+  ];
+  if (typeof body.status === "string" && VALID_STATUSES.includes(body.status)) {
     data.status = body.status;
     if (body.status === "approved") data.approvedById = session.user.id;
     if (body.status === "implemented") data.implementedAt = new Date();
   }
-  if (body.riskAssessment !== undefined) data.riskAssessment = body.riskAssessment;
-  if (body.testBatchResult !== undefined) data.testBatchResult = body.testBatchResult;
+  // riskAssessment/testBatchResult — string или null. Раньше принимали
+  // любой type, что ломало Prisma при попытке записать object/array.
+  if (body.riskAssessment !== undefined) {
+    if (body.riskAssessment === null) {
+      data.riskAssessment = null;
+    } else if (typeof body.riskAssessment === "string") {
+      data.riskAssessment = body.riskAssessment.slice(0, 5000);
+    }
+  }
+  if (body.testBatchResult !== undefined) {
+    if (body.testBatchResult === null) {
+      data.testBatchResult = null;
+    } else if (typeof body.testBatchResult === "string") {
+      data.testBatchResult = body.testBatchResult.slice(0, 5000);
+    }
+  }
 
   const updated = await db.changeRequest.update({ where: { id }, data });
   return NextResponse.json(updated);
