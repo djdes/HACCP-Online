@@ -197,11 +197,10 @@ export const authOptions: NextAuthOptions = {
             ? token.actingAsOrganizationId
             : null;
 
-        // Live-refresh organizationName из БД. JWT кэширует имя на момент
-        // login и больше его не обновляет, поэтому при переименовании
-        // организации старое имя «прилипает» в шапке у залогиненного
-        // пользователя до релогина. Один лёгкий запрос (только name)
-        // решает это без необходимости в logout/login.
+        // Live-refresh organizationName + permissionPreset из БД. JWT
+        // кэширует на момент login и больше не обновляется, поэтому
+        // переименование org или смена preset'а админом «прилипает» к
+        // юзеру до релогина. Один запрос (org + user fields) решает.
         try {
           const activeOrgId =
             session.user.isRoot &&
@@ -209,8 +208,8 @@ export const authOptions: NextAuthOptions = {
             session.user.actingAsOrganizationId.length > 0
               ? session.user.actingAsOrganizationId
               : session.user.organizationId;
+          const { db } = await import("@/lib/db");
           if (activeOrgId) {
-            const { db } = await import("@/lib/db");
             const fresh = await db.organization.findUnique({
               where: { id: activeOrgId },
               select: { name: true },
@@ -219,8 +218,17 @@ export const authOptions: NextAuthOptions = {
               session.user.organizationName = fresh.name;
             }
           }
+          if (session.user.id) {
+            const freshUser = await db.user.findUnique({
+              where: { id: session.user.id },
+              select: { permissionPreset: true },
+            });
+            if (freshUser) {
+              session.user.permissionPreset = freshUser.permissionPreset ?? null;
+            }
+          }
         } catch {
-          /* fall back to cached token name */
+          /* fall back to cached token values */
         }
       }
       return session;
