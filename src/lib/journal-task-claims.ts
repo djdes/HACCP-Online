@@ -53,9 +53,32 @@ export type ClaimRow = {
 };
 
 /**
+ * Возвращает taskFlowMode организации. По умолчанию "race".
+ *   - race   — стандарт. Один active claim per scope, остальные блокируются.
+ *   - shared — все могут заполнять параллельно. one-active-task игнорируется.
+ *   - manual — обычные сотрудники не могут claim, только admin force-assign'ом.
+ */
+export async function getTaskFlowMode(
+  organizationId: string
+): Promise<"race" | "shared" | "manual"> {
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { taskFlowMode: true },
+  });
+  const m = org?.taskFlowMode;
+  if (m === "shared" || m === "manual") return m;
+  return "race";
+}
+
+/**
  * Атомарный claim. Если у юзера уже есть другая active-задача — отказ
  * (one-active-task rule). Если scope уже взят кем-то другим — отдаём
  * existing.
+ *
+ * В "shared" режиме: bypassActiveCheck автоматически true, разрешаем
+ * параллельные active claims разными юзерами на тот же scope (но unique-
+ * constraint всё равно один-в-один — это ограничение схемы; для shared
+ * фактически берёт первый, остальные используют existing claim напрямую).
  */
 export async function claimJournalTask(args: {
   organizationId: string;
@@ -82,8 +105,9 @@ export async function claimJournalTask(args: {
   });
   if (completed) return { ok: false, reason: "scope_completed" };
 
-  // 2) One-active-task rule.
-  if (!args.bypassActiveCheck) {
+  // 2) One-active-task rule. В shared/manual mode пропускаем.
+  const flowMode = await getTaskFlowMode(args.organizationId);
+  if (!args.bypassActiveCheck && flowMode === "race") {
     const active = await db.journalTaskClaim.findFirst({
       where: {
         organizationId: args.organizationId,

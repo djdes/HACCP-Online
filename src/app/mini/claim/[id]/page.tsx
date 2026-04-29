@@ -332,6 +332,19 @@ export default function ClaimPage({
   const [warnings, setWarnings] = useState<{ message: string }[]>([]);
   const [skipMode, setSkipMode] = useState(false);
   const [skipReason, setSkipReason] = useState("");
+  const [pipeline, setPipeline] = useState<{
+    intro?: string;
+    steps: Array<{
+      id: string;
+      title: string;
+      instruction?: string;
+      checklist?: string[];
+      requirePhoto?: boolean;
+    }>;
+  } | null>(null);
+  const [pipelineProgress, setPipelineProgress] = useState<Record<string, boolean>>(
+    {}
+  );
 
   useEffect(() => {
     (async () => {
@@ -340,8 +353,16 @@ export default function ClaimPage({
         const j = (await res.json()) as { claim: Claim | null };
         if (j.claim && j.claim.id === id) {
           setClaim(j.claim);
+          // Параллельно — pipeline для этого journalCode (если есть).
+          fetch(`/api/journal-pipelines/${j.claim.journalCode}`, {
+            cache: "force-cache",
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((p) => {
+              if (p?.pipeline) setPipeline(p.pipeline);
+            })
+            .catch(() => null);
         } else {
-          // Если my вернул другой active или null — fetch /my или показать ошибку
           setError("Не нашёл активную задачу с этим ID. Возможно, она уже завершена.");
         }
       }
@@ -355,10 +376,27 @@ export default function ClaimPage({
     setSubmitting(true);
     setError(null);
     try {
+      // Если pipeline — используем прогресс шагов как data; иначе — form data.
+      const payload =
+        pipeline && pipeline.steps.length > 0
+          ? {
+              pipelineCompleted: true,
+              steps: pipeline.steps.map((s) => ({
+                id: s.id,
+                title: s.title,
+                done: Boolean(pipelineProgress[s.id]),
+                checklist: (s.checklist ?? []).map((item, i) => ({
+                  item,
+                  done: Boolean(pipelineProgress[`${s.id}::cl::${i}`]),
+                })),
+              })),
+              ...data,
+            }
+          : data;
       const res = await fetch(`/api/journal-task-claims/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete", data }),
+        body: JSON.stringify({ action: "complete", data: payload }),
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) {
@@ -445,7 +483,101 @@ export default function ClaimPage({
         </div>
       </header>
 
-      {form ? (
+      {/* Pipeline — пошаговая инструкция. Имеет приоритет над form. */}
+      {pipeline && pipeline.steps.length > 0 ? (
+        <div className="space-y-3">
+          {pipeline.intro ? (
+            <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-3 text-[13px] text-[#3c4053]">
+              {pipeline.intro}
+            </div>
+          ) : null}
+          <div className="relative space-y-3 pl-4">
+            <div
+              className="absolute left-[19px] top-2 bottom-2 w-px"
+              style={{ background: "#dcdfed" }}
+            />
+            {pipeline.steps.map((step, idx) => {
+              const done = Boolean(pipelineProgress[step.id]);
+              return (
+                <div
+                  key={step.id}
+                  className={`relative ml-4 rounded-2xl border p-4 transition-colors ${
+                    done
+                      ? "border-[#c8f0d5] bg-[#ecfdf5]"
+                      : "border-[#dcdfed] bg-white"
+                  }`}
+                >
+                  <div
+                    className={`absolute -left-[24px] top-4 flex size-8 items-center justify-center rounded-full text-[12px] font-bold ${
+                      done
+                        ? "bg-[#136b2a] text-white"
+                        : "bg-[#5566f6] text-white"
+                    }`}
+                  >
+                    {done ? "✓" : idx + 1}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPipelineProgress((p) => ({ ...p, [step.id]: !p[step.id] }))
+                    }
+                    className="block w-full text-left"
+                  >
+                    <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
+                      {step.title}
+                    </div>
+                    {step.instruction ? (
+                      <div className="mt-1 text-[13px] leading-relaxed text-[#3c4053]">
+                        {step.instruction}
+                      </div>
+                    ) : null}
+                  </button>
+                  {step.checklist && step.checklist.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {step.checklist.map((item, i) => {
+                        const itemKey = `${step.id}::cl::${i}`;
+                        const itemDone = Boolean(pipelineProgress[itemKey]);
+                        return (
+                          <li key={i} className="flex items-start gap-2 text-[13px]">
+                            <input
+                              type="checkbox"
+                              checked={itemDone}
+                              onChange={() =>
+                                setPipelineProgress((p) => ({
+                                  ...p,
+                                  [itemKey]: !p[itemKey],
+                                }))
+                              }
+                              className="mt-0.5 size-4 shrink-0 accent-[#5566f6]"
+                            />
+                            <span
+                              className={
+                                itemDone
+                                  ? "text-[#136b2a] line-through"
+                                  : "text-[#0b1024]"
+                              }
+                            >
+                              {item}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                  {step.requirePhoto ? (
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#fff8eb] px-2.5 py-1 text-[11px] text-[#a13a32]">
+                      📷 Требуется фото
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-3 text-[12px] text-[#6f7282]">
+            Когда все шаги выполнены — нажми «Завершить» внизу.
+          </div>
+        </div>
+      ) : form ? (
         <div className="space-y-3">
           {form.fields.map((f) => (
             <FieldInput

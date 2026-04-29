@@ -39,8 +39,25 @@ export type ScopeContext = {
 
 /**
  * Главный validator dispatcher.
+ *
+ * Если payload содержит `pipelineCompleted:true` — это pipeline-flow,
+ * валидируем только что хотя бы один step done. Остальная валидация
+ * не применяется — в pipeline сотрудник идёт по шагам, а не по полям.
  */
 export async function validateCompletion(ctx: ScopeContext): Promise<ValidationResult> {
+  if (ctx.data.pipelineCompleted === true) {
+    const steps = Array.isArray(ctx.data.steps) ? (ctx.data.steps as Array<{ done?: boolean }>) : [];
+    const doneCount = steps.filter((s) => s.done === true).length;
+    if (doneCount === 0) {
+      return {
+        ok: false,
+        errors: [{ message: "Отметьте хотя бы один шаг как выполненный" }],
+        warnings: [],
+        sideEffects: [],
+      };
+    }
+    return { ok: true, errors: [], warnings: [], sideEffects: [] };
+  }
   switch (ctx.journalCode) {
     case "cold_equipment_control":
       return validateColdEquipment(ctx);

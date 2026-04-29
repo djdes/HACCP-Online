@@ -101,6 +101,19 @@ model Organization {
   /// месяца: N=10 → 1-10 / 11-20 / 21-end. Управляется через
   /// /settings/journals (period column).
   journalPeriods           Json                       @default("{}")
+  /// Race-claim mode: "race" (default) — задачи блокируются после
+  /// claim, остальные видят «занято». "shared" — все могут заполнять
+  /// задачу одновременно, без one-active-task rule. "manual" —
+  /// задачи назначаются админом точечно (force-assign).
+  /// Управляется в /settings/role-presets или /settings/journal-flow.
+  taskFlowMode             String                     @default("race")
+  /// Pipeline-конфиги per-journal — JSON c шагами (название, средства,
+  /// зона, что делать). Загружается в Mini App при открытии задачи и
+  /// рендерится как вертикальный pipeline вместо свободной формы.
+  /// Структура: { "<journalCode>": { "pipeline": [ { id, label,
+  /// instruction?, checklist?: string[] } ] } }.
+  /// Управляется в /settings/journal-pipelines.
+  journalPipelinesJson     Json                       @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
