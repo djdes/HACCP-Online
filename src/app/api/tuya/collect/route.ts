@@ -9,14 +9,15 @@ import {
   autofillClimateReading,
 } from "@/lib/iot-auto-fill";
 import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 export async function POST(request: Request) {
   try {
-    // Verify cron secret to prevent unauthorized calls
+    // Verify cron secret to prevent unauthorized calls (constant-time).
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get("secret");
 
-    if (secret !== process.env.TUYA_CRON_SECRET) {
+    if (!timingSafeEqualStrings(secret, process.env.TUYA_CRON_SECRET)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

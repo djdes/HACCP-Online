@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ensureBotInit, getInboundBot } from "@/lib/bot/bot-app";
 import { telegramWebhookRateLimiter } from "@/lib/rate-limit";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 /**
  * Telegram pushes updates to this endpoint.
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const provided = req.headers.get("x-telegram-bot-api-secret-token");
-  if (provided !== secret) {
+  if (!timingSafeEqualStrings(provided, secret)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

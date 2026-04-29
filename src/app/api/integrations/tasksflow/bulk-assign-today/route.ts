@@ -32,6 +32,7 @@ import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
 import { notifyManagement, type NotificationItem } from "@/lib/notifications";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,10 +116,10 @@ export async function POST(request: Request) {
     /* пустое тело — fall through */
   }
   const force = body?.force === true;
-  const isInternal =
-    !!internalSecret &&
-    !!process.env.INTERNAL_TRIGGER_SECRET &&
-    internalSecret === process.env.INTERNAL_TRIGGER_SECRET;
+  const isInternal = timingSafeEqualStrings(
+    internalSecret,
+    process.env.INTERNAL_TRIGGER_SECRET
+  );
 
   let organizationId: string;
   let actingUser: { id: string; name: string | null; email: string | null };
