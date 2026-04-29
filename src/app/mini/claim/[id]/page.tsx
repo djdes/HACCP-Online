@@ -373,6 +373,33 @@ export default function ClaimPage({
 
   async function submit() {
     if (!claim) return;
+
+    // Клиент-side проверка required-полей. Сотрудник без опыта работы
+    // с PC не должен видеть «Ошибка валидации: temperature: required»
+    // от сервера — он не поймёт что это значит. Подсветим конкретное
+    // поле названием на русском и сразу.
+    if (form && (!pipeline || pipeline.steps.length === 0)) {
+      const missing = form.fields
+        .filter((f) => f.required)
+        .filter((f) => {
+          const v = data[f.key];
+          if (f.type === "checkbox") return false; // checkbox required не используем
+          return v === undefined || v === null || v === "";
+        });
+      if (missing.length > 0) {
+        setError(`Заполни поле: «${missing[0].label}»`);
+        return;
+      }
+      // Также ловим NaN — пользователь ввёл буквы вместо чисел.
+      const badNumber = form.fields.find(
+        (f) => f.type === "number" && typeof data[f.key] === "number" && Number.isNaN(data[f.key] as number)
+      );
+      if (badNumber) {
+        setError(`В поле «${badNumber.label}» нужно число, не буквы.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError(null);
     try {
