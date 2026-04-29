@@ -13,6 +13,7 @@ import {
   type TasksFlowUser,
   tasksflowClient,
 } from "@/lib/tasksflow-client";
+import { isPublicHttpsUrl } from "@/lib/url-allowlist";
 import { syncTasksflowUsers } from "@/lib/tasksflow-user-sync";
 
 export const runtime = "nodejs";
@@ -86,7 +87,13 @@ async function getIntegrationStatus() {
 }
 
 const connectSchema = z.object({
-  baseUrl: z.string().url("Введите валидный URL TasksFlow"),
+  baseUrl: z
+    .string()
+    .url("Введите валидный URL TasksFlow")
+    .refine(
+      isPublicHttpsUrl,
+      "URL должен быть публичным http(s) — internal/localhost адреса запрещены"
+    ),
   apiKey: z
     .string()
     .trim()

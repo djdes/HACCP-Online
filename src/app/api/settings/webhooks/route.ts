@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { isPublicHttpsUrl } from "@/lib/url-allowlist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,10 +13,21 @@ export const dynamic = "force-dynamic";
  *
  * GET — получить текущий список (без значений токенов).
  * PUT { urls: string[] } — заменить полностью.
+ *
+ * Webhook URL'ы дёргаются сервером по сети — без allowlist'а
+ * менеджер может настроить SSRF-зонд (AWS-metadata, internal services).
+ * Поэтому каждый URL валидируется через isPublicHttpsUrl.
  */
 
 const Schema = z.object({
-  urls: z.array(z.string().url()).max(10),
+  urls: z
+    .array(
+      z.string().url().refine(
+        isPublicHttpsUrl,
+        "URL должен быть публичным http(s) — internal/localhost адреса запрещены"
+      )
+    )
+    .max(10),
 });
 
 export async function GET() {
