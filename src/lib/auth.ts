@@ -105,6 +105,7 @@ export const authOptions: NextAuthOptions = {
           organizationId: user.organizationId,
           organizationName: user.organization.name,
           isRoot: user.isRoot === true,
+          permissionPreset: user.permissionPreset ?? null,
         };
       },
     }),
@@ -146,6 +147,7 @@ export const authOptions: NextAuthOptions = {
           organizationId: user.organizationId,
           organizationName: user.organization.name,
           isRoot: user.isRoot === true,
+          permissionPreset: user.permissionPreset ?? null,
         };
       },
     }),
@@ -159,12 +161,14 @@ export const authOptions: NextAuthOptions = {
           organizationId: string;
           organizationName: string;
           isRoot?: boolean;
+          permissionPreset?: string | null;
         };
         token.id = u.id;
         token.role = u.role;
         token.organizationId = u.organizationId;
         token.organizationName = u.organizationName;
         token.isRoot = u.isRoot === true;
+        token.permissionPreset = u.permissionPreset ?? null;
         token.actingAsOrganizationId = null;
       }
       // Impersonation: root clicks "View as <org>" or "Stop" and the
@@ -186,6 +190,8 @@ export const authOptions: NextAuthOptions = {
         session.user.organizationId = token.organizationId as string;
         session.user.organizationName = token.organizationName as string;
         session.user.isRoot = token.isRoot === true;
+        session.user.permissionPreset =
+          typeof token.permissionPreset === "string" ? token.permissionPreset : null;
         session.user.actingAsOrganizationId =
           typeof token.actingAsOrganizationId === "string"
             ? token.actingAsOrganizationId

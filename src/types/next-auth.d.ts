@@ -15,6 +15,13 @@ declare module "next-auth" {
        * instead of organizationId directly to honour this.
        */
       actingAsOrganizationId: string | null;
+      /**
+       * Permission preset overlay поверх legacy `role`. Управляет:
+       *   - terminology (admin видит «журналы», остальные «задачи»);
+       *   - capabilities (что может видеть/делать).
+       * null → fallback на role.
+       */
+      permissionPreset: string | null;
     } & DefaultSession["user"];
   }
 }
@@ -27,5 +34,6 @@ declare module "next-auth/jwt" {
     organizationName: string;
     isRoot: boolean;
     actingAsOrganizationId: string | null;
+    permissionPreset: string | null;
   }
 }
