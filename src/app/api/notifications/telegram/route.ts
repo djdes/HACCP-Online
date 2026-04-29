@@ -6,16 +6,24 @@ import {
   parseLinkToken,
   sendTelegramMessage,
 } from "@/lib/telegram";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 export async function POST(request: Request) {
   try {
-    // Verify webhook secret if configured
+    // Защита webhook'а: secret из env обязателен. Раньше: если в env
+    // не было TELEGRAM_WEBHOOK_SECRET — проверка СКИПАЛАСЬ и любой
+    // мог постить fake-update'ы (привязать чужой аккаунт через /start
+    // с подменённым chatId, отвязать через /stop, спам).
     const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const headerSecret = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
-      if (headerSecret !== webhookSecret) {
-        return NextResponse.json({ ok: false }, { status: 403 });
-      }
+    if (!webhookSecret) {
+      return NextResponse.json(
+        { ok: false, error: "Webhook secret not configured" },
+        { status: 503 }
+      );
+    }
+    const headerSecret = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    if (!timingSafeEqualStrings(headerSecret, webhookSecret)) {
+      return NextResponse.json({ ok: false }, { status: 403 });
     }
 
     const update = await request.json();
