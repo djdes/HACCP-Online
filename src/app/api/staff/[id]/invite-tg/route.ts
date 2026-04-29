@@ -7,7 +7,7 @@ import {
   StaffTelegramInviteError,
   issueStaffTelegramInvite,
 } from "@/lib/staff-telegram-invite";
-import { isManagerRole } from "@/lib/user-roles";
+import { isManagementRole } from "@/lib/user-roles";
 
 /**
  * POST /api/staff/[id]/invite-tg
@@ -27,7 +27,9 @@ export async function POST(
   if (!session) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
-  if (!isManagerRole(session.user.role) && !session.user.isRoot) {
+  // head_chef нанимает / приглашает поваров напрямую — должен мочь
+  // выпустить TG-invite наравне с manager'ом. Раньше: только manager.
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 

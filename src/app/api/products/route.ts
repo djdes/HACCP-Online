@@ -3,7 +3,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { isManagerRole } from "@/lib/user-roles";
+import { isManagementRole } from "@/lib/user-roles";
 
 export async function GET() {
   try {
@@ -131,7 +131,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagerRole(session.user.role)) {
+    // head_chef управляет производством и кладовкой — должен мочь
+    // удалять/чистить product-каталог наравне с manager'ом. Раньше:
+    // только manager → head_chef получал 403.
+    if (!isManagementRole(session.user.role)) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
