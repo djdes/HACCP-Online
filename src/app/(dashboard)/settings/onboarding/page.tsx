@@ -29,6 +29,7 @@ import {
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
+import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,7 @@ export default async function OnboardingPage() {
     bonusJournalsCount,
     activeTemplatesCount,
     journalsWithResponsiblesCount,
+    activeDocumentsCount,
   ] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
@@ -132,6 +134,9 @@ export default async function OnboardingPage() {
       .then(
         (rows) => rows.filter((r) => r._count.positionAccess > 0).length
       ),
+    db.journalDocument.count({
+      where: { organizationId, status: "active" },
+    }),
   ]);
 
   const disabled = Array.isArray(org?.disabledJournalCodes)
@@ -463,6 +468,25 @@ export default async function OnboardingPage() {
 
   const isReady = requiredDone === required.length;
 
+  // Префлайт для CTA «Создать документы». Считаем готовность по тем
+  // же параметрам, что и required-карточки, но в человеческих
+  // формулировках для подсказки юзеру что именно ещё надо сделать.
+  const finishMissing: string[] = [];
+  if (positionsCount === 0) finishMissing.push("Создайте должности");
+  if (activeUsersCount < 2) finishMissing.push("Добавьте сотрудников");
+  if (buildingsCount === 0)
+    finishMissing.push("Заведите здания и помещения (для уборки)");
+  if (equipmentCount === 0)
+    finishMissing.push("Добавьте оборудование (холодильники)");
+  if (enabledTemplatesCount === 0)
+    finishMissing.push("Включите хотя бы один журнал");
+  if (
+    enabledTemplatesCount > 0 &&
+    journalsWithResponsiblesCount === 0
+  )
+    finishMissing.push("Назначьте ответственных за журналы");
+  const finishReady = finishMissing.length === 0;
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
@@ -527,6 +551,16 @@ export default async function OnboardingPage() {
         accent="warn"
         items={required}
       />
+
+      {/* Финальный CTA — блок становится «доступным» только когда
+          обязательные шаги (должности, сотрудники, журналы,
+          ответственные) проставлены. Один клик — создаёт документы. */}
+      <OnboardingFinishCta
+        prereqsReady={finishReady}
+        missing={finishMissing}
+        activeDocumentsCount={activeDocumentsCount}
+      />
+
       <SectionGroup
         title="Рекомендуемое"
         subtitle="По приоритету — каждое усиливает систему"

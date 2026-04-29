@@ -74,13 +74,41 @@ function pickTemperature(data: unknown): number | null {
   return null;
 }
 
+/**
+ * Считает значение «пустым» — null, undefined, "", " ", или объект
+ * без значимых полей (все вложенные значения тоже пустые).
+ * Используется streak-detector'ом, чтобы не считать «14 дней
+ * пробелы / нули» подозрительной серией.
+ */
+function isEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "boolean") return false;
+  if (typeof value === "number") return false;
+  if (Array.isArray(value)) return value.every(isEmptyValue);
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === "_autoSeeded") continue; // service marker — не значимое поле
+      if (!isEmptyValue(v)) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 function stableHash(data: unknown): string {
-  // Достаточно стабильно для streak-detection: JSON.stringify с
-  // отсортированными ключами.
+  // Если в data только пустые/whitespace-значения — возвращаем
+  // спец-маркер EMPTY. Streak-detector пропускает entries с этим
+  // хешем — иначе «не заполненные подряд дни» считались бы
+  // «одинаковыми значениями» (false positive).
+  if (isEmptyValue(data)) return "__EMPTY__";
   if (data === null || data === undefined) return "null";
   if (typeof data !== "object") return JSON.stringify(data);
   const obj = data as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj)
+    .filter((k) => k !== "_autoSeeded")
+    .sort();
   const out: Record<string, unknown> = {};
   for (const k of keys) out[k] = obj[k];
   return JSON.stringify(out);
@@ -106,11 +134,15 @@ export async function GET() {
   const start = new Date(today);
   start.setUTCDate(start.getUTCDate() - 14);
 
-  // Берём все записи за 14 дней по этой организации.
+  // Берём все записи за 14 дней по этой организации. Исключаем
+  // _autoSeeded-плейсхолдеры (создаются при пересоздании документа,
+  // ещё не заполнены сотрудником) — иначе streak-detector видит их
+  // как «14 дней одинаковые» и шлёт ложные warning'и.
   const entries = await db.journalDocumentEntry.findMany({
     where: {
       date: { gte: start, lte: today },
       document: { organizationId },
+      NOT: { data: { path: ["_autoSeeded"], equals: true } },
     },
     select: {
       id: true,
@@ -171,17 +203,22 @@ export async function GET() {
   }
 
   for (const arr of grouped.values()) {
+    // Фильтруем «пустые» entries — они не должны участвовать в
+    // streak-детекции. Пустота — это не подозрительное копирование,
+    // это просто незаполненные дни.
+    const filled = arr.filter((e) => stableHash(e.data) !== "__EMPTY__");
+    if (filled.length < 5) continue;
     // Уже отсортированы по date asc.
     let streak = 1;
-    let lastHash = arr.length > 0 ? stableHash(arr[0].data) : "";
-    for (let i = 1; i < arr.length; i += 1) {
-      const cur = stableHash(arr[i].data);
+    let lastHash = stableHash(filled[0].data);
+    for (let i = 1; i < filled.length; i += 1) {
+      const cur = stableHash(filled[i].data);
       if (cur === lastHash) {
         streak += 1;
       } else {
         // Streak end — flag if it was big enough.
         if (streak >= 5) {
-          const tail = arr[i - 1];
+          const tail = filled[i - 1];
           anomalies.push({
             kind: "identical_streak",
             severity: "info",
@@ -200,8 +237,8 @@ export async function GET() {
         lastHash = cur;
       }
     }
-    if (streak >= 5 && arr.length > 0) {
-      const tail = arr[arr.length - 1];
+    if (streak >= 5) {
+      const tail = filled[filled.length - 1];
       anomalies.push({
         kind: "identical_streak",
         severity: "info",
