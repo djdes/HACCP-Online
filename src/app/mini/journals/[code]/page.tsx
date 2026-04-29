@@ -5,6 +5,25 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
 import { PhotoLightbox } from "../../_components/photo-lightbox";
+import { JournalTaskPool } from "../../_components/task-pool";
+
+/**
+ * Журналы где работает task-pool с race-claim'ами. Если шаблон в этом
+ * списке — рисуем pool ВВЕРХУ страницы с кнопками «Взять».
+ */
+const POOL_JOURNAL_CODES = new Set([
+  "hygiene",
+  "health_check",
+  "cold_equipment_control",
+  "climate_control",
+  "cleaning",
+  "incoming_control",
+  "finished_product",
+  "disinfectant_usage",
+  "fryer_oil",
+  "accident_journal",
+  "complaint_register",
+]);
 
 type EntryItem = {
   id: string;
@@ -103,6 +122,22 @@ export default function MiniJournalPage({
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
           {copyMsg}
         </div>
+      ) : null}
+
+      {POOL_JOURNAL_CODES.has(code) ? (
+        <section className="space-y-2">
+          <div className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+            Сегодняшние задачи
+          </div>
+          <JournalTaskPool
+            code={code}
+            buildEntryPath={(scope) =>
+              scope.journalDocumentId
+                ? `/mini/documents/${scope.journalDocumentId}`
+                : `/mini/journals/${code}/new`
+            }
+          />
+        </section>
       ) : null}
 
       {payload.isDocument ? (
