@@ -11,6 +11,7 @@ import {
   CreditCard,
   FileSpreadsheet,
   KeyRound,
+  ListChecks,
   Package,
   Phone,
   Sparkles,
@@ -18,6 +19,7 @@ import {
   ScrollText,
   Settings2,
   ShieldCheck,
+  Shuffle,
   CalendarRange,
   Users,
   Wrench,
@@ -96,6 +98,33 @@ const settingsCards = [
     icon: ClipboardList,
     iconClass: "text-[#d946ef]",
     bgClass: "bg-[#fdf4ff]",
+  },
+  {
+    title: "Настройки журналов (pipeline)",
+    description:
+      "Pipeline-инструкции для каждого журнала — что взять, куда идти, что делать",
+    href: "/settings/journal-pipelines",
+    icon: ListChecks,
+    iconClass: "text-[#5566f6]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
+    title: "Режим распределения задач",
+    description:
+      "Как сотрудники получают задачи: гонка / свободно / только админ",
+    href: "/settings/journal-flow",
+    icon: Shuffle,
+    iconClass: "text-[#7a5cff]",
+    bgClass: "bg-[#f0edff]",
+  },
+  {
+    title: "Пресеты ролей",
+    description:
+      "Какие возможности у каждого preset'а (admin / head_chef / cook / …)",
+    href: "/settings/role-presets",
+    icon: ShieldCheck,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
   },
   {
     title: "Периоды журналов",
