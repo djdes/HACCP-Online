@@ -37,12 +37,13 @@ export function JournalsProgressClient() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function load(silent = false) {
+  async function load(silent = false, signal?: AbortSignal) {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
       const res = await fetch("/api/journals/today-status", {
         cache: "no-store",
+        signal,
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -52,6 +53,8 @@ export function JournalsProgressClient() {
       setItems(data.items ?? []);
       setCounts(data.counts ?? { untouched: 0, in_progress: 0, completed: 0 });
     } catch (err) {
+      // AbortError при unmount — игнорируем, это штатный сценарий.
+      if (err instanceof DOMException && err.name === "AbortError") return;
       toast.error(err instanceof Error ? err.message : "Ошибка сети");
     } finally {
       setLoading(false);
@@ -60,12 +63,21 @@ export function JournalsProgressClient() {
   }
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    load(false, ctrl.signal);
     // Авто-обновление раз в 60 секунд — пока заведующая открыла страницу,
     // данные подтягиваются «вживую» по мере того как сотрудники
-    // заполняют журналы.
-    const interval = setInterval(() => load(true), 60_000);
-    return () => clearInterval(interval);
+    // заполняют журналы. Не дёргаем сервер, если вкладка скрыта
+    // (visibilityState != 'visible') — экономим запросы.
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load(true, ctrl.signal);
+    }, 60_000);
+    return () => {
+      clearInterval(interval);
+      ctrl.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inProgress = items.filter((i) => i.status === "in_progress");

@@ -18,6 +18,13 @@ type BulkAssignResult = {
     skipReason?: string;
     documentAutoCreated?: boolean;
   }>;
+  tfUserSync?: {
+    attempted: boolean;
+    created: number;
+    linked: number;
+    withoutPhone: number;
+    failures: number;
+  };
 };
 
 /**
@@ -81,6 +88,30 @@ export function BulkAssignTodayButton({
         }
       } else {
         toast.success(formatBulkAssignToastMessage(result));
+      }
+      // Подсветить tfUserSync результат отдельным тостом, если есть
+      // что показать — иначе непонятно почему N сотрудников без TF
+      // не получили задачи.
+      const tfSync = result.tfUserSync;
+      if (tfSync?.attempted) {
+        if (tfSync.created > 0) {
+          toast.success(
+            `Создано в TasksFlow ${tfSync.created} новых сотрудник(ов)`,
+            { duration: 4000 }
+          );
+        }
+        if (tfSync.withoutPhone > 0) {
+          toast.warning(
+            `${tfSync.withoutPhone} сотрудник(ов) без телефона — задачи в TasksFlow не получат. Заведите phone в /settings/users.`,
+            { duration: 7000 }
+          );
+        }
+        if (tfSync.failures > 0) {
+          toast.error(
+            `TF-sync: ${tfSync.failures} ошибок при создании юзеров. Проверьте /settings/integrations/tasksflow.`,
+            { duration: 7000 }
+          );
+        }
       }
       router.refresh();
     } catch (err) {
