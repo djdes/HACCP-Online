@@ -7,9 +7,6 @@ import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const secret = searchParams.get("secret");
-
     {
     const cronAuth = checkCronSecret(request);
     if (cronAuth) return cronAuth;

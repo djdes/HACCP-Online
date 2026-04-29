@@ -23,8 +23,6 @@ export const dynamic = "force-dynamic";
  * skip.
  */
 async function handle(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
   {
     const cronAuth = checkCronSecret(request);
     if (cronAuth) return cronAuth;
