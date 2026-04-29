@@ -8,7 +8,16 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import crypto from "crypto";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+type AllowedType = (typeof ALLOWED_TYPES)[number];
+// Расширение берём ОТ mime-type, не от имени файла. Иначе можно
+// загрузить shell.php с jpeg-контентом — на disk сохранится .php.
+// На текущем prod-сетапе nginx PHP не выполняет, но defense-in-depth.
+const EXT_BY_TYPE: Record<AllowedType, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(req: NextRequest) {
@@ -26,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file" }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type as AllowedType)) {
       return NextResponse.json(
         { error: "Invalid file type. Use JPG, PNG, or WebP." },
         { status: 400 }
@@ -40,7 +49,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ext = file.name.split(".").pop() ?? "jpg";
+    // Multi-tenant scope: если entryId указан — он должен принадлежать
+    // активной организации юзера. Иначе IDOR: cross-tenant attach,
+    // плюс при несуществующем entryId Prisma бросает FK error → 500
+    // вместо понятного 404.
+    if (entryId) {
+      const entry = await db.journalEntry.findFirst({
+        where: { id: entryId, organizationId: getActiveOrgId(session) },
+        select: { id: true },
+      });
+      if (!entry) {
+        return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+      }
+    }
+
+    const ext = EXT_BY_TYPE[file.type as AllowedType];
     const hash = crypto.randomBytes(8).toString("hex");
     const filename = `${hash}.${ext}`;
     const bytes = await file.arrayBuffer();
