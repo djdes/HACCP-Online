@@ -12,6 +12,7 @@ import {
   type SideEffect,
 } from "@/lib/journal-completion-validators";
 import { notifyOrganization } from "@/lib/telegram";
+import { mirrorClaimToTasksFlow } from "@/lib/tasksflow-claim-mirror";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +104,18 @@ export async function POST(
       { ok: false, reason: result.reason ?? "internal_error" },
       { status: map[result.reason ?? ""] ?? 500 }
     );
+  }
+
+  // После успеха — зеркалим в TasksFlow (background, не блокирует ответ).
+  const mirrorClaim = await db.journalTaskClaim.findUnique({ where: { id } });
+  if (mirrorClaim) {
+    void mirrorClaimToTasksFlow({
+      organizationId: mirrorClaim.organizationId,
+      journalCode: mirrorClaim.journalCode,
+      scopeKey: mirrorClaim.scopeKey,
+      userId: mirrorClaim.userId,
+      event: body.action === "complete" ? "complete" : "release",
+    }).catch(() => null);
   }
   return NextResponse.json({ ok: true, warnings: validationWarnings });
 }

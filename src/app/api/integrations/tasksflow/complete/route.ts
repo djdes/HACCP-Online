@@ -181,6 +181,24 @@ export async function POST(request: Request) {
     },
   });
 
+  // Зеркалим completion-event в наш JournalTaskClaim, если он есть.
+  // Сотрудник в TF Telegram нажал «Готово» — в WeSetup mini-app сразу
+  // видно «Готово · Иванов».
+  try {
+    const { syncTasksFlowCompletionToClaim } = await import(
+      "@/lib/tasksflow-claim-mirror"
+    );
+    await syncTasksFlowCompletionToClaim({
+      organizationId: integration.organizationId,
+      journalCode: link.journalCode,
+      scopeKey: link.rowKey,
+      isCompleted: payload.isCompleted,
+      tasksFlowTaskId: payload.taskId,
+    });
+  } catch (err) {
+    console.error("[tasksflow-complete] sync to claim failed", err);
+  }
+
   // Записываем audit AFTER успешной apply — иначе при ошибке adapter'а
   // следующий retry сразу dedupнется и журнал останется без записи.
   await db.auditLog.create({

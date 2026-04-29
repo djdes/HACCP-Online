@@ -7,6 +7,8 @@ import {
   claimJournalTask,
   listClaimsForJournal,
 } from "@/lib/journal-task-claims";
+import { mirrorClaimToTasksFlow } from "@/lib/tasksflow-claim-mirror";
+import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,6 +74,24 @@ export async function POST(request: Request) {
   });
 
   if (result.ok) {
+    // Mirror в TasksFlow если есть active integration + task link.
+    // Не блокирует ответ при ошибке — graceful degrade.
+    void mirrorClaimToTasksFlow({
+      organizationId,
+      journalCode: body.journalCode,
+      scopeKey: body.scopeKey,
+      userId,
+      event: "claim",
+    })
+      .then(async (m) => {
+        if (m.tasksFlowTaskId) {
+          await db.journalTaskClaim.update({
+            where: { id: result.claim.id },
+            data: { tasksFlowTaskId: String(m.tasksFlowTaskId) },
+          }).catch(() => null);
+        }
+      })
+      .catch(() => null);
     return NextResponse.json({ ok: true, claim: result.claim, createdNew: result.createdNew });
   }
 
