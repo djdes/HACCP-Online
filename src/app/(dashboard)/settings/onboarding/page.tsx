@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   Layers,
   ListChecks,
+  Lock,
   Network,
   Package,
   PartyPopper,
@@ -545,12 +546,7 @@ export default async function OnboardingPage() {
         </div>
       ) : null}
 
-      <SectionGroup
-        title="Обязательное"
-        subtitle="Без этого не работают core-фичи"
-        accent="warn"
-        items={required}
-      />
+      <RequiredStepper items={required} />
 
       {/* Финальный CTA — блок становится «доступным» только когда
           обязательные шаги (должности, сотрудники, журналы,
@@ -691,5 +687,191 @@ function SetupCard({ item }: { item: SetupItem }) {
       </div>
       <ArrowRight className="size-4 shrink-0 self-center text-[#9b9fb3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
     </Link>
+  );
+}
+
+/**
+ * Поэтапный stepper для обязательной секции. Шаги проходятся по
+ * порядку: первый незаполненный = «активный» (фиолетовый, с большой
+ * кнопкой), следующие = «заблокированы» (серый замок, не кликаются).
+ * Заполненные = зелёный чекмарк.
+ *
+ * Это enforcement через UX — юзер не может «перепрыгнуть» через шаг,
+ * потому что физически не видит кнопку для следующих, пока не закроет
+ * текущий. Так новый админ понимает «что делать прямо сейчас».
+ */
+function RequiredStepper({ items }: { items: SetupItem[] }) {
+  // Активный = первый item у которого state != "complete".
+  const activeIndex = items.findIndex((i) => i.state !== "complete");
+  const allDone = activeIndex === -1;
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2 px-1">
+        <span className="size-2 rounded-full bg-[#a13a32]" />
+        <h2 className="text-[16px] font-semibold text-[#0b1024]">
+          Обязательное · поэтапно
+        </h2>
+        <span className="text-[12px] text-[#9b9fb3]">·</span>
+        <span className="text-[12px] text-[#9b9fb3]">
+          Идёт строго по порядку — следующий шаг разблокируется когда
+          закрыт предыдущий
+        </span>
+      </div>
+      <ol className="space-y-2.5">
+        {items.map((item, index) => {
+          let state: "done" | "active" | "locked";
+          if (item.state === "complete") state = "done";
+          else if (allDone || index === activeIndex) state = "active";
+          else if (index < activeIndex) state = "done"; // partial считаем done для линии
+          else state = "locked";
+          return (
+            <StepperRow
+              key={item.title}
+              item={item}
+              index={index}
+              state={state}
+              isLast={index === items.length - 1}
+            />
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function StepperRow({
+  item,
+  index,
+  state,
+  isLast,
+}: {
+  item: SetupItem;
+  index: number;
+  state: "done" | "active" | "locked";
+  isLast: boolean;
+}) {
+  const Icon = item.icon;
+  const isActive = state === "active";
+  const isLocked = state === "locked";
+  const isDone = state === "done";
+
+  // Цветовая палитра по состоянию.
+  const tone =
+    isActive
+      ? {
+          card: "border-[#5566f6]/40 bg-gradient-to-br from-white to-[#f5f6ff]",
+          numBg: "bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white",
+          iconBg: "bg-[#eef1ff]",
+          iconClr: "text-[#5566f6]",
+          title: "text-[#0b1024]",
+        }
+      : isDone
+        ? {
+            card: "border-[#c8f0d5] bg-[#ecfdf5]/40",
+            numBg: "bg-[#136b2a] text-white",
+            iconBg: "bg-[#d9f4e1]",
+            iconClr: "text-[#136b2a]",
+            title: "text-[#0b1024]",
+          }
+        : {
+            card: "border-[#ececf4] bg-[#fafbff] opacity-60",
+            numBg: "bg-[#dcdfed] text-[#6f7282]",
+            iconBg: "bg-[#fafbff]",
+            iconClr: "text-[#9b9fb3]",
+            title: "text-[#6f7282]",
+          };
+
+  const content = (
+    <div className="flex items-start gap-4">
+      {/* Number + connector */}
+      <div className="relative flex flex-col items-center self-stretch">
+        <div
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold shadow-[0_4px_12px_-4px_rgba(11,16,36,0.18)] ${tone.numBg}`}
+        >
+          {isDone ? <CheckCircle2 className="size-4" /> : index + 1}
+        </div>
+        {!isLast ? (
+          <div
+            className={`mt-1 w-px flex-1 ${
+              isDone ? "bg-[#136b2a]/40" : "bg-[#dcdfed]"
+            }`}
+          />
+        ) : null}
+      </div>
+      {/* Body */}
+      <div className="min-w-0 flex-1 pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div
+              className={`flex items-center gap-2 text-[15px] font-semibold leading-tight ${tone.title}`}
+            >
+              <span
+                className={`flex size-7 items-center justify-center rounded-xl ${tone.iconBg} ${tone.iconClr}`}
+              >
+                <Icon className="size-4" />
+              </span>
+              {item.title}
+              {isActive ? (
+                <span className="rounded-full bg-[#5566f6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Сейчас
+                </span>
+              ) : null}
+              {isLocked ? (
+                <Lock className="size-3.5 text-[#9b9fb3]" />
+              ) : null}
+            </div>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[#6f7282]">
+              {item.description}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              {item.metric ? (
+                <span
+                  className={`rounded-full px-2 py-0.5 font-medium ${
+                    isDone
+                      ? "bg-[#ecfdf5] text-[#136b2a]"
+                      : "bg-[#fafbff] text-[#3c4053]"
+                  }`}
+                >
+                  {item.metric}
+                </span>
+              ) : null}
+              {item.issue ? (
+                <span className="text-[#a13a32]">{item.issue}</span>
+              ) : null}
+            </div>
+          </div>
+          {isActive ? (
+            <Link
+              href={item.href}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-semibold text-white shadow-[0_8px_22px_-10px_rgba(85,102,246,0.6)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              Перейти
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : isDone ? (
+            <Link
+              href={item.href}
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border border-[#c8f0d5] bg-white px-3 text-[12px] font-medium text-[#136b2a] hover:bg-[#ecfdf5]"
+            >
+              Изменить
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <li>
+      <div
+        className={`rounded-2xl border p-4 transition-shadow ${tone.card} ${
+          isActive
+            ? "shadow-[0_14px_36px_-18px_rgba(85,102,246,0.45)]"
+            : ""
+        }`}
+      >
+        {content}
+      </div>
+    </li>
   );
 }
