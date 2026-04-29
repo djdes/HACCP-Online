@@ -4,17 +4,85 @@ import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasCapability } from "@/lib/permission-presets";
+import { generatePoolForDay } from "@/lib/journal-task-pool";
+import { parseDisabledCodes } from "@/lib/disabled-journals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const POOL_CODES = [
+  "hygiene",
+  "health_check",
+  "cold_equipment_control",
+  "climate_control",
+  "cleaning",
+  "incoming_control",
+  "finished_product",
+  "disinfectant_usage",
+  "fryer_oil",
+  "accident_journal",
+  "complaint_register",
+  "breakdown_history",
+  "ppe_issuance",
+  "glass_items_list",
+  "glass_control",
+  "metal_impurity",
+  "perishable_rejection",
+  "product_writeoff",
+  "traceability_test",
+  "general_cleaning",
+  "sanitation_day_control",
+  "sanitary_day_control",
+  "pest_control",
+  "intensive_cooling",
+  "uv_lamp_runtime",
+  "equipment_maintenance",
+  "equipment_calibration",
+  "equipment_cleaning",
+];
+
+const JOURNAL_LABELS: Record<string, string> = {
+  hygiene: "Гигиена",
+  health_check: "Здоровье",
+  cold_equipment_control: "Холодильники",
+  climate_control: "Климат",
+  cleaning: "Уборка",
+  incoming_control: "Приёмка",
+  finished_product: "Бракераж",
+  disinfectant_usage: "Дезсредства",
+  fryer_oil: "Фритюр",
+  accident_journal: "Аварии",
+  complaint_register: "Жалобы",
+  breakdown_history: "Поломки",
+  ppe_issuance: "СИЗ",
+  glass_items_list: "Стекло",
+  glass_control: "Контроль стекла",
+  metal_impurity: "Металлопримеси",
+  perishable_rejection: "Скоропорт",
+  product_writeoff: "Списание",
+  traceability_test: "Прослеживаемость",
+  general_cleaning: "Генуборка",
+  sanitation_day_control: "Сан. день",
+  sanitary_day_control: "Сан. день",
+  pest_control: "Дератизация",
+  intensive_cooling: "Интенс. охл.",
+  uv_lamp_runtime: "УФ-лампа",
+  equipment_maintenance: "Тех. обслуж.",
+  equipment_calibration: "Поверка",
+  equipment_cleaning: "Чистка обор.",
+};
+
 /**
- * GET /api/verifications — задачи для проверки заведующей.
+ * GET /api/verifications — комплексная сводка для заведующей.
  *
- * Возвращает claim'ы со status=completed и verificationStatus=pending или null.
- * Эти задачи ждут одобрения заведующей.
+ * Возвращает три раздела:
+ *   - pendingReview — completed задачи со status=pending verification (надо одобрить)
+ *   - inProgress    — active claims (в работе у сотрудников)
+ *   - notTaken      — pool scopes без claim (никто не взял)
+ *   - approved/rejected — для filter'а if hist=true
  *
- * Доступ: capability `tasks.verify` (admin + head_chef).
+ * Сверху всё что требует действия, снизу — невзятые задачи (заведующая
+ * видит что ещё надо делать).
  */
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -25,24 +93,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
   const organizationId = getActiveOrgId(session);
-
   const url = new URL(request.url);
-  const filter = url.searchParams.get("filter") ?? "pending"; // pending | approved | rejected | all
+  const histFilter = url.searchParams.get("hist"); // approved | rejected | null
 
-  const claims = await db.journalTaskClaim.findMany({
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { disabledJournalCodes: true },
+  });
+  const disabled = parseDisabledCodes(org?.disabledJournalCodes);
+
+  // 1) Pending review claims.
+  const pendingClaims = await db.journalTaskClaim.findMany({
     where: {
       organizationId,
       status: "completed",
-      ...(filter === "all"
-        ? {}
-        : filter === "pending"
-          ? {
-              OR: [
-                { verificationStatus: null },
-                { verificationStatus: "pending" },
-              ],
-            }
-          : { verificationStatus: filter }),
+      OR: [{ verificationStatus: null }, { verificationStatus: "pending" }],
     },
     include: {
       user: { select: { id: true, name: true } },
@@ -52,20 +122,125 @@ export async function GET(request: Request) {
     take: 100,
   });
 
+  // 2) In-progress claims — для info.
+  const activeClaims = await db.journalTaskClaim.findMany({
+    where: { organizationId, status: "active" },
+    include: { user: { select: { id: true, name: true } } },
+    orderBy: { claimedAt: "asc" },
+  });
+
+  // 3) Hist (approved / rejected) — только если запрошено.
+  const histClaims =
+    histFilter === "approved" || histFilter === "rejected"
+      ? await db.journalTaskClaim.findMany({
+          where: {
+            organizationId,
+            status: histFilter === "approved" ? "completed" : { in: ["completed", "active"] },
+            verificationStatus: histFilter,
+          },
+          include: {
+            user: { select: { id: true, name: true } },
+            verifiedBy: { select: { name: true } },
+          },
+          orderBy: { verifiedAt: "desc" },
+          take: 50,
+        })
+      : [];
+
+  // 4) Not taken — pool generator по всем кодам, минус scopes уже claimed (любой статус).
+  type ScopeBase = {
+    journalCode: string;
+    journalLabel: string;
+    scopeKey: string;
+    scopeLabel: string;
+    sublabel?: string;
+    journalDocumentId?: string;
+  };
+  const notTaken: ScopeBase[] = [];
+
+  for (const code of POOL_CODES) {
+    if (disabled.has(code)) continue;
+    const pool = await generatePoolForDay({
+      organizationId,
+      journalCode: code,
+      date: today,
+    });
+    if (!pool.pool || pool.scopes.length === 0) continue;
+
+    const claims = await db.journalTaskClaim.findMany({
+      where: {
+        organizationId,
+        journalCode: code,
+        dateKey: { gte: today, lt: tomorrow },
+        status: { in: ["active", "completed"] },
+      },
+      select: { scopeKey: true },
+    });
+    const taken = new Set(claims.map((c) => c.scopeKey));
+
+    for (const s of pool.scopes) {
+      if (taken.has(s.scopeKey)) continue;
+      notTaken.push({
+        journalCode: code,
+        journalLabel: JOURNAL_LABELS[code] ?? code,
+        scopeKey: s.scopeKey,
+        scopeLabel: s.scopeLabel,
+        sublabel: s.sublabel,
+        journalDocumentId: s.journalDocumentId,
+      });
+    }
+  }
+
   return NextResponse.json({
-    items: claims.map((c) => ({
+    today: today.toISOString().slice(0, 10),
+    pendingReview: pendingClaims.map(toItem),
+    inProgress: activeClaims.map((c) => ({
       id: c.id,
       scopeLabel: c.scopeLabel,
       journalCode: c.journalCode,
+      journalLabel: JOURNAL_LABELS[c.journalCode] ?? c.journalCode,
       executedBy: c.user.name,
       executedById: c.user.id,
-      completedAt: c.completedAt,
-      verificationStatus: c.verificationStatus,
-      verifiedBy: c.verifiedBy?.name ?? null,
-      verifiedAt: c.verifiedAt,
-      verifierComment: c.verifierComment,
-      completionData: c.completionData,
-      dateKey: c.dateKey,
+      claimedAt: c.claimedAt.toISOString(),
+      // Зависает в работе > 2h?
+      overdue: Date.now() - c.claimedAt.getTime() > 2 * 60 * 60 * 1000,
     })),
+    notTaken,
+    hist: histClaims.map(toItem),
+    summary: {
+      pending: pendingClaims.length,
+      inProgress: activeClaims.length,
+      notTaken: notTaken.length,
+    },
   });
+}
+
+function toItem(c: {
+  id: string;
+  scopeLabel: string;
+  journalCode: string;
+  user: { id: string; name: string };
+  completedAt: Date | null;
+  verificationStatus: string | null;
+  verifiedBy: { name: string } | null;
+  verifiedAt: Date | null;
+  verifierComment: string | null;
+  completionData: unknown;
+  dateKey: Date;
+}) {
+  return {
+    id: c.id,
+    scopeLabel: c.scopeLabel,
+    journalCode: c.journalCode,
+    journalLabel: JOURNAL_LABELS[c.journalCode] ?? c.journalCode,
+    executedBy: c.user.name,
+    executedById: c.user.id,
+    completedAt: c.completedAt?.toISOString() ?? null,
+    verificationStatus: c.verificationStatus,
+    verifiedBy: c.verifiedBy?.name ?? null,
+    verifiedAt: c.verifiedAt?.toISOString() ?? null,
+    verifierComment: c.verifierComment,
+    completionData: (c.completionData as Record<string, unknown> | null) ?? null,
+    dateKey: c.dateKey.toISOString(),
+  };
 }

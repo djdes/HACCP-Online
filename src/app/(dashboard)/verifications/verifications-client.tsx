@@ -5,10 +5,13 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   ClipboardCheck,
   Clock,
   Loader2,
   ShieldCheck,
+  Sparkles,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,10 +27,11 @@ type Guide = {
   normRef?: string;
 };
 
-type Item = {
+type PendingItem = {
   id: string;
   scopeLabel: string;
   journalCode: string;
+  journalLabel: string;
   executedBy: string;
   executedById: string;
   completedAt: string | null;
@@ -39,49 +43,82 @@ type Item = {
   dateKey: string;
 };
 
-type Filter = "pending" | "approved" | "rejected" | "all";
+type InProgressItem = {
+  id: string;
+  scopeLabel: string;
+  journalCode: string;
+  journalLabel: string;
+  executedBy: string;
+  executedById: string;
+  claimedAt: string;
+  overdue: boolean;
+};
+
+type NotTakenItem = {
+  journalCode: string;
+  journalLabel: string;
+  scopeKey: string;
+  scopeLabel: string;
+  sublabel?: string;
+  journalDocumentId?: string;
+};
+
+type Resp = {
+  today: string;
+  pendingReview: PendingItem[];
+  inProgress: InProgressItem[];
+  notTaken: NotTakenItem[];
+  hist: PendingItem[];
+  summary: { pending: number; inProgress: number; notTaken: number };
+};
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.max(0, Math.floor(diff / 60000));
+  if (m < 1) return "только что";
+  if (m < 60) return `${m} мин`;
+  const h = Math.floor(m / 60);
+  return `${h} ч ${m % 60} мин`;
+}
 
 export function VerificationsClient() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [filter, setFilter] = useState<Filter>("pending");
+  const [data, setData] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [commentByItem, setCommentByItem] = useState<Record<string, string>>({});
-  const [guideOpen, setGuideOpen] = useState<{ code: string; guide: Guide | null } | null>(null);
+  const [guideByCode, setGuideByCode] = useState<Record<string, Guide | null>>({});
 
-  async function openGuide(code: string) {
-    setGuideOpen({ code, guide: null });
-    try {
-      const res = await fetch(`/api/journal-guides/${code}`, { cache: "force-cache" });
-      if (res.ok) {
-        const g = (await res.json()) as Guide;
-        setGuideOpen({ code, guide: g });
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  async function load(f: Filter = filter) {
+  async function load() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/verifications?filter=${f}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = (await res.json()) as { items: Item[] };
-      setItems(j.items);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка");
+      const res = await fetch("/api/verifications", { cache: "no-store" });
+      if (res.ok) setData((await res.json()) as Resp);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load(filter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+    void load();
+    const t = window.setInterval(() => void load(), 30000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  async function loadGuide(code: string) {
+    if (guideByCode[code] !== undefined) return;
+    setGuideByCode((m) => ({ ...m, [code]: null }));
+    try {
+      const res = await fetch(`/api/journal-guides/${code}`, { cache: "force-cache" });
+      if (res.ok) {
+        const g = (await res.json()) as Guide;
+        setGuideByCode((m) => ({ ...m, [code]: g }));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function decide(id: string, action: "approve" | "reject") {
     setBusy(id);
@@ -97,7 +134,8 @@ export function VerificationsClient() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success(action === "approve" ? "Одобрено" : "Отправлено на переделку");
       setCommentByItem((m) => ({ ...m, [id]: "" }));
-      await load(filter);
+      setExpandedId(null);
+      await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -105,17 +143,37 @@ export function VerificationsClient() {
     }
   }
 
-  const counts = items.reduce(
-    (acc, i) => {
-      const k = i.verificationStatus ?? "pending";
-      acc[k as "pending" | "approved" | "rejected"] += 1;
-      return acc;
-    },
-    { pending: 0, approved: 0, rejected: 0 }
-  );
+  async function remind(userId: string, scopeLabel: string) {
+    setBusy(`remind-${userId}`);
+    try {
+      const res = await fetch("/api/control-board/remind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: [userId], scopeLabel }),
+      });
+      if (res.ok) toast.success("Напоминание отправлено");
+      else toast.error("Ошибка");
+    } catch {
+      toast.error("Ошибка");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (loading && !data) {
+    return (
+      <div className="flex h-[200px] items-center justify-center text-[#6f7282]">
+        <Loader2 className="size-5 animate-spin" />
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const s = data.summary;
 
   return (
     <div className="space-y-6">
+      {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
@@ -130,332 +188,409 @@ export function VerificationsClient() {
               <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
                 Проверка задач
               </h1>
-              <p className="mt-2 max-w-[560px] text-[15px] text-white/70">
-                Одобряйте выполненные задачи или возвращайте на переделку с
-                комментарием. Сотрудник получит уведомление в Telegram.
+              <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
+                Кликните на блок чтобы развернуть детали, гайд и кнопки
+                одобрения. Сверху — сделанное, снизу — ещё не взятые задачи.
               </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <FilterTab v="pending" cur={filter} onClick={setFilter} count={counts.pending} label="Ожидают" />
-            <FilterTab v="approved" cur={filter} onClick={setFilter} count={counts.approved} label="Одобрены" />
-            <FilterTab v="rejected" cur={filter} onClick={setFilter} count={counts.rejected} label="Возвращены" />
-            <FilterTab v="all" cur={filter} onClick={setFilter} count={items.length} label="Все" />
+          <div className="mt-6 grid grid-cols-3 gap-2">
+            <Stat label="Ждут проверки" value={s.pending} accent={s.pending > 0 ? "warn" : "ok"} />
+            <Stat label="В работе" value={s.inProgress} accent="info" />
+            <Stat label="Не взято" value={s.notTaken} accent={s.notTaken > 0 ? "danger" : "ok"} />
           </div>
         </div>
       </section>
 
-      {loading ? (
-        <div className="flex h-[160px] items-center justify-center text-[#6f7282]">
-          <Loader2 className="mr-2 size-4 animate-spin" /> Загружаю…
-        </div>
-      ) : items.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center text-[14px] text-[#6f7282]">
-          {filter === "pending"
-            ? "Все задачи проверены — ожидающих нет."
-            : "Ничего не найдено."}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <span
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${
-                      item.verificationStatus === "approved"
-                        ? "bg-[#d9f4e1] text-[#136b2a]"
-                        : item.verificationStatus === "rejected"
-                          ? "bg-[#ffe1dc] text-[#a13a32]"
-                          : "bg-[#eef1ff] text-[#3848c7]"
-                    }`}
-                  >
-                    {item.verificationStatus === "approved" ? (
-                      <CheckCircle2 className="size-5" />
-                    ) : item.verificationStatus === "rejected" ? (
-                      <XCircle className="size-5" />
-                    ) : (
-                      <ClipboardCheck className="size-5" />
-                    )}
-                  </span>
-                  <div>
-                    <div className="text-[15px] font-semibold text-[#0b1024]">
-                      {item.scopeLabel}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-[#6f7282]">
-                      <span>{item.executedBy}</span>
-                      <span>·</span>
-                      <Clock className="size-3" />
-                      {item.completedAt
-                        ? new Date(item.completedAt).toLocaleString("ru-RU", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "—"}
-                    </div>
-                  </div>
-                </div>
-                {item.verifiedBy ? (
-                  <div className="text-[11px] text-[#9b9fb3]">
-                    {item.verificationStatus === "approved" ? "✓" : "↩"} {item.verifiedBy}
-                  </div>
-                ) : null}
-              </div>
+      {/* SECTION: Pending review (top — самое важное) */}
+      <Section
+        title="Ждут проверки"
+        count={data.pendingReview.length}
+        empty="Нет задач на проверку"
+        accent="warn"
+      >
+        {data.pendingReview.map((item) => (
+          <PendingCard
+            key={item.id}
+            item={item}
+            expanded={expandedId === item.id}
+            onToggle={() => {
+              const next = expandedId === item.id ? null : item.id;
+              setExpandedId(next);
+              if (next) void loadGuide(item.journalCode);
+            }}
+            guide={guideByCode[item.journalCode]}
+            comment={commentByItem[item.id] || ""}
+            onCommentChange={(v) =>
+              setCommentByItem((m) => ({ ...m, [item.id]: v }))
+            }
+            onApprove={() => decide(item.id, "approve")}
+            onReject={() => decide(item.id, "reject")}
+            busy={busy === item.id}
+          />
+        ))}
+      </Section>
 
-              {item.completionData ? (
-                <div className="mt-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
-                    Введённые данные
-                  </div>
-                  <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-1 text-[13px] text-[#0b1024] sm:grid-cols-2">
-                    {Object.entries(item.completionData).map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-2">
-                        <span className="text-[#6f7282]">{k}</span>
-                        <span className="text-right font-medium">
-                          {typeof v === "boolean" ? (v ? "✓" : "✗") : String(v ?? "—")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+      {/* SECTION: In progress */}
+      <Section
+        title="В работе"
+        count={data.inProgress.length}
+        empty="Никто сейчас не работает"
+        accent="info"
+      >
+        {data.inProgress.map((item) => (
+          <InProgressCard
+            key={item.id}
+            item={item}
+            onRemind={() => remind(item.executedById, item.scopeLabel)}
+            busy={busy === `remind-${item.executedById}`}
+          />
+        ))}
+      </Section>
 
-              {item.verifierComment ? (
-                <div className="mt-3 rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] px-3 py-2 text-[13px] text-[#a13a32]">
-                  <AlertTriangle className="mr-1 inline size-3.5 align-text-bottom" />
-                  {item.verifierComment}
-                </div>
-              ) : null}
-
-              {(item.verificationStatus === null ||
-                item.verificationStatus === "pending") &&
-              filter === "pending" ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openGuide(item.journalCode)}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3848c7] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-                    title="Как должна заполняться эта задача"
-                  >
-                    <BookOpen className="size-3.5" />
-                    Гайд
-                  </button>
-                  <input
-                    value={commentByItem[item.id] || ""}
-                    onChange={(e) =>
-                      setCommentByItem((m) => ({
-                        ...m,
-                        [item.id]: e.target.value,
-                      }))
-                    }
-                    placeholder="Комментарий (опционально)"
-                    className="h-10 flex-1 min-w-[160px] rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => decide(item.id, "approve")}
-                    disabled={busy === item.id}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#136b2a] px-4 text-[13px] font-medium text-white disabled:opacity-50"
-                  >
-                    {busy === item.id ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="size-3.5" />
-                    )}
-                    Одобрить
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => decide(item.id, "reject")}
-                    disabled={busy === item.id}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#d2453d] px-4 text-[13px] font-medium text-white disabled:opacity-50"
-                  >
-                    <XCircle className="size-3.5" />
-                    Переделать
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {guideOpen ? (
-        <GuideModal
-          open
-          code={guideOpen.code}
-          guide={guideOpen.guide}
-          onClose={() => setGuideOpen(null)}
-        />
-      ) : null}
+      {/* SECTION: Not taken */}
+      <Section
+        title="Ещё не взято"
+        count={data.notTaken.length}
+        empty="Все задачи разобрали — отлично!"
+        accent="danger"
+      >
+        {data.notTaken.map((item) => (
+          <NotTakenCard key={item.scopeKey} item={item} />
+        ))}
+      </Section>
     </div>
   );
 }
 
-function GuideModal({
-  open,
-  code,
-  guide,
-  onClose,
+function Stat({
+  label,
+  value,
+  accent,
 }: {
-  open: boolean;
-  code: string;
-  guide: Guide | null;
-  onClose: () => void;
+  label: string;
+  value: number;
+  accent: "ok" | "info" | "warn" | "danger";
 }) {
-  if (!open) return null;
+  const colors = {
+    ok: "bg-white/5 text-white",
+    info: "bg-white/5 text-white",
+    warn: "bg-[#ffd466]/15 text-amber-100",
+    danger: "bg-[#ff8d7d]/20 text-rose-100",
+  };
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {!guide ? (
-          <div className="flex h-[200px] items-center justify-center text-[#6f7282]">
-            <Loader2 className="mr-2 size-4 animate-spin" /> Загружаю гайд…
-          </div>
-        ) : (
-          <div className="space-y-4 p-6">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
-                <BookOpen className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[18px] font-semibold leading-tight text-[#0b1024]">
-                  {guide.title}
-                </div>
-                <div className="mt-0.5 font-mono text-[11px] text-[#9b9fb3]">
-                  {code}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl p-1.5 text-[#6f7282] hover:bg-[#fafbff]"
-              >
-                <XCircle className="size-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-[13px] leading-relaxed text-[#3c4053]">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
-                  Цель
-                </div>
-                <div className="mt-1">{guide.purpose}</div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
-                  Когда
-                </div>
-                <div className="mt-1">{guide.frequency}</div>
-              </div>
-
-              {guide.fields.length > 0 ? (
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
-                    Поля
-                  </div>
-                  <div className="mt-1 space-y-2">
-                    {guide.fields.map((f) => (
-                      <div
-                        key={f.name}
-                        className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3"
-                      >
-                        <div className="font-mono text-[12px] font-semibold text-[#3848c7]">
-                          {f.name}
-                        </div>
-                        <div className="mt-1 text-[12px]">{f.description}</div>
-                        {f.norm ? (
-                          <div className="mt-1 inline-block rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
-                            Норма: {f.norm}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {guide.checks.length > 0 ? (
-                <div className="rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] p-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#136b2a]">
-                    ✓ Что проверять
-                  </div>
-                  <ul className="mt-1 ml-4 list-disc space-y-1 text-[12px] text-[#136b2a]">
-                    {guide.checks.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {guide.redFlags.length > 0 ? (
-                <div className="rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a13a32]">
-                    🚩 Красные флаги
-                  </div>
-                  <ul className="mt-1 ml-4 list-disc space-y-1 text-[12px] text-[#a13a32]">
-                    {guide.redFlags.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {guide.normRef ? (
-                <div className="text-[11px] text-[#6f7282]">
-                  📚 {guide.normRef}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        )}
+    <div className={`rounded-2xl px-4 py-3 ${colors[accent]}`}>
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/60">
+        {label}
+      </div>
+      <div className="mt-0.5 text-[24px] font-semibold leading-none tabular-nums">
+        {value}
       </div>
     </div>
   );
 }
 
-function FilterTab({
-  v,
-  cur,
-  onClick,
+function Section({
+  title,
   count,
-  label,
+  empty,
+  accent,
+  children,
 }: {
-  v: Filter;
-  cur: Filter;
-  onClick: (v: Filter) => void;
+  title: string;
   count: number;
-  label: string;
+  empty: string;
+  accent: "warn" | "info" | "danger";
+  children: React.ReactNode;
 }) {
-  const active = v === cur;
   return (
-    <button
-      type="button"
-      onClick={() => onClick(v)}
-      className={`inline-flex h-9 items-center gap-1.5 rounded-2xl px-3 text-[13px] font-medium transition-colors ${
-        active
-          ? "bg-white text-[#0b1024]"
-          : "border border-white/15 bg-white/5 text-white/80 backdrop-blur hover:bg-white/10"
+    <section className="space-y-2">
+      <div className="px-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+        {title} ({count})
+      </div>
+      {count === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-6 text-center text-[13px] text-[#6f7282]">
+          {empty}
+        </div>
+      ) : (
+        <div className="space-y-2">{children}</div>
+      )}
+    </section>
+  );
+}
+
+function PendingCard({
+  item,
+  expanded,
+  onToggle,
+  guide,
+  comment,
+  onCommentChange,
+  onApprove,
+  onReject,
+  busy,
+}: {
+  item: PendingItem;
+  expanded: boolean;
+  onToggle: () => void;
+  guide: Guide | null | undefined;
+  comment: string;
+  onCommentChange: (v: string) => void;
+  onApprove: () => void;
+  onReject: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="rounded-3xl border border-[#5d3ab3]/20 bg-[#f5f0ff] shadow-[0_0_0_1px_rgba(180,150,230,0.15)] transition-shadow hover:shadow-[0_8px_24px_-12px_rgba(93,58,179,0.25)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start gap-3 p-4 text-left"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#5d3ab3] text-white">
+          <ClipboardCheck className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
+            {item.scopeLabel}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-[#6f7282]">
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#5d3ab3]">
+              {item.journalLabel}
+            </span>
+            <span>·</span>
+            <span className="font-medium text-[#0b1024]">{item.executedBy}</span>
+            <span>·</span>
+            <Clock className="size-3" />
+            {timeAgo(item.completedAt)} назад
+          </div>
+        </div>
+        {expanded ? (
+          <ChevronDown className="mt-2 size-5 shrink-0 text-[#5d3ab3]" />
+        ) : (
+          <ChevronRight className="mt-2 size-5 shrink-0 text-[#5d3ab3]" />
+        )}
+      </button>
+
+      {expanded ? (
+        <div className="space-y-3 border-t border-[#5d3ab3]/15 px-4 pb-4 pt-3">
+          {item.completionData ? (
+            <div className="rounded-2xl border border-[#ececf4] bg-white p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                Введённые данные
+              </div>
+              <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-1 text-[13px] text-[#0b1024] sm:grid-cols-2">
+                {Object.entries(item.completionData).map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-2">
+                    <span className="text-[#6f7282]">{k}</span>
+                    <span className="text-right font-medium">
+                      {typeof v === "boolean"
+                        ? v ? "✓" : "✗"
+                        : String(v ?? "—")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-white p-3 text-[12px] text-[#9b9fb3]">
+              Сотрудник не передал form-data — задача завершена без полей.
+            </div>
+          )}
+
+          {/* Inline guide */}
+          <div className="rounded-2xl border border-[#dcdfed] bg-white p-3">
+            <div className="flex items-start gap-2">
+              <BookOpen className="size-4 shrink-0 text-[#3848c7]" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                  Гайд по проверке
+                </div>
+                {!guide ? (
+                  <div className="mt-1 inline-flex items-center gap-1 text-[12px] text-[#6f7282]">
+                    <Loader2 className="size-3 animate-spin" /> Загружаю...
+                  </div>
+                ) : (
+                  <div className="mt-1 space-y-2 text-[12px]">
+                    <div className="font-semibold text-[#0b1024]">{guide.title}</div>
+                    <div className="text-[#3c4053]">{guide.purpose}</div>
+                    {guide.fields.length > 0 ? (
+                      <div className="space-y-1">
+                        {guide.fields.map((f) => (
+                          <div key={f.name}>
+                            <span className="font-mono text-[11px] font-semibold text-[#3848c7]">
+                              {f.name}
+                            </span>
+                            <span className="text-[#3c4053]"> — {f.description}</span>
+                            {f.norm ? (
+                              <span className="ml-1 text-[#136b2a]">
+                                ({f.norm})
+                              </span>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {guide.checks.length > 0 ? (
+                      <div className="rounded-xl bg-[#ecfdf5] p-2">
+                        <div className="text-[11px] font-semibold text-[#136b2a]">
+                          ✓ Проверить:
+                        </div>
+                        <ul className="ml-4 list-disc text-[#136b2a]">
+                          {guide.checks.map((c, i) => (
+                            <li key={i}>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {guide.redFlags.length > 0 ? (
+                      <div className="rounded-xl bg-[#fff4f2] p-2">
+                        <div className="text-[11px] font-semibold text-[#a13a32]">
+                          🚩 Переделать если:
+                        </div>
+                        <ul className="ml-4 list-disc text-[#a13a32]">
+                          {guide.redFlags.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {guide.normRef ? (
+                      <div className="text-[11px] text-[#6f7282]">📚 {guide.normRef}</div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action panel */}
+          <div className="space-y-2">
+            <input
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              placeholder="Комментарий (опционально, появится у сотрудника в Telegram)"
+              className="h-11 w-full rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none"
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onApprove}
+                disabled={busy}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#136b2a] px-4 text-[14px] font-medium text-white disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="size-4" />
+                )}
+                Одобрить
+              </button>
+              <button
+                type="button"
+                onClick={onReject}
+                disabled={busy}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#d2453d] px-4 text-[14px] font-medium text-white disabled:opacity-50"
+              >
+                <XCircle className="size-4" />
+                Переделать
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function InProgressCard({
+  item,
+  onRemind,
+  busy,
+}: {
+  item: InProgressItem;
+  onRemind: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-3 transition-colors ${
+        item.overdue
+          ? "border-[#ffd2cd] bg-[#fff4f2]"
+          : "border-[#5566f6]/30 bg-[#eef1ff]"
       }`}
     >
-      {label}
-      <span
-        className={`rounded-full px-1.5 text-[11px] ${
-          active ? "bg-[#eef1ff] text-[#3848c7]" : "bg-white/15 text-white/90"
-        }`}
-      >
-        {count}
-      </span>
-    </button>
+      <div className="flex items-start gap-3">
+        <span
+          className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-white ${
+            item.overdue ? "bg-[#d2453d]" : "bg-[#5566f6]"
+          }`}
+        >
+          <Sparkles className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-medium leading-tight text-[#0b1024]">
+            {item.scopeLabel}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-[#6f7282]">
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
+              {item.journalLabel}
+            </span>
+            <span>·</span>
+            <span className="font-medium text-[#0b1024]">{item.executedBy}</span>
+            <span>·</span>
+            <Clock className="size-3" />
+            <span className={item.overdue ? "font-medium text-[#a13a32]" : ""}>
+              {timeAgo(item.claimedAt)} в работе
+            </span>
+            {item.overdue ? (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                <AlertTriangle className="size-3" />
+                Зависло
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRemind}
+          disabled={busy}
+          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[12px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
+          Напомнить
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NotTakenCard({ item }: { item: NotTakenItem }) {
+  return (
+    <div className="rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] p-3">
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#fff4d9] text-[#a13a32]">
+          <AlertTriangle className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-medium leading-tight text-[#0b1024]">
+            {item.scopeLabel}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-[#6f7282]">
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
+              {item.journalLabel}
+            </span>
+            {item.sublabel ? (
+              <>
+                <span>·</span>
+                <span>{item.sublabel}</span>
+              </>
+            ) : null}
+            <span>·</span>
+            <span>никто не взял</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
