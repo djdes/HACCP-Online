@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { ArrowLeft, LogOut, Moon, Sun, Unlink } from "lucide-react";
-import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { useMiniTheme } from "../_components/mini-theme";
 
 /**
@@ -19,25 +17,16 @@ import { useMiniTheme } from "../_components/mini-theme";
  *     the user must re-accept a fresh invite.
  */
 export default function MiniMePage() {
-  const router = useRouter();
   const { data: session, status } = useSession();
   const { theme, setTheme } = useMiniTheme();
   const [busy, setBusy] = useState<"none" | "signout" | "unlink">("none");
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (
-      status === "authenticated" &&
-      !hasFullWorkspaceAccess(session.user)
-    ) {
-      router.replace("/mini");
-    }
-  }, [router, session, status]);
-
-  if (status === "authenticated" && !hasFullWorkspaceAccess(session.user)) {
-    return null;
-  }
-
+  // Раньше: hasFullWorkspaceAccess gate перенаправлял staff'а обратно
+  // на /mini. Но «Профиль» нужен и линейному сотруднику — выйти,
+  // отвязать Telegram, переключить тему. Плюс ссылка на /mini/me
+  // показывалась всем в нижнем nav (без requires), так что staff
+  // тыкал и фрустрировался.
   if (status !== "authenticated") {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
