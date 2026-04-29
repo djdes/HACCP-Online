@@ -6,6 +6,7 @@ import { registerInlineQueryHandler } from "./handlers/inline";
 import { registerShortcutHandlers } from "./handlers/shortcut";
 import { registerEditHandlers } from "./handlers/edit";
 import { registerOwnerStatsHandlers } from "./handlers/owner-stats";
+import { registerShiftGateHandler } from "./handlers/shift-gate";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import {
   configureTelegramBotProfile,
@@ -84,6 +85,7 @@ export function getInboundBot(): Bot | null {
   });
   const composer = new Composer<Context>();
   registerStartHandler(composer);
+  registerShiftGateHandler(composer);
   registerStopHandler(composer);
   registerShortcutHandlers(composer);
   registerOwnerStatsHandlers(composer);

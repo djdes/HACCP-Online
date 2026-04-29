@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -11,6 +12,17 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+
+type GuideField = { name: string; description: string; norm?: string };
+type Guide = {
+  title: string;
+  purpose: string;
+  frequency: string;
+  fields: GuideField[];
+  checks: string[];
+  redFlags: string[];
+  normRef?: string;
+};
 
 type Item = {
   id: string;
@@ -35,6 +47,20 @@ export function VerificationsClient() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [commentByItem, setCommentByItem] = useState<Record<string, string>>({});
+  const [guideOpen, setGuideOpen] = useState<{ code: string; guide: Guide | null } | null>(null);
+
+  async function openGuide(code: string) {
+    setGuideOpen({ code, guide: null });
+    try {
+      const res = await fetch(`/api/journal-guides/${code}`, { cache: "force-cache" });
+      if (res.ok) {
+        const g = (await res.json()) as Guide;
+        setGuideOpen({ code, guide: g });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function load(f: Filter = filter) {
     setLoading(true);
@@ -210,6 +236,15 @@ export function VerificationsClient() {
                 item.verificationStatus === "pending") &&
               filter === "pending" ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openGuide(item.journalCode)}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3848c7] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                    title="Как должна заполняться эта задача"
+                  >
+                    <BookOpen className="size-3.5" />
+                    Гайд
+                  </button>
                   <input
                     value={commentByItem[item.id] || ""}
                     onChange={(e) =>
@@ -249,6 +284,142 @@ export function VerificationsClient() {
           ))}
         </div>
       )}
+
+      {guideOpen ? (
+        <GuideModal
+          open
+          code={guideOpen.code}
+          guide={guideOpen.guide}
+          onClose={() => setGuideOpen(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function GuideModal({
+  open,
+  code,
+  guide,
+  onClose,
+}: {
+  open: boolean;
+  code: string;
+  guide: Guide | null;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {!guide ? (
+          <div className="flex h-[200px] items-center justify-center text-[#6f7282]">
+            <Loader2 className="mr-2 size-4 animate-spin" /> Загружаю гайд…
+          </div>
+        ) : (
+          <div className="space-y-4 p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
+                <BookOpen className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[18px] font-semibold leading-tight text-[#0b1024]">
+                  {guide.title}
+                </div>
+                <div className="mt-0.5 font-mono text-[11px] text-[#9b9fb3]">
+                  {code}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl p-1.5 text-[#6f7282] hover:bg-[#fafbff]"
+              >
+                <XCircle className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-[13px] leading-relaxed text-[#3c4053]">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                  Цель
+                </div>
+                <div className="mt-1">{guide.purpose}</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                  Когда
+                </div>
+                <div className="mt-1">{guide.frequency}</div>
+              </div>
+
+              {guide.fields.length > 0 ? (
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                    Поля
+                  </div>
+                  <div className="mt-1 space-y-2">
+                    {guide.fields.map((f) => (
+                      <div
+                        key={f.name}
+                        className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3"
+                      >
+                        <div className="font-mono text-[12px] font-semibold text-[#3848c7]">
+                          {f.name}
+                        </div>
+                        <div className="mt-1 text-[12px]">{f.description}</div>
+                        {f.norm ? (
+                          <div className="mt-1 inline-block rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
+                            Норма: {f.norm}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {guide.checks.length > 0 ? (
+                <div className="rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#136b2a]">
+                    ✓ Что проверять
+                  </div>
+                  <ul className="mt-1 ml-4 list-disc space-y-1 text-[12px] text-[#136b2a]">
+                    {guide.checks.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {guide.redFlags.length > 0 ? (
+                <div className="rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a13a32]">
+                    🚩 Красные флаги
+                  </div>
+                  <ul className="mt-1 ml-4 list-disc space-y-1 text-[12px] text-[#a13a32]">
+                    {guide.redFlags.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {guide.normRef ? (
+                <div className="text-[11px] text-[#6f7282]">
+                  📚 {guide.normRef}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
