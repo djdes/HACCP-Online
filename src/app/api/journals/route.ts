@@ -175,6 +175,35 @@ export async function POST(request: Request) {
       );
     }
 
+    // Multi-tenant scope-check: areaId и equipmentId приходят с клиента,
+    // нельзя позволить юзеру привязать запись к area/equipment чужой
+    // организации (IDOR). Проверяем что обе сущности принадлежат
+    // активной org перед сохранением.
+    if (areaId) {
+      const area = await db.area.findFirst({
+        where: { id: areaId, organizationId },
+        select: { id: true },
+      });
+      if (!area) {
+        return NextResponse.json(
+          { error: "Помещение не найдено" },
+          { status: 404 }
+        );
+      }
+    }
+    if (equipmentId) {
+      const equipment = await db.equipment.findFirst({
+        where: { id: equipmentId, area: { organizationId } },
+        select: { id: true },
+      });
+      if (!equipment) {
+        return NextResponse.json(
+          { error: "Оборудование не найдено" },
+          { status: 404 }
+        );
+      }
+    }
+
     const entry = await db.journalEntry.create({
       data: {
         templateId: template.id,
@@ -193,8 +222,12 @@ export async function POST(request: Request) {
     // --- Temperature-specific alert (with equipment range check) ---
     if (templateCode === "temp_control" && equipmentId && data.temperature != null) {
       try {
-        const equipment = await db.equipment.findUnique({
-          where: { id: equipmentId },
+        // Defense-in-depth: даже после первичной проверки выше, при
+        // пере-чтении equipment подтверждаем org-scope. Не должно
+        // случиться в реальном flow, но защищает если код выше когда-то
+        // изменится и пропустит проверку.
+        const equipment = await db.equipment.findFirst({
+          where: { id: equipmentId, area: { organizationId } },
           select: { name: true, tempMin: true, tempMax: true },
         });
 
