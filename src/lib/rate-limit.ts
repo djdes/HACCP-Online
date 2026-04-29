@@ -89,3 +89,23 @@ export const telegramWebhookRateLimiter = createRateLimiter({
   tokensPerInterval: 60,
   intervalMs: 60_000,
 });
+
+/**
+ * Bulk-assign-today фан-аут: тяжёлая операция, синхронно дёргает TF
+ * API десятки раз. 3 запуска / 5 минут на org достаточно для штатного
+ * использования; защита от случайного двойного клика и от CSRF-loop'а.
+ */
+export const bulkAssignRateLimiter = createRateLimiter({
+  tokensPerInterval: 3,
+  intervalMs: 5 * 60 * 1000,
+});
+
+/**
+ * Опасные действия: удаление документов, пересоздание, full cleanup.
+ * 2 раза в час на org — этого достаточно для нормального workflow,
+ * блокирует случайный двойной запуск и автоматизированный wipe.
+ */
+export const destructiveOpsRateLimiter = createRateLimiter({
+  tokensPerInterval: 2,
+  intervalMs: 60 * 60 * 1000,
+});

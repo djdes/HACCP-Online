@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
+import { destructiveOpsRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,6 +69,19 @@ export async function POST(request: Request) {
   }
 
   const organizationId = getActiveOrgId(session);
+  // Rate-limit: 2 раза в час на org. Hard-delete необратим — этого
+  // достаточно чтобы блокировать случайный двойной клик / автоматизацию.
+  if (!destructiveOpsRateLimiter.consume(`delete-all:${organizationId}`)) {
+    const ms = destructiveOpsRateLimiter.remainingMs(
+      `delete-all:${organizationId}`
+    );
+    return NextResponse.json(
+      {
+        error: `Лимит на удаление: 2 раза в час. Следующая попытка через ${Math.ceil(ms / 60_000)} мин.`,
+      },
+      { status: 429 }
+    );
+  }
 
   // Считаем сколько документов и entries удалится — для аудита и UI.
   const [docCount, entryCount] = await Promise.all([

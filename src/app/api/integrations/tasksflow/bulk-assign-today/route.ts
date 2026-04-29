@@ -26,6 +26,8 @@ import { resolveJournalPeriod } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 import { ensureTasksflowUserLinks } from "@/lib/tasksflow-ensure-links";
+import { bulkAssignRateLimiter } from "@/lib/rate-limit";
+import { runWithConcurrency } from "@/lib/bounded-concurrency";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
@@ -205,6 +207,20 @@ export async function POST(request: Request) {
         email: session.user.email ?? null,
       };
     }
+  }
+
+  // Rate-limit: 3 fan-out'а / 5 мин / org. Защита от случайного
+  // двойного клика и CSRF-loop'а.
+  if (!bulkAssignRateLimiter.consume(`bulk-assign:${organizationId}`)) {
+    const ms = bulkAssignRateLimiter.remainingMs(
+      `bulk-assign:${organizationId}`
+    );
+    return NextResponse.json(
+      {
+        error: `Слишком частый «Отправить всем». Подождите ${Math.ceil(ms / 1000)} секунд.`,
+      },
+      { status: 429 }
+    );
   }
 
   const integration = await db.tasksFlowIntegration.findFirst({
@@ -580,29 +596,29 @@ export async function POST(request: Request) {
       continue;
     }
 
-    for (const row of rowSelection.rows) {
+    // Concurrency cap: дёргаем TF createTask пачками по 5 параллельно.
+    // Раньше sequential — 15 row'ов × ~1.5s/row = 22+s. Теперь 5
+    // параллельно → ~5s на пачку. TF rate-limit-friendly: 5 одновременно
+    // не сильно бьёт по их API.
+    await runWithConcurrency(rowSelection.rows, 5, async (row) => {
       if (takenRowKeys.has(row.rowKey)) {
         report.alreadyLinked += 1;
-        continue;
+        return;
       }
       if (!row.responsibleUserId) {
         report.skipped += 1;
-        continue;
+        return;
       }
       const tfUserId = tfUserIdByWesetup.get(row.responsibleUserId);
       if (!tfUserId) {
         report.skipped += 1;
-        continue;
+        return;
       }
 
       const title = adapter.titleForRow?.(row, adapterDoc) ?? row.label;
       const description = adapter.descriptionForRow?.(row, adapterDoc) ?? "";
       const schedule = adapter.scheduleForRow(row, adapterDoc);
       const category = `WeSetup · ${tpl.name}`;
-      // Премия в рублях (см. /settings/journal-bonuses). Передаём в TF
-      // как `task.price` — там же логика начисления при complete.
-      // Также кладём в journalLink, чтобы клиентский бейдж читал
-      // именно сконфигурированную сумму, а не hardcoded.
       const bonusRubles = Math.floor((tpl.bonusAmountKopecks ?? 0) / 100);
 
       let created;
@@ -626,7 +642,7 @@ export async function POST(request: Request) {
           err
         );
         report.errors += 1;
-        continue;
+        return;
       }
 
       const journalLink = JSON.stringify({
@@ -637,15 +653,7 @@ export async function POST(request: Request) {
         rowKey: row.rowKey,
         label: title,
         isFreeText: false,
-        // Опциональная сумма премии в копейках. TasksFlow читает её
-        // для бейджа «+N ₽» и для определения «race-for-bonus»
-        // claim-логики (когда первый сделал — у всех остальных
-        // карточка уезжает в «Сделано другими»).
         bonusAmountKopecks: tpl.bonusAmountKopecks ?? 0,
-        // taskScope — 'personal' (закрепленная задача) или 'shared'
-        // (общая очередь записей). TF Dashboard разделяет на 2 таба
-        // «Мои задачи» / «Общие задачи смены». Default 'personal'
-        // для back-compat если поле не пришло.
         taskScope: tpl.taskScope ?? "personal",
       });
       try {
@@ -662,13 +670,6 @@ export async function POST(request: Request) {
         }
       }
 
-      // Race-safe: если параллельный bulk-assign уже создал link с
-      // тем же (integrationId, journalDocumentId, rowKey) — словим
-      // P2002 на уникальном индексе. В этом случае:
-      //   • TF-таск мы уже успели создать (выше) — это даст дубль в TF
-      //   • Локальный link не пишется (он уже есть)
-      //   • Считаем это alreadyLinked, не ошибкой
-      // Дубль в TF почистится через cleanup-pending.
       try {
         await db.tasksFlowTaskLink.create({
           data: {
@@ -683,7 +684,6 @@ export async function POST(request: Request) {
         });
         report.created += 1;
       } catch (err) {
-        // Prisma P2002 = unique constraint violation
         const code = (err as { code?: string } | null)?.code;
         if (code === "P2002") {
           report.alreadyLinked += 1;
@@ -692,7 +692,7 @@ export async function POST(request: Request) {
         }
       }
       takenRowKeys.add(row.rowKey);
-    }
+    });
 
     reports.push(report);
   }

@@ -6,6 +6,7 @@ import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { resolveJournalPeriod, parseJournalPeriodsJson } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
+import { destructiveOpsRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,19 @@ export async function POST() {
   }
 
   const organizationId = getActiveOrgId(session);
+  // Rate-limit: 2 пересоздания / час / org. Иначе двойной клик
+  // дублирует close+create — лишние closed-документы, лишние entries.
+  if (!destructiveOpsRateLimiter.consume(`recreate-docs:${organizationId}`)) {
+    const ms = destructiveOpsRateLimiter.remainingMs(
+      `recreate-docs:${organizationId}`
+    );
+    return NextResponse.json(
+      {
+        error: `Лимит пересоздания: 2 раза в час. Подождите ${Math.ceil(ms / 60_000)} мин.`,
+      },
+      { status: 429 }
+    );
+  }
   const now = new Date();
 
   const [templates, org] = await Promise.all([
