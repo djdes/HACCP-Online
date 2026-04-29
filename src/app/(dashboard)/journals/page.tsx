@@ -46,14 +46,9 @@ export default async function JournalsPage() {
   // they can't navigate to settings to re-enable them, so showing the
   // «Отключённые» section would be a dead end. Managers still see the
   // full picture so they can toggle things back.
-  // Также скрываем журналы, помеченные как merged (health_check →
-  // hygiene, incoming_raw_materials_control → incoming_control). Их
-  // template остаётся в БД для compliance, но в UI юзер видит ОДИН.
-  const { isMergedJournalCode } = await import("@/lib/journal-catalog");
-  const visibleTemplates = (isManager
+  const visibleTemplates = isManager
     ? templates
-    : templates.filter((t) => !disabledCodes.has(t.code))
-  ).filter((t) => !isMergedJournalCode(t.code));
+    : templates.filter((t) => !disabledCodes.has(t.code));
 
   const filledTodayIds = await getTemplatesFilledToday(
     session.user.organizationId,

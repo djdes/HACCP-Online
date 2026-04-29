@@ -4,10 +4,7 @@ import { ArrowLeft, Network } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
-import {
-  ACTIVE_JOURNAL_CATALOG,
-  isMergedJournalCode,
-} from "@/lib/journal-catalog";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalsByPositionMatrix } from "@/components/settings/journals-by-position-matrix";
 import { OnboardingApplyButton } from "@/components/settings/onboarding-apply-button";
 
@@ -119,9 +116,7 @@ export default async function JournalsByPositionPage() {
           activeUsers: p._count.users,
           initialCodes: grantsByPosition.get(p.id) ?? [],
         }))}
-        catalog={ACTIVE_JOURNAL_CATALOG.filter(
-          (j) => !isMergedJournalCode(j.code)
-        ).map((j) => ({
+        catalog={ACTIVE_JOURNAL_CATALOG.map((j) => ({
           code: j.code,
           name: j.name,
         }))}

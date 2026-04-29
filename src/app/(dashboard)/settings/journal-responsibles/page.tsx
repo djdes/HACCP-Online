@@ -4,10 +4,7 @@ import { ArrowLeft, Network } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
-import {
-  ACTIVE_JOURNAL_CATALOG,
-  isMergedJournalCode,
-} from "@/lib/journal-catalog";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalResponsiblesClient } from "@/components/settings/journal-responsibles-client";
 
 export const dynamic = "force-dynamic";
@@ -69,9 +66,7 @@ export default async function JournalResponsiblesPage() {
     Record<string, string | null>
   >;
 
-  const journals = ACTIVE_JOURNAL_CATALOG.filter(
-    (j) => !isMergedJournalCode(j.code)
-  ).map((j) => {
+  const journals = ACTIVE_JOURNAL_CATALOG.map((j) => {
     const tpl = templates.find((t) => t.code === j.code);
     return {
       code: j.code,
