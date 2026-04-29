@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
 import { requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -5,11 +6,20 @@ import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { hasCapability } from "@/lib/permission-presets";
 
 export const dynamic = "force-dynamic";
 
 export default async function JournalsPage() {
   const session = await requireAuth();
+  // Заведующая (head_chef) и не-admin'ы не должны видеть «журналы как
+  // журналы». Перенаправляем туда где они работают.
+  if (!hasCapability(session.user, "journals.view")) {
+    if (hasCapability(session.user, "tasks.verify")) {
+      redirect("/control-board");
+    }
+    redirect("/mini/today");
+  }
   const isManager = hasFullWorkspaceAccess(session.user);
 
   const allowedCodes = await getAllowedJournalCodes(

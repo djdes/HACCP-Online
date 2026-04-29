@@ -28,6 +28,7 @@ import {
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { hasCapability } from "@/lib/permission-presets";
 // ThemeSwitcher убран отсюда — занимал много места. Переключатель темы
 // живёт компактной иконкой-popover'ом в шапке (ThemeQuickSwitch).
 
@@ -283,7 +284,19 @@ const settingsCards = [
 
 export default async function SettingsPage() {
   const session = await requireAuth();
-  if (!hasFullWorkspaceAccess(session.user)) {
+  // /settings — только admin'у. Заведующая (head_chef) попадала сюда
+  // через legacy role=owner, видела карточки, кликала «Pipeline»/«Режим
+  // задач»/«Пресеты» — мои страницы внутри проверяют admin.full и
+  // редиректили на /journals. Чиним: head_chef сразу на /control-board.
+  if (!hasCapability(session.user, "admin.full")) {
+    if (hasCapability(session.user, "tasks.verify")) {
+      redirect("/control-board");
+    }
+    if (!hasFullWorkspaceAccess(session.user)) {
+      redirect("/journals");
+    }
+    // Manager без admin.full и без tasks.verify — оставляем legacy
+    // /journals (на будущее когда manager preset появится).
     redirect("/journals");
   }
   const orgId = getActiveOrgId(session);
