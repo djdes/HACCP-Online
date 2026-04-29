@@ -6,6 +6,7 @@ import {
   verificationExpiresAt,
 } from "@/lib/registration";
 import { sendVerificationEmail } from "@/lib/email";
+import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Введите корректный email" },
       { status: 400 }
+    );
+  }
+
+  // Rate-limit per-IP: защита от email-spam'а и DB-bloat'а.
+  // Без этого бот мог отправить тысячи кодов на чужие email-адреса.
+  const xff = request.headers.get("x-forwarded-for") ?? "";
+  const ip = xff.split(",")[0].trim() || "unknown";
+  if (!registrationCodeRateLimiter.consume(`register:${ip}`)) {
+    return NextResponse.json(
+      {
+        error:
+          "Слишком много запросов кода. Подождите 10 минут перед следующей попыткой.",
+      },
+      { status: 429 }
     );
   }
 

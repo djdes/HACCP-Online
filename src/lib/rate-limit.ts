@@ -109,3 +109,16 @@ export const destructiveOpsRateLimiter = createRateLimiter({
   tokensPerInterval: 2,
   intervalMs: 60 * 60 * 1000,
 });
+
+/**
+ * /api/auth/register/request — отправка email-кода. Без лимита
+ * атакующий может (1) DoS'ить наш SMTP-провайдер, (2) спамить
+ * жертв письмами с кодом, (3) раздуть таблицу EmailVerification.
+ *
+ * 5 запросов / 10 минут на IP — нормальному пользователю хватит на
+ * 2-3 retry'я если первый код потерялся. Боту не хватит для спама.
+ */
+export const registrationCodeRateLimiter = createRateLimiter({
+  tokensPerInterval: 5,
+  intervalMs: 10 * 60 * 1000,
+});
