@@ -203,7 +203,13 @@ async function handle(request: Request) {
         },
         select: { data: true },
       });
-      const baseData = (existing?.data as Record<string, unknown>) ?? {};
+      const baseDataRaw = (existing?.data as Record<string, unknown>) ?? {};
+      // Снимаем _autoSeeded маркер — мы пишем реальные данные с
+      // IoT-датчика. Если оставить, NOT_AUTO_SEEDED фильтр
+      // (дашборд / отчёты / weekly-digest / auto-pause) продолжит
+      // считать строку placeholder'ом и не покажет sensor-fill'ы.
+      const { _autoSeeded: _seeded, ...baseData } = baseDataRaw;
+      void _seeded;
       let nextData: Record<string, unknown> = baseData;
 
       if (tplCode === COLD_EQUIPMENT_CODE) {

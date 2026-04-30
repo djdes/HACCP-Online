@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import {
   notifyOrganization,
   escapeTelegramHtml as esc,
@@ -103,11 +104,14 @@ async function buildDigestForOrg(
     }));
 
   // Top employee: who filled most JournalDocumentEntry rows during the
-  // week. Cheap proxy for «who was active».
+  // week. Cheap proxy for «who was active». Игнорируем _autoSeeded
+  // плейсхолдеры — иначе responsibleUserId документа выигрывает рейтинг
+  // даже когда он ничего не заполнял.
   const entries = await db.journalDocumentEntry.findMany({
     where: {
       document: { organizationId },
       date: { gte: weekStart, lt: weekEnd },
+      ...NOT_AUTO_SEEDED,
     },
     select: { employeeId: true },
     take: 5000,

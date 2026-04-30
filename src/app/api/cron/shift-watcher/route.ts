@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import {
   notifyEmployee,
   notifyOrganization,
@@ -91,6 +92,11 @@ async function handle(request: Request) {
           employeeId: shift.userId,
           createdAt: { gte: currentDayStart },
           document: { organizationId: shift.organizationId },
+          // Игнорируем _autoSeeded плейсхолдеры — bulk-assign сегодня
+          // мог создать seeded-rows для этого юзера, но это не значит
+          // что он реально работает. Иначе shift-watcher не пошлёт
+          // реминд «начни смену» когда сотрудник прохлаждается.
+          ...NOT_AUTO_SEEDED,
         },
         select: { id: true },
       }),
