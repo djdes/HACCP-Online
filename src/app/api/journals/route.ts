@@ -9,6 +9,7 @@ import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendTemperatureAlertEmail, sendDeviationAlertEmail } from "@/lib/email";
 import { journalEntrySchema } from "@/lib/validators";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
+import { canWriteJournal } from "@/lib/journal-acl";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -173,6 +174,23 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Шаблон не найден" },
         { status: 404 }
+      );
+    }
+
+    // ACL: до сих пор главный endpoint создания записи journals не
+    // проверял canWriteJournal. Сотрудник без доступа (например, повар
+    // без access к med_books) мог через прямой POST создать запись в
+    // ЛЮБОМ журнале своей org-и. Иногда это даже триггерило CAPA на
+    // чужих сотрудников.
+    const aclActor = {
+      id: session.user.id,
+      role: session.user.role,
+      isRoot: session.user.isRoot === true,
+    };
+    if (!(await canWriteJournal(aclActor, templateCode))) {
+      return NextResponse.json(
+        { error: "Нет доступа к этому журналу" },
+        { status: 403 }
       );
     }
 

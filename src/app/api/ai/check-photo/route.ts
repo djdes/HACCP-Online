@@ -1,3 +1,5 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
@@ -20,11 +22,30 @@ export const dynamic = "force-dynamic";
  * «фото №3 не похоже на еду, перезалить?».
  *
  * Auth: management. Расходует AI-квоту.
+ *
+ * SECURITY: imageUrl ограничен путями `/uploads/<safe-name>` —
+ * читаем файл напрямую с диска, никаких сетевых fetch'ей. Раньше
+ * принимался произвольный URL и `fetch(imageUrl)` уходил на любой
+ * адрес, включая 169.254.169.254 / 127.0.0.1 / 10.0.0.0 — это была
+ * SSRF-уязвимость через user-controlled URL.
  */
+const PHOTO_URL_PATTERN = /^\/uploads\/[a-zA-Z0-9._-]{1,128}$/;
+
 const Schema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z
+    .string()
+    .min(1)
+    .regex(PHOTO_URL_PATTERN, "imageUrl должен быть из /uploads/"),
   expectedKind: z.enum(["food", "equipment", "document", "any"]).default("any"),
 });
+
+function inferMediaType(filename: string): "image/jpeg" | "image/png" | "image/gif" | "image/webp" {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
 
 const KIND_HINTS: Record<string, string> = {
   food: "Это должна быть еда / готовое блюдо / продукт.",
@@ -77,15 +98,13 @@ export async function POST(request: Request) {
     throw err;
   }
 
-  // Скачаем фото и закодируем в base64.
+  // Читаем файл с диска, не через сеть — никаких SSRF-векторов.
   let imageBase64: string;
-  let mediaType = "image/jpeg";
+  const filename = body.imageUrl.split("/").pop() ?? "photo.jpg";
+  const mediaType = inferMediaType(filename);
   try {
-    const r = await fetch(body.imageUrl);
-    if (!r.ok) throw new Error(`fetch ${r.status}`);
-    const ct = r.headers.get("content-type");
-    if (ct?.startsWith("image/")) mediaType = ct.split(";")[0].trim();
-    const buf = Buffer.from(await r.arrayBuffer());
+    const filepath = join(process.cwd(), "public", body.imageUrl);
+    const buf = await readFile(filepath);
     if (buf.length > 5 * 1024 * 1024) {
       return NextResponse.json(
         { error: "Фото больше 5 МБ — оптимизируйте перед проверкой" },
@@ -95,7 +114,7 @@ export async function POST(request: Request) {
     imageBase64 = buf.toString("base64");
   } catch {
     return NextResponse.json(
-      { error: "Не удалось загрузить фото по URL" },
+      { error: "Не удалось прочитать фото" },
       { status: 400 }
     );
   }
@@ -120,7 +139,7 @@ export async function POST(request: Request) {
               type: "image",
               source: {
                 type: "base64",
-                media_type: mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                media_type: mediaType,
                 data: imageBase64,
               },
             },
