@@ -9,6 +9,7 @@
  * пересекается с today-compliance (который смотрит только на сегодня).
  */
 import { db } from "@/lib/db";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import {
   DAILY_JOURNAL_CODES,
   CONFIG_DAILY_CODES,
@@ -92,6 +93,11 @@ export async function getWeeklyTails(
       where: {
         documentId: { in: entryDocIds },
         date: { gte: weekStart, lt: weekEnd },
+        // _autoSeeded плейсхолдеры не считаются «заполненными днями»:
+        // иначе widget «хвосты» показывает чистым каждый день, в
+        // который seeded-rows есть, но сотрудник реально ничего не
+        // вписал.
+        ...NOT_AUTO_SEEDED,
       },
       _count: { _all: true },
     });
