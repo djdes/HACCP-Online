@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,8 +50,12 @@ async function handle(request: Request) {
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     });
+    // Исключаем _autoSeeded плейсхолдеры — bulk-assign-today
+    // авто-создаёт документы с seeded-rows, и без NOT_AUTO_SEEDED
+    // эти placeholder'ы выглядят как «активность» и блокируют
+    // auto-pause для реально пустых orgs.
     const lastDocEntry = await db.journalDocumentEntry.findFirst({
-      where: { document: { organizationId: org.id } },
+      where: { document: { organizationId: org.id }, ...NOT_AUTO_SEEDED },
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     });
