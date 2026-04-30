@@ -83,12 +83,19 @@ export async function GET() {
     }
 
     if ("error" in result && typeof result.error === "string") {
+      // Public endpoint без auth: raw err.message от Telegram-fetch'а
+      // может содержать URL формата
+      // 'https://api.telegram.org/bot<TOKEN>/getMe' с реальным токеном,
+      // если fetch упал на DNS/network уровне. Сливать BOT_TOKEN в
+      // публичный JSON — это take-over бота. Логируем server-side,
+      // отдаём generic.
+      console.error("[telegram-health] getMe failed:", result.error);
       return NextResponse.json(
         {
           ok: false,
           tokenConfigured,
           webhookSecretConfigured,
-          getMe: { ok: false, error: result.error.slice(0, 300) },
+          getMe: { ok: false, error: "getMe failed (see server logs)" },
           latencyMs,
         },
         { status: 503 }
@@ -121,15 +128,15 @@ export async function GET() {
       { status: 500 }
     );
   } catch (err) {
+    // Та же причина что выше — err.message может содержать URL с
+    // BOT_TOKEN. Логируем server-side, отдаём generic.
+    console.error("[telegram-health] race threw:", err);
     return NextResponse.json(
       {
         ok: false,
         tokenConfigured,
         webhookSecretConfigured,
-        getMe: {
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-        },
+        getMe: { ok: false, error: "telegram check failed" },
         latencyMs: Date.now() - start,
       },
       { status: 503 }
