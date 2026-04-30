@@ -33,7 +33,9 @@ import "@/app/app-theme.css";
  */
 
 export const metadata: Metadata = {
-  title: "WeSetup — Mini App",
+  // title.absolute обходит root layout's template "%s — WeSetup". Без
+  // absolute получали бы "WeSetup — Mini App — WeSetup" (бренд дублируется).
+  title: { absolute: "WeSetup — Mini App" },
   robots: { index: false, follow: false },
 };
 
