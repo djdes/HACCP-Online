@@ -15,6 +15,7 @@ import {
 } from "@/content/journal-info";
 import { JOURNAL_SEO } from "@/content/journal-seo";
 import { JournalScreenshot } from "@/components/public/journal-screenshot";
+import { jsonLdSafeString } from "@/lib/json-ld";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -85,7 +86,7 @@ export default async function JournalInfoDetailPage({
     <div className="min-h-screen bg-white text-[#0b1024]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}
       />
       <PublicHeader activeSection="journals-info" />
 

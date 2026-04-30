@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import { jsonLdSafeString } from "@/lib/json-ld";
 
 /**
  * E19 — лендинги под ниши общепита. Каждая ниша имеет адаптированный
@@ -212,7 +213,7 @@ export function NicheLanding({ slug }: { slug: string }) {
     <div className="min-h-screen bg-white text-[#0b1024]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}
       />
       <PublicHeader />
 

@@ -37,6 +37,7 @@ import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
+import { jsonLdSafeString } from "@/lib/json-ld";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -337,7 +338,7 @@ export default async function LandingPage() {
       <CursorGlow />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}
       />
       {/* NAV — solid white, sticky so hero blobs don't bleed through on scroll */}
       <div className="landing-nav sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">

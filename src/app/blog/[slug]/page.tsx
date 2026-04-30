@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { isArticleBlockArray } from "@/lib/article-blocks";
+import { jsonLdSafeString } from "@/lib/json-ld";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -119,7 +120,7 @@ export default async function BlogArticlePage({
     <div className="min-h-screen bg-white text-[#0b1024]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafeString(articleJsonLd) }}
       />
       <PublicHeader activeSection="blog" />
 
