@@ -173,11 +173,21 @@ async function handle(request: Request) {
       continue;
     }
 
-    // Stage 3: 4+ часа без активности (но смена ещё не absent) →
-    // friendly DM самому сотруднику. Это не давление, а тихая
-    // подсказка тем, кто реально работает, но забыл открыть журнал.
-    // Только один раз за смену — повторно не пингуем.
-    if (minutesSinceStart >= 240 && !alreadyStaffCheckedIn && !alreadyMarkedAbsent) {
+    // Stage 3: 4+ часа без активности → friendly DM самому
+    // сотруднику. Это не давление, а тихая подсказка тем, кто
+    // реально работает, но забыл открыть журнал. Только один раз
+    // за смену — повторно не пингуем.
+    //
+    // Раньше здесь стояло `&& !alreadyMarkedAbsent`. Из-за этого
+    // Stage 3 был unreachable: Stage 2 на тике 120мин всегда
+    // помечает absent + `continue`, а на следующем тике
+    // `!alreadyMarkedAbsent` уже false → DM не уходит никогда.
+    // Гейт убрали: даже отмеченному absent сотруднику отправим
+    // одно вежливое сообщение «всё ок?» (telegram-уведомление,
+    // если он реально работает — заполнит и статус автоматически
+    // не вернётся, но руководство хотя бы будет знать что человек
+    // на связи).
+    if (minutesSinceStart >= 240 && !alreadyStaffCheckedIn) {
       await db.auditLog.create({
         data: {
           organizationId: shift.organizationId,
