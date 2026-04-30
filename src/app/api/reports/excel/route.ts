@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagementRole(session.user.role)) {
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -25,6 +25,27 @@ export async function GET(request: Request) {
 
     if (!templateCode || !from || !to) {
       return NextResponse.json({ error: "templateCode, from, to обязательны" }, { status: 400 });
+    }
+
+    // Раньше: new Date(to + "T23:59:59.999Z") при невалидном to давал
+    // Invalid Date — Prisma принимал как «без верхней границы», Excel
+    // получался за всё время существования org-и. Плюс не было
+    // max-range: from=2020 to=2030 ок'и проходило, сервер генерил
+    // огромный xlsx 5-10 минут блокируя worker.
+    const parsedFrom = Date.parse(from);
+    const parsedTo = Date.parse(to);
+    if (Number.isNaN(parsedFrom) || Number.isNaN(parsedTo)) {
+      return NextResponse.json({ error: "Некорректный формат даты" }, { status: 400 });
+    }
+    if (parsedFrom > parsedTo) {
+      return NextResponse.json({ error: "Дата начала позже даты окончания" }, { status: 400 });
+    }
+    const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
+    if (parsedTo - parsedFrom > MAX_RANGE_MS) {
+      return NextResponse.json(
+        { error: "Период отчёта не должен превышать 366 дней" },
+        { status: 400 }
+      );
     }
 
     const template = await db.journalTemplate.findUnique({

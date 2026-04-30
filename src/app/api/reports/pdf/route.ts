@@ -16,8 +16,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Only owner and technologist can generate reports
-    if (!isManagementRole(session.user.role)) {
+    // Management + ROOT impersonation. Раньше missing isRoot bypass
+    // — ROOT не мог скачать отчёт за импесонируемого клиента.
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json(
         { error: "Недостаточно прав" },
         { status: 403 }
@@ -37,10 +38,27 @@ export async function GET(request: Request) {
       );
     }
 
-    // Validate date format (basic check)
-    if (isNaN(Date.parse(dateFrom)) || isNaN(Date.parse(dateTo))) {
+    // Validate date format
+    const parsedFrom = Date.parse(dateFrom);
+    const parsedTo = Date.parse(dateTo);
+    if (Number.isNaN(parsedFrom) || Number.isNaN(parsedTo)) {
       return NextResponse.json(
         { error: "Некорректный формат даты" },
+        { status: 400 }
+      );
+    }
+    // Раньше: from=2020 to=2030 принимались, сервер несколько минут
+    // генерил гигантский PDF и блокировал workers. Теперь sanity-bounds.
+    if (parsedFrom > parsedTo) {
+      return NextResponse.json(
+        { error: "Дата начала позже даты окончания" },
+        { status: 400 }
+      );
+    }
+    const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
+    if (parsedTo - parsedFrom > MAX_RANGE_MS) {
+      return NextResponse.json(
+        { error: "Период отчёта не должен превышать 366 дней" },
         { status: 400 }
       );
     }
