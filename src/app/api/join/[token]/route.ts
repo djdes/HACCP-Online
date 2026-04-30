@@ -352,10 +352,18 @@ async function autoOnboardToTasksflow(args: {
       console.warn("[join/auto-onboard] INTERNAL_TRIGGER_SECRET не задан — skip auto fan-out");
       return;
     }
-    const url = new URL(
-      "/api/integrations/tasksflow/bulk-assign-today",
-      args.request.url
-    );
+    // НЕ берём базу из args.request.url — Host-header под контролем
+    // атакующего: сети с прокси (FastPanel/Nginx) пробрасывают `Host`
+    // как-есть, и `request.url` собирается из него. POST-ом на
+    // /api/join/<token> с `Host: evil.com` мы бы отдали секретный
+    // x-internal-trigger ключ на attacker-controlled URL. Используем
+    // NEXTAUTH_URL — он жёстко задан в env прода.
+    const baseUrl = process.env.NEXTAUTH_URL;
+    if (!baseUrl) {
+      console.warn("[join/auto-onboard] NEXTAUTH_URL не задан — skip auto fan-out");
+      return;
+    }
+    const url = new URL("/api/integrations/tasksflow/bulk-assign-today", baseUrl);
     const res = await fetch(url, {
       method: "POST",
       headers: {
