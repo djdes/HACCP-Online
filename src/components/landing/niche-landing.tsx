@@ -339,6 +339,41 @@ export function NicheLanding({ slug }: { slug: string }) {
         </section>
       )}
 
+      {/* RELATED — другие ниши и SEO-лендинги для cross-linking.
+          Хорошо для SEO (PageRank flow) и навигации (если кафе попало
+          сюда по ошибке — может перейти на свою нишу). */}
+      <section className="mx-auto max-w-[1200px] px-4 pb-14 sm:px-6 sm:pb-20">
+        <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-6 sm:p-8">
+          <div className="mb-5 text-[12px] uppercase tracking-[0.18em] text-[#6f7282]">
+            См. также
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Object.values(NICHES)
+              .filter((n) => n.slug !== data.slug)
+              .map((n) => (
+                <Link
+                  key={n.slug}
+                  href={`/${n.slug}`}
+                  className="group flex items-start gap-3 rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold text-[#0b1024] group-hover:text-[#3848c7]">
+                      {n.audience}
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-[#6f7282]">
+                      {n.metaTitle.replace(" | WeSetup", "")}
+                    </div>
+                  </div>
+                  <ArrowRight className="mt-2 size-4 shrink-0 text-[#9b9fb3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
+                </Link>
+              ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6">
         <div className="rounded-3xl bg-gradient-to-br from-[#0b1024] via-[#1a234a] to-[#3848c7] p-7 text-center text-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)] sm:p-12">

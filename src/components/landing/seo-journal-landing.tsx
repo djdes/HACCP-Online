@@ -183,6 +183,35 @@ export function SeoJournalLanding({ config }: { config: SeoJournalConfig }) {
         </div>
       </section>
 
+      {/* RELATED — другие SEO-лендинги под смежные запросы. Cross-linking
+          улучшает crawlability + помогает посетителю найти точное
+          совпадение со своим запросом, если попал не туда. */}
+      <section className="mx-auto max-w-[1100px] px-4 pb-14 sm:px-6 sm:pb-20">
+        <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-6 sm:p-8">
+          <div className="mb-5 text-[12px] uppercase tracking-[0.18em] text-[#6f7282]">
+            Похожие журналы
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Object.values(SEO_LANDINGS)
+              .filter((s) => s.slug !== c.slug)
+              .slice(0, 6)
+              .map((s) => (
+                <Link
+                  key={s.slug}
+                  href={`/${s.slug}`}
+                  className="group flex items-start gap-3 rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                  <div className="min-w-0 flex-1 text-[13px] font-medium text-[#0b1024] group-hover:text-[#3848c7]">
+                    {s.hero}
+                  </div>
+                  <ArrowRight className="mt-0.5 size-4 shrink-0 text-[#9b9fb3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
+                </Link>
+              ))}
+          </div>
+        </div>
+      </section>
+
       <PublicFooter />
     </div>
   );
