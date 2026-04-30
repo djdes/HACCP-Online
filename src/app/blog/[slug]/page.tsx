@@ -50,24 +50,77 @@ export default async function BlogArticlePage({
 
   const body = isArticleBlockArray(article.body) ? article.body : [];
 
-  const related = await db.article.findMany({
+  // Похожие статьи: ранжируем по пересечению тегов с текущей.
+  // Запрашиваем чуть больше чем 3 чтобы было из чего выбирать,
+  // считаем overlap, сортируем, берём top-3.
+  const relatedRaw = await db.article.findMany({
     where: {
       publishedAt: { not: null },
       slug: { not: slug },
     },
     orderBy: { publishedAt: "desc" },
-    take: 3,
+    take: 30,
     select: {
       slug: true,
       title: true,
       excerpt: true,
+      tags: true,
       readMinutes: true,
       publishedAt: true,
     },
   });
+  const currentTags = new Set(article.tags.map((t) => t.toLowerCase()));
+  const related = relatedRaw
+    .map((r) => {
+      const overlap = r.tags.reduce(
+        (acc, t) => (currentTags.has(t.toLowerCase()) ? acc + 1 : acc),
+        0,
+      );
+      return { ...r, overlap };
+    })
+    .sort((a, b) => {
+      // Сначала по overlap, потом по дате (свежее → раньше).
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      const ad = a.publishedAt?.getTime() ?? 0;
+      const bd = b.publishedAt?.getTime() ?? 0;
+      return bd - ad;
+    })
+    .slice(0, 3);
+
+  // E20: schema.org Article markup для расширенных snippet'ов в Google.
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.excerpt,
+    datePublished: article.publishedAt?.toISOString(),
+    dateModified: article.publishedAt?.toISOString(),
+    author: {
+      "@type": "Organization",
+      name: "WeSetup",
+      url: "https://wesetup.ru",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "WeSetup",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://wesetup.ru/icon.png",
+      },
+    },
+    keywords: article.tags.join(", "),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://wesetup.ru/blog/${slug}`,
+    },
+  };
 
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <PublicHeader activeSection="blog" />
 
       <article className="mx-auto max-w-[760px] px-6 py-10 md:py-14">
@@ -105,19 +158,20 @@ export default async function BlogArticlePage({
           <ArticleRenderer blocks={body} />
         </div>
 
-        <div className="mt-10 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-5 text-center sm:mt-14 sm:p-8">
+        <div className="mt-10 rounded-3xl bg-gradient-to-br from-[#0b1024] via-[#1a234a] to-[#3848c7] p-5 text-center text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:mt-14 sm:p-8">
           <div className="text-[22px] font-semibold tracking-tight">
-            Попробуйте WeSetup бесплатно
+            Вести этот журнал в WeSetup бесплатно
           </div>
-          <p className="mx-auto mt-2 max-w-[420px] text-[14px] text-[#6f7282]">
-            Бесплатный тариф — навсегда, без ограничений по времени. Карта не нужна.
+          <p className="mx-auto mt-2 max-w-[480px] text-[14px] text-white/70">
+            Все 35 журналов СанПиН и ХАССП в одном кабинете. Бесплатный
+            тариф навсегда, до 5 сотрудников, без привязки карты.
           </p>
           <Link
             href="/register"
-            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#5566f6] px-5 py-3 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-[14px] font-medium text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5"
           >
-            Попробовать
-            <ArrowRight className="size-4" />
+            Начать бесплатно
+            <ArrowRight className="size-4 text-[#5566f6]" />
           </Link>
         </div>
       </article>

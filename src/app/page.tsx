@@ -296,6 +296,38 @@ export default async function LandingPage() {
           acceptedAnswer: { "@type": "Answer", text: item.a },
         })),
       },
+      {
+        "@type": "Product",
+        name: "WeSetup — электронные журналы СанПиН и ХАССП",
+        description:
+          "35 журналов для общепита и пищевых производств. Telegram-бот, автозаполнение, PDF для проверок Роспотребнадзора.",
+        brand: { "@id": "https://wesetup.ru/#org" },
+        offers: [
+          {
+            "@type": "Offer",
+            name: "Бесплатный",
+            price: "0",
+            priceCurrency: "RUB",
+            description: "До 5 сотрудников, все 35 журналов, бессрочно",
+            availability: "https://schema.org/InStock",
+          },
+          {
+            "@type": "Offer",
+            name: "Подписка",
+            price: "1990",
+            priceCurrency: "RUB",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: "1990",
+              priceCurrency: "RUB",
+              unitText: "месяц",
+            },
+            description:
+              "Без лимита по сотрудникам, IoT-датчики, автозаполнение",
+            availability: "https://schema.org/InStock",
+          },
+        ],
+      },
     ],
   };
 
