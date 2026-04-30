@@ -378,7 +378,8 @@ export function JournalResponsiblesClient({
   }
 
   async function persistAssignments(
-    assignments: Map<string, Assignment>
+    assignments: Map<string, Assignment>,
+    scope: "active-any" | "all" = "active-any"
   ): Promise<{ ok: number; failed: number }> {
     let ok = 0;
     let failed = 0;
@@ -393,6 +394,7 @@ export function JournalResponsiblesClient({
             body: JSON.stringify({
               positionIds: [...a.positionIds],
               slotUsers: a.slotUsers,
+              scope,
             }),
           }
         );
@@ -506,7 +508,7 @@ export function JournalResponsiblesClient({
     }
   }
 
-  async function save() {
+  async function saveWithScope(scope: "active-any" | "all") {
     if (saving || dirty.size === 0) return;
     setSaving(true);
     try {
@@ -517,13 +519,17 @@ export function JournalResponsiblesClient({
           slotUsers: curr.slots.get(code) ?? {},
         });
       }
-      const { ok, failed } = await persistAssignments(dirtyAssignments);
+      const { ok, failed } = await persistAssignments(dirtyAssignments, scope);
       if (failed > 0) {
         toast.error(
           `Сохранено: ${ok}, не удалось: ${failed}. Попробуйте ещё раз.`
         );
       } else {
-        toast.success(`Сохранено · журналов: ${ok}`);
+        toast.success(
+          scope === "all"
+            ? `Применено ко всем документам · журналов: ${ok}`
+            : `Применено к активным документам · журналов: ${ok}`
+        );
         router.refresh();
       }
     } catch (err) {
@@ -531,6 +537,31 @@ export function JournalResponsiblesClient({
     } finally {
       setSaving(false);
     }
+  }
+
+  // «В активных» — без модалки, безопасное действие.
+  async function save() {
+    await saveWithScope("active-any");
+  }
+
+  // «Во всех» — с модальным confirm, потому что переписывает
+  // закрытые/архивные документы и ломает аудит-trail.
+  async function saveAll() {
+    if (saving || dirty.size === 0) return;
+    const ok = window.confirm(
+      "ВНИМАНИЕ — изменить ответственных во ВСЕХ документах " +
+        "(включая закрытые и архивные)?\n\n" +
+        "• Это переписывает историю — старые подписи в PDF будут " +
+        "сменены на новые ФИО.\n" +
+        "• Также меняется проверяющий у УЖЕ ОТПРАВЛЕННЫХ " +
+        "TasksFlow-задач, включая те что в очереди «На проверке».\n" +
+        "• Откатить нельзя — каскад идёт и в БД, и в TasksFlow.\n\n" +
+        "Если просто обновляете состав на сегодня и далее — нажмите " +
+        "«Отмена» и используйте кнопку «В активных».\n\n" +
+        "Точно продолжить?",
+    );
+    if (!ok) return;
+    await saveWithScope("all");
   }
 
   function discard() {
@@ -744,7 +775,7 @@ export function JournalResponsiblesClient({
         </div>
 
         {dirty.size > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[12px] text-[#a13a32]">
               Несохранённых: {dirty.size}
             </span>
@@ -756,10 +787,13 @@ export function JournalResponsiblesClient({
             >
               Сбросить
             </button>
+            {/* «В активных» — обычное безопасное сохранение. Каскад
+                идёт только на active-документы и не-завершённые TF-задачи. */}
             <button
               type="button"
               onClick={save}
               disabled={saving}
+              title="Применить только к текущим/активным документам и невыполненным TasksFlow-задачам. Закрытые архивные документы не трогаются."
               className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white hover:bg-[#4a5bf0] disabled:opacity-60"
             >
               {saving ? (
@@ -767,7 +801,24 @@ export function JournalResponsiblesClient({
               ) : (
                 <Save className="size-3.5" />
               )}
-              Сохранить
+              Сохранить (в активных)
+            </button>
+            {/* «Во всех» — каскад в архив + закрытые TF-задачи. Опасно,
+                с confirm-модалкой. Кнопка outlined чтобы не сливалась с
+                первичной. */}
+            <button
+              type="button"
+              onClick={saveAll}
+              disabled={saving}
+              title="Каскадно применить во ВСЕ документы — включая закрытые и архивные. Также переписывает verifier на уже одобренных/отклонённых TasksFlow-задачах. Опасное действие — потребует подтверждения."
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#a13a32] bg-white px-3 text-[13px] font-medium text-[#a13a32] hover:bg-[#fff4f2] disabled:opacity-60"
+            >
+              {saving ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Save className="size-3.5" />
+              )}
+              Изменить во всех…
             </button>
           </div>
         ) : null}

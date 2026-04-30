@@ -32,6 +32,16 @@ import { getDefaultConfigForJournal } from "@/lib/journal-default-configs";
 
 export type SlotUserMap = Record<string, string | null>;
 
+export type CascadeScope =
+  /** Только активный документ покрывающий сегодня (legacy default). */
+  | "active-today"
+  /** Все active документы независимо от периода. */
+  | "active-any"
+  /** Все документы — active И closed, любые периоды. Используется
+   *  когда менеджер изменил ответственного и хочет переписать
+   *  историю задним числом. UI требует подтверждение. */
+  | "all";
+
 export async function cascadeResponsibleToActiveDocuments(input: {
   organizationId: string;
   templateId: string;
@@ -39,12 +49,17 @@ export async function cascadeResponsibleToActiveDocuments(input: {
   positionIds: string[];
   /** Карта slotId → userId. Если не передана — авто-подбор. */
   slotUsers?: SlotUserMap;
+  /** Какие документы каскадировать. По умолчанию active-today
+   *  (back-compat). UI с двумя кнопками передаёт active-any для
+   *  «изменить в активных» и all для «изменить во всех». */
+  scope?: CascadeScope;
 }): Promise<{
   documentsUpdated: number;
   pickedPrimaryUserId: string | null;
   savedSlots: SlotUserMap;
 }> {
   const { organizationId, templateId, journalCode, positionIds } = input;
+  const scope: CascadeScope = input.scope ?? "active-today";
   const schema = getSchemaForJournal(journalCode);
   const primarySlotId = getPrimarySlotId(journalCode);
   const slotUsers: SlotUserMap = { ...(input.slotUsers ?? {}) };
@@ -150,22 +165,31 @@ export async function cascadeResponsibleToActiveDocuments(input: {
     );
 
     // 4. Патчим document.config + ставим responsibleUserId.
-    // Сравниваем с началом UTC-дня — иначе для документов c
-    // dateTo=00:00 UTC последнего дня периода каскад не находит
-    // активный документ во второй половине дня (см. fixes от
-    // 2026-04-30 в bulk-assign-today + journal-auto-create).
+    // Scope управляет какие документы попадают в каскад:
+    //   • active-today — только active с покрытием сегодня (back-compat).
+    //   • active-any   — все active.
+    //   • all          — active + closed, любые периоды.
+    // Last две опции используются когда менеджер хочет каскадно
+    // переписать ответственного на старых документах (например,
+    // уволили филлера → admin меняет старые записи на нового).
     const now = new Date();
     const todayUtcStart = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
+    const docWhere: Record<string, unknown> = {
+      organizationId,
+      templateId,
+    };
+    if (scope === "active-today") {
+      docWhere.status = "active";
+      docWhere.dateFrom = { lte: todayUtcStart };
+      docWhere.dateTo = { gte: todayUtcStart };
+    } else if (scope === "active-any") {
+      docWhere.status = "active";
+    }
+    // scope === "all" — без дополнительных where-клозов.
     const docs = await db.journalDocument.findMany({
-      where: {
-        organizationId,
-        templateId,
-        status: "active",
-        dateFrom: { lte: todayUtcStart },
-        dateTo: { gte: todayUtcStart },
-      },
+      where: docWhere,
       select: { id: true, config: true },
     });
 

@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
-import { cascadeResponsibleToActiveDocuments } from "@/lib/journal-responsibles-cascade";
+import {
+  cascadeResponsibleToActiveDocuments,
+  type CascadeScope,
+} from "@/lib/journal-responsibles-cascade";
+import { cascadeVerifierToTasksflow } from "@/lib/tasksflow-verifier-cascade";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +66,20 @@ export async function PUT(
     }
   }
 
+  // scope управляет глубиной каскада. UI делает 2 кнопки:
+  //   • "Сохранить + изменить в активных" → scope="active-any" (по
+  //     умолчанию для обычного сохранения).
+  //   • "Сохранить + изменить во всех документах" → scope="all" с
+  //     явным confirm-модальным окном.
+  // Back-compat: если поле не передали — оставляем legacy "active-today".
+  const scopeRaw = (body as { scope?: unknown } | null)?.scope;
+  const scope: CascadeScope =
+    scopeRaw === "all"
+      ? "all"
+      : scopeRaw === "active-any"
+        ? "active-any"
+        : "active-today";
+
   if (positionIds.length > 0) {
     const owned = await db.jobPosition.findMany({
       where: { id: { in: positionIds }, organizationId },
@@ -120,12 +138,38 @@ export async function PUT(
     journalCode: code,
     positionIds,
     slotUsers,
+    scope,
   });
+
+  // Каскад на TasksFlow: если у журнала уже есть выпущенные задачи,
+  // переписываем их verifier_worker_id на нового primary slot user.
+  // Best-effort — TF может быть недоступен; не валим основной ответ.
+  // scope="active-today" остаётся узким (legacy, без TF cascade);
+  // active-any и all каскадируют на TF tasks соответственно.
+  let tfCascade: Awaited<ReturnType<typeof cascadeVerifierToTasksflow>> | null =
+    null;
+  if (scope !== "active-today") {
+    try {
+      tfCascade = await cascadeVerifierToTasksflow({
+        organizationId,
+        journalCode: code,
+        newPrimaryUserId: cascade.pickedPrimaryUserId,
+        scope: scope === "all" ? "all" : "active-any",
+      });
+    } catch (err) {
+      console.warn(
+        "[journal-responsibles cascade] TF-side failed (non-fatal)",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 
   return NextResponse.json({
     ok: true,
     count: positionIds.length,
     documentsUpdated: cascade.documentsUpdated,
     slotUsers: cascade.savedSlots,
+    scope,
+    tasksflow: tfCascade,
   });
 }
