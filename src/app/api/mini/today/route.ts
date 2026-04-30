@@ -9,6 +9,7 @@ import {
   listClaimsForJournal,
 } from "@/lib/journal-task-claims";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
+import { hasJournalAccess } from "@/lib/journal-acl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,8 +121,18 @@ export async function GET() {
 
   const groups: { code: string; label: string; scopes: EnrichedScope[] }[] = [];
 
+  // Раньше: показывали task pool ЛЮБОГО pool-журнала всем сотрудникам.
+  // Уборщица видела scope'ы health_check (медосмотр) с именами коллег,
+  // даже если её ACL запрещает доступ к этому журналу. Фильтруем по
+  // hasJournalAccess — management/root проходят без фильтра.
+  const aclActor = {
+    id: userId,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
   for (const code of POOL_CODES) {
     if (disabled.has(code)) continue;
+    if (!(await hasJournalAccess(aclActor, code))) continue;
     const [pool, claims] = await Promise.all([
       generatePoolForDay({ organizationId, journalCode: code, date: today }),
       listClaimsForJournal({
