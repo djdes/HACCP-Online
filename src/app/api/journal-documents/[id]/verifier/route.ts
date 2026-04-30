@@ -167,6 +167,41 @@ export async function POST(
       entityId: docId,
       details: { reason: body.reason },
     }).catch(() => null);
+    // TasksFlow mirror: при reject-document ВСЕ filler-задачи документа
+    // должны вернуться в активные с пометкой «Возвращено». Best-effort.
+    void (async () => {
+      try {
+        const integration = await db.tasksFlowIntegration.findUnique({
+          where: { organizationId: orgId },
+          select: { id: true, baseUrl: true, apiKeyEncrypted: true, enabled: true },
+        });
+        if (!integration?.enabled) return;
+        const links = await db.tasksFlowTaskLink.findMany({
+          where: {
+            integrationId: integration.id,
+            journalDocumentId: docId,
+            kind: "filler",
+          },
+          select: { tasksflowTaskId: true },
+        });
+        if (links.length === 0) return;
+        const { tasksflowClientFor } = await import("@/lib/tasksflow-client");
+        const client = tasksflowClientFor(integration);
+        for (const l of links) {
+          try {
+            await client.markReturned(l.tasksflowTaskId, body.reason);
+          } catch (err) {
+            console.warn(
+              "[verifier reject-document] markReturned failed",
+              l.tasksflowTaskId,
+              err instanceof Error ? err.message : err,
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("[verifier reject-document] TF mark-returned batch failed", err);
+      }
+    })();
     // Push всем заполнителям этого документа — у каждого «весь журнал
     // возвращён». Группируем по уникальному employeeId.
     void (async () => {
