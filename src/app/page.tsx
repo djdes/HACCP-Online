@@ -264,7 +264,7 @@ export default async function LandingPage() {
         "@id": "https://wesetup.ru/#org",
         name: "WeSetup",
         url: "https://wesetup.ru",
-        logo: "https://wesetup.ru/icon.png",
+        logo: "https://wesetup.ru/icons/icon-512.png",
         sameAs: ["https://t.me/wesetupbot"],
       },
       {

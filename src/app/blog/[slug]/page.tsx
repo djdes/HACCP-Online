@@ -106,7 +106,9 @@ export default async function BlogArticlePage({
       name: "WeSetup",
       logo: {
         "@type": "ImageObject",
-        url: "https://wesetup.ru/icon.png",
+        url: "https://wesetup.ru/icons/icon-512.png",
+        width: 512,
+        height: 512,
       },
     },
     keywords: article.tags.join(", "),
