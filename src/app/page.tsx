@@ -279,7 +279,11 @@ export default async function LandingPage() {
         "@type": "SoftwareApplication",
         name: "WeSetup",
         applicationCategory: "BusinessApplication",
-        operatingSystem: "Web, iOS, Android",
+        // Native iOS/Android apps пока не выпущены — у нас Web + Telegram
+        // Mini App. Не врём в JSON-LD: «Telegram Mini App» — это Web,
+        // фактически работает на iOS/Android внутри Telegram, но это не
+        // отдельные native приложения. Когда они появятся, поменяем.
+        operatingSystem: "Web",
         description:
           "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 35 журналов, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
         offers: {
