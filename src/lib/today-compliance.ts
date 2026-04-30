@@ -970,8 +970,14 @@ export async function getTemplateTodaySummary(
       }
       // Relaxed: «начали сегодня». Считаем только todayCount — без
       // сравнения с предыдущим днём, без inspect'ов equipment/room.
+      // NOT_AUTO_SEEDED: иначе compliance ring показывает «заполнено»
+      // на свежесозданном документе с одними seeded-плейсхолдерами.
       const today = await db.journalDocumentEntry.count({
-        where: { documentId: doc.id, date: { gte: todayStart, lt: todayEnd } },
+        where: {
+          documentId: doc.id,
+          date: { gte: todayStart, lt: todayEnd },
+          ...NOT_AUTO_SEEDED,
+        },
       });
       return {
         todayCount: today,
