@@ -1,9 +1,94 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, X, ShieldCheck } from "lucide-react";
+
+const FIELD_LABELS: Record<string, string> = {
+  status: "Статус",
+  healthStatus: "Здоровье",
+  temperature: "Температура",
+  temperatureAbove37: "Температура >37°C",
+  cleaned: "Убрано",
+  signature: "Подпись",
+  notes: "Комментарий",
+  comment: "Комментарий",
+  agent: "Средство",
+  area: "Помещение",
+  product: "Продукт",
+  supplier: "Поставщик",
+  lotNumber: "Партия",
+  date: "Дата",
+  time: "Время",
+};
+
+const VALUE_LABELS: Record<string, string> = {
+  healthy: "здоров",
+  sick: "болен",
+  day_off: "выходной",
+  on_leave: "отпуск",
+  passed: "допущен",
+  failed: "не допущен",
+};
+
+function formatFieldLabel(key: string): string {
+  return FIELD_LABELS[key] ?? key;
+}
+
+function formatFieldValue(value: unknown): ReactNode {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "boolean") {
+    return value ? "✓ да" : "— нет";
+  }
+  if (typeof value === "string") {
+    return VALUE_LABELS[value] ?? value;
+  }
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    return value.length === 0
+      ? "—"
+      : value.map((v) => formatFieldValue(v)).join(", ");
+  }
+  // Объект — рекурсивно plain
+  return (
+    <span className="text-[#9b9fb3]">
+      {JSON.stringify(value).slice(0, 80)}
+    </span>
+  );
+}
+
+function CellDataView({ data }: { data: unknown }) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return (
+      <div className="mt-1 rounded-lg bg-white p-2 text-[11px] text-[#9b9fb3]">
+        Пусто
+      </div>
+    );
+  }
+  const entries = Object.entries(data as Record<string, unknown>).filter(
+    ([, v]) => v !== null && v !== undefined && v !== "",
+  );
+  if (entries.length === 0) {
+    return (
+      <div className="mt-1 rounded-lg bg-white p-2 text-[11px] text-[#9b9fb3]">
+        Пусто
+      </div>
+    );
+  }
+  return (
+    <ul className="mt-1 grid gap-0.5 rounded-lg bg-white p-2 text-[12px] leading-relaxed sm:grid-cols-2">
+      {entries.map(([k, v]) => (
+        <li key={k} className="flex gap-1.5">
+          <span className="text-[#9b9fb3]">{formatFieldLabel(k)}:</span>
+          <span className="font-medium text-[#0b1024]">
+            {formatFieldValue(v)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 type Entry = {
   id: string;
@@ -324,9 +409,7 @@ export function VerifierClient({
                           </span>
                         )}
                       </div>
-                      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white p-2 text-[11px] leading-relaxed text-[#3c4053]">
-                        {JSON.stringify(e.data, null, 2)}
-                      </pre>
+                      <CellDataView data={e.data} />
                       {e.verificationRejectReason ? (
                         <div className="mt-1 text-[12px] text-[#d2453d]">
                           Причина: {e.verificationRejectReason}

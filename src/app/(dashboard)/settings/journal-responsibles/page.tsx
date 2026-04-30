@@ -6,6 +6,7 @@ import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalResponsiblesClient } from "@/components/settings/journal-responsibles-client";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,43 @@ export default async function JournalResponsiblesPage() {
           </div>
         </div>
       </section>
+
+      <PageGuide
+        storageKey="journal-responsibles"
+        title="Как назначить ответственных по журналам"
+        bullets={[
+          {
+            title: "«Заполняют» (верхний блок)",
+            body: "сотрудники которые ведут запись. Может быть один или несколько (для комиссий).",
+          },
+          {
+            title: "«Кто проверяет»",
+            body: "один человек — обычно заведующая. Получает в TasksFlow задачу «Проверить журнал» когда все заполнили.",
+          },
+          {
+            title: "«Умный пресет»",
+            body: "одной кнопкой подставляет должности по семантике. Уборка — уборщикам, медкнижки — админу/HR.",
+          },
+          {
+            title: "Сохранить (в активных)",
+            body: "обычное действие. Меняется в текущих документах + незавершённых задачах в TasksFlow.",
+          },
+          {
+            title: "Изменить во всех…",
+            body: "опасное действие — переписывает архивные документы и одобренные задачи. Используйте если меняете «исторически».",
+          },
+        ]}
+        qa={[
+          {
+            q: "Зачем верификер если уже указан исполнитель",
+            a: "Двойная проверка: исполнитель заполняет, верификер открывает таблицу и одобряет/возвращает на доработку. Если у вас один человек — оставьте verifier пустым.",
+          },
+          {
+            q: "Почему мой админ не появляется в умном пресете на уборке",
+            a: "Намеренно: админ ставится только на медкнижки и аудит. Уборка → уборщикам/заведующей. Так задачи не валятся в одну корзину.",
+          },
+        ]}
+      />
 
       <JournalResponsiblesClient
         positions={positions.map((p) => ({

@@ -26,6 +26,7 @@ import {
   Network,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { PageGuide } from "@/components/ui/page-guide";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
@@ -378,6 +379,39 @@ export default async function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <PageGuide
+        storageKey="settings-hub"
+        title="С чего начать новой команде"
+        bullets={[
+          {
+            title: "Старт",
+            body: "Запишите ИНН/адрес, добавьте сотрудников, настройте журналы которые ведёте.",
+          },
+          {
+            title: "Команда и доступы",
+            body: "Должности, иерархия (кто кого видит), пресеты прав ролей.",
+          },
+          {
+            title: "Журналы",
+            body: "Кто заполняет каждый журнал (Ответственные), как раздавать задачи в TasksFlow (Режимы), и какие журналы вообще нужны вашей кухне.",
+          },
+          {
+            title: "Интеграции",
+            body: "TasksFlow для смартфон-задач, Telegram для уведомлений, инспектор-портал для проверок.",
+          },
+        ]}
+        qa={[
+          {
+            q: "Что если сделал что-то не так",
+            a: "Большинство настроек обратимы — открой ту же страницу и поменяй. Опасные действия (удалить документы, изменить во всех) всегда спрашивают подтверждение.",
+          },
+          {
+            q: "Сотрудник не видит задачи в TasksFlow",
+            a: "Скорее всего у него нет TasksFlow-привязки. Зайди в «Сотрудники» и убедись что у него есть телефон + он принят в TasksFlow.",
+          },
+        ]}
+      />
 
       {/* Card grid — сгруппирована по разделам, чтобы не оверлоадить
           новый админ. Сначала «Старт» (быстрая настройка), потом

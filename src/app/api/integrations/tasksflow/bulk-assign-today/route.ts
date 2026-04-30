@@ -614,33 +614,109 @@ export async function POST(request: Request) {
           })
         : adapterDoc.rows;
 
-    // Phase D: per-area override. Если для журнала режим раздачи =
-    // per-area, генерируем synthetic rows = Area × first-eligible-
-    // filler. Адаптерные rows игнорируются. Каждое помещение получает
-    // отдельный rowKey, чтобы tasksFlowTaskLink хранил уникальные
-    // линки и при повторном bulk-assign duplicates не было.
+    // Phase D: распределение задач по режиму (taskMode.distribution).
+    // Каждый режим генерирует свой набор synthetic rows; затем
+    // selectRowsForBulkAssign отрабатывает обычный pipeline.
     const taskMode = getEffectiveTaskMode(tpl.code, taskModesJson);
     let rowsForSelection = filteredRows;
+
+    function linkedFromCandidates(): string[] {
+      const out: string[] = [];
+      for (const uid of candidateUserIds) {
+        if (linkedUserIds.has(uid)) out.push(uid);
+      }
+      return out;
+    }
+
     if (taskMode.distribution === "per-area") {
+      // По одной задаче на каждое помещение, round-robin между
+      // linked-исполнителями.
       const areas = await getAreas();
-      if (areas.length > 0) {
-        const linkedCandidates: string[] = [];
-        for (const uid of candidateUserIds) {
-          if (linkedUserIds.has(uid)) linkedCandidates.push(uid);
-        }
-        if (linkedCandidates.length > 0) {
-          // Round-robin: помещение i → linkedCandidates[i % N].
-          // Каждый исполнитель получает свою долю помещений.
-          const synthetic = areas.map((area, i) => ({
-            rowKey: `area:${area.id}`,
-            label: area.name,
-            responsibleUserId:
-              linkedCandidates[i % linkedCandidates.length],
-          })) as typeof filteredRows;
-          rowsForSelection = synthetic;
-        }
+      const linkedCandidates = linkedFromCandidates();
+      if (areas.length > 0 && linkedCandidates.length > 0) {
+        rowsForSelection = areas.map((area, i) => ({
+          rowKey: `area:${area.id}`,
+          label: area.name,
+          responsibleUserId:
+            linkedCandidates[i % linkedCandidates.length],
+        })) as typeof filteredRows;
+      }
+    } else if (taskMode.distribution === "per-shift") {
+      // По одной задаче на каждого юзера в WorkShift с
+      // status=scheduled на сегодня. Pure-shift семантика:
+      // активные сотрудники в смене получают свою задачу.
+      const linkedScheduled = [...scheduledUserIds].filter((id) =>
+        linkedUserIds.has(id),
+      );
+      if (linkedScheduled.length > 0) {
+        rowsForSelection = linkedScheduled.map((uid) => ({
+          rowKey: `shift:${uid}`,
+          label: tpl.name,
+          responsibleUserId: uid,
+        })) as typeof filteredRows;
+      }
+    } else if (taskMode.distribution === "by-rota") {
+      // Round-robin по дням года: только один из linked-кандидатов
+      // получает задачу сегодня. Завтра — следующий. Стабильно
+      // (детерминированно) выбираем по индексу `dayOfYear % N`.
+      const linkedCandidates = linkedFromCandidates().sort();
+      if (linkedCandidates.length > 0) {
+        const dayOfYear = Math.floor(
+          (now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 0)) /
+            86_400_000,
+        );
+        const idx = dayOfYear % linkedCandidates.length;
+        const dutyUserId = linkedCandidates[idx];
+        rowsForSelection = [
+          {
+            rowKey: `rota:${dutyUserId}`,
+            label: tpl.name,
+            responsibleUserId: dutyUserId,
+          },
+        ] as typeof filteredRows;
+      }
+    } else if (taskMode.distribution === "one-per-filler") {
+      // Каждому назначенному filler-слоту в /settings/journal-
+      // responsibles своя копия задачи. Используется для комиссий
+      // (бракераж 3 человека).
+      const orgSlots = (await db.organization.findUnique({
+        where: { id: organizationId },
+        select: { journalResponsibleUsersJson: true },
+      })) ?? null;
+      const allSlots = (orgSlots?.journalResponsibleUsersJson ?? {}) as Record<
+        string,
+        Record<string, string | null>
+      >;
+      const slotMap = allSlots[tpl.code] ?? {};
+      const fillerUserIds = Object.entries(slotMap)
+        .filter(([slotId, uid]) => slotId !== "_verifier" && !!uid)
+        .map(([, uid]) => uid as string)
+        .filter((uid) => linkedUserIds.has(uid));
+      if (fillerUserIds.length > 0) {
+        rowsForSelection = fillerUserIds.map((uid, i) => ({
+          rowKey: `filler:${uid}:${i}`,
+          label: tpl.name,
+          responsibleUserId: uid,
+        })) as typeof filteredRows;
+      }
+    } else if (taskMode.distribution === "one-summary") {
+      // Одна задача primary-исполнителю. Если doc.responsibleUserId
+      // задан и привязан в TF — берём его. Иначе fallback на
+      // адаптерные rows.
+      const primary = doc.responsibleUserId ?? null;
+      if (primary && linkedUserIds.has(primary)) {
+        rowsForSelection = [
+          {
+            rowKey: `summary:${doc.id}`,
+            label: tpl.name,
+            responsibleUserId: primary,
+          },
+        ] as typeof filteredRows;
       }
     }
+    // per-batch / per-employee — оставляем дефолтное поведение
+    // (адаптерные rows). per-batch требует webhook на каждое заполнение
+    // партии, что вне scope bulk-assign-today.
 
     const rowSelection = selectRowsForBulkAssign({
       journalCode: tpl.code,
