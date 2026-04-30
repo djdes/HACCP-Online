@@ -89,7 +89,7 @@ export const CAMPAIGNS: CampaignSpec[] = [
           {
             title1: "WeSetup — электронные журналы",
             title2: "СанПиН и ХАССП. Бесплатно",
-            text: "34 журнала, Telegram-бот, PDF для проверок. Бесплатный тариф до 5 сотрудников.",
+            text: "35 журналов, Telegram-бот, PDF для проверок. Бесплатный тариф до 5 сотрудников.",
             href: u("/", "brand", "exact"),
             displayPath: "журналы/бесплатно",
           },

@@ -15,13 +15,11 @@ import {
   Network,
   NotebookText,
   Plug,
-  Quote,
   Rocket,
   Send,
   ShieldCheck,
   Smartphone,
   Sparkles,
-  Star,
   Store,
   Timer,
   UserCheck,
@@ -197,7 +195,23 @@ const FAQ = [
   },
   {
     q: "Можно попробовать бесплатно?",
-    a: "Да — бесплатный тариф действует навсегда: до 5 сотрудников все 34 журнала включены без ограничений по времени и без привязки карты. Подписку оформляете, только если нужно больше рабочих мест или автоматизация с датчиками.",
+    a: "Да — бесплатный тариф действует навсегда: до 5 сотрудников все 35 журналов включены без ограничений по времени и без привязки карты. Подписку оформляете, только если нужно больше рабочих мест или автоматизация с датчиками.",
+  },
+  {
+    q: "Что если пропадёт интернет?",
+    a: "Ничего страшного: интерфейс продолжает работать на планшете, записи сохраняются локально и автоматически уходят на сервер при появлении сети. Пропустить смену из-за проблем с WiFi нельзя.",
+  },
+  {
+    q: "Безопасны ли мои данные?",
+    a: "Все журналы хранятся в защищённой PostgreSQL-базе на серверах в России. Резервные копии — каждые 6 часов. Передача — по HTTPS с TLS 1.3. Доступ — только по логину/паролю с ролевой моделью; PDF-выгрузка для проверок только с учётной записью администратора.",
+  },
+  {
+    q: "Можно ли перенести данные из Excel/бумаги?",
+    a: "Да. Импорт сотрудников, оборудования и поставщиков — из Excel-таблицы. Старые бумажные записи остаются у вас, новые ведутся в WeSetup; можно опционально оцифровать архив за деньги.",
+  },
+  {
+    q: "Подходит ли для школьного питания / больниц / детских садов?",
+    a: "Да. Те же СанПиН-журналы (гигиена, термообработка, бракераж, входной контроль) обязательны и для школ/больниц. Шаблоны общие; адаптация под специфику — в настройках.",
   },
 ];
 
@@ -265,7 +279,7 @@ export default async function LandingPage() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web, iOS, Android",
         description:
-          "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 34 журнала, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
+          "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 35 журналов, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
         offers: {
           "@type": "Offer",
           price: "0",
@@ -412,14 +426,21 @@ export default async function LandingPage() {
             Бесплатно навсегда до 5 сотрудников.
           </p>
 
+          {/* Compliance proof — на видном месте, чтобы менеджер сразу
+              видел что электронные журналы законны (D15). */}
+          <div className="hero-legal mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3c4053] backdrop-blur">
+            <ShieldCheck className="size-3.5 text-emerald-600" />
+            Законно с 2021 г. — СанПиН 2.3/2.4.3590-20
+          </div>
+
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
-              для анонимного — «Начать» (регистрация) */}
+              для анонимного — «Начать бесплатно» (регистрация) */}
           <div className="hero-cta mt-10 flex flex-col items-center gap-3">
             <Link
               href={isAuthed ? homeHref : "/register"}
               className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)] sm:h-[56px] sm:px-8 sm:text-[16px]"
             >
-              {isAuthed ? "Открыть кабинет" : "Начать"}
+              {isAuthed ? "Открыть кабинет" : "Начать бесплатно"}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <div className="text-[12px] text-[#9b9fb3]">
@@ -506,7 +527,7 @@ export default async function LandingPage() {
                 Бесплатно навсегда. Без карты.
               </h3>
               <p className="mt-3 text-[15px] text-white/70">
-                Поднимете свою организацию за 10 минут и начнёте вести
+                Создайте организацию за 10 минут и начните вести
                 журналы прямо сегодня. Платите, только если нужно больше
                 рабочих мест или автоматизация.
               </p>
@@ -515,7 +536,7 @@ export default async function LandingPage() {
               href="/register"
               className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
             >
-              Попробовать
+              Начать бесплатно
               <ArrowRight className="size-4 text-[#5566f6]" />
             </Link>
           </div>
@@ -576,9 +597,10 @@ export default async function LandingPage() {
             Все журналы бесплатно. Платите за автоматизацию.
           </h2>
           <p className="mt-4 text-[15px] text-[#6f7282]">
-            Софт-подписка — одна и та же цена. Отличаются только услуги:
-            приехать, подключить датчики к холодильникам, настроить
-            профили и обучить смену. Всё железо — разовая покупка.
+            Подписка единая — 1 990 ₽/мес. Пакеты отличаются только
+            набором оборудования и услугами: приехать, подключить
+            датчики к холодильникам, настроить профили и обучить смену.
+            Всё железо — разовая покупка.
           </p>
         </div>
 
@@ -592,7 +614,7 @@ export default async function LandingPage() {
             description="Доступ ко всем журналам без ограничений по времени. Для заведения с небольшой сменой."
             points={[
               "До 5 сотрудников",
-              "Все 34 журнала СанПиН + ХАССП",
+              "Все 35 журналов СанПиН + ХАССП",
               "Telegram-бот с wizard заполнения",
               "PDF для проверок, без привязки карты",
             ]}
@@ -760,106 +782,116 @@ export default async function LandingPage() {
               icon: Smartphone,
               label: "Планшет на кухне",
               caption: "Гигиена / температура в один тап",
+              accent: "from-[#eef1ff] to-[#dde2ff]",
+              ring: "ring-[#5566f6]/30",
+              iconColor: "text-[#5566f6]",
+              mock: (
+                <div className="space-y-1.5">
+                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[#0b1024]">
+                        Гигиена · 29.04
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-1.5 text-[8px] text-emerald-700">
+                        ✓
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[#0b1024]">
+                        Темп. -18°C
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-1.5 text-[8px] text-emerald-700">
+                        OK
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] shadow-sm">
+                    <span className="font-semibold text-rose-700">
+                      Уборка · ждёт ↺
+                    </span>
+                  </div>
+                </div>
+              ),
             },
             {
               icon: Send,
               label: "Telegram-бот",
               caption: "Напоминания и алерты о нарушениях",
+              accent: "from-[#dbeafe] to-[#c5d4fb]",
+              ring: "ring-blue-400/30",
+              iconColor: "text-blue-600",
+              mock: (
+                <div className="space-y-2">
+                  <div className="rounded-2xl rounded-bl-sm bg-white px-2 py-1.5 text-[10px] shadow-sm">
+                    🔔 Иванов не заполнил гигиену до 12:00
+                  </div>
+                  <div className="self-end rounded-2xl rounded-br-sm bg-blue-500 px-2 py-1.5 text-[10px] text-white shadow-sm">
+                    Заполнить
+                  </div>
+                  <div className="rounded-2xl rounded-bl-sm bg-white px-2 py-1.5 text-[10px] shadow-sm">
+                    📊 На неделе: 95% журналов закрыты
+                  </div>
+                </div>
+              ),
             },
             {
               icon: ImageIcon,
               label: "Компьютер руководителя",
               caption: "Отчёты и PDF для Роспотребнадзора",
+              accent: "from-[#fef3c7] to-[#fde68a]",
+              ring: "ring-amber-400/30",
+              iconColor: "text-amber-600",
+              mock: (
+                <div className="space-y-1.5">
+                  <div className="rounded-lg bg-white px-2 py-2 text-[10px] shadow-sm">
+                    <div className="font-semibold text-[#0b1024]">
+                      Сводка за неделю
+                    </div>
+                    <div className="mt-1 grid grid-cols-2 gap-1">
+                      <div className="rounded bg-emerald-50 px-1 text-emerald-700">
+                        ✓ 95%
+                      </div>
+                      <div className="rounded bg-amber-50 px-1 text-amber-700">
+                        ⚠ 3
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
+                    📄 Скачать PDF за апрель
+                  </div>
+                </div>
+              ),
             },
           ].map((item) => (
             <div
               key={item.label}
-              className="group flex aspect-[3/4] flex-col items-center justify-center rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-6 text-center transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              className={`group flex aspect-[3/4] flex-col rounded-3xl bg-gradient-to-br ${item.accent} p-5 ring-1 ${item.ring} transition-transform hover:-translate-y-1`}
             >
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-white text-[#5566f6] shadow-[0_0_0_1px_rgba(220,223,237,1)]">
-                <item.icon className="size-7" />
+              <div
+                className={`flex size-12 items-center justify-center rounded-2xl bg-white/80 ${item.iconColor} backdrop-blur shadow-[0_0_0_1px_rgba(220,223,237,0.5)]`}
+              >
+                <item.icon className="size-6" />
               </div>
-              <div className="mt-5 text-[15px] font-semibold text-[#0b1024]">
+              <div className="mt-4 text-[15px] font-semibold text-[#0b1024]">
                 {item.label}
               </div>
-              <div className="mt-1 text-[13px] text-[#6f7282]">
+              <div className="mt-1 text-[12px] text-[#3c4053]">
                 {item.caption}
               </div>
-              <div className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[#9b9fb3]">
-                Скриншот скоро
-              </div>
+              <div className="mt-auto flex flex-col">{item.mock}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CLIENTS — placeholder logo wall */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-8 text-center">
-          <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            С нами работают
-          </div>
-          <h2 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-            Кафе, пекарни, сетевые рестораны и цеха
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] text-[11px] uppercase tracking-[0.16em] text-[#9b9fb3]"
-            >
-              Логотип
-            </div>
-          ))}
-        </div>
-        <p className="mt-5 text-center text-[12px] text-[#9b9fb3]">
-          Место для логотипов клиентов — добавим после согласования с ними.
-        </p>
-      </section>
+      {/* CLIENTS section убрана — реальных логотипов пока нет, лучше */}
+      {/* пустого грязного блока (UX 2026-04-30). Вернётся когда */}
+      {/* появятся подписанные клиенты с разрешением показа. */}
 
-      {/* TESTIMONIALS — placeholder */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <Quote className="size-4" />
-            Отзывы
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Что говорят клиенты
-          </h2>
-          <p className="mt-3 text-[14px] text-[#9b9fb3]">
-            Собираем первые отзывы — добавим сразу после письменного
-            согласия клиентов.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex flex-col rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-6"
-            >
-              <div className="flex gap-0.5 text-[#dcdfed]">
-                {Array.from({ length: 5 }).map((_, s) => (
-                  <Star key={s} className="size-4 fill-current" />
-                ))}
-              </div>
-              <div className="mt-5 space-y-2">
-                <div className="h-3 w-full rounded-full bg-[#ececf4]" />
-                <div className="h-3 w-11/12 rounded-full bg-[#ececf4]" />
-                <div className="h-3 w-9/12 rounded-full bg-[#ececf4]" />
-              </div>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-[#ececf4]" />
-                <div className="flex flex-col gap-1">
-                  <div className="h-2.5 w-24 rounded-full bg-[#ececf4]" />
-                  <div className="h-2 w-16 rounded-full bg-[#f1f2f9]" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* TESTIMONIALS section убрана — без реальных отзывов. */}
+      {/* Вернётся когда появятся клиенты, готовые подписать кейс. */}
 
       {/* BLOG */}
       {latestArticles.length > 0 && (

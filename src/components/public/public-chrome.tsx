@@ -158,10 +158,10 @@ export function PublicFooter() {
           </div>
           <div>
             <a
-              href="mailto:magazinlenina@gmail.com"
+              href="mailto:support@wesetup.ru"
               className="inline-flex min-h-[36px] items-center break-all transition-colors hover:text-[#0b1024]"
             >
-              magazinlenina@gmail.com
+              support@wesetup.ru
             </a>
           </div>
         </div>
