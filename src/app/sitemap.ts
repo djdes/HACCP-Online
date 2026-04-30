@@ -34,6 +34,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
     { url: `${SITE}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE}/journals-info`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    // /pricing — высоко-конверсионная страница (ROI калькулятор + тарифы),
+    // высокий приоритет для индексации. Раньше отсутствовала в sitemap'е.
+    { url: `${SITE}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${SITE}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/register`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
   ];
