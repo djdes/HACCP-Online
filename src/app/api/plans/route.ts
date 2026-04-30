@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { isManagementRole } from "@/lib/user-roles";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -34,6 +35,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Согласовано с PATCH ниже и с правилом «производственные планы
+  // составляет только management». Раньше POST принимал от любого
+  // staff-юзера — повар мог создать чужой план.
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => null);
   if (!body) {

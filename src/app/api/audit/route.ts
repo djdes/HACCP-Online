@@ -3,7 +3,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { isManagerRole } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +16,14 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!isManagerRole(session.user.role)) {
+    // Раньше: isManagerRole — только role=manager. head_chef не мог
+    // открыть /settings/audit, ROOT impersonating получал 403.
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json(
         { error: "Недостаточно прав" },
         { status: 403 }

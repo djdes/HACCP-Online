@@ -141,8 +141,9 @@ export async function DELETE(request: Request) {
 
     // head_chef управляет производством и кладовкой — должен мочь
     // удалять/чистить product-каталог наравне с manager'ом. Раньше:
-    // только manager → head_chef получал 403.
-    if (!isManagementRole(session.user.role)) {
+    // только manager → head_chef получал 403. Также добавляем isRoot
+    // bypass для согласованности с POST/PUT в этом файле.
+    if (!isManagementRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 

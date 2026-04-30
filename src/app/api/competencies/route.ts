@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  if (!isManagementRole(session.user.role)) {
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 
