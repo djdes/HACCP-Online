@@ -8,6 +8,7 @@ import {
   resolveJournalPeriod,
   type JournalPeriodOverrideMap,
 } from "@/lib/journal-period";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,7 +143,14 @@ export async function PUT(request: Request) {
         id: true,
         dateFrom: true,
         dateTo: true,
-        _count: { select: { entries: true } },
+        // Считаем только реальные заполнения, без _autoSeeded
+        // плейсхолдеров. Раньше: документ с пустыми seeded-rows
+        // (создан bulk-assign-today / sync-* для отображения матрицы)
+        // считался «filled» и менеджер не мог сменить период даже
+        // на свежем документе, который никто не трогал.
+        _count: {
+          select: { entries: { where: NOT_AUTO_SEEDED } },
+        },
       },
     });
     if (!active) {
