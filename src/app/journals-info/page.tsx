@@ -21,7 +21,7 @@ export const revalidate = 0;
 export const metadata = {
   title: "Электронные журналы — каталог WeSetup",
   description:
-    "Полный список электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и ещё 30+.",
+    "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.",
 };
 
 const CATEGORY_ORDER: Array<JournalInfo["category"]> = [
@@ -54,7 +54,7 @@ export default function JournalsInfoListPage() {
               <BookOpenCheck className="size-3.5" /> Каталог журналов
             </div>
             <h1 className="mt-4 max-w-[780px] text-[40px] font-semibold leading-[1.08] tracking-[-0.02em] md:text-[56px]">
-              {all.length}+ журналов СанПиН и ХАССП в одном сервисе
+              {all.length} журналов СанПиН и ХАССП в одном сервисе
             </h1>
             <p className="mt-5 max-w-[720px] text-[16px] leading-[1.6] text-white/80 md:text-[18px]">
               Всё, что требует СанПиН 2.3/2.4.3590-20 и план ХАССП: от
