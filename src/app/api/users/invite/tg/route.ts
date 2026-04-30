@@ -39,6 +39,12 @@ const schema = z.object({
   name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
   role: z.enum(USER_ROLE_VALUES, { message: "Выберите роль" }),
   phone: z.string().optional(),
+  // Опциональная привязка к должности при инвайте — без неё юзер
+  // создаётся в legacy-режиме (journalAccessMigrated=false), и при
+  // активации видит ВСЕ журналы. С jobPositionId — заполняем
+  // UserJournalAccess из JobPositionJournalAccess сразу, юзер видит
+  // только то что положено его должности.
+  jobPositionId: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -69,6 +75,30 @@ export async function POST(request: Request) {
     const expiresAt = botInviteExpiresAt();
     const organizationId = getActiveOrgId(session);
 
+    // Если передан jobPositionId — валидируем принадлежность org и
+    // подтягиваем allowed templates для populate UserJournalAccess.
+    // Согласовано с /api/staff и QR-join.
+    let positionTemplates: Array<{ template: { code: string } }> = [];
+    let positionTitle: string | null = null;
+    if (data.jobPositionId) {
+      const position = await db.jobPosition.findFirst({
+        where: { id: data.jobPositionId, organizationId },
+        select: { id: true, name: true },
+      });
+      if (!position) {
+        return NextResponse.json(
+          { error: "Должность не найдена в организации" },
+          { status: 404 }
+        );
+      }
+      positionTitle = position.name;
+      positionTemplates = await db.jobPositionJournalAccess.findMany({
+        where: { organizationId, jobPositionId: position.id },
+        include: { template: { select: { code: true } } },
+      });
+    }
+    const useStrictAcl = positionTemplates.length > 0;
+
     const { user } = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -80,8 +110,23 @@ export async function POST(request: Request) {
           phone: data.phone || null,
           organizationId,
           isActive: false,
+          jobPositionId: data.jobPositionId ?? null,
+          positionTitle,
+          journalAccessMigrated: useStrictAcl,
         },
       });
+      if (useStrictAcl) {
+        await tx.userJournalAccess.createMany({
+          data: positionTemplates.map((t) => ({
+            userId: user.id,
+            templateCode: t.template.code,
+            canRead: true,
+            canWrite: true,
+            canFinalize: false,
+          })),
+          skipDuplicates: true,
+        });
+      }
       await tx.botInviteToken.create({
         data: {
           userId: user.id,

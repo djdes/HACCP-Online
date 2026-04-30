@@ -22,6 +22,9 @@ const inviteUserSchema = z.object({
   email: z.string().email("Введите корректный email"),
   role: z.enum(USER_ROLE_VALUES, { message: "Выберите роль" }),
   phone: z.string().optional(),
+  // Опциональная привязка к должности — заполняет UserJournalAccess
+  // сразу, без legacy back-compat «видишь всё».
+  jobPositionId: z.string().min(1).optional(),
 });
 
 /**
@@ -65,6 +68,28 @@ export async function POST(request: Request) {
     const expiresAt = inviteExpiresAt();
     const organizationId = getActiveOrgId(session);
 
+    // Position-based ACL pre-population. Mirror /api/staff и /api/users/invite/tg.
+    let positionTemplates: Array<{ template: { code: string } }> = [];
+    let positionTitle: string | null = null;
+    if (data.jobPositionId) {
+      const position = await db.jobPosition.findFirst({
+        where: { id: data.jobPositionId, organizationId },
+        select: { id: true, name: true },
+      });
+      if (!position) {
+        return NextResponse.json(
+          { error: "Должность не найдена в организации" },
+          { status: 404 }
+        );
+      }
+      positionTitle = position.name;
+      positionTemplates = await db.jobPositionJournalAccess.findMany({
+        where: { organizationId, jobPositionId: position.id },
+        include: { template: { select: { code: true } } },
+      });
+    }
+    const useStrictAcl = positionTemplates.length > 0;
+
     const { user } = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -75,8 +100,23 @@ export async function POST(request: Request) {
           phone: data.phone || null,
           organizationId,
           isActive: false,
+          jobPositionId: data.jobPositionId ?? null,
+          positionTitle,
+          journalAccessMigrated: useStrictAcl,
         },
       });
+      if (useStrictAcl) {
+        await tx.userJournalAccess.createMany({
+          data: positionTemplates.map((t) => ({
+            userId: user.id,
+            templateCode: t.template.code,
+            canRead: true,
+            canWrite: true,
+            canFinalize: false,
+          })),
+          skipDuplicates: true,
+        });
+      }
       await tx.inviteToken.create({
         data: {
           userId: user.id,
