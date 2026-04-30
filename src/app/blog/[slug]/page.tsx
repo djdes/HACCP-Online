@@ -6,6 +6,11 @@ import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { isArticleBlockArray } from "@/lib/article-blocks";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,13 +37,28 @@ export async function generateMetadata({
   if (!article || !article.publishedAt) {
     return { title: { absolute: "Статья не найдена — WeSetup" } };
   }
+  const url = `https://wesetup.ru/blog/${slug}`;
   return {
-    // article.title уже самостоятельный, layout.template добавит — WeSetup
-    // суффикс автоматически. Раньше было `${article.title} — WeSetup`,
-    // что давало "X — WeSetup — WeSetup" (template-doubling).
+    // article.title уже самостоятельный, layout.template добавит — WeSetup.
     title: article.title,
     description: article.excerpt,
-    alternates: { canonical: `https://wesetup.ru/blog/${slug}` },
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      locale: "ru_RU",
+      siteName: "WeSetup",
+      url,
+      title: article.title,
+      description: article.excerpt,
+      images: DEFAULT_OG_IMAGES,
+      publishedTime: article.publishedAt?.toISOString(),
+    },
+    twitter: {
+      card: DEFAULT_TWITTER_CARD,
+      title: article.title,
+      description: article.excerpt,
+      images: DEFAULT_TWITTER_IMAGES,
+    },
   };
 }
 

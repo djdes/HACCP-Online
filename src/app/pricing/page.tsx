@@ -1,12 +1,32 @@
 import Link from "next/link";
 import { ArrowRight, Coins } from "lucide-react";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const metadata = {
   title: "Стоимость и ROI калькулятор",
   description:
     "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
   alternates: { canonical: "https://wesetup.ru/pricing" },
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    siteName: "WeSetup",
+    url: "https://wesetup.ru/pricing",
+    title: "Стоимость и ROI калькулятор",
+    description:
+      "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
+    images: DEFAULT_OG_IMAGES,
+  },
+  twitter: {
+    card: DEFAULT_TWITTER_CARD,
+    title: "Стоимость и ROI калькулятор",
+    images: DEFAULT_TWITTER_IMAGES,
+  },
 };
 
 /**

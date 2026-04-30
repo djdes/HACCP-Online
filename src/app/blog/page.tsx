@@ -2,6 +2,11 @@ import Link from "next/link";
 import { ArrowRight, Clock, NotebookText, Search } from "lucide-react";
 import { db } from "@/lib/db";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,6 +18,26 @@ export const metadata = {
   // Canonical всегда без query-string — иначе /blog?q=test и /blog?tag=haccp
   // индексируются Google как отдельные страницы (duplicate content penalty).
   alternates: { canonical: "https://wesetup.ru/blog" },
+  // Полный openGraph — иначе Next.js shallow-merge заменит parent
+  // полностью и мы потеряем images. Url должен совпадать с canonical
+  // чтобы Telegram/FB share-preview не показывал home page metadata.
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    siteName: "WeSetup",
+    url: "https://wesetup.ru/blog",
+    title: "Блог — электронные журналы ХАССП и СанПиН",
+    description:
+      "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
+    images: DEFAULT_OG_IMAGES,
+  },
+  twitter: {
+    card: DEFAULT_TWITTER_CARD,
+    title: "Блог — электронные журналы ХАССП и СанПиН",
+    description:
+      "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
+    images: DEFAULT_TWITTER_IMAGES,
+  },
 };
 
 const PAGE_SIZE = 9;

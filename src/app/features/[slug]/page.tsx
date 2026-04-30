@@ -17,6 +17,11 @@ import {
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { FEATURES_INFO, FEATURES_ORDER } from "@/content/features";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,11 +45,27 @@ export async function generateMetadata({
   const { slug } = await params;
   const info = FEATURES_INFO[slug];
   if (!info) return { title: { absolute: "Возможность не найдена — WeSetup" } };
+  const url = `https://wesetup.ru/features/${slug}`;
   return {
     // info.title уже самостоятельный, layout.template добавит «— WeSetup».
     title: info.title,
     description: info.tagline,
-    alternates: { canonical: `https://wesetup.ru/features/${slug}` },
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      locale: "ru_RU",
+      siteName: "WeSetup",
+      url,
+      title: info.title,
+      description: info.tagline,
+      images: DEFAULT_OG_IMAGES,
+    },
+    twitter: {
+      card: DEFAULT_TWITTER_CARD,
+      title: info.title,
+      description: info.tagline,
+      images: DEFAULT_TWITTER_IMAGES,
+    },
   };
 }
 

@@ -14,15 +14,38 @@ import {
 } from "@/content/journal-info";
 import { NICHES } from "@/components/landing/niche-landing";
 import { SEO_LANDINGS } from "@/components/landing/seo-journal-landing";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const HUB_TITLE = "Каталог электронных журналов";
+const HUB_DESC =
+  "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.";
+
 export const metadata = {
-  title: "Каталог электронных журналов",
-  description:
-    "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.",
+  title: HUB_TITLE,
+  description: HUB_DESC,
   alternates: { canonical: "https://wesetup.ru/journals-info" },
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    siteName: "WeSetup",
+    url: "https://wesetup.ru/journals-info",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: DEFAULT_OG_IMAGES,
+  },
+  twitter: {
+    card: DEFAULT_TWITTER_CARD,
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: DEFAULT_TWITTER_IMAGES,
+  },
 };
 
 const CATEGORY_ORDER: Array<JournalInfo["category"]> = [
