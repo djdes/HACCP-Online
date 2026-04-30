@@ -122,6 +122,13 @@ export default function GlobalError({
             >
               Повторить
             </button>
+            {/* Намеренно <a>, не <Link>: global-error срабатывает когда
+                root layout упал, в этой ситуации клиентская гидратация
+                могла не пройти и Link.prefetch может не работать. Полный
+                page reload через <a> гарантирует выход из сломанного
+                состояния. eslint-rule next/no-html-link-for-pages здесь
+                нужно явно отключить. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               style={{
