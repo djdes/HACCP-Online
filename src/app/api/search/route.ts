@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,10 @@ export async function GET(request: Request) {
     role: session.user.role,
     isRoot: session.user.isRoot,
   });
+  // Палитра не должна возвращать журналы, которые org отключила в
+  // /settings/journals — клик по такому результату вёл бы на
+  // disabled-страницу, и сотрудник терял бы 5 секунд на возврат.
+  const disabledCodes = await getDisabledJournalCodes(organizationId);
 
   const [users, templates, documents, equipment] = await Promise.all([
     // Сотрудники только management-ролям; обычным юзерам список
@@ -88,6 +93,9 @@ export async function GET(request: Request) {
     db.journalTemplate.findMany({
       where: {
         isActive: true,
+        ...(disabledCodes.size > 0
+          ? { code: { notIn: Array.from(disabledCodes) } }
+          : {}),
         OR: [
           { name: { contains: q, mode: "insensitive" } },
           { code: { contains: q, mode: "insensitive" } },
