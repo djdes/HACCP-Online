@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
+import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,13 @@ export async function GET(
   const periodToInclusive = new Date(record.periodTo);
   periodToInclusive.setUTCHours(23, 59, 59, 999);
 
-  const [templates, documents, legacyEntries] = await Promise.all([
+  // Раньше PDF включал все active templates: org, отключившая
+  // в /settings/journals скажем «температурный режим», получала в
+  // PDF секцию «Темп. режим — нет документов» — выглядит как
+  // нарушение для инспектора. Теперь скрываем отключённые.
+  const disabledCodes = await getDisabledJournalCodes(record.organizationId);
+
+  const [templatesAll, documents, legacyEntries] = await Promise.all([
     db.journalTemplate.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -78,6 +85,8 @@ export async function GET(
       select: { templateId: true },
     }),
   ]);
+
+  const templates = templatesAll.filter((t) => !disabledCodes.has(t.code));
 
   const docsByTemplate = new Map<string, typeof documents>();
   for (const d of documents) {

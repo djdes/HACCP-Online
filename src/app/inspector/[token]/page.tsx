@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ClipboardCheck, Download, Calendar, Building2, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
+import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,7 +72,14 @@ export default async function InspectorLandingPage({
   // Journals available — only templates that have at least one document
   // within the period. Aperiodic ones may have no entries — we still show
   // the card with «нет записей» so inspector understands what's expected.
-  const templates = await db.journalTemplate.findMany({
+  //
+  // Раньше показывали ВСЕ active templates: org, отключившая «темп.
+  // режим» в /settings/journals (потому что вообще нет холодильников),
+  // выглядела для инспектора как нарушитель — пустая карточка с
+  // «0 документов». Теперь скрываем отключённые: инспектор видит
+  // только то, что org обязалась вести.
+  const disabledCodes = await getDisabledJournalCodes(record.organizationId);
+  const allTemplates = await db.journalTemplate.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
     select: {
@@ -82,6 +90,7 @@ export default async function InspectorLandingPage({
       isMandatoryHaccp: true,
     },
   });
+  const templates = allTemplates.filter((t) => !disabledCodes.has(t.code));
 
   const documents = await db.journalDocument.findMany({
     where: {
