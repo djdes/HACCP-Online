@@ -10,6 +10,9 @@ export const metadata = {
   title: "Блог WeSetup — электронные журналы ХАССП и СанПиН",
   description:
     "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
+  // Canonical всегда без query-string — иначе /blog?q=test и /blog?tag=haccp
+  // индексируются Google как отдельные страницы (duplicate content penalty).
+  alternates: { canonical: "https://wesetup.ru/blog" },
 };
 
 const PAGE_SIZE = 9;

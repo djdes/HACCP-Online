@@ -6,6 +6,7 @@ export const metadata = {
   title: "Стоимость WeSetup — калькулятор ROI",
   description:
     "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
+  alternates: { canonical: "https://wesetup.ru/pricing" },
 };
 
 /**

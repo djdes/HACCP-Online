@@ -22,6 +22,7 @@ export const metadata = {
   title: "Электронные журналы — каталог WeSetup",
   description:
     "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.",
+  alternates: { canonical: "https://wesetup.ru/journals-info" },
 };
 
 const CATEGORY_ORDER: Array<JournalInfo["category"]> = [

@@ -35,6 +35,7 @@ export async function generateMetadata({
   return {
     title: `${article.title} — WeSetup`,
     description: article.excerpt,
+    alternates: { canonical: `https://wesetup.ru/blog/${slug}` },
   };
 }
 
