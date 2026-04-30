@@ -78,6 +78,10 @@ export default async function JournalInfoDetailPage({
     "@type": "Article",
     headline: seo?.title ?? info.tagline,
     description: seo?.description ?? info.why,
+    // Article.image is required per Google rich-results spec — без него
+    // карточка не попадает в Article rich result. Тот же brand-logo что
+    // в og:image. См. идентичный фикс для blog/[slug] (7407176e).
+    image: ["https://wesetup.ru/icons/icon-512.png"],
     url: canonical,
     inLanguage: "ru-RU",
     keywords: seo?.keywords?.join(", "),
@@ -86,6 +90,12 @@ export default async function JournalInfoDetailPage({
       "@type": "Organization",
       name: "WeSetup",
       url: "https://wesetup.ru",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://wesetup.ru/icons/icon-512.png",
+        width: 512,
+        height: 512,
+      },
     },
   };
 
