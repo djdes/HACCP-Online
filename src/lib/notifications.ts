@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 /**
  * Shape of a single check-box row inside a Notification.
@@ -121,12 +122,16 @@ export async function notifyManagement(args: {
   linkLabel?: string | null;
   items: NotificationItem[];
 }): Promise<void> {
+  // Раньше: inline-list ["manager", "head_chef", "owner", "technologist"].
+  // Если когда-нибудь добавим новую management-роль (или legacy alias),
+  // это inline-listing забывал бы её. Используем стандартный helper —
+  // согласовано с другими fan-out местами (compliance cron, expiry cron).
   const managers = await db.user.findMany({
     where: {
       organizationId: args.organizationId,
       isActive: true,
       archivedAt: null,
-      role: { in: ["manager", "head_chef", "owner", "technologist"] },
+      role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
     },
     select: { id: true },
   });
