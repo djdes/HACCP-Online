@@ -9,6 +9,7 @@ import {
 } from "@/lib/journal-task-claims";
 import { mirrorClaimToTasksFlow } from "@/lib/tasksflow-claim-mirror";
 import { db } from "@/lib/db";
+import { canWriteJournal, hasJournalAccess } from "@/lib/journal-acl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,22 @@ export async function POST(request: Request) {
   const dateKey = new Date(`${body.dateKey}T00:00:00.000Z`);
   if (Number.isNaN(dateKey.getTime())) {
     return NextResponse.json({ error: "Невалидная дата" }, { status: 400 });
+  }
+
+  // ACL: claim — это write-precursor. Без этого юзер с доступом
+  // только к cleaning мог spam-claim'ать med_books / cold_equipment,
+  // блокируя реальных исполнителей и создавая верификацию у
+  // заведующей под чужим именем.
+  const aclActor = {
+    id: userId,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await canWriteJournal(aclActor, body.journalCode))) {
+    return NextResponse.json(
+      { error: "Нет доступа к этому журналу" },
+      { status: 403 }
+    );
   }
 
   const result = await claimJournalTask({
@@ -142,6 +159,17 @@ export async function GET(request: Request) {
     return NextResponse.json(
       { error: "Параметры journalCode и date (YYYY-MM-DD) обязательны" },
       { status: 400 }
+    );
+  }
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await hasJournalAccess(aclActor, journalCode))) {
+    return NextResponse.json(
+      { error: "Нет доступа к этому журналу" },
+      { status: 403 }
     );
   }
   const dateKey = new Date(`${date}T00:00:00.000Z`);

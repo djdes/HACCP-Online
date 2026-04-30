@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
+import { canWriteJournal } from "@/lib/journal-acl";
 
 /**
  * POST /api/journals/[id]/claim-bonus
@@ -57,6 +58,21 @@ export async function POST(
     return NextResponse.json(
       { error: "Это не премиальный журнал" },
       { status: 400 }
+    );
+  }
+
+  // ACL: премию может забрать только тот, кому позволено вести журнал.
+  // Иначе сотрудник без access мог race-claim'ать премии чужих журналов,
+  // забирая деньги «коллег».
+  const aclActor = {
+    id: userId,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await canWriteJournal(aclActor, obligation.template.code))) {
+    return NextResponse.json(
+      { error: "Нет доступа к этому журналу" },
+      { status: 403 }
     );
   }
 
