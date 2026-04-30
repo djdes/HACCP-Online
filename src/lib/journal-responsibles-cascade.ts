@@ -150,14 +150,21 @@ export async function cascadeResponsibleToActiveDocuments(input: {
     );
 
     // 4. Патчим document.config + ставим responsibleUserId.
+    // Сравниваем с началом UTC-дня — иначе для документов c
+    // dateTo=00:00 UTC последнего дня периода каскад не находит
+    // активный документ во второй половине дня (см. fixes от
+    // 2026-04-30 в bulk-assign-today + journal-auto-create).
     const now = new Date();
+    const todayUtcStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
     const docs = await db.journalDocument.findMany({
       where: {
         organizationId,
         templateId,
         status: "active",
-        dateFrom: { lte: now },
-        dateTo: { gte: now },
+        dateFrom: { lte: todayUtcStart },
+        dateTo: { gte: todayUtcStart },
       },
       select: { id: true, config: true },
     });

@@ -52,13 +52,21 @@ export async function ensureActiveDocument(
     };
   }
 
+  // Сравниваем с началом UTC-дня — иначе для monthly/half-monthly/
+  // single-day/yearly документ создаётся с dateTo=00:00 UTC последнего
+  // дня периода, а query `dateTo: { gte: now }` где now=10:00 UTC
+  // возвращает false → каждый вызов плодит новый документ. (См.
+  // тот же фикс в bulk-assign-today/route.ts от 2026-04-30.)
+  const todayUtcStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
   const existing = await db.journalDocument.findFirst({
     where: {
       organizationId: args.organizationId,
       templateId: template.id,
       status: "active",
-      dateFrom: { lte: now },
-      dateTo: { gte: now },
+      dateFrom: { lte: todayUtcStart },
+      dateTo: { gte: todayUtcStart },
     },
     select: { id: true, title: true },
   });
@@ -180,13 +188,17 @@ export async function ensureNextPeriodDocument(
     };
   }
 
+  // Сравниваем с началом UTC-дня — см. фикс выше.
+  const lookaheadTodayUtcStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
   const current = await db.journalDocument.findFirst({
     where: {
       organizationId: args.organizationId,
       templateId: template.id,
       status: "active",
-      dateFrom: { lte: now },
-      dateTo: { gte: now },
+      dateFrom: { lte: lookaheadTodayUtcStart },
+      dateTo: { gte: lookaheadTodayUtcStart },
     },
     select: { id: true, dateTo: true },
     orderBy: { dateFrom: "desc" },

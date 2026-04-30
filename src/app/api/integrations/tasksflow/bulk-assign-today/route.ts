@@ -471,13 +471,23 @@ export async function POST(request: Request) {
     // a month-long document so the bulk-assign is actually useful — the
     // whole point of «одним нажатием» is that the manager doesn't have
     // to pre-seed documents for every daily journal.
+    //
+    // 2026-04-30: сравниваем с началом UTC-дня, а не с `now`. Иначе для
+    // monthly/half-monthly/single-day/yearly документ создаётся с
+    // dateTo = 00:00 UTC последнего дня периода, а query
+    // `dateTo: { gte: now }` где now=13:45 UTC возвращает false →
+    // каждый клик «Разослать всем» плодил 15 новых документов
+    // (только что починили).
+    const todayUtcStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
     let doc = await db.journalDocument.findFirst({
       where: {
         organizationId,
         status: "active",
         template: { code: tpl.code },
-        dateFrom: { lte: now },
-        dateTo: { gte: now },
+        dateFrom: { lte: todayUtcStart },
+        dateTo: { gte: todayUtcStart },
       },
       orderBy: { dateFrom: "desc" },
     });

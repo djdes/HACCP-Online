@@ -114,6 +114,14 @@ export async function PUT(request: Request) {
   //   • Если активный с записями — НЕ трогаем (потеряли бы данные).
   //     Документ доживёт свой цикл, следующий создастся по новой настройке.
   const now = new Date();
+  // Сравниваем с началом UTC-дня (а не с now): документ создаётся
+  // c dateTo=00:00 UTC последнего дня периода, и query
+  // `dateTo: { gte: now }` где now=14:00 UTC возвращает false →
+  // active doc «не найден» во второй половине дня. См. fixes от
+  // 2026-04-30 в bulk-assign-today + journal-auto-create.
+  const todayUtcStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
   const allCodes = new Set([...Object.keys(beforeMap), ...Object.keys(map)]);
   const result: Array<{
     code: string;
@@ -136,8 +144,8 @@ export async function PUT(request: Request) {
         organizationId: orgId,
         templateId: tpl.id,
         status: "active",
-        dateFrom: { lte: now },
-        dateTo: { gte: now },
+        dateFrom: { lte: todayUtcStart },
+        dateTo: { gte: todayUtcStart },
       },
       select: {
         id: true,
