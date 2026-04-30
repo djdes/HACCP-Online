@@ -4,7 +4,8 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { AreaDialog } from "@/components/settings/area-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
-import { isManagementRole, isManagerRole } from "@/lib/user-roles";
+import { isManagementRole } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,14 @@ export default async function AreasSettingsPage() {
   });
 
   const canManage = isManagementRole(session.user.role);
-  const canDelete = isManagerRole(session.user.role);
+  // Раньше: isManagerRole — только role=manager. head_chef видел список,
+  // но кнопка «Удалить» была скрыта, хотя API уже разрешает делете
+  // (после фикса /api/areas/[id] DELETE на hasFullWorkspaceAccess).
+  // Согласовываем UI с API, плюс ROOT-impersonation также проходит.
+  const canDelete = hasFullWorkspaceAccess({
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  });
 
   return (
     <div className="space-y-8">

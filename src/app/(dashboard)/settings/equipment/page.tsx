@@ -14,7 +14,8 @@ import { db } from "@/lib/db";
 import { CopyIdButton } from "@/components/settings/copy-id-button";
 import { EquipmentDialog } from "@/components/settings/equipment-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
-import { isManagementRole, isManagerRole } from "@/lib/user-roles";
+import { isManagementRole } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,12 @@ export default async function EquipmentSettingsPage() {
   }
 
   const canManage = isManagementRole(session.user.role);
-  const canDelete = isManagerRole(session.user.role);
+  // Согласовано с DELETE /api/equipment/[id] на hasFullWorkspaceAccess.
+  // Раньше head_chef видел список, но кнопка «Удалить» была скрыта.
+  const canDelete = hasFullWorkspaceAccess({
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  });
 
   return (
     <div className="space-y-8">
