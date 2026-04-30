@@ -51,26 +51,45 @@ export type JournalResponsibilityMeta = {
 };
 
 /**
- * Универсальный набор «должностей-управленцев». Многие компании
- * именуют свои management-роли «Админ», «Заведующая», «Руководитель»,
- * «Начальник» — это синонимы для «Менеджер/Управляющий/Директор».
- * Используем общую константу чтобы умный пресет не лажал когда у org'и
- * нет конкретно «Менеджера», но есть «Админ» или «Заведующая».
+ * Иерархия management-ключевых слов. РАЗДЕЛЕНА на 2 уровня:
  *
- * Подстроки lowercase. Включаем варианты словоформ через короткие
- * корни ("завед" покрывает "Заведующая/Заведующий/Заведующие/...").
+ *   • LEAD_KEYWORDS — обычные «руководители смены» (заведующая,
+ *     управляющий, шеф, менеджер, директор, начальник, владелец,
+ *     руководитель). На них fallback'ает любой журнал, у которого
+ *     не нашлось специфичной должности (повар/уборщица/инженер).
+ *
+ *   • ADMIN_KEYWORDS — «главный админ» (админ, администратор).
+ *     Умный пресет назначает его ТОЛЬКО на специальные журналы
+ *     (медкнижки + аудиты). Для всех остальных он не появляется
+ *     даже когда заведующей нет — вместо этого пресет оставит
+ *     поле пустым, и менеджер сам выберет.
+ *
+ * Подстроки lowercase. Короткие корни покрывают словоформы:
+ * «завед» → Заведующий/Заведующая/Заведующие/...
+ *
+ * 2026-04-30: пересмотр приоритетов по запросу пользователя —
+ * заведующая/руководство первичны на оперативных журналах, а
+ * админ светится только на медкнижках и аудите.
  */
-const MGMT_KEYWORDS = [
-  "менеджер",
+const LEAD_KEYWORDS = [
+  "завед",    // заведующая/заведующий — приоритетный руководитель смены
   "управляющ",
+  "менеджер",
   "директор",
   "руководит",
-  "началь",   // начальник, начальница
-  "админ",    // админ, администратор
-  "завед",    // заведующий, заведующая
-  "владелец", // микро-кафе где владелец-же-управляющий
-  "шеф",      // шеф/шеф-повар часто делает работу управленца
+  "началь",
+  "владелец",
+  "шеф",
 ] as const;
+
+const ADMIN_KEYWORDS = ["админ"] as const;
+
+/**
+ * Back-compat: некоторые тесты и старые callers ожидают одну плоскую
+ * MGMT_KEYWORDS с админом. Оставляем агрегатом, но используем только
+ * как fallback в matchPositionsForJournal на самом дне приоритета.
+ */
+const MGMT_KEYWORDS = [...LEAD_KEYWORDS, ...ADMIN_KEYWORDS] as const;
 
 /**
  * Per-journal exhaustive map. Если код добавлен в ACTIVE_JOURNAL_CATALOG,
@@ -81,21 +100,23 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "hygiene",
     who: "Шеф-повар или дежурный заведующий перед сменой осматривает каждого сотрудника (чистая форма, отсутствие порезов, маникюр в норме) и ставит «допущен/не допущен».",
-    keywords: ["повар", ...MGMT_KEYWORDS],
+    keywords: ["повар", ...LEAD_KEYWORDS],
     mode: "per-employee",
     category: "health",
   },
   {
     code: "health_check",
     who: "То же что гигиенический журнал — ХАССП на практике объединяет «здоровье» и «гигиену» в одну ежедневную проверку.",
-    keywords: ["повар", ...MGMT_KEYWORDS],
+    keywords: ["повар", ...LEAD_KEYWORDS],
     mode: "per-employee",
     category: "health",
   },
   {
     code: "med_books",
+    // Админ-исключение: медкнижки традиционно ведёт админ/HR (вместе
+    // с заведующей/менеджером). Поэтому ADMIN_KEYWORDS включены.
     who: "Менеджер / отдел кадров ведёт реестр сроков годности медкнижек всех сотрудников.",
-    keywords: ["кадр", ...MGMT_KEYWORDS],
+    keywords: ["кадр", ...LEAD_KEYWORDS, ...ADMIN_KEYWORDS],
     mode: "single",
     category: "health",
     preferNamedPerson: true,
@@ -105,28 +126,28 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "climate_control",
     who: "Дежурный повар или товаровед измеряет температуру и влажность в производственных и складских помещениях 2–3 раза в смену.",
-    keywords: ["повар", "технолог", "товаровед", "кладов", ...MGMT_KEYWORDS],
+    keywords: ["повар", "технолог", "товаровед", "кладов", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "temperature",
   },
   {
     code: "cold_equipment_control",
     who: "Дежурный повар утром и вечером записывает температуру каждой холодильной/морозильной камеры. На крупных кухнях — отдельный сотрудник на цех.",
-    keywords: ["повар", "су-шеф", ...MGMT_KEYWORDS],
+    keywords: ["повар", "су-шеф", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "temperature",
   },
   {
     code: "intensive_cooling",
     who: "Повар, который готовит горячее блюдо, фиксирует время и температуру при охлаждении (CCP по ХАССП — критическая контрольная точка).",
-    keywords: ["повар", "су-шеф", "технолог", ...MGMT_KEYWORDS],
+    keywords: ["повар", "су-шеф", "технолог", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "temperature",
   },
   {
     code: "fryer_oil",
     who: "Повар горячего цеха ежедневно проверяет качество фритюрного жира (цвет, запах, тестер на полярные соединения) и записывает замену.",
-    keywords: ["повар", ...MGMT_KEYWORDS],
+    keywords: ["повар", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "temperature",
   },
@@ -135,49 +156,49 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "cleaning",
     who: "Уборщица или клинер по итогам уборки помещения ставит подпись + указывает использованное средство.",
-    keywords: ["уборщ", "клинер", "клининг", "санитар", "технич", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "клининг", "санитар", "технич", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "general_cleaning",
     who: "Бригада уборки + менеджер. Раз в месяц генеральная уборка по графику, акт подписывают уборщицы и контролирует управляющий.",
-    keywords: ["уборщ", "клинер", "клининг", "санитар", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "клининг", "санитар", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "cleaning_ventilation_checklist",
     who: "Дежурный по смене (уборщица или повар) перед открытием/закрытием помещения проветривает и проверяет санитарное состояние по чек-листу.",
-    keywords: ["уборщ", "клинер", "повар", "технич", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "повар", "технич", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "uv_lamp_runtime",
     who: "Тот, кто включает/выключает бактерицидную лампу (обычно уборщица или дежурный повар) — фиксирует время старта и стопа.",
-    keywords: ["уборщ", "клинер", "повар", "технич", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "повар", "технич", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "disinfectant_usage",
     who: "Старшая уборщица или клининг-менеджер записывает приход/расход дезсредств и концентрации рабочих растворов.",
-    keywords: ["уборщ", "клинер", "клининг", "технолог", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "клининг", "технолог", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "sanitary_day_control",
     who: "Бригада уборки делает санитарный день раз в месяц по чек-листу, контролирует менеджер.",
-    keywords: ["уборщ", "клинер", "санитар", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "санитар", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
   {
     code: "equipment_cleaning",
     who: "Повар или уборщица после смены моет оборудование (миксер, слайсер, мясорубку), записывает дату и средство.",
-    keywords: ["уборщ", "клинер", "повар", ...MGMT_KEYWORDS],
+    keywords: ["уборщ", "клинер", "повар", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "cleaning",
   },
@@ -186,35 +207,35 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "incoming_control",
     who: "Товаровед или зав.складом принимает поставку, сверяет с накладной, проверяет температурный режим, целостность упаковки.",
-    keywords: ["товаровед", "кладов", "снабж", "приём", ...MGMT_KEYWORDS],
+    keywords: ["товаровед", "кладов", "снабж", "приём", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "intake",
   },
   {
     code: "incoming_raw_materials_control",
     who: "То же что «приёмка» — слитый журнал входного контроля.",
-    keywords: ["товаровед", "кладов", "снабж", "приём", ...MGMT_KEYWORDS],
+    keywords: ["товаровед", "кладов", "снабж", "приём", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "intake",
   },
   {
     code: "perishable_rejection",
     who: "Шеф-повар или товаровед при приёмке отбраковывает скоропорт (мясо, рыбу, молочку) с истекшим сроком или признаками порчи.",
-    keywords: ["повар", "товаровед", "технолог", ...MGMT_KEYWORDS],
+    keywords: ["повар", "товаровед", "технолог", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "intake",
   },
   {
     code: "metal_impurity",
     who: "Технолог / товаровед пропускает сырьё через металлодетектор или магнит-ловушку и записывает результат.",
-    keywords: ["технолог", "товаровед", ...MGMT_KEYWORDS],
+    keywords: ["технолог", "товаровед", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "intake",
   },
   {
     code: "traceability_test",
     who: "Технолог или менеджер качества раз в квартал проводит учения по прослеживаемости — отслеживает партию по цепочке от поставщика до тарелки.",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS],
     mode: "single",
     category: "intake",
     preferNamedPerson: true,
@@ -224,7 +245,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "finished_product",
     who: "Бракеражная комиссия (минимум 3 человека, обычно шеф-повар + су-шеф + менеджер) пробует и оценивает каждое блюдо перед выдачей. CCP по ХАССП.",
-    keywords: ["повар", "технолог", ...MGMT_KEYWORDS],
+    keywords: ["повар", "технолог", ...LEAD_KEYWORDS],
     mode: "single",
     category: "production",
     preferNamedPerson: true,
@@ -232,7 +253,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "product_writeoff",
     who: "Акт забраковки: подписывают шеф-повар, товаровед и управляющий — комиссия из 3 человек.",
-    keywords: ["повар", "товаровед", ...MGMT_KEYWORDS],
+    keywords: ["повар", "товаровед", ...LEAD_KEYWORDS],
     mode: "single",
     category: "production",
     preferNamedPerson: true,
@@ -242,7 +263,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "equipment_calibration",
     who: "Технолог или назначенный инженер ведёт график поверки термометров, весов, психрометров (раз в год обычно).",
-    keywords: ["технолог", "инженер", "техник", "механик", ...MGMT_KEYWORDS],
+    keywords: ["технолог", "инженер", "техник", "механик", ...LEAD_KEYWORDS],
     mode: "single",
     category: "equipment",
     preferNamedPerson: true,
@@ -250,7 +271,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "equipment_maintenance",
     who: "Инженер или техник по графику делает ТО оборудования (печи, холодильники, посудомойки).",
-    keywords: ["инженер", "техник", "механик", "слесар", ...MGMT_KEYWORDS],
+    keywords: ["инженер", "техник", "механик", "слесар", ...LEAD_KEYWORDS],
     mode: "single",
     category: "equipment",
     preferNamedPerson: true,
@@ -258,7 +279,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "breakdown_history",
     who: "Тот же инженер фиксирует поломки и проведённый ремонт по карточке оборудования.",
-    keywords: ["инженер", "техник", "механик", "слесар", ...MGMT_KEYWORDS],
+    keywords: ["инженер", "техник", "механик", "слесар", ...LEAD_KEYWORDS],
     mode: "single",
     category: "equipment",
     preferNamedPerson: true,
@@ -266,7 +287,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "glass_items_list",
     who: "Менеджер один раз заводит перечень стеклянных и хрупких предметов (лампы, бокалы, графины).",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS],
     mode: "single",
     category: "equipment",
     preferNamedPerson: true,
@@ -274,7 +295,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "glass_control",
     who: "Дежурный по смене (повар или уборщица) проверяет целостность стеклянных предметов из перечня и фиксирует «всё цело» / «бой».",
-    keywords: ["повар", "уборщ", "клинер", ...MGMT_KEYWORDS],
+    keywords: ["повар", "уборщ", "клинер", ...LEAD_KEYWORDS],
     mode: "shared",
     category: "equipment",
   },
@@ -283,7 +304,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "training_plan",
     who: "Менеджер или технолог раз в год составляет план обучения и инструктажей для всех сотрудников.",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS],
     mode: "single",
     category: "training",
     preferNamedPerson: true,
@@ -291,14 +312,14 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "staff_training",
     who: "Менеджер ведёт журнал, сотрудник расписывается в прохождении инструктажа (вводный, первичный, повторный, внеплановый).",
-    keywords: ["технолог", "кадр", ...MGMT_KEYWORDS],
+    keywords: ["технолог", "кадр", ...LEAD_KEYWORDS],
     mode: "per-employee",
     category: "training",
   },
   {
     code: "ppe_issuance",
     who: "Товаровед или менеджер фиксирует выдачу СИЗ (перчатки, фартуки, маски) под подпись сотрудника.",
-    keywords: ["товаровед", "кладов", ...MGMT_KEYWORDS],
+    keywords: ["товаровед", "кладов", ...LEAD_KEYWORDS],
     mode: "per-employee",
     category: "training",
   },
@@ -307,7 +328,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "accident_journal",
     who: "Управляющий или директор регистрирует ЧП — пожар, травма, отравление, отключение электричества — и принятые меры.",
-    keywords: [...MGMT_KEYWORDS],
+    keywords: [...LEAD_KEYWORDS],
     mode: "single",
     category: "incidents",
     preferNamedPerson: true,
@@ -315,7 +336,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "complaint_register",
     who: "Менеджер зала или администратор записывает жалобы гостей и предпринятые действия.",
-    keywords: [...MGMT_KEYWORDS],
+    keywords: [...LEAD_KEYWORDS],
     mode: "single",
     category: "incidents",
     preferNamedPerson: true,
@@ -323,17 +344,20 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "pest_control",
     who: "Менеджер или директор отмечает визиты подрядчика (СЭС/договор на дезинсекцию) и собственные осмотры на наличие следов грызунов/насекомых.",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS],
     mode: "single",
     category: "incidents",
     preferNamedPerson: true,
   },
 
   // ═══ AUDIT ═══
+  // Аудит: ADMIN_KEYWORDS включены умышленно — главный админ
+  // традиционно курирует внутренний контроль/аудит, наряду с
+  // технологом и заведующей.
   {
     code: "audit_plan",
     who: "Технолог или менеджер качества составляет годовой план внутренних аудитов.",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS, ...ADMIN_KEYWORDS],
     mode: "single",
     category: "audit",
     preferNamedPerson: true,
@@ -341,7 +365,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "audit_protocol",
     who: "Аудитор (обычно технолог или внешний эксперт) фиксирует результаты проверок по чек-листу.",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS, ...ADMIN_KEYWORDS],
     mode: "single",
     category: "audit",
     preferNamedPerson: true,
@@ -349,7 +373,7 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   {
     code: "audit_report",
     who: "Тот же аудитор пишет отчёт по итогам аудита с CAPA (корректирующими действиями).",
-    keywords: ["технолог", ...MGMT_KEYWORDS],
+    keywords: ["технолог", ...LEAD_KEYWORDS, ...ADMIN_KEYWORDS],
     mode: "single",
     category: "audit",
     preferNamedPerson: true,
@@ -412,16 +436,40 @@ export function matchPositionsForJournal(
       matched.push(p.id);
     }
   }
-  if (matched.length > 0) return matched;
-  // Fallback: management-должность как универсальный ответственный.
-  const mgmtFallback: string[] = [];
+  if (matched.length > 0) {
+    // Дополнительная фильтрация: если matched включает И «админа»,
+    // И других руководителей (заведующая, шеф, менеджер), то админа
+    // выкидываем — пресет старается не вешать оперативные журналы
+    // на главного админа. Исключение — журналы где `keywords`
+    // ЯВНО содержат "админ" (медкнижки/аудит); в их meta мы добавили
+    // ADMIN_KEYWORDS специально, и ниже return оставит admin'а.
+    const metaIncludesAdmin = ADMIN_KEYWORDS.some((kw) =>
+      meta.keywords.includes(kw),
+    );
+    if (!metaIncludesAdmin) {
+      const nonAdmin = matched.filter((id) => {
+        const p = positions.find((pos) => pos.id === id);
+        if (!p) return true;
+        const lower = p.name.toLowerCase();
+        return !ADMIN_KEYWORDS.some((kw) => lower.includes(kw));
+      });
+      if (nonAdmin.length > 0) return nonAdmin;
+    }
+    return matched;
+  }
+  // Fallback: руководители смены (БЕЗ админа). Админ светится только
+  // на тех журналах где keywords его явно содержат — т.е. медкнижки
+  // и аудит. Иначе пресет оставит поле пустым, и менеджер выберет
+  // вручную (это лучше, чем по умолчанию повесить операционный
+  // журнал на главного админа).
+  const leadFallback: string[] = [];
   for (const p of positions) {
     const lower = p.name.toLowerCase();
-    if (MGMT_KEYWORDS.some((kw) => lower.includes(kw))) {
-      mgmtFallback.push(p.id);
+    if (LEAD_KEYWORDS.some((kw) => lower.includes(kw))) {
+      leadFallback.push(p.id);
     }
   }
-  return mgmtFallback;
+  return leadFallback;
 }
 
 /**
