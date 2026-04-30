@@ -49,7 +49,53 @@ const nextConfig: NextConfig = {
     // no-cache behaviour. `/_next/image` keeps its own `Cache-Control:
     // public, max-age=0, must-revalidate` default from Next so dynamic image
     // optimisation still respects upstream caching rules.
+    // Security headers применяются ко ВСЕМ путям (включая
+    // _next/static — статика тоже выигрывает от X-Content-Type-Options
+    // и т.п.). Cache-Control вешаем отдельной record'ой только на
+    // не-статические пути.
+    //
+    // Не добавляем Content-Security-Policy: для этого нужен полный
+    // аудит inline-скриптов / третьесторонних embed'ов (Telegram WebApp
+    // SDK, Yandex.Metrika, и т.д.). Раскатывать без аудита = риск
+    // сломать Telegram Mini App / iframe widget'ы. Это отдельная задача.
+    const securityHeaders = [
+      {
+        key: "X-Frame-Options",
+        value: "DENY",
+      },
+      {
+        key: "X-Content-Type-Options",
+        value: "nosniff",
+      },
+      {
+        key: "Referrer-Policy",
+        value: "strict-origin-when-cross-origin",
+      },
+      {
+        // HSTS на 1 год БЕЗ preload и БЕЗ includeSubDomains. preload —
+        // одностороннее решение (попасть в preload-list browser'ов
+        // легко, выпасть — почти невозможно), пока не уверены что ВСЕ
+        // субдомены готовы к https. С includeSubDomains та же проблема.
+        // Без них — стандартная защита от downgrade-атак на основном
+        // домене.
+        key: "Strict-Transport-Security",
+        value: "max-age=31536000",
+      },
+      {
+        // Restrict browser APIs которые мы не используем. Если когда-то
+        // понадобится geolocation — тут разрешим. Сейчас все три =
+        // explicitly disabled.
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=()",
+      },
+    ];
+
     return [
+      {
+        // Все пути — security headers.
+        source: "/:path*",
+        headers: securityHeaders,
+      },
       {
         source:
           "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
