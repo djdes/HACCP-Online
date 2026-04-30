@@ -164,8 +164,15 @@ export async function POST(request: Request) {
       baseDate.getTime() + planInfo.durationDays * 24 * 60 * 60 * 1000
     );
 
-    await db.organization.update({
-      where: { id: organizationId },
+    // Атомарный update: применяем продление ТОЛЬКО если yookassaShopId
+    // всё ещё равен этому paymentId. Раньше: read → check → update без
+    // условия → два concurrent webhook'а от YooKassa retry'я могли оба
+    // прочитать yookassaShopId=paymentId, оба пройти check, оба
+    // выполнить update — подписка продлевалась дважды (240 дней вместо
+    // 30 за один платёж). Теперь updateMany возвращает count=0 если
+    // кто-то параллельно уже обнулил yookassaShopId.
+    const result = await db.organization.updateMany({
+      where: { id: organizationId, yookassaShopId: paymentId },
       data: {
         subscriptionPlan: plan,
         subscriptionEnd: newEnd,
@@ -174,6 +181,9 @@ export async function POST(request: Request) {
         yookassaShopId: null,
       },
     });
+    if (result.count === 0) {
+      return NextResponse.json({ status: "already_processed" });
+    }
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
