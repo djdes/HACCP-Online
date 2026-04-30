@@ -76,9 +76,16 @@ export async function GET() {
     checks.telegram = { ok: true, ms: 0, detail: "skipped (no token)" };
   }
 
-  // 3. Build SHA
+  // 3. Build SHA. next.config.ts экспозит как NEXT_PUBLIC_BUILD_ID
+  // (берётся из .build-sha файла, slice(0,7) — short hash). До этого
+  // healthz искал BUILD_SHA/NEXT_PUBLIC_BUILD_SHA — ни один не совпадал
+  // с реальным env, поэтому buildSha всегда null. Сейчас читаем тот же
+  // ключ что выставляется в config.
   const buildSha =
-    process.env.BUILD_SHA ?? process.env.NEXT_PUBLIC_BUILD_SHA ?? null;
+    process.env.BUILD_SHA ??
+    process.env.NEXT_PUBLIC_BUILD_ID ??
+    process.env.NEXT_PUBLIC_BUILD_SHA ??
+    null;
   const buildTime =
     process.env.BUILD_TIME ?? process.env.NEXT_PUBLIC_BUILD_TIME ?? null;
 
