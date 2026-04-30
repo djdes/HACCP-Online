@@ -30,6 +30,7 @@ import {
   TasksFlowError,
   type TasksFlowClientType,
 } from "@/lib/tasksflow-client";
+import { isManagementRole } from "@/lib/user-roles";
 import type { ManagerScope } from "@prisma/client";
 
 type ScopeLike = Pick<
@@ -37,22 +38,36 @@ type ScopeLike = Pick<
   "managerId" | "viewMode" | "viewJobPositionIds" | "viewUserIds"
 >;
 
+type UserForScope = {
+  id: string;
+  jobPositionId: string | null;
+  isActive: boolean;
+  archivedAt: Date | null;
+  role: string | null;
+  isRoot: boolean;
+};
+
 /**
  * Считает: какие WeSetup-userId видны менеджеру согласно его scope.
  * Не делает round-trip к TF; работает целиком в WeSetup-БД.
+ *
+ * 2026-04-30: для viewMode="all" исключаем management-роли и ROOT —
+ * раньше заведующая (head_chef) с viewMode="all" видела admin'a, owner'а
+ * и других менеджеров в TasksFlow (они попадали в её managedWorkerIds
+ * → её dashboard показывал их task'и). Теперь "все" в scope-е менеджера
+ * означает «все НЕ-управленческие сотрудники» (cook, waiter, operator).
+ * Если орг хочет включить какого-то конкретного менеджера в видимость
+ * — используется viewMode="specific_users" с явным выбором.
  */
 function computeVisibleWesetupUserIds(
   scope: ScopeLike,
-  allUsers: Array<{
-    id: string;
-    jobPositionId: string | null;
-    isActive: boolean;
-    archivedAt: Date | null;
-  }>
+  allUsers: ReadonlyArray<UserForScope>
 ): string[] {
   const active = allUsers.filter((u) => u.isActive && u.archivedAt === null);
   if (scope.viewMode === "all") {
-    return active.map((u) => u.id);
+    return active
+      .filter((u) => !u.isRoot && !isManagementRole(u.role))
+      .map((u) => u.id);
   }
   if (scope.viewMode === "none") {
     return [];
@@ -120,6 +135,8 @@ export async function syncHierarchyToTasksflow(
         jobPositionId: true,
         isActive: true,
         archivedAt: true,
+        role: true,
+        isRoot: true,
       },
     }),
     db.tasksFlowUserLink.findMany({
