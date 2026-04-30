@@ -122,3 +122,17 @@ export const registrationCodeRateLimiter = createRateLimiter({
   tokensPerInterval: 5,
   intervalMs: 10 * 60 * 1000,
 });
+
+/**
+ * Public ИНН-lookup через DaData. Нашему DaData-аккаунту даёт 10K
+ * запросов/день. Без rate-limit'а атакующий может заскриптовать loop
+ * и за час съесть всю квоту → wizard регистрации новых компаний
+ * перестаёт работать у legitimate юзеров.
+ *
+ * 30 запросов / минуту с одного IP — типичному юзеру хватит для
+ * нескольких ИНН в wizard'е, бот за минуту съест 30 а не 30к.
+ */
+export const innLookupRateLimiter = createRateLimiter({
+  tokensPerInterval: 30,
+  intervalMs: 60 * 1000,
+});

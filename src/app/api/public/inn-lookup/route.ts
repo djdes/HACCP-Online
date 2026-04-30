@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { innLookupRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,21 @@ export const dynamic = "force-dynamic";
  * последующие запросы вернут 429 от DaData → передадим юзеру.
  */
 export async function GET(request: Request) {
+  // Per-IP rate-limit. Раньше: бесконтрольно проксировали в DaData,
+  // атакующий мог съесть нашу 10K-в-день квоту за час и поломать
+  // wizard регистрации у легитимных юзеров. Защита от DaData-quota DoS.
+  const xff = request.headers.get("x-forwarded-for") ?? "";
+  const ip = xff.split(",")[0].trim() || "unknown";
+  if (!innLookupRateLimiter.consume(`inn:${ip}`)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Слишком много запросов. Подождите минуту.",
+      },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const inn = (searchParams.get("inn") ?? "").trim().replace(/\D/g, "");
 
