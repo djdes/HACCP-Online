@@ -84,16 +84,21 @@ export const authOptions: NextAuthOptions = {
           include: { organization: true },
         });
 
-        if (!user || !user.isActive) {
-          throw new Error("Неверный email или пароль");
-        }
-
+        // Anti-enumeration: всегда делаем bcrypt.compare, даже если
+        // юзер не найден или неактивен. Иначе атакующий замеряет
+        // timing — отсутствующий email отвечает за <5 ms, существующий
+        // ~100 ms — и enumerate'ит реестр email'ов через NextAuth-провайдер.
+        // То же поведение, что в /api/auth/login (которое уже было
+        // hardened DUMMY_BCRYPT_HASH'ом).
+        const DUMMY_BCRYPT_HASH =
+          "$2a$10$CwTycUXWue0Thq9StjUM0uJ8.lllkbczy3.0qVxgApY/I5p9mElqS";
+        const passwordHashToCheck = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.passwordHash
+          passwordHashToCheck
         );
 
-        if (!isPasswordValid) {
+        if (!user || !user.isActive || !isPasswordValid) {
           throw new Error("Неверный email или пароль");
         }
 
