@@ -41,7 +41,8 @@ export async function generateMetadata({
   const info = FEATURES_INFO[slug];
   if (!info) return { title: { absolute: "Возможность не найдена — WeSetup" } };
   return {
-    title: `${info.title} — WeSetup`,
+    // info.title уже самостоятельный, layout.template добавит «— WeSetup».
+    title: info.title,
     description: info.tagline,
     alternates: { canonical: `https://wesetup.ru/features/${slug}` },
   };

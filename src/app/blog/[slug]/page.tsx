@@ -33,7 +33,10 @@ export async function generateMetadata({
     return { title: { absolute: "Статья не найдена — WeSetup" } };
   }
   return {
-    title: `${article.title} — WeSetup`,
+    // article.title уже самостоятельный, layout.template добавит — WeSetup
+    // суффикс автоматически. Раньше было `${article.title} — WeSetup`,
+    // что давало "X — WeSetup — WeSetup" (template-doubling).
+    title: article.title,
     description: article.excerpt,
     alternates: { canonical: `https://wesetup.ru/blog/${slug}` },
   };
