@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,7 +62,12 @@ export async function GET(
         dateFrom: true,
         dateTo: true,
         status: true,
-        _count: { select: { entries: true } },
+        // Считаем только реально заполненные строки. _autoSeeded —
+        // это пустые матриксы (employee × day) которые bulk-assign и
+        // sync-* проставляют для рендера UI. Они НЕ являются
+        // заполнением — инспектор не должен видеть «5000 записей»
+        // когда сотрудник реально заполнил 50.
+        _count: { select: { entries: { where: NOT_AUTO_SEEDED } } },
       },
     }),
     db.journalEntry.findMany({
