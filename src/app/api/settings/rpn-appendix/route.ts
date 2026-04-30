@@ -28,9 +28,16 @@ export const dynamic = "force-dynamic";
  * Auth: management.
  */
 
+// CSV-injection (CWE-1236): equipment.name / user.name / capa.title
+// — пользовательский ввод. РПН-инспектор откроет ZIP в Excel; ячейка
+// `=cmd|...!A1` исполнится. Префиксим формула-триггеры одинарной
+// кавычкой.
+const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function csvEscape(v: string | number | null | undefined): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  let s = String(v);
+  if (CSV_FORMULA_PREFIX.test(s)) s = "'" + s;
   if (/[";\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

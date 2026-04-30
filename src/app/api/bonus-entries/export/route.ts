@@ -148,9 +148,18 @@ function isValidIsoDate(value: string | null): value is string {
   return !Number.isNaN(parsed.getTime());
 }
 
+// CSV-injection (CWE-1236): bonus.user.name / template.name /
+// rejectedReason — пользовательский ввод. Открыв CSV в Excel, юзер
+// исполнит формулу `=…`. Префиксим одинарной кавычкой если значение
+// начинается с формула-триггера.
+const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function csvCell(value: string): string {
   if (value === null || value === undefined) return "";
-  const str = String(value);
+  let str = String(value);
+  if (CSV_FORMULA_PREFIX.test(str)) {
+    str = "'" + str;
+  }
   if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
