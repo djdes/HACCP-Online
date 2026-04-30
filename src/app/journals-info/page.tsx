@@ -1,11 +1,19 @@
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, Layers } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  Building2,
+  Layers,
+  Search,
+} from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import {
   JOURNAL_INFO,
   JOURNAL_CATEGORY_LABEL,
   type JournalInfo,
 } from "@/content/journal-info";
+import { NICHES } from "@/components/landing/niche-landing";
+import { SEO_LANDINGS } from "@/components/landing/seo-journal-landing";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -96,6 +104,69 @@ export default function JournalsInfoListPage() {
             </div>
           </div>
         ))}
+      </section>
+
+      {/* PIVOT: niche-лендинги + SEO-страницы. /journals-info — это
+          каталог по нормативам; этот блок даёт второй вход тем, кто
+          ищет «для кафе» или «журнал ХАССП скачать». */}
+      <section className="mx-auto max-w-[1200px] px-4 pb-12 sm:px-6 sm:pb-14">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 sm:p-8">
+            <div className="mb-2 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+              <Building2 className="size-3.5" />
+              По типу бизнеса
+            </div>
+            <h2 className="text-[20px] font-semibold tracking-[-0.01em]">
+              Журналы для вашей ниши
+            </h2>
+            <p className="mt-2 text-[13px] text-[#6f7282]">
+              Конкретный список журналов, который требует именно ваш тип
+              заведения.
+            </p>
+            <div className="mt-4 grid gap-2">
+              {Object.values(NICHES).map((n) => (
+                <Link
+                  key={n.slug}
+                  href={`/${n.slug}`}
+                  className="group flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3.5 py-2.5 text-[13px] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <span className="text-[#0b1024] group-hover:text-[#3848c7]">
+                    {n.audience}
+                  </span>
+                  <ArrowRight className="size-4 text-[#9b9fb3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 sm:p-8">
+            <div className="mb-2 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+              <Search className="size-3.5" />
+              Частые запросы
+            </div>
+            <h2 className="text-[20px] font-semibold tracking-[-0.01em]">
+              Ищете конкретный журнал?
+            </h2>
+            <p className="mt-2 text-[13px] text-[#6f7282]">
+              Отдельные страницы под популярные поисковые запросы — с
+              описанием полей и СанПиН-обоснованием.
+            </p>
+            <div className="mt-4 grid gap-2">
+              {Object.values(SEO_LANDINGS).slice(0, 7).map((s) => (
+                <Link
+                  key={s.slug}
+                  href={`/${s.slug}`}
+                  className="group flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3.5 py-2.5 text-[13px] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <span className="line-clamp-1 text-[#0b1024] group-hover:text-[#3848c7]">
+                    {s.hero}
+                  </span>
+                  <ArrowRight className="size-4 shrink-0 text-[#9b9fb3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* CTA */}
