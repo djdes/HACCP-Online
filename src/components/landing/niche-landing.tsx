@@ -8,6 +8,11 @@ import {
 } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 /**
  * E19 — лендинги под ниши общепита. Каждая ниша имеет адаптированный
@@ -186,6 +191,13 @@ export function getNicheMetadata(slug: string) {
       title: data.metaTitle,
       description: data.metaDescription,
       url: `https://wesetup.ru/${data.slug}`,
+      images: DEFAULT_OG_IMAGES,
+    },
+    twitter: {
+      card: DEFAULT_TWITTER_CARD,
+      title: data.metaTitle,
+      description: data.metaDescription,
+      images: DEFAULT_TWITTER_IMAGES,
     },
   };
 }

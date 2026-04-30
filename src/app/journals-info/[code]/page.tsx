@@ -16,6 +16,11 @@ import {
 import { JOURNAL_SEO } from "@/content/journal-seo";
 import { JournalScreenshot } from "@/components/public/journal-screenshot";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,11 +47,13 @@ export async function generateMetadata({
       type: "article",
       locale: "ru_RU",
       siteName: "WeSetup",
+      images: DEFAULT_OG_IMAGES,
     },
     twitter: {
-      card: "summary_large_image",
+      card: DEFAULT_TWITTER_CARD,
       title: seo?.title ?? `${info.tagline} — WeSetup`,
       description: seo?.description ?? info.why,
+      images: DEFAULT_TWITTER_IMAGES,
     },
   };
 }

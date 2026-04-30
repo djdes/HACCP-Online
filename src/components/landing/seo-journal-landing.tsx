@@ -7,6 +7,11 @@ import {
 } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  DEFAULT_OG_IMAGES,
+  DEFAULT_TWITTER_CARD,
+  DEFAULT_TWITTER_IMAGES,
+} from "@/lib/meta-defaults";
 
 /**
  * E17 — SEO-лендинги под ключевые поисковые запросы.
@@ -48,6 +53,13 @@ export function getSeoMetadata(c: SeoJournalConfig) {
       title: c.metaTitle,
       description: c.metaDescription,
       url: `https://wesetup.ru/${c.slug}`,
+      images: DEFAULT_OG_IMAGES,
+    },
+    twitter: {
+      card: DEFAULT_TWITTER_CARD,
+      title: c.metaTitle,
+      description: c.metaDescription,
+      images: DEFAULT_TWITTER_IMAGES,
     },
   };
 }
