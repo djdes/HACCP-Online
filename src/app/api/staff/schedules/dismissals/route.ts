@@ -52,6 +52,15 @@ export async function POST(request: Request) {
   }
 
   const date = parseDayUtc(parsed.date);
+  // Zod regex принимает `2026-13-99` — без проверки мы сохраняем
+  // Invalid Date в staffDismissal.date и user.archivedAt, что ломает
+  // фильтры "архив" / "увольнения" в UI.
+  if (!Number.isFinite(date.getTime())) {
+    return NextResponse.json(
+      { error: "Некорректная дата увольнения" },
+      { status: 400 }
+    );
+  }
   const row = await db.staffDismissal.upsert({
     where: { userId: user.id },
     create: { userId: user.id, date },

@@ -70,6 +70,19 @@ export async function GET(request: Request) {
   const orgId = getActiveOrgId(session);
   const periodFrom = utcDayStart(new Date(`${parsed.from}T00:00:00.000Z`));
   const periodTo = utcDayStart(new Date(`${parsed.to}T00:00:00.000Z`));
+  // Zod regex ловит формат, но `2026-13-99` пройдёт regex и даст
+  // Invalid Date. Без явной проверки мы (1) персистим InspectorToken
+  // с Invalid periodFrom/periodTo, (2) генерим сертификат с 0% (NaN-
+  // сравнения в loop'е тихо отдают пустой массив). Лучше явный 400.
+  if (
+    !Number.isFinite(periodFrom.getTime()) ||
+    !Number.isFinite(periodTo.getTime())
+  ) {
+    return NextResponse.json(
+      { error: "Некорректная дата периода" },
+      { status: 400 }
+    );
+  }
   if (periodFrom > periodTo) {
     return NextResponse.json(
       { error: "from не может быть позже to" },

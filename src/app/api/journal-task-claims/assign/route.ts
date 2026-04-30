@@ -66,6 +66,9 @@ export async function POST(request: Request) {
   }
 
   const dateKey = new Date(`${body.dateKey}T00:00:00.000Z`);
+  if (!Number.isFinite(dateKey.getTime())) {
+    return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
+  }
   const result = await claimJournalTask({
     organizationId,
     journalCode: body.journalCode,

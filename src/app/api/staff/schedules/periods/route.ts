@@ -42,6 +42,14 @@ export async function POST(request: Request) {
 
   const from = parseDayUtc(parsed.dateFrom);
   const to = parseDayUtc(parsed.dateTo);
+  // Zod regex проходит `2026-13-99`. Без проверки мы запишем Invalid
+  // Date в БД, и потом UI отпуска/больничные ломается на форматировании.
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime())) {
+    return NextResponse.json(
+      { error: "Некорректная дата периода" },
+      { status: 400 }
+    );
+  }
   if (to < from) {
     return NextResponse.json(
       { error: "Дата окончания раньше даты начала" },

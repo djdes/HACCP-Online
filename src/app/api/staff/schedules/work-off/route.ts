@@ -52,6 +52,14 @@ export async function POST(request: Request) {
   }
 
   const date = parseDayUtc(parsed.date);
+  // Zod regex проходит `2026-13-99` → Invalid Date упадёт в upsert
+  // ругательно, но без явного 400 фронт получит непонятную ошибку.
+  if (!Number.isFinite(date.getTime())) {
+    return NextResponse.json(
+      { error: "Некорректная дата" },
+      { status: 400 }
+    );
+  }
 
   if (parsed.enabled) {
     await db.staffWorkOffDay.upsert({

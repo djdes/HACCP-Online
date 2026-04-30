@@ -150,6 +150,9 @@ export async function PUT(request: Request) {
     for (const entry of parsed.shifts) {
       if (!ownedSet.has(entry.userId)) continue;
       const anchor = new Date(`${entry.date}T00:00:00.000Z`);
+      // Zod regex принимает `2026-13-99`, который даст Invalid Date
+      // в WorkShift.date — затем выборка по графику ломается. Skip.
+      if (!Number.isFinite(anchor.getTime())) continue;
       const jobPositionId =
         entry.jobPositionId && ownedPositions.has(entry.jobPositionId)
           ? entry.jobPositionId
