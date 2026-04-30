@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
  * Idempotent: если control-task за этот дневой dateKey уже создан,
  * пропускаем.
  */
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const integrations = await db.tasksFlowIntegration.findMany({
@@ -214,3 +214,6 @@ export async function POST(request: Request) {
     errors,
   });
 }
+
+export const GET = handle;
+export const POST = handle;

@@ -52,7 +52,7 @@ const STAGE_CONFIG: Record<Stage, {
   },
 };
 
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   try {
@@ -162,3 +162,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const GET = handle;
+export const POST = handle;

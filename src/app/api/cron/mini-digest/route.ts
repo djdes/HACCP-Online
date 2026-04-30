@@ -320,7 +320,7 @@ export async function runMiniDigestCron(
   };
 }
 
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const result = await runMiniDigestCron({
@@ -330,3 +330,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json(result);
 }
+
+export const GET = handle;
+export const POST = handle;

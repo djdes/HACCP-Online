@@ -5,7 +5,10 @@ import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 import { sendComplianceReminderEmail } from "@/lib/email";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
-export async function POST(request: Request) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function handle(request: Request) {
   try {
     const cronAuth = checkCronSecret(request);
     if (cronAuth) return cronAuth;
@@ -258,3 +261,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
+
+export const GET = handle;
+export const POST = handle;

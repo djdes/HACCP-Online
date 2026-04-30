@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
  */
 const SNAPSHOT_DIR = "/var/www/wesetupru/data/tasksflow-snapshots";
 
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const integrations = await db.tasksFlowIntegration.findMany({
@@ -180,3 +180,6 @@ export async function POST(request: Request) {
     results,
   });
 }
+
+export const GET = handle;
+export const POST = handle;
