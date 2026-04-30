@@ -310,7 +310,10 @@ jobs:
             # popular страницы, public traffic идёт уже на готовое.
             echo "=== Pre-warming routes ==="
             sleep 5
-            for path in / /blog /pricing /journals-info /dlya-kafe /dlya-pekarni /dlya-stolovoy /dlya-proizvodstva /zhurnal-haccp /zhurnal-zdorovya /elektronnyy-zhurnal-sanpin /brakerazhnyy-zhurnal /zhurnal-uborki /temperaturnyy-list-holodilnika /haccp-dlya-kafe /sitemap.xml; do
+            # Static routes — Next.js JIT-компилирует один manifest per route.
+            # Dynamic routes ([slug]) — отдельный manifest, нужен sample
+            # запрос с конкретным slug'ом чтобы прогреть его.
+            for path in / /blog /pricing /journals-info /dlya-kafe /dlya-pekarni /dlya-stolovoy /dlya-proizvodstva /zhurnal-haccp /zhurnal-zdorovya /elektronnyy-zhurnal-sanpin /brakerazhnyy-zhurnal /zhurnal-uborki /temperaturnyy-list-holodilnika /haccp-dlya-kafe /sitemap.xml /robots.txt /login /register /blog/sanpin-bez-byurokratii /journals-info/hygiene /features/autofill; do
               code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "http://127.0.0.1:3002$path" || echo "ERR")
               echo "  $path → $code"
             done
