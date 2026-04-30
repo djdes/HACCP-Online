@@ -286,6 +286,9 @@ export default async function LandingPage() {
         operatingSystem: "Web",
         description:
           "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 35 журналов, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
+        // image — required для SoftwareApplication rich result в Google.
+        // Без неё карточка с ценой/operatingSystem не показывается.
+        image: ["https://wesetup.ru/icons/icon-512.png"],
         offers: {
           "@type": "Offer",
           price: "0",
