@@ -636,6 +636,26 @@ export async function POST(request: Request) {
       const category = `WeSetup · ${tpl.name}`;
       const bonusRubles = Math.floor((tpl.bonusAmountKopecks ?? 0) / 100);
 
+      // Phase 3 двухстадийной верификации: выставляем verifier'а
+      // равным «ответственному по журналу» (doc.responsibleUserId,
+      // выбирается менеджером в /settings/journal-responsibles). Когда
+      // сотрудник нажмёт «Готово» в TF, задача не закроется, а
+      // переедет в очередь «На проверке» у этого ответственного.
+      // После approve — credit balance + WeSetup-mirror.
+      //
+      // Если verifier == worker (например, заведующая делает таск,
+      // на котором она же ответственная) — не ставим verifier'а,
+      // task закрывается обычным /complete без двойного шага.
+      // Если у документа responsibleUserId не задан — старое
+      // поведение (one-step complete).
+      let verifierTfId: number | null = null;
+      if (doc.responsibleUserId) {
+        const candidate = tfUserIdByWesetup.get(doc.responsibleUserId);
+        if (candidate && candidate !== tfUserId) {
+          verifierTfId = candidate;
+        }
+      }
+
       let created;
       try {
         created = await client.createTask({
@@ -648,6 +668,7 @@ export async function POST(request: Request) {
           category,
           description,
           price: bonusRubles > 0 ? bonusRubles : undefined,
+          verifierWorkerId: verifierTfId,
         });
       } catch (err) {
         console.error(

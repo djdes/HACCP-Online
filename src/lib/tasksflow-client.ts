@@ -52,6 +52,14 @@ export type CreateTaskInput = {
   price?: number;
   category?: string;
   description?: string;
+  /**
+   * Phase 1 двухстадийной верификации (TasksFlow). Когда задан — задача
+   * после /complete от сотрудника НЕ закрывается, а ждёт approve от
+   * verifier'а. Ставим = TF-id «ответственного по журналу» (берётся из
+   * journal-responsibles на стороне WeSetup при bulk-assign-today).
+   * Если verifier == workerId — не передаём (no self-verify).
+   */
+  verifierWorkerId?: number | null;
 };
 
 export type CreateUserInput = {
