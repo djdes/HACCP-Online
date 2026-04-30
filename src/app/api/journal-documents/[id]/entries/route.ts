@@ -8,6 +8,7 @@ import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
 import { isManagementRole } from "@/lib/user-roles";
 import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
 import { canEditEntryAt } from "@/lib/closed-day";
+import { canWriteJournal } from "@/lib/journal-acl";
 
 /**
  * Fire-and-forget авто-детектор CAPA по температуре. Дёргается после
@@ -58,11 +59,37 @@ export async function PUT(
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
   }
 
+  // ACL: PUT не проверял canWriteJournal — любой authenticated юзер мог
+  // через прямой fetch писать в grid любого journal-документа org-и.
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (doc.template?.code && !(await canWriteJournal(aclActor, doc.template.code))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
+  }
+
   const body = await request.json();
   const { employeeId, date, data } = body;
 
   if (!employeeId || !date || !data) {
     return NextResponse.json({ error: "employeeId, date, data обязательны" }, { status: 400 });
+  }
+
+  // Аккаунтабилити: рядовой сотрудник может править только СВОЮ строку.
+  // Раньше принимался произвольный employeeId из body — Алёна могла
+  // через прямой fetch записать «выполнено» на строку коллеги Бори,
+  // подделать его подпись в журнале гигиены и т.п.
+  if (
+    !isManagementRole(session.user.role) &&
+    !session.user.isRoot &&
+    employeeId !== session.user.id
+  ) {
+    return NextResponse.json(
+      { error: "Можно редактировать только свою строку" },
+      { status: 403 }
+    );
   }
 
   // Verify employee belongs to org

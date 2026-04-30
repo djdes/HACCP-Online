@@ -8,6 +8,7 @@ import {
   getDefaultEntryDataForTemplate,
   isEntryDataEmpty,
 } from "@/lib/hygiene-document";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 type StaffAction =
   | "add_employee"
@@ -21,14 +22,15 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  // Modern (manager / head_chef) + legacy (owner / technologist) — те
-  // же management-роли, просто разные словари. Раньше в allow-list был
-  // только legacy, из-за чего свежерегистрировавшийся manager получал
-  // 403 на «Добавить всех» в гигиене/здоровье.
+  // Через единый helper hasFullWorkspaceAccess — поддерживает и
+  // canonical (manager/head_chef), и legacy (owner/technologist) роли,
+  // и ROOT-impersonation. Раньше inline-list пропускал ROOT (он
+  // импесонировал org и получал 403 здесь).
   if (
-    !["manager", "head_chef", "owner", "technologist"].includes(
-      session.user.role
-    )
+    !hasFullWorkspaceAccess({
+      role: session.user.role,
+      isRoot: session.user.isRoot === true,
+    })
   ) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
