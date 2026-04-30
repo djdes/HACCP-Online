@@ -25,6 +25,19 @@ export type ResponsibleSlot = {
   primary?: boolean;
   /** Override journal-level keywords для фильтра должностей этого слота. */
   positionKeywords?: readonly string[];
+  /**
+   * Phase C: разделение «кто заполняет» vs «кто проверяет».
+   *   • "filler"   — заполняет журнал. Default для всех существующих
+   *                  слотов (back-compat).
+   *   • "verifier" — принимает работу. Получает TasksFlow-задачу
+   *                  «Проверить журнал X» и одобряет/отклоняет.
+   *                  Идёт в JournalDocument.verifierUserId.
+   *
+   * UI-страница /settings/journal-responsibles показывает 2 секции
+   * на каждой карточке: «Заполняют» (все filler-слоты) и «Проверяет»
+   * (один verifier-слот).
+   */
+  kind?: "filler" | "verifier";
 };
 
 export type JournalResponsibleSchema = {
@@ -326,17 +339,76 @@ const SCHEMA_OVERRIDES: Record<string, readonly ResponsibleSlot[]> = {
 // Удаляем placeholder
 delete (SCHEMA_OVERRIDES as Record<string, unknown>).finished_product_old_unused;
 
+/**
+ * Verifier-slot, общий для ВСЕХ журналов (Phase C). Управленец
+ * принимает результат и одобряет/отклоняет. По дефолту keywords —
+ * управленческие роли БЕЗ админа (заведующая/менеджер первичны).
+ *
+ * Журналы с собственным verifier (например, технолог-аудитор) могут
+ * переопределить — см. VERIFIER_OVERRIDES.
+ */
+export const VERIFIER_SLOT_ID = "_verifier";
+
+const DEFAULT_VERIFIER_KEYWORDS = [
+  "завед",
+  "управляющ",
+  "менеджер",
+  "директор",
+  "руководит",
+  "началь",
+  "владелец",
+  "шеф",
+] as const;
+
+const VERIFIER_OVERRIDES: Record<string, readonly string[]> = {
+  // Аудит — типично проверяет технолог или внешний аудитор.
+  audit_plan: ["технолог", ...DEFAULT_VERIFIER_KEYWORDS],
+  audit_protocol: ["технолог", ...DEFAULT_VERIFIER_KEYWORDS],
+  audit_report: ["технолог", ...DEFAULT_VERIFIER_KEYWORDS],
+  // Медкнижки — админ часто курирует HR-составляющую.
+  med_books: [...DEFAULT_VERIFIER_KEYWORDS, "админ", "кадр"],
+};
+
+function makeVerifierSlot(code: string): ResponsibleSlot {
+  return {
+    id: VERIFIER_SLOT_ID,
+    label: "Кто проверяет",
+    hint: "Получает в TasksFlow задачу «Проверить журнал X» и одобряет/отклоняет результат",
+    kind: "verifier",
+    positionKeywords: VERIFIER_OVERRIDES[code] ?? DEFAULT_VERIFIER_KEYWORDS,
+  };
+}
+
 export function getSchemaForJournal(code: string): JournalResponsibleSchema {
+  const baseSlots = (SCHEMA_OVERRIDES[code] ?? DEFAULT_SLOTS).map((s) => ({
+    ...s,
+    kind: s.kind ?? ("filler" as const),
+  }));
   return {
     code,
-    slots: SCHEMA_OVERRIDES[code] ?? DEFAULT_SLOTS,
+    slots: [...baseSlots, makeVerifierSlot(code)],
   };
 }
 
 export function getPrimarySlotId(code: string): string {
   const schema = getSchemaForJournal(code);
-  const primary = schema.slots.find((s) => s.primary);
-  return (primary ?? schema.slots[0]).id;
+  // Primary = первый filler-slot. Verifier-slot не считается primary
+  // даже если в base-схеме случайно стоял primary=true рядом с verifier.
+  const fillers = schema.slots.filter((s) => s.kind !== "verifier");
+  const primary = fillers.find((s) => s.primary);
+  return (primary ?? fillers[0] ?? schema.slots[0]).id;
+}
+
+/**
+ * Phase C: id verifier-слота для journal'a. Возвращает id даже если
+ * в данной БД ещё нет назначенного verifier'а — используется как
+ * lookup-key в slotUsers map.
+ */
+export function getVerifierSlotId(code: string): string {
+  // Сейчас один общий id; функция нужна на случай если в будущем
+  // у разных journal'ов будут разные verifier-slots.
+  void code;
+  return VERIFIER_SLOT_ID;
 }
 
 export type ResponsibleAssignment = {

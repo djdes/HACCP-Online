@@ -490,6 +490,8 @@ export async function POST(request: Request) {
         dateTo: { gte: todayUtcStart },
       },
       orderBy: { dateFrom: "desc" },
+      // Включаем verifierUserId — нужен для двухступенчатой проверки.
+      // Селект целиком чтобы не терять остальные поля.
     });
     if (!doc) {
       // Период считаем через resolveJournalPeriod — половина журналов
@@ -517,6 +519,7 @@ export async function POST(request: Request) {
           autoFill: false,
           config: prefill.config as never,
           responsibleUserId: prefill.responsibleUserId,
+          verifierUserId: prefill.verifierUserId,
         },
       });
       await seedEntriesForDocument({
@@ -636,21 +639,21 @@ export async function POST(request: Request) {
       const category = `WeSetup · ${tpl.name}`;
       const bonusRubles = Math.floor((tpl.bonusAmountKopecks ?? 0) / 100);
 
-      // Phase 3 двухстадийной верификации: выставляем verifier'а
-      // равным «ответственному по журналу» (doc.responsibleUserId,
-      // выбирается менеджером в /settings/journal-responsibles). Когда
-      // сотрудник нажмёт «Готово» в TF, задача не закроется, а
-      // переедет в очередь «На проверке» у этого ответственного.
-      // После approve — credit balance + WeSetup-mirror.
+      // Phase C двухстадийной верификации: verifier — отдельная
+      // роль от исполнителя. Источник:
+      //   1. doc.verifierUserId (новое поле, выставленное в
+      //      /settings/journal-responsibles → секция «Кто проверяет»).
+      //   2. Fallback на doc.responsibleUserId — для документов
+      //      созданных ДО разделения filler/verifier (back-compat).
       //
-      // Если verifier == worker (например, заведующая делает таск,
-      // на котором она же ответственная) — не ставим verifier'а,
-      // task закрывается обычным /complete без двойного шага.
-      // Если у документа responsibleUserId не задан — старое
-      // поведение (one-step complete).
+      // Если verifier == worker (одинокий случай — заведующая в смене
+      // и сама отв. за заполнение и проверку) — не ставим, task
+      // закрывается обычным /complete.
+      const verifierWesetupId =
+        doc.verifierUserId ?? doc.responsibleUserId ?? null;
       let verifierTfId: number | null = null;
-      if (doc.responsibleUserId) {
-        const candidate = tfUserIdByWesetup.get(doc.responsibleUserId);
+      if (verifierWesetupId) {
+        const candidate = tfUserIdByWesetup.get(verifierWesetupId);
         if (candidate && candidate !== tfUserId) {
           verifierTfId = candidate;
         }

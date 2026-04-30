@@ -107,6 +107,7 @@ export async function ensureActiveDocument(
       autoFill: false,
       config: prefill.config as never,
       responsibleUserId: prefill.responsibleUserId,
+      verifierUserId: prefill.verifierUserId,
     },
     select: { id: true, dateFrom: true, dateTo: true },
   });

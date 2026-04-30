@@ -1290,6 +1290,11 @@ model JournalDocument {
   dateTo            DateTime
   responsibleUserId String?
   responsibleTitle  String? // e.g. "Управляющий"
+  /// Phase C двухступенчатой проверки. Кто принимает результат (verifier).
+  /// Обычно management-роль (заведующая) — отдельная от заполнителей.
+  /// Если null — fallback на responsibleUserId (back-compat для документов
+  /// созданных до разделения filler/verifier).
+  verifierUserId    String?
   status            String                 @default("active") // active | closed
   autoFill          Boolean                @default(false)
   createdById       String?

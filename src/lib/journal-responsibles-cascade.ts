@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import {
   getPrimarySlotId,
   getSchemaForJournal,
+  getVerifierSlotId,
 } from "@/lib/journal-responsible-schemas";
 import {
   hasDocumentConfigPatcher,
@@ -62,6 +63,7 @@ export async function cascadeResponsibleToActiveDocuments(input: {
   const scope: CascadeScope = input.scope ?? "active-today";
   const schema = getSchemaForJournal(journalCode);
   const primarySlotId = getPrimarySlotId(journalCode);
+  const verifierSlotId = getVerifierSlotId(journalCode);
   const slotUsers: SlotUserMap = { ...(input.slotUsers ?? {}) };
 
   // 1. Авто-подбор по слотам, если ничего не задано.
@@ -218,6 +220,17 @@ export async function cascadeResponsibleToActiveDocuments(input: {
       if (primaryUserId && validUserIds.has(primaryUserId)) {
         data.responsibleUserId = primaryUserId;
       }
+      // Phase C: пишем verifierUserId если verifier-slot заполнен.
+      // Если null — оставляем поле без change'а (legacy doc'и
+      // продолжают работать через responsibleUserId fallback в
+      // bulk-assign-today).
+      const verifierUserId = slotUsers[verifierSlotId] ?? null;
+      if (verifierUserId && validUserIds.has(verifierUserId)) {
+        data.verifierUserId = verifierUserId;
+      } else if (input.slotUsers && verifierSlotId in input.slotUsers) {
+        // Юзер явно очистил verifier slot — пишем null чтобы убрать.
+        data.verifierUserId = null;
+      }
       if (patched) {
         data.config = patched as never;
       } else if (isEmpty && Object.keys(baseCfg).length > 0) {
@@ -278,6 +291,9 @@ export async function prefillResponsiblesForNewDocument(input: {
 }): Promise<{
   config: Record<string, unknown>;
   responsibleUserId: string | null;
+  /** Phase C: verifier для нового документа. Caller передаёт в
+   *  JournalDocument.verifierUserId при db.create. */
+  verifierUserId: string | null;
 }> {
   const { organizationId, journalCode } = input;
   // Если caller передал baseConfig — уважаем его. Иначе берём дефолт
@@ -334,7 +350,9 @@ export async function prefillResponsiblesForNewDocument(input: {
   }
 
   const primarySlotId = getPrimarySlotId(journalCode);
+  const verifierSlotId = getVerifierSlotId(journalCode);
   const primaryUserId = slots[primarySlotId] ?? null;
+  const verifierRawUserId = slots[verifierSlotId] ?? null;
 
   // 3. Валидация — оставляем только реально-существующих в орге.
   const userIdsToCheck = Object.values(slots).filter(
@@ -377,5 +395,9 @@ export async function prefillResponsiblesForNewDocument(input: {
     config,
     responsibleUserId:
       primaryUserId && validUserIds.has(primaryUserId) ? primaryUserId : null,
+    verifierUserId:
+      verifierRawUserId && validUserIds.has(verifierRawUserId)
+        ? verifierRawUserId
+        : null,
   };
 }

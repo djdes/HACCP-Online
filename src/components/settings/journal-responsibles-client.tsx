@@ -118,6 +118,92 @@ const MODE_TONE: Record<string, string> = {
   single: "bg-[#fff8eb] text-[#a13a32]",
 };
 
+/** Phase C: вспомогательный компонент для рендера одного slot-picker'а
+ *  — раньше код был inline, после разделения «Заполняют»/«Проверяет»
+ *  оба раздела вызывают этот же UI. */
+type SlotPickerProps = {
+  journalCode: string;
+  slot: import("@/lib/journal-responsible-schemas").ResponsibleSlot;
+  slotIdx: number;
+  slotMap: SlotUserMap;
+  positionsById: Map<string, Position>;
+  usersById: Map<string, UserItem>;
+  eligibleUsersForSlot: (journalCode: string, slotId: string) => UserItem[];
+  onSetUser: (journalCode: string, slotId: string, userId: string | null) => void;
+};
+
+function SlotPicker({
+  journalCode,
+  slot,
+  slotIdx,
+  slotMap,
+  positionsById,
+  usersById,
+  eligibleUsersForSlot,
+  onSetUser,
+}: SlotPickerProps) {
+  const userId = slotMap[slot.id] ?? null;
+  const eligibleForSlot = eligibleUsersForSlot(journalCode, slot.id);
+  const showCurrent = userId
+    ? !eligibleForSlot.find((u) => u.id === userId) && usersById.get(userId)
+    : null;
+  return (
+    <div className="flex flex-wrap items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
+      <div className="flex min-w-[180px] flex-col">
+        <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#3c4053]">
+          <span className="flex size-5 items-center justify-center rounded-full bg-[#eef1ff] text-[10px] font-semibold text-[#3848c7]">
+            {slotIdx + 1}
+          </span>
+          {slot.label}
+          {slot.primary ? (
+            <span className="rounded-full bg-[#fff8eb] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#a13a32]">
+              primary
+            </span>
+          ) : null}
+        </div>
+        {slot.hint ? (
+          <div className="mt-0.5 text-[11px] leading-snug text-[#9b9fb3]">
+            {slot.hint}
+          </div>
+        ) : null}
+      </div>
+      <div className="flex-1 min-w-[200px]">
+        <select
+          value={userId ?? ""}
+          onChange={(e) =>
+            onSetUser(journalCode, slot.id, e.target.value || null)
+          }
+          disabled={eligibleForSlot.length === 0 && !showCurrent}
+          className="w-full rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
+        >
+          <option value="">— не выбран —</option>
+          {showCurrent ? (
+            <option value={userId ?? ""}>
+              {showCurrent.name} (вне фильтра)
+            </option>
+          ) : null}
+          {eligibleForSlot.map((u) => {
+            const pos = u.jobPositionId
+              ? positionsById.get(u.jobPositionId)
+              : null;
+            return (
+              <option key={u.id} value={u.id}>
+                {u.name}
+                {pos ? ` · ${pos.name}` : ""}
+              </option>
+            );
+          })}
+        </select>
+        {eligibleForSlot.length === 0 && !showCurrent ? (
+          <div className="mt-1 text-[11px] text-[#a13a32]">
+            Нет подходящих сотрудников. Заведите/назначьте.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function JournalResponsiblesClient({
   positions,
   users,
@@ -990,89 +1076,71 @@ export function JournalResponsiblesClient({
 
                         {/* Slot pickers — по одному на каждый «слот»
                             ответственного из schema этого журнала.
-                            Например, у бракеража готовой продукции 3
-                            слота (комиссия), у уборки 2, у большинства 1. */}
-                        <div className="mt-3 space-y-2">
-                          {schema.slots.map((slot, slotIdx) => {
-                            const userId = slotMap[slot.id] ?? null;
-                            const eligibleForSlot = eligibleUsersForSlot(
-                              j.code,
-                              slot.id
-                            );
-                            // Сюда добавляем текущего юзера, если он не
-                            // в pool (например, изменили должности и он
-                            // выпал из фильтра — пусть всё равно покажется
-                            // как «выбран», чтобы юзер не запутался).
-                            const showCurrent = userId
-                              ? !eligibleForSlot.find((u) => u.id === userId) &&
-                                usersById.get(userId)
-                              : null;
-                            return (
-                              <div
-                                key={slot.id}
-                                className="flex flex-wrap items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5"
-                              >
-                                <div className="flex min-w-[180px] flex-col">
-                                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#3c4053]">
-                                    <span className="flex size-5 items-center justify-center rounded-full bg-[#eef1ff] text-[10px] font-semibold text-[#3848c7]">
-                                      {slotIdx + 1}
-                                    </span>
-                                    {slot.label}
-                                    {slot.primary ? (
-                                      <span className="rounded-full bg-[#fff8eb] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#a13a32]">
-                                        primary
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  {slot.hint ? (
-                                    <div className="mt-0.5 text-[11px] leading-snug text-[#9b9fb3]">
-                                      {slot.hint}
-                                    </div>
-                                  ) : null}
+                            Phase C: разделены 2 секции:
+                              • «Заполняют» — все filler-слоты (могут быть N)
+                              • «Кто проверяет» — verifier-слот (1).
+                            Filler'ы заполняют журнал, verifier
+                            принимает работу через TasksFlow. */}
+                        {(() => {
+                          const fillerSlots = schema.slots.filter(
+                            (s) => s.kind !== "verifier",
+                          );
+                          const verifierSlots = schema.slots.filter(
+                            (s) => s.kind === "verifier",
+                          );
+                          return (
+                            <>
+                              <div className="mt-3">
+                                <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
+                                  Заполняют журнал
                                 </div>
-                                <div className="flex-1 min-w-[200px]">
-                                  <select
-                                    value={userId ?? ""}
-                                    onChange={(e) =>
-                                      setSlotUser(
-                                        j.code,
-                                        slot.id,
-                                        e.target.value || null
-                                      )
-                                    }
-                                    disabled={
-                                      eligibleForSlot.length === 0 && !showCurrent
-                                    }
-                                    className="w-full rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
-                                  >
-                                    <option value="">— не выбран —</option>
-                                    {showCurrent ? (
-                                      <option value={userId ?? ""}>
-                                        {showCurrent.name} (вне фильтра)
-                                      </option>
-                                    ) : null}
-                                    {eligibleForSlot.map((u) => {
-                                      const pos = u.jobPositionId
-                                        ? positionsById.get(u.jobPositionId)
-                                        : null;
-                                      return (
-                                        <option key={u.id} value={u.id}>
-                                          {u.name}
-                                          {pos ? ` · ${pos.name}` : ""}
-                                        </option>
-                                      );
-                                    })}
-                                  </select>
-                                  {eligibleForSlot.length === 0 && !showCurrent ? (
-                                    <div className="mt-1 text-[11px] text-[#a13a32]">
-                                      Нет подходящих сотрудников. Заведите/назначьте.
-                                    </div>
-                                  ) : null}
+                                <div className="space-y-2">
+                                  {fillerSlots.map((slot, slotIdx) => (
+                                    <SlotPicker
+                                      key={slot.id}
+                                      journalCode={j.code}
+                                      slot={slot}
+                                      slotIdx={slotIdx}
+                                      slotMap={slotMap}
+                                      positionsById={positionsById}
+                                      usersById={usersById}
+                                      eligibleUsersForSlot={
+                                        eligibleUsersForSlot
+                                      }
+                                      onSetUser={setSlotUser}
+                                    />
+                                  ))}
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
+                              {verifierSlots.length > 0 ? (
+                                <div className="mt-3">
+                                  <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
+                                    <span className="inline-block size-1.5 rounded-full bg-[#5566f6]" />
+                                    Кто проверяет
+                                  </div>
+                                  <div className="space-y-2">
+                                    {verifierSlots.map((slot, slotIdx) => (
+                                      <SlotPicker
+                                        key={slot.id}
+                                        journalCode={j.code}
+                                        slot={slot}
+                                        slotIdx={slotIdx}
+                                        slotMap={slotMap}
+                                        positionsById={positionsById}
+                                        usersById={usersById}
+                                        eligibleUsersForSlot={
+                                          eligibleUsersForSlot
+                                        }
+                                        onSetUser={setSlotUser}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </>
+                          );
+                        })()}
+
                       </div>
                     );
                   })}
