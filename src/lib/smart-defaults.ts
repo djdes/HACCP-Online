@@ -44,7 +44,13 @@ export async function getYesterdayEntryData(
   if (!entry.data || typeof entry.data !== "object" || Array.isArray(entry.data)) {
     return null;
   }
-  return entry.data as Record<string, unknown>;
+  // Если вчера была только _autoSeeded плейсхолдер-row — это не
+  // «вчерашнее заполнение», а пустая болванка для grid render'а.
+  // Smart-defaults не должен подкидывать seed-data в форму нового
+  // дня (там даже temperatures/checklist полей нет, только маркер).
+  const data = entry.data as Record<string, unknown>;
+  if (data._autoSeeded === true) return null;
+  return data;
 }
 
 /**
