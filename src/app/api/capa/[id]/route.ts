@@ -10,7 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  if (!isManagementRole(session.user.role)) {
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
 
@@ -22,7 +22,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const data: Record<string, unknown> = {};
 
+  // Раньше: body.status шёл в DB без проверки. Менеджер мог через
+  // прямой fetch установить status=":wq" — на дашборде CAPA-фильтры
+  // ломались, потому что ожидали enum.
+  const VALID_STATUSES = new Set([
+    "open",
+    "investigating",
+    "corrective_action",
+    "verification",
+    "closed",
+    "rejected",
+  ]);
   if (body.status) {
+    if (typeof body.status !== "string" || !VALID_STATUSES.has(body.status)) {
+      return NextResponse.json(
+        { error: "Некорректный статус CAPA" },
+        { status: 400 }
+      );
+    }
     data.status = body.status;
     if (body.status === "closed") data.closedAt = new Date();
     if (body.status === "verification" || body.status === "corrective_action") data.resolvedAt = new Date();

@@ -3,10 +3,18 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { isManagementRole } from "@/lib/user-roles";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // GET CAPA-list возвращает все тикеты org-и (включая чужих
+  // подразделений) — management-only. Раньше любой staff мог увидеть
+  // полный список тикетов своей org-и.
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -40,6 +48,13 @@ const VALID_CATEGORIES = [
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Создавать CAPA могут только management — раньше любой staff мог
+  // через прямой fetch создать тикет (например, sourceType / sourceEntryId
+  // привязал к чужой entry, чтобы засветить отклонение).
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => null);
   const orgId = getActiveOrgId(session);

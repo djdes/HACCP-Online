@@ -7,11 +7,11 @@ import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import {
   isLegacyUserRoleValue,
-  isManagerRole,
   isUserRoleValue,
   normalizeUserRole,
   toCanonicalUserRole,
 } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 import { performOffboarding } from "@/lib/offboarding";
@@ -42,7 +42,17 @@ export async function PUT(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagerRole(session.user.role)) {
+    // Раньше: isManagerRole — только role=manager, без head_chef и
+    // без ROOT-impersonation. Заведующая (head_chef) и ROOT
+    // импесонирующий клиента получали 403 при попытке отредактировать
+    // сотрудника. Стандартный helper hasFullWorkspaceAccess покрывает
+    // всех троих (manager + head_chef + isRoot).
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -208,7 +218,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagerRole(session.user.role)) {
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
