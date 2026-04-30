@@ -38,12 +38,28 @@ export const metadata: Metadata = {
       "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
     description:
       "35 электронных журналов СанПиН и ХАССП. Автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
+    // Без og:image Telegram / VK / Discord link previews показывают
+    // голый текст на пустом фоне. 512×512 brand-logo лучше пустоты;
+    // когда появится designed 1200×630 hero — поменяем на него.
+    images: [
+      {
+        url: "https://wesetup.ru/icons/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "WeSetup — электронные журналы СанПиН и ХАССП",
+      },
+    ],
   },
   twitter: {
-    card: "summary_large_image",
+    // Square logo лучше подходит под `summary` (144×144 thumbnail),
+    // чем под `summary_large_image` (требует 2:1 hero, минимум 300×157).
+    // С неправильным aspect ratio Twitter молча downgrade'ит карту,
+    // и итог такой же как до этого фикса — пустой preview.
+    card: "summary",
     title: "WeSetup — электронные журналы СанПиН и ХАССП",
     description:
       "Автозаполнение, Telegram-бот, PDF для проверок. Бесплатно навсегда.",
+    images: ["https://wesetup.ru/icons/icon-512.png"],
   },
   robots: {
     index: true,
