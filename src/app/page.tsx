@@ -699,6 +699,72 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* C5 — D11+D12 поднимаются после PRICING: безопасность и ROI это
+          trust-сигналы которые усиливают тарифное решение, и они не
+          должны прятаться в самый низ страницы. */}
+
+      {/* D11 — БЕЗОПАСНОСТЬ ДАННЫХ */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <ShieldCheck className="size-4" />
+            Безопасность данных
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Журналы не пропадут — это первое что мы продумали
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Общепит боится потерять год записей перед проверкой. Мы храним
+            ваши данные как банк хранит транзакции — с дублированием,
+            шифрованием и аудитом доступа.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              icon: ShieldCheck,
+              title: "Серверы в России",
+              text: "152-ФЗ. PostgreSQL хостится в РФ-датацентре с суточной репликацией.",
+            },
+            {
+              icon: Network,
+              title: "TLS 1.3 + HMAC",
+              text: "Передача только по HTTPS, межсервисные запросы подписаны HMAC-SHA256.",
+            },
+            {
+              icon: Timer,
+              title: "Бэкапы каждые 6 часов",
+              text: "Снапшоты держим 30 дней, ежедневно проверяем валидность восстановления.",
+            },
+            {
+              icon: UserCheck,
+              title: "Ролевой доступ",
+              text: "У каждого сотрудника свой логин. Каждое действие видно в audit-логе.",
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+            >
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+                <item.icon className="size-5" />
+              </div>
+              <div className="mt-3 text-[14px] font-semibold text-[#0b1024]">
+                {item.title}
+              </div>
+              <p className="mt-1 text-[13px] leading-[1.5] text-[#6f7282]">
+                {item.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* D12 — ROI КАЛЬКУЛЯТОР */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <RoiCalculator />
+      </section>
+
       {/* HOW IT WORKS */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
@@ -987,68 +1053,6 @@ export default async function LandingPage() {
           </div>
         </section>
       )}
-
-      {/* D11 — БЕЗОПАСНОСТЬ ДАННЫХ */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <ShieldCheck className="size-4" />
-            Безопасность данных
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Журналы не пропадут — это первое что мы продумали
-          </h2>
-          <p className="mt-3 text-[15px] text-[#6f7282]">
-            Общепит боится потерять год записей перед проверкой. Мы храним
-            ваши данные как банк хранит транзакции — с дублированием,
-            шифрованием и аудитом доступа.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: ShieldCheck,
-              title: "Серверы в России",
-              text: "152-ФЗ. PostgreSQL хостится в РФ-датацентре с суточной репликацией.",
-            },
-            {
-              icon: Network,
-              title: "TLS 1.3 + HMAC",
-              text: "Передача только по HTTPS, межсервисные запросы подписаны HMAC-SHA256.",
-            },
-            {
-              icon: Timer,
-              title: "Бэкапы каждые 6 часов",
-              text: "Снапшоты держим 30 дней, ежедневно проверяем валидность восстановления.",
-            },
-            {
-              icon: UserCheck,
-              title: "Ролевой доступ",
-              text: "У каждого сотрудника свой логин. Каждое действие видно в audit-логе.",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-                <item.icon className="size-5" />
-              </div>
-              <div className="mt-3 text-[14px] font-semibold text-[#0b1024]">
-                {item.title}
-              </div>
-              <p className="mt-1 text-[13px] leading-[1.5] text-[#6f7282]">
-                {item.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* D12 — ROI КАЛЬКУЛЯТОР */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <RoiCalculator />
-      </section>
 
       {/* FAQ */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
