@@ -7,6 +7,7 @@ import {
 } from "@/lib/registration";
 import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/phone";
+import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,17 @@ const VALID_PLANS = new Set(["basic", "extended", "trial"]);
  * success with the new user id.
  */
 export async function POST(request: Request) {
+  // Per-IP throttle поверх non-atomic attempts-counter в БД. Защита
+  // от concurrent-параллельного перебора 6-значного кода.
+  const xff = request.headers.get("x-forwarded-for") ?? "";
+  const ip = xff.split(",")[0].trim() || "unknown";
+  if (!registrationConfirmRateLimiter.consume(`confirm:${ip}`)) {
+    return NextResponse.json(
+      { error: "Слишком много попыток. Подождите 5 минут." },
+      { status: 429 }
+    );
+  }
+
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });

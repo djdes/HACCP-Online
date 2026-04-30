@@ -124,6 +124,22 @@ export const registrationCodeRateLimiter = createRateLimiter({
 });
 
 /**
+ * /api/auth/register/confirm — попытка ввода 6-значного кода. В
+ * EmailVerification.attempts стоит counter ≤5, но он non-atomic
+ * (read-then-update) — concurrent POST'ы могли проскочить. Плюс
+ * каждая попытка тянет bcrypt-сравнение ~70мс — атакующий
+ * параллельно прогревает CPU. Per-IP лимит закрывает обе дыры.
+ *
+ * 10 попыток / 5 минут / IP — у легитимного юзера хватит на пару
+ * мисспрингов кода, бот не успеет перебрать 6-значное пространство
+ * (1M комбинаций / 10 = 100K * 5 мин = недели).
+ */
+export const registrationConfirmRateLimiter = createRateLimiter({
+  tokensPerInterval: 10,
+  intervalMs: 5 * 60 * 1000,
+});
+
+/**
  * Public ИНН-lookup через DaData. Нашему DaData-аккаунту даёт 10K
  * запросов/день. Без rate-limit'а атакующий может заскриптовать loop
  * и за час съесть всю квоту → wizard регистрации новых компаний
