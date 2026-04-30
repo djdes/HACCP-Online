@@ -78,6 +78,26 @@ export async function POST(request: Request) {
   const orgId = getActiveOrgId(session);
   const periodFrom = new Date(`${parsed.from}T00:00:00.000Z`);
   const periodTo = new Date(`${parsed.to}T23:59:59.999Z`);
+  // Zod regex /^\d{4}-\d{2}-\d{2}$/ пропускает '2026-13-99' — это
+  // не реальная дата но соответствует pattern'у. new Date() даст
+  // Invalid Date, .getTime() = NaN, days вычисляется как NaN,
+  // 'NaN > 92' = false → дальше Prisma падает с невнятной ошибкой
+  // и AI квота тратится на пустую попытку. Проверяем явно.
+  if (
+    !Number.isFinite(periodFrom.getTime()) ||
+    !Number.isFinite(periodTo.getTime())
+  ) {
+    return NextResponse.json(
+      { error: "Некорректная дата периода" },
+      { status: 400 }
+    );
+  }
+  if (periodTo < periodFrom) {
+    return NextResponse.json(
+      { error: "Дата окончания раньше даты начала" },
+      { status: 400 }
+    );
+  }
   const days =
     Math.floor((periodTo.getTime() - periodFrom.getTime()) / 86400000) + 1;
   if (days > 92) {
