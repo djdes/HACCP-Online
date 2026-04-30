@@ -15,7 +15,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagerRole(session.user.role)) {
+    // Только manager (или ROOT impersonating). head_chef не должен
+    // создавать платежи — это финансовое решение собственника.
+    // Раньше missing isRoot bypass — ROOT impersonating клиента
+    // получал 403 при попытке создать платёж от имени клиента
+    // (типичный сценарий support — провести платёж за клиента).
+    if (!isManagerRole(session.user.role) && !session.user.isRoot) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
