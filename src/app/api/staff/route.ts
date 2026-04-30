@@ -91,28 +91,62 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await db.user.create({
-    data: {
-      email: syntheticEmail(orgId),
-      name: parsed.fullName,
-      phone,
-      passwordHash: "",
-      role: deriveRoleFromCategory(position.categoryKey),
-      positionTitle: position.name,
-      jobPositionId: position.id,
+  // Подтягиваем journals разрешённые для chosen position. Раньше:
+  // journalAccessMigrated=false → hasJournalAccess возвращал true
+  // для ВСЕХ журналов (back-compat path) → новый cleaner видел
+  // mеджурналы (med_books) с ФИО всех сотрудников. Теперь как
+  // QR-join (f0e90e24): ACL=migrated + populate UserJournalAccess
+  // из JobPositionJournalAccess.
+  const positionTemplates = await db.jobPositionJournalAccess.findMany({
+    where: {
       organizationId: orgId,
-      // Active on staff from the first day — journals filter their employee
-      // selectors on isActive, so we must start in the active set. Login
-      // stays impossible while passwordHash is empty.
-      isActive: true,
-      journalAccessMigrated: false,
+      jobPositionId: position.id,
     },
-    select: {
-      id: true,
-      name: true,
-      jobPositionId: true,
-      isActive: true,
-    },
+    include: { template: { select: { code: true } } },
+  });
+  // Если в org нет JobPositionJournalAccess вообще — fallback на
+  // legacy back-compat (журналы видны всем).
+  const useStrictAcl = positionTemplates.length > 0;
+
+  const user = await db.$transaction(async (tx) => {
+    const u = await tx.user.create({
+      data: {
+        email: syntheticEmail(orgId),
+        name: parsed.fullName,
+        phone,
+        passwordHash: "",
+        role: deriveRoleFromCategory(position.categoryKey),
+        positionTitle: position.name,
+        jobPositionId: position.id,
+        organizationId: orgId,
+        // Active on staff from the first day — journals filter their employee
+        // selectors on isActive, so we must start in the active set. Login
+        // stays impossible while passwordHash is empty.
+        isActive: true,
+        // Если есть position-based ACL — переключаем юзера в migrated-режим.
+        // Иначе остаёмся в legacy back-compat (full access).
+        journalAccessMigrated: useStrictAcl,
+      },
+      select: {
+        id: true,
+        name: true,
+        jobPositionId: true,
+        isActive: true,
+      },
+    });
+    if (useStrictAcl) {
+      await tx.userJournalAccess.createMany({
+        data: positionTemplates.map((t) => ({
+          userId: u.id,
+          templateCode: t.template.code,
+          canRead: true,
+          canWrite: true,
+          canFinalize: false,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    return u;
   });
 
   // Best-effort: if this org has an enabled TasksFlow integration and

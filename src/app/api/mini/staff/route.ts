@@ -114,20 +114,45 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await db.user.create({
-    data: {
-      email: syntheticEmail(orgId),
-      name: parsed.fullName,
-      phone,
-      passwordHash: "",
-      role: deriveRoleFromCategory(position.categoryKey),
-      positionTitle: position.name,
-      jobPositionId: position.id,
-      organizationId: orgId,
-      isActive: true,
-      journalAccessMigrated: false,
-    },
-    select: { id: true, name: true, jobPositionId: true, isActive: true },
+  // Согласовано с web-side /api/staff (manual add) и QR-join:
+  // populate UserJournalAccess из JobPositionJournalAccess чтобы
+  // новый cleaner НЕ видел медкнижки и пр. journal к которым его
+  // должность не имеет доступа.
+  const positionTemplates = await db.jobPositionJournalAccess.findMany({
+    where: { organizationId: orgId, jobPositionId: position.id },
+    include: { template: { select: { code: true } } },
+  });
+  const useStrictAcl = positionTemplates.length > 0;
+
+  const user = await db.$transaction(async (tx) => {
+    const u = await tx.user.create({
+      data: {
+        email: syntheticEmail(orgId),
+        name: parsed.fullName,
+        phone,
+        passwordHash: "",
+        role: deriveRoleFromCategory(position.categoryKey),
+        positionTitle: position.name,
+        jobPositionId: position.id,
+        organizationId: orgId,
+        isActive: true,
+        journalAccessMigrated: useStrictAcl,
+      },
+      select: { id: true, name: true, jobPositionId: true, isActive: true },
+    });
+    if (useStrictAcl) {
+      await tx.userJournalAccess.createMany({
+        data: positionTemplates.map((t) => ({
+          userId: u.id,
+          templateCode: t.template.code,
+          canRead: true,
+          canWrite: true,
+          canFinalize: false,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    return u;
   });
 
   return NextResponse.json({ user });
