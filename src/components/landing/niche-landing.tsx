@@ -180,7 +180,7 @@ export const NICHES: Record<string, Niche> = {
  */
 export function getNicheMetadata(slug: string) {
   const data = NICHES[slug];
-  if (!data) return { title: "Не найдено — WeSetup" };
+  if (!data) return { title: { absolute: "Не найдено — WeSetup" } };
   return {
     title: data.metaTitle,
     description: data.metaDescription,

@@ -32,7 +32,7 @@ export async function generateMetadata({
 }) {
   const { code } = await params;
   const info = JOURNAL_INFO[code];
-  if (!info) return { title: "Журнал не найден — WeSetup" };
+  if (!info) return { title: { absolute: "Журнал не найден — WeSetup" } };
   const seo = JOURNAL_SEO[code];
   const canonical = `https://wesetup.ru/journals-info/${code}`;
   return {

@@ -30,7 +30,7 @@ export async function generateMetadata({
     select: { title: true, excerpt: true, publishedAt: true },
   });
   if (!article || !article.publishedAt) {
-    return { title: "Статья не найдена — WeSetup" };
+    return { title: { absolute: "Статья не найдена — WeSetup" } };
   }
   return {
     title: `${article.title} — WeSetup`,

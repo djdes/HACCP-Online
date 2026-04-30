@@ -39,7 +39,7 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const info = FEATURES_INFO[slug];
-  if (!info) return { title: "Возможность не найдена — WeSetup" };
+  if (!info) return { title: { absolute: "Возможность не найдена — WeSetup" } };
   return {
     title: `${info.title} — WeSetup`,
     description: info.tagline,
