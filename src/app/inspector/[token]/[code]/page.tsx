@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, ClipboardCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +54,11 @@ export default async function InspectorTemplatePage({
       dateFrom: true,
       dateTo: true,
       status: true,
-      _count: { select: { entries: true } },
+      // Тот же фикс что в /api/inspector/[token]/pdf — не считать
+      // _autoSeeded плейсхолдеры как «заполненные записи». Иначе
+      // инспектор видит inflated счёт «300 записей за месяц», когда
+      // реально сотрудник заполнил 30.
+      _count: { select: { entries: { where: NOT_AUTO_SEEDED } } },
     },
     orderBy: { dateFrom: "desc" },
   });

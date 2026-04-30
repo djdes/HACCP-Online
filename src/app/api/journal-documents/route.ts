@@ -87,6 +87,7 @@ import {
   normalizeJournalStaffBoundConfig,
   normalizeJournalDocumentStaffState,
 } from "@/lib/journal-staff-binding";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -122,7 +123,10 @@ export async function GET(request: Request) {
     },
     orderBy: { dateFrom: "desc" },
     include: {
-      _count: { select: { entries: true } },
+      // Считаем только реальные entries без _autoSeeded плейсхолдеров,
+      // чтобы менеджер на /journals/[code] видел честный «N записей»
+      // (5 реально заполненных, а не 35 включая seeded-болванки).
+      _count: { select: { entries: { where: NOT_AUTO_SEEDED } } },
     },
   });
 
