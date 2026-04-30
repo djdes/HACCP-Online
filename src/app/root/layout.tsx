@@ -17,6 +17,14 @@ import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
 
+// /root/* — platform-superadmin area. Must never be indexed.
+// robots.txt уже блокирует /root/ через Disallow, но HTML-meta — defense
+// in depth (защита если кто-то получит deep-link и поделится в шарящем
+// link-preview сервисе типа Telegram-бота или WhatsApp).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function RootAreaLayout({
   children,
 }: {
