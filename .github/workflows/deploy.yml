@@ -302,4 +302,17 @@ jobs:
             npx pm2 save --force 2>&1 | tail -2
             npx pm2 status --no-color | grep -E 'haccp|name|---' || true
 
+            # Pre-warm основных публичных routes. Next.js 16 Turbopack
+            # JIT-компилирует client reference manifest при первом hit'е
+            # — пока он не построен, первые ~30-90 секунд после restart'а
+            # пользователи получают 500 + «Invariant: client reference
+            # manifest does not exist» в логах. Curl'ем сами разогреваем
+            # popular страницы, public traffic идёт уже на готовое.
+            echo "=== Pre-warming routes ==="
+            sleep 5
+            for path in / /blog /pricing /journals-info /dlya-kafe /dlya-pekarni /dlya-stolovoy /dlya-proizvodstva /zhurnal-haccp /zhurnal-zdorovya /elektronnyy-zhurnal-sanpin /brakerazhnyy-zhurnal /zhurnal-uborki /temperaturnyy-list-holodilnika /haccp-dlya-kafe /sitemap.xml; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "http://127.0.0.1:3002$path" || echo "ERR")
+              echo "  $path → $code"
+            done
+
             echo "=== Deploy complete ==="
