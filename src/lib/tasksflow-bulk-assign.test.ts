@@ -54,8 +54,10 @@ test("selectBulkJournalTemplates skips journals not allowed by hierarchy", () =>
 });
 
 test("single-per-day journals create only one available row", () => {
+  // med_books — НЕ team-fan-out (один ответственный ведёт за всех):
+  // подходит для проверки «берём первого подходящего».
   const result = selectRowsForBulkAssign({
-    journalCode: "cleaning",
+    journalCode: "med_books",
     rows: [row("u1-row", "u1"), row("u2-row", "u2")],
     takenRowKeys: new Set(),
     onDutyUserIds: new Set(["u1", "u2"]),
@@ -72,7 +74,7 @@ test("single-per-day journals create only one available row", () => {
 
 test("single-per-day journals do not duplicate an existing journal task", () => {
   const result = selectRowsForBulkAssign({
-    journalCode: "cleaning",
+    journalCode: "med_books",
     rows: [row("u1-row", "u1"), row("u2-row", "u2")],
     takenRowKeys: new Set(["u2-row"]),
     onDutyUserIds: new Set(["u1", "u2"]),
@@ -82,6 +84,50 @@ test("single-per-day journals do not duplicate an existing journal task", () => 
   assert.deepEqual(result.rows, []);
   assert.equal(result.alreadyLinked, 1);
   assert.equal(result.skipReason, undefined);
+});
+
+test("team fan-out journals create one row per linked employee", () => {
+  // cleaning переехал в TEAM_FAN_OUT_CODES (2026-04-30): любой из
+  // смены может закрыть запись, поэтому задача рассылается всем.
+  const result = selectRowsForBulkAssign({
+    journalCode: "cleaning",
+    rows: [row("u1-row", "u1"), row("u2-row", "u2")],
+    takenRowKeys: new Set(),
+    onDutyUserIds: new Set(["u1", "u2"]),
+    linkedUserIds: new Set(["u1", "u2"]),
+  });
+
+  assert.deepEqual(
+    result.rows.map((item) => item.rowKey).sort(),
+    ["u1-row", "u2-row"]
+  );
+  assert.equal(result.alreadyLinked, 0);
+  assert.equal(result.skipReason, undefined);
+});
+
+test("team fan-out fallback: responsibles не подходят, но в смене есть linked", () => {
+  // Адаптер вернул row с responsibleUserId=u-old (уволенный, не в
+  // онDuty). Раньше journal skip'ался с notification. Теперь fallback
+  // плодит synthetic rows на каждого linked candidate в скоупе.
+  const result = selectRowsForBulkAssign({
+    journalCode: "cleaning",
+    rows: [row("orig-row", "u-old")],
+    takenRowKeys: new Set(),
+    onDutyUserIds: new Set(["u1", "u2"]),
+    linkedUserIds: new Set(["u1", "u2"]),
+  });
+
+  assert.equal(result.skipReason, undefined);
+  assert.equal(result.rows.length, 2);
+  const rowKeys = result.rows.map((r) => r.rowKey).sort();
+  assert.deepEqual(rowKeys, [
+    "orig-row:fallback:u1",
+    "orig-row:fallback:u2",
+  ]);
+  // В synthetic rows responsibleUserId подменён на candidate'а.
+  for (const r of result.rows) {
+    assert.ok(r.responsibleUserId === "u1" || r.responsibleUserId === "u2");
+  }
 });
 
 test("per-employee journals create one row for each linked scheduled employee", () => {
@@ -126,5 +172,7 @@ test("bulk row selection reports an empty candidate scope as a hierarchy issue",
 
   assert.deepEqual(result.rows, []);
   assert.equal(result.alreadyLinked, 0);
-  assert.match(result.skipReason ?? "", /иерарх/);
+  // respectShifts по умолчанию false → текст про «нет активных в зоне»,
+  // не про график. Проверяем оба warning'а старого и нового стиля.
+  assert.match(result.skipReason ?? "", /зон|иерарх|смен/i);
 });

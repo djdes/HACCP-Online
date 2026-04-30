@@ -51,6 +51,22 @@ const TEAM_FAN_OUT_CODES = new Set<string>([
   "disinfectant_usage",             // дезсредства — кто доставал
   "climate_control",                // замер t°/влажности — кто в смене
   "cold_equipment_control",         // замер холодильников — повара
+  // 2026-04-30: расширили после жалобы менеджера на «13 журналов
+  // не отправлены». Все они на самом деле team-based — кто из смены
+  // делает, тот и пишет. Раньше требовали responsibleUserId который
+  // часто пустой / на уволенного → задачи не разлетались.
+  "cleaning",                       // журнал уборки — кто из смены убирался
+  "general_cleaning",               // ген. уборка — команда
+  "sanitary_day_checklist",         // санитарный день — команда
+  "equipment_cleaning",             // мойка/дезинфекция оборудования
+  "glass_control",                  // контроль стекла — кто проверяет
+  "finished_product",               // бракераж готовой продукции — повар/тех.
+  "accident",                       // акт забраковки — любой кто заметил
+  "perishable_rejection",           // отбраковка скоропортящихся
+  "metal_impurity",                 // контроль металлопримесей
+  "ppe_issuance",                   // СИЗ — менеджер/завхоз
+  "pest_control",                   // дератизация
+  "complaint_register",             // регистр жалоб
 ]);
 
 export function isTeamFanOutJournal(journalCode: string): boolean {
@@ -117,9 +133,15 @@ function noEligibleRowReason(args: {
   rows: AdapterRow[];
   onDutyUserIds: Set<string>;
   linkedUserIds: Set<string>;
+  /** true когда фильтрация по WorkShift включена. Иначе onDutyUserIds —
+   *  это просто scope менеджера, и текст про «смену» вводит в
+   *  заблуждение. */
+  respectShifts: boolean;
 }): string {
   if (args.onDutyUserIds.size === 0) {
-    return "В иерархии нет сотрудников для назначения";
+    return args.respectShifts
+      ? "Никто из вашей зоны не стоит в смене сегодня"
+      : "В вашей зоне нет активных сотрудников";
   }
 
   const responsibleRows = args.rows.filter((row) => row.responsibleUserId);
@@ -131,14 +153,16 @@ function noEligibleRowReason(args: {
     args.onDutyUserIds.has(row.responsibleUserId ?? "")
   );
   if (onDutyRows.length === 0) {
-    return "Ответственные по журналу не стоят в смене сегодня";
+    return args.respectShifts
+      ? "Ответственные по журналу не стоят в смене сегодня"
+      : "Ответственный по журналу уволен или не в вашей зоне";
   }
 
   const linkedRows = onDutyRows.filter((row) =>
     args.linkedUserIds.has(row.responsibleUserId ?? "")
   );
   if (linkedRows.length === 0) {
-    return "Дежурные ответственные не привязаны к TasksFlow";
+    return "Ответственные не привязаны к TasksFlow (нет телефона)";
   }
 
   return "Нет подходящей строки для назначения в TasksFlow";
@@ -153,11 +177,16 @@ export function selectRowsForBulkAssign(args: {
   takenRowKeys: Set<string>;
   onDutyUserIds: Set<string>;
   linkedUserIds: Set<string>;
+  /** true когда onDutyUserIds — это реально график смен; false когда
+   *  это просто весь scope менеджера (без shift-фильтра). Влияет на
+   *  текст ошибки и на fallback-поведение. */
+  respectShifts?: boolean;
 }): BulkRowSelection {
   const fanOutToAll = shouldFanOutToAll({
     code: args.journalCode,
     bonusAmountKopecks: args.bonusAmountKopecks,
   });
+  const respectShifts = args.respectShifts ?? false;
 
   if (!fanOutToAll && args.takenRowKeys.size > 0) {
     return { rows: [], alreadyLinked: 1 };
@@ -172,10 +201,46 @@ export function selectRowsForBulkAssign(args: {
   );
 
   if (linkedOnDutyRows.length === 0) {
+    // Fallback fan-out: для team-fan-out журналов «ответственные не
+    // подходят» — НЕ блок. Раньше менеджер видел 13 уведомлений «не
+    // отправлено», шёл настраивать смены / ответственных. Теперь:
+    // если журнал team-based (любой из смены может закрыть), берём
+    // первую adapter row как template и плодим виртуальные rows под
+    // каждого linked-сотрудника в скоупе.
+    //
+    // rowKey суффикс `:fallback:${uid}` гарантирует уникальность в
+    // tasksFlowTaskLink (per-user dedup). Минус: applyRemoteCompletion
+    // на стороне WeSetup получит unknown rowKey и не запишет ячейку
+    // в журнал автоматически — но менеджер сам потом откроет журнал
+    // и проставит. Лучше задача ушла, чем не ушла вообще.
+    if (fanOutToAll && args.rows.length > 0) {
+      const linkedCandidates: string[] = [];
+      for (const uid of args.onDutyUserIds) {
+        if (args.linkedUserIds.has(uid)) linkedCandidates.push(uid);
+      }
+      if (linkedCandidates.length > 0) {
+        const template = args.rows[0];
+        const syntheticRows: AdapterRow[] = [];
+        for (const uid of linkedCandidates) {
+          const fallbackKey = `${template.rowKey}:fallback:${uid}`;
+          if (args.takenRowKeys.has(fallbackKey)) continue;
+          syntheticRows.push({
+            ...template,
+            rowKey: fallbackKey,
+            responsibleUserId: uid,
+          });
+        }
+        if (syntheticRows.length > 0) {
+          return { rows: syntheticRows, alreadyLinked: 0 };
+        }
+        // Все candidates уже получили задачу ранее — это успех, не skip.
+        return { rows: [], alreadyLinked: linkedCandidates.length };
+      }
+    }
     return {
       rows: [],
       alreadyLinked: 0,
-      skipReason: noEligibleRowReason(args),
+      skipReason: noEligibleRowReason({ ...args, respectShifts }),
     };
   }
 

@@ -585,6 +585,10 @@ export async function POST(request: Request) {
       takenRowKeys,
       onDutyUserIds: candidateUserIds,
       linkedUserIds,
+      // Пробрасываем флаг чтобы текст ошибки и fallback-логика были
+      // адекватны: при respectShifts=false (default) onDuty == scope,
+      // а не реальный график.
+      respectShifts: respectShifts && scheduledUserIds.size > 0,
     });
     report.alreadyLinked += rowSelection.alreadyLinked;
     if (rowSelection.skipReason) {
