@@ -13,6 +13,11 @@ import { TaskFillClient } from "./task-fill-client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// HMAC-signed token-based URL для конкретного worker'а — не индексировать.
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 /**
  * Public task-fill page — opened by a TasksFlow worker who tapped
  * «Заполнить журнал» on a journal-bound task. Auth is the

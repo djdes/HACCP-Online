@@ -4,6 +4,13 @@ import { InviteAcceptClient } from "./invite-accept-client";
 
 export const dynamic = "force-dynamic";
 
+// Single-use token URL — никогда не должна быть в индексе. Если кто-то
+// случайно поделится ссылкой в публичный канал, robots.txt уже стоит
+// /invite/, но и HTML-meta тоже.
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 type PageProps = { params: Promise<{ token: string }> };
 
 /**

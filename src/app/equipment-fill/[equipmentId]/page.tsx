@@ -6,6 +6,11 @@ import { EquipmentFillClient } from "./equipment-fill-client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// QR-sticker URL с HMAC-токеном — не индексировать.
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 /**
  * Public page opened when someone scans the QR sticker on a fridge /
  * chamber. No WeSetup session — auth is the HMAC `?token=…` from the
