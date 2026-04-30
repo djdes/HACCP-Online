@@ -2,6 +2,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -68,37 +69,55 @@ export async function POST(req: NextRequest) {
 
   const orgId = getActiveOrgId(session);
 
-  // Generate batch code: B-YYYYMMDD-NNN
+  // Generate batch code: B-YYYYMMDD-NNN. Раньше: count() + 1 → race
+  // condition: два параллельных POST'а получали одинаковый count, оба
+  // пробовали create с тем же кодом, второй падал на @@unique
+  // (organizationId, code) с P2002 → клиент видел 500. Теперь — retry
+  // loop: при коллизии повторяем с count+1, до 10 попыток. На typical-
+  // load этого с запасом хватает (10 параллельных приёмок в секунду).
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
   const todayStart = new Date(today);
   todayStart.setHours(0, 0, 0, 0);
-  const count = await db.batch.count({
+  const baseData = {
+    organizationId: orgId,
+    productName: body.productName.trim().slice(0, 200),
+    supplier:
+      typeof body.supplier === "string"
+        ? body.supplier.trim().slice(0, 200)
+        : null,
+    quantity,
+    unit: typeof body.unit === "string" ? body.unit.slice(0, 20) : "kg",
+    expiryDate,
+    sourceEntryId:
+      typeof body.sourceEntryId === "string" ? body.sourceEntryId : null,
+    notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : null,
+    createdById: session.user.id,
+  };
+  const initialCount = await db.batch.count({
     where: {
       organizationId: orgId,
       createdAt: { gte: todayStart },
     },
   });
-  const code = `B-${dateStr}-${String(count + 1).padStart(3, "0")}`;
-
-  const batch = await db.batch.create({
-    data: {
-      code,
-      organizationId: orgId,
-      productName: body.productName.trim().slice(0, 200),
-      supplier:
-        typeof body.supplier === "string"
-          ? body.supplier.trim().slice(0, 200)
-          : null,
-      quantity,
-      unit: typeof body.unit === "string" ? body.unit.slice(0, 20) : "kg",
-      expiryDate,
-      sourceEntryId:
-        typeof body.sourceEntryId === "string" ? body.sourceEntryId : null,
-      notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : null,
-      createdById: session.user.id,
-    },
-  });
-
-  return NextResponse.json(batch, { status: 201 });
+  const MAX_RETRIES = 10;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+    const code = `B-${dateStr}-${String(initialCount + 1 + attempt).padStart(3, "0")}`;
+    try {
+      const batch = await db.batch.create({ data: { code, ...baseData } });
+      return NextResponse.json(batch, { status: 201 });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  return NextResponse.json(
+    { error: "Не удалось сгенерировать уникальный код партии. Попробуйте ещё раз." },
+    { status: 503 }
+  );
 }

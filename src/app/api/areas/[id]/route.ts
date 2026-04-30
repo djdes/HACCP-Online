@@ -3,7 +3,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { isManagementRole, isManagerRole } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export async function PUT(
   request: Request,
@@ -17,7 +17,12 @@ export async function PUT(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagementRole(session.user.role)) {
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 
@@ -64,7 +69,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
-    if (!isManagerRole(session.user.role)) {
+    // Раньше: isManagerRole — только role=manager. head_chef мог
+    // редактировать (isManagementRole в PUT выше), но не удалять —
+    // непоследовательно. Теперь оба идут через единый
+    // hasFullWorkspaceAccess (manager + head_chef + ROOT).
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
     }
 

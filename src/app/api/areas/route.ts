@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { areaSchema } from "@/lib/validators";
-import { isManagementRole } from "@/lib/user-roles";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export async function GET() {
   try {
@@ -47,7 +47,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isManagementRole(session.user.role)) {
+    if (
+      !hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      })
+    ) {
       return NextResponse.json(
         { error: "Недостаточно прав" },
         { status: 403 }
