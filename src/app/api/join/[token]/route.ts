@@ -171,7 +171,23 @@ export async function POST(request: Request, ctx: Ctx) {
 
   const role = deriveRoleFromCategory(position.categoryKey);
 
-  // Создаём User + помечаем токен использованным в одной транзакции.
+  // Заранее достанем templates, разрешённые для этой должности —
+  // populate UserJournalAccess чтобы новый сотрудник реально мог
+  // видеть свои журналы. Раньше: journalAccessMigrated=true ставился
+  // без populate'а UserJournalAccess. hasJournalAccess читает только
+  // UserJournalAccess (не JobPositionJournalAccess), и QR-joined
+  // сотрудник видел "0 доступных журналов" пока админ вручную не
+  // добавлял ACL-rows. Теперь делаем сразу при join.
+  const positionTemplates = await db.jobPositionJournalAccess.findMany({
+    where: {
+      organizationId: r.row.organizationId,
+      jobPositionId: position.id,
+    },
+    include: { template: { select: { code: true } } },
+  });
+
+  // Создаём User + UserJournalAccess + помечаем токен использованным
+  // в одной транзакции.
   const newUser = await db.$transaction(async (tx) => {
     const u = await tx.user.create({
       data: {
@@ -184,11 +200,24 @@ export async function POST(request: Request, ctx: Ctx) {
         jobPositionId: position.id,
         positionTitle: position.name,
         isActive: true,
-        // Сразу включаем ACL — иначе hasJournalAccess грантит всё.
-        // Реальный набор журналов берётся из JobPositionJournalAccess.
+        // Сразу включаем ACL. Реальный набор журналов выводится из
+        // JobPositionJournalAccess и копируется в UserJournalAccess
+        // ниже (потому что hasJournalAccess читает именно последний).
         journalAccessMigrated: true,
       },
     });
+    if (positionTemplates.length > 0) {
+      await tx.userJournalAccess.createMany({
+        data: positionTemplates.map((t) => ({
+          userId: u.id,
+          templateCode: t.template.code,
+          canRead: true,
+          canWrite: true,
+          canFinalize: false,
+        })),
+        skipDuplicates: true,
+      });
+    }
     await tx.employeeJoinToken.update({
       where: { id: r.row.id },
       data: { claimedAt: new Date(), claimedUserId: u.id },
@@ -205,6 +234,7 @@ export async function POST(request: Request, ctx: Ctx) {
           via: "qr_join_token",
           joinTokenId: r.row.id,
           positionName: position.name,
+          journalsGranted: positionTemplates.length,
         },
       },
     });
