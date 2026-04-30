@@ -1,0 +1,101 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "HACCP-Online de94119" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: HACCP-Online
+          - 'generic "Build: 2026-04-12T13:17:01Z" [ref=e7]': de94119
+        - navigation [ref=e8]:
+          - link "Дашборд" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e10]
+            - text: Дашборд
+          - link "Журналы" [ref=e15] [cursor=pointer]:
+            - /url: /journals
+            - img [ref=e16]
+            - text: Журналы
+          - link "Партии" [ref=e19] [cursor=pointer]:
+            - /url: /batches
+            - img [ref=e20]
+            - text: Партии
+          - link "CAPA" [ref=e24] [cursor=pointer]:
+            - /url: /capa
+            - img [ref=e25]
+            - text: CAPA
+          - link "Отчёты" [ref=e27] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e28]
+            - text: Отчёты
+          - link "Настройки" [ref=e31] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e32]
+            - text: Настройки
+        - generic [ref=e35]: Тестовая организация (админ)
+        - button "А" [ref=e36]:
+          - generic [ref=e38]: А
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - link "Тестовая организация (админ)" [ref=e43] [cursor=pointer]:
+              - /url: /journals
+            - generic [ref=e44]: ›
+            - link "Журнал мойки и дезинфекции оборудования" [ref=e45] [cursor=pointer]:
+              - /url: /journals/equipment_cleaning
+            - generic [ref=e46]: ›
+            - generic [ref=e47]: Журнал мойки и дезинфекции оборудования
+          - button [ref=e48]:
+            - img [ref=e49]
+        - generic [ref=e53]:
+          - heading "Журнал мойки и дезинфекции оборудования" [level=1] [ref=e54]
+          - button "Настройки журнала" [ref=e55]
+        - generic [ref=e56]:
+          - table [ref=e57]:
+            - rowgroup [ref=e58]:
+              - row "Тестовая организация (админ) СИСТЕМА ХАССП Начат 01-04-2026 Окончен __________" [ref=e59]:
+                - cell "Тестовая организация (админ)" [ref=e60]
+                - cell "СИСТЕМА ХАССП" [ref=e61]
+                - cell "Начат 01-04-2026 Окончен __________" [ref=e62]:
+                  - text: Начат 01-04-2026
+                  - generic [ref=e63]: Окончен __________
+              - row "Журнал мойки и дезинфекции оборудования СТР. 1 ИЗ 1" [ref=e64]:
+                - cell "Журнал мойки и дезинфекции оборудования" [ref=e65]
+                - cell "СТР. 1 ИЗ 1" [ref=e66]
+          - heading "Журнал мойки и дезинфекции оборудования" [level=2] [ref=e67]
+          - generic [ref=e68]:
+            - button "Добавить" [ref=e69]:
+              - img
+              - text: Добавить
+            - button "Закончить журнал" [ref=e70]
+          - table [ref=e72]:
+            - rowgroup [ref=e73]:
+              - row "Дата и время мойки Наименование оборудования Наименование моющего раствора Концентрация моющего раствора, % Наименование дезинфицирующего раствора Концентрация дезинфицирующего раствора, % Ополаскивание, °C Мойщик (ФИО) Контролирующее лицо (должность, ФИО)" [ref=e74]:
+                - columnheader [ref=e75]:
+                  - checkbox [ref=e76]
+                - columnheader "Дата и время мойки" [ref=e77]
+                - columnheader "Наименование оборудования" [ref=e78]
+                - columnheader "Наименование моющего раствора" [ref=e79]
+                - columnheader "Концентрация моющего раствора, %" [ref=e80]
+                - columnheader "Наименование дезинфицирующего раствора" [ref=e81]
+                - columnheader "Концентрация дезинфицирующего раствора, %" [ref=e82]
+                - columnheader "Ополаскивание, °C" [ref=e83]
+                - columnheader "Мойщик (ФИО)" [ref=e84]
+                - columnheader "Контролирующее лицо (должность, ФИО)" [ref=e85]
+            - rowgroup [ref=e86]:
+              - row "12-04-2026 15:58 Горячий цех - термогигрометр рои рома при 67 99 Смирнова М.М. Шеф-повар, Смирнова М.М." [ref=e87] [cursor=pointer]:
+                - cell [ref=e88]:
+                  - checkbox [ref=e89]
+                - cell "12-04-2026 15:58" [ref=e90]:
+                  - text: 12-04-2026
+                  - text: 15:58
+                - cell "Горячий цех - термогигрометр" [ref=e91]
+                - cell "рои" [ref=e92]
+                - cell "рома" [ref=e93]
+                - cell "при" [ref=e94]
+                - cell "67" [ref=e95]
+                - cell "99" [ref=e96]
+                - cell "Смирнова М.М." [ref=e97]
+                - cell "Шеф-повар, Смирнова М.М." [ref=e98]
+  - region "Notifications alt+T"
+  - alert [ref=e99]

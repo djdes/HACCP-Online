@@ -1,0 +1,64 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "generatedAt": "2026-04-24T11:03:49.202Z",
+  "screenshots": [
+    "manager-desktop-settings-users.png",
+    "manager-mobile-settings-users.png"
+  ],
+  "findings": [
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/settings/users",
+      "status": 200,
+      "url": "http://127.0.0.1:3000/settings/users",
+      "hasHorizontalOverflow": false,
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nНастройки\nСотрудники\n\nТестовая организация (админ) · настройка должностей и графиков для автозаполнения Гигиенического журнала.\n\nИНСТРУКЦИЯ\n34\nВсего\n29\nДолжностей\n1\nСейчас в отпуске\n1\nНа больничном\nТестовая организаци"
+    },
+    {
+      "kind": "console",
+      "role": "manager",
+      "viewport": "desktop",
+      "entries": [
+        {
+          "type": "error",
+          "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta"
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/settings/users",
+      "status": 200,
+      "url": "http://127.0.0.1:3000/settings/users",
+      "hasHorizontalOverflow": false,
+      "textSample": "WESETUP\nМеню\n6\nКД\nНастройки\nСотрудники\n\nТестовая организация (админ) · настройка должностей и графиков для автозаполнения Гигиенического журнала.\n\nИНСТРУКЦИЯ\n34\nВсего\n29\nДолжностей\n1\nСейчас в отпуске\n1\nНа больничном\nТестовая организация (админ)\nРуководство\n7\nШеф-повар\n3\nМорозов Илья Андреевич\nПАоаоп"
+    },
+    {
+      "kind": "console",
+      "role": "manager",
+      "viewport": "mobile",
+      "entries": [
+        {
+          "type": "error",
+          "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta"
+        }
+      ]
+    },
+    {
+      "kind": "role-run-error",
+      "role": "staff",
+      "viewport": "mobile",
+      "error": "Error: login failed for hotcook1@haccp.local, current URL: http://127.0.0.1:3000/journals, alert: Журналы"
+    },
+    {
+      "kind": "console",
+      "role": "staff",
+      "viewport": "mobile",
+      "entries": []
+    }
+  ]
+}

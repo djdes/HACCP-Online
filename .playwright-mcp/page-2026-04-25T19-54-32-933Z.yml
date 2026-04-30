@@ -1,0 +1,23 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e9]:
+        - generic [ref=e11]:
+          - img [ref=e13]
+          - img [ref=e18]
+          - img [ref=e23]
+        - img [ref=e26]
+        - img [ref=e28]
+      - heading "Контроль производственных процессов" [level=1] [ref=e30]
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: Номер телефона
+        - textbox "Номер телефона" [ref=e35]:
+          - /placeholder: xxx xxx xx xx
+          - text: "+7"
+      - button "Войти" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - button "Зарегистрироваться" [ref=e38] [cursor=pointer]
+        - button "Инструкция" [ref=e39] [cursor=pointer]

@@ -1,0 +1,99 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "HACCP-Online" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e8]
+        - generic [ref=e11]: HACCP-Online
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - text: Бесплатно навсегда · без карты
+        - heading "Зарегистрируйте компанию за 2 минуты" [level=1] [ref=e17]
+        - paragraph [ref=e18]: Подтвердите email — и вся рутина ХАССП уже работает за вас. Приглашайте сотрудников, раздавайте доступ, собирайте подписи, печатайте в Роспотребнадзор.
+        - generic [ref=e19]:
+          - generic [ref=e20]: Что внутри — бесплатно
+          - list [ref=e21]:
+            - listitem [ref=e22]:
+              - img [ref=e23]
+              - generic [ref=e26]: Гигиенический журнал
+            - listitem [ref=e27]:
+              - img [ref=e28]
+              - generic [ref=e31]: Журнал здоровья
+            - listitem [ref=e32]:
+              - img [ref=e33]
+              - generic [ref=e36]: Бланк контроля температуры и влажности
+            - listitem [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e41]: Журнал контроля температурного режима холодильного и морозильного оборудования
+            - listitem [ref=e42]:
+              - img [ref=e43]
+              - generic [ref=e46]: Чек-лист уборки и проветривания помещений
+            - listitem [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e51]: Журнал уборки
+            - listitem [ref=e52]: …и ещё 29 журналов СанПиН и ХАССП
+        - generic [ref=e53]:
+          - generic [ref=e54]: © 2026 HACCP-Online
+          - link "Уже есть аккаунт — войти" [ref=e56] [cursor=pointer]:
+            - /url: /login
+    - main [ref=e57]:
+      - generic [ref=e58]:
+        - list [ref=e59]:
+          - listitem [ref=e60]:
+            - generic [ref=e61]: "1"
+            - generic [ref=e62]:
+              - generic [ref=e63]: Компания
+              - generic [ref=e64]: название, email, пароль
+          - listitem [ref=e66]:
+            - generic [ref=e67]: "2"
+            - generic [ref=e68]:
+              - generic [ref=e69]: Код
+              - generic [ref=e70]: из письма
+        - heading "Создание компании" [level=2] [ref=e71]
+        - paragraph [ref=e72]: Заполните данные организации и создайте администратора.
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]: Название организации
+            - textbox "Название организации" [ref=e76]:
+              - /placeholder: ООО «Вкусный дом»
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e79]: Тип организации
+              - generic [ref=e80]:
+                - combobox "Тип организации" [ref=e81]:
+                  - option "Ресторан / кафе" [selected]
+                  - option "Мясная продукция"
+                  - option "Молочная продукция"
+                  - option "Хлебобулочные изделия"
+                  - option "Кондитерские изделия"
+                  - option "Другое"
+                - img
+            - generic [ref=e82]:
+              - generic [ref=e83]: ИНН
+              - textbox "ИНН" [ref=e84]:
+                - /placeholder: опционально
+          - generic [ref=e85]:
+            - generic [ref=e86]: Ваше имя
+            - textbox "Ваше имя" [ref=e87]:
+              - /placeholder: Иван Петров
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e90]: Email
+              - textbox "Email" [ref=e91]:
+                - /placeholder: name@company.com
+            - generic [ref=e92]:
+              - generic [ref=e93]: Телефон
+              - textbox "Телефон Нужен, чтобы связать аккаунт с TasksFlow. Можно вводить в любом формате — приведём к +7." [ref=e94]:
+                - /placeholder: +7 985 123-45-67
+              - generic [ref=e95]: Нужен, чтобы связать аккаунт с TasksFlow. Можно вводить в любом формате — приведём к +7.
+          - generic [ref=e96]:
+            - generic [ref=e97]: Пароль
+            - textbox "Пароль" [ref=e98]:
+              - /placeholder: минимум 6 символов
+          - button "Получить код на email" [ref=e99]:
+            - generic [ref=e100]:
+              - text: Получить код на email
+              - img [ref=e101]
+        - paragraph [ref=e104]: Регистрируясь, вы соглашаетесь с политикой обработки персональных данных.
+  - alert [ref=e105]

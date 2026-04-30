@@ -1,0 +1,26 @@
+{
+  "code": "general_cleaning",
+  "documentId": "cmnyp956b004p08tswlanw4gh",
+  "date": "2026-04-14",
+  "marker": "EXT2 general-cleaning MNYQE19L",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp956b004p08tswlanw4gh",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "general_cleaning"
+  },
+  "expectedUi": [
+    "EXT2 general-cleaning MNYQE19L"
+  ],
+  "expectedPdf": [
+    "EXT2 general-cleaning MNYQE19L"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 447398
+}

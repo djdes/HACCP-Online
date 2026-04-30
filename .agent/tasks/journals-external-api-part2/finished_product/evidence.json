@@ -1,0 +1,26 @@
+{
+  "code": "finished_product",
+  "documentId": "cmnyodrmp007kootse49o6gwn",
+  "date": "2026-04-14",
+  "marker": "EXT2 finished-product MNYQDXUQ",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrmp007kootse49o6gwn",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "finished_product"
+  },
+  "expectedUi": [
+    "EXT2 finished-product MNYQDXUQ"
+  ],
+  "expectedPdf": [
+    "EXT2 finished-product MNYQDXUQ"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 444885
+}

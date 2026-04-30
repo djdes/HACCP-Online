@@ -1,0 +1,41 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 perishable-rejection MNYQEI5A",
+  "data": {
+    "manufacturers": [
+      "EXT2 perishable-rejection MNYQEI5A"
+    ],
+    "suppliers": [
+      "EXT2 perishable-rejection MNYQEI5A"
+    ],
+    "productLists": [
+      {
+        "id": "list-1",
+        "name": "EXT2 perishable-rejection MNYQEI5A",
+        "items": [
+          "EXT2 perishable-rejection MNYQEI5A"
+        ]
+      }
+    ],
+    "rows": [
+      {
+        "arrivalDate": "2026-04-14",
+        "arrivalTime": "09:20",
+        "productName": "EXT2 perishable-rejection MNYQEI5A",
+        "productionDate": "2026-04-14",
+        "manufacturer": "EXT2 perishable-rejection MNYQEI5A",
+        "supplier": "EXT2 perishable-rejection MNYQEI5A",
+        "packaging": "EXT2 perishable-rejection MNYQEI5A",
+        "quantity": "5 кг",
+        "documentNumber": "EXT2 perishable-rejection MNYQEI5A",
+        "organolepticResult": "compliant",
+        "storageCondition": "2_6",
+        "expiryDate": "2026-04-14",
+        "actualSaleDate": "2026-04-14",
+        "actualSaleTime": "16:00",
+        "responsiblePerson": "EXT2 perishable-rejection MNYQEI5A",
+        "note": "EXT2 perishable-rejection MNYQEI5A"
+      }
+    ]
+  }
+}

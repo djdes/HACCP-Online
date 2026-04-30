@@ -1,0 +1,26 @@
+{
+  "code": "glass_control",
+  "documentId": "cmnyodrp0008jootso4d26bvc",
+  "date": "2026-04-14",
+  "marker": "EXT2 glass-control MNYQE31Q",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrp0008jootso4d26bvc",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "glass_control"
+  },
+  "expectedUi": [
+    "EXT2 glass-control MNYQE31Q"
+  ],
+  "expectedPdf": [
+    "EXT2 glass-control MNYQE31Q"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 442754
+}

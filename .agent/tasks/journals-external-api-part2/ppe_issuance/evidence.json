@@ -1,0 +1,26 @@
+{
+  "code": "ppe_issuance",
+  "documentId": "cmnyodrnq0086ootsb9cbr7tu",
+  "date": "2026-04-14",
+  "marker": "EXT2 ppe-issuance MNYQELM1",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrnq0086ootsb9cbr7tu",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "ppe_issuance"
+  },
+  "expectedUi": [
+    "EXT2 ppe-issuance MNYQELM1"
+  ],
+  "expectedPdf": [
+    "EXT2 ppe-issuance MNYQELM1"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 439779
+}

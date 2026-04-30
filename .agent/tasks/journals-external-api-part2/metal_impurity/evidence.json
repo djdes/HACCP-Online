@@ -1,0 +1,26 @@
+{
+  "code": "metal_impurity",
+  "documentId": "cmnyodror008eoots6d8r4koo",
+  "date": "2026-04-14",
+  "marker": "EXT2 metal-impurity MNYQEGJL",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodror008eoots6d8r4koo",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "metal_impurity"
+  },
+  "expectedUi": [
+    "EXT2 metal-impurity MNYQEGJL"
+  ],
+  "expectedPdf": [
+    "EXT2 metal-impurity MNYQEGJL"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 439328
+}

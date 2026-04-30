@@ -1,0 +1,12 @@
+Протокол внутреннего аудита
+Тестовая
+организация
+(админ)
+СИСТЕМА ХАССП
+ПРОТОКОЛ ВНУТРЕННЕГО АУДИТА
+Начат  01.04.2026
+Окончен  30.04.2026
+№ Требование Да Нет Примечание
+EXT2 audit-protocol MNYQD8E9
+1 EXT2 audit-protocol MNYQD8E9 Да EXT2 audit-protocol MNYQD8E9
+EXT2 audit-protocol MNYQD8E9: EXT2 audit-protocol MNYQD8E9, 14-04-2026

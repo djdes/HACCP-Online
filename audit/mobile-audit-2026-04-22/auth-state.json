@@ -1,0 +1,179 @@
+{
+  "cookies": [
+    {
+      "name": "_ym_uid",
+      "value": "1776870478918453261",
+      "domain": ".wesetup.ru",
+      "path": "/",
+      "expires": 1808406477,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ym_d",
+      "value": "1776870478",
+      "domain": ".wesetup.ru",
+      "path": "/",
+      "expires": 1808406477,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "yabs-sid",
+      "value": "1500040641776870477",
+      "domain": "mc.yandex.ru",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "i",
+      "value": "Vgv59LTJ07D4Ebd3Dfs2Aof/XdNr8NEcuoGMhkxD1bShM1FLv1MvgB9s0qpqMawg4uinzb1j550G1f27jwYr8WTEoQ0=",
+      "domain": ".yandex.ru",
+      "path": "/",
+      "expires": 1811430478.043094,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "yandexuid",
+      "value": "3440259691776870477",
+      "domain": ".yandex.ru",
+      "path": "/",
+      "expires": 1811430478.043186,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "yuidss",
+      "value": "3440259691776870477",
+      "domain": ".yandex.ru",
+      "path": "/",
+      "expires": 1811430478.043245,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "ymex",
+      "value": "2092230477.yrts.1776870477#2092230477.yrtsi.1776870477",
+      "domain": ".yandex.ru",
+      "path": "/",
+      "expires": 1808406477,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "bh",
+      "value": "EkEiSGVhZGxlc3NDaHJvbWUiO3Y9IjE0NyIsICJOb3QuQS9CcmFuZCI7dj0iOCIsICJDaHJvbWl1bSI7dj0iMTQ3IhoDeDg2Ig0xNDcuMC43NzI3LjE1KgI/MDoJIldpbmRvd3MiQgU3LjAuMEoCNjRSWSJIZWFkbGVzc0Nocm9tZSI7dj0iMTQ3LjAuNzcyNy4xNSIsIk5vdC5BL0JyYW5kIjt2PSI4LjAuMC4wIiwiQ2hyb21pdW0iO3Y9IjE0Ny4wLjc3MjcuMTUiYM3Io88Gah7cyuH/CJLYobEDn8/h6gP7+vDnDev//fYPnvfNhwg=",
+      "domain": ".yandex.ru",
+      "path": "/",
+      "expires": 1811430477,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ym_visorc",
+      "value": "w",
+      "domain": ".wesetup.ru",
+      "path": "/",
+      "expires": 1776872278,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ym_isad",
+      "value": "2",
+      "domain": ".wesetup.ru",
+      "path": "/",
+      "expires": 1776942478,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "haccp-online.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..7E4BvfysoJf9Ylzq.vBaEAkqBiJQeHKOBqAbUmlexE3Eo_QG8r3Sd76p6nRyFDFwlbnl-z1LvFjRN8VruMvMWwRLwXk_FO_OwBa17dKuELpMWY3Ov7NIu6PC-mttnTtBjPOK2aQT6XLF_K5EkxQg6qdu0yZdWgXhZwFqZusrVZYiF-RAJqVxgqcoMmLM6Frf13OvNc0leLzG1Y9nfNYM7eZ-3QfQ-Bkm8EjkSs6VTtDw_7iKrqhCpkSWD_-qdqq96xe4dpV1CowjeOADL28EB9q595J3pqg3CiNEze2IFhZNXJe2GczqbdAJmmK_cOxHM0eJo5U20BFrjMygdu33W3pmhAKL_XcIwhY69JgoqD1_ZBFZJb_KOK-i_A6dauUjWPB_YmVt_IVm_mkqpLJL7awxSHGz4_J2qHPA5KwWpavbyATPm8FnhJ7nLpAH6vk4sVMPRrdvmmUNCg5E-w__RvX0X-EBI74R8xCxNxKadHlAiD_J6IDa37NXt0l6bx2OREj4CVXqO0P_84CHNIIBkbDQuQ2fy3I2FAN-ZHeJbewR7og.nHKM05tsJgnhs3BBhq2g2w",
+      "domain": "wesetup.ru",
+      "path": "/",
+      "expires": 1808406479.713237,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__Secure-haccp-online.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..7E4BvfysoJf9Ylzq.vBaEAkqBiJQeHKOBqAbUmlexE3Eo_QG8r3Sd76p6nRyFDFwlbnl-z1LvFjRN8VruMvMWwRLwXk_FO_OwBa17dKuELpMWY3Ov7NIu6PC-mttnTtBjPOK2aQT6XLF_K5EkxQg6qdu0yZdWgXhZwFqZusrVZYiF-RAJqVxgqcoMmLM6Frf13OvNc0leLzG1Y9nfNYM7eZ-3QfQ-Bkm8EjkSs6VTtDw_7iKrqhCpkSWD_-qdqq96xe4dpV1CowjeOADL28EB9q595J3pqg3CiNEze2IFhZNXJe2GczqbdAJmmK_cOxHM0eJo5U20BFrjMygdu33W3pmhAKL_XcIwhY69JgoqD1_ZBFZJb_KOK-i_A6dauUjWPB_YmVt_IVm_mkqpLJL7awxSHGz4_J2qHPA5KwWpavbyATPm8FnhJ7nLpAH6vk4sVMPRrdvmmUNCg5E-w__RvX0X-EBI74R8xCxNxKadHlAiD_J6IDa37NXt0l6bx2OREj4CVXqO0P_84CHNIIBkbDQuQ2fy3I2FAN-ZHeJbewR7og.nHKM05tsJgnhs3BBhq2g2w",
+      "domain": "wesetup.ru",
+      "path": "/",
+      "expires": 1808406479.71341,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__Secure-next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..7E4BvfysoJf9Ylzq.vBaEAkqBiJQeHKOBqAbUmlexE3Eo_QG8r3Sd76p6nRyFDFwlbnl-z1LvFjRN8VruMvMWwRLwXk_FO_OwBa17dKuELpMWY3Ov7NIu6PC-mttnTtBjPOK2aQT6XLF_K5EkxQg6qdu0yZdWgXhZwFqZusrVZYiF-RAJqVxgqcoMmLM6Frf13OvNc0leLzG1Y9nfNYM7eZ-3QfQ-Bkm8EjkSs6VTtDw_7iKrqhCpkSWD_-qdqq96xe4dpV1CowjeOADL28EB9q595J3pqg3CiNEze2IFhZNXJe2GczqbdAJmmK_cOxHM0eJo5U20BFrjMygdu33W3pmhAKL_XcIwhY69JgoqD1_ZBFZJb_KOK-i_A6dauUjWPB_YmVt_IVm_mkqpLJL7awxSHGz4_J2qHPA5KwWpavbyATPm8FnhJ7nLpAH6vk4sVMPRrdvmmUNCg5E-w__RvX0X-EBI74R8xCxNxKadHlAiD_J6IDa37NXt0l6bx2OREj4CVXqO0P_84CHNIIBkbDQuQ2fy3I2FAN-ZHeJbewR7og.nHKM05tsJgnhs3BBhq2g2w",
+      "domain": "wesetup.ru",
+      "path": "/",
+      "expires": 1808406479.713495,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..7E4BvfysoJf9Ylzq.vBaEAkqBiJQeHKOBqAbUmlexE3Eo_QG8r3Sd76p6nRyFDFwlbnl-z1LvFjRN8VruMvMWwRLwXk_FO_OwBa17dKuELpMWY3Ov7NIu6PC-mttnTtBjPOK2aQT6XLF_K5EkxQg6qdu0yZdWgXhZwFqZusrVZYiF-RAJqVxgqcoMmLM6Frf13OvNc0leLzG1Y9nfNYM7eZ-3QfQ-Bkm8EjkSs6VTtDw_7iKrqhCpkSWD_-qdqq96xe4dpV1CowjeOADL28EB9q595J3pqg3CiNEze2IFhZNXJe2GczqbdAJmmK_cOxHM0eJo5U20BFrjMygdu33W3pmhAKL_XcIwhY69JgoqD1_ZBFZJb_KOK-i_A6dauUjWPB_YmVt_IVm_mkqpLJL7awxSHGz4_J2qHPA5KwWpavbyATPm8FnhJ7nLpAH6vk4sVMPRrdvmmUNCg5E-w__RvX0X-EBI74R8xCxNxKadHlAiD_J6IDa37NXt0l6bx2OREj4CVXqO0P_84CHNIIBkbDQuQ2fy3I2FAN-ZHeJbewR7og.nHKM05tsJgnhs3BBhq2g2w",
+      "domain": "wesetup.ru",
+      "path": "/",
+      "expires": 1808406479.713556,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://wesetup.ru",
+      "localStorage": [
+        {
+          "name": "_ym_synced",
+          "value": "{}"
+        },
+        {
+          "name": "_ym108650751_lsid",
+          "value": "1581972138185"
+        },
+        {
+          "name": "_ym_uid",
+          "value": "\"1776870478918453261\""
+        },
+        {
+          "name": "_ym_retryReqs",
+          "value": "{}"
+        },
+        {
+          "name": "wesetup-build-id",
+          "value": "3a2a7b0"
+        },
+        {
+          "name": "_ym108650751:0_reqNum",
+          "value": "4"
+        },
+        {
+          "name": "_ym_wv2rf:108650751:0",
+          "value": "1"
+        }
+      ]
+    }
+  ]
+}

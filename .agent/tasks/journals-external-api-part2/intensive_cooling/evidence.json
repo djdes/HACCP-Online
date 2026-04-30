@@ -1,0 +1,30 @@
+{
+  "code": "intensive_cooling",
+  "documentId": "cmnyp95e6005308tsyh6zs77o",
+  "date": "2026-04-14",
+  "marker": "EXT2 intensive-cooling MNYQED5Z",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95e6005308tsyh6zs77o",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "intensive_cooling"
+  },
+  "expectedUi": [
+    "EXT2 intensive-cooling MNYQED5Z",
+    "85",
+    "4"
+  ],
+  "expectedPdf": [
+    "EXT2 intensive-cooling MNYQED5Z",
+    "85",
+    "4"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 444757
+}

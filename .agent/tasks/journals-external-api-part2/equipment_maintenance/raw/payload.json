@@ -1,0 +1,46 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-maintenance MNYQDWBJ",
+  "data": {
+    "documentDate": "2026-04-14",
+    "approveRole": "EXT2 equipment-maintenance MNYQDWBJ",
+    "approveEmployee": "EXT2 equipment-maintenance MNYQDWBJ",
+    "responsibleRole": "EXT2 equipment-maintenance MNYQDWBJ",
+    "responsibleEmployee": "EXT2 equipment-maintenance MNYQDWBJ",
+    "rows": [
+      {
+        "equipmentName": "EXT2 equipment-maintenance MNYQDWBJ",
+        "workType": "EXT2 equipment-maintenance MNYQDWBJ",
+        "maintenanceType": "A",
+        "plan": {
+          "jan": "05",
+          "feb": "-",
+          "mar": "-",
+          "apr": "-",
+          "may": "-",
+          "jun": "-",
+          "jul": "-",
+          "aug": "-",
+          "sep": "-",
+          "oct": "-",
+          "nov": "-",
+          "dec": "-"
+        },
+        "fact": {
+          "jan": "05",
+          "feb": "",
+          "mar": "",
+          "apr": "",
+          "may": "",
+          "jun": "",
+          "jul": "",
+          "aug": "",
+          "sep": "",
+          "oct": "",
+          "nov": "",
+          "dec": ""
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 fryer-oil MNYQDZJG",
+  "data": {
+    "startDate": "2026-04-14",
+    "startHour": 8,
+    "startMinute": 15,
+    "fatType": "EXT2 fryer-oil MNYQDZJG",
+    "qualityStart": 5,
+    "equipmentType": "EXT2 fryer-oil MNYQDZJG",
+    "productType": "EXT2 fryer-oil MNYQDZJG",
+    "endHour": 9,
+    "endMinute": 20,
+    "qualityEnd": 4,
+    "carryoverKg": 1.2,
+    "disposedKg": 0.4,
+    "controllerName": "EXT2 fryer-oil MNYQDZJG"
+  }
+}

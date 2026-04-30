@@ -1,0 +1,925 @@
+{
+  "dryRun": false,
+  "generatedAt": "2026-04-14T16:48:08.385Z",
+  "employees": [
+    {
+      "id": "cmnypqocs000gzuts8j88j8lb",
+      "name": "Белова Елена Андреевна",
+      "positionTitle": "Товаровед"
+    },
+    {
+      "id": "cmnypqobv0003zutse8ccm19y",
+      "name": "Волкова Анна Дмитриевна",
+      "positionTitle": "Повар горячего цеха"
+    },
+    {
+      "id": "cmnypqocx000jzutsd8236n8n",
+      "name": "Грачев Виктор Ильич",
+      "positionTitle": "Грузчик 2 смена"
+    },
+    {
+      "id": "cmnypqocz000kzutslq36hjpg",
+      "name": "Громова Алина Павловна",
+      "positionTitle": "Менеджер зала"
+    },
+    {
+      "id": "cmnyodrhl0005ootsujeud3cc",
+      "name": "Громов Илья Павлович",
+      "positionTitle": "Начальник производства"
+    },
+    {
+      "id": "cmnypqocg000azutsr71o9n12",
+      "name": "Демин Кирилл Олегович",
+      "positionTitle": "Официант 2 смена"
+    },
+    {
+      "id": "cmnypqoci000bzutstmwwlgrv",
+      "name": "Егорова Нина Викторовна",
+      "positionTitle": "Посудомойщик"
+    },
+    {
+      "id": "cmnypqod1000lzutsxg2cejsg",
+      "name": "Ермакова Нина Сергеевна",
+      "positionTitle": "Специалист по санитарной обработке"
+    },
+    {
+      "id": "cmnyodrhq0009ootsi67w2hz8",
+      "name": "Ермакова Нина Сергеевна",
+      "positionTitle": "Специалист по санитарной обработке"
+    },
+    {
+      "id": "cmnypqocw000izuts9cna7ih2",
+      "name": "Ефимов Роман Алексеевич",
+      "positionTitle": "Грузчик"
+    },
+    {
+      "id": "cmnyodrhi0003ootsefb1x1vg",
+      "name": "Крылов Денис Сергеевич",
+      "positionTitle": "Управляющий"
+    },
+    {
+      "id": "cmnyodrhp0008ootskyrfjdgs",
+      "name": "Кузнецов Артем Валерьевич",
+      "positionTitle": "Кладовщик"
+    },
+    {
+      "id": "cmnypqobr0002zutsb207tjlb",
+      "name": "Кузнецов Павел Игоревич",
+      "positionTitle": "Су-шеф"
+    },
+    {
+      "id": "cmnypqocq000fzuts86hzfc5r",
+      "name": "Кузьмин Артем Сергеевич",
+      "positionTitle": "Кладовщик"
+    },
+    {
+      "id": "cmnypqocb0008zutsw6eip6as",
+      "name": "Ларионова Елена Сергеевна",
+      "positionTitle": "Повар-кондитер 2 смена"
+    },
+    {
+      "id": "cmnypqocu000hzutsj7ifqdhy",
+      "name": "Лебедева Марина Олеговна",
+      "positionTitle": "Технолог"
+    },
+    {
+      "id": "cmnyodrhk0004ootsai3yq2j6",
+      "name": "Лебедева Марина Олеговна",
+      "positionTitle": "Руководитель качества"
+    },
+    {
+      "id": "cmnypqoco000ezuts0faspsju",
+      "name": "Леонов Максим Валерьевич",
+      "positionTitle": "Уборщик 2 смена"
+    },
+    {
+      "id": "cmnypqoc80007zutsjxdivopy",
+      "name": "Мельникова Софья Романовна",
+      "positionTitle": "Повар-кондитер"
+    },
+    {
+      "id": "cmnyodrho0007oots8knkg29q",
+      "name": "Мельников Роман Игоревич",
+      "positionTitle": "Повар холодного цеха"
+    },
+    {
+      "id": "cmnypqobn0001zutsfegkll7v",
+      "name": "Морозов Илья Андреевич",
+      "positionTitle": "Шеф-повар"
+    },
+    {
+      "id": "cmnypqoc10005zutsh3g3k3i7",
+      "name": "Орлов Илья Максимович",
+      "positionTitle": "Повар холодного цеха"
+    },
+    {
+      "id": "cmnypqocm000dzutsh7q038wm",
+      "name": "Савельева Ирина Павловна",
+      "positionTitle": "Уборщик"
+    },
+    {
+      "id": "cmnypqoce0009zuts3li3au8c",
+      "name": "Смирнова Марина Михайловна",
+      "positionTitle": "Официант"
+    },
+    {
+      "id": "cmnyodrhm0006ootswhftk2lu",
+      "name": "Соколова Анна Викторовна",
+      "positionTitle": "Старший повар горячего цеха"
+    },
+    {
+      "id": "cmnypqoby0004zutscz0dgr4j",
+      "name": "Соколов Андрей Викторович",
+      "positionTitle": "Повар горячего цеха 2 смена"
+    },
+    {
+      "id": "cmnyodrhr000aootsyczkaddx",
+      "name": "Титов Максим Андреевич",
+      "positionTitle": "Инженер по оборудованию"
+    },
+    {
+      "id": "cmnypqod3000mzutsnx6b37af",
+      "name": "Титов Максим Андреевич",
+      "positionTitle": "Инженер по оборудованию"
+    },
+    {
+      "id": "cmnypqock000czutsfq5dv8fl",
+      "name": "Тихонов Артем Сергеевич",
+      "positionTitle": "Посудомойщик 2 смена"
+    },
+    {
+      "id": "cmnypqoc40006zutsfqf09lfx",
+      "name": "Федорова Мария Романовна",
+      "positionTitle": "Повар холодного цеха 2 смена"
+    }
+  ],
+  "areas": [
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Бар",
+      "name": "Бар",
+      "description": "Напитки и разлив",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех",
+      "name": "Горячий цех",
+      "description": "Основная зона термообработки",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 5
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Зал",
+      "name": "Зал",
+      "description": "Гостевая зона",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 1
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Кондитерский цех",
+      "name": "Кондитерский цех",
+      "description": "Десерты, крема, выпечка",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Моечная",
+      "name": "Моечная",
+      "description": null,
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 1
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Мойка",
+      "name": "Мойка",
+      "description": "Мойка инвентаря и посуды",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Раздача",
+      "name": "Раздача",
+      "description": "Финальный отпуск блюд",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Склад",
+      "name": "Склад",
+      "description": "Хранение сырья и упаковки",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 4
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Упаковка",
+      "name": "Упаковка",
+      "description": null,
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодильный цех",
+      "name": "Холодильный цех",
+      "description": null,
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 2
+      }
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех",
+      "name": "Холодный цех",
+      "description": "Салаты, холодные закуски, хранение после сборки",
+      "organizationId": "cmnm40ikt00002ktseet6fd5y",
+      "_count": {
+        "equipment": 6
+      }
+    }
+  ],
+  "equipment": [
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Бар-Бар - термогигрометр",
+      "name": "Бар - термогигрометр",
+      "type": "sensor",
+      "areaName": "Бар"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Склад-Весы напольные 012-В",
+      "name": "Весы напольные 012-В",
+      "type": "scale",
+      "areaName": "Склад"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Упаковка-Весы платформенные 012-В",
+      "name": "Весы платформенные 012-В",
+      "type": "scale",
+      "areaName": "Упаковка"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех-Горячий цех - термогигрометр",
+      "name": "Горячий цех - термогигрометр",
+      "type": "sensor",
+      "areaName": "Горячий цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Зал-Зал - термогигрометр",
+      "name": "Зал - термогигрометр",
+      "type": "sensor",
+      "areaName": "Зал"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Кондитерский цех-Кондитерский цех - термогигрометр",
+      "name": "Кондитерский цех - термогигрометр",
+      "type": "sensor",
+      "areaName": "Кондитерский цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Кондитерский цех-Миксер планетарный",
+      "name": "Миксер планетарный",
+      "type": "mixer",
+      "areaName": "Кондитерский цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Моечная-Моечная - термогигрометр",
+      "name": "Моечная - термогигрометр",
+      "type": "sensor",
+      "areaName": "Моечная"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Мойка-Мойка - термогигрометр",
+      "name": "Мойка - термогигрометр",
+      "type": "sensor",
+      "areaName": "Мойка"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Морозильный ларь 1",
+      "name": "Морозильный ларь 1",
+      "type": "freezer",
+      "areaName": "Холодный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодильный цех-Морозильный ларь 1",
+      "name": "Морозильный ларь 1",
+      "type": "freezer",
+      "areaName": "Холодильный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Склад-Морозильный ларь Frostor",
+      "name": "Морозильный ларь Frostor",
+      "type": "freezer",
+      "areaName": "Склад"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех-Пароконвектомат Rational",
+      "name": "Пароконвектомат Rational",
+      "type": "oven",
+      "areaName": "Горячий цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Мойка-Посудомоечная машина Winterhalter",
+      "name": "Посудомоечная машина Winterhalter",
+      "type": "dishwasher",
+      "areaName": "Мойка"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Раздача-Раздача - термогигрометр",
+      "name": "Раздача - термогигрометр",
+      "type": "sensor",
+      "areaName": "Раздача"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Склад-Склад - термогигрометр",
+      "name": "Склад - термогигрометр",
+      "type": "sensor",
+      "areaName": "Склад"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Склад-Термогигрометр Testo",
+      "name": "Термогигрометр Testo",
+      "type": "thermometer",
+      "areaName": "Склад"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Термогигрометр Testo Cold",
+      "name": "Термогигрометр Testo Cold",
+      "type": "thermohygrometer",
+      "areaName": "Холодный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех-Термогигрометр Testo Hot",
+      "name": "Термогигрометр Testo Hot",
+      "type": "thermohygrometer",
+      "areaName": "Горячий цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Упаковка-Упаковка - термогигрометр",
+      "name": "Упаковка - термогигрометр",
+      "type": "sensor",
+      "areaName": "Упаковка"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Раздача-УФ-лампа бактерицидная 1",
+      "name": "УФ-лампа бактерицидная 1",
+      "type": "uv_lamp",
+      "areaName": "Раздача"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех-Фритюрница 8 л",
+      "name": "Фритюрница 8 л",
+      "type": "fryer",
+      "areaName": "Горячий цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Горячий цех-Фритюрница 8л",
+      "name": "Фритюрница 8л",
+      "type": "fryer",
+      "areaName": "Горячий цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодильный цех-Холодильная камера 1",
+      "name": "Холодильная камера 1",
+      "type": "refrigerator",
+      "areaName": "Холодильный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Холодильная камера 1",
+      "name": "Холодильная камера 1",
+      "type": "refrigerator",
+      "areaName": "Холодный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Холодильник Polair 1",
+      "name": "Холодильник Polair 1",
+      "type": "refrigerator",
+      "areaName": "Холодный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Холодильник Polair 2",
+      "name": "Холодильник Polair 2",
+      "type": "refrigerator",
+      "areaName": "Холодный цех"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Бар-Холодильный шкаф Бар 1",
+      "name": "Холодильный шкаф Бар 1",
+      "type": "refrigerator",
+      "areaName": "Бар"
+    },
+    {
+      "id": "cmnm40ikt00002ktseet6fd5y-Холодный цех-Холодный цех - термогигрометр",
+      "name": "Холодный цех - термогигрометр",
+      "type": "sensor",
+      "areaName": "Холодный цех"
+    }
+  ],
+  "plan": [
+    {
+      "code": "accident_journal",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "accident_journal",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "audit_plan",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "audit_plan",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "audit_protocol",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "audit_protocol",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "audit_report",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "audit_report",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "breakdown_history",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "breakdown_history",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "cleaning",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 5
+    },
+    {
+      "code": "cleaning",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 5
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "climate_control",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "climate_control",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "cold_equipment_control",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "cold_equipment_control",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "complaint_register",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "complaint_register",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "disinfectant_usage",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "disinfectant_usage",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "equipment_calibration",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "equipment_calibration",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "equipment_cleaning",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 5
+    },
+    {
+      "code": "equipment_cleaning",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "equipment_maintenance",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "equipment_maintenance",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "finished_product",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "finished_product",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "fryer_oil",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "fryer_oil",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "general_cleaning",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "general_cleaning",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "glass_control",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "glass_control",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "glass_items_list",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "glass_items_list",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "health_check",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "health_check",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "hygiene",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "hygiene",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "incoming_control",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "incoming_control",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "intensive_cooling",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "intensive_cooling",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "med_books",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 3
+    },
+    {
+      "code": "med_books",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "metal_impurity",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "metal_impurity",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "perishable_rejection",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "perishable_rejection",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "pest_control",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 4
+    },
+    {
+      "code": "pest_control",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    },
+    {
+      "code": "ppe_issuance",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "ppe_issuance",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "product_writeoff",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "product_writeoff",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "sanitary_day_control",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "sanitary_day_control",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "staff_training",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "staff_training",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "traceability_test",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "traceability_test",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "training_plan",
+      "month": "2026-03",
+      "mode": "config",
+      "date": "2026-03-03",
+      "count": 1
+    },
+    {
+      "code": "training_plan",
+      "month": "2026-04",
+      "mode": "config",
+      "date": "2026-04-03",
+      "count": 1
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "month": "2026-03",
+      "mode": "entries",
+      "date": "2026-03-03",
+      "count": 5
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "month": "2026-04",
+      "mode": "entries",
+      "date": "2026-04-03",
+      "count": 3
+    }
+  ]
+}

@@ -1,0 +1,618 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - 'generic "Build: 2026-04-26T07:05:59Z" [ref=e7]': b094e23
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e33]: "9"
+          - generic [ref=e542]:
+            - generic [ref=e543]:
+              - generic [ref=e544]:
+                - generic [ref=e545]: Уведомления
+                - generic [ref=e546]: "9"
+              - button "Закрыть" [ref=e547]:
+                - img [ref=e548]
+            - generic [ref=e551]:
+              - button "Новые" [ref=e552]: Новые
+              - button "Прочитанные" [ref=e554]
+            - generic [ref=e555]:
+              - button "Прочитать" [ref=e556]
+              - button "Удалить" [ref=e557]
+              - button "Удалить все" [ref=e558]
+            - generic [ref=e560]:
+              - generic [ref=e561]:
+                - generic [ref=e562]:
+                  - checkbox "Выделить всю задачу" [ref=e563] [cursor=pointer]
+                  - generic [ref=e564]:
+                    - text: "TasksFlow: часть журналов не отправлена"
+                    - link "Проверить иерархию" [ref=e565] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                - list [ref=e566]:
+                  - listitem [ref=e567]:
+                    - checkbox "Прочитать Гигиенический журнал" [ref=e568] [cursor=pointer]
+                    - link "Гигиенический журнал Не все дежурные ответственные привязаны к TasksFlow" [ref=e569] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e570]: Гигиенический журнал
+                      - generic [ref=e571]: Не все дежурные ответственные привязаны к TasksFlow
+                  - listitem [ref=e572]:
+                    - checkbox "Прочитать Журнал здоровья" [ref=e573] [cursor=pointer]
+                    - link "Журнал здоровья Не все дежурные ответственные привязаны к TasksFlow" [ref=e574] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e575]: Журнал здоровья
+                      - generic [ref=e576]: Не все дежурные ответственные привязаны к TasksFlow
+                  - listitem [ref=e577]:
+                    - checkbox "Прочитать Чек-лист уборки и проветривания помещений" [ref=e578] [cursor=pointer]
+                    - link "Чек-лист уборки и проветривания помещений Не все дежурные ответственные привязаны к TasksFlow" [ref=e579] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e580]: Чек-лист уборки и проветривания помещений
+                      - generic [ref=e581]: Не все дежурные ответственные привязаны к TasksFlow
+                  - listitem [ref=e582]:
+                    - checkbox "Прочитать Журнал уборки" [ref=e583] [cursor=pointer]
+                    - link "Журнал уборки В журнале не указан ответственный сотрудник" [ref=e584] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e585]: Журнал уборки
+                      - generic [ref=e586]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e587]:
+                    - checkbox "Прочитать График и учет генеральных уборок" [ref=e588] [cursor=pointer]
+                    - link "График и учет генеральных уборок У журнала нет строк для назначения" [ref=e589] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e590]: График и учет генеральных уборок
+                      - generic [ref=e591]: У журнала нет строк для назначения
+                  - listitem [ref=e592]:
+                    - checkbox "Прочитать План обучения персонала" [ref=e593] [cursor=pointer]
+                    - link "План обучения персонала В журнале не указан ответственный сотрудник" [ref=e594] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e595]: План обучения персонала
+                      - generic [ref=e596]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e597]:
+                    - checkbox "Прочитать График профилактического обслуживания оборудования" [ref=e598] [cursor=pointer]
+                    - link "График профилактического обслуживания оборудования В журнале не указан ответственный сотрудник" [ref=e599] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e600]: График профилактического обслуживания оборудования
+                      - generic [ref=e601]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e602]:
+                    - checkbox "Прочитать График поверки средств измерений" [ref=e603] [cursor=pointer]
+                    - link "График поверки средств измерений В журнале не указан ответственный сотрудник" [ref=e604] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e605]: График поверки средств измерений
+                      - generic [ref=e606]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e607]:
+                    - checkbox "Прочитать План-программа внутренних аудитов" [ref=e608] [cursor=pointer]
+                    - link "План-программа внутренних аудитов В журнале не указан ответственный сотрудник" [ref=e609] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e610]: План-программа внутренних аудитов
+                      - generic [ref=e611]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e612]:
+                    - checkbox "Прочитать Протокол внутреннего аудита" [ref=e613] [cursor=pointer]
+                    - link "Протокол внутреннего аудита В журнале не указан ответственный сотрудник" [ref=e614] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e615]: Протокол внутреннего аудита
+                      - generic [ref=e616]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e617]:
+                    - checkbox "Прочитать Отчет о внутреннем аудите" [ref=e618] [cursor=pointer]
+                    - link "Отчет о внутреннем аудите В журнале не указан ответственный сотрудник" [ref=e619] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e620]: Отчет о внутреннем аудите
+                      - generic [ref=e621]: В журнале не указан ответственный сотрудник
+                  - listitem [ref=e622]:
+                    - checkbox "Прочитать Перечень изделий из стекла и хрупкого пластика" [ref=e623] [cursor=pointer]
+                    - link "Перечень изделий из стекла и хрупкого пластика В журнале не указан ответственный сотрудник" [ref=e624] [cursor=pointer]:
+                      - /url: /settings/staff-hierarchy
+                      - generic [ref=e625]: Перечень изделий из стекла и хрупкого пластика
+                      - generic [ref=e626]: В журнале не указан ответственный сотрудник
+              - generic [ref=e627]:
+                - generic [ref=e628]:
+                  - checkbox "Выделить всю задачу" [ref=e629] [cursor=pointer]
+                  - generic [ref=e630]:
+                    - text: Список должностей, которые нужно внести в
+                    - link "план обучения" [ref=e631] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                - list [ref=e632]:
+                  - listitem [ref=e633]:
+                    - checkbox "Прочитать Уборщик" [ref=e634] [cursor=pointer]
+                    - link "Уборщик" [ref=e635] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                      - generic [ref=e636]: Уборщик
+              - generic [ref=e637]:
+                - generic [ref=e638]:
+                  - checkbox "Выделить всю задачу" [ref=e639] [cursor=pointer]
+                  - generic [ref=e640]:
+                    - text: Список должностей, которые нужно внести в
+                    - link "план обучения" [ref=e641] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                - list [ref=e642]:
+                  - listitem [ref=e643]:
+                    - checkbox "Прочитать Официант" [ref=e644] [cursor=pointer]
+                    - link "Официант" [ref=e645] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                      - generic [ref=e646]: Официант
+              - generic [ref=e647]:
+                - generic [ref=e648]:
+                  - checkbox "Выделить всю задачу" [ref=e649] [cursor=pointer]
+                  - generic [ref=e650]:
+                    - text: Список должностей, которые нужно внести в
+                    - link "план обучения" [ref=e651] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                - list [ref=e652]:
+                  - listitem [ref=e653]:
+                    - checkbox "Прочитать Повар" [ref=e654] [cursor=pointer]
+                    - link "Повар" [ref=e655] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                      - generic [ref=e656]: Повар
+              - generic [ref=e657]:
+                - generic [ref=e658]:
+                  - checkbox "Выделить всю задачу" [ref=e659] [cursor=pointer]
+                  - generic [ref=e660]:
+                    - text: Список должностей, которые нужно внести в
+                    - link "план обучения" [ref=e661] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                - list [ref=e662]:
+                  - listitem [ref=e663]:
+                    - checkbox "Прочитать Управляющий" [ref=e664] [cursor=pointer]
+                    - link "Управляющий" [ref=e665] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                      - generic [ref=e666]: Управляющий
+              - generic [ref=e667]:
+                - generic [ref=e668]:
+                  - checkbox "Выделить всю задачу" [ref=e669] [cursor=pointer]
+                  - generic [ref=e670]:
+                    - text: Список должностей, которые нужно внести в
+                    - link "план обучения" [ref=e671] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                - list [ref=e672]:
+                  - listitem [ref=e673]:
+                    - checkbox "Прочитать Шеф-повар" [ref=e674] [cursor=pointer]
+                    - link "Шеф-повар" [ref=e675] [cursor=pointer]:
+                      - /url: /journals/training_plan
+                      - generic [ref=e676]: Шеф-повар
+              - generic [ref=e677]:
+                - generic [ref=e678]:
+                  - checkbox "Выделить всю задачу" [ref=e679] [cursor=pointer]
+                  - generic [ref=e680]:
+                    - text: Список фамилий, которые нужно внести в
+                    - link "журнал регистрации инструктажей" [ref=e681] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                - list [ref=e682]:
+                  - listitem [ref=e683]:
+                    - checkbox "Прочитать Сергей Шефов, Шеф-повар" [ref=e684] [cursor=pointer]
+                    - link "Сергей Шефов, Шеф-повар" [ref=e685] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e686]: Сергей Шефов, Шеф-повар
+                  - listitem [ref=e687]:
+                    - checkbox "Прочитать Анна Менеджерова, Управляющий" [ref=e688] [cursor=pointer]
+                    - link "Анна Менеджерова, Управляющий" [ref=e689] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e690]: Анна Менеджерова, Управляющий
+                  - listitem [ref=e691]:
+                    - checkbox "Прочитать Иван Поваров, Повар" [ref=e692] [cursor=pointer]
+                    - link "Иван Поваров, Повар" [ref=e693] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e694]: Иван Поваров, Повар
+                  - listitem [ref=e695]:
+                    - checkbox "Прочитать Ольга Кашина, Повар" [ref=e696] [cursor=pointer]
+                    - link "Ольга Кашина, Повар" [ref=e697] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e698]: Ольга Кашина, Повар
+                  - listitem [ref=e699]:
+                    - checkbox "Прочитать Мария Чайкова, Официант" [ref=e700] [cursor=pointer]
+                    - link "Мария Чайкова, Официант" [ref=e701] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e702]: Мария Чайкова, Официант
+                  - listitem [ref=e703]:
+                    - checkbox "Прочитать Виктор Чистов, Уборщик" [ref=e704] [cursor=pointer]
+                    - link "Виктор Чистов, Уборщик" [ref=e705] [cursor=pointer]:
+                      - /url: /journals/staff_training
+                      - generic [ref=e706]: Виктор Чистов, Уборщик
+              - generic [ref=e707]:
+                - generic [ref=e708]:
+                  - checkbox "Выделить всю задачу" [ref=e709] [cursor=pointer]
+                  - generic [ref=e710]:
+                    - text: Список фамилий, которые нужно внести в
+                    - link "журнал здоровья" [ref=e711] [cursor=pointer]:
+                      - /url: /journals/health_check
+                - list [ref=e712]:
+                  - listitem [ref=e713]:
+                    - checkbox "Прочитать Сергей Шефов, Шеф-повар" [ref=e714] [cursor=pointer]
+                    - link "Сергей Шефов, Шеф-повар" [ref=e715] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e716]: Сергей Шефов, Шеф-повар
+                  - listitem [ref=e717]:
+                    - checkbox "Прочитать Анна Менеджерова, Управляющий" [ref=e718] [cursor=pointer]
+                    - link "Анна Менеджерова, Управляющий" [ref=e719] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e720]: Анна Менеджерова, Управляющий
+                  - listitem [ref=e721]:
+                    - checkbox "Прочитать Иван Поваров, Повар" [ref=e722] [cursor=pointer]
+                    - link "Иван Поваров, Повар" [ref=e723] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e724]: Иван Поваров, Повар
+                  - listitem [ref=e725]:
+                    - checkbox "Прочитать Ольга Кашина, Повар" [ref=e726] [cursor=pointer]
+                    - link "Ольга Кашина, Повар" [ref=e727] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e728]: Ольга Кашина, Повар
+                  - listitem [ref=e729]:
+                    - checkbox "Прочитать Мария Чайкова, Официант" [ref=e730] [cursor=pointer]
+                    - link "Мария Чайкова, Официант" [ref=e731] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e732]: Мария Чайкова, Официант
+                  - listitem [ref=e733]:
+                    - checkbox "Прочитать Виктор Чистов, Уборщик" [ref=e734] [cursor=pointer]
+                    - link "Виктор Чистов, Уборщик" [ref=e735] [cursor=pointer]:
+                      - /url: /journals/health_check
+                      - generic [ref=e736]: Виктор Чистов, Уборщик
+              - generic [ref=e737]:
+                - generic [ref=e738]:
+                  - checkbox "Выделить всю задачу" [ref=e739] [cursor=pointer]
+                  - generic [ref=e740]:
+                    - text: Список фамилий, которые нужно внести в
+                    - link "гигиенический журнал" [ref=e741] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                - list [ref=e742]:
+                  - listitem [ref=e743]:
+                    - checkbox "Прочитать Сергей Шефов, Шеф-повар" [ref=e744] [cursor=pointer]
+                    - link "Сергей Шефов, Шеф-повар" [ref=e745] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e746]: Сергей Шефов, Шеф-повар
+                  - listitem [ref=e747]:
+                    - checkbox "Прочитать Анна Менеджерова, Управляющий" [ref=e748] [cursor=pointer]
+                    - link "Анна Менеджерова, Управляющий" [ref=e749] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e750]: Анна Менеджерова, Управляющий
+                  - listitem [ref=e751]:
+                    - checkbox "Прочитать Иван Поваров, Повар" [ref=e752] [cursor=pointer]
+                    - link "Иван Поваров, Повар" [ref=e753] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e754]: Иван Поваров, Повар
+                  - listitem [ref=e755]:
+                    - checkbox "Прочитать Ольга Кашина, Повар" [ref=e756] [cursor=pointer]
+                    - link "Ольга Кашина, Повар" [ref=e757] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e758]: Ольга Кашина, Повар
+                  - listitem [ref=e759]:
+                    - checkbox "Прочитать Мария Чайкова, Официант" [ref=e760] [cursor=pointer]
+                    - link "Мария Чайкова, Официант" [ref=e761] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e762]: Мария Чайкова, Официант
+                  - listitem [ref=e763]:
+                    - checkbox "Прочитать Виктор Чистов, Уборщик" [ref=e764] [cursor=pointer]
+                    - link "Виктор Чистов, Уборщик" [ref=e765] [cursor=pointer]:
+                      - /url: /journals/hygiene
+                      - generic [ref=e766]: Виктор Чистов, Уборщик
+          - button "Обратная связь" [ref=e34]:
+            - img
+            - generic [ref=e35]: Обратная связь
+          - link "Настройки" [ref=e36] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e37]
+          - button "Выйти" [ref=e40]:
+            - img [ref=e41]
+          - button "Профиль" [ref=e44]:
+            - generic [ref=e46]: ИТ
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - img [ref=e54]
+              - generic [ref=e59]:
+                - heading "Доброе утро, Тестовый" [level=1] [ref=e60]
+                - paragraph [ref=e61]: Воскресенье, 26 апреля 2026 г. · Кафе «QA-Тест 25-04»
+            - generic [ref=e62]: "Готовность сегодня: 0%"
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - generic [ref=e66]: "0"
+              - generic [ref=e67]: Записей сегодня
+              - generic [ref=e68]: пока пусто
+            - generic [ref=e69]:
+              - generic [ref=e70]: "0"
+              - generic [ref=e71]: На проверке
+            - generic [ref=e72]:
+              - generic [ref=e73]: "7"
+              - generic [ref=e74]: Сотрудников
+            - generic [ref=e75]:
+              - generic [ref=e76]: "35"
+              - generic [ref=e77]: Журналов
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - img [ref=e82]
+              - generic [ref=e85]:
+                - 'heading "Не начинали заполняться: 35" [level=2] [ref=e86]'
+                - paragraph [ref=e87]: Нажмите на карточку, чтобы открыть журнал и внести первую запись за сегодня.
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - img [ref=e90]
+                - generic [ref=e93]: 0%
+              - generic [ref=e94]:
+                - generic [ref=e95]: Готовность
+                - generic [ref=e96]: 0%
+                - generic [ref=e97]: требует внимания
+          - generic [ref=e98]:
+            - generic [ref=e99]: Одним нажатием разошлёт TasksFlow-задачи всем ответственным по 35 незаполненным журналам. Уже назначенные пропустит.
+            - button "Отправить всем на заполнение" [ref=e100]:
+              - img [ref=e101]
+              - text: Отправить всем на заполнение
+          - generic [ref=e104]:
+            - link "Гигиенический журнал" [ref=e105] [cursor=pointer]:
+              - /url: /journals/hygiene
+              - img [ref=e107]
+              - generic [ref=e111]: Гигиенический журнал
+              - img [ref=e112]
+            - link "Журнал здоровья" [ref=e114] [cursor=pointer]:
+              - /url: /journals/health_check
+              - img [ref=e116]
+              - generic [ref=e120]: Журнал здоровья
+              - img [ref=e121]
+            - link "Бланк контроля температуры и влажности" [ref=e123] [cursor=pointer]:
+              - /url: /journals/climate_control
+              - img [ref=e125]
+              - generic [ref=e129]: Бланк контроля температуры и влажности
+              - img [ref=e130]
+            - link "Журнал контроля температурного режима холодильного и морозильного оборудования" [ref=e132] [cursor=pointer]:
+              - /url: /journals/cold_equipment_control
+              - img [ref=e134]
+              - generic [ref=e138]: Журнал контроля температурного режима холодильного и морозильного оборудования
+              - img [ref=e139]
+            - link "Чек-лист уборки и проветривания помещений" [ref=e141] [cursor=pointer]:
+              - /url: /journals/cleaning_ventilation_checklist
+              - img [ref=e143]
+              - generic [ref=e147]: Чек-лист уборки и проветривания помещений
+              - img [ref=e148]
+            - link "Журнал уборки" [ref=e150] [cursor=pointer]:
+              - /url: /journals/cleaning
+              - img [ref=e152]
+              - generic [ref=e156]: Журнал уборки
+              - img [ref=e157]
+            - link "График и учет генеральных уборок" [ref=e159] [cursor=pointer]:
+              - /url: /journals/general_cleaning
+              - img [ref=e161]
+              - generic [ref=e165]: График и учет генеральных уборок
+              - img [ref=e166]
+            - link "Журнал учета работы УФ бактерицидной установки" [ref=e168] [cursor=pointer]:
+              - /url: /journals/uv_lamp_runtime
+              - img [ref=e170]
+              - generic [ref=e174]: Журнал учета работы УФ бактерицидной установки
+              - img [ref=e175]
+            - link "Журнал бракеража готовой пищевой продукции" [ref=e177] [cursor=pointer]:
+              - /url: /journals/finished_product
+              - img [ref=e179]
+              - generic [ref=e183]: Журнал бракеража готовой пищевой продукции
+              - img [ref=e184]
+            - link "Журнал бракеража скоропортящейся пищевой продукции" [ref=e186] [cursor=pointer]:
+              - /url: /journals/perishable_rejection
+              - img [ref=e188]
+              - generic [ref=e192]: Журнал бракеража скоропортящейся пищевой продукции
+              - img [ref=e193]
+            - link "Журнал приемки и входного контроля продукции" [ref=e195] [cursor=pointer]:
+              - /url: /journals/incoming_control
+              - img [ref=e197]
+              - generic [ref=e201]: Журнал приемки и входного контроля продукции
+              - img [ref=e202]
+            - link "Журнал учета использования фритюрных жиров" [ref=e204] [cursor=pointer]:
+              - /url: /journals/fryer_oil
+              - img [ref=e206]
+              - generic [ref=e210]: Журнал учета использования фритюрных жиров
+              - img [ref=e211]
+            - link "Медицинские книжки" [ref=e213] [cursor=pointer]:
+              - /url: /journals/med_books
+              - img [ref=e215]
+              - generic [ref=e219]: Медицинские книжки
+              - img [ref=e220]
+            - link "План обучения персонала" [ref=e222] [cursor=pointer]:
+              - /url: /journals/training_plan
+              - img [ref=e224]
+              - generic [ref=e228]: План обучения персонала
+              - img [ref=e229]
+            - link "Журнал регистрации инструктажей (обучения) сотрудников" [ref=e231] [cursor=pointer]:
+              - /url: /journals/staff_training
+              - img [ref=e233]
+              - generic [ref=e237]: Журнал регистрации инструктажей (обучения) сотрудников
+              - img [ref=e238]
+            - link "Журнал учета дезинфицирующих средств" [ref=e240] [cursor=pointer]:
+              - /url: /journals/disinfectant_usage
+              - img [ref=e242]
+              - generic [ref=e246]: Журнал учета дезинфицирующих средств
+              - img [ref=e247]
+            - link "Чек-лист (памятка) проведения санитарного дня" [ref=e249] [cursor=pointer]:
+              - /url: /journals/sanitary_day_control
+              - img [ref=e251]
+              - generic [ref=e255]: Чек-лист (памятка) проведения санитарного дня
+              - img [ref=e256]
+            - link "График профилактического обслуживания оборудования" [ref=e258] [cursor=pointer]:
+              - /url: /journals/equipment_maintenance
+              - img [ref=e260]
+              - generic [ref=e264]: График профилактического обслуживания оборудования
+              - img [ref=e265]
+            - link "Карточка истории поломок" [ref=e267] [cursor=pointer]:
+              - /url: /journals/breakdown_history
+              - img [ref=e269]
+              - generic [ref=e273]: Карточка истории поломок
+              - img [ref=e274]
+            - link "График поверки средств измерений" [ref=e276] [cursor=pointer]:
+              - /url: /journals/equipment_calibration
+              - img [ref=e278]
+              - generic [ref=e282]: График поверки средств измерений
+              - img [ref=e283]
+            - link "Журнал входного контроля сырья, ингредиентов, упаковочных материалов" [ref=e285] [cursor=pointer]:
+              - /url: /journals/incoming_raw_materials_control
+              - img [ref=e287]
+              - generic [ref=e291]: Журнал входного контроля сырья, ингредиентов, упаковочных материалов
+              - img [ref=e292]
+            - link "Журнал учета выдачи СИЗ" [ref=e294] [cursor=pointer]:
+              - /url: /journals/ppe_issuance
+              - img [ref=e296]
+              - generic [ref=e300]: Журнал учета выдачи СИЗ
+              - img [ref=e301]
+            - link "Журнал учета аварий" [ref=e303] [cursor=pointer]:
+              - /url: /journals/accident_journal
+              - img [ref=e305]
+              - generic [ref=e309]: Журнал учета аварий
+              - img [ref=e310]
+            - link "Журнал регистрации жалоб" [ref=e312] [cursor=pointer]:
+              - /url: /journals/complaint_register
+              - img [ref=e314]
+              - generic [ref=e318]: Журнал регистрации жалоб
+              - img [ref=e319]
+            - link "Акт забраковки" [ref=e321] [cursor=pointer]:
+              - /url: /journals/product_writeoff
+              - img [ref=e323]
+              - generic [ref=e327]: Акт забраковки
+              - img [ref=e328]
+            - link "План-программа внутренних аудитов" [ref=e330] [cursor=pointer]:
+              - /url: /journals/audit_plan
+              - img [ref=e332]
+              - generic [ref=e336]: План-программа внутренних аудитов
+              - img [ref=e337]
+            - link "Протокол внутреннего аудита" [ref=e339] [cursor=pointer]:
+              - /url: /journals/audit_protocol
+              - img [ref=e341]
+              - generic [ref=e345]: Протокол внутреннего аудита
+              - img [ref=e346]
+            - link "Отчет о внутреннем аудите" [ref=e348] [cursor=pointer]:
+              - /url: /journals/audit_report
+              - img [ref=e350]
+              - generic [ref=e354]: Отчет о внутреннем аудите
+              - img [ref=e355]
+            - link "Журнал прослеживаемости продукции" [ref=e357] [cursor=pointer]:
+              - /url: /journals/traceability_test
+              - img [ref=e359]
+              - generic [ref=e363]: Журнал прослеживаемости продукции
+              - img [ref=e364]
+            - link "Журнал учета металлопримесей в сырье" [ref=e366] [cursor=pointer]:
+              - /url: /journals/metal_impurity
+              - img [ref=e368]
+              - generic [ref=e372]: Журнал учета металлопримесей в сырье
+              - img [ref=e373]
+            - link "Журнал мойки и дезинфекции оборудования" [ref=e375] [cursor=pointer]:
+              - /url: /journals/equipment_cleaning
+              - img [ref=e377]
+              - generic [ref=e381]: Журнал мойки и дезинфекции оборудования
+              - img [ref=e382]
+            - link "Журнал контроля интенсивного охлаждения горячих блюд" [ref=e384] [cursor=pointer]:
+              - /url: /journals/intensive_cooling
+              - img [ref=e386]
+              - generic [ref=e390]: Журнал контроля интенсивного охлаждения горячих блюд
+              - img [ref=e391]
+            - link "Перечень изделий из стекла и хрупкого пластика" [ref=e393] [cursor=pointer]:
+              - /url: /journals/glass_items_list
+              - img [ref=e395]
+              - generic [ref=e399]: Перечень изделий из стекла и хрупкого пластика
+              - img [ref=e400]
+            - link "Журнал контроля изделий из стекла и хрупкого пластика" [ref=e402] [cursor=pointer]:
+              - /url: /journals/glass_control
+              - img [ref=e404]
+              - generic [ref=e408]: Журнал контроля изделий из стекла и хрупкого пластика
+              - img [ref=e409]
+            - link "Журнал учета дезинфекции, дезинсекции и дератизации" [ref=e411] [cursor=pointer]:
+              - /url: /journals/pest_control
+              - img [ref=e413]
+              - generic [ref=e417]: Журнал учета дезинфекции, дезинсекции и дератизации
+              - img [ref=e418]
+        - generic [ref=e421]:
+          - img [ref=e423]
+          - generic [ref=e425]:
+            - heading "Хвосты за неделю" [level=2] [ref=e426]
+            - paragraph [ref=e427]: За последние 7 дней остались незаполненные записи. Клик — открывает журнал на самом старом пропуске.
+            - list [ref=e428]:
+              - listitem [ref=e429]:
+                - link "Журнал бракеража готовой пищевой продукции Журнал бракеража готовой пищевой продукции · апрель 2026 г. 7 пропуска с 20.04" [ref=e430] [cursor=pointer]:
+                  - /url: /journals/finished_product/documents/cmoergga6000bz9tsdjhmals2?focus=2026-04-20
+                  - img [ref=e432]
+                  - generic [ref=e436]:
+                    - generic [ref=e437]: Журнал бракеража готовой пищевой продукции
+                    - generic [ref=e438]: Журнал бракеража готовой пищевой продукции · апрель 2026 г.
+                  - generic [ref=e439]:
+                    - generic [ref=e440]: 7 пропуска
+                    - generic [ref=e441]: с 20.04
+                  - img [ref=e442]
+              - listitem [ref=e444]:
+                - link "Гигиенический журнал Гигиенический журнал · Апрель с 16 по 30 7 пропуска с 20.04" [ref=e445] [cursor=pointer]:
+                  - /url: /journals/hygiene/documents/cmoergg5r0000z9tsylkj7r4j?focus=2026-04-20
+                  - img [ref=e447]
+                  - generic [ref=e451]:
+                    - generic [ref=e452]: Гигиенический журнал
+                    - generic [ref=e453]: Гигиенический журнал · Апрель с 16 по 30
+                  - generic [ref=e454]:
+                    - generic [ref=e455]: 7 пропуска
+                    - generic [ref=e456]: с 20.04
+                  - img [ref=e457]
+              - listitem [ref=e459]:
+                - link "Журнал уборки Журнал уборки · апрель 2026 г. 7 пропуска с 20.04" [ref=e460] [cursor=pointer]:
+                  - /url: /journals/cleaning/documents/cmoergg920007z9tsdxjkrgzh?focus=2026-04-20
+                  - img [ref=e462]
+                  - generic [ref=e466]:
+                    - generic [ref=e467]: Журнал уборки
+                    - generic [ref=e468]: Журнал уборки · апрель 2026 г.
+                  - generic [ref=e469]:
+                    - generic [ref=e470]: 7 пропуска
+                    - generic [ref=e471]: с 20.04
+                  - img [ref=e472]
+        - generic [ref=e474]:
+          - link "Журналы Все журналы и записи" [ref=e475] [cursor=pointer]:
+            - /url: /journals
+            - img [ref=e477]
+            - generic [ref=e480]:
+              - generic [ref=e481]:
+                - generic [ref=e482]: Журналы
+                - img [ref=e483]
+              - generic [ref=e485]: Все журналы и записи
+          - link "Сотрудники Должности, графики" [ref=e486] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e488]
+            - generic [ref=e493]:
+              - generic [ref=e494]:
+                - generic [ref=e495]: Сотрудники
+                - img [ref=e496]
+              - generic [ref=e498]: Должности, графики
+          - link "Отчёты Сводки за период" [ref=e499] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e501]
+            - generic [ref=e505]:
+              - generic [ref=e506]:
+                - generic [ref=e507]: Отчёты
+                - img [ref=e508]
+              - generic [ref=e510]: Сводки за период
+          - link "Справочник Нормативы СанПиН" [ref=e511] [cursor=pointer]:
+            - /url: /sanpin
+            - img [ref=e513]
+            - generic [ref=e515]:
+              - generic [ref=e516]:
+                - generic [ref=e517]: Справочник
+                - img [ref=e518]
+              - generic [ref=e520]: Нормативы СанПиН
+        - generic [ref=e521]:
+          - generic [ref=e522]:
+            - generic [ref=e523]:
+              - img [ref=e525]
+              - generic [ref=e527]:
+                - heading "Последние записи" [level=2] [ref=e528]
+                - paragraph [ref=e529]: Что сделано за 48 часов — 0 записей
+            - link "Все журналы" [ref=e530] [cursor=pointer]:
+              - /url: /journals
+              - text: Все журналы
+              - img [ref=e531]
+          - generic [ref=e533]:
+            - img [ref=e535]
+            - paragraph [ref=e538]: Записей пока нет
+            - paragraph [ref=e539]: Как только кто-то внесёт первую запись, она появится здесь.
+  - region "Notifications alt+T"
+  - alert [ref=e540]

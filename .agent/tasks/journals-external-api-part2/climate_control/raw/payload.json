@@ -1,0 +1,21 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 climate-control MNYQDM01",
+  "data": {
+    "readings": [
+      {
+        "roomName": "Склад",
+        "time": "10:00",
+        "temperature": 22.4,
+        "humidity": 51
+      },
+      {
+        "roomName": "Склад",
+        "time": "17:00",
+        "temperature": 23.7,
+        "humidity": 55
+      }
+    ],
+    "responsibleTitle": "EXT2 climate-control MNYQDM01"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "code": "accident_journal",
+  "documentId": "cmnyp94j2003w08ts6pjlptf0",
+  "date": "2026-04-14",
+  "marker": "EXT2 accident-journal MNYQD4WM",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp94j2003w08ts6pjlptf0",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "accident_journal"
+  },
+  "expectedUi": [
+    "EXT2 accident-journal MNYQD4WM",
+    "accident"
+  ],
+  "expectedPdf": [
+    "EXT2 accident-journal MNYQD4WM",
+    "fixed"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 446676
+}

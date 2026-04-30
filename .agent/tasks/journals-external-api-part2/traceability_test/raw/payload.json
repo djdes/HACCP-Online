@@ -1,0 +1,35 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 traceability-test MNYQES24",
+  "data": {
+    "dateFrom": "2026-04-14",
+    "rawMaterialList": [
+      "EXT2 traceability-test MNYQES24"
+    ],
+    "productList": [
+      "EXT2 traceability-test MNYQES24"
+    ],
+    "defaultResponsibleRole": "EXT2 traceability-test MNYQES24",
+    "defaultResponsibleEmployee": "EXT2 traceability-test MNYQES24",
+    "rows": [
+      {
+        "date": "2026-04-14",
+        "incoming": {
+          "rawMaterialName": "EXT2 traceability-test MNYQES24",
+          "batchNumber": "EXT2 traceability-test MNYQES24",
+          "packagingDate": "2026-04-14",
+          "quantityPieces": 5,
+          "quantityKg": 4.2
+        },
+        "outgoing": {
+          "productName": "EXT2 traceability-test MNYQES24",
+          "quantityPacksPieces": 2,
+          "quantityPacksKg": 1.2,
+          "shockTemp": -18
+        },
+        "responsibleRole": "EXT2 traceability-test MNYQES24",
+        "responsibleEmployee": "EXT2 traceability-test MNYQES24"
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "code": "pest_control",
+  "documentId": "cmnyp95kg005a08ts78esrwis",
+  "date": "2026-04-14",
+  "marker": "EXT2 pest-control MNYQEJQV",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95kg005a08ts78esrwis",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "pest_control"
+  },
+  "expectedUi": [
+    "EXT2 pest-control MNYQEJQV"
+  ],
+  "expectedPdf": [
+    "EXT2 pest-control MNYQEJQV"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 443282
+}

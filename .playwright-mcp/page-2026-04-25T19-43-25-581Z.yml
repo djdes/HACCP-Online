@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "HACCP-Online" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e8]
+        - generic [ref=e11]: HACCP-Online
+      - generic [ref=e12]:
+        - generic [ref=e13]: 35 СанПиН / ХАССП журналов
+        - heading "Электронные журналы пищевого производства" [level=1] [ref=e15]
+        - paragraph [ref=e16]: Контроль температур, санитарии и прослеживаемости сырья — в одном месте. Telegram-уведомления, импорт iiko, печать в формате Роспотребнадзора.
+        - list [ref=e17]:
+          - listitem [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e22]: Базовый + Расширенный тарифы
+          - listitem [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e27]: Доступ по ролям и журналам
+          - listitem [ref=e28]:
+            - img [ref=e29]
+            - generic [ref=e32]: Уведомления в Telegram
+          - listitem [ref=e33]:
+            - img [ref=e34]
+            - generic [ref=e37]: Автозаполнение с датчиков
+        - generic [ref=e38]:
+          - generic [ref=e39]: © 2026 HACCP-Online
+          - link "Зарегистрировать компанию" [ref=e41] [cursor=pointer]:
+            - /url: /register
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - heading "Вход в личный кабинет" [level=2] [ref=e44]
+        - paragraph [ref=e45]: Введите email и пароль, выданные вашей компанией.
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: Email
+            - textbox "Email" [ref=e50]:
+              - /placeholder: name@company.com
+          - generic [ref=e51]:
+            - generic [ref=e52]: Пароль
+            - generic [ref=e53]:
+              - textbox "Пароль Показать пароль" [ref=e54]:
+                - /placeholder: ••••••••
+              - button "Показать пароль" [ref=e56]:
+                - img [ref=e57]
+          - button "Войти" [ref=e60]:
+            - generic [ref=e61]: Войти
+            - img [ref=e62]
+        - generic [ref=e67]: или
+        - link "Зарегистрировать компанию" [ref=e69] [cursor=pointer]:
+          - /url: /register
+          - text: Зарегистрировать компанию
+          - img [ref=e70]
+        - paragraph [ref=e72]: Забыли пароль? Попросите администратора вашей организации выслать приглашение повторно.
+  - alert [ref=e73]

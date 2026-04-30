@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "createdAt": "2026-04-27",
+  "lastRunAt": "2026-04-28T07:50:00Z",
+  "cursor": 77,
+  "total": 77,
+  "totalsPass": 64,
+  "totalsFail": 0,
+  "totalsQuarantine": 0,
+  "totalsManual": 13,
+  "consecutiveQuarantine": 0,
+  "stopped": true,
+  "stopReason": "user requested restart without /loop",
+  "history": "see qa-results.md (full per-feature log)"
+}

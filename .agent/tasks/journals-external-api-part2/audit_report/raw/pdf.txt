@@ -1,0 +1,16 @@
+Отчет о внутреннем аудите
+Тестовая
+организация
+(админ)
+СИСТЕМА ХАССП
+ОТЧЕТ О ВНУТРЕННЕМ АУДИТЕ
+Начат  01.04.2026
+Окончен  30.04.2026
+Основание: Годовой план-программа внутренних аудитов
+Объект аудита: EXT2 audit-report MNYQDA0G
+Аудиторы: —
+Итог: EXT2 audit-report MNYQDA0G
+Рекомендации: EXT2 audit-report MNYQDA0G
+№ Несоответствие Исправление Корректирующие действия Ответственный Срок план Срок факт
+1 EXT2 audit-report MNYQDA0G EXT2 audit-report MNYQDA0G EXT2 audit-report MNYQDA0G EXT2 audit-report MNYQDA0G, EXT2 audit-report MNYQDA0G 14-04-2026
+EXT2 audit-report MNYQDA0G: EXT2 audit-report MNYQDA0G, EXT2 audit-report MNYQDA0G, 14-04-2026

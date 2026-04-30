@@ -1,0 +1,22 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e5]:
+    - button "Назад к настройкам" [ref=e6] [cursor=pointer]:
+      - img
+      - text: Назад к настройкам
+    - generic [ref=e7]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "API ключи" [level=1] [ref=e13]
+        - paragraph [ref=e14]: Ключи TasksFlow для интеграций. Тот же tfk_ ключ можно указать в WeSetup.
+    - generic [ref=e15]:
+      - heading "Создать новый ключ" [level=2] [ref=e16]
+      - generic [ref=e17]:
+        - textbox "Название ключа" [ref=e18]
+        - button "Создать" [disabled]:
+          - img
+          - text: Создать
+    - generic [ref=e19]:
+      - heading "Ключи (0)" [level=2] [ref=e21]
+      - generic [ref=e22]: Ключей пока нет

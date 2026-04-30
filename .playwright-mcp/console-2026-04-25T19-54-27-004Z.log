@@ -1,0 +1,5 @@
+[     265ms] [LOG] SW registered: https://tasksflow.ru/ @ https://tasksflow.ru/?nocache=1:41
+[     356ms] [WARNING] Error while trying to use the following icon from the Manifest: https://tasksflow.ru/favicon.png (Resource size is not correct - typo in the Manifest?) @ https://tasksflow.ru/?nocache=1:0
+[   38393ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ https://tasksflow.ru/api/companies/register:0
+[   50491ms] [LOG] SW registered: https://tasksflow.ru/ @ https://tasksflow.ru/dashboard:41
+[   50520ms] [WARNING] Error while trying to use the following icon from the Manifest: https://tasksflow.ru/favicon.png (Resource size is not correct - typo in the Manifest?) @ https://tasksflow.ru/dashboard:0

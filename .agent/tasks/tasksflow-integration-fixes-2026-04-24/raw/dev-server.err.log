@@ -1,0 +1,70 @@
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Custom login error: Error [PrismaClientKnownRequestError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique()` invocation in
+C:\www\Wesetup.ru\.next\dev\server\chunks\[root-of-the-server]__56e1f98b._.js:222:154
+
+  219         status: 400
+  220     });
+  221 }
+→ 222 const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique(
+Can't reach database server at 127.0.0.1:5433
+    at <unknown> (src\app\api\auth\login\route.ts:72:32)
+    at <unknown> (Can't reach database server at 127.0.0.1:5433)
+    at async POST (src\app\api\auth\login\route.ts:72:18)
+  70 |     }
+  71 |
+> 72 |     const user = await db.user.findUnique({
+     |                                ^
+  73 |       where: { email },
+  74 |       include: { organization: true },
+  75 |     }); {
+  code: 'P1001',
+  meta: [Object],
+  clientVersion: '7.4.2'
+}
+Custom login error: Error [PrismaClientKnownRequestError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique()` invocation in
+C:\www\Wesetup.ru\.next\dev\server\chunks\[root-of-the-server]__56e1f98b._.js:222:154
+
+  219         status: 400
+  220     });
+  221 }
+→ 222 const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique(
+Can't reach database server at 127.0.0.1:5433
+    at <unknown> (src\app\api\auth\login\route.ts:72:32)
+    at <unknown> (Can't reach database server at 127.0.0.1:5433)
+    at async POST (src\app\api\auth\login\route.ts:72:18)
+  70 |     }
+  71 |
+> 72 |     const user = await db.user.findUnique({
+     |                                ^
+  73 |       where: { email },
+  74 |       include: { organization: true },
+  75 |     }); {
+  code: 'P1001',
+  meta: [Object],
+  clientVersion: '7.4.2'
+}
+Custom login error: Error [PrismaClientKnownRequestError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique()` invocation in
+C:\www\Wesetup.ru\.next\dev\server\chunks\[root-of-the-server]__56e1f98b._.js:222:154
+
+  219         status: 400
+  220     });
+  221 }
+→ 222 const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].user.findUnique(
+Can't reach database server at 127.0.0.1:5433
+    at <unknown> (src\app\api\auth\login\route.ts:72:32)
+    at <unknown> (Can't reach database server at 127.0.0.1:5433)
+    at async POST (src\app\api\auth\login\route.ts:72:18)
+  70 |     }
+  71 |
+> 72 |     const user = await db.user.findUnique({
+     |                                ^
+  73 |       where: { email },
+  74 |       include: { organization: true },
+  75 |     }); {
+  code: 'P1001',
+  meta: [Object],
+  clientVersion: '7.4.2'
+}

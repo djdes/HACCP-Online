@@ -1,0 +1,26 @@
+{
+  "code": "incoming_raw_materials_control",
+  "documentId": "cmnyp95d6005108tssm00ul2t",
+  "date": "2026-04-14",
+  "marker": "EXT2 incoming-raw-materials-control MNYQEBI5",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95d6005108tssm00ul2t",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "incoming_raw_materials_control"
+  },
+  "expectedUi": [
+    "EXT2 incoming-raw-materials-control MNYQEBI5"
+  ],
+  "expectedPdf": [
+    "EXT2 incoming-raw-materials-control MNYQEBI5"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 447125
+}

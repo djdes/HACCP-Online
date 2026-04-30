@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - button "Назад к настройкам" [ref=e6] [cursor=pointer]:
+        - img
+        - text: Назад к настройкам
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - generic [ref=e12]:
+          - heading "API ключи" [level=1] [ref=e13]
+          - paragraph [ref=e14]: Ключи TasksFlow для интеграций. Тот же tfk_ ключ можно указать в WeSetup.
+      - generic [ref=e15]:
+        - heading "Создать новый ключ" [level=2] [ref=e16]
+        - generic [ref=e17]:
+          - textbox "Название ключа" [active] [ref=e18]
+          - button "Создать" [disabled]:
+            - img
+            - text: Создать
+      - generic [ref=e19]:
+        - heading "Ключи (1)" [level=2] [ref=e24]
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e28]: WeSetup-bridge
+              - generic [ref=e29]: активен
+            - generic [ref=e30]: tfk_DpDlWdxc...
+            - generic [ref=e31]: Создан 25.04.2026, 22:56:16 · Использован —
+          - button "Отозвать" [ref=e32] [cursor=pointer]:
+            - img
+            - text: Отозвать
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - img [ref=e36]
+        - heading "Ключ создан" [level=3] [ref=e39]
+      - paragraph [ref=e40]:
+        - text: Этот ключ показывается
+        - strong [ref=e41]: только один раз
+        - text: . Его можно указать в WeSetup и использовать в TasksFlow для доступа к журналам.
+      - generic [ref=e42]: tfk_DpDlWdxcsJNyrOZaiON3GpobMYGs3mwVd5T9LLH6ZLA
+      - generic [ref=e43]:
+        - button "Использовать для WeSetup" [ref=e44] [cursor=pointer]:
+          - img
+          - text: Использовать для WeSetup
+        - button "Копировать" [ref=e45] [cursor=pointer]:
+          - img
+          - text: Копировать
+        - button "Готово" [ref=e46] [cursor=pointer]

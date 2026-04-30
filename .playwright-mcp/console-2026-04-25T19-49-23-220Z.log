@@ -1,0 +1,3 @@
+[      64ms] [ERROR] Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec. @ https://tasksflow.ru/assets/index-ChU5oWb5.js:0
+[      71ms] [LOG] SW registered: https://tasksflow.ru/ @ https://tasksflow.ru/:23
+[      80ms] [WARNING] Error while trying to use the following icon from the Manifest: https://tasksflow.ru/favicon.png (Resource size is not correct - typo in the Manifest?) @ https://tasksflow.ru/:0

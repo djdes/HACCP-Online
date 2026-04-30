@@ -1,0 +1,550 @@
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+⨯ ./src/components/journals/climate-document-client.tsx:283:19
+Parsing ecmascript source code failed
+[0m [90m 281 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 282 |[39m                 [33m<[39m[33mDocumentCloseButton[39m
+[31m[1m>[22m[39m[90m 283 |[39m                   documentId[33m=[39m{documentId}
+ [90m     |[39m                   [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 284 |[39m                   title[33m=[39m{documentTitle}
+ [90m 285 |[39m                   variant[33m=[39m[32m"outline"[39m
+ [90m 286 |[39m                   className[33m=[39m[32m"h-16 rounded-2xl border-[#eef0fb] px-7 text-[18px] text-[#5464ff] shadow-none hover:bg-[#f8f9ff]"[39m[0m
+
+Expected '</', got 'ident'
+
+Import trace:
+  Server Component:
+    ./src/components/journals/climate-document-client.tsx
+    ./src/app/(dashboard)/journals/[code]/documents/[docId]/page.tsx
+
+
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\Yaroslav\AppData\Local\Temp\138\next-panic-525c476f4185b1b5116934628dae86a9.log.
+
+To help make Turbopack better, report this error by clicking here: https://github.com/vercel/next.js/discussions/new?category=turbopack-error-report&title=Turbopack%20Error%3A%20reading%20file%20C%3A%5Cwww%5CWesetup.ru%5Csrc%5Ccomponents%5Cjournals%5Chygiene-documents-client.tsx&body=Turbopack%20version%3A%20%6023c46498%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0ATurbopack%20Error%3A%20reading%20file%20C%3A%5Cwww%5CWesetup.ru%5Csrc%5Ccomponents%5Cjournals%5Chygiene-documents-client.tsx%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+^C

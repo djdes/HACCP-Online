@@ -1,0 +1,33 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 incoming-control MNYQE9W4",
+  "data": {
+    "rows": [
+      {
+        "deliveryDate": "2026-04-14",
+        "deliveryHour": "11",
+        "deliveryMinute": "20",
+        "productName": "EXT2 incoming-control MNYQE9W4",
+        "manufacturer": "EXT2 incoming-control MNYQE9W4",
+        "supplier": "EXT2 incoming-control MNYQE9W4",
+        "transportCondition": "satisfactory",
+        "packagingCompliance": "compliant",
+        "organolepticResult": "satisfactory",
+        "expiryDate": "2026-04-14",
+        "expiryHour": "18",
+        "expiryMinute": "00",
+        "note": "EXT2 incoming-control MNYQE9W4",
+        "responsibleTitle": "EXT2 incoming-control MNYQE9W4"
+      }
+    ],
+    "products": [
+      "EXT2 incoming-control MNYQE9W4"
+    ],
+    "manufacturers": [
+      "EXT2 incoming-control MNYQE9W4"
+    ],
+    "suppliers": [
+      "EXT2 incoming-control MNYQE9W4"
+    ]
+  }
+}

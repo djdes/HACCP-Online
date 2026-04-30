@@ -1,0 +1,17 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 med-books MNYQEENB",
+  "data": {
+    "birthDate": "1990-01-02",
+    "gender": "female",
+    "hireDate": "2026-04-14",
+    "medBookNumber": "EXT2 med-books MNYQEENB",
+    "note": "EXT2 med-books MNYQEENB",
+    "examinations": {
+      "Терапевт": {
+        "date": "2026-04-14",
+        "expiryDate": "2026-04-14"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 intensive-cooling MNYQED5Z",
+  "data": {
+    "dishSuggestions": [
+      "EXT2 intensive-cooling MNYQED5Z"
+    ],
+    "rows": [
+      {
+        "productionDate": "2026-04-14",
+        "productionHour": "14",
+        "productionMinute": "00",
+        "dishName": "EXT2 intensive-cooling MNYQED5Z",
+        "startTemperature": "85",
+        "endTemperature": "4",
+        "correctiveAction": "EXT2 intensive-cooling MNYQED5Z",
+        "comment": "EXT2 intensive-cooling MNYQED5Z",
+        "responsibleTitle": "EXT2 intensive-cooling MNYQED5Z"
+      }
+    ]
+  }
+}

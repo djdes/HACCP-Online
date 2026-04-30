@@ -1,0 +1,28 @@
+{
+  "code": "cleaning_ventilation_checklist",
+  "documentId": "cmnyodrp8008ooots0ldi7hs4",
+  "date": "2026-04-14",
+  "marker": "EXT2 cleaning-ventilation-checklist MNYQDF40",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrp8008ooots0ldi7hs4",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "cleaning_ventilation_checklist"
+  },
+  "expectedUi": [
+    "06:40",
+    "14:20"
+  ],
+  "expectedPdf": [
+    "06:40",
+    "14:20"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 551207
+}

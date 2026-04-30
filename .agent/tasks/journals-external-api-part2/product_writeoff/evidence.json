@@ -1,0 +1,26 @@
+{
+  "code": "product_writeoff",
+  "documentId": "cmnyp95o5005e08ts5dk4ckta",
+  "date": "2026-04-14",
+  "marker": "EXT2 product-writeoff MNYQEN5T",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95o5005e08ts5dk4ckta",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "product_writeoff"
+  },
+  "expectedUi": [
+    "EXT2 product-writeoff MNYQEN5T"
+  ],
+  "expectedPdf": [
+    "EXT2 product-writeoff MNYQEN5T"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 442307
+}

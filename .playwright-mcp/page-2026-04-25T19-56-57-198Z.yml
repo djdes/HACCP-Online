@@ -1,0 +1,195 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - 'generic "Build: 2026-04-25T19:54:44Z" [ref=e7]': 89cd491
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e33]: "8"
+          - button "Обратная связь" [ref=e34]:
+            - img
+            - generic [ref=e35]: Обратная связь
+          - link "Настройки" [ref=e36] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e37]
+          - button "Выйти" [ref=e40]:
+            - img [ref=e41]
+          - button "Профиль" [ref=e44]:
+            - generic [ref=e46]: ИТ
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e50]:
+          - link "Настройки" [ref=e51] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e52]
+            - text: Настройки
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - img [ref=e57]
+              - generic [ref=e59]:
+                - heading "TasksFlow" [level=1] [ref=e60]
+                - paragraph [ref=e61]:
+                  - text: Автоматическая отправка задач уборщикам через
+                  - link "tasksflow.ru" [ref=e62] [cursor=pointer]:
+                    - /url: https://tasksflow.ru
+                    - text: tasksflow.ru
+                    - img [ref=e63]
+                  - text: . Синхронизация сотрудников автоматически создаёт отсутствующих людей в TasksFlow, а строки журнала уборки превращаются в recurring-задачи для уборщицы. Когда задача отмечена выполненной — клетка журнала проставляется автоматически.
+            - generic [ref=e67]:
+              - img [ref=e68]
+              - text: Подключено
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]: URL
+              - link "https://tasksflow.ru" [ref=e77] [cursor=pointer]:
+                - /url: https://tasksflow.ru
+                - text: https://tasksflow.ru
+                - img [ref=e78]
+            - generic [ref=e82]:
+              - generic [ref=e83]: Ключ
+              - generic [ref=e85]: tfk_DpDlWdxc…
+            - generic [ref=e86]:
+              - generic [ref=e87]: Компания в TasksFlow
+              - generic [ref=e89]: "#9"
+            - generic [ref=e90]:
+              - generic [ref=e91]: Метка
+              - generic [ref=e92]: —
+            - generic [ref=e93]:
+              - generic [ref=e94]: Связано сотрудников
+              - generic [ref=e95]: "6"
+            - generic [ref=e96]:
+              - generic [ref=e97]: Активных задач
+              - generic [ref=e98]: "0"
+            - generic [ref=e99]:
+              - generic [ref=e100]: Последняя синхронизация
+              - generic [ref=e101]: 25.04.2026, 22:56:42
+            - generic [ref=e102]:
+              - generic [ref=e103]: Организация
+              - generic [ref=e104]: Кафе «QA-Тест 25-04»
+          - generic [ref=e105]:
+            - button "Синхронизировать сотрудников" [ref=e106]:
+              - img
+              - text: Синхронизировать сотрудников
+            - button "Отключить" [ref=e107]:
+              - img
+              - text: Отключить
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - img [ref=e110]
+            - heading "Сопоставление сотрудников" [level=2] [ref=e115]
+          - paragraph [ref=e116]:
+            - text: Синхронизация идёт по номеру телефона. Если сотрудник уже есть в TasksFlow, он свяжется автоматически. Если его там ещё нет, WeSetup создаст его в компании, к которой привязан API-ключ. Номер телефона должен быть в формате
+            - code [ref=e117]: +7XXXXXXXXXX
+            - text: — тогда синхронизация пройдет без ручной магии.
+          - table [ref=e119]:
+            - rowgroup [ref=e120]:
+              - row "Сотрудник Телефон TasksFlow Статус" [ref=e121]:
+                - columnheader "Сотрудник" [ref=e122]
+                - columnheader "Телефон" [ref=e123]
+                - columnheader "TasksFlow" [ref=e124]
+                - columnheader "Статус" [ref=e125]
+            - rowgroup [ref=e126]:
+              - 'row "Анна Менеджерова Управляющий +79992222201 #102 Связан" [ref=e127]':
+                - cell "Анна Менеджерова Управляющий" [ref=e128]:
+                  - generic [ref=e129]: Анна Менеджерова
+                  - generic [ref=e130]: Управляющий
+                - cell "+79992222201" [ref=e131]
+                - cell "#102" [ref=e132]:
+                  - generic [ref=e133]: "#102"
+                - cell "Связан" [ref=e134]:
+                  - generic [ref=e135]: Связан
+              - 'row "Виктор Чистов Уборщик +79995555501 #107 Связан" [ref=e136]':
+                - cell "Виктор Чистов Уборщик" [ref=e137]:
+                  - generic [ref=e138]: Виктор Чистов
+                  - generic [ref=e139]: Уборщик
+                - cell "+79995555501" [ref=e140]
+                - cell "#107" [ref=e141]:
+                  - generic [ref=e142]: "#107"
+                - cell "Связан" [ref=e143]:
+                  - generic [ref=e144]: Связан
+              - 'row "Иван Поваров Повар +79993333301 #103 Связан" [ref=e145]':
+                - cell "Иван Поваров Повар" [ref=e146]:
+                  - generic [ref=e147]: Иван Поваров
+                  - generic [ref=e148]: Повар
+                - cell "+79993333301" [ref=e149]
+                - cell "#103" [ref=e150]:
+                  - generic [ref=e151]: "#103"
+                - cell "Связан" [ref=e152]:
+                  - generic [ref=e153]: Связан
+              - row "Иван Тестовый +79991234567 — Не синхронизирован" [ref=e154]:
+                - cell "Иван Тестовый" [ref=e155]:
+                  - generic [ref=e156]: Иван Тестовый
+                - cell "+79991234567" [ref=e157]
+                - cell "—" [ref=e158]
+                - cell "Не синхронизирован" [ref=e159]:
+                  - generic [ref=e160]: Не синхронизирован
+              - 'row "Мария Чайкова Официант +79994444401 #104 Связан" [ref=e161]':
+                - cell "Мария Чайкова Официант" [ref=e162]:
+                  - generic [ref=e163]: Мария Чайкова
+                  - generic [ref=e164]: Официант
+                - cell "+79994444401" [ref=e165]
+                - cell "#104" [ref=e166]:
+                  - generic [ref=e167]: "#104"
+                - cell "Связан" [ref=e168]:
+                  - generic [ref=e169]: Связан
+              - 'row "Ольга Кашина Повар +79993333302 #105 Связан" [ref=e170]':
+                - cell "Ольга Кашина Повар" [ref=e171]:
+                  - generic [ref=e172]: Ольга Кашина
+                  - generic [ref=e173]: Повар
+                - cell "+79993333302" [ref=e174]
+                - cell "#105" [ref=e175]:
+                  - generic [ref=e176]: "#105"
+                - cell "Связан" [ref=e177]:
+                  - generic [ref=e178]: Связан
+              - 'row "Сергей Шефов Шеф-повар +79991111101 #106 Связан" [ref=e179]':
+                - cell "Сергей Шефов Шеф-повар" [ref=e180]:
+                  - generic [ref=e181]: Сергей Шефов
+                  - generic [ref=e182]: Шеф-повар
+                - cell "+79991111101" [ref=e183]
+                - cell "#106" [ref=e184]:
+                  - generic [ref=e185]: "#106"
+                - cell "Связан" [ref=e186]:
+                  - generic [ref=e187]: Связан
+        - generic [ref=e189]:
+          - img [ref=e190]
+          - generic [ref=e192]:
+            - heading "Не получилось связать 1 сотрудника" [level=2] [ref=e193]
+            - paragraph [ref=e194]: Смотрите точную причину по каждому сотруднику ниже. Часто дело в формате телефона или в отсутствии сотрудника в TasksFlow.
+            - list [ref=e195]:
+              - listitem [ref=e196]:
+                - generic [ref=e197]:
+                  - generic [ref=e198]: Иван Тестовый
+                  - generic [ref=e199]: "+79991234567"
+                  - generic [ref=e200]: HTTP 400
+                - generic [ref=e201]: "Ошибка создания: TasksFlow 400 on https://tasksflow.ru/api/users: Пользователь с таким номером уже существует"
+                - generic [ref=e202]:
+                  - button "Скопировать телефон" [ref=e203]:
+                    - img [ref=e204]
+                    - text: Скопировать телефон
+                  - button "Скопировать ФИО" [ref=e209]:
+                    - img [ref=e210]
+                    - text: Скопировать ФИО
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e215]:
+        - img [ref=e217]
+        - generic [ref=e220]: "TasksFlow подключён. Связано 6 из 7. Создано в TasksFlow: 6, без телефона: 0, не связаны: 1. Не удалось создать 1 — см. детали ниже."
+  - alert [ref=e221]

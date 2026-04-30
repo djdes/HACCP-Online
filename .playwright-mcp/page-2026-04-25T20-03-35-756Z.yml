@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - img [ref=e5]
+    - heading "Что-то пошло не так" [level=1] [ref=e7]
+    - paragraph [ref=e8]: Мы уже знаем о проблеме. Попробуйте повторить действие или вернитесь на главную — обычно помогает.
+    - generic [ref=e9]:
+      - link "На главную" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - img [ref=e11]
+        - text: На главную
+      - button "Повторить" [ref=e13]:
+        - img [ref=e14]
+        - text: Повторить
+  - alert [ref=e17]

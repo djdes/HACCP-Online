@@ -1,0 +1,74 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "HACCP-Online" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e8]
+        - generic [ref=e11]: HACCP-Online
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - text: Бесплатно навсегда · без карты
+        - heading "Зарегистрируйте компанию за 2 минуты" [level=1] [ref=e17]
+        - paragraph [ref=e18]: Подтвердите email — и вся рутина ХАССП уже работает за вас. Приглашайте сотрудников, раздавайте доступ, собирайте подписи, печатайте в Роспотребнадзор.
+        - generic [ref=e19]:
+          - generic [ref=e20]: Что внутри — бесплатно
+          - list [ref=e21]:
+            - listitem [ref=e22]:
+              - img [ref=e23]
+              - generic [ref=e26]: Гигиенический журнал
+            - listitem [ref=e27]:
+              - img [ref=e28]
+              - generic [ref=e31]: Журнал здоровья
+            - listitem [ref=e32]:
+              - img [ref=e33]
+              - generic [ref=e36]: Бланк контроля температуры и влажности
+            - listitem [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e41]: Журнал контроля температурного режима холодильного и морозильного оборудования
+            - listitem [ref=e42]:
+              - img [ref=e43]
+              - generic [ref=e46]: Чек-лист уборки и проветривания помещений
+            - listitem [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e51]: Журнал уборки
+            - listitem [ref=e52]: …и ещё 29 журналов СанПиН и ХАССП
+        - generic [ref=e53]:
+          - generic [ref=e54]: © 2026 HACCP-Online
+          - link "Уже есть аккаунт — войти" [ref=e56] [cursor=pointer]:
+            - /url: /login
+    - main [ref=e57]:
+      - generic [ref=e58]:
+        - list [ref=e59]:
+          - listitem [ref=e60]:
+            - img [ref=e106]
+            - generic [ref=e62]:
+              - generic [ref=e63]: Компания
+              - generic [ref=e64]: название, email, пароль
+          - listitem [ref=e66]:
+            - generic [ref=e67]: "2"
+            - generic [ref=e68]:
+              - generic [ref=e69]: Код
+              - generic [ref=e70]: из письма
+        - heading "Подтверждение email" [level=2] [ref=e109]
+        - paragraph [ref=e72]: Мы отправили код на bugdenes+wesetupqa2604@gmail.com. После подтверждения откроется доступ ко всем журналам — бесплатно.
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - paragraph [ref=e112]: Dev-режим · SMTP не настроен
+            - paragraph [ref=e113]: "555637"
+            - paragraph [ref=e114]: Письмо не отправлено, код показан здесь. В проде — придёт на email.
+          - generic [ref=e115]:
+            - generic [ref=e116]: Код подтверждения
+            - textbox "Код подтверждения Код действителен 10 минут. Не получили? Попробуйте ещё раз или проверьте папку «Спам»." [active] [ref=e117]:
+              - /placeholder: ••••••
+            - paragraph [ref=e118]: Код действителен 10 минут. Не получили? Попробуйте ещё раз или проверьте папку «Спам».
+          - generic [ref=e119]:
+            - button "Изменить данные" [ref=e120]:
+              - img [ref=e121]
+              - text: Изменить данные
+            - button "Создать аккаунт" [ref=e123]:
+              - generic [ref=e124]:
+                - text: Создать аккаунт
+                - img [ref=e125]
+        - paragraph [ref=e104]: Регистрируясь, вы соглашаетесь с политикой обработки персональных данных.
+  - alert [ref=e105]

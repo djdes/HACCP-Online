@@ -1,0 +1,21 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-calibration MNYQDT6C",
+  "data": {
+    "documentDate": "2026-04-14",
+    "approveRole": "EXT2 equipment-calibration MNYQDT6C",
+    "approveEmployee": "EXT2 equipment-calibration MNYQDT6C",
+    "rows": [
+      {
+        "equipmentName": "EXT2 equipment-calibration MNYQDT6C",
+        "equipmentNumber": "EQ-42",
+        "location": "EXT2 equipment-calibration MNYQDT6C",
+        "purpose": "EXT2 equipment-calibration MNYQDT6C",
+        "measurementRange": "EXT2 equipment-calibration MNYQDT6C",
+        "calibrationInterval": 12,
+        "lastCalibrationDate": "2026-04-14",
+        "note": "EXT2 equipment-calibration MNYQDT6C"
+      }
+    ]
+  }
+}

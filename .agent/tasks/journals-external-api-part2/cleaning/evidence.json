@@ -1,0 +1,28 @@
+{
+  "code": "cleaning",
+  "documentId": "cmnyono7r002z08ts9vf9a6xq",
+  "date": "2026-04-14",
+  "marker": "EXT2 cleaning MNYQDD6H",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyono7r002z08ts9vf9a6xq",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "cleaning"
+  },
+  "expectedUi": [
+    "T",
+    "C1"
+  ],
+  "expectedPdf": [
+    "T",
+    "C1"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 476975
+}

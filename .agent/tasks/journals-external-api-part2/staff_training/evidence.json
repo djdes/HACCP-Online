@@ -1,0 +1,26 @@
+{
+  "code": "staff_training",
+  "documentId": "cmnyodrnb007zootsdgu2bhje",
+  "date": "2026-04-14",
+  "marker": "EXT2 staff-training MNYQEQKH",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrnb007zootsdgu2bhje",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "staff_training"
+  },
+  "expectedUi": [
+    "EXT2 staff-training MNYQEQKH"
+  ],
+  "expectedPdf": [
+    "EXT2 staff-training MNYQEQKH"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 431837
+}

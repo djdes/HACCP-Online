@@ -1,0 +1,217 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - generic "Build:" [ref=e7]: ...
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+          - button "Обратная связь" [ref=e33]:
+            - img
+            - generic [ref=e34]: Обратная связь
+          - link "Настройки" [ref=e35] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e36]
+          - button "Выйти" [ref=e39]:
+            - img [ref=e40]
+          - button "Профиль" [ref=e43]:
+            - generic [ref=e45]: ИТ
+    - main [ref=e46]:
+      - generic [ref=e47]:
+        - link "Настройки" [ref=e48] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e49]
+          - text: Настройки
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - img [ref=e56]
+              - generic [ref=e61]:
+                - heading "Сотрудники" [level=1] [ref=e62]
+                - paragraph [ref=e63]: Кафе «QA-Тест 25-04» · настройка должностей и графиков для автозаполнения Гигиенического журнала.
+            - button "Инструкция" [ref=e64]:
+              - img [ref=e65]
+              - text: Инструкция
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - generic [ref=e69]: "1"
+              - generic [ref=e70]: Всего
+            - generic [ref=e71]:
+              - generic [ref=e72]: "0"
+              - generic [ref=e73]: Должностей
+            - generic [ref=e74]:
+              - generic [ref=e75]: "0"
+              - generic [ref=e76]: Сейчас в отпуске
+            - generic [ref=e77]:
+              - generic [ref=e78]: "0"
+              - generic [ref=e79]: На больничном
+        - generic [ref=e80]:
+          - button "Кафе «QA-Тест 25-04»" [ref=e81]:
+            - generic [ref=e82]: Кафе «QA-Тест 25-04»
+            - img [ref=e83]
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - button "Руководство 0" [ref=e88]:
+                  - img [ref=e90]
+                  - text: Руководство
+                  - generic [ref=e95]: "0"
+                  - img [ref=e96]
+                - button "Добавить должность" [ref=e98]:
+                  - img [ref=e99]
+              - paragraph [ref=e101]: Пока нет должностей. Нажмите +, чтобы добавить.
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - button "Сотрудники 0" [ref=e104]:
+                  - img [ref=e106]
+                  - text: Сотрудники
+                  - generic [ref=e111]: "0"
+                  - img [ref=e112]
+                - button "Добавить должность" [ref=e114]:
+                  - img [ref=e115]
+              - paragraph [ref=e117]: Пока нет должностей. Нажмите +, чтобы добавить.
+        - generic [ref=e119]:
+          - button "График выходных дней" [ref=e120]: График выходных дней
+          - button "График отпусков" [ref=e122]
+          - button "График больничных" [ref=e123]
+          - button "График увольнений" [ref=e124]
+        - generic [ref=e125]:
+          - heading "График выходных дней" [level=2] [ref=e126]
+          - generic [ref=e127]:
+            - paragraph [ref=e128]: Данный график заполняется ТОЛЬКО для того, чтобы автоматически заполнять Гигиенический журнал. Ни на какие другие журналы данная настройка не влияет.
+            - paragraph [ref=e129]: Если поставить здесь отметку, то при Автозаполнении в Гигиеническом журнале поставится значение "В"
+          - generic [ref=e130]:
+            - generic [ref=e132] [cursor=pointer]:
+              - checkbox "Фамилии сотрудников по алфавиту" [checked] [ref=e134]
+              - generic [ref=e136]: Фамилии сотрудников по алфавиту
+            - button "Заполнить выходные дни из Айко" [ref=e137]:
+              - img
+              - text: Заполнить выходные дни из Айко
+            - table [ref=e139]:
+              - rowgroup [ref=e140]:
+                - row "Ф.И.О. работника Должность 25.04 Сб. 26.04 Вс. 27.04 Пн. 28.04 Вт. 29.04 Ср. 30.04 Чт. 01.05 Пт. 02.05 Сб. 03.05 Вс. 04.05 Пн. 05.05 Вт. 06.05 Ср. 07.05 Чт. 08.05 Пт. 09.05 Сб. 10.05 Вс. 11.05 Пн. 12.05 Вт. 13.05 Ср. 14.05 Чт." [ref=e141]:
+                  - columnheader "Ф.И.О. работника" [ref=e142]
+                  - columnheader "Должность" [ref=e143]
+                  - columnheader "25.04 Сб." [ref=e144]:
+                    - generic [ref=e145]: "25.04"
+                    - generic [ref=e146]: Сб.
+                  - columnheader "26.04 Вс." [ref=e147]:
+                    - generic [ref=e148]: "26.04"
+                    - generic [ref=e149]: Вс.
+                  - columnheader "27.04 Пн." [ref=e150]:
+                    - generic [ref=e151]: "27.04"
+                    - generic [ref=e152]: Пн.
+                  - columnheader "28.04 Вт." [ref=e153]:
+                    - generic [ref=e154]: "28.04"
+                    - generic [ref=e155]: Вт.
+                  - columnheader "29.04 Ср." [ref=e156]:
+                    - generic [ref=e157]: "29.04"
+                    - generic [ref=e158]: Ср.
+                  - columnheader "30.04 Чт." [ref=e159]:
+                    - generic [ref=e160]: "30.04"
+                    - generic [ref=e161]: Чт.
+                  - columnheader "01.05 Пт." [ref=e162]:
+                    - generic [ref=e163]: "01.05"
+                    - generic [ref=e164]: Пт.
+                  - columnheader "02.05 Сб." [ref=e165]:
+                    - generic [ref=e166]: "02.05"
+                    - generic [ref=e167]: Сб.
+                  - columnheader "03.05 Вс." [ref=e168]:
+                    - generic [ref=e169]: "03.05"
+                    - generic [ref=e170]: Вс.
+                  - columnheader "04.05 Пн." [ref=e171]:
+                    - generic [ref=e172]: "04.05"
+                    - generic [ref=e173]: Пн.
+                  - columnheader "05.05 Вт." [ref=e174]:
+                    - generic [ref=e175]: "05.05"
+                    - generic [ref=e176]: Вт.
+                  - columnheader "06.05 Ср." [ref=e177]:
+                    - generic [ref=e178]: "06.05"
+                    - generic [ref=e179]: Ср.
+                  - columnheader "07.05 Чт." [ref=e180]:
+                    - generic [ref=e181]: "07.05"
+                    - generic [ref=e182]: Чт.
+                  - columnheader "08.05 Пт." [ref=e183]:
+                    - generic [ref=e184]: "08.05"
+                    - generic [ref=e185]: Пт.
+                  - columnheader "09.05 Сб." [ref=e186]:
+                    - generic [ref=e187]: "09.05"
+                    - generic [ref=e188]: Сб.
+                  - columnheader "10.05 Вс." [ref=e189]:
+                    - generic [ref=e190]: "10.05"
+                    - generic [ref=e191]: Вс.
+                  - columnheader "11.05 Пн." [ref=e192]:
+                    - generic [ref=e193]: "11.05"
+                    - generic [ref=e194]: Пн.
+                  - columnheader "12.05 Вт." [ref=e195]:
+                    - generic [ref=e196]: "12.05"
+                    - generic [ref=e197]: Вт.
+                  - columnheader "13.05 Ср." [ref=e198]:
+                    - generic [ref=e199]: "13.05"
+                    - generic [ref=e200]: Ср.
+                  - columnheader "14.05 Чт." [ref=e201]:
+                    - generic [ref=e202]: "14.05"
+                    - generic [ref=e203]: Чт.
+              - rowgroup [ref=e204]:
+                - row "Иван Тестовый —" [ref=e205]:
+                  - cell "Иван Тестовый" [ref=e206]
+                  - cell "—" [ref=e207]
+                  - cell [ref=e208]:
+                    - checkbox [ref=e209] [cursor=pointer]
+                  - cell [ref=e210]:
+                    - checkbox [ref=e211] [cursor=pointer]
+                  - cell [ref=e212]:
+                    - checkbox [ref=e213] [cursor=pointer]
+                  - cell [ref=e214]:
+                    - checkbox [ref=e215] [cursor=pointer]
+                  - cell [ref=e216]:
+                    - checkbox [ref=e217] [cursor=pointer]
+                  - cell [ref=e218]:
+                    - checkbox [ref=e219] [cursor=pointer]
+                  - cell [ref=e220]:
+                    - checkbox [ref=e221] [cursor=pointer]
+                  - cell [ref=e222]:
+                    - checkbox [ref=e223] [cursor=pointer]
+                  - cell [ref=e224]:
+                    - checkbox [ref=e225] [cursor=pointer]
+                  - cell [ref=e226]:
+                    - checkbox [ref=e227] [cursor=pointer]
+                  - cell [ref=e228]:
+                    - checkbox [ref=e229] [cursor=pointer]
+                  - cell [ref=e230]:
+                    - checkbox [ref=e231] [cursor=pointer]
+                  - cell [ref=e232]:
+                    - checkbox [ref=e233] [cursor=pointer]
+                  - cell [ref=e234]:
+                    - checkbox [ref=e235] [cursor=pointer]
+                  - cell [ref=e236]:
+                    - checkbox [ref=e237] [cursor=pointer]
+                  - cell [ref=e238]:
+                    - checkbox [ref=e239] [cursor=pointer]
+                  - cell [ref=e240]:
+                    - checkbox [ref=e241] [cursor=pointer]
+                  - cell [ref=e242]:
+                    - checkbox [ref=e243] [cursor=pointer]
+                  - cell [ref=e244]:
+                    - checkbox [ref=e245] [cursor=pointer]
+                  - cell [ref=e246]:
+                    - checkbox [ref=e247] [cursor=pointer]
+            - generic [ref=e248]: Выходные — суббота и воскресенье подсвечены светло-жёлтым
+  - region "Notifications alt+T"
+  - alert [ref=e250]

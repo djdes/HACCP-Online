@@ -1,0 +1,46 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 general-cleaning MNYQE19L",
+  "data": {
+    "year": 2026,
+    "documentDate": "2026-01-01",
+    "approveRole": "EXT2 general-cleaning MNYQE19L",
+    "approveEmployee": "EXT2 general-cleaning MNYQE19L",
+    "responsibleRole": "EXT2 general-cleaning MNYQE19L",
+    "responsibleEmployee": "EXT2 general-cleaning MNYQE19L",
+    "rows": [
+      {
+        "id": "ext-general-cleaning-row",
+        "roomName": "EXT2 general-cleaning MNYQE19L",
+        "plan": {
+          "jan": "13",
+          "feb": "",
+          "mar": "",
+          "apr": "",
+          "may": "",
+          "jun": "",
+          "jul": "",
+          "aug": "",
+          "sep": "",
+          "oct": "",
+          "nov": "",
+          "dec": ""
+        },
+        "fact": {
+          "jan": "13",
+          "feb": "",
+          "mar": "",
+          "apr": "",
+          "may": "",
+          "jun": "",
+          "jul": "",
+          "aug": "",
+          "sep": "",
+          "oct": "",
+          "nov": "",
+          "dec": ""
+        }
+      }
+    ]
+  }
+}

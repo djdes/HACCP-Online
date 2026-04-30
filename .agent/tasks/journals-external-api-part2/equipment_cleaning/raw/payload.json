@@ -1,0 +1,19 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-cleaning MNYQDUQ3",
+  "data": {
+    "washDate": "2026-04-14",
+    "washTime": "07:12",
+    "equipmentName": "EXT2 equipment-cleaning MNYQDUQ3",
+    "detergentName": "EXT2 equipment-cleaning MNYQDUQ3",
+    "detergentConcentration": "1%",
+    "disinfectantName": "EXT2 equipment-cleaning MNYQDUQ3",
+    "disinfectantConcentration": "0.5%",
+    "rinseTemperature": "78",
+    "rinseResult": "compliant",
+    "washerPosition": "EXT2 equipment-cleaning MNYQDUQ3",
+    "washerName": "EXT2 equipment-cleaning MNYQDUQ3",
+    "controllerPosition": "EXT2 equipment-cleaning MNYQDUQ3",
+    "controllerName": "EXT2 equipment-cleaning MNYQDUQ3"
+  }
+}

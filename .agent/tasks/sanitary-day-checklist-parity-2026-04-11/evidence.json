@@ -1,0 +1,60 @@
+{
+  "task_id": "sanitary-day-checklist-parity-2026-04-11",
+  "journal": "Чек-лист уборки и проветривания помещений",
+  "checks": [
+    {
+      "name": "eslint-dedicated-clients",
+      "status": "PASS",
+      "command": "cmd /c npx eslint \"src/components/journals/cleaning-ventilation-checklist-document-client.tsx\" \"src/components/journals/cleaning-ventilation-checklist-documents-client.tsx\" --max-warnings=0"
+    },
+    {
+      "name": "tsc-global",
+      "status": "BLOCKED",
+      "command": "npx tsc --noEmit --pretty false",
+      "details": "Pre-existing repo error in src/app/api/journal-documents/[id]/entries/route.ts about Prisma.JsonNull type usage."
+    },
+    {
+      "name": "next-build-local",
+      "status": "BLOCKED",
+      "command": "npm run build",
+      "details": "Workspace .next/lock access denied while creating/acquiring lockfile."
+    },
+    {
+      "name": "prod-build-sha",
+      "status": "PASS",
+      "value": "27d911a8ee19a5e03536955e61bf518eddf3eb78"
+    },
+    {
+      "name": "prod-build-time",
+      "status": "PASS",
+      "value": "2026-04-11T18:54:01Z"
+    },
+    {
+      "name": "prod-pm2",
+      "status": "PASS",
+      "value": "haccp-online online"
+    },
+    {
+      "name": "prod-http",
+      "status": "PASS",
+      "value": "HTTP/1.1 307 Temporary Redirect"
+    }
+  ],
+  "acceptance_criteria": [
+    { "id": "AC1", "status": "PASS" },
+    { "id": "AC2", "status": "PASS" },
+    { "id": "AC3", "status": "PASS" },
+    { "id": "AC4", "status": "PASS" },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "note": "Production build and deploy verified despite local .next lock issue."
+    },
+    { "id": "AC6", "status": "PASS" }
+  ],
+  "deploy": {
+    "commit": "27d911a8ee19a5e03536955e61bf518eddf3eb78",
+    "pushed": true,
+    "production_confirmed": true
+  }
+}

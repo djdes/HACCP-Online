@@ -1,0 +1,789 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-27",
+  "baseUrl": "https://wesetup.ru",
+  "notes": "PASS-критерий per feature смотри в docs/QA_LOOP_PLAN.md (раздел «Виды тестов»). Каждый объект — одна фича из ночного roadmap'а. Проверять по cursor.",
+  "features": [
+    {
+      "id": "F-001",
+      "sha": "40cf90c",
+      "name": "cold-equipment deterministic seed ids",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/cold-equipment-document.ts" },
+        { "kind": "grep", "path": "src/lib/cold-equipment-document.ts", "needle": "cold-equipment-default-" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-002",
+      "sha": "a533af5",
+      "name": "tasksflow adapters: doc.config defensive normalization",
+      "type": "grep-multi",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/tasksflow-adapters/disinfectant-usage.ts" },
+        { "kind": "file-exists", "path": "src/lib/tasksflow-adapters/metal-impurity.ts" },
+        { "kind": "file-exists", "path": "src/lib/tasksflow-adapters/traceability.ts" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-003",
+      "sha": "b867baf",
+      "name": "B1 auto-CAPA + E3 strugglers leaderboard",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/capa", "expected": [200, 401, 307] },
+        { "kind": "endpoint-auth", "path": "/api/reports/strugglers", "expected": [200, 401, 307, 404] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-004",
+      "sha": "0cd32bd",
+      "name": "M1 look-ahead auto-create + F4 8 CAPA templates",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/auto-create-journals", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-005",
+      "sha": "294a8ad",
+      "name": "E2 weekday heatmap + E10 photo evidence rate + E5 top-losses + F2 first-login push",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/reports/weekday-heatmap", "expected": [200, 401, 307, 404] },
+        { "kind": "endpoint-auth", "path": "/api/reports/photo-rate", "expected": [200, 401, 307, 404] },
+        { "kind": "endpoint-auth", "path": "/api/losses/top", "expected": [200, 401, 307, 404] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-006",
+      "sha": "f5faa1d",
+      "name": "M3 purge audit log",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/purge-audit-log", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-007",
+      "sha": "44db292",
+      "name": "copy-id button + auto-archive cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/auto-archive-documents", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-008",
+      "sha": "fc39b61",
+      "name": "AI rate-limit + brute-force protection on login",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/rate-limit.ts" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-009",
+      "sha": "2c7d8f9",
+      "name": "A7 auto-fill HH:MM + A8/I8/I10",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/components/journals/dynamic-form.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-010",
+      "sha": "d779e82",
+      "name": "bulk-close CAPA + public /api/health",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/api/health", "expected": [200] },
+        { "kind": "endpoint-auth", "path": "/api/capa/bulk-close", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-011",
+      "sha": "9ca9ddf",
+      "name": "M6 auto-pause inactive orgs",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/auto-pause-inactive", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-012",
+      "sha": "9ca9ddf",
+      "name": "H8 self-service unsubscribe",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/subscription/cancel", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-013",
+      "sha": "e6fbe79",
+      "name": "J8 What's-new modal",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/components/dashboard/whats-new-modal.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-014",
+      "sha": "de6b7a1",
+      "name": "I2 audit-CSV export",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/audit/export", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-015",
+      "sha": "eaba420",
+      "name": "J4 print stylesheet + E7 compare-mode reports",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/(dashboard)/reports/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-016",
+      "sha": "27fbf98",
+      "name": "E6 weekly AI digest cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/weekly-ai-digest", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-017",
+      "sha": "1f54be2",
+      "name": "J5 ⌘K command palette",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/components/layout/command-palette.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-018",
+      "sha": "e29c202",
+      "name": "B5 person-by-person audit + F5 progress bar + H10 ROI calc",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/(dashboard)/reports/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-019",
+      "sha": "04ee3de",
+      "name": "N6 timezone-aware helpers + D2 Skeleton",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/timezone.ts" },
+        { "kind": "file-exists", "path": "src/components/ui/skeleton.tsx" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-020",
+      "sha": "0795581",
+      "name": "B3 auto-block at medbook >7d expiry + E1 line chart",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/(dashboard)/reports/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-021",
+      "sha": "7cb4eea",
+      "name": "J10 contextual help + I4 self-service org delete",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/organization/delete", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-022",
+      "sha": "eb64097",
+      "name": "D8 glow-loader + L9 auto-classify writeoff + L5 product-suggest + J7 focus deep-link",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/components/ui/glow-loader.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-023",
+      "sha": "6f737f1",
+      "name": "I3 GDPR ZIP export",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/organization/export", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-024",
+      "sha": "6f737f1",
+      "name": "I6 audit-helper + M10 holidays lib",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/holidays.ts" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-025",
+      "sha": "55433b0",
+      "name": "B6 inspector electronic signature",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/inspector/staff", "expected": [200, 401, 307, 404] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-026",
+      "sha": "8429cb5",
+      "name": "O5 «Знаток ХАССП» certificate PDF",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/certificate", "expected": [200, 401, 307, 404] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-027",
+      "sha": "3e1220c",
+      "name": "L1 predict-alerts cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/predict-alerts", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-028",
+      "sha": "3e1220c",
+      "name": "L2 anomaly-detect cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/anomaly-detect", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-029",
+      "sha": "3e1220c",
+      "name": "G10 husky pre-commit",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": ".husky/pre-commit" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-030",
+      "sha": "449a52a",
+      "name": "H1 white-label brand color + F8 sample reports",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/pricing", "expected": [200] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-031",
+      "sha": "f8d3c86",
+      "name": "L7 AI-translate (требует ANTHROPIC_API_KEY)",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/translate", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-032",
+      "sha": "dcbe69b",
+      "name": "L3 AI-генератор SOP (требует ANTHROPIC_API_KEY)",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/generate-sop", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-033",
+      "sha": "d7a7118",
+      "name": "/api/health reads .build-sha",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/api/health", "expected": [200] },
+        { "kind": "json-field", "path": "/api/health", "field": "buildSha" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-034",
+      "sha": "7b5cef5",
+      "name": "L4 AI-Vision photo check (требует ANTHROPIC_API_KEY)",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/check-photo", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-035",
+      "sha": "c62ad7e",
+      "name": "K10 outbound webhooks",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/webhooks", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-036",
+      "sha": "377d103",
+      "name": "B7 ХАССП-план PDF (требует ANTHROPIC_API_KEY)",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/haccp-plan", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-037",
+      "sha": "377d103",
+      "name": "B9 РПН-appendix ZIP",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/rpn-appendix", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-038",
+      "sha": "377d103",
+      "name": "H7 gift subscription codes",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/subscription/gift", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-039",
+      "sha": "eebcd65",
+      "name": "G1 dashboard cache + H4 partner program",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/partner", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-040",
+      "sha": "409fc0e",
+      "name": "O1 gamification goals",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/goals", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-041",
+      "sha": "c090939",
+      "name": "K10-test webhook test endpoint",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/webhooks/test", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-042",
+      "sha": "ce0b58d",
+      "name": "Weekly 1С export для бухгалтера",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/losses-export-1c", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-043",
+      "sha": "ce0b58d",
+      "name": "Accountant email setting",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/accountant-email", "expected": [200, 401, 307, 405] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-044",
+      "sha": "49a38fd",
+      "name": "Mini-app onboarding tour (3 экрана)",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/mini/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-045",
+      "sha": "a216abd",
+      "name": "DIY-датчики ESP32/Arduino через POST /api/external/sensors",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/external/sensors", "expected": [401, 405], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-046",
+      "sha": "e8b2b81",
+      "name": "IoT real-time CAPA trigger",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/api/external/sensors/route.ts" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-047",
+      "sha": "fada114",
+      "name": "Heatmap compliance на /reports",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/reports", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-048",
+      "sha": "23ff846",
+      "name": "TasksFlow auto-escalation cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/tasksflow-escalations", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-049",
+      "sha": "c3a34bc",
+      "name": "Shift-watcher cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/shift-watcher", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-050",
+      "sha": "c805800",
+      "name": "Auto-offboarding при деактивации сотрудника",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/api/staff/[id]/route.ts" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-051",
+      "sha": "158606c",
+      "name": "AI-подсказки в CAPA workflow",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/capa", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-052",
+      "sha": "4b1fdbc",
+      "name": "«Закрытый день» — read-only записей",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/closed-day.ts" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-053",
+      "sha": "e9671bb",
+      "name": "ROOT per-org metrics dashboard",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/root", "expected": [200, 401, 307, 404], "note": "404 by design for non-ROOT (middleware)" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-054",
+      "sha": "182ed9f",
+      "name": "Yandex.Disk auto-backup",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/yandex-backup", "expected": [401] },
+        { "kind": "endpoint-auth", "path": "/api/settings/yandex-backup", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-055",
+      "sha": "6f3f5eb",
+      "name": "Floating support widget",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/feedback", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-056",
+      "sha": "a7aca7a",
+      "name": "Telegram personalize {name}/{timeOfDay}/{dayOfWeek}",
+      "type": "file-exists",
+      "tests": [
+        { "kind": "file-exists", "path": "src/lib/telegram.ts" },
+        { "kind": "grep", "path": "src/lib/telegram.ts", "needle": "personalize" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-057",
+      "sha": "1937110",
+      "name": "ROOT impersonation audit-log table",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/root/audit", "expected": [200, 401, 307, 404] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-058",
+      "sha": "7688689",
+      "name": "Per-employee pricing с сетевыми скидками",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/pricing", "expected": [200] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-059",
+      "sha": "5525972",
+      "name": "Self-audit виджет «Здоровье настройки»",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/(dashboard)/dashboard/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-060",
+      "sha": "ce78013",
+      "name": "Nag-модалка про просроченные CAPA",
+      "type": "manual-only",
+      "tests": [
+        { "kind": "file-exists", "path": "src/app/(dashboard)/dashboard/page.tsx" }
+      ],
+      "status": "manual"
+    },
+    {
+      "id": "F-061",
+      "sha": "2516f2b",
+      "name": "DaData INN-lookup",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/api/public/inn-lookup?inn=7707083893", "expected": [200, 502, 503] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-062",
+      "sha": "36fc3dd",
+      "name": "AI free-tier rate-limit для чата",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/sanpin-chat", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-063",
+      "sha": "any",
+      "name": "Mini-digest cron (Telegram сводка)",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/mini-digest", "expected": [401, 405] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-064",
+      "sha": "any",
+      "name": "Compliance cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/compliance", "expected": [401, 405] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-065",
+      "sha": "any",
+      "name": "Expiry-alerts cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/expiry", "expected": [401, 405] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-066",
+      "sha": "any",
+      "name": "Auto-close-shifts cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/auto-close-shifts", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-067",
+      "sha": "any",
+      "name": "Reset-AI-quota cron (monthly)",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/reset-ai-quota", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-068",
+      "sha": "any",
+      "name": "Tuya-pull cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/tuya-pull", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-069",
+      "sha": "any",
+      "name": "Weekly-digest cron",
+      "type": "cron-secret",
+      "tests": [
+        { "kind": "cron-secret", "path": "/api/cron/weekly-digest", "expected": [401] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-070",
+      "sha": "any",
+      "name": "Inspector-tokens settings",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/inspector-tokens", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-071",
+      "sha": "any",
+      "name": "External-token settings",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/external-token", "expected": [200, 401, 307] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-072",
+      "sha": "any",
+      "name": "Settings compliance overview",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/compliance", "expected": [200, 401, 307, 405] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "F-073",
+      "sha": "any",
+      "name": "AI period-report (требует ключ)",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/ai/period-report", "expected": [401, 405, 503], "method": "POST" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "BUGFIX-001",
+      "sha": "40cf90c",
+      "name": "Cold-equipment validator UUID divergence fix (deterministic ids)",
+      "type": "grep",
+      "tests": [
+        { "kind": "grep", "path": "src/lib/cold-equipment-document.ts", "needle": "cold-equipment-default-${idx}" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "BUGFIX-002",
+      "sha": "a533af5",
+      "name": "Tasksflow adapters config={} resilience",
+      "type": "grep",
+      "tests": [
+        { "kind": "grep", "path": "src/lib/tasksflow-adapters/disinfectant-usage.ts", "needle": "doc.config ?? {}" }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "BUGFIX-003",
+      "sha": "d7a7118",
+      "name": "Health endpoint reads correct .build-sha file",
+      "type": "endpoint-public",
+      "tests": [
+        { "kind": "endpoint-public", "path": "/api/health", "expected": [200] }
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "BUGFIX-004",
+      "sha": "456653e",
+      "name": "Re-deploy after SCP failure for J10/I4",
+      "type": "endpoint-auth",
+      "tests": [
+        { "kind": "endpoint-auth", "path": "/api/settings/organization/delete", "expected": [401, 405, 307], "method": "POST" }
+      ],
+      "status": "pass"
+    }
+  ]
+}

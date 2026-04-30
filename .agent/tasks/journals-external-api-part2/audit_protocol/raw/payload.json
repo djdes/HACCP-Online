@@ -1,0 +1,31 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 audit-protocol MNYQD8E9",
+  "data": {
+    "documentDate": "2026-04-14",
+    "basisTitle": "EXT2 audit-protocol MNYQD8E9",
+    "auditedObject": "EXT2 audit-protocol MNYQD8E9",
+    "sections": [
+      {
+        "id": "s1",
+        "title": "EXT2 audit-protocol MNYQD8E9"
+      }
+    ],
+    "rows": [
+      {
+        "id": "r1",
+        "sectionId": "s1",
+        "text": "EXT2 audit-protocol MNYQD8E9",
+        "result": "yes",
+        "note": "EXT2 audit-protocol MNYQD8E9"
+      }
+    ],
+    "signatures": [
+      {
+        "name": "EXT2 audit-protocol MNYQD8E9",
+        "role": "EXT2 audit-protocol MNYQD8E9",
+        "signedAt": "2026-04-14"
+      }
+    ]
+  }
+}

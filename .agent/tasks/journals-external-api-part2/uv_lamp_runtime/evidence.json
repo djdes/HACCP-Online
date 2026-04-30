@@ -1,0 +1,28 @@
+{
+  "code": "uv_lamp_runtime",
+  "documentId": "cmnyodrmj007eootszhwxywvm",
+  "date": "2026-04-14",
+  "marker": "EXT2 uv-lamp-runtime MNYQEV6I",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrmj007eootszhwxywvm",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "uv_lamp_runtime"
+  },
+  "expectedUi": [
+    "09:00",
+    "09:37"
+  ],
+  "expectedPdf": [
+    "09:00",
+    "09:37"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 453708
+}

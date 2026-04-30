@@ -1,0 +1,32 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "На главный экран" [ref=e5] [cursor=pointer]:
+          - /url: /mini
+          - generic [ref=e7]: W
+          - generic [ref=e9]:
+            - generic [ref=e10]: WESETUP · HACCP
+            - generic [ref=e11]: Кабинет
+        - generic [ref=e12]:
+          - generic [ref=e13]: 16:01:52
+          - link "Профиль" [ref=e14] [cursor=pointer]:
+            - /url: /mini/me
+            - img [ref=e15]
+    - main [ref=e18]:
+      - generic [ref=e20]:
+        - img [ref=e21]
+        - heading "Откройте внутри Telegram" [level=1] [ref=e23]
+        - paragraph [ref=e24]: Рабочий кабинет сотрудника доступен только как Mini App в Telegram. Попросите у руководителя персональную ссылку-приглашение.
+    - dialog [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - img [ref=e29]
+          - button "Закрыть" [ref=e32]:
+            - img [ref=e33]
+        - heading "Здесь — ваши задачи на сегодня" [level=2] [ref=e36]
+        - paragraph [ref=e37]: На главной видны журналы, которые надо заполнить. Тапните на карточку → откроется простая форма с галочками и температурами.
+        - button "Далее" [ref=e43]:
+          - text: Далее
+          - img [ref=e44]
+  - alert [ref=e46]

@@ -1,0 +1,2 @@
+[      94ms] [LOG] SW registered: https://tasksflow.ru/ @ https://tasksflow.ru/dashboard:41
+[     305ms] [WARNING] Error while trying to use the following icon from the Manifest: https://tasksflow.ru/favicon.png (Resource size is not correct - typo in the Manifest?) @ https://tasksflow.ru/dashboard:0

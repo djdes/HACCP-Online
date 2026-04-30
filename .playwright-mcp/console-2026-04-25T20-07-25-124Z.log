@@ -1,0 +1,31 @@
+[     566ms] [LOG] [Telegram.WebView] > postEvent web_app_set_header_color {color_key: bg_color} @ https://telegram.org/js/telegram-web-app.js:134
+[     567ms] [LOG] [Telegram.WebView] > postEvent web_app_set_bottom_bar_color {color: #ffffff} @ https://telegram.org/js/telegram-web-app.js:134
+[     567ms] [LOG] [Telegram.WebView] > postEvent web_app_request_theme  @ https://telegram.org/js/telegram-web-app.js:134
+[     567ms] [LOG] [Telegram.WebView] > postEvent web_app_request_viewport  @ https://telegram.org/js/telegram-web-app.js:134
+[     567ms] [LOG] [Telegram.WebView] > postEvent web_app_request_safe_area  @ https://telegram.org/js/telegram-web-app.js:134
+[     567ms] [LOG] [Telegram.WebView] > postEvent web_app_request_content_safe_area  @ https://telegram.org/js/telegram-web-app.js:134
+[     607ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/mini:0
+[     624ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:45832)
+    at rX (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:46865)
+    at https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:140584
+    at sp (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:145745)
+    at sc (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:137085)
+    at https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:131914
+    at u9 (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:132015)
+    at sV (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:158397)
+    at MessagePort.O (https://wesetup.ru/_next/static/chunks/961311cbebbffb6d.js:1:7356)
+[     634ms] [LOG] [Telegram.WebView] > postEvent web_app_ready  @ https://telegram.org/js/telegram-web-app.js:134
+[     635ms] [LOG] [Telegram.WebView] > postEvent web_app_expand  @ https://telegram.org/js/telegram-web-app.js:134
+[     636ms] [WARNING] [Telegram.WebApp] Closing confirmation is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:592
+[     636ms] [WARNING] [Telegram.WebApp] Header color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:763
+[     637ms] [WARNING] [Telegram.WebApp] Background color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:819
+[     641ms] [WARNING] [Telegram.WebApp] Header color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:763
+[     641ms] [WARNING] [Telegram.WebApp] Background color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:819
+[     654ms] [WARNING] [Telegram.WebApp] Header color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:763
+[     655ms] [WARNING] [Telegram.WebApp] Background color is not supported in version 6.0 @ https://telegram.org/js/telegram-web-app.js:819
+[     687ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[     690ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/mini:0
+[     690ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/mini:0
+[     736ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[     743ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/mini:0

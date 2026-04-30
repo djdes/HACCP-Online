@@ -1,0 +1,125 @@
+{"level":"info","time":"2026-04-20T12:29:30.179Z","pid":70352,"hostname":"BSQL","nodeEnv":"production","msg":"Starting server"}
+{"level":"info","time":"2026-04-20T12:29:30.180Z","pid":70352,"hostname":"BSQL","msg":"Using production mode - serving static files"}
+{"level":"info","time":"2026-04-20T12:29:30.191Z","pid":70352,"hostname":"BSQL","port":5001,"msg":"Server listening"}
+{"level":"info","time":"2026-04-20T12:29:56.241Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":200,"duration":20,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010010', name: 'Крылов Денис Сергеевич' }
+Parsed input: { phone: '+79990010010', name: 'Крылов Денис Сергеевич' }
+{"level":"info","time":"2026-04-20T12:29:56.898Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":629,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010011', name: 'Лебедева Марина Олеговна' }
+Parsed input: { phone: '+79990010011', name: 'Лебедева Марина Олеговна' }
+{"level":"info","time":"2026-04-20T12:29:56.913Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010012', name: 'Соколова Анна Викторовна' }
+Parsed input: { phone: '+79990010012', name: 'Соколова Анна Викторовна' }
+{"level":"info","time":"2026-04-20T12:29:56.929Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010013', name: 'Мельников Роман Игоревич' }
+Parsed input: { phone: '+79990010013', name: 'Мельников Роман Игоревич' }
+{"level":"info","time":"2026-04-20T12:29:56.943Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010014', name: 'Кузнецов Артем Валерьевич' }
+Parsed input: { phone: '+79990010014', name: 'Кузнецов Артем Валерьевич' }
+{"level":"info","time":"2026-04-20T12:29:56.957Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010015', name: 'Ермакова Нина Сергеевна' }
+Parsed input: { phone: '+79990010015', name: 'Ермакова Нина Сергеевна' }
+{"level":"info","time":"2026-04-20T12:29:56.972Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010016', name: 'Титов Максим Андреевич' }
+Parsed input: { phone: '+79990010016', name: 'Титов Максим Андреевич' }
+{"level":"info","time":"2026-04-20T12:29:56.987Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010017', name: 'Морозов Илья Андреевич' }
+Parsed input: { phone: '+79990010017', name: 'Морозов Илья Андреевич' }
+{"level":"info","time":"2026-04-20T12:29:57.001Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010018', name: 'Кузнецов Павел Игоревич' }
+Parsed input: { phone: '+79990010018', name: 'Кузнецов Павел Игоревич' }
+{"level":"info","time":"2026-04-20T12:29:57.015Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010019', name: 'Волкова Анна Дмитриевна' }
+Parsed input: { phone: '+79990010019', name: 'Волкова Анна Дмитриевна' }
+{"level":"info","time":"2026-04-20T12:29:57.029Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010020', name: 'Соколов Андрей Викторович' }
+Parsed input: { phone: '+79990010020', name: 'Соколов Андрей Викторович' }
+{"level":"info","time":"2026-04-20T12:29:57.040Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010021', name: 'Орлов Илья Максимович' }
+Parsed input: { phone: '+79990010021', name: 'Орлов Илья Максимович' }
+{"level":"info","time":"2026-04-20T12:29:57.051Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010022', name: 'Федорова Мария Романовна' }
+Parsed input: { phone: '+79990010022', name: 'Федорова Мария Романовна' }
+{"level":"info","time":"2026-04-20T12:29:57.063Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010023', name: 'Мельникова Софья Романовна' }
+Parsed input: { phone: '+79990010023', name: 'Мельникова Софья Романовна' }
+{"level":"info","time":"2026-04-20T12:29:57.074Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010024', name: 'Ларионова Елена Сергеевна' }
+Parsed input: { phone: '+79990010024', name: 'Ларионова Елена Сергеевна' }
+{"level":"info","time":"2026-04-20T12:29:57.086Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010025', name: 'Смирнова Марина Михайловна' }
+Parsed input: { phone: '+79990010025', name: 'Смирнова Марина Михайловна' }
+{"level":"info","time":"2026-04-20T12:29:57.096Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010026', name: 'Демин Кирилл Олегович' }
+Parsed input: { phone: '+79990010026', name: 'Демин Кирилл Олегович' }
+{"level":"info","time":"2026-04-20T12:29:57.106Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010027', name: 'Егорова Нина Викторовна' }
+Parsed input: { phone: '+79990010027', name: 'Егорова Нина Викторовна' }
+{"level":"info","time":"2026-04-20T12:29:57.123Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":13,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010028', name: 'Тихонов Артем Сергеевич' }
+Parsed input: { phone: '+79990010028', name: 'Тихонов Артем Сергеевич' }
+{"level":"info","time":"2026-04-20T12:29:57.134Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":8,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010029', name: 'Савельева Ирина Павловна' }
+Parsed input: { phone: '+79990010029', name: 'Савельева Ирина Павловна' }
+{"level":"info","time":"2026-04-20T12:29:57.146Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010030', name: 'Леонов Максим Валерьевич' }
+Parsed input: { phone: '+79990010030', name: 'Леонов Максим Валерьевич' }
+{"level":"info","time":"2026-04-20T12:29:57.156Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010031', name: 'Кузьмин Артем Сергеевич' }
+Parsed input: { phone: '+79990010031', name: 'Кузьмин Артем Сергеевич' }
+{"level":"info","time":"2026-04-20T12:29:57.166Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":7,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010032', name: 'Белова Елена Андреевна' }
+Parsed input: { phone: '+79990010032', name: 'Белова Елена Андреевна' }
+{"level":"info","time":"2026-04-20T12:29:57.178Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010034', name: 'Ефимов Роман Алексеевич' }
+Parsed input: { phone: '+79990010034', name: 'Ефимов Роман Алексеевич' }
+{"level":"info","time":"2026-04-20T12:29:57.187Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010035', name: 'Грачев Виктор Ильич' }
+Parsed input: { phone: '+79990010035', name: 'Грачев Виктор Ильич' }
+{"level":"info","time":"2026-04-20T12:29:57.197Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010036', name: 'Громова Алина Павловна' }
+Parsed input: { phone: '+79990010036', name: 'Громова Алина Павловна' }
+{"level":"info","time":"2026-04-20T12:29:57.209Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010037', name: 'Ермакова Нина Сергеевна' }
+Parsed input: { phone: '+79990010037', name: 'Ермакова Нина Сергеевна' }
+{"level":"info","time":"2026-04-20T12:29:57.217Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":5,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010038', name: 'Титов Максим Андреевич' }
+Parsed input: { phone: '+79990010038', name: 'Титов Максим Андреевич' }
+{"level":"info","time":"2026-04-20T12:29:57.226Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010050', name: 'ПАоаопо' }
+Parsed input: { phone: '+79990010050', name: 'ПАоаопо' }
+{"level":"info","time":"2026-04-20T12:29:57.238Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":9,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010051', name: 'm,m,m' }
+Parsed input: { phone: '+79990010051', name: 'm,m,m' }
+{"level":"info","time":"2026-04-20T12:29:57.248Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010058', name: 'Полба Никита Сергеевич' }
+Parsed input: { phone: '+79990010058', name: 'Полба Никита Сергеевич' }
+{"level":"info","time":"2026-04-20T12:29:57.258Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010059', name: 'лололоол' }
+Parsed input: { phone: '+79990010059', name: 'лололоол' }
+{"level":"info","time":"2026-04-20T12:29:57.270Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+Create user request body: { phone: '+79990010060', name: 'аппарапрапр' }
+Parsed input: { phone: '+79990010060', name: 'аппарапрапр' }
+{"level":"info","time":"2026-04-20T12:29:57.280Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/users","status":201,"duration":6,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:31:37.152Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":401,"duration":4,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:31:37.179Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":200,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:32:05.889Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":5,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:33.368Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:33.370Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:33.371Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/tasks","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:38.427Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":3,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:38.693Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":401,"duration":0,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:38.696Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/tasks","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:38.697Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":0,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:41.926Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":7,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:42.306Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:42.307Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/tasks","status":401,"duration":0,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:34:42.308Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:35:31.772Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":15,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:35:32.101Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/users","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:35:32.112Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/tasks","status":401,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:35:32.130Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":8,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:37:11.356Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":3,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:40:17.597Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":1,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:40:32.966Z","pid":70352,"hostname":"BSQL","module":"http","method":"POST","path":"/api/auth/login","status":200,"duration":2,"ip":"127.0.0.1"}
+{"level":"info","time":"2026-04-20T12:40:32.975Z","pid":70352,"hostname":"BSQL","module":"http","method":"GET","path":"/api/auth/me","status":304,"duration":0,"ip":"127.0.0.1"}

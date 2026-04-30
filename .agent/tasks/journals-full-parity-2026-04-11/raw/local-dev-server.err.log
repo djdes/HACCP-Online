@@ -1,0 +1,10 @@
+Custom login error: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at POST (src\app\api\auth\login\route.ts:61:32)
+  59 | export async function POST(request: Request) {
+  60 |   try {
+> 61 |     const body = await request.json();
+     |                                ^
+  62 |     const email = String(body?.email ?? "").trim().toLowerCase();
+  63 |     const password = String(body?.password ?? "");
+  64 |

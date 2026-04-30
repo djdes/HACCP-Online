@@ -1,0 +1,28 @@
+{
+  "code": "equipment_cleaning",
+  "documentId": "cmnyodrot008footsewlruur0",
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-cleaning MNYQDUQ3",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrot008footsewlruur0",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "equipment_cleaning"
+  },
+  "expectedUi": [
+    "EXT2 equipment-cleaning MNYQDUQ3",
+    "78"
+  ],
+  "expectedPdf": [
+    "EXT2 equipment-cleaning MNYQDUQ3",
+    "78"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 451823
+}

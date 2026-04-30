@@ -1,0 +1,27 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 training-plan MNYQETKS",
+  "data": {
+    "documentDate": "2026-04-14",
+    "approveRole": "EXT2 training-plan MNYQETKS",
+    "approveEmployee": "EXT2 training-plan MNYQETKS",
+    "topics": [
+      {
+        "id": "topic-1",
+        "name": "EXT2 training-plan MNYQETKS"
+      }
+    ],
+    "rows": [
+      {
+        "id": "row-1",
+        "positionName": "EXT2 training-plan MNYQETKS",
+        "cells": {
+          "topic-1": {
+            "required": true,
+            "date": "04.26"
+          }
+        }
+      }
+    ]
+  }
+}

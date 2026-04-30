@@ -1,0 +1,26 @@
+{
+  "code": "hygiene",
+  "documentId": "cmnyodrin000bootsej9rzpjo",
+  "date": "2026-04-14",
+  "marker": "EXT2 hygiene MNYQE84Q",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrin000bootsej9rzpjo",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "hygiene"
+  },
+  "expectedUi": [
+    "здоров"
+  ],
+  "expectedPdf": [
+    "здоров"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 526803
+}

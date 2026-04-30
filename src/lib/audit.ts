@@ -8,7 +8,11 @@ export type AuditAction =
   | "staff.add"
   | "staff.update"
   | "equipment.add"
-  | "equipment.update";
+  | "equipment.update"
+  | "journal_document.approve_all"
+  | "journal_document.reject_document"
+  | "journal_document.approve_cells"
+  | "journal_document.reject_cells";
 
 export async function logAudit(args: {
   organizationId: string;

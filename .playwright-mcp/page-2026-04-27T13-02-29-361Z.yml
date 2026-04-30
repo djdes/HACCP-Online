@@ -1,0 +1,66 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "На главный экран" [ref=e5] [cursor=pointer]:
+          - /url: /mini
+          - generic [ref=e7]: W
+          - generic [ref=e9]:
+            - generic [ref=e10]: WESETUP · HACCP
+            - generic [ref=e11]: Кабинет
+        - generic [ref=e12]:
+          - generic [ref=e13]: 16:02:28
+          - link "Профиль" [ref=e14] [cursor=pointer]:
+            - /url: /mini/me
+            - img [ref=e15]
+    - main [ref=e18]:
+      - generic [ref=e20]:
+        - img [ref=e21]
+        - heading "Откройте внутри Telegram" [level=1] [ref=e23]
+        - paragraph [ref=e24]: Рабочий кабинет сотрудника доступен только как Mini App в Telegram. Попросите у руководителя персональную ссылку-приглашение.
+    - navigation [ref=e47]:
+      - generic [ref=e48]:
+        - link "Главная" [ref=e49] [cursor=pointer]:
+          - /url: /mini
+          - img [ref=e50]
+          - generic [ref=e53]: Главная
+        - link "Сотрудники" [ref=e54] [cursor=pointer]:
+          - /url: /mini/staff
+          - img [ref=e55]
+          - generic [ref=e60]: Сотрудники
+        - link "Оборуд." [ref=e61] [cursor=pointer]:
+          - /url: /mini/equipment
+          - img [ref=e62]
+          - generic [ref=e66]: Оборуд.
+        - link "Отчёты" [ref=e67] [cursor=pointer]:
+          - /url: /mini/reports
+          - img [ref=e68]
+          - generic [ref=e71]: Отчёты
+        - link "Аудит" [ref=e72] [cursor=pointer]:
+          - /url: /mini/audit
+          - img [ref=e73]
+          - generic [ref=e76]: Аудит
+        - link "IoT" [ref=e77] [cursor=pointer]:
+          - /url: /mini/iot
+          - img [ref=e78]
+          - generic [ref=e81]: IoT
+        - link "Смены" [ref=e82] [cursor=pointer]:
+          - /url: /mini/shift-handover
+          - img [ref=e83]
+          - generic [ref=e86]: Смены
+        - link "Профиль" [ref=e87] [cursor=pointer]:
+          - /url: /mini/me
+          - img [ref=e88]
+          - generic [ref=e91]: Профиль
+    - dialog [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - img [ref=e92]
+          - button "Закрыть" [ref=e32]:
+            - img [ref=e33]
+        - heading "«Заполнить как вчера»" [level=2] [ref=e95]
+        - paragraph [ref=e37]: Если значения не меняются — нажмите кнопку «Заполнить как вчера». Это копирует данные предыдущего дня и экономит 30 сек на форму.
+        - button "Далее" [active] [ref=e43]:
+          - text: Далее
+          - img [ref=e44]
+  - alert [ref=e46]

@@ -1,0 +1,33 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 product-writeoff MNYQEN5T",
+  "data": {
+    "documentDate": "2026-04-14",
+    "supplierName": "EXT2 product-writeoff MNYQEN5T",
+    "commissionMembers": [
+      {
+        "role": "EXT2 product-writeoff MNYQEN5T",
+        "employeeName": "EXT2 product-writeoff MNYQEN5T"
+      }
+    ],
+    "rows": [
+      {
+        "productName": "EXT2 product-writeoff MNYQEN5T",
+        "batchNumber": "EXT2 product-writeoff MNYQEN5T",
+        "productionDate": "2026-04-14",
+        "quantity": "7 кг",
+        "discrepancyDescription": "EXT2 product-writeoff MNYQEN5T",
+        "action": "EXT2 product-writeoff MNYQEN5T"
+      }
+    ],
+    "productLists": [
+      {
+        "id": "list-1",
+        "name": "EXT2 product-writeoff MNYQEN5T",
+        "items": [
+          "EXT2 product-writeoff MNYQEN5T"
+        ]
+      }
+    ]
+  }
+}

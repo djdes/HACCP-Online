@@ -1,0 +1,26 @@
+{
+  "code": "disinfectant_usage",
+  "documentId": "cmnyp94yo004g08tspxoi4695",
+  "date": "2026-04-14",
+  "marker": "EXT2 disinfectant-usage MNYQDRKR",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp94yo004g08tspxoi4695",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "disinfectant_usage"
+  },
+  "expectedUi": [
+    "EXT2 disinfectant-usage MNYQDRKR"
+  ],
+  "expectedPdf": [
+    "EXT2 disinfectant-usage MNYQDRKR"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 444072
+}

@@ -1,0 +1,26 @@
+{
+  "code": "sanitary_day_control",
+  "documentId": "cmnyp95pf005g08ts91ywlypt",
+  "date": "2026-04-14",
+  "marker": "EXT2 sanitary-day-control MNYQEOQ0",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95pf005g08ts91ywlypt",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "sanitary_day_control"
+  },
+  "expectedUi": [
+    "EXT2 sanitary-day-control MNYQEOQ0"
+  ],
+  "expectedPdf": [
+    "EXT2 sanitary-day-control MNYQEOQ0"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 464652
+}

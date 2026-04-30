@@ -1,0 +1,26 @@
+{
+  "code": "audit_plan",
+  "documentId": "cmnyp94lk003y08ts9qw0hpez",
+  "date": "2026-04-14",
+  "marker": "EXT2 audit-plan MNYQD6SZ",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp94lk003y08ts9qw0hpez",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "audit_plan"
+  },
+  "expectedUi": [
+    "EXT2 audit-plan MNYQD6SZ"
+  ],
+  "expectedPdf": [
+    "EXT2 audit-plan MNYQD6SZ"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 436181
+}

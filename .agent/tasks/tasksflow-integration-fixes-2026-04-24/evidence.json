@@ -1,0 +1,28 @@
+{
+  "taskId": "tasksflow-integration-fixes-2026-04-24",
+  "verdict": "PASS_WITH_NOTES",
+  "fixCommit": "c2bc98a",
+  "currentHead": "ce1406768bfccccea959434da0deddba2e46ad60",
+  "originMasterMatchesHead": true,
+  "acceptance": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS_WITH_NOTE",
+    "AC5": "PASS_WITH_FINDINGS",
+    "AC6": "PASS"
+  },
+  "checks": {
+    "targetedEslint": "PASS",
+    "typescriptNoEmit": "PASS",
+    "diffCheck": "PASS",
+    "productionBuild": "PASS",
+    "fullLint": "TIMEOUT_304S",
+    "push": "PASS_ALREADY_UP_TO_DATE"
+  },
+  "browserFindings": [
+    "/staff compatibility redirect fixed: authenticated request lands on /settings/users with status 200",
+    "React hydration warnings remain on /journals and /settings/users in dev; /journals warning mentions nested button markup",
+    "/mini outside Telegram shows the expected notice, but bottom nav remains visible"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "code": "incoming_control",
+  "documentId": "cmnyp95c2004z08tsl13qn8oc",
+  "date": "2026-04-14",
+  "marker": "EXT2 incoming-control MNYQE9W4",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95c2004z08tsl13qn8oc",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "incoming_control"
+  },
+  "expectedUi": [
+    "EXT2 incoming-control MNYQE9W4"
+  ],
+  "expectedPdf": [
+    "EXT2 incoming-control MNYQE9W4"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 444643
+}

@@ -1,0 +1,26 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e11]:
+        - generic [ref=e12]: Бланк контроля температуры и влажности
+        - heading "Бланк контроля температуры и влажности · апрель 2026 г." [level=1] [ref=e13]
+        - paragraph [ref=e14]: Михайлова Анна Дмитриевна
+    - generic [ref=e16]:
+      - paragraph [ref=e17]: Михайлова Анна Дмитриевна, снимите показания температуры (и влажности — где включено) по каждому помещению и выберите время замера.
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: Время замера*
+          - combobox [ref=e21]:
+            - generic: 10:00
+            - img
+        - generic [ref=e22]:
+          - generic [ref=e23]: Склад — t° · норма 18…25(°C)*
+          - spinbutton [ref=e24]
+        - generic [ref=e25]:
+          - generic [ref=e26]: Склад — влажность · норма 15…75(%)
+          - spinbutton [ref=e27]
+      - button "Сохранить замер" [disabled]
+      - link "Отмена — вернуться" [ref=e28] [cursor=pointer]:
+        - /url: https://tasksflow.ru/dashboard
+  - alert [ref=e29]

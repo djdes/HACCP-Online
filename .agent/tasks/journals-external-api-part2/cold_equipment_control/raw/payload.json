@@ -1,0 +1,17 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 cold-equipment-control MNYQDNSR",
+  "data": {
+    "readings": [
+      {
+        "equipmentName": "Холодильная камера",
+        "temp": 3.2
+      },
+      {
+        "equipmentName": "Морозильный ларь",
+        "temp": -18
+      }
+    ],
+    "responsibleTitle": "EXT2 cold-equipment-control MNYQDNSR"
+  }
+}

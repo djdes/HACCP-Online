@@ -1,0 +1,4 @@
+[     179ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/capa/new:0
+[   71331ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ https://wesetup.ru/api/capa/cmoh7fclh0001eytsfz1acdxw/suggest?step=root_cause:0
+[   88899ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ https://wesetup.ru/api/capa/cmoh7fclh0001eytsfz1acdxw/suggest?step=root_cause:0
+[   95303ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ https://wesetup.ru/api/ai/sanpin-chat:0

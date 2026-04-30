@@ -1,0 +1,20 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 ppe-issuance MNYQELM1",
+  "data": {
+    "showGloves": true,
+    "showShoes": true,
+    "rows": [
+      {
+        "issueDate": "2026-04-14",
+        "maskCount": 1,
+        "gloveCount": 2,
+        "shoePairsCount": 1,
+        "clothingSetsCount": 1,
+        "capCount": 1,
+        "recipientTitle": "EXT2 ppe-issuance MNYQELM1",
+        "issuerTitle": "EXT2 ppe-issuance MNYQELM1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 incoming-raw-materials-control MNYQEBI5",
+  "data": {
+    "rows": [
+      {
+        "deliveryDate": "2026-04-14",
+        "deliveryHour": "08",
+        "deliveryMinute": "40",
+        "productName": "EXT2 incoming-raw-materials-control MNYQEBI5",
+        "manufacturer": "EXT2 incoming-raw-materials-control MNYQEBI5",
+        "supplier": "EXT2 incoming-raw-materials-control MNYQEBI5",
+        "transportCondition": "satisfactory",
+        "packagingCompliance": "compliant",
+        "organolepticResult": "satisfactory",
+        "expiryDate": "2026-04-14",
+        "note": "EXT2 incoming-raw-materials-control MNYQEBI5",
+        "responsibleTitle": "EXT2 incoming-raw-materials-control MNYQEBI5"
+      }
+    ],
+    "products": [
+      "EXT2 incoming-raw-materials-control MNYQEBI5"
+    ],
+    "manufacturers": [
+      "EXT2 incoming-raw-materials-control MNYQEBI5"
+    ],
+    "suppliers": [
+      "EXT2 incoming-raw-materials-control MNYQEBI5"
+    ]
+  }
+}

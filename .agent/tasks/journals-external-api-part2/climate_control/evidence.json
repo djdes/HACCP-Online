@@ -1,0 +1,28 @@
+{
+  "code": "climate_control",
+  "documentId": "cmnyodrlm0071ootsydcj5kn8",
+  "date": "2026-04-14",
+  "marker": "EXT2 climate-control MNYQDM01",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrlm0071ootsydcj5kn8",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "climate_control"
+  },
+  "expectedUi": [
+    "22.4",
+    "23.7"
+  ],
+  "expectedPdf": [
+    "22.4",
+    "23.7"
+  ],
+  "uiPass": false,
+  "pdfPass": false,
+  "verdict": "FAIL",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 476843
+}

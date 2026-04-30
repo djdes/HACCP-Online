@@ -1,0 +1,31 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 audit-plan MNYQD6SZ",
+  "data": {
+    "documentDate": "2026-04-14",
+    "columns": [
+      {
+        "id": "audit-1",
+        "title": "EXT2 audit-plan MNYQD6SZ",
+        "auditorName": "EXT2 audit-plan MNYQD6SZ"
+      }
+    ],
+    "sections": [
+      {
+        "id": "general",
+        "title": "EXT2 audit-plan MNYQD6SZ"
+      }
+    ],
+    "rows": [
+      {
+        "id": "row-1",
+        "sectionId": "general",
+        "text": "EXT2 audit-plan MNYQD6SZ",
+        "checked": true,
+        "values": {
+          "audit-1": "2026-04-14"
+        }
+      }
+    ]
+  }
+}

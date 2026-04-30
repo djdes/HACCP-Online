@@ -1,0 +1,43 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e11]:
+        - generic [ref=e12]: Бланк контроля температуры и влажности
+        - heading "Бланк контроля температуры и влажности · апрель 2026 г." [level=1] [ref=e13]
+        - paragraph [ref=e14]: Михайлова Анна Дмитриевна
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - paragraph [ref=e17]: Михайлова Анна Дмитриевна, снимите показания температуры (и влажности — где включено) по каждому помещению и выберите время замера.
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]: Время замера*
+            - combobox [ref=e21]:
+              - generic: 10:00
+              - img
+          - generic [ref=e22]:
+            - generic [ref=e23]: Склад — t° · норма 18…25(°C)*
+            - spinbutton [ref=e24]: "22"
+          - generic [ref=e25]:
+            - generic [ref=e26]: Склад — влажность · норма 15…75(%)
+            - spinbutton [ref=e27]: "55"
+        - button "Сохранить замер" [active] [ref=e30]
+        - link "Отмена — вернуться" [ref=e28] [cursor=pointer]:
+          - /url: https://tasksflow.ru/dashboard
+      - generic [ref=e32]:
+        - heading "Проверьте данные" [level=3] [ref=e33]
+        - paragraph [ref=e34]: После подтверждения запись попадёт в журнал WeSetup.
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]: "Время замера:"
+            - generic [ref=e38]: 10:00
+          - generic [ref=e39]:
+            - generic [ref=e40]: "Склад — t° · норма 18…25:"
+            - generic [ref=e41]: 22 °C
+          - generic [ref=e42]:
+            - generic [ref=e43]: "Склад — влажность · норма 15…75:"
+            - generic [ref=e44]: 55 %
+        - generic [ref=e45]:
+          - button "Назад" [ref=e46]
+          - button "Подтвердить" [ref=e47]
+  - alert [ref=e29]

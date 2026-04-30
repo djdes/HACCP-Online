@@ -1,0 +1,26 @@
+{
+  "code": "traceability_test",
+  "documentId": "cmnyp95s3005j08tsxbo6zjmk",
+  "date": "2026-04-14",
+  "marker": "EXT2 traceability-test MNYQES24",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp95s3005j08tsxbo6zjmk",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "traceability_test"
+  },
+  "expectedUi": [
+    "EXT2 traceability-test MNYQES24"
+  ],
+  "expectedPdf": [
+    "EXT2 traceability-test MNYQES24"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 441362
+}

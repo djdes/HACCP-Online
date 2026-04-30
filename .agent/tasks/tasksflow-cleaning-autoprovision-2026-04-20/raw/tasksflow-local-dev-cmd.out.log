@@ -1,0 +1,41 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.ts
+
+[Vite] Setting up Vite dev server...
+[12:27:44] [32mINFO[39m: [36mStarting server[39m
+    [35mnodeEnv[39m: "development"
+[12:27:44] [32mINFO[39m: [36mUsing development mode - setting up Vite[39m
+[Vite] Vite dev server initialized
+[Vite] Vite middleware mounted
+[12:27:45] [41mFATAL[49m: [36mUncaught exception[39m
+    err: {
+      "type": "Error",
+      "message": "listen EADDRINUSE: address already in use 0.0.0.0:5001",
+      "stack":
+          Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
+              at Server.setupListenHandle [as _listen2] (node:net:2008:16)
+              at listenInCluster (node:net:2065:12)
+              at node:net:2274:7
+              at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+      "code": "EADDRINUSE",
+      "errno": -4091,
+      "syscall": "listen",
+      "address": "0.0.0.0",
+      "port": 5001
+    }
+[12:27:45] [32mINFO[39m: [36mReceived shutdown signal, starting graceful shutdown...[39m
+    [35msignal[39m: "uncaughtException"
+[12:27:45] [31mERROR[39m: [36mError during server close[39m
+    err: {
+      "type": "Error",
+      "message": "Server is not running.",
+      "stack":
+          Error [ERR_SERVER_NOT_RUNNING]: Server is not running.
+              at Server.close (node:net:2427:12)
+              at Object.onceWrapper (node:events:622:28)
+              at Server.emit (node:events:508:20)
+              at emitCloseNT (node:net:2487:8)
+              at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+      "code": "ERR_SERVER_NOT_RUNNING"
+    }

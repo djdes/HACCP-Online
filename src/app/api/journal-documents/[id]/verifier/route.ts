@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -135,6 +136,15 @@ export async function POST(
         },
       }),
     ]);
+    await logAudit({
+      organizationId: orgId,
+      userId: session.user.id,
+      userName: session.user.name ?? undefined,
+      action: "journal_document.approve_all",
+      entity: "journal_document",
+      entityId: docId,
+      details: { templateCode: doc.id },
+    }).catch(() => null);
     return NextResponse.json({ ok: true, decision: "approve-all" });
   }
 
@@ -148,6 +158,15 @@ export async function POST(
         verificationRejectReason: body.reason,
       },
     });
+    await logAudit({
+      organizationId: orgId,
+      userId: session.user.id,
+      userName: session.user.name ?? undefined,
+      action: "journal_document.reject_document",
+      entity: "journal_document",
+      entityId: docId,
+      details: { reason: body.reason },
+    }).catch(() => null);
     // Push всем заполнителям этого документа — у каждого «весь журнал
     // возвращён». Группируем по уникальному employeeId.
     void (async () => {
@@ -200,6 +219,15 @@ export async function POST(
         verificationRejectReason: null,
       },
     });
+    await logAudit({
+      organizationId: orgId,
+      userId: session.user.id,
+      userName: session.user.name ?? undefined,
+      action: "journal_document.approve_cells",
+      entity: "journal_document",
+      entityId: docId,
+      details: { count: result.count },
+    }).catch(() => null);
     return NextResponse.json({
       ok: true,
       decision: "approve-cells",
@@ -216,7 +244,7 @@ export async function POST(
     );
   }
   // Перед updateMany'ем загружаем employeeId всех затронутых ячеек —
-  // нужны для Telegram-push'а филерам.
+  // нужны для Telegram-push'а филерам и для TF mark-returned mirror.
   const rejectedEntries = await db.journalDocumentEntry.findMany({
     where: { id: { in: ids } },
     select: {
@@ -226,6 +254,7 @@ export async function POST(
       employee: { select: { name: true } },
       document: {
         select: {
+          id: true,
           template: { select: { code: true, name: true } },
         },
       },
@@ -240,6 +269,44 @@ export async function POST(
       verificationRejectReason: body.reason,
     },
   });
+
+  // TasksFlow mirror: для каждой rejected entry находим связанную
+  // TF-задачу через TasksFlowTaskLink (rowKey == entryId для большинства
+  // row-based журналов). Best-effort.
+  void (async () => {
+    try {
+      const integration = await db.tasksFlowIntegration.findUnique({
+        where: { organizationId: orgId },
+        select: { id: true, baseUrl: true, apiKeyEncrypted: true, enabled: true },
+      });
+      if (!integration?.enabled) return;
+      const links = await db.tasksFlowTaskLink.findMany({
+        where: {
+          integrationId: integration.id,
+          journalDocumentId: docId,
+          kind: "filler",
+          rowKey: { in: ids },
+        },
+        select: { tasksflowTaskId: true },
+      });
+      if (links.length === 0) return;
+      const { tasksflowClientFor } = await import("@/lib/tasksflow-client");
+      const client = tasksflowClientFor(integration);
+      for (const l of links) {
+        try {
+          await client.markReturned(l.tasksflowTaskId, body.reason);
+        } catch (err) {
+          console.warn(
+            "[verifier reject-cells] markReturned failed",
+            l.tasksflowTaskId,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[verifier reject-cells] TF mark-returned batch failed", err);
+    }
+  })();
 
   // Push сотрудникам — fire-and-forget. Группируем по employee'у чтобы
   // не присылать N раз одному и тому же 5 одновременно отклонённых
@@ -290,6 +357,15 @@ export async function POST(
     }
   })();
 
+  await logAudit({
+    organizationId: orgId,
+    userId: session.user.id,
+    userName: session.user.name ?? undefined,
+    action: "journal_document.reject_cells",
+    entity: "journal_document",
+    entityId: docId,
+    details: { count: result.count, reason: body.reason },
+  }).catch(() => null);
   return NextResponse.json({
     ok: true,
     decision: "reject-cells",

@@ -1,0 +1,22 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 breakdown-history MNYQDBJF",
+  "data": {
+    "rows": [
+      {
+        "startDate": "2026-04-14",
+        "startHour": "08",
+        "startMinute": "30",
+        "equipmentName": "EXT2 breakdown-history MNYQDBJF",
+        "breakdownDescription": "EXT2 breakdown-history MNYQDBJF",
+        "repairPerformed": "EXT2 breakdown-history MNYQDBJF",
+        "partsReplaced": "EXT2 breakdown-history MNYQDBJF",
+        "endDate": "2026-04-14",
+        "endHour": "09",
+        "endMinute": "45",
+        "downtimeHours": "1.25",
+        "responsiblePerson": "EXT2 breakdown-history MNYQDBJF"
+      }
+    ]
+  }
+}

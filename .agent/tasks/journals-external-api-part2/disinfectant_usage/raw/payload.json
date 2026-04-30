@@ -1,0 +1,47 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 disinfectant-usage MNYQDRKR",
+  "data": {
+    "responsibleRole": "EXT2 disinfectant-usage MNYQDRKR",
+    "responsibleEmployee": "EXT2 disinfectant-usage MNYQDRKR",
+    "subdivisions": [
+      {
+        "name": "EXT2 disinfectant-usage MNYQDRKR",
+        "area": 10,
+        "byCapacity": false,
+        "treatmentType": "current",
+        "frequencyPerMonth": 5,
+        "disinfectantName": "EXT2 disinfectant-usage MNYQDRKR",
+        "concentration": 0.5,
+        "solutionConsumptionPerSqm": 0.3,
+        "solutionPerTreatment": 3
+      }
+    ],
+    "receipts": [
+      {
+        "date": "2026-04-14",
+        "disinfectantName": "EXT2 disinfectant-usage MNYQDRKR",
+        "quantity": 3,
+        "unit": "l",
+        "expiryDate": "2026-04-14",
+        "responsibleRole": "EXT2 disinfectant-usage MNYQDRKR",
+        "responsibleEmployee": "EXT2 disinfectant-usage MNYQDRKR"
+      }
+    ],
+    "consumptions": [
+      {
+        "periodFrom": "2026-04-14",
+        "periodTo": "2026-04-14",
+        "disinfectantName": "EXT2 disinfectant-usage MNYQDRKR",
+        "totalReceived": 3,
+        "totalReceivedUnit": "l",
+        "totalConsumed": 1,
+        "totalConsumedUnit": "l",
+        "remainder": 2,
+        "remainderUnit": "l",
+        "responsibleRole": "EXT2 disinfectant-usage MNYQDRKR",
+        "responsibleEmployee": "EXT2 disinfectant-usage MNYQDRKR"
+      }
+    ]
+  }
+}

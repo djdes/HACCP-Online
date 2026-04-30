@@ -1,0 +1,1854 @@
+{
+  "generatedAt": "2026-04-13T10:06:22.223Z",
+  "total": 35,
+  "pass": 35,
+  "fail": 0,
+  "results": [
+    {
+      "code": "accident_journal",
+      "documentId": "cmnwu55p10006ditszx858psn",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "13-04-2027 09:15",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "audit_plan",
+      "documentId": "cmnwu57pp0008ditscck91eif",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить подразделение",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "2027-04-13",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить подразделение",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "audit_protocol",
+      "documentId": "cmnwu59lz000aditsxht6su5q",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить строку",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить новый раздел",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 audit-protocol MNWURJHX",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить подпись",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить строку",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить новый раздел",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить подпись",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "audit_report",
+      "documentId": "cmnwu5bye000cdits0uhy9np7",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить несоответствие",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 audit-report MNWURL3H",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 audit-report MNWURL3H, EXT2 audit-report MNWURL3H",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "2027-04-13 / —",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить подпись",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить несоответствие",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить подпись",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "breakdown_history",
+      "documentId": "cmnwu5e14000edits7cze7i92",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "13-04-2027 08:30",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Настройки",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "cleaning",
+      "documentId": "cmnwswhv5000cpdtskoewu8m3",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Сидоров С.С.",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Администратор",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "гостевая зона",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "помещение мойки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "горячий цех/кухня",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Бар",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Ответственный за уборку",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Ответственный за контроль",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "documentId": "cmnwu5i8d000iditsp9hqrbvq",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "14",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "00",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "12",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "23",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Администратор",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "10",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "18",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить ответственного",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "06",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "40",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "20",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=549405"
+        },
+        {
+          "label": "Добавить ответственного",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "climate_control",
+      "documentId": "cmnwswdi50006pdtsx31adag7",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки документа",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить помещение",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить строку",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "АдминистраторУправляющий",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=443318"
+        },
+        {
+          "label": "Настройки документа",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить помещение",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить строку",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "cold_equipment_control",
+      "documentId": "cmnwswfo90009pdtsmk9qg81r",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить ХО",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=440613"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить ХО",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "complaint_register",
+      "documentId": "cmnwu5tc0000pditsgv2al5bv",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить строку",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "2027-04-13",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=438636"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить строку",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "disinfectant_usage",
+      "documentId": "cmnwu5v5h000rditsqix8tfxw",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить подразделение",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить поступление",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить расход",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить подразделение",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить поступление",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить расход",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "equipment_calibration",
+      "documentId": "cmnsvfl3u0001ovtstoxft49m",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "equipment_cleaning",
+      "documentId": "cmnwu5ynl000uditsr61c4nae",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "equipment_maintenance",
+      "documentId": "cmnsikoq200006ktsdnk9oier",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "finished_product",
+      "documentId": "cmnr5elqk000g3ztsyiisw268",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить изделие",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать список изделий",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Удалить выбранные",
+          "tag": "BUTTON",
+          "disabled": true
+        },
+        {
+          "label": "Сохранить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=442261"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Добавить изделие",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Редактировать список изделий",
+          "kind": "catalog",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Сохранить",
+          "kind": "save",
+          "status": "PASS",
+          "detail": "clicked without navigation breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "fryer_oil",
+      "documentId": "cmnwu65i10010dits8h8uact8",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "13.04.2027 08:15",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=464479"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "general_cleaning",
+      "documentId": "cmnw679p3001vz4tsaizo35s6",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить помещение",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить помещение",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "glass_control",
+      "documentId": "cmnw679pr001yz4tsppj3cvlb",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "glass_items_list",
+      "documentId": "cmnwxlu5l000aw0ts3qj1bnh6",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "health_check",
+      "documentId": "cmnwxlqi80004w0tsghnw2h87",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "hygiene",
+      "documentId": "cmnwxlsbs0007w0ts08o2n7lj",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=522103"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "incoming_control",
+      "documentId": "cmnwxmr7i000cw0tsab5cezwj",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить из Айко",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 incoming-control MNWXMR96",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=444919"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Добавить из Айко",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "documentId": "cmnwxmtyp000ew0tsn7qmtez5",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить из Айко",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 incoming-raw-materials-control MNWXMU3L",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=447067"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Добавить из Айко",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "intensive_cooling",
+      "documentId": "cmnwxmwfx000gw0ts41fzzyvl",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "med_books",
+      "documentId": "cmnwxoulu0012w0tsbrytkfty",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закрыть журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить сотрудника",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить исследование",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Администратор",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить сотрудника",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить исследование",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "metal_impurity",
+      "documentId": "cmnwxmzge000iw0tsk35srlfa",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "13.04.2027",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "perishable_rejection",
+      "documentId": "cmnwxos6c0010w0tsbwituwfn",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Печать журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить изделие",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать список изделий",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Удалить выбранные",
+          "tag": "BUTTON",
+          "disabled": true
+        },
+        {
+          "label": "Сохранить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Добавить изделие",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Редактировать список изделий",
+          "kind": "catalog",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Сохранить",
+          "kind": "save",
+          "status": "PASS",
+          "detail": "clicked without navigation breakage"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "pest_control",
+      "documentId": "cmnw679za002uz4tsw85b0g3x",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "ppe_issuance",
+      "documentId": "cmnwxn2ms000kw0ts4ofe8cu6",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "13-04-2027",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "product_writeoff",
+      "documentId": "cmnwxopi3000yw0tslb1a9jvz",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "EXT2 product-writeoff MNWXOPJI EXT2 product-writeoff MNWXOPJI",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "sanitary_day_control",
+      "documentId": "cmnwxoxb50015w0ts8h4h0gtu",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "—",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "staff_training",
+      "documentId": "cmnubi17600a40etsirechs6a",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        },
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "traceability_test",
+      "documentId": "cmnwxnxqw000rw0tsj809dnrm",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Редактировать списки",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки документа",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "menu opened and dismissed"
+        },
+        {
+          "label": "Настройки документа",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "training_plan",
+      "documentId": "cmnwxo0ih000tw0tskny2xyws",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настройки журнала",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить должность",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить тему обучения",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настройки журнала",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить должность",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить тему обучения",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "documentId": "cmnrjw1y0000040tsnw9v4p5j",
+      "pageOk": true,
+      "visibleButtons": [
+        {
+          "label": "Настроить спецификацию",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Добавить",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Закончить журнал",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Антонова А.А.",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Администратор",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Настройки документа",
+          "tag": "BUTTON",
+          "disabled": false
+        },
+        {
+          "label": "Печать",
+          "tag": "BUTTON",
+          "disabled": false
+        }
+      ],
+      "results": [
+        {
+          "label": "Настроить спецификацию",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Добавить",
+          "kind": "add",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Закончить журнал",
+          "kind": "close",
+          "status": "PASS",
+          "detail": "clicked without breakage"
+        },
+        {
+          "label": "Настройки документа",
+          "kind": "settings",
+          "status": "PASS",
+          "detail": "dialog opened and dismissed"
+        },
+        {
+          "label": "Печать",
+          "kind": "print",
+          "status": "PASS",
+          "detail": "status=200, contentType=application/pdf, bytes=453604"
+        }
+      ],
+      "pageErrors": [],
+      "verdict": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "generatedAt": "2026-04-24T11:01:40.792Z",
+  "screenshots": [
+    "manager-desktop-dashboard.png",
+    "manager-desktop-settings-integrations-tasksflow.png",
+    "manager-desktop-journals.png",
+    "manager-desktop-staff.png",
+    "manager-desktop-reports.png",
+    "manager-desktop-settings-journals.png",
+    "manager-mobile-dashboard.png",
+    "manager-mobile-settings-integrations-tasksflow.png",
+    "manager-mobile-journals.png",
+    "manager-mobile-staff.png",
+    "manager-mobile-reports.png",
+    "manager-mobile-settings-journals.png"
+  ],
+  "findings": [
+    {
+      "kind": "api-auth",
+      "url": "/api/integrations/tasksflow",
+      "status": 401,
+      "contentType": "application/json",
+      "body": "{\"error\":\"Не авторизован\"}"
+    },
+    {
+      "kind": "api-auth",
+      "url": "/api/integrations/tasksflow/links",
+      "status": 401,
+      "contentType": "application/json",
+      "body": "{\"error\":\"Не авторизован\"}"
+    },
+    {
+      "kind": "api-auth",
+      "url": "/api/settings/journals",
+      "status": 401,
+      "contentType": "application/json",
+      "body": "{\"error\":\"Не авторизован\"}"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/dashboard",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nДобрый день, Денис Сергеевич\n\nПятница, 24 апреля 2026 г. · Тестовая организация (админ)\n\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n338\nЗаписей сегодня\n0\nНа проверке\n34\nСотрудников\n35\nЖурналов\nНе начинали заполняться: 7\n\nНажмите на карт",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/dashboard"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/settings/integrations/tasksflow",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nНастройки\nTasksFlow\n\nАвтоматическая отправка задач уборщикам через tasksflow.ru. Синхронизация сотрудников автоматически создаёт отсутствующих людей в TasksFlow, а строки журнала уборки превращаются в recurring-задачи",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/settings/integrations/tasksflow"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/journals",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nЖурналы\n\nЭлектронные журналы СанПиН и ХАССП. Выберите журнал, чтобы посмотреть записи, создать новые или распечатать отчёт.\n\nВСЕ ЖУРНАЛЫ БЕСПЛАТНО\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n35\nВсего\n32\nВключено\nотключено 3\n3\nЗаполнено с",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/journals"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/staff",
+      "status": 404,
+      "title": "Страница не найдена — WeSetup — WeSetup",
+      "textSample": "Страница не найдена\n\nСсылка устарела или раздел перенесён. Вернитесь на главную или откройте дашборд, чтобы продолжить работу.\n\nНа главную\nОткрыть дашборд",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/staff"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/reports",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nОтчёты\n\nВыгрузки журналов за период — PDF и Excel для проверок\n\nСводный отчёт за проверкой\n\nОдин ZIP со всеми журналами за период. Подойдёт для визита Роспотребнадзора: отдал архив — и инспектор видит всю картину сам.",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/reports"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "desktop",
+      "route": "/settings/journals",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\n394fcea\nТестовая организация (админ)\nСотрудники\nВ сети\n6\nОбратная связь\nКД\nНастройки\nНабор журналов\n\nВыберите журналы, которые ваша компания реально ведёт. Отключённые не будут отображаться в дашборде и не пойдут в расчёт готовности. Их всегда можно включить обратно.\n\nВКЛЮЧЕНО: 32 / 35\nВключ",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/settings/journals"
+    },
+    {
+      "kind": "console",
+      "role": "manager",
+      "viewport": "desktop",
+      "entries": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <button> button \n\n  ...\n    <RenderFromTemplateContext>\n      <ScrollAndFocusHandler segmentPath={[...]}>\n        <InnerScrollAndFocusHandler segmentPath={[...]} focusAndScrollRef={{apply:false, ...}}>\n          <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>\n            <LoadingBoundary name=\"journals/\" loading={null}>\n              <HTTPAccessFallbackBoundary notFound={u"
+        },
+        {
+          "type": "error",
+          "text": "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. button <button>"
+        },
+        {
+          "type": "pageerror",
+          "text": "Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- In"
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/dashboard",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\nМеню\n6\nКД\nДобрый день, Денис Сергеевич\n\nПятница, 24 апреля 2026 г. · Тестовая организация (админ)\n\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n338\nЗаписей сегодня\n0\nНа проверке\n34\nСотрудников\n35\nЖурналов\nНе начинали заполняться: 7\n\nНажмите на карточку, чтобы открыть журнал и внести первую запись за сегодня.\n\n30",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/dashboard"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/settings/integrations/tasksflow",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\nМеню\n6\nКД\nНастройки\nTasksFlow\n\nАвтоматическая отправка задач уборщикам через tasksflow.ru. Синхронизация сотрудников автоматически создаёт отсутствующих людей в TasksFlow, а строки журнала уборки превращаются в recurring-задачи для уборщицы. Когда задача отмечена выполненной — клетка журнала",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/settings/integrations/tasksflow"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/journals",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\nМеню\n6\nКД\nЖурналы\n\nЭлектронные журналы СанПиН и ХАССП. Выберите журнал, чтобы посмотреть записи, создать новые или распечатать отчёт.\n\nВСЕ ЖУРНАЛЫ БЕСПЛАТНО\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n35\nВсего\n32\nВключено\nотключено 3\n3\nЗаполнено сегодня\nиз 10\n7\nНадо заполнить\nжурналов\nВсего журналов: 35\nК созда",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/journals"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/staff",
+      "status": 404,
+      "title": "Страница не найдена — WeSetup — WeSetup",
+      "textSample": "Страница не найдена\n\nСсылка устарела или раздел перенесён. Вернитесь на главную или откройте дашборд, чтобы продолжить работу.\n\nНа главную\nОткрыть дашборд",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/staff"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/reports",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\nМеню\n6\nКД\nОтчёты\n\nВыгрузки журналов за период — PDF и Excel для проверок\n\nСводный отчёт за проверкой\n\nОдин ZIP со всеми журналами за период. Подойдёт для визита Роспотребнадзора: отдал архив — и инспектор видит всю картину сам. Внутри лежат PDF каждого журнала + манифест с перечнем.\n\nПо звон",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/reports"
+    },
+    {
+      "kind": "page",
+      "role": "manager",
+      "viewport": "mobile",
+      "route": "/settings/journals",
+      "status": 200,
+      "title": "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+      "textSample": "WESETUP\nМеню\n6\nКД\nНастройки\nНабор журналов\n\nВыберите журналы, которые ваша компания реально ведёт. Отключённые не будут отображаться в дашборде и не пойдут в расчёт готовности. Их всегда можно включить обратно.\n\nВКЛЮЧЕНО: 32 / 35\nВключить все\nОтключить все\nСохранено\nГигиенический журнал\nЖурнал осмот",
+      "hasHorizontalOverflow": false,
+      "url": "http://127.0.0.1:3000/settings/journals"
+    },
+    {
+      "kind": "console",
+      "role": "manager",
+      "viewport": "mobile",
+      "entries": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <button> button \n\n  ...\n    <RenderFromTemplateContext>\n      <ScrollAndFocusHandler segmentPath={[...]}>\n        <InnerScrollAndFocusHandler segmentPath={[...]} focusAndScrollRef={{apply:false, ...}}>\n          <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>\n            <LoadingBoundary name=\"journals/\" loading={null}>\n              <HTTPAccessFallbackBoundary notFound={u"
+        },
+        {
+          "type": "error",
+          "text": "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. button <button>"
+        },
+        {
+          "type": "pageerror",
+          "text": "Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- In"
+        }
+      ]
+    },
+    {
+      "kind": "role-run-error",
+      "role": "staff",
+      "viewport": "mobile",
+      "error": "Error: login failed for hotcook@haccp.local, current URL: http://127.0.0.1:3000/login, alert: "
+    },
+    {
+      "kind": "console",
+      "role": "staff",
+      "viewport": "mobile",
+      "entries": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ]
+    }
+  ]
+}

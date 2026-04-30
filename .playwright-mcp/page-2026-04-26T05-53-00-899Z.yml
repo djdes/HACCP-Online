@@ -1,0 +1,13 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - img [ref=e5]
+    - heading "Страница не найдена" [level=1] [ref=e8]
+    - paragraph [ref=e9]: Ссылка устарела или раздел перенесён. Вернитесь на главную или откройте дашборд, чтобы продолжить работу.
+    - generic [ref=e10]:
+      - link "На главную" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: На главную
+      - link "Открыть дашборд" [ref=e14] [cursor=pointer]:
+        - /url: /dashboard
+  - alert [ref=e15]

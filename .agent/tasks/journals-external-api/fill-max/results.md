@@ -1,0 +1,77 @@
+# Maximal Journal Fill Results
+
+- Generated: 2026-04-14T16:48:10.335Z
+- Failures: 0
+
+| Code | Month | Status | Ok | Document | Entries | Error |
+|---|---|---:|---|---|---:|---|
+| accident_journal | 2026-03 | 200 | true | cmnysz66000018dtsw10myj00 | 1 | - |
+| accident_journal | 2026-04 | 200 | true | cmnyp94j2003w08ts6pjlptf0 | 1 | - |
+| audit_plan | 2026-03 | 200 | true | cmnysz68m00048dtso89ol5va | 1 | - |
+| audit_plan | 2026-04 | 200 | true | cmnyp94lk003y08ts9qw0hpez | 1 | - |
+| audit_protocol | 2026-03 | 200 | true | cmnysz6ab00078dtstrc1svms | 1 | - |
+| audit_protocol | 2026-04 | 200 | true | cmnyp94n2004008tsmx3vtmtd | 1 | - |
+| audit_report | 2026-03 | 200 | true | cmnysz6bv000a8dts0q7y0dk3 | 1 | - |
+| audit_report | 2026-04 | 200 | true | cmnyp94oa004208tsxq9zndq0 | 1 | - |
+| breakdown_history | 2026-03 | 200 | true | cmnysz6db000d8dtsmytneq2u | 1 | - |
+| breakdown_history | 2026-04 | 200 | true | cmnyp94q6004408ts4p69yswq | 1 | - |
+| cleaning | 2026-03 | 200 | true | cmnysz6eu000g8dtspub892an | 5 | - |
+| cleaning | 2026-04 | 200 | true | cmnyono7r002z08ts9vf9a6xq | 3 | - |
+| cleaning_ventilation_checklist | 2026-03 | 200 | true | cmnysz6gp000o8dts93gizmh3 | 5 | - |
+| cleaning_ventilation_checklist | 2026-04 | 200 | true | cmnyodrp8008ooots0ldi7hs4 | 3 | - |
+| climate_control | 2026-03 | 200 | true | cmnysz6ia00118dtsfjjwrk03 | 4 | - |
+| climate_control | 2026-04 | 200 | true | cmnyodrlm0071ootsydcj5kn8 | 3 | - |
+| cold_equipment_control | 2026-03 | 200 | true | cmnysz6jq001c8dtsm91mhaju | 4 | - |
+| cold_equipment_control | 2026-04 | 200 | true | cmnyodrls0075ootsr9y7prhz | 3 | - |
+| complaint_register | 2026-03 | 200 | true | cmnysz6lf001n8dts13w7svnl | 1 | - |
+| complaint_register | 2026-04 | 200 | true | cmnyp94xi004e08tsa8bnu76e | 1 | - |
+| disinfectant_usage | 2026-03 | 200 | true | cmnysz6mg001q8dts218jmmru | 1 | - |
+| disinfectant_usage | 2026-04 | 200 | true | cmnyp94yo004g08tspxoi4695 | 1 | - |
+| equipment_calibration | 2026-03 | 200 | true | cmnyodrno0085ootsy941dzai | 1 | - |
+| equipment_calibration | 2026-04 | 200 | true | cmnyodrno0085ootsy941dzai | 1 | - |
+| equipment_cleaning | 2026-03 | 200 | true | cmnysz6ou001v8dtshw6mzs78 | 5 | - |
+| equipment_cleaning | 2026-04 | 200 | true | cmnyodrot008footsewlruur0 | 3 | - |
+| equipment_maintenance | 2026-03 | 200 | true | cmnyodrnk0083oots27zzxlrl | 1 | - |
+| equipment_maintenance | 2026-04 | 200 | true | cmnyodrnk0083oots27zzxlrl | 1 | - |
+| finished_product | 2026-03 | 200 | true | cmnysz6rn002a8dtskbsf3324 | 1 | - |
+| finished_product | 2026-04 | 200 | true | cmnyodrmp007kootse49o6gwn | 1 | - |
+| fryer_oil | 2026-03 | 200 | true | cmnysz6tb002d8dtsdxviespc | 4 | - |
+| fryer_oil | 2026-04 | 200 | true | cmnyodrmx007nootso6dbqpof | 3 | - |
+| general_cleaning | 2026-03 | 200 | true | cmnysz6uk002o8dtsopmfirae | 1 | - |
+| general_cleaning | 2026-04 | 200 | true | cmnyp956b004p08tswlanw4gh | 1 | - |
+| glass_control | 2026-03 | 200 | true | cmnysz6vn002r8dtsjhyxydfm | 4 | - |
+| glass_control | 2026-04 | 200 | true | cmnyodrp0008jootso4d26bvc | 3 | - |
+| glass_items_list | 2026-03 | 200 | true | cmnysz6wt00328dtsf8ntvp8s | 1 | - |
+| glass_items_list | 2026-04 | 200 | true | cmnyp958v004t08tsn1jgqsid | 1 | - |
+| health_check | 2026-03 | 200 | true | cmnysz6xv00358dts25n26hw7 | 4 | - |
+| health_check | 2026-04 | 200 | true | cmnyodrkc003oootsj2l9i45m | 3 | - |
+| hygiene | 2026-03 | 200 | true | cmnysz6yw003c8dtsx422zpsr | 4 | - |
+| hygiene | 2026-04 | 200 | true | cmnyodrin000bootsej9rzpjo | 3 | - |
+| incoming_control | 2026-03 | 200 | true | cmnysz706003j8dtsmtpnwrbd | 1 | - |
+| incoming_control | 2026-04 | 200 | true | cmnyp95c2004z08tsl13qn8oc | 1 | - |
+| incoming_raw_materials_control | 2026-03 | 200 | true | cmnysz719003m8dtsaf33lgxn | 1 | - |
+| incoming_raw_materials_control | 2026-04 | 200 | true | cmnyp95d6005108tssm00ul2t | 1 | - |
+| intensive_cooling | 2026-03 | 200 | true | cmnysz729003p8dts8kiu9kze | 1 | - |
+| intensive_cooling | 2026-04 | 200 | true | cmnyp95e6005308tsyh6zs77o | 1 | - |
+| med_books | 2026-03 | 200 | true | cmnysz73a003s8dts06iyy4lt | 3 | - |
+| med_books | 2026-04 | 200 | true | cmnyp95ff005508tswjcps525 | 3 | - |
+| metal_impurity | 2026-03 | 200 | true | cmnysz74g00418dtslbhxt69r | 1 | - |
+| metal_impurity | 2026-04 | 200 | true | cmnyodror008eoots6d8r4koo | 1 | - |
+| perishable_rejection | 2026-03 | 200 | true | cmnysz75n00448dtsozs28i8f | 1 | - |
+| perishable_rejection | 2026-04 | 200 | true | cmnyodrms007loots94fafpxb | 1 | - |
+| pest_control | 2026-03 | 200 | true | cmnysz77500478dtsstmexgr9 | 4 | - |
+| pest_control | 2026-04 | 200 | true | cmnyp95kg005a08ts78esrwis | 3 | - |
+| ppe_issuance | 2026-03 | 200 | true | cmnysz793004i8dts1wc48wn2 | 1 | - |
+| ppe_issuance | 2026-04 | 200 | true | cmnyodrnq0086ootsb9cbr7tu | 1 | - |
+| product_writeoff | 2026-03 | 200 | true | cmnysz7aa004l8dts1rfd3lkj | 1 | - |
+| product_writeoff | 2026-04 | 200 | true | cmnyp95o5005e08ts5dk4ckta | 1 | - |
+| sanitary_day_control | 2026-03 | 200 | true | cmnysz7b9004o8dtshjj36ukq | 1 | - |
+| sanitary_day_control | 2026-04 | 200 | true | cmnyp95pf005g08ts91ywlypt | 1 | - |
+| staff_training | 2026-03 | 200 | true | cmnyodrnb007zootsdgu2bhje | 1 | - |
+| staff_training | 2026-04 | 200 | true | cmnyodrnb007zootsdgu2bhje | 1 | - |
+| traceability_test | 2026-03 | 200 | true | cmnysz7dc004t8dtspowyl09l | 1 | - |
+| traceability_test | 2026-04 | 200 | true | cmnyp95s3005j08tsxbo6zjmk | 1 | - |
+| training_plan | 2026-03 | 200 | true | cmnysz7ek004w8dts39x2eaav | 1 | - |
+| training_plan | 2026-04 | 200 | true | cmnyp95tk005l08tsbe69z9o9 | 1 | - |
+| uv_lamp_runtime | 2026-03 | 200 | true | cmnysz7fn004z8dtsz4a4qiv3 | 5 | - |
+| uv_lamp_runtime | 2026-04 | 200 | true | cmnyodrmj007eootszhwxywvm | 3 | - |

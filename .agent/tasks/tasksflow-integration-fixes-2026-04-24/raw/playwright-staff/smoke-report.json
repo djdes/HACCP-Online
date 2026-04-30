@@ -1,0 +1,44 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "generatedAt": "2026-04-24T11:04:36.097Z",
+  "screenshots": [
+    "staff-mobile-dashboard.png",
+    "staff-mobile-journals.png",
+    "staff-mobile-mini.png"
+  ],
+  "findings": [
+    {
+      "kind": "page",
+      "route": "/dashboard",
+      "status": 200,
+      "url": "http://127.0.0.1:3000/journals",
+      "hasHorizontalOverflow": false,
+      "textSample": "WESETUP\nМеню\n1\nВА\nЖурналы\n\nЭлектронные журналы СанПиН и ХАССП. Выберите журнал, чтобы посмотреть записи, создать новые или распечатать отчёт.\n\nВСЕ ЖУРНАЛЫ БЕСПЛАТНО\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n32\nВсего\n32\nВключено\n3\nЗаполнено сегодня\nиз 10\n7\nНадо заполнить\nжурналов\nВсего журналов: 32\nГигиенический журна"
+    },
+    {
+      "kind": "page",
+      "route": "/journals",
+      "status": 200,
+      "url": "http://127.0.0.1:3000/journals",
+      "hasHorizontalOverflow": false,
+      "textSample": "WESETUP\nМеню\n1\nВА\nЖурналы\n\nЭлектронные журналы СанПиН и ХАССП. Выберите журнал, чтобы посмотреть записи, создать новые или распечатать отчёт.\n\nВСЕ ЖУРНАЛЫ БЕСПЛАТНО\nГОТОВНОСТЬ СЕГОДНЯ: 30%\n32\nВсего\n32\nВключено\n3\nЗаполнено сегодня\nиз 10\n7\nНадо заполнить\nжурналов\nВсего журналов: 32\nГигиенический журна"
+    },
+    {
+      "kind": "page",
+      "route": "/mini",
+      "status": 200,
+      "url": "http://127.0.0.1:3000/mini",
+      "hasHorizontalOverflow": false,
+      "textSample": "Откройте внутри Telegram\n\nРабочий кабинет сотрудника доступен только как Mini App в Telegram. Попросите у руководителя персональную ссылку-приглашение.\n\nГлавная\nСотрудники\nОборуд.\nОтчёты\nАудит\nIoT\nСмены\nПрофиль"
+    },
+    {
+      "kind": "console",
+      "entries": [
+        {
+          "type": "error",
+          "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML ta"
+        }
+      ]
+    }
+  ]
+}

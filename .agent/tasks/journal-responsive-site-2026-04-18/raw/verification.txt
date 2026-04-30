@@ -1,0 +1,11 @@
+node --import tsx --test src/components/journals/journal-responsive.test.ts
+PASS
+
+npm run lint -- "src/components/journals/journal-responsive.ts" "src/components/journals/journal-responsive.test.ts" "src/components/journals/document-list-ui.tsx" "src/components/journals/document-page-header.tsx" "src/components/journals/tracked-documents-client.tsx" "src/components/journals/tracked-document-client.tsx" "src/components/journals/register-document-client.tsx" "src/app/(dashboard)/journals/[code]/new/page.tsx"
+PASS
+
+npx tsc --noEmit --pretty false
+PASS
+
+npm run build
+PASS

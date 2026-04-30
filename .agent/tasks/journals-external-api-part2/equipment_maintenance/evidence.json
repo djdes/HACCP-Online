@@ -1,0 +1,26 @@
+{
+  "code": "equipment_maintenance",
+  "documentId": "cmnyodrnk0083oots27zzxlrl",
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-maintenance MNYQDWBJ",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrnk0083oots27zzxlrl",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "equipment_maintenance"
+  },
+  "expectedUi": [
+    "EXT2 equipment-maintenance MNYQDWBJ"
+  ],
+  "expectedPdf": [
+    "EXT2 equipment-maintenance MNYQDWBJ"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 440610
+}

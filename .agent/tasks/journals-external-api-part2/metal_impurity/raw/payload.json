@@ -1,0 +1,33 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 metal-impurity MNYQEGJL",
+  "data": {
+    "startDate": "2026-04-14",
+    "responsiblePosition": "EXT2 metal-impurity MNYQEGJL",
+    "responsibleEmployee": "EXT2 metal-impurity MNYQEGJL",
+    "materials": [
+      {
+        "id": "mat-1",
+        "name": "EXT2 metal-impurity MNYQEGJL"
+      }
+    ],
+    "suppliers": [
+      {
+        "id": "sup-1",
+        "name": "EXT2 metal-impurity MNYQEGJL"
+      }
+    ],
+    "rows": [
+      {
+        "date": "2026-04-14",
+        "materialId": "mat-1",
+        "supplierId": "sup-1",
+        "consumedQuantityKg": "100",
+        "impurityQuantityG": "2",
+        "impurityCharacteristic": "EXT2 metal-impurity MNYQEGJL",
+        "responsibleRole": "EXT2 metal-impurity MNYQEGJL",
+        "responsibleName": "EXT2 metal-impurity MNYQEGJL"
+      }
+    ]
+  }
+}

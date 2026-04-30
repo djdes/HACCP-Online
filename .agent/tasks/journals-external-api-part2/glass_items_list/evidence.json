@@ -1,0 +1,26 @@
+{
+  "code": "glass_items_list",
+  "documentId": "cmnyp958v004t08tsn1jgqsid",
+  "date": "2026-04-14",
+  "marker": "EXT2 glass-items-list MNYQE4NJ",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp958v004t08tsn1jgqsid",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "glass_items_list"
+  },
+  "expectedUi": [
+    "EXT2 glass-items-list MNYQE4NJ"
+  ],
+  "expectedPdf": [
+    "EXT2 glass-items-list MNYQE4NJ"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 436592
+}

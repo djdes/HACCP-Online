@@ -1,0 +1,77 @@
+{
+  "taskId": "telegram-mini-app-polish-2026-04-24",
+  "date": "2026-04-24",
+  "verdict": "PASS",
+  "acceptanceCriteria": {
+    "AC1": {
+      "status": "PASS",
+      "summary": "First-party Telegram CTAs use web_app buttons for Mini App openings; t.me deep links remain plain URL links."
+    },
+    "AC2": {
+      "status": "PASS",
+      "summary": "Idempotent Telegram bot setup script and npm command configure profile, descriptions, commands, menu button, and avatar."
+    },
+    "AC3": {
+      "status": "PASS",
+      "summary": "Mini App navigation stays in /mini, and dashboard-only report links route through /mini/open."
+    },
+    "AC4": {
+      "status": "PASS",
+      "summary": "Mini App shell, navigation, cards, scanner, staff/equipment pages, runtime theme setup, and icon assets were refreshed in WeSetup style."
+    },
+    "AC5": {
+      "status": "PASS",
+      "summary": "Focused tests, targeted lint, TypeScript check, production build, HTTP probe, and screenshot capture succeeded."
+    }
+  },
+  "checks": [
+    {
+      "name": "unit-tests",
+      "command": "node --import tsx --test src/lib/journal-obligation-links.test.ts src/lib/telegram-web-app.test.ts src/lib/bot/inline-results.test.ts src/lib/bot/setup.test.ts src/lib/bot/start-response.test.ts src/lib/bot/start-home.test.ts",
+      "status": "PASS",
+      "artifact": "raw/tests.txt"
+    },
+    {
+      "name": "targeted-eslint",
+      "command": "npm run lint -- <touched files>",
+      "status": "PASS",
+      "artifact": "raw/lint.txt"
+    },
+    {
+      "name": "typescript",
+      "command": "npx tsc --noEmit --pretty false",
+      "status": "PASS",
+      "artifact": "raw/tsc.txt"
+    },
+    {
+      "name": "production-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "artifact": "raw/build.txt"
+    },
+    {
+      "name": "live-bot-profile-setup-attempt",
+      "command": "npm run setup:telegram-bot",
+      "status": "BLOCKED",
+      "artifact": "raw/setup-telegram-bot.txt",
+      "reason": "Current local environment does not define TELEGRAM_BOT_TOKEN."
+    },
+    {
+      "name": "mini-open-http-probe",
+      "command": "Invoke-WebRequest -UseBasicParsing 'http://localhost:3000/mini/open?href=%2Freports'",
+      "status": "PASS",
+      "artifact": "raw/http-mini-open.txt"
+    },
+    {
+      "name": "mini-open-mobile-screenshot",
+      "command": "npx playwright screenshot --viewport-size=390,844 'http://localhost:3000/mini/open?href=%2Freports&label=Отчёты' .agent/tasks/telegram-mini-app-polish-2026-04-24/raw/mini-open-390.png",
+      "status": "PASS",
+      "artifact": "raw/mini-open-390.png"
+    }
+  ],
+  "notes": [
+    "Telegram Bot API does not allow a bot to set user chat wallpapers/backgrounds.",
+    "Live Telegram bot profile was not mutated during verification because the current local environment has no TELEGRAM_BOT_TOKEN; run npm run setup:telegram-bot with production env to apply the profile/menu/avatar.",
+    "The repository had unrelated dirty worktree files; they were not reverted."
+  ]
+}

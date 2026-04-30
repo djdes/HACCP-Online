@@ -1,0 +1,26 @@
+{
+  "code": "equipment_calibration",
+  "documentId": "cmnyodrno0085ootsy941dzai",
+  "date": "2026-04-14",
+  "marker": "EXT2 equipment-calibration MNYQDT6C",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrno0085ootsy941dzai",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "equipment_calibration"
+  },
+  "expectedUi": [
+    "EXT2 equipment-calibration MNYQDT6C"
+  ],
+  "expectedPdf": [
+    "EXT2 equipment-calibration MNYQDT6C"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 445548
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 accident-journal MNYQD4WM",
+  "data": {
+    "rows": [
+      {
+        "accidentDate": "2026-04-14",
+        "accidentHour": "09",
+        "accidentMinute": "15",
+        "locationName": "EXT2 accident-journal MNYQD4WM",
+        "accidentDescription": "EXT2 accident-journal MNYQD4WM accident",
+        "affectedProducts": "5 kg",
+        "resolvedDate": "2026-04-14",
+        "resolvedHour": "10",
+        "resolvedMinute": "05",
+        "responsiblePeople": "EXT2 accident-journal MNYQD4WM",
+        "correctiveActions": "EXT2 accident-journal MNYQD4WM fixed"
+      }
+    ]
+  }
+}

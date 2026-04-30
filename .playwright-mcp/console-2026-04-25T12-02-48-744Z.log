@@ -1,0 +1,10 @@
+[     793ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/task-fill/342?token=342.1777118191498.FKHwM8cs-djo7FkfoFaH1sssRuInNbK8Zc6jZjHjrbA&return=https%3A%2F%2Ftasksflow.ru%2Fdashboard:0
+[     952ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[     959ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/task-fill/342?token=342.1777118191498.FKHwM8cs-djo7FkfoFaH1sssRuInNbK8Zc6jZjHjrbA&return=https%3A%2F%2Ftasksflow.ru%2Fdashboard:0
+[    1132ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/task-fill/342?token=342.1777118191498.FKHwM8cs-djo7FkfoFaH1sssRuInNbK8Zc6jZjHjrbA&return=https%3A%2F%2Ftasksflow.ru%2Fdashboard:0
+[    1179ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[    1180ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/task-fill/342?token=342.1777118191498.FKHwM8cs-djo7FkfoFaH1sssRuInNbK8Zc6jZjHjrbA&return=https%3A%2F%2Ftasksflow.ru%2Fdashboard:0
+[   50507ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://tasksflow.ru/api/users:0
+[   50508ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://tasksflow.ru/api/tasks:0
+[   50509ms] [LOG] SW registered: https://tasksflow.ru/ @ https://tasksflow.ru/dashboard:23
+[   50602ms] [WARNING] Error while trying to use the following icon from the Manifest: https://tasksflow.ru/favicon.png (Resource size is not correct - typo in the Manifest?) @ https://tasksflow.ru/:0

@@ -1,0 +1,33 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e85]:
+    - generic [ref=e86]:
+      - link "Назад" [ref=e87] [cursor=pointer]:
+        - /url: /register
+        - img [ref=e88]
+        - generic [ref=e90]: Назад
+      - generic [ref=e91]:
+        - img [ref=e93]
+        - generic [ref=e97]:
+          - heading "Регистрация компании" [level=1] [ref=e98]
+          - paragraph [ref=e99]: Создайте аккаунт для вашей организации
+    - generic [ref=e101]:
+      - generic [ref=e102]:
+        - text: Телефон администратора
+        - textbox "Телефон администратора" [ref=e103]:
+          - /placeholder: xxx xxx xx xx
+          - text: "+7"
+      - generic [ref=e104]:
+        - text: Название компании
+        - textbox "Название компании" [ref=e105]:
+          - /placeholder: ИП Иванов Иван
+      - generic [ref=e106]:
+        - text: Email для уведомлений
+        - textbox "Email для уведомлений" [ref=e107]:
+          - /placeholder: admin@company.ru
+      - generic [ref=e108]:
+        - generic [ref=e109]: Ваше имя (необязательно)
+        - textbox "Ваше имя (необязательно)" [ref=e110]:
+          - /placeholder: Иван Иванов
+      - button "Зарегистрировать" [ref=e112] [cursor=pointer]

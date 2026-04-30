@@ -1,0 +1,2 @@
+[     153ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://wesetup.ru/settings/backup:0
+[     233ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/settings/backup:0

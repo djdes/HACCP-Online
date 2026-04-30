@@ -1,0 +1,26 @@
+{
+  "code": "audit_protocol",
+  "documentId": "cmnyp94n2004008tsmx3vtmtd",
+  "date": "2026-04-14",
+  "marker": "EXT2 audit-protocol MNYQD8E9",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp94n2004008tsmx3vtmtd",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "audit_protocol"
+  },
+  "expectedUi": [
+    "EXT2 audit-protocol MNYQD8E9"
+  ],
+  "expectedPdf": [
+    "EXT2 audit-protocol MNYQD8E9"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 436076
+}

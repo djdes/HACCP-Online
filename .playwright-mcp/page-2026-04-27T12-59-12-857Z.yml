@@ -1,0 +1,83 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - generic "Build:" [ref=e7]: ...
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+          - button "Обратная связь" [ref=e33]:
+            - img
+            - generic [ref=e34]: Обратная связь
+          - link "Настройки" [ref=e35] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e36]
+          - button "Выйти" [ref=e39]:
+            - img [ref=e40]
+          - button "Профиль" [ref=e43]:
+            - generic [ref=e45]: ИТ
+    - main [ref=e46]:
+      - generic [ref=e47]:
+        - heading "Новый CAPA" [level=1] [ref=e48]
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: Название проблемы *
+            - textbox "Название проблемы *" [ref=e52]:
+              - /placeholder: Кратко опишите отклонение
+          - generic [ref=e53]:
+            - generic [ref=e54]: Описание
+            - textbox "Описание" [ref=e55]:
+              - /placeholder: "Подробное описание: что произошло, где, когда"
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - generic [ref=e58]: Приоритет
+              - combobox [ref=e59]:
+                - generic: Средний (48ч)
+                - img
+              - combobox [ref=e60]
+            - generic [ref=e61]:
+              - generic [ref=e62]: Категория
+              - combobox [ref=e63]:
+                - generic: Другое
+                - img
+              - combobox [ref=e64]
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: SLA (часов)
+              - combobox [ref=e68]:
+                - generic: 24 часа
+                - img
+              - combobox [ref=e69]
+            - generic [ref=e70]:
+              - generic [ref=e71]: Ответственный
+              - combobox [ref=e72]:
+                - generic: Выберите...
+                - img
+              - combobox [ref=e73]
+          - generic [ref=e74]:
+            - button "Создать CAPA" [ref=e75]
+            - button "Отмена" [ref=e76]
+    - button "AI-помощник по СанПиН" [ref=e77]:
+      - img [ref=e78]
+      - generic [ref=e81]: AI помощник
+    - button "Поддержка" [ref=e82]:
+      - img [ref=e83]
+      - generic [ref=e85]: Поддержка
+  - region "Notifications alt+T"
+  - alert [ref=e86]

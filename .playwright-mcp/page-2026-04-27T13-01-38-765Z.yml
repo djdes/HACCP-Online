@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - 'generic "Build: 2026-04-27T04:26:47Z" [ref=e7]': eb52b71
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e33]: "9"
+          - button "Обратная связь" [ref=e34]:
+            - img
+            - generic [ref=e35]: Обратная связь
+          - link "Настройки" [ref=e36] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e37]
+          - button "Выйти" [ref=e40]:
+            - img [ref=e41]
+          - button "Профиль" [ref=e44]:
+            - generic [ref=e46]: ИТ
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "К настройкам" [ref=e50] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e51]
+            - text: К настройкам
+          - generic [ref=e53]:
+            - img [ref=e55]
+            - generic [ref=e58]:
+              - heading "Compliance" [level=1] [ref=e59]
+              - paragraph [ref=e60]: "Настройки строгости журналов: кто и когда может править уже сохранённые записи. По умолчанию — любой сотрудник может открыть свою выполненную задачу и изменить значения. История правок сохраняется в журнале независимо от настроек."
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - img [ref=e65]
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - generic [ref=e71]: Только админы могут править выполненные записи
+                  - paragraph [ref=e72]:
+                    - text: Когда включено — кнопка «Изменить данные» на уже выполненной задаче появляется только у руководителей (manager / head_chef / технолог / собственник). Рядовые сотрудники видят запись как сохранённую, без возможности её изменить.
+                    - text: По умолчанию выключено. Большинству бригад эта строгость не нужна — сотрудник, который только что заполнил журнал, должен иметь возможность сам исправить опечатку.
+                - switch [ref=e74]
+            - generic [ref=e75]: История правок сохраняется в журнале независимо от этого переключателя — каждое изменение фиксируется с указанием автора, времени и предыдущих значений. Это требование ХАССП, его нельзя отключить.
+          - generic [ref=e77]:
+            - img [ref=e79]
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - generic [ref=e85]: Час окончания рабочей смены
+                - paragraph [ref=e86]:
+                  - text: Когда наступает этот час по UTC — система автоматически закрывает все «общие задачи смены» (event-журналы) без записей с пометкой «закрыто автоматически». Compliance становится зелёным, но в weekly-digest менеджер увидит это как флаг халатности.
+                  - generic [ref=e87]:
+                    - text: По умолчанию
+                    - strong [ref=e88]: "0"
+                    - text: (полночь UTC = 03:00 МСК). Для ночных смен поставьте, например, 6 — смена закроется в 06:00 UTC = 09:00 МСК.
+              - combobox [ref=e90]:
+                - option "00:00 UTC" [selected]
+                - option "01:00 UTC"
+                - option "02:00 UTC"
+                - option "03:00 UTC"
+                - option "04:00 UTC"
+                - option "05:00 UTC"
+                - option "06:00 UTC"
+                - option "07:00 UTC"
+                - option "08:00 UTC"
+                - option "09:00 UTC"
+                - option "10:00 UTC"
+                - option "11:00 UTC"
+                - option "12:00 UTC"
+                - option "13:00 UTC"
+                - option "14:00 UTC"
+                - option "15:00 UTC"
+                - option "16:00 UTC"
+                - option "17:00 UTC"
+                - option "18:00 UTC"
+                - option "19:00 UTC"
+                - option "20:00 UTC"
+                - option "21:00 UTC"
+                - option "22:00 UTC"
+                - option "23:00 UTC"
+          - generic [ref=e92]:
+            - img [ref=e94]
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: Закрытый день — нельзя править вчерашние записи
+                - paragraph [ref=e101]:
+                  - text: Когда включено — после момента «начало сегодняшнего дня» (с учётом часа окончания смены выше) рядовые сотрудники не могут изменить или удалить записи за прошедшие дни. Управление по-прежнему может, но каждое такое действие пишется в журнал аудита с отметкой closed_day.override.
+                  - text: Используйте если ваш бизнес проходит ХАССП-аудит и нужно гарантировать, что официант не «допишет» вчерашний контроль t° задним числом.
+              - switch [ref=e103]
+    - button "AI-помощник по СанПиН" [ref=e104]:
+      - img [ref=e105]
+      - generic [ref=e108]: AI помощник
+    - button "Поддержка" [ref=e109]:
+      - img [ref=e110]
+      - generic [ref=e112]: Поддержка
+  - region "Notifications alt+T"
+  - alert [ref=e113]

@@ -1,0 +1,18 @@
+[  499835ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  503010ms] [LOG] [Fast Refresh] done in 3276ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  507508ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  510918ms] [LOG] [Fast Refresh] done in 3456ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  511040ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  512525ms] [LOG] [Fast Refresh] done in 1593ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  513332ms] [LOG] %c%s%c prisma:query background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."excerpt", "public"."Article"."tags", "public"."Article"."readMinutes", "public"."Article"."publishedAt" FROM "public"."Article" WHERE "public"."Article"."publishedAt" IS NOT NULL ORDER BY "public"."Article"."publishedAt" DESC LIMIT $1 OFFSET $2 @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  526297ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  526408ms] [LOG] [Fast Refresh] done in 211ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  526512ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  530187ms] [LOG] [Fast Refresh] done in 3752ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  530920ms] [LOG] %c%s%c prisma:query background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."excerpt", "public"."Article"."tags", "public"."Article"."readMinutes", "public"."Article"."publishedAt" FROM "public"."Article" WHERE "public"."Article"."publishedAt" IS NOT NULL ORDER BY "public"."Article"."publishedAt" DESC LIMIT $1 OFFSET $2 @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  576632ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  588201ms] [LOG] [Fast Refresh] done in 11556ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  597843ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  609885ms] [LOG] [Fast Refresh] done in 12143ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  677882ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  681214ms] [LOG] [Fast Refresh] done in 3433ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297

@@ -1,0 +1,28 @@
+{
+  "code": "cold_equipment_control",
+  "documentId": "cmnyodrls0075ootsr9y7prhz",
+  "date": "2026-04-14",
+  "marker": "EXT2 cold-equipment-control MNYQDNSR",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyodrls0075ootsr9y7prhz",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "cold_equipment_control"
+  },
+  "expectedUi": [
+    "3.2",
+    "-18"
+  ],
+  "expectedPdf": [
+    "3.2",
+    "-18"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 449676
+}

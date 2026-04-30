@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "На главный экран" [ref=e5] [cursor=pointer]:
+          - /url: /mini
+          - generic [ref=e7]: W
+          - generic [ref=e9]:
+            - generic [ref=e10]: WESETUP · HACCP
+            - generic [ref=e11]: Кабинет
+        - generic [ref=e12]:
+          - generic [ref=e13]: 23:07:25
+          - link "Профиль" [ref=e14] [cursor=pointer]:
+            - /url: /mini/me
+            - img [ref=e15]
+    - main [ref=e18]:
+      - generic [ref=e20]:
+        - img [ref=e21]
+        - heading "Откройте внутри Telegram" [level=1] [ref=e23]
+        - paragraph [ref=e24]: Рабочий кабинет сотрудника доступен только как Mini App в Telegram. Попросите у руководителя персональную ссылку-приглашение.
+  - alert [ref=e25]

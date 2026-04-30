@@ -1,0 +1,35 @@
+Seeding journal templates...
+PrismaClientKnownRequestError: 
+Invalid `prisma.journalTemplate.upsert()` invocation in
+C:\www\Wesetup.ru\prisma\seed.ts:749:34
+
+  746 const allowedCodes = new Set(enabledTemplates.map((template) => template.code));
+  747 
+  748 for (const template of enabledTemplates) {
+→ 749   await prisma.journalTemplate.upsert(
+User was denied access on the database `(not available)`
+    at zr.handleRequestError (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\RequestHandler.ts:237:13)
+    at zr.handleAndLogRequestError (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\RequestHandler.ts:183:12)
+    at zr.request (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\RequestHandler.ts:152:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async a (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:808:24)
+    at async main (C:\www\Wesetup.ru\prisma\seed.ts:749:5) {
+  code: 'P1010',
+  meta: {
+    modelName: 'JournalTemplate',
+    driverAdapterError: DriverAdapterError: DatabaseAccessDenied
+        at PrismaPgAdapter.onError (C:\www\Wesetup.ru\node_modules\@prisma\adapter-pg\dist\index.js:687:11)
+        at PrismaPgAdapter.performIO (C:\www\Wesetup.ru\node_modules\@prisma\adapter-pg\dist\index.js:682:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async PrismaPgAdapter.queryRaw (C:\www\Wesetup.ru\node_modules\@prisma\adapter-pg\dist\index.js:602:30)
+        at async e.interpretNode (C:\www\Wesetup.ru\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:186:26)
+        at async e.interpretNode (C:\www\Wesetup.ru\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:213:41)
+        at async e.interpretNode (C:\www\Wesetup.ru\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:272:41)
+        at async e.run (C:\www\Wesetup.ru\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:94:23)
+        at async e.execute (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\core\engines\client\LocalExecutor.ts:81:12)
+        at async jt.request (C:\www\Wesetup.ru\node_modules\@prisma\client\src\runtime\core\engines\client\ClientEngine.ts:492:22) {
+      cause: [Object]
+    }
+  },
+  clientVersion: '7.4.2'
+}

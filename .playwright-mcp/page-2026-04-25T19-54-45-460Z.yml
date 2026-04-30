@@ -1,0 +1,33 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e41]:
+    - generic [ref=e43]:
+      - link "Назад" [ref=e44] [cursor=pointer]:
+        - /url: /
+        - img [ref=e45]
+        - generic [ref=e47]: Назад
+      - heading "Регистрация" [level=1] [ref=e48]
+      - paragraph [ref=e49]: Выберите тип регистрации
+    - generic [ref=e51]:
+      - link "Создание компании Зарегистрируйте новую компанию и станьте её администратором" [ref=e52] [cursor=pointer]:
+        - /url: /register/company
+        - generic [ref=e54]:
+          - img [ref=e56]
+          - generic [ref=e60]:
+            - heading "Создание компании" [level=2] [ref=e61]
+            - paragraph [ref=e62]: Зарегистрируйте новую компанию и станьте её администратором
+          - img [ref=e63]
+      - link "Присоединиться к компании Зарегистрируйтесь как сотрудник существующей компании" [ref=e65] [cursor=pointer]:
+        - /url: /register/user
+        - generic [ref=e67]:
+          - img [ref=e69]
+          - generic [ref=e72]:
+            - heading "Присоединиться к компании" [level=2] [ref=e73]
+            - paragraph [ref=e74]: Зарегистрируйтесь как сотрудник существующей компании
+          - img [ref=e75]
+      - generic [ref=e79]: или
+      - paragraph [ref=e82]:
+        - text: Уже есть аккаунт?
+        - link "Войти" [ref=e83] [cursor=pointer]:
+          - /url: /

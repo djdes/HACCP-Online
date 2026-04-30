@@ -1,0 +1,65 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - 'generic "Build: 2026-04-27T04:26:47Z" [ref=e7]': eb52b71
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e33]: "9"
+          - button "Обратная связь" [ref=e34]:
+            - img
+            - generic [ref=e35]: Обратная связь
+          - link "Настройки" [ref=e36] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e37]
+          - button "Выйти" [ref=e40]:
+            - img [ref=e41]
+          - button "Профиль" [ref=e44]:
+            - generic [ref=e46]: ИТ
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "К настройкам" [ref=e50] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e51]
+            - text: К настройкам
+          - generic [ref=e53]:
+            - img [ref=e55]
+            - generic [ref=e58]:
+              - heading "Бухгалтерия" [level=1] [ref=e59]
+              - paragraph [ref=e60]: Раз в неделю отправляем бухгалтеру CSV со списаниями (журнал «Потери и брак») за прошедшие 7 дней. Файл в UTF-8 BOM с разделителем «;» — открывается в Excel и импортируется в 1С через «Загрузка данных из табличного документа».
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - img [ref=e64]
+            - generic [ref=e67]:
+              - generic [ref=e68]: Email бухгалтера
+              - paragraph [ref=e69]: Введите адрес — на него начнут приходить еженедельные CSV со списаниями.
+          - generic [ref=e70]:
+            - textbox "accountant@yourcompany.ru" [ref=e71]
+            - button "Подключить" [disabled] [ref=e72]
+          - generic [ref=e73]: "Что в письме: вложение CSV с колонками Дата / Категория / Продукт / Кол-во / Ед.изм / Сумма ₽ / Причина. Кодировка UTF-8 BOM, разделитель «;», даты в формате ДД.ММ.ГГГГ. Если за неделю не было списаний — письмо не отправляется."
+    - button "AI-помощник по СанПиН" [ref=e74]:
+      - img [ref=e75]
+      - generic [ref=e78]: AI помощник
+    - button "Поддержка" [ref=e79]:
+      - img [ref=e80]
+      - generic [ref=e82]: Поддержка
+  - region "Notifications alt+T"
+  - alert [ref=e83]

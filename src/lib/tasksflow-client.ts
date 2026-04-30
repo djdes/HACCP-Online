@@ -207,6 +207,21 @@ class TasksFlowClient {
     return this.request<TasksFlowTask>("POST", "/api/tasks", input);
   }
 
+  /**
+   * Phase E.UI: пушим в TF факт reject ячейки/документа со стороны
+   * WeSetup-verifier'а. На стороне TF в storage пишутся
+   * verification_status='rejected' + reject_reason; задача снова
+   * становится active (isCompleted=false), и worker видит на ней
+   * красный баннер «Возвращено: …».
+   */
+  markReturned(taskId: number, reason: string): Promise<TasksFlowTask> {
+    return this.request<TasksFlowTask>(
+      "POST",
+      `/api/tasks/${taskId}/mark-returned`,
+      { reason },
+    );
+  }
+
   updateTask(
     id: number,
     patch: Partial<CreateTaskInput>

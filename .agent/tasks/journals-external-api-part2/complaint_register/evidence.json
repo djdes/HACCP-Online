@@ -1,0 +1,26 @@
+{
+  "code": "complaint_register",
+  "documentId": "cmnyp94xi004e08tsa8bnu76e",
+  "date": "2026-04-14",
+  "marker": "EXT2 complaint-register MNYQDPYV",
+  "postStatus": 200,
+  "body": {
+    "ok": true,
+    "documentId": "cmnyp94xi004e08tsa8bnu76e",
+    "entriesWritten": 1,
+    "createdDocument": false,
+    "templateCode": "complaint_register"
+  },
+  "expectedUi": [
+    "EXT2 complaint-register MNYQDPYV"
+  ],
+  "expectedPdf": [
+    "EXT2 complaint-register MNYQDPYV"
+  ],
+  "uiPass": true,
+  "pdfPass": true,
+  "verdict": "PASS",
+  "pdfStatus": 200,
+  "pdfContentType": "application/pdf",
+  "pdfBytes": 437883
+}

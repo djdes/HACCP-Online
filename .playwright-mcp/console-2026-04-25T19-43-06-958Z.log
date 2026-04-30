@@ -1,0 +1,9 @@
+[    1108ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/dashboard:0
+[    1195ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[    1230ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/dashboard:0
+[    1724ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/dashboard:0
+[    1755ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[    1772ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/dashboard:0
+[   17678ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://wesetup.ru/login:0
+[   17727ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://wesetup.ru/icons/icon-192.png:0
+[   17729ms] [WARNING] Error while trying to use the following icon from the Manifest: https://wesetup.ru/icons/icon-192.png (Download error or resource isn't a valid image) @ https://wesetup.ru/login:0

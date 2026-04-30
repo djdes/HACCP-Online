@@ -1,0 +1,73 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "WESETUP — на дашборд" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e6]: WESETUP
+          - 'generic "Build: 2026-04-27T04:26:47Z" [ref=e7]': eb52b71
+        - generic [ref=e8]:
+          - link "Кафе «QA-Тест 25-04»" [ref=e10] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e11]
+            - generic [ref=e15]: Кафе «QA-Тест 25-04»
+            - img [ref=e16]
+          - link "Сотрудники" [ref=e18] [cursor=pointer]:
+            - /url: /settings/users
+            - img [ref=e19]
+            - generic [ref=e24]: Сотрудники
+        - generic [ref=e25]:
+          - generic "В сети" [ref=e26]:
+            - img [ref=e27]
+            - text: В сети
+          - button "Уведомления" [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e33]: "9"
+          - button "Обратная связь" [ref=e34]:
+            - img
+            - generic [ref=e35]: Обратная связь
+          - link "Настройки" [ref=e36] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e37]
+          - button "Выйти" [ref=e40]:
+            - img [ref=e41]
+          - button "Профиль" [ref=e44]:
+            - generic [ref=e46]: ИТ
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "К настройкам" [ref=e50] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e51]
+            - text: К настройкам
+          - generic [ref=e53]:
+            - img [ref=e55]
+            - generic [ref=e58]:
+              - heading "Авто-бэкап на Я.Диск" [level=1] [ref=e59]
+              - paragraph [ref=e60]: Раз в неделю мы выгружаем JSON-дамп ваших журналов (записи, документы, CAPA, потери) в вашу папку на Yandex.Disk. Если WeSetup исчезнет — у вас остаётся читаемый файл со всеми данными.
+        - generic [ref=e62]:
+          - generic [ref=e63]: Подключить Yandex.Disk
+          - list [ref=e64]:
+            - listitem [ref=e65]:
+              - text: 1. Зайдите в
+              - link "Яндекс.OAuth" [ref=e66] [cursor=pointer]:
+                - /url: https://oauth.yandex.ru/authorize?response_type=token&client_id=YOUR_APP_ID&scope=cloud_api%3Adisk.read%20cloud_api%3Adisk.write
+              - text: и создайте приложение с правами «Доступ к папке приложения на Диске» + «Запись на Диск».
+            - listitem [ref=e67]: 2. Скопируйте полученный OAuth-токен (длинная строка, начинается с букв и цифр).
+            - listitem [ref=e68]: 3. Вставьте токен ниже — мы проверим его и сохраним. Сами файлы пишутся в папку /WeSetup на вашем Диске (можно изменить).
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]: OAuth-токен
+              - textbox "y0_AgAA…" [ref=e72]
+            - generic [ref=e73]:
+              - generic [ref=e74]: Папка на Диске
+              - textbox "/WeSetup" [ref=e75]
+            - button "Подключить" [disabled] [ref=e76]
+    - button "AI-помощник по СанПиН" [ref=e77]:
+      - img [ref=e78]
+      - generic [ref=e81]: AI помощник
+    - button "Поддержка" [ref=e82]:
+      - img [ref=e83]
+      - generic [ref=e85]: Поддержка
+  - region "Notifications alt+T"
+  - alert [ref=e86]

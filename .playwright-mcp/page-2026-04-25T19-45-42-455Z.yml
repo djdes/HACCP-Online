@@ -1,0 +1,249 @@
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - link:
+          - /url: /dashboard
+          - generic: WESETUP
+          - generic: 9271aec
+        - generic:
+          - generic:
+            - link:
+              - /url: /dashboard
+              - img
+              - generic: Кафе «QA-Тест 25-04»
+              - img
+          - link:
+            - /url: /settings/users
+            - img
+            - generic: Сотрудники
+        - generic:
+          - generic:
+            - img
+            - text: В сети
+          - button:
+            - img
+          - button:
+            - img
+            - generic: Обратная связь
+          - link:
+            - /url: /settings
+            - img
+          - button:
+            - img
+          - button:
+            - generic:
+              - generic: ИТ
+    - main:
+      - generic:
+        - link:
+          - /url: /settings
+          - img
+          - text: Настройки
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                - generic:
+                  - heading [level=1]: Сотрудники
+                  - paragraph: Кафе «QA-Тест 25-04» · настройка должностей и графиков для автозаполнения Гигиенического журнала.
+              - button:
+                - img
+                - text: Инструкция
+            - generic:
+              - generic:
+                - generic: "1"
+                - generic: Всего
+              - generic:
+                - generic: "1"
+                - generic: Должностей
+              - generic:
+                - generic: "0"
+                - generic: Сейчас в отпуске
+              - generic:
+                - generic: "0"
+                - generic: На больничном
+        - generic:
+          - button:
+            - generic: Кафе «QA-Тест 25-04»
+            - img
+          - generic:
+            - generic:
+              - generic:
+                - button:
+                  - generic:
+                    - img
+                  - text: Руководство
+                  - generic: "0"
+                  - img
+                - button:
+                  - img
+              - generic:
+                - generic:
+                  - generic:
+                    - button:
+                      - generic: Управляющий
+                      - generic: "0"
+                    - button:
+                      - img
+                    - button:
+                      - img
+            - generic:
+              - generic:
+                - button:
+                  - generic:
+                    - img
+                  - text: Сотрудники
+                  - generic: "0"
+                  - img
+                - button:
+                  - img
+              - generic:
+                - paragraph: Пока нет должностей. Нажмите +, чтобы добавить.
+        - generic:
+          - generic:
+            - button: График выходных дней
+            - button: График отпусков
+            - button: График больничных
+            - button: График увольнений
+        - generic:
+          - heading [level=2]: График выходных дней
+          - generic:
+            - paragraph: Данный график заполняется ТОЛЬКО для того, чтобы автоматически заполнять Гигиенический журнал. Ни на какие другие журналы данная настройка не влияет.
+            - paragraph: Если поставить здесь отметку, то при Автозаполнении в Гигиеническом журнале поставится значение "В"
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - checkbox [checked]
+                - generic: Фамилии сотрудников по алфавиту
+            - button:
+              - img
+              - text: Заполнить выходные дни из Айко
+            - generic:
+              - table:
+                - rowgroup:
+                  - row:
+                    - columnheader: Ф.И.О. работника
+                    - columnheader: Должность
+                    - columnheader:
+                      - generic: "25.04"
+                      - generic: Сб.
+                    - columnheader:
+                      - generic: "26.04"
+                      - generic: Вс.
+                    - columnheader:
+                      - generic: "27.04"
+                      - generic: Пн.
+                    - columnheader:
+                      - generic: "28.04"
+                      - generic: Вт.
+                    - columnheader:
+                      - generic: "29.04"
+                      - generic: Ср.
+                    - columnheader:
+                      - generic: "30.04"
+                      - generic: Чт.
+                    - columnheader:
+                      - generic: "01.05"
+                      - generic: Пт.
+                    - columnheader:
+                      - generic: "02.05"
+                      - generic: Сб.
+                    - columnheader:
+                      - generic: "03.05"
+                      - generic: Вс.
+                    - columnheader:
+                      - generic: "04.05"
+                      - generic: Пн.
+                    - columnheader:
+                      - generic: "05.05"
+                      - generic: Вт.
+                    - columnheader:
+                      - generic: "06.05"
+                      - generic: Ср.
+                    - columnheader:
+                      - generic: "07.05"
+                      - generic: Чт.
+                    - columnheader:
+                      - generic: "08.05"
+                      - generic: Пт.
+                    - columnheader:
+                      - generic: "09.05"
+                      - generic: Сб.
+                    - columnheader:
+                      - generic: "10.05"
+                      - generic: Вс.
+                    - columnheader:
+                      - generic: "11.05"
+                      - generic: Пн.
+                    - columnheader:
+                      - generic: "12.05"
+                      - generic: Вт.
+                    - columnheader:
+                      - generic: "13.05"
+                      - generic: Ср.
+                    - columnheader:
+                      - generic: "14.05"
+                      - generic: Чт.
+                - rowgroup:
+                  - row:
+                    - cell: Иван Тестовый
+                    - cell: —
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+                    - cell:
+                      - checkbox
+            - generic: Выходные — суббота и воскресенье подсвечены светло-жёлтым
+  - region "Notifications alt+T"
+  - alert
+  - dialog "Добавление должности" [ref=e278]:
+    - generic [ref=e279]:
+      - heading "Добавление должности" [level=2] [ref=e280]
+      - paragraph [ref=e281]: Добавление должности
+    - generic [ref=e283]:
+      - generic [ref=e284]: Должность
+      - textbox "Должность" [active] [ref=e285]:
+        - /placeholder: Например, «Повар холодного цеха»
+    - button "Добавить" [ref=e287]
+    - button "Close" [ref=e288]:
+      - img
+      - generic [ref=e289]: Close

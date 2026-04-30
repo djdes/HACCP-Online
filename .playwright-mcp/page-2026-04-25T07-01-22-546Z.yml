@@ -1,0 +1,673 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e4]:
+      - link "WESETUP" [ref=e5] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e6]:
+        - link "Журналы" [ref=e7] [cursor=pointer]:
+          - /url: /journals-info
+        - link "Блог" [ref=e8] [cursor=pointer]:
+          - /url: /blog
+        - link "Войти" [ref=e9] [cursor=pointer]:
+          - /url: /login
+        - link "Начать" [ref=e10] [cursor=pointer]:
+          - /url: /register
+          - text: Начать
+          - img [ref=e11]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - img [ref=e16]
+        - text: В реестре отечественного ПО
+        - generic [ref=e19]: ·
+        - generic [ref=e20]: заявка №27419
+      - heading "Электронные журналы для вашей кухни" [level=1] [ref=e21]:
+        - text: Электронные журналы
+        - generic [ref=e22]: для вашей кухни
+      - paragraph [ref=e23]: СанПиН и ХАССП в одной системе. Заполняете с планшета на кухне или из Telegram, PDF для Роспотребнадзора — в один клик. Бесплатно навсегда до 5 сотрудников.
+      - generic [ref=e24]:
+        - link "Начать" [ref=e25] [cursor=pointer]:
+          - /url: /register
+          - text: Начать
+          - img [ref=e26]
+        - generic [ref=e28]: Без карты · Всё включено на бесплатном тарифе
+      - generic [ref=e29]:
+        - generic [ref=e30]: Подходит для
+        - generic [ref=e31]:
+          - generic [ref=e32]: Рестораны
+          - generic [ref=e33]: Кафе
+          - generic [ref=e34]: Пекарни
+          - generic [ref=e35]: Кондитерские
+          - generic [ref=e36]: Столовые
+          - generic [ref=e37]: Отели
+          - generic [ref=e38]: Фуд-корты
+          - generic [ref=e39]: Кейтеринг
+          - generic [ref=e40]: Школьные кухни
+          - generic [ref=e41]: Производственные цеха
+          - generic [ref=e42]: Тёмные кухни
+          - generic [ref=e43]: Сети общепита
+      - generic [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e52]: wesetup.ru/dashboard
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - generic [ref=e55]: WESETUP
+              - generic [ref=e56]:
+                - generic [ref=e57]: Дашборд
+                - generic [ref=e58]: Журналы
+                - generic [ref=e59]: Сотрудники
+                - generic [ref=e60]: Отчёты
+            - generic [ref=e61]: ДВ
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: Сегодня незаполнено
+                - generic [ref=e66]: "3"
+              - list [ref=e67]:
+                - listitem [ref=e68]:
+                  - img [ref=e69]
+                  - generic [ref=e72]: Гигиенический журнал
+                  - generic [ref=e73]: 09:00
+                - listitem [ref=e74]:
+                  - img [ref=e75]
+                  - generic [ref=e78]: Температура холодильников
+                  - generic [ref=e79]: 10:00
+                - listitem [ref=e80]:
+                  - img [ref=e81]
+                  - generic [ref=e84]: Бракераж готовой продукции
+                  - generic [ref=e85]: 12:00
+                - listitem [ref=e86]:
+                  - img [ref=e87]
+                  - generic [ref=e90]: Уборка зала
+                  - generic [ref=e91]: 18:00
+                - listitem [ref=e92]:
+                  - img [ref=e93]
+                  - generic [ref=e96]: Учёт фритюра
+                  - generic [ref=e97]: 20:00
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - generic [ref=e101]: Холодильник №3
+                  - img [ref=e102]
+                - generic [ref=e115]:
+                  - generic [ref=e116]: "+2.8"
+                  - generic [ref=e117]: °C
+                - img [ref=e118]
+              - generic [ref=e121]:
+                - generic [ref=e122]: CAPA открыто
+                - generic [ref=e123]:
+                  - generic [ref=e124]: "2"
+                  - generic [ref=e125]: задачи
+                - generic [ref=e126]: Температура витрины ↑ · Просрочка молочки
+              - generic [ref=e127]:
+                - generic [ref=e128]:
+                  - img [ref=e129]
+                  - generic [ref=e134]: На смене
+                - generic [ref=e135]: "8"
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - img [ref=e141]
+            - generic [ref=e144]:
+              - generic [ref=e145]: "@wesetupbot"
+              - generic [ref=e146]: в сети
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - generic [ref=e149]: 📋 Журналы
+              - generic [ref=e150]: "Выберите журнал для заполнения:"
+              - generic [ref=e151]:
+                - generic [ref=e152]: Гигиенический журнал
+                - generic [ref=e153]: Температура холодильников
+                - generic [ref=e154]: Уборка зала
+            - generic [ref=e155]: Температура холодильников
+            - generic [ref=e157]: "Холодильник №3 — введите значение температуры:"
+            - generic [ref=e158]: "+2.8"
+            - generic [ref=e159]:
+              - generic [ref=e160]: ✅ Запись сохранена
+              - generic [ref=e161]: Видна на сайте мгновенно
+          - generic [ref=e162]:
+            - generic [ref=e163]: Написать...
+            - img [ref=e165]
+        - generic [ref=e169]:
+          - generic [ref=e170]:
+            - generic [ref=e171]: WESETUP
+            - generic [ref=e172]:
+              - img [ref=e173]
+              - text: PDF
+          - generic [ref=e180]:
+            - generic [ref=e181]: Гигиенический журнал
+            - generic [ref=e182]: "Период: 01.04 — 15.04.2026"
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - generic [ref=e185]: Волков Д.В.
+                - generic [ref=e186]: "15.04"
+                - generic [ref=e187]: ✓
+              - generic [ref=e188]:
+                - generic [ref=e189]: Петрова Н.А.
+                - generic [ref=e190]: "15.04"
+                - generic [ref=e191]: ✓
+              - generic [ref=e192]:
+                - generic [ref=e193]: Соколов А.М.
+                - generic [ref=e194]: "15.04"
+                - generic [ref=e195]: "!"
+              - generic [ref=e196]:
+                - generic [ref=e197]: Иванова Е.П.
+                - generic [ref=e198]: "15.04"
+                - generic [ref=e199]: ✓
+            - generic [ref=e200]:
+              - generic [ref=e201]: стр. 1 из 12
+              - generic [ref=e202]: "подпись: ________"
+          - generic [ref=e204]:
+            - text: Скачать для проверки
+            - img [ref=e205]
+    - generic [ref=e208]:
+      - generic [ref=e209]:
+        - generic [ref=e210]: Что внутри
+        - heading "Всё, что нужно, чтобы журналы действительно вели — а не «для галочки»" [level=2] [ref=e211]
+      - generic [ref=e212]:
+        - link "Синхронизация с iiko / 1С Подтягиваем поставщиков, продукты и поступления — бракераж и входной контроль заполняются автоматически. Подробнее" [ref=e213] [cursor=pointer]:
+          - /url: /features/sync-iiko-1c
+          - img [ref=e215]
+          - generic [ref=e217]: Синхронизация с iiko / 1С
+          - paragraph [ref=e218]: Подтягиваем поставщиков, продукты и поступления — бракераж и входной контроль заполняются автоматически.
+          - generic [ref=e219]:
+            - text: Подробнее
+            - img [ref=e220]
+        - link "Автозаполнение Гигиена, температуры, уборка — сервис подставляет значения там, где это безопасно и разрешено. Подробнее" [ref=e222] [cursor=pointer]:
+          - /url: /features/autofill
+          - img [ref=e224]
+          - generic [ref=e227]: Автозаполнение
+          - paragraph [ref=e228]: Гигиена, температуры, уборка — сервис подставляет значения там, где это безопасно и разрешено.
+          - generic [ref=e229]:
+            - text: Подробнее
+            - img [ref=e230]
+        - link "Всё в облаке Журналы доступны из любой точки — компьютер, планшет у шефа, телефон в цехе. История сохраняется. Подробнее" [ref=e232] [cursor=pointer]:
+          - /url: /features/cloud
+          - img [ref=e234]
+          - generic [ref=e236]: Всё в облаке
+          - paragraph [ref=e237]: Журналы доступны из любой точки — компьютер, планшет у шефа, телефон в цехе. История сохраняется.
+          - generic [ref=e238]:
+            - text: Подробнее
+            - img [ref=e239]
+        - link "Доступы по ролям Каждый сотрудник видит только свои журналы. Управляющий видит всех и может закрыть период. Подробнее" [ref=e241] [cursor=pointer]:
+          - /url: /features/role-access
+          - img [ref=e243]
+          - generic [ref=e247]: Доступы по ролям
+          - paragraph [ref=e248]: Каждый сотрудник видит только свои журналы. Управляющий видит всех и может закрыть период.
+          - generic [ref=e249]:
+            - text: Подробнее
+            - img [ref=e250]
+        - link "Напоминания Почта и Telegram пишут, если до конца смены остался незаполненный журнал. Конец дня — журналы закрыты. Подробнее" [ref=e252] [cursor=pointer]:
+          - /url: /features/reminders
+          - img [ref=e254]
+          - generic [ref=e259]: Напоминания
+          - paragraph [ref=e260]: Почта и Telegram пишут, если до конца смены остался незаполненный журнал. Конец дня — журналы закрыты.
+          - generic [ref=e261]:
+            - text: Подробнее
+            - img [ref=e262]
+        - link "Алерты о нарушениях Температура вне нормы, просрочка, отклонение — уведомление ответственному в реальном времени. Подробнее" [ref=e264] [cursor=pointer]:
+          - /url: /features/alerts
+          - img [ref=e266]
+          - generic [ref=e269]: Алерты о нарушениях
+          - paragraph [ref=e270]: Температура вне нормы, просрочка, отклонение — уведомление ответственному в реальном времени.
+          - generic [ref=e271]:
+            - text: Подробнее
+            - img [ref=e272]
+        - link "Без бумаги Не нужно покупать журналы, заводить распечатки, хранить коробки — все записи сразу в электронном виде. Подробнее" [ref=e274] [cursor=pointer]:
+          - /url: /features/paperless
+          - img [ref=e276]
+          - generic [ref=e279]: Без бумаги
+          - paragraph [ref=e280]: Не нужно покупать журналы, заводить распечатки, хранить коробки — все записи сразу в электронном виде.
+          - generic [ref=e281]:
+            - text: Подробнее
+            - img [ref=e282]
+        - link "Экономия времени 5–10 минут на заполнение всех журналов в конце смены вместо часа возни с бумагой и пастами. Подробнее" [ref=e284] [cursor=pointer]:
+          - /url: /features/time-saving
+          - img [ref=e286]
+          - generic [ref=e289]: Экономия времени
+          - paragraph [ref=e290]: 5–10 минут на заполнение всех журналов в конце смены вместо часа возни с бумагой и пастами.
+          - generic [ref=e291]:
+            - text: Подробнее
+            - img [ref=e292]
+    - generic [ref=e296]:
+      - generic [ref=e297]:
+        - heading "Бесплатно навсегда. Без карты." [level=3] [ref=e298]
+        - paragraph [ref=e299]: Поднимете свою организацию за 10 минут и начнёте вести журналы прямо сегодня. Платите, только если нужно больше рабочих мест или автоматизация.
+      - link "Попробовать" [ref=e300] [cursor=pointer]:
+        - /url: /register
+        - text: Попробовать
+        - img [ref=e301]
+    - generic [ref=e303]:
+      - generic [ref=e304]:
+        - generic [ref=e305]:
+          - generic [ref=e306]: 35 журналов
+          - heading "Какие журналы уже внутри" [level=2] [ref=e307]
+          - paragraph [ref=e308]: "Ежедневные санитарные журналы и полный ХАССП: аудиты, обучение, поверки, прослеживаемость, обслуживание оборудования, жалобы, СИЗ. Все журналы — бесплатно, без ограничений по времени."
+        - link "Смотреть весь список" [ref=e309] [cursor=pointer]:
+          - /url: /journals-info
+          - text: Смотреть весь список
+          - img [ref=e310]
+      - generic [ref=e312]:
+        - link "01 Гигиенический журнал" [ref=e313] [cursor=pointer]:
+          - /url: /journals-info/hygiene
+          - generic [ref=e314]: "01"
+          - generic [ref=e315]: Гигиенический журнал
+          - img [ref=e316]
+        - link "02 Журнал здоровья (ЗОЖ)" [ref=e318] [cursor=pointer]:
+          - /url: /journals-info/health_check
+          - generic [ref=e319]: "02"
+          - generic [ref=e320]: Журнал здоровья (ЗОЖ)
+          - img [ref=e321]
+        - link "03 Контроль температуры и влажности" [ref=e323] [cursor=pointer]:
+          - /url: /journals-info/climate_control
+          - generic [ref=e324]: "03"
+          - generic [ref=e325]: Контроль температуры и влажности
+          - img [ref=e326]
+        - link "04 Журнал уборки помещений" [ref=e328] [cursor=pointer]:
+          - /url: /journals-info/cleaning
+          - generic [ref=e329]: "04"
+          - generic [ref=e330]: Журнал уборки помещений
+          - img [ref=e331]
+        - link "05 Работа УФ-бактерицидной установки" [ref=e333] [cursor=pointer]:
+          - /url: /journals-info/uv_lamp_runtime
+          - generic [ref=e334]: "05"
+          - generic [ref=e335]: Работа УФ-бактерицидной установки
+          - img [ref=e336]
+        - link "06 Бракераж готовой продукции" [ref=e338] [cursor=pointer]:
+          - /url: /journals-info/finished_product
+          - generic [ref=e339]: "06"
+          - generic [ref=e340]: Бракераж готовой продукции
+          - img [ref=e341]
+        - link "07 Учёт фритюрных жиров" [ref=e343] [cursor=pointer]:
+          - /url: /journals-info/fryer_oil
+          - generic [ref=e344]: "07"
+          - generic [ref=e345]: Учёт фритюрных жиров
+          - img [ref=e346]
+        - link "08 Температура холодильного оборудования" [ref=e348] [cursor=pointer]:
+          - /url: /journals-info/cold_equipment_control
+          - generic [ref=e349]: "08"
+          - generic [ref=e350]: Температура холодильного оборудования
+          - img [ref=e351]
+        - link "09 Чек-лист проветривания" [ref=e353] [cursor=pointer]:
+          - /url: /journals-info/cleaning_ventilation_checklist
+          - generic [ref=e354]: "09"
+          - generic [ref=e355]: Чек-лист проветривания
+          - img [ref=e356]
+        - link "10 График генеральных уборок" [ref=e358] [cursor=pointer]:
+          - /url: /journals-info/general_cleaning
+          - generic [ref=e359]: "10"
+          - generic [ref=e360]: График генеральных уборок
+          - img [ref=e361]
+        - link "11 Приёмка и входной контроль сырья" [ref=e363] [cursor=pointer]:
+          - /url: /journals-info/incoming_control
+          - generic [ref=e364]: "11"
+          - generic [ref=e365]: Приёмка и входной контроль сырья
+          - img [ref=e366]
+        - link "12 Медицинские книжки" [ref=e368] [cursor=pointer]:
+          - /url: /journals-info/med_books
+          - generic [ref=e369]: "12"
+          - generic [ref=e370]: Медицинские книжки
+          - img [ref=e371]
+    - generic [ref=e373]:
+      - generic [ref=e374]:
+        - generic [ref=e375]:
+          - img [ref=e376]
+          - text: Тарифы
+        - heading "Все журналы бесплатно. Платите за автоматизацию." [level=2] [ref=e380]
+        - paragraph [ref=e381]: "Софт-подписка — одна и та же цена. Отличаются только услуги: приехать, подключить датчики к холодильникам, настроить профили и обучить смену. Всё железо — разовая покупка."
+      - generic [ref=e382]:
+        - generic [ref=e384]:
+          - generic [ref=e385]:
+            - img [ref=e387]
+            - generic [ref=e391]: Бесплатный
+          - paragraph [ref=e392]: Доступ ко всем журналам без ограничений по времени. Для заведения с небольшой сменой.
+          - generic [ref=e393]:
+            - generic [ref=e394]: 0 ₽
+            - generic [ref=e395]: навсегда
+          - list [ref=e396]:
+            - listitem [ref=e397]:
+              - img [ref=e398]
+              - generic [ref=e401]: До 5 сотрудников
+            - listitem [ref=e402]:
+              - img [ref=e403]
+              - generic [ref=e406]: Все 34 журнала СанПиН + ХАССП
+            - listitem [ref=e407]:
+              - img [ref=e408]
+              - generic [ref=e411]: Telegram-бот с wizard заполнения
+            - listitem [ref=e412]:
+              - img [ref=e413]
+              - generic [ref=e416]: PDF для проверок, без привязки карты
+          - link "Начать бесплатно" [ref=e417] [cursor=pointer]:
+            - /url: /register
+            - text: Начать бесплатно
+            - img [ref=e418]
+        - generic [ref=e421]:
+          - generic [ref=e422]:
+            - img [ref=e424]
+            - generic [ref=e429]: Подписка
+            - generic [ref=e430]: Популярный
+          - paragraph [ref=e431]: Если датчики, планшеты и брелоки уже есть — подключаем их к WeSetup и снимаем все ограничения.
+          - generic [ref=e432]:
+            - generic [ref=e433]: 1 990 ₽
+            - generic [ref=e434]: в месяц
+          - list [ref=e435]:
+            - listitem [ref=e436]:
+              - img [ref=e437]
+              - generic [ref=e440]: Без лимита по сотрудникам
+            - listitem [ref=e441]:
+              - img [ref=e442]
+              - generic [ref=e445]: Подключение своих IoT-датчиков
+            - listitem [ref=e446]:
+              - img [ref=e447]
+              - generic [ref=e450]: Автозаполнение температур и гигиены
+            - listitem [ref=e451]:
+              - img [ref=e452]
+              - generic [ref=e455]: Приоритетная поддержка в Telegram
+          - link "Оформить подписку" [ref=e456] [cursor=pointer]:
+            - /url: /register
+            - text: Оформить подписку
+            - img [ref=e457]
+        - generic [ref=e459]:
+          - generic [ref=e460]:
+            - img [ref=e462]
+            - generic [ref=e464]: Подписка + оборудование
+          - paragraph [ref=e465]: Выберите, что нужно — цена пересчитается. Уже есть планшет или датчики — снимите галочку, и останется только подписка.
+          - generic [ref=e467]:
+            - generic [ref=e468]:
+              - generic [ref=e469]:
+                - img [ref=e470]
+                - text: С оборудованием
+              - generic [ref=e474]: Подписка та же — выберите готовый набор
+            - generic [ref=e475]:
+              - button "Соло Один датчик в основной холодильник, термогигрометр в цехе, NFC-вход для смены. 1 точка, маленькая смена 17 750 ₽" [ref=e476]:
+                - img [ref=e478]
+                - generic [ref=e480]:
+                  - generic [ref=e482]: Соло
+                  - paragraph [ref=e483]: Один датчик в основной холодильник, термогигрометр в цехе, NFC-вход для смены.
+                  - generic [ref=e484]: 1 точка, маленькая смена
+                - generic [ref=e485]: 17 750 ₽
+              - button "Стандарт Популярный Все ключевые холодильники под датчиком, планшет на кухне, брелоки на всю смену. Активная кухня, регулярные проверки 35 120 ₽" [pressed] [ref=e486]:
+                - img [ref=e488]
+                - generic [ref=e490]:
+                  - generic [ref=e491]:
+                    - generic [ref=e492]: Стандарт
+                    - generic [ref=e493]:
+                      - img [ref=e494]
+                      - text: Популярный
+                  - paragraph [ref=e497]: Все ключевые холодильники под датчиком, планшет на кухне, брелоки на всю смену.
+                  - generic [ref=e498]: Активная кухня, регулярные проверки
+                - generic [ref=e499]: 35 120 ₽
+              - button "Сетевой Двойной выезд для разных адресов, расширенный набор датчиков и техники. Сеть из 2–3 точек или большое производство 73 730 ₽" [ref=e500]:
+                - img [ref=e502]
+                - generic [ref=e504]:
+                  - generic [ref=e506]: Сетевой
+                  - paragraph [ref=e507]: Двойной выезд для разных адресов, расширенный набор датчиков и техники.
+                  - generic [ref=e508]: Сеть из 2–3 точек или большое производство
+                - generic [ref=e509]: 73 730 ₽
+            - generic [ref=e510]:
+              - generic [ref=e511]:
+                - generic [ref=e512]: Подписка
+                - generic [ref=e513]: 1 990 ₽/мес
+              - generic [ref=e514]:
+                - generic [ref=e515]: Пакет «Стандарт»
+                - generic [ref=e516]: 35 120 ₽· 5 позиций
+            - link "Оформить в Telegram" [ref=e517] [cursor=pointer]:
+              - /url: https://t.me/wesetupbot
+              - text: Оформить в Telegram
+              - img [ref=e518]
+            - button "Подобрать вручную" [ref=e520]:
+              - text: Подобрать вручную
+              - img [ref=e521]
+            - paragraph [ref=e523]: Привозим и ставим в течение 3 рабочих дней по Москве и области.
+      - generic [ref=e524]: Годовая оплата подписки — −20%. Железо — один раз.
+    - generic [ref=e525]:
+      - generic [ref=e526]:
+        - generic [ref=e527]: Как подключиться
+        - heading "Переход на электронный журнал — полдня работы" [level=2] [ref=e528]
+      - generic [ref=e529]:
+        - generic [ref=e530]:
+          - generic [ref=e531]:
+            - generic [ref=e532]: "1"
+            - generic [ref=e533]: Оставьте заявку
+          - paragraph [ref=e534]: Напишите нам в Telegram или через форму — уточним формат и количество заведений.
+        - generic [ref=e535]:
+          - generic [ref=e536]:
+            - generic [ref=e537]: "2"
+            - generic [ref=e538]: Первичный созвон
+          - paragraph [ref=e539]: Покажем систему, ответим на вопросы, обсудим тариф и план перехода.
+        - generic [ref=e540]:
+          - generic [ref=e541]:
+            - generic [ref=e542]: "3"
+            - generic [ref=e543]: Бесплатный старт
+          - paragraph [ref=e544]: Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 5 сотрудников всё бесплатно навсегда.
+        - generic [ref=e545]:
+          - generic [ref=e546]:
+            - generic [ref=e547]: "4"
+            - generic [ref=e548]: Ведение журналов
+          - paragraph [ref=e549]: Смена за сменой — сервис напоминает, подставляет автозначения, хранит историю для проверок.
+    - generic [ref=e550]:
+      - generic [ref=e551]:
+        - generic [ref=e552]: Кому полезно
+        - heading "WeSetup подойдёт, если у вас…" [level=2] [ref=e553]
+      - generic [ref=e554]:
+        - generic [ref=e555]:
+          - img [ref=e557]
+          - generic [ref=e561]:
+            - generic [ref=e562]: Одно или несколько заведений
+            - paragraph [ref=e563]: Кафе, ресторан, столовая — один владелец видит все точки в одном окне.
+        - generic [ref=e564]:
+          - img [ref=e566]
+          - generic [ref=e571]:
+            - generic [ref=e572]: Сетевые и производственные площадки
+            - paragraph [ref=e573]: Единые шаблоны на все филиалы, понятный периметр проверок Роспотребнадзора.
+        - generic [ref=e574]:
+          - img [ref=e576]
+          - generic [ref=e580]:
+            - generic [ref=e581]: Объединения рестораторов
+            - paragraph [ref=e582]: Общий доступ к корпоративным настройкам и централизованная отчётность.
+        - generic [ref=e583]:
+          - img [ref=e585]
+          - generic [ref=e590]:
+            - generic [ref=e591]: Консалтинг по ХАССП / HoReCa
+            - paragraph [ref=e592]: Приводите клиентов в готовую инфраструктуру, закрывайте проекты быстрее.
+        - generic [ref=e593]:
+          - img [ref=e595]
+          - generic [ref=e600]:
+            - generic [ref=e601]: IT-компании
+            - paragraph [ref=e602]: Интегрируетесь в наш API, добавляете электронные журналы как модуль вашей экосистемы.
+    - generic [ref=e605]:
+      - generic [ref=e606]:
+        - img [ref=e608]
+        - generic [ref=e613]:
+          - heading "Работаете с общепитом? Станьте партнёром." [level=3] [ref=e614]
+          - paragraph [ref=e615]: Консалтинг по ХАССП, интеграторы учётных систем, поставщики оборудования — расскажем, как подключить ваших клиентов и зарабатывать на продлениях.
+      - link "Написать в Telegram" [ref=e616] [cursor=pointer]:
+        - /url: https://t.me/wesetupbot
+        - text: Написать в Telegram
+        - img [ref=e617]
+    - generic [ref=e619]:
+      - generic [ref=e620]:
+        - generic [ref=e621]:
+          - img [ref=e622]
+          - text: Мобильный доступ
+        - heading "Журналы с планшета повара и бота в Telegram" [level=2] [ref=e624]
+        - paragraph [ref=e625]: Повар заполняет на планшете прямо в цехе, управляющий видит статус в Telegram, руководитель — полную картину на компьютере.
+      - generic [ref=e626]:
+        - generic [ref=e627]:
+          - img [ref=e629]
+          - generic [ref=e631]: Планшет на кухне
+          - generic [ref=e632]: Гигиена / температура в один тап
+          - generic [ref=e633]: Скриншот скоро
+        - generic [ref=e634]:
+          - img [ref=e636]
+          - generic [ref=e639]: Telegram-бот
+          - generic [ref=e640]: Напоминания и алерты о нарушениях
+          - generic [ref=e641]: Скриншот скоро
+        - generic [ref=e642]:
+          - img [ref=e644]
+          - generic [ref=e648]: Компьютер руководителя
+          - generic [ref=e649]: Отчёты и PDF для Роспотребнадзора
+          - generic [ref=e650]: Скриншот скоро
+    - generic [ref=e651]:
+      - generic [ref=e652]:
+        - generic [ref=e653]: С нами работают
+        - heading "Кафе, пекарни, сетевые рестораны и цеха" [level=2] [ref=e654]
+      - generic [ref=e655]:
+        - generic [ref=e656]: Логотип
+        - generic [ref=e657]: Логотип
+        - generic [ref=e658]: Логотип
+        - generic [ref=e659]: Логотип
+        - generic [ref=e660]: Логотип
+        - generic [ref=e661]: Логотип
+        - generic [ref=e662]: Логотип
+        - generic [ref=e663]: Логотип
+        - generic [ref=e664]: Логотип
+        - generic [ref=e665]: Логотип
+        - generic [ref=e666]: Логотип
+        - generic [ref=e667]: Логотип
+      - paragraph [ref=e668]: Место для логотипов клиентов — добавим после согласования с ними.
+    - generic [ref=e669]:
+      - generic [ref=e670]:
+        - generic [ref=e671]:
+          - img [ref=e672]
+          - text: Отзывы
+        - heading "Что говорят клиенты" [level=2] [ref=e675]
+        - paragraph [ref=e676]: Собираем первые отзывы — добавим сразу после письменного согласия клиентов.
+      - generic [ref=e677]:
+        - generic [ref=e679]:
+          - img [ref=e680]
+          - img [ref=e682]
+          - img [ref=e684]
+          - img [ref=e686]
+          - img [ref=e688]
+        - generic [ref=e700]:
+          - img [ref=e701]
+          - img [ref=e703]
+          - img [ref=e705]
+          - img [ref=e707]
+          - img [ref=e709]
+        - generic [ref=e721]:
+          - img [ref=e722]
+          - img [ref=e724]
+          - img [ref=e726]
+          - img [ref=e728]
+          - img [ref=e730]
+    - generic [ref=e741]:
+      - generic [ref=e742]:
+        - generic [ref=e743]:
+          - generic [ref=e744]:
+            - img [ref=e745]
+            - text: Блог
+          - heading "Как вести журналы и проходить проверки" [level=2] [ref=e747]
+          - paragraph [ref=e748]: Разборы норм, чек-листы и истории клиентов. Короткие тексты — читать можно в перерыве между заготовками.
+        - link "Все статьи" [ref=e749] [cursor=pointer]:
+          - /url: /blog
+          - text: Все статьи
+          - img [ref=e750]
+      - generic [ref=e752]:
+        - 'link "ХАССП Документооборот 6 мин ХАССП: внутренняя и внешняя документация — чем отличаются Разбираем, какие документы команда пишет сама, а какие хранит в оригинале от поставщиков и госорганов. С путаницей здесь чаще всего и валятся аудиты. Читать" [ref=e753] [cursor=pointer]':
+          - /url: /blog/vnutrennyaya-vs-vneshnyaya-dokumentatsiya-xaccp
+          - generic [ref=e754]:
+            - generic [ref=e755]: ХАССП
+            - generic [ref=e756]: Документооборот
+            - generic [ref=e757]:
+              - img [ref=e758]
+              - text: 6 мин
+          - 'heading "ХАССП: внутренняя и внешняя документация — чем отличаются" [level=3] [ref=e761]'
+          - paragraph [ref=e762]: Разбираем, какие документы команда пишет сама, а какие хранит в оригинале от поставщиков и госорганов. С путаницей здесь чаще всего и валятся аудиты.
+          - generic [ref=e763]:
+            - text: Читать
+            - img [ref=e764]
+        - 'link "СанПиН Проверки 6 мин Требования 2026: почему «заполнять для галочки» больше не работает Инспекторы учатся отличать реальные журналы от нарисованных. Что поменялось в их подходе и как перестроить собственный учёт. Читать" [ref=e766] [cursor=pointer]':
+          - /url: /blog/uxod-ot-formalnogo-ucheta
+          - generic [ref=e767]:
+            - generic [ref=e768]: СанПиН
+            - generic [ref=e769]: Проверки
+            - generic [ref=e770]:
+              - img [ref=e771]
+              - text: 6 мин
+          - 'heading "Требования 2026: почему «заполнять для галочки» больше не работает" [level=3] [ref=e774]'
+          - paragraph [ref=e775]: Инспекторы учатся отличать реальные журналы от нарисованных. Что поменялось в их подходе и как перестроить собственный учёт.
+          - generic [ref=e776]:
+            - text: Читать
+            - img [ref=e777]
+        - 'link "Дезинфекция Журналы 5 мин Журнал дезинфекции: что писать и как не потерять акты подрядчика Учёт расхода дезсредств, актов ДДД и плановых обработок. Частые ошибки, из-за которых инспектор снимает баллы. Читать" [ref=e779] [cursor=pointer]':
+          - /url: /blog/zhurnal-dezinfektsii
+          - generic [ref=e780]:
+            - generic [ref=e781]: Дезинфекция
+            - generic [ref=e782]: Журналы
+            - generic [ref=e783]:
+              - img [ref=e784]
+              - text: 5 мин
+          - 'heading "Журнал дезинфекции: что писать и как не потерять акты подрядчика" [level=3] [ref=e787]'
+          - paragraph [ref=e788]: Учёт расхода дезсредств, актов ДДД и плановых обработок. Частые ошибки, из-за которых инспектор снимает баллы.
+          - generic [ref=e789]:
+            - text: Читать
+            - img [ref=e790]
+    - generic [ref=e792]:
+      - generic [ref=e793]:
+        - generic [ref=e794]:
+          - img [ref=e795]
+          - text: Вопросы и ответы
+        - heading "Быстрая справка перед регистрацией" [level=2] [ref=e798]
+      - generic [ref=e799]:
+        - group [ref=e800]:
+          - generic "Что такое электронный журнал для общепита?" [ref=e801] [cursor=pointer]:
+            - generic [ref=e802]: Что такое электронный журнал для общепита?
+            - img [ref=e804]
+        - group [ref=e806]:
+          - generic "Как проходит проверка Роспотребнадзором?" [ref=e807] [cursor=pointer]:
+            - generic [ref=e808]: Как проходит проверка Роспотребнадзором?
+            - img [ref=e810]
+        - group [ref=e812]:
+          - generic "Есть ли синхронизация с iiko и 1С?" [ref=e813] [cursor=pointer]:
+            - generic [ref=e814]: Есть ли синхронизация с iiko и 1С?
+            - img [ref=e816]
+        - group [ref=e818]:
+          - generic "Где указано, что можно вести журналы в электронном виде?" [ref=e819] [cursor=pointer]:
+            - generic [ref=e820]: Где указано, что можно вести журналы в электронном виде?
+            - img [ref=e822]
+        - group [ref=e824]:
+          - generic "Можно попробовать бесплатно?" [ref=e825] [cursor=pointer]:
+            - generic [ref=e826]: Можно попробовать бесплатно?
+            - img [ref=e828]
+    - generic [ref=e831]:
+      - img [ref=e833]
+      - heading "Готовы избавиться от бумаги?" [level=3] [ref=e836]
+      - paragraph [ref=e837]: Зарегистрируйте организацию за 3 шага и начните заполнять журналы уже сегодня. Бесплатный тариф — без срока, без карты.
+      - generic [ref=e838]:
+        - link "Зарегистрировать организацию" [ref=e839] [cursor=pointer]:
+          - /url: /register
+          - text: Зарегистрировать организацию
+          - img [ref=e840]
+        - link "У меня уже есть аккаунт" [ref=e842] [cursor=pointer]:
+          - /url: /login
+          - text: У меня уже есть аккаунт
+          - img [ref=e843]
+    - contentinfo [ref=e845]:
+      - generic [ref=e846]:
+        - generic [ref=e847]:
+          - generic [ref=e848]: WESETUP
+          - paragraph [ref=e849]: Сервис электронных журналов СанПиН и ХАССП для общепита и пищевых производств. © 2026 WESETUP.
+        - generic [ref=e850]:
+          - generic [ref=e851]: Реквизиты
+          - generic [ref=e852]: ООО «БФС»
+          - generic [ref=e853]: ИНН 5018215599 · КПП 501801001
+          - generic [ref=e854]: ОГРН 1235000105306
+          - generic [ref=e855]: 141065, Московская область, г. Королёв, ул. Ленина, д. 10/6
+          - link "+7 (999) 634-16-12" [ref=e857] [cursor=pointer]:
+            - /url: tel:+79996341612
+          - link "magazinlenina@gmail.com" [ref=e859] [cursor=pointer]:
+            - /url: mailto:magazinlenina@gmail.com
+        - generic [ref=e860]:
+          - generic [ref=e861]: Разделы
+          - link "Блог" [ref=e862] [cursor=pointer]:
+            - /url: /blog
+          - link "Журналы" [ref=e863] [cursor=pointer]:
+            - /url: /journals-info
+          - link "Войти" [ref=e864] [cursor=pointer]:
+            - /url: /login
+          - link "Регистрация" [ref=e865] [cursor=pointer]:
+            - /url: /register
+          - link "Telegram" [ref=e866] [cursor=pointer]:
+            - /url: https://t.me/wesetupbot
+  - button "Open Next.js Dev Tools" [ref=e872] [cursor=pointer]:
+    - img [ref=e873]

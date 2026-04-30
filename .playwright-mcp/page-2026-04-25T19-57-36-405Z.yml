@@ -1,0 +1,59 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e7]:
+        - button "Меню" [ref=e8] [cursor=pointer]:
+          - img [ref=e9]
+        - button "Обновить" [ref=e10] [cursor=pointer]:
+          - img [ref=e11]
+        - generic [ref=e16]:
+          - heading "Задачи" [level=1] [ref=e17]
+          - paragraph [ref=e18]: Иван Тестовый (Админ)
+    - main [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e23]:
+              - img [ref=e24]
+              - img [ref=e27]
+            - generic [ref=e31]: Сегодня
+          - generic [ref=e32]: "10"
+          - generic [ref=e33]: из 23
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - img [ref=e37]
+            - generic [ref=e43]: Сделано
+          - generic [ref=e44]: "0"
+          - generic [ref=e45]: 0%
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - img
+          - textbox "Поиск задач" [ref=e48]
+        - combobox [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic: Все категории
+          - img [ref=e53]
+        - combobox [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic: Все сотрудники
+          - img [ref=e59]
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - heading "Активные" [level=2] [ref=e64]
+            - generic [ref=e65]: "23"
+            - button "По сотруднику" [ref=e66] [cursor=pointer]
+          - group [ref=e68]:
+            - generic "Виктор Чистов 23" [ref=e69] [cursor=pointer]:
+              - img [ref=e70]
+              - generic [ref=e72]: ВЧ
+              - generic [ref=e73]: Виктор Чистов
+              - generic [ref=e74]: "23"
+        - button "Выполненные 0" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - heading "Выполненные" [level=2] [ref=e79]
+          - generic [ref=e80]: "0"
+    - button [ref=e81] [cursor=pointer]:
+      - img [ref=e82]

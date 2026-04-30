@@ -1,0 +1,27 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 finished-product MNYQDXUQ",
+  "data": {
+    "rows": [
+      {
+        "productionDateTime": "2026-04-14 11:20",
+        "rejectionTime": "11:40",
+        "productName": "EXT2 finished-product MNYQDXUQ",
+        "organoleptic": "EXT2 finished-product MNYQDXUQ",
+        "productTemp": "72",
+        "correctiveAction": "EXT2 finished-product MNYQDXUQ",
+        "releasePermissionTime": "12:00",
+        "courierTransferTime": "12:10",
+        "oxygenLevel": "98",
+        "responsiblePerson": "EXT2 finished-product MNYQDXUQ",
+        "inspectorName": "EXT2 finished-product MNYQDXUQ",
+        "organolepticValue": "EXT2 finished-product MNYQDXUQ",
+        "organolepticResult": "EXT2 finished-product MNYQDXUQ",
+        "releaseAllowed": "yes"
+      }
+    ],
+    "itemsCatalog": [
+      "EXT2 finished-product MNYQDXUQ"
+    ]
+  }
+}

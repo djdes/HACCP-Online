@@ -1,0 +1,15 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 cleaning-ventilation-checklist MNYQDF40",
+  "data": {
+    "procedures": {
+      "disinfection": [
+        "06:41"
+      ],
+      "ventilation": [
+        "14:21"
+      ]
+    },
+    "responsibleUserId": "EXT2 cleaning-ventilation-checklist MNYQDF40"
+  }
+}

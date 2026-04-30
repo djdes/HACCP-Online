@@ -1,0 +1,158 @@
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - link:
+          - /url: /dashboard
+          - generic: HACCP-Online
+          - generic: 8c794a0
+        - navigation:
+          - link:
+            - /url: /dashboard
+            - img
+            - text: Дашборд
+          - link:
+            - /url: /journals
+            - img
+            - text: Журналы
+          - link:
+            - /url: /batches
+            - img
+            - text: Партии
+          - link:
+            - /url: /capa
+            - img
+            - text: CAPA
+          - link:
+            - /url: /reports
+            - img
+            - text: Отчёты
+          - link:
+            - /url: /settings
+            - img
+            - text: Настройки
+        - generic: Тестовая организация (админ)
+        - button:
+          - generic:
+            - generic: А
+    - main:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /journals
+              - text: Тестовая организация (админ)
+            - generic: ›
+            - link:
+              - /url: /journals/equipment_cleaning
+              - text: Журнал мойки и дезинфекции оборудования
+            - generic: ›
+            - generic: Журнал мойки и дезинфекции оборудования
+          - button:
+            - img
+        - generic:
+          - heading [level=1]: Журнал мойки и дезинфекции оборудования
+          - button: Настройки журнала
+        - generic:
+          - table:
+            - rowgroup:
+              - row:
+                - cell: Тестовая организация (админ)
+                - cell: СИСТЕМА ХАССП
+                - cell:
+                  - text: Начат 01-04-2026
+                  - generic: Окончен __________
+              - row:
+                - cell: Журнал мойки и дезинфекции оборудования
+                - cell: СТР. 1 ИЗ 1
+          - heading [level=2]: Журнал мойки и дезинфекции оборудования
+          - generic:
+            - button:
+              - img
+              - text: Добавить
+            - button: Закончить журнал
+          - generic:
+            - table:
+              - rowgroup:
+                - row:
+                  - columnheader:
+                    - checkbox
+                  - columnheader: Дата и время мойки
+                  - columnheader: Наименование оборудования
+                  - columnheader: Наименование моющего раствора
+                  - columnheader: Концентрация моющего раствора, %
+                  - columnheader: Наименование дезинфицирующего раствора
+                  - columnheader: Концентрация дезинфицирующего раствора, %
+                  - columnheader: Ополаскивание, °C
+                  - columnheader: Мойщик (ФИО)
+                  - columnheader: Контролирующее лицо (должность, ФИО)
+              - rowgroup:
+                - row:
+                  - cell:
+                    - checkbox
+                  - cell: 12-04-2026 15:58
+                  - cell: Горячий цех - термогигрометр
+                  - cell: рои
+                  - cell: рома
+                  - cell: при
+                  - cell: "67"
+                  - cell: "99"
+                  - cell: Смирнова М.М.
+                  - cell: Шеф-повар, Смирнова М.М.
+  - region "Notifications alt+T"
+  - alert
+  - dialog "Добавление новой строки" [ref=e101]:
+    - heading "Добавление новой строки" [level=2] [ref=e103]
+    - generic [ref=e104]:
+      - generic [ref=e105]:
+        - generic [ref=e106]: Дата и время мойки
+        - generic [ref=e107]:
+          - textbox [ref=e108]: 2026-04-12
+          - generic [ref=e109]:
+            - combobox [ref=e110]:
+              - generic: "16"
+              - img
+            - combobox [ref=e111]:
+              - img
+      - generic [ref=e112]:
+        - generic [ref=e113]: Наименование оборудования
+        - combobox "Введите наименование оборудования" [ref=e114]: Горячий цех - термогигрометр
+      - generic [ref=e115]:
+        - generic [ref=e116]: Наименование моющего раствора
+        - textbox "Введите наименование моющего раствора" [ref=e117]
+      - generic [ref=e118]:
+        - generic [ref=e119]: Концентрация моющего раствора, %
+        - textbox "Введите концентрацию моющего раствора, %" [ref=e120]
+      - generic [ref=e121]:
+        - generic [ref=e122]: Наименование дезинфицирующего раствора
+        - textbox "Введите наименование дезинфицирующего раствора" [ref=e123]
+      - generic [ref=e124]:
+        - generic [ref=e125]: Концентрация дезинфицирующего раствора, %
+        - textbox "Введите концентрацию дезинфицирующего раствора, %" [ref=e126]
+      - generic [ref=e127]:
+        - generic [ref=e128]: Ополаскивание, °C
+        - textbox "Введите температуру ополаскивания" [ref=e129]
+      - generic [ref=e130]:
+        - generic [ref=e131]: Мойщик
+        - combobox [active] [ref=e132]:
+          - generic: Шеф-повар
+          - img
+      - generic [ref=e133]:
+        - generic [ref=e134]: Сотрудник
+        - combobox [ref=e135]:
+          - generic: Сотрудник
+          - img
+      - generic [ref=e136]:
+        - generic [ref=e137]: Должность лица, проводившего контроль
+        - combobox [ref=e138]:
+          - generic: Управляющий
+          - img
+      - generic [ref=e139]:
+        - generic [ref=e140]: Сотрудник
+        - combobox [ref=e141]:
+          - generic: Администратор
+          - img
+      - button "Добавить" [ref=e143]
+    - button "Close" [ref=e144]:
+      - img
+      - generic [ref=e145]: Close

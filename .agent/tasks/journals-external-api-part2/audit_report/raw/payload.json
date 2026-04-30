@@ -1,0 +1,28 @@
+{
+  "date": "2026-04-14",
+  "marker": "EXT2 audit-report MNYQDA0G",
+  "data": {
+    "documentDate": "2026-04-14",
+    "auditedObject": "EXT2 audit-report MNYQDA0G",
+    "summary": "EXT2 audit-report MNYQDA0G",
+    "recommendations": "EXT2 audit-report MNYQDA0G",
+    "findings": [
+      {
+        "nonConformity": "EXT2 audit-report MNYQDA0G",
+        "correctionActions": "EXT2 audit-report MNYQDA0G",
+        "correctiveActions": "EXT2 audit-report MNYQDA0G",
+        "responsibleName": "EXT2 audit-report MNYQDA0G",
+        "responsiblePosition": "EXT2 audit-report MNYQDA0G",
+        "dueDatePlan": "2026-04-14"
+      }
+    ],
+    "signatures": [
+      {
+        "role": "EXT2 audit-report MNYQDA0G",
+        "name": "EXT2 audit-report MNYQDA0G",
+        "position": "EXT2 audit-report MNYQDA0G",
+        "signedAt": "2026-04-14"
+      }
+    ]
+  }
+}
