@@ -1,81 +1,35 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
-import { registerSchema } from "@/lib/validators";
-import { sendWelcomeEmail } from "@/lib/email";
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const validatedData = registerSchema.parse(body);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-    const existingUser = await db.user.findUnique({
-      where: { email: validatedData.email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Пользователь с таким email уже существует" },
-        { status: 409 }
-      );
-    }
-
-    const passwordHash = await bcrypt.hash(validatedData.password, 12);
-
-    const result = await db.$transaction(async (tx) => {
-      const organization = await tx.organization.create({
-        data: {
-          name: validatedData.organizationName,
-          type: validatedData.organizationType,
-          subscriptionPlan: "trial",
-          subscriptionEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        },
-      });
-
-      const user = await tx.user.create({
-        data: {
-          email: validatedData.email,
-          name: validatedData.name,
-          phone: validatedData.phone || null,
-          passwordHash,
-          role: "manager",
-          organizationId: organization.id,
-        },
-      });
-
-      return { organization, user };
-    });
-
-    sendWelcomeEmail({
-      to: result.user.email,
-      name: result.user.name,
-      organizationName: result.organization.name,
-    });
-
-    return NextResponse.json(
-      {
-        message: "Регистрация успешна",
-        userId: result.user.id,
-        organizationId: result.organization.id,
+/**
+ * DEPRECATED — legacy direct-register endpoint без email-верификации
+ * и без rate-limit'а. Подменён двухшаговым flow:
+ *   1) POST /api/auth/register/request — отправка 6-значного кода
+ *      на email (rate-limited)
+ *   2) POST /api/auth/register/confirm — проверка кода + создание
+ *      Organization + User
+ *
+ * Старый endpoint оставляли для обратной совместимости, но он
+ * принимал arbitrary email БЕЗ proof-of-ownership (бот регистрировал
+ * компанию на чужой адрес) и не имел rate-limit'а (флуд DB новыми
+ * org-записями). UI на /register уже год использует новый flow.
+ *
+ * Возвращаем 410 Gone — клиент видит что endpoint удалён и должен
+ * мигрировать на /register/request.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "Этот endpoint устарел. Используйте /api/auth/register/request " +
+        "+ /api/auth/register/confirm (двухшаговая регистрация с email-верификацией).",
+      migrate: {
+        step1: "/api/auth/register/request",
+        step2: "/api/auth/register/confirm",
       },
-      { status: 201 }
-    );
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        {
-          error: error.issues[0]?.message ?? "Некорректные данные",
-          details: error.issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
-  }
+    },
+    { status: 410 }
+  );
 }
