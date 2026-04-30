@@ -50,6 +50,9 @@ export function getSeoMetadata(c: SeoJournalConfig) {
     description: c.metaDescription,
     alternates: { canonical: `https://wesetup.ru/${c.slug}` },
     openGraph: {
+      type: "website",
+      locale: "ru_RU",
+      siteName: "WeSetup",
       title: c.metaTitle,
       description: c.metaDescription,
       url: `https://wesetup.ru/${c.slug}`,

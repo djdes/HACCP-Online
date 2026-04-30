@@ -188,6 +188,9 @@ export function getNicheMetadata(slug: string) {
       canonical: `https://wesetup.ru/${data.slug}`,
     },
     openGraph: {
+      type: "website",
+      locale: "ru_RU",
+      siteName: "WeSetup",
       title: data.metaTitle,
       description: data.metaDescription,
       url: `https://wesetup.ru/${data.slug}`,
