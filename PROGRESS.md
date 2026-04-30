@@ -65,6 +65,8 @@ Backfill'ов не делаем — legacy task'и продолжают рабо
 
 - [x] **R1**: Sitemap.xml не включал 4 niche-лендинга и 7 SEO-страниц — добавлено 11 URL (beb5b7bc)
 - [x] **R2**: «34 электронных журнала» в layout.tsx и direct-campaigns — заменено на «35» везде (e0752cde)
+- [x] **R3**: TF /verify endpoint без cap на reason (асимметрия после R2 fix /mark-returned) — slice(0,1000) (TasksFlow dcbf298)
+- [x] **R4**: Prod отдавал ответы без security-headers — добавлены X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, HSTS max-age=31536000, Permissions-Policy disable camera/mic/geo (5e7d8a52). CSP отложен — нужен аудит inline-скриптов
 
 ## Итоговое ревью /api/* эндпоинтов
 
