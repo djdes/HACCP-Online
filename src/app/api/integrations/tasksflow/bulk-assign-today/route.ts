@@ -17,6 +17,7 @@ import {
   tasksflowClientFor,
 } from "@/lib/tasksflow-client";
 import { listAdapters } from "@/lib/tasksflow-adapters";
+import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
 import {
   parseStringArray,
   selectBulkJournalTemplates,
@@ -427,9 +428,31 @@ export async function POST(request: Request) {
   // включает флаг в настройках.
   const orgFlags = await db.organization.findUnique({
     where: { id: organizationId },
-    select: { bulkAssignRespectShifts: true },
+    select: {
+      bulkAssignRespectShifts: true,
+      journalTaskModesJson: true,
+    },
   });
   const respectShifts = orgFlags?.bulkAssignRespectShifts === true;
+  // Phase D — per-org per-journal task-modes. UI в /settings/journal-
+  // task-mode. Используем для распределения задач (сейчас активирован
+  // per-area для уборки; остальные режимы оставляют старое поведение
+  // как fallback, добавятся в следующих фазах).
+  const taskModesJson = orgFlags?.journalTaskModesJson ?? {};
+  // Подтянем Area для per-area режима — лениво, чтобы не делать
+  // лишний SELECT когда per-area не активирован ни для одного журнала.
+  let areasForOrg:
+    | Array<{ id: string; name: string }>
+    | null = null;
+  async function getAreas() {
+    if (areasForOrg !== null) return areasForOrg;
+    areasForOrg = await db.area.findMany({
+      where: { organizationId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+    return areasForOrg;
+  }
   const candidateUserIds =
     respectShifts && scheduledUserIds.size > 0
       ? new Set(
@@ -591,10 +614,38 @@ export async function POST(request: Request) {
           })
         : adapterDoc.rows;
 
+    // Phase D: per-area override. Если для журнала режим раздачи =
+    // per-area, генерируем synthetic rows = Area × first-eligible-
+    // filler. Адаптерные rows игнорируются. Каждое помещение получает
+    // отдельный rowKey, чтобы tasksFlowTaskLink хранил уникальные
+    // линки и при повторном bulk-assign duplicates не было.
+    const taskMode = getEffectiveTaskMode(tpl.code, taskModesJson);
+    let rowsForSelection = filteredRows;
+    if (taskMode.distribution === "per-area") {
+      const areas = await getAreas();
+      if (areas.length > 0) {
+        const linkedCandidates: string[] = [];
+        for (const uid of candidateUserIds) {
+          if (linkedUserIds.has(uid)) linkedCandidates.push(uid);
+        }
+        if (linkedCandidates.length > 0) {
+          // Round-robin: помещение i → linkedCandidates[i % N].
+          // Каждый исполнитель получает свою долю помещений.
+          const synthetic = areas.map((area, i) => ({
+            rowKey: `area:${area.id}`,
+            label: area.name,
+            responsibleUserId:
+              linkedCandidates[i % linkedCandidates.length],
+          })) as typeof filteredRows;
+          rowsForSelection = synthetic;
+        }
+      }
+    }
+
     const rowSelection = selectRowsForBulkAssign({
       journalCode: tpl.code,
       bonusAmountKopecks: tpl.bonusAmountKopecks,
-      rows: filteredRows,
+      rows: rowsForSelection,
       takenRowKeys,
       onDutyUserIds: candidateUserIds,
       linkedUserIds,
