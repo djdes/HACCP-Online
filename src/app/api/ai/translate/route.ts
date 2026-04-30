@@ -101,11 +101,9 @@ export async function POST(request: Request) {
       languageName: LANG_NAMES[body.to],
     });
   } catch (err) {
+    console.error("[ai-translate] anthropic error:", err);
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error ? `Ошибка AI: ${err.message}` : "Ошибка AI",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 500 }
     );
   }

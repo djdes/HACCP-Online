@@ -243,12 +243,7 @@ ${
   } catch (err) {
     console.error("[period-report] anthropic error", err);
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error
-            ? `Ошибка AI: ${err.message}`
-            : "Ошибка обращения к AI",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 502 }
     );
   }

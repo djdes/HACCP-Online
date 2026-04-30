@@ -169,11 +169,12 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(parsed);
   } catch (err) {
+    // Anthropic SDK error.message может содержать URL/headers с
+    // API-ключом при некоторых network-failures. Логируем server-side,
+    // отдаём generic. Тот же паттерн — /api/healthz, /api/capa/[id]/suggest.
+    console.error("[check-photo] anthropic error:", err);
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error ? `Ошибка AI: ${err.message}` : "Ошибка AI",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 500 }
     );
   }

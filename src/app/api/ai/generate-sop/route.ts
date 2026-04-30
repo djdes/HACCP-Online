@@ -148,11 +148,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
+    console.error("[generate-sop] anthropic error:", err);
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error ? `Ошибка AI: ${err.message}` : "Ошибка AI",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 500 }
     );
   }

@@ -127,8 +127,9 @@ export async function GET() {
     const block = response.content.find((b) => b.type === "text");
     markdown = block && block.type === "text" ? block.text.trim() : "";
   } catch (err) {
+    console.error("[haccp-plan] anthropic error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "AI error" },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 500 }
     );
   }

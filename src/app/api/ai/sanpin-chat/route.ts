@@ -204,12 +204,7 @@ export async function POST(request: Request) {
         );
     }
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error
-            ? `Ошибка AI: ${err.message}`
-            : "Ошибка обращения к AI-помощнику",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 502 }
     );
   }
