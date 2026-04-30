@@ -120,6 +120,23 @@ export async function POST(request: Request) {
   const posByName = new Map(positions.map((p) => [p.name.toLowerCase(), p]));
   const posById = new Map(positions.map((p) => [p.id, p]));
 
+  // Pre-compute position → templateCodes map один раз, чтобы каждой
+  // импортируемой строке проставить тот же ACL что одиночное создание
+  // через /api/staff (commit 6b7a061c). Раньше bulk создавал юзера с
+  // journalAccessMigrated: false → пользователь получал full access ко
+  // ВСЕМ журналам через legacy back-compat. Например, повар импортировался
+  // и сразу видел медкнижки коллег.
+  const positionAccess = await db.jobPositionJournalAccess.findMany({
+    where: { organizationId: orgId },
+    include: { template: { select: { code: true } } },
+  });
+  const posIdToCodes = new Map<string, string[]>();
+  for (const a of positionAccess) {
+    const codes = posIdToCodes.get(a.jobPositionId) ?? [];
+    codes.push(a.template.code);
+    posIdToCodes.set(a.jobPositionId, codes);
+  }
+
   // Fuzzy-match для всех уникальных имён должностей в импорте — одной
   // batch-операцией. Используется как fallback если exact-match не
   // сработал. Confidence ≥ 0.7 → авто-применяем, < 0.7 → ошибка для
@@ -187,20 +204,41 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const user = await db.user.create({
-      data: {
-        organizationId: orgId,
-        name: row.fullName,
-        email: syntheticEmail(orgId),
-        passwordHash: "",
-        role: pos.categoryKey === "management" ? "manager" : "cook",
-        phone,
-        jobPositionId: pos.id,
-        positionTitle: pos.name,
-        isActive: true,
-        journalAccessMigrated: false,
-      },
-      select: { id: true, name: true },
+    const codesForPosition = posIdToCodes.get(pos.id) ?? [];
+    const useStrictAcl = codesForPosition.length > 0;
+
+    const user = await db.$transaction(async (tx) => {
+      const u = await tx.user.create({
+        data: {
+          organizationId: orgId,
+          name: row.fullName,
+          email: syntheticEmail(orgId),
+          passwordHash: "",
+          role: pos.categoryKey === "management" ? "manager" : "cook",
+          phone,
+          jobPositionId: pos.id,
+          positionTitle: pos.name,
+          isActive: true,
+          // Если позиция имеет explicit JobPositionJournalAccess —
+          // переключаем юзера в migrated-режим, чтобы ACL фильтровал
+          // журналы. Иначе — legacy back-compat (полный доступ).
+          journalAccessMigrated: useStrictAcl,
+        },
+        select: { id: true, name: true },
+      });
+      if (useStrictAcl) {
+        await tx.userJournalAccess.createMany({
+          data: codesForPosition.map((templateCode) => ({
+            userId: u.id,
+            templateCode,
+            canRead: true,
+            canWrite: true,
+            canFinalize: false,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      return u;
     });
     createdUsers.push(user);
     created++;
