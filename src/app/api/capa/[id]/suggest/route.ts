@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +54,15 @@ export async function POST(
 ) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
+
+  // Раньше: только requireApiAuth — любой authenticated юзер мог
+  // дёргать AI-suggest и сжигать месячный AI-квоту org-и. Cleaner
+  // спамил endpoint в цикле — менеджер видит «лимит исчерпан» утром.
+  // CAPA workflow — management-only по дизайну (см. /api/capa
+  // POST/GET); согласовываем suggest с ним.
+  if (!hasFullWorkspaceAccess(auth.session.user)) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
@@ -221,10 +231,12 @@ ${stepInstruction}`;
           console.warn("[capa-suggest] quota refund failed", refundErr)
         );
     }
+    // err.message может содержать ANTHROPIC_API_KEY в URL fetch'а
+    // при некоторых network-failures (Anthropic SDK логирует body
+    // request'ов). Не отдаём raw в JSON, а только generic. Подробности
+    // уже в console.error выше — админ видит в PM2 logs.
     return NextResponse.json(
-      {
-        error: err instanceof Error ? `Ошибка AI: ${err.message}` : "Ошибка AI",
-      },
+      { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 500 }
     );
   }
