@@ -152,6 +152,7 @@ export function BlogAdminClient({ articles }: { articles: ArticleRow[] }) {
                         <Link
                           href={`/blog/${a.slug}`}
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="rounded-lg p-1.5 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#3848c7]"
                           title="Открыть"
                         >
