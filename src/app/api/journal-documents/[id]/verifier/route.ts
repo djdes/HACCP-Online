@@ -148,6 +148,38 @@ export async function POST(
         verificationRejectReason: body.reason,
       },
     });
+    // Push всем заполнителям этого документа — у каждого «весь журнал
+    // возвращён». Группируем по уникальному employeeId.
+    void (async () => {
+      try {
+        const { notifyEmployee, escapeTelegramHtml: esc } = await import(
+          "@/lib/telegram"
+        );
+        const employees = await db.journalDocumentEntry.findMany({
+          where: { documentId: docId },
+          select: {
+            employeeId: true,
+            document: {
+              select: { template: { select: { name: true } } },
+            },
+          },
+          distinct: ["employeeId"],
+        });
+        const tplName =
+          employees[0]?.document.template.name ?? "Журнал";
+        for (const e of employees) {
+          await notifyEmployee(
+            e.employeeId,
+            `🔁 <b>Журнал возвращён на доработку целиком</b>\n\n` +
+              `Журнал: <b>${esc(tplName)}</b>\n` +
+              `Причина: ${esc(body.reason)}\n\n` +
+              `Откройте журнал и исправьте записи.`,
+          ).catch(() => null);
+        }
+      } catch (err) {
+        console.warn("[verifier reject-document] push batch failed", err);
+      }
+    })();
     return NextResponse.json({ ok: true, decision: "reject-document" });
   }
 
@@ -183,6 +215,22 @@ export async function POST(
       { status: 404 },
     );
   }
+  // Перед updateMany'ем загружаем employeeId всех затронутых ячеек —
+  // нужны для Telegram-push'а филерам.
+  const rejectedEntries = await db.journalDocumentEntry.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      employeeId: true,
+      date: true,
+      employee: { select: { name: true } },
+      document: {
+        select: {
+          template: { select: { code: true, name: true } },
+        },
+      },
+    },
+  });
   const result = await db.journalDocumentEntry.updateMany({
     where: { id: { in: ids } },
     data: {
@@ -192,8 +240,56 @@ export async function POST(
       verificationRejectReason: body.reason,
     },
   });
-  // TODO Phase E.2: push заполнителям отклонённых ячеек через Telegram
-  // (notifyEmployee) с текстом причины. Сейчас только меняем стейт.
+
+  // Push сотрудникам — fire-and-forget. Группируем по employee'у чтобы
+  // не присылать N раз одному и тому же 5 одновременно отклонённых
+  // ячеек: один push с агрегатом «у вас отклонили N ячеек в журнале X».
+  void (async () => {
+    try {
+      const { notifyEmployee, escapeTelegramHtml: esc } = await import(
+        "@/lib/telegram"
+      );
+      const byEmployee = new Map<
+        string,
+        {
+          name: string;
+          count: number;
+          journalName: string;
+          journalCode: string;
+        }
+      >();
+      for (const e of rejectedEntries) {
+        const ex = byEmployee.get(e.employeeId);
+        if (ex) {
+          ex.count += 1;
+        } else {
+          byEmployee.set(e.employeeId, {
+            name: e.employee.name,
+            count: 1,
+            journalName: e.document.template.name,
+            journalCode: e.document.template.code,
+          });
+        }
+      }
+      for (const [employeeId, info] of byEmployee) {
+        const message =
+          `🔁 <b>Запись возвращена на доработку</b>\n\n` +
+          `Журнал: <b>${esc(info.journalName)}</b>\n` +
+          `Возвращено ячеек: <b>${info.count}</b>\n` +
+          `Причина: ${esc(body.reason)}\n\n` +
+          `Откройте журнал в WeSetup и исправьте отмеченные ячейки.`;
+        await notifyEmployee(employeeId, message).catch((err) =>
+          console.warn(
+            "[verifier reject-cells] notifyEmployee failed",
+            err instanceof Error ? err.message : err,
+          ),
+        );
+      }
+    } catch (err) {
+      console.warn("[verifier reject-cells] push batch failed", err);
+    }
+  })();
+
   return NextResponse.json({
     ok: true,
     decision: "reject-cells",

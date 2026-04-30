@@ -745,6 +745,10 @@ export async function POST(request: Request) {
         isFreeText: false,
         bonusAmountKopecks: tpl.bonusAmountKopecks ?? 0,
         taskScope: tpl.taskScope ?? "personal",
+        // Phase F: говорим клиенту TF показывать ли уборщикам
+        // «Помещение А уже сделал Иван» рядом с их задачами. Решает
+        // менеджер в /settings/journal-task-mode (siblingVisibility).
+        siblingVisibility: taskMode.siblingVisibility ?? false,
       });
       try {
         await client.updateTask(created.id, { journalLink } as never);
