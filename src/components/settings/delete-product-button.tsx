@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 export function DeleteProductButton({ productId }: { productId: string }) {
@@ -19,8 +20,21 @@ export function DeleteProductButton({ productId }: { productId: string }) {
       });
 
       if (res.ok) {
+        toast.success("Продукт удалён.");
         router.refresh();
+        return;
       }
+      // Раньше при не-ok ответе кнопка молча гасла — юзер тапал ещё раз
+      // и снова молчание. Теперь показываем ошибку из тела (например
+      // «Продукт используется в N записях, удалить нельзя»).
+      const body = await res.json().catch(() => null);
+      const message =
+        (body && typeof body === "object" && body !== null && "error" in body
+          ? String((body as Record<string, unknown>).error)
+          : null) ?? "Не удалось удалить продукт.";
+      toast.error(message);
+    } catch {
+      toast.error("Сеть недоступна. Попробуйте ещё раз.");
     } finally {
       setIsDeleting(false);
     }
