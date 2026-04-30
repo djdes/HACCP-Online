@@ -4,6 +4,31 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { normalizeFryerOilEntryData, FRYER_OIL_TEMPLATE_CODE } from "@/lib/fryer-oil-document";
 import { getServerSession } from "@/lib/server-session";
+import { canWriteJournal } from "@/lib/journal-acl";
+
+async function resolveEmployeeId(
+  sessionUserId: string,
+  organizationId: string
+): Promise<string | null> {
+  // Прежде всего — текущий юзер. Раньше API всегда выбирал
+  // alphabetically-first сотрудника, и записи приписывались
+  // не тому, кто реально менял масло. Теперь — сам автор
+  // как employee.
+  const me = await db.user.findFirst({
+    where: { id: sessionUserId, organizationId, isActive: true },
+    select: { id: true },
+  });
+  if (me) return me.id;
+  // ROOT-impersonation fallback: ROOT (organizationId="platform")
+  // не относится к импер-org-е, поэтому ставим первого активного
+  // сотрудника, чтобы запись жила.
+  const fallback = await db.user.findFirst({
+    where: { organizationId, isActive: true },
+    select: { id: true },
+    orderBy: { name: "asc" },
+  });
+  return fallback?.id ?? null;
+}
 
 function toTimestamp(data: { startDate: string; startHour: number; startMinute: number }, second = 0) {
   return new Date(
@@ -45,32 +70,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  const document = await getDocument(documentId, getActiveOrgId(session));
+  const orgId = getActiveOrgId(session);
+  const document = await getDocument(documentId, orgId);
   if (!document || document.template?.code !== FRYER_OIL_TEMPLATE_CODE) {
     return NextResponse.json({ error: "Документ не найден" }, { status: 404 });
   }
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
   }
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await canWriteJournal(aclActor, FRYER_OIL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
+  }
 
   const body = (await request.json().catch(() => null)) as { data?: unknown } | null;
   const data = normalizeFryerOilEntryData(body?.data);
-  const employee = await db.user.findFirst({
-    where: { organizationId: getActiveOrgId(session), isActive: true },
-    select: { id: true },
-    orderBy: { name: "asc" },
-  });
-  if (!employee) {
+  const employeeId = await resolveEmployeeId(session.user.id, orgId);
+  if (!employeeId) {
     return NextResponse.json({ error: "Нет активных сотрудников для создания записи" }, { status: 400 });
   }
 
-  const date = await reserveUniqueDate(documentId, employee.id, data);
+  const date = await reserveUniqueDate(documentId, employeeId, data);
   if (!isValidDate(date)) {
     return NextResponse.json({ error: "Некорректная дата записи" }, { status: 400 });
   }
 
   const entry = await db.journalDocumentEntry.create({
-    data: { documentId, employeeId: employee.id, date, data },
+    data: { documentId, employeeId, date, data },
   });
 
   return NextResponse.json({ entry });
@@ -87,6 +117,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await canWriteJournal(aclActor, FRYER_OIL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => null)) as { id?: string; data?: unknown } | null;
@@ -119,6 +157,16 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+  // Удаление только при canWrite — read-only доступ не должен пускать
+  // через DELETE.
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (!(await canWriteJournal(aclActor, FRYER_OIL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as { ids?: string[] };
