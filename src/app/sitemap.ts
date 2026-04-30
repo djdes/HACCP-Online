@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { JOURNAL_INFO } from "@/content/journal-info";
 import { FEATURES_ORDER } from "@/content/features";
+import { NICHES } from "@/components/landing/niche-landing";
+import { SEO_LANDINGS } from "@/components/landing/seo-journal-landing";
 
 /**
  * Dynamic sitemap for crawlers. Combines:
@@ -59,5 +61,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...journalPages, ...featurePages, ...articlePages];
+  // E19 — niche-лендинги (/dlya-kafe и т.д.)
+  const nichePages: MetadataRoute.Sitemap = Object.keys(NICHES).map((slug) => ({
+    url: `${SITE}/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.85,
+  }));
+
+  // E17 — SEO-лендинги под ключевые запросы (журнал ХАССП и т.д.)
+  const seoPages: MetadataRoute.Sitemap = Object.keys(SEO_LANDINGS).map(
+    (slug) => ({
+      url: `${SITE}/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.85,
+    }),
+  );
+
+  return [
+    ...staticPages,
+    ...journalPages,
+    ...featurePages,
+    ...articlePages,
+    ...nichePages,
+    ...seoPages,
+  ];
 }
