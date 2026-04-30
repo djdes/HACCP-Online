@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowLeft, Compass } from "lucide-react";
 
 export const metadata = {
-  title: "Страница не найдена — WeSetup",
+  // title.absolute обходит layout's "%s — WeSetup" template — иначе
+  // получается "Страница не найдена — WeSetup — WeSetup".
+  title: { absolute: "Страница не найдена — WeSetup" },
 };
 
 /**
