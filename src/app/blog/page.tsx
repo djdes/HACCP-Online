@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Блог WeSetup — электронные журналы ХАССП и СанПиН",
+  title: "Блог — электронные журналы ХАССП и СанПиН",
   description:
     "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
   // Canonical всегда без query-string — иначе /blog?q=test и /blog?tag=haccp

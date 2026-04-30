@@ -3,7 +3,7 @@ import { ArrowRight, Coins } from "lucide-react";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 
 export const metadata = {
-  title: "Стоимость WeSetup — калькулятор ROI",
+  title: "Стоимость и ROI калькулятор",
   description:
     "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
   alternates: { canonical: "https://wesetup.ru/pricing" },

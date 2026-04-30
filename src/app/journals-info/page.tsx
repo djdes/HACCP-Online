@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Электронные журналы — каталог WeSetup",
+  title: "Каталог электронных журналов",
   description:
     "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.",
   alternates: { canonical: "https://wesetup.ru/journals-info" },
