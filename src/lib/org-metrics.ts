@@ -112,6 +112,11 @@ export async function getAllOrgMetrics(
       _max: { createdAt: true },
     }),
     db.journalDocumentEntry.findMany({
+      // _autoSeeded плейсхолдеры создаются при пересоздании документа
+      // и засоряли «last activity» — ROOT-дашборд показывал, что
+      // неактивная org «была активна вчера» когда seed-cron создал
+      // placeholder-rows.
+      where: NOT_AUTO_SEEDED,
       orderBy: { createdAt: "desc" },
       take: 5000, // ограничиваем чтобы не тащить миллион строк
       select: {
