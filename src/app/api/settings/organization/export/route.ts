@@ -37,7 +37,7 @@ export async function GET() {
   const yearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
   const [
-    organization,
+    organizationRaw,
     users,
     templates,
     documents,
@@ -48,7 +48,31 @@ export async function GET() {
     auditLog,
   ] = await Promise.all([
     db.organization.findUnique({ where: { id: orgId } }),
-    db.user.findMany({ where: { organizationId: orgId } }),
+    // ВАЖНО: НЕ экспортируем passwordHash и telegramChatId — это
+    // credentials/identifiers, не пользовательские ПД из ФЗ-152.
+    // Раньше findMany() возвращал ВСЕ поля, включая passwordHash
+    // всех сотрудников. Менеджер скачивал ZIP и получал bcrypt-хеши
+    // owner'а / админов — offline brute-force на досуге.
+    db.user.findMany({
+      where: { organizationId: orgId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        role: true,
+        positionTitle: true,
+        jobPositionId: true,
+        organizationId: true,
+        isActive: true,
+        isRoot: true,
+        archivedAt: true,
+        journalAccessMigrated: true,
+        permissionPreset: true,
+        notificationPrefs: true,
+        createdAt: true,
+      },
+    }),
     db.journalTemplate.findMany({ where: { isActive: true } }),
     db.journalDocument.findMany({ where: { organizationId: orgId } }),
     db.journalDocumentEntry.findMany({
@@ -61,6 +85,16 @@ export async function GET() {
       where: { organizationId: orgId, createdAt: { gte: yearAgo } },
     }),
   ]);
+
+  // Аналогично у Organization вычищаем integration-секреты — это не
+  // ПД сотрудников, а креды для внешних систем.
+  const organization = organizationRaw
+    ? Object.fromEntries(
+        Object.entries(organizationRaw).filter(
+          ([k]) => k !== "externalApiToken" && k !== "yandexDiskToken"
+        )
+      )
+    : null;
 
   const zip = new JSZip();
   const fmt = (data: unknown) => JSON.stringify(data, null, 2);
