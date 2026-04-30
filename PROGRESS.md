@@ -101,6 +101,17 @@ Backfill'ов не делаем — legacy task'и продолжают рабо
 - [x] **R20**: /root layout — robots noindex (038fe54a)
 - [x] **R21**: 3 single-use token URL'а (/invite/[token], /task-fill, /equipment-fill) — robots noindex (f71af9b1)
 - [x] **R22**: /login и /register имели метаданные home page'а — split на server-wrapper + client (ce3b0b93)
+- [x] **R23**: og:type/locale/siteName отсутствовали на 4 niche + 7 SEO лендингах (ae15418f)
+- [x] **R24**: blog/[slug] и features/[slug] title doubling «${title} — WeSetup» → ${title} (d04ab079)
+- [x] **R25**: Pre-warm dynamic [slug] routes — раньше первый хит на /blog/<статья> 500 (cfdd9e43)
+- [x] **R26**: /root/blog admin preview link БЕЗ rel='noopener noreferrer' (eccaf275)
+- [x] **R27**: healthz buildSha всегда null — env var rename mismatch (dc1ee2c1)
+- [x] **R28**: Article schema без image на blog/[slug] — Google requires (7407176e)
+- [x] **R29**: Article schema без image+publisher.logo на journals-info/[code] (6268a5b4)
+- [x] **R30**: Product schema без image на home (226fe400)
+- [x] **R31**: SoftwareApplication schema без image на home (cd771cb8)
+- [x] **R32**: og:url ≠ canonical на 5 страницах — Telegram/FB show home metadata (06988890)
+- [x] **R33**: og:url ≠ canonical на /login и /register (b4188747)
 
 ## Блок 5-8 — большие фичи
 
