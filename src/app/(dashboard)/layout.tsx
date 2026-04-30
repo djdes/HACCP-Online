@@ -22,6 +22,13 @@ import "@/app/app-theme.css";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// Все (dashboard) routes — приватные. Дублирует robots.txt, но также
+// влияет на кэшированную HTML-копию у юзера (если кто-то поделится
+// скриншотом dev-tools или пробросит deep-link через WhatsApp web preview).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function DashboardLayout({
   children,
 }: {
