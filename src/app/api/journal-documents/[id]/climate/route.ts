@@ -56,6 +56,16 @@ export async function POST(
     return NextResponse.json({ error: "Неверный тип документа" }, { status: 400 });
   }
 
+  // Раньше: closed-check отсутствовал, в отличие от cold-equipment
+  // route. Менеджер мог автозаполнить или синхронизировать строки в
+  // ЗАКРЫТОМ климат-документе, что ломает аудитный «freeze»-семантик.
+  if (document.status === "closed") {
+    return NextResponse.json(
+      { error: "Закрытый документ нельзя изменять" },
+      { status: 400 }
+    );
+  }
+
   const config = normalizeClimateDocumentConfig(document.config);
 
   if (action === "sync_entries") {
