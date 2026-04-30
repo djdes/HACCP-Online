@@ -26,6 +26,7 @@ import {
 import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { isManagementRole } from "@/lib/user-roles";
+import { hasJournalAccess } from "@/lib/journal-acl";
 
 function isValidDate(value: Date) {
   return Number.isFinite(value.getTime());
@@ -50,6 +51,18 @@ export async function GET(
   });
 
   if (!doc || doc.organizationId !== getActiveOrgId(session)) {
+    return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+  }
+
+  // ACL: документы могут содержать PII (med_books — мед-книжки,
+  // health_check — допуск к работе, …). Без hasJournalAccess любой
+  // staff org-и читал содержимое любого документа.
+  const aclActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+  if (doc.template?.code && !(await hasJournalAccess(aclActor, doc.template.code))) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 

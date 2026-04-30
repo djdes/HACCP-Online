@@ -5,6 +5,19 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
+import { canWriteJournal } from "@/lib/journal-acl";
+
+const PEST_CONTROL_TEMPLATE_CODE = "pest_control";
+
+function aclActorFromSession(session: {
+  user: { id: string; role: string; isRoot?: boolean };
+}) {
+  return {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+}
 
 function buildStoredDate(
   performedDate: string,
@@ -67,6 +80,10 @@ export async function POST(
 
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+
+  if (!(await canWriteJournal(aclActorFromSession(session), PEST_CONTROL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => null)) as
@@ -177,6 +194,10 @@ export async function PATCH(
 
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+
+  if (!(await canWriteJournal(aclActorFromSession(session), PEST_CONTROL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => null)) as
@@ -302,6 +323,10 @@ export async function DELETE(
 
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+
+  if (!(await canWriteJournal(aclActorFromSession(session), PEST_CONTROL_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => null)) as { ids?: string[] } | null;

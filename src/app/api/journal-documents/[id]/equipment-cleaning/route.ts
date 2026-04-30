@@ -8,6 +8,17 @@ import {
   normalizeEquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
 import { isManagementRole } from "@/lib/user-roles";
+import { canWriteJournal } from "@/lib/journal-acl";
+
+function aclActorFromSession(session: {
+  user: { id: string; role: string; isRoot?: boolean };
+}) {
+  return {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+}
 
 async function loadDocument(id: string, organizationId: string) {
   const document = await db.journalDocument.findUnique({
@@ -52,6 +63,9 @@ export async function POST(
   }
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+  if (!(await canWriteJournal(aclActorFromSession(session), EQUIPMENT_CLEANING_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as {
@@ -110,6 +124,9 @@ export async function PATCH(
   }
   if (document.status === "closed") {
     return NextResponse.json({ error: "Документ закрыт" }, { status: 400 });
+  }
+  if (!(await canWriteJournal(aclActorFromSession(session), EQUIPMENT_CLEANING_TEMPLATE_CODE))) {
+    return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as {
