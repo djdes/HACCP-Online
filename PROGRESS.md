@@ -79,6 +79,29 @@ Backfill'ов не делаем — legacy task'и продолжают рабо
 - `/api/journal-documents/<id>/verifier`: zod schema, multi-tenant scope, ownedEntryIds check, audit log на 4 действия ✅
 - TF `/api/tasks/:id/mark-returned`: requireAuthOrApiKey, callerCompanyId scope, admin-only path, reason capped ✅
 
+## Bug-hunt streak (после priority list — каждая итерация cron'а находила реальный баг)
+
+**Обнаружено через прод-curl, не через статический анализ:**
+
+- [x] **R5**: JSON-LD `Organization.logo` ссылался на /icon.png 404 → /icons/icon-512.png (ec357773)
+- [x] **R6**: PWA manifest theme_color #18181b → #0b1024 brand-color, +purpose="any" (6f71a6e9)
+- [x] **R7**: og:image и twitter:image отсутствовали в layout (493f014a)
+- [x] **R8**: og:image не пропагировался к override-страницам (Next.js shallow merge) — meta-defaults helper (1f00c43c)
+- [x] **R9**: /journals-info hero «35+ журналов» / meta «30+» → ровно «35» (8dfcb65d)
+- [x] **R10**: /pricing отсутствовал в sitemap.xml (3cac0a3a)
+- [x] **R11**: 5 индексируемых страниц без canonical URL → дубль-контент penalty (7aa0696a)
+- [x] **R12**: Заголовки с двойным «— WeSetup» (template-doubling) на 11 страницах (2e36ebd3)
+- [x] **R13**: Deploy pre-warm — раньше первые 60-90 сек после рестарта пользователи получали 500 (660c1a13)
+- [x] **R14**: SoftwareApplication.operatingSystem «Web, iOS, Android» (native apps не существуют) → «Web» (05947b7e)
+- [x] **R15**: /mini title doubled-brand (563cb89e)
+- [x] **R16**: 404 page title doubled-brand (5ed02f89)
+- [x] **R17**: 4 not-found state titles в dynamic routes — title.absolute (43866944)
+- [x] **R18**: robots.txt пропускал 14 dashboard routes — расширил список (9f0d4980)
+- [x] **R19**: (dashboard) layout — robots noindex для всех 17 routes (38dcafed)
+- [x] **R20**: /root layout — robots noindex (038fe54a)
+- [x] **R21**: 3 single-use token URL'а (/invite/[token], /task-fill, /equipment-fill) — robots noindex (f71af9b1)
+- [x] **R22**: /login и /register имели метаданные home page'а — split на server-wrapper + client (ce3b0b93)
+
 ## Блок 5-8 — большие фичи
 
 Все эти задачи (мобильное app, NFC, ФГИС-Меркурий, white-label,
