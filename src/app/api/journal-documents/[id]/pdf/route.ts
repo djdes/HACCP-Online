@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
+import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { generateJournalDocumentPdf } from "@/lib/document-pdf";
 
 function wantsBrowserPage(request: Request) {
@@ -54,9 +56,39 @@ export async function GET(
     }
 
     const { id } = await params;
+    const orgId = getActiveOrgId(session);
+
+    // ACL-check: раньше любой org-member мог скачать PDF любого
+    // журнала, включая journals на которые у него нет доступа
+    // (UserJournalAccess.canRead). Подгружаем template.code и
+    // проверяем через hasJournalAccess.
+    const docMeta = await db.journalDocument.findUnique({
+      where: { id },
+      select: {
+        organizationId: true,
+        template: { select: { code: true } },
+      },
+    });
+    if (!docMeta || docMeta.organizationId !== orgId) {
+      return buildPdfErrorResponse(request, "Документ не найден", 404);
+    }
+    const access = await hasJournalAccess(
+      aclActorFromSession({
+        user: {
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        },
+      }),
+      docMeta.template.code
+    );
+    if (!access) {
+      return buildPdfErrorResponse(request, "Нет доступа к этому журналу", 403);
+    }
+
     const { buffer, fileName } = await generateJournalDocumentPdf({
       documentId: id,
-      organizationId: getActiveOrgId(session),
+      organizationId: orgId,
     });
 
     const uint8 = new Uint8Array(buffer);
