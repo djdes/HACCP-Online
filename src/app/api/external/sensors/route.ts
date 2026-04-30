@@ -138,7 +138,12 @@ export async function POST(request: Request) {
         },
         select: { data: true },
       });
-      const baseData = (existing?.data as Record<string, unknown>) ?? {};
+      // Снимаем _autoSeeded — при записи реальных sensor-данных
+      // строка перестаёт быть placeholder'ом. Согласовано с
+      // tuya-pull (ed88aa2a).
+      const baseDataRaw = (existing?.data as Record<string, unknown>) ?? {};
+      const { _autoSeeded: _seeded, ...baseData } = baseDataRaw;
+      void _seeded;
       const prevTemps =
         (baseData.temperatures as Record<string, unknown> | undefined) ?? {};
       const nextData = {
