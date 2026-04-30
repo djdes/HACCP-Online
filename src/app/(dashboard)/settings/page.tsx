@@ -202,6 +202,15 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
+    title: "Режимы раздачи задач",
+    description:
+      "Уборку — по помещениям, гигиену — по сотрудникам, бракераж — одной сводкой. Гибкая настройка под вашу кухню",
+    href: "/settings/journal-task-mode",
+    icon: Settings2,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
     title: "Иерархия журналов по должностям",
     description: "Тот же выбор, но в виде матрицы должность × журнал — для power-юзеров",
     href: "/settings/journals-by-position",

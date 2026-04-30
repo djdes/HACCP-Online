@@ -129,6 +129,15 @@ model Organization {
   /// src/lib/journal-responsible-schemas.ts. Управляется в
   /// /settings/journal-responsibles.
   journalResponsibleUsersJson Json                     @default("{}")
+  /// Phase D: per-journal task-режимы. Per-org карта вида
+  ///   { [journalCode]: { distribution: "...", verification: "...",
+  ///     siblingVisibility: boolean, ... } }
+  /// Distribution — как раздаются TasksFlow-задачи (per-employee /
+  /// per-area / per-shift / per-batch / one-summary / by-rota).
+  /// Verification — режим проверки (summary-task / per-cell / none).
+  /// Управляется в /settings/journal-task-mode. Если код не задан —
+  /// дефолт из getDefaultTaskMode(journalCode).
+  journalTaskModesJson     Json                       @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
@@ -1295,6 +1304,14 @@ model JournalDocument {
   /// Если null — fallback на responsibleUserId (back-compat для документов
   /// созданных до разделения filler/verifier).
   verifierUserId    String?
+  /// Phase D пометка верификации сводной задачи. Сотрудник заполнил все
+  /// слоты, задача-сводка ушла verifier'у — сюда пишем когда verifier
+  /// одобрил/отклонил весь документ. Per-cell verifications живут в
+  /// JournalDocumentEntry.verificationStatus (см. дальше).
+  verificationStatus String? // "pending" | "submitted" | "approved" | "rejected"
+  verificationDecidedById String?
+  verificationDecidedAt DateTime?
+  verificationRejectReason String?
   status            String                 @default("active") // active | closed
   autoFill          Boolean                @default(false)
   createdById       String?
