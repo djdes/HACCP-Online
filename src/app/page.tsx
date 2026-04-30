@@ -306,6 +306,9 @@ export default async function LandingPage() {
         name: "WeSetup — электронные журналы СанПиН и ХАССП",
         description:
           "35 журналов для общепита и пищевых производств. Telegram-бот, автозаполнение, PDF для проверок Роспотребнадзора.",
+        // image — required для Product rich result. Без него Google не
+        // показывает Offer-карточку с ценой/доступностью в выдаче.
+        image: ["https://wesetup.ru/icons/icon-512.png"],
         brand: { "@id": "https://wesetup.ru/#org" },
         offers: [
           {
