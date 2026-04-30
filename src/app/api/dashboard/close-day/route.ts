@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -146,13 +147,21 @@ export async function POST(request: Request) {
       continue;
     }
 
+    // _autoSeeded плейсхолдеры — пустые «болванки», которые
+    // bulk-assign-today / sync-* проставляют как ожидаемый матрикс
+    // (employee × day). Они НЕ являются заполненными данными, и:
+    //  • Из «вчера» их исключаем — иначе copy-yesterday склонировал
+    //    бы пустую болванку как «вчерашнее заполнение» Алёны.
+    //  • Из «сегодня» их исключаем — иначе при наличии seeded-row
+    //    у Алёны мы пропустили бы upsert (думая что у неё уже
+    //    есть запись), хотя реально она ничего не вписала.
     const [yesterdayEntries, todayEntries] = await Promise.all([
       db.journalDocumentEntry.findMany({
-        where: { documentId: doc.id, date: yesterday },
+        where: { documentId: doc.id, date: yesterday, ...NOT_AUTO_SEEDED },
         select: { employeeId: true, data: true },
       }),
       db.journalDocumentEntry.findMany({
-        where: { documentId: doc.id, date: today },
+        where: { documentId: doc.id, date: today, ...NOT_AUTO_SEEDED },
         select: { employeeId: true },
       }),
     ]);

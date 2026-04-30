@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -120,6 +121,10 @@ export async function GET() {
   }
 
   const docIds = [...freshDoc.values()].map((d) => d.id);
+  // _autoSeeded плейсхолдеры — пустые матриксы для employee×day,
+  // их в counter «заполнено сегодня» включать нельзя: иначе вся
+  // catch-up grid показывает «filled» там, где сотрудник реально
+  // ничего не вписал.
   const entries =
     docIds.length === 0
       ? []
@@ -127,6 +132,7 @@ export async function GET() {
           where: {
             documentId: { in: docIds },
             date: { gte: start, lte: today },
+            ...NOT_AUTO_SEEDED,
           },
           select: { documentId: true, date: true, employeeId: true },
         });
@@ -313,11 +319,15 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Find nearest prior day with entries (within document period).
+      // Find nearest prior day with REAL entries (within document period).
+      // Без NOT_AUTO_SEEDED catch-up мог скопировать пустую seeded-row
+      // как «вчерашнее заполнение», и UI показал бы catch-up'нутый
+      // день «заполненным» без реальных данных.
       const prior = await db.journalDocumentEntry.findFirst({
         where: {
           documentId,
           date: { lt: targetUtc, gte: dateFrom },
+          ...NOT_AUTO_SEEDED,
         },
         orderBy: { date: "desc" },
         select: { date: true },
@@ -335,11 +345,11 @@ export async function POST(request: Request) {
 
       const [sourceEntries, targetEntries] = await Promise.all([
         db.journalDocumentEntry.findMany({
-          where: { documentId, date: sourceUtc },
+          where: { documentId, date: sourceUtc, ...NOT_AUTO_SEEDED },
           select: { employeeId: true, data: true },
         }),
         db.journalDocumentEntry.findMany({
-          where: { documentId, date: targetUtc },
+          where: { documentId, date: targetUtc, ...NOT_AUTO_SEEDED },
           select: { employeeId: true },
         }),
       ]);
