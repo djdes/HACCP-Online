@@ -38,10 +38,14 @@ export async function GET() {
       await db.$queryRaw`SELECT 1`;
       checks.db = { ok: true, ms: Date.now() - t0 };
     } catch (err) {
+      // Public endpoint — error.message от Prisma может включать
+      // host/port БД, имена таблиц, причины auth-failure → recon.
+      // Логируем server-side, отдаём generic.
+      console.error("[healthz] db check failed", err);
       checks.db = {
         ok: false,
         ms: Date.now() - t0,
-        error: err instanceof Error ? err.message : String(err),
+        error: "db unavailable",
       };
     }
   }
@@ -61,10 +65,11 @@ export async function GET() {
         detail: data.result?.username ? `@${data.result.username}` : undefined,
       };
     } catch (err) {
+      console.error("[healthz] telegram check failed", err);
       checks.telegram = {
         ok: false,
         ms: Date.now() - t0,
-        error: err instanceof Error ? err.message : String(err),
+        error: "telegram unreachable",
       };
     }
   } else {
