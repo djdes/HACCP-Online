@@ -60,9 +60,12 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    // tuya-connector-nodejs error.message может содержать TUYA_ACCESS_ID
+    // / sign в URL запроса при network failure'ах. Логируем server-side,
+    // отдаём generic.
     console.error("Tuya device fetch error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Ошибка IoT-датчика" },
+      { error: "Ошибка IoT-датчика. Подробности в логах сервера." },
       { status: 500 }
     );
   }
