@@ -234,18 +234,32 @@ export function NotificationsBell() {
       toast.info("Отметьте уведомления (или подзадачи) слева.");
       return;
     }
-    await Promise.all(
-      plansForView.map((p) =>
-        fetch(`/api/notifications/${p.rowId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body:
-            p.mode === "row"
-              ? JSON.stringify({})
-              : JSON.stringify({ dismissedItemIds: p.itemIds }),
-        })
-      )
-    );
+    try {
+      const responses = await Promise.all(
+        plansForView.map((p) =>
+          fetch(`/api/notifications/${p.rowId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body:
+              p.mode === "row"
+                ? JSON.stringify({})
+                : JSON.stringify({ dismissedItemIds: p.itemIds }),
+          })
+        )
+      );
+      const failures = responses.filter((r) => !r.ok).length;
+      if (failures > 0) {
+        toast.error(
+          failures === responses.length
+            ? "Не удалось отметить уведомления. Попробуйте ещё раз."
+            : `${failures} из ${responses.length} не сохранились.`
+        );
+      } else {
+        toast.success("Отмечено как прочитанное.");
+      }
+    } catch {
+      toast.error("Сеть недоступна. Проверьте подключение.");
+    }
     setSelected(new Set());
     await load();
   }
@@ -259,18 +273,43 @@ export function NotificationsBell() {
       toast.info("Отметьте уведомления, чтобы удалить.");
       return;
     }
-    await Promise.all(
-      rowIds.map((id) =>
-        fetch(`/api/notifications/${id}`, { method: "DELETE" })
-      )
-    );
+    try {
+      const responses = await Promise.all(
+        rowIds.map((id) =>
+          fetch(`/api/notifications/${id}`, { method: "DELETE" })
+        )
+      );
+      const failures = responses.filter((r) => !r.ok).length;
+      if (failures > 0) {
+        toast.error(
+          failures === responses.length
+            ? "Не удалось удалить. Попробуйте ещё раз."
+            : `${failures} из ${responses.length} не удалось удалить.`
+        );
+      } else {
+        toast.success(
+          rowIds.length === 1 ? "Удалено." : `Удалено: ${rowIds.length}.`
+        );
+      }
+    } catch {
+      toast.error("Сеть недоступна. Проверьте подключение.");
+    }
     setSelected(new Set());
     await load();
   }
 
   async function removeAll() {
     if (!confirm("Удалить все уведомления? Это не отменить.")) return;
-    await fetch("/api/notifications", { method: "DELETE" });
+    try {
+      const r = await fetch("/api/notifications", { method: "DELETE" });
+      if (!r.ok) {
+        toast.error("Не удалось удалить. Попробуйте ещё раз.");
+      } else {
+        toast.success("Все уведомления удалены.");
+      }
+    } catch {
+      toast.error("Сеть недоступна. Проверьте подключение.");
+    }
     setSelected(new Set());
     await load();
   }
