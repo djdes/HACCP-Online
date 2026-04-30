@@ -55,11 +55,27 @@ Backfill'ов не делаем — legacy task'и продолжают рабо
 - [x] **E19**: 4 niche-лендинга (4a32187c)
 - [x] **E20**: schema.org Article+Product+FAQ (8080c373)
 
-## Security review цикл
+## Security review цикл (2026-04-30, после A1-A4 + блоки 1-4)
 
 - [x] **S1**: JSON-LD XSS — `jsonLdSafeString` helper экранирует `<>&` в 5 местах (e2f5f889)
 - [x] **S2**: TF mark-returned `reason` capped at 1000 chars (TasksFlow 20d2835)
 - [x] **S3**: Reject-document не зеркалил TF — добавлен markReturned для всех filler-задач документа (d895c728)
+
+## Code review цикл
+
+- [x] **R1**: Sitemap.xml не включал 4 niche-лендинга и 7 SEO-страниц — добавлено 11 URL (beb5b7bc)
+- [x] **R2**: «34 электронных журнала» в layout.tsx и direct-campaigns — заменено на «35» везде (e0752cde)
+
+## Итоговое ревью /api/* эндпоинтов
+
+Прошёлся по attack-surface и подтвердил безопасность (без новых правок):
+
+- `/api/auth/login`: rate-limit (5/5min by IP), DUMMY_BCRYPT_HASH против user-enumeration, httpOnly+Secure+SameSite=Lax cookies ✅
+- `/api/auth/register/confirm`: per-IP rate-limit (a914148e), DB attempts counter, bcrypt cost 12, atomic transaction, plan whitelist ✅
+- `/api/mini/attachments`: type whitelist (jpg/png/webp), 5MB cap, mime-derived ext, multi-tenant entryId scope, audit log ✅
+- `/api/ai/check-photo`: SSRF prevention via `^/uploads/[a-zA-Z0-9._-]{1,128}$` regex, AI rate-limit, requireApiAuth ✅
+- `/api/journal-documents/<id>/verifier`: zod schema, multi-tenant scope, ownedEntryIds check, audit log на 4 действия ✅
+- TF `/api/tasks/:id/mark-returned`: requireAuthOrApiKey, callerCompanyId scope, admin-only path, reason capped ✅
 
 ## Блок 5-8 — большие фичи
 
