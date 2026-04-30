@@ -6,6 +6,7 @@ import { AreaDialog } from "@/components/settings/area-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
 import { isManagementRole } from "@/lib/user-roles";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,25 @@ export default async function AreasSettingsPage() {
         </div>
         {canManage && <AreaDialog />}
       </div>
+
+      <PageGuide
+        storageKey="settings-areas"
+        title="Зачем нужны цеха"
+        bullets={[
+          {
+            title: "Помещения = TasksFlow задачи",
+            body: "Если в /settings/journal-task-mode для уборки выбран режим «На каждое помещение», то на каждый цех в TasksFlow будет создаваться отдельная задача.",
+          },
+          {
+            title: "Группировка оборудования",
+            body: "Каждый холодильник/мойка/посудомойка привязывается к цеху — при отчётах видно где что стоит.",
+          },
+          {
+            title: "Температурные карты",
+            body: "Дашборд показывает «температура в горячем цехе» / «в холодном цехе» отдельно — нужно чтобы оборудование было разнесено.",
+          },
+        ]}
+      />
 
       {/* Content */}
       {areas.length === 0 ? (

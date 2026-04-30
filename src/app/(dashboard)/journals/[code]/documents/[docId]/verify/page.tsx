@@ -5,6 +5,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { VerifierClient } from "@/components/journals/verifier-client";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,6 +143,29 @@ export default async function VerifyDocumentPage({
           уведомление и смогут исправить.
         </p>
       </section>
+
+      <PageGuide
+        storageKey="document-verify"
+        title="Как принимать журнал"
+        bullets={[
+          {
+            title: "Беглый осмотр",
+            body: "Записи сгруппированы по дням. Проверьте что ничего не пропущено и значения адекватны.",
+          },
+          {
+            title: "Если всё ок",
+            body: "«Принять весь журнал» одной кнопкой — все ячейки одобрены, supervisor-задача в TasksFlow закрыта, журнал считается завершённым.",
+          },
+          {
+            title: "Если что-то не так",
+            body: "Отметьте конкретные ячейки чекбоксами и нажмите «Отклонить отмеченные» с указанием причины. Сотрудники, заполнившие эти ячейки, получат push в Telegram «возвращено на доработку: <причина>».",
+          },
+          {
+            title: "Что увидит сотрудник",
+            body: "Отклонённые ячейки помечаются красной рамкой в журнале. После исправления он снова отправляет на проверку — придёт сюда обратно.",
+          },
+        ]}
+      />
 
       <VerifierClient
         documentId={docId}

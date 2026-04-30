@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
+import { PageGuide } from "@/components/ui/page-guide";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
@@ -87,5 +88,41 @@ export default async function JournalsPage() {
     hasActiveDocumentToday: activeTemplateIds.has(template.id),
   }));
 
-  return <JournalsBrowser templates={items} canBulkCreate={isManager} />;
+  return (
+    <div className="space-y-5">
+      <PageGuide
+        storageKey="journals-list"
+        title="Как работать с журналами"
+        bullets={[
+          {
+            title: "Зелёная галочка",
+            body: "журнал заполнен сегодня — проверка пройдёт. Серый — ещё не заполнили.",
+          },
+          {
+            title: "Открыть журнал",
+            body: "клик по карточке — открывается активный документ за текущий период (месяц/полмесяца/год).",
+          },
+          {
+            title: "Серый журнал",
+            body: "отключён в /settings/journals — этой кухне не нужен. Можно включить обратно там же.",
+          },
+          {
+            title: "«Разослать всем»",
+            body: "одной кнопкой создаются TasksFlow-задачи для незаполненных журналов. Сотрудники видят их в смартфоне.",
+          },
+        ]}
+        qa={[
+          {
+            q: "Журнал отключён, но всё равно нужно вести",
+            a: "Зайди в /settings/journals и включи обратно. Также проверь /settings/journal-responsibles — там должны быть назначены исполнители.",
+          },
+          {
+            q: "У сотрудника нет доступа к журналу",
+            a: "Доступ контролируется per-должность. Открой /settings/journal-access — там матрица «должность × журнал».",
+          },
+        ]}
+      />
+      <JournalsBrowser templates={items} canBulkCreate={isManager} />
+    </div>
+  );
 }

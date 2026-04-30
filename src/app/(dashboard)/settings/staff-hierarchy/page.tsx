@@ -5,6 +5,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { sessionHasPermission } from "@/lib/permissions-server";
 import { StaffHierarchyClient } from "@/components/settings/staff-hierarchy-client";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,35 @@ export default async function StaffHierarchyPage() {
           </div>
         </div>
       </div>
+
+      <PageGuide
+        storageKey="staff-hierarchy"
+        title="Что такое иерархия и зачем"
+        bullets={[
+          {
+            title: "Кого вижу — тому выдаю",
+            body: "Каждый менеджер с настройкой scope видит только своих подчинённых в TasksFlow и при создании задач.",
+          },
+          {
+            title: "Режимы scope",
+            body: "«Все» — видит всех (но не админов и менеджеров — фильтр от 2026-04-30). «По должностям» — выбираешь должности (повар, уборщица). «Конкретные» — поштучно.",
+          },
+          {
+            title: "После сохранения",
+            body: "Изменения сразу пушатся в TasksFlow — у менеджера обновляется список подчинённых через несколько секунд.",
+          },
+        ]}
+        qa={[
+          {
+            q: "Заведующая видит admin'a — почему?",
+            a: "Если у её scope режим «Все» и admin тоже стоит как management, она его НЕ должна видеть. Если видит — проверь свежий ли deploy WeSetup или попробуй сменить scope на «По должностям» с явным выбором.",
+          },
+          {
+            q: "Можно ли отключить иерархию",
+            a: "Да: ставишь menager'у scope=«Все» — он видит всех cooks/waiters своей орги. У admin'a по дефолту так уже — он всегда видит всё.",
+          },
+        ]}
+      />
 
       <StaffHierarchyClient
         positions={positions.map((p) => ({
