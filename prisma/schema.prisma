@@ -1332,6 +1332,16 @@ model JournalDocumentEntry {
   employee   User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date       DateTime // the specific day (date-only, truncated to midnight)
   data       Json // template-specific: { healthStatus: "healthy"|"day_off"|..., temperatureAbove37: false }
+  /// Phase E — per-cell verification.
+  ///   • null/"pending" — ячейка не прошла проверку.
+  ///   • "approved"     — verifier одобрил эту ячейку.
+  ///   • "rejected"     — verifier отклонил с rejectReason; сотруднику
+  ///                       приходит push «у вас отклонили запись», поле
+  ///                       помечается красной рамкой в UI и ждёт правки.
+  verificationStatus String?
+  verificationRejectReason String?
+  verificationDecidedById  String?
+  verificationDecidedAt    DateTime?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
@@ -1452,6 +1462,12 @@ model TasksFlowTaskLink {
   journalCode       String
   journalDocumentId String
   rowKey            String
+  /// Phase E — kind задачи в TasksFlow:
+  ///   • "filler"     (default) — задача-исполнителю на заполнение.
+  ///   • "verifier"   — supervisor-задача проверяющему. Один на
+  ///                    document. Клик по ней в TF ведёт в WeSetup
+  ///                    verifier-view (?verify=1).
+  kind              String               @default("filler")
   tasksflowTaskId   Int
   /// Last status received from TasksFlow ("active" | "completed").
   remoteStatus      String               @default("active")

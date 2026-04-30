@@ -784,6 +784,89 @@ export async function POST(request: Request) {
       takenRowKeys.add(row.rowKey);
     });
 
+    // Phase E — supervisor-task для verifier'а. Создаём ОДНУ задачу
+    // в TasksFlow на этого verifier'а с journalLink.kind="verifier-summary".
+    // Клик в TF → редирект в WeSetup verifier-view (?verify=1).
+    // Создаём только если:
+    //   • verification mode = "summary-task"
+    //   • у документа есть verifierUserId или fallback responsibleUserId
+    //   • verifier привязан к TF (есть TF-id)
+    //   • supervisor-link для этого doc.id ещё не создан
+    const verificationMode = taskMode.verification;
+    if (verificationMode === "summary-task") {
+      const verifierWesetupId =
+        doc.verifierUserId ?? doc.responsibleUserId ?? null;
+      if (verifierWesetupId) {
+        const verifierTfId = tfUserIdByWesetup.get(verifierWesetupId);
+        if (verifierTfId) {
+          // Проверяем что supervisor-task для этого doc ещё не создавался.
+          const existingSupervisor = await db.tasksFlowTaskLink.findFirst({
+            where: {
+              integrationId: integration.id,
+              journalDocumentId: doc.id,
+              kind: "verifier",
+            },
+            select: { id: true },
+          });
+          if (!existingSupervisor) {
+            try {
+              const supervisorTask = await client.createTask({
+                title: `Проверить журнал: ${tpl.name}`,
+                workerId: verifierTfId,
+                requiresPhoto: false,
+                isRecurring: false,
+                weekDays: [],
+                category: `WeSetup · Проверка`,
+                description:
+                  `Откройте журнал и просмотрите ячейки. Принимайте ` +
+                  `целиком или отметьте ошибочные с причиной — у заполнителя ` +
+                  `появится возможность исправить.\n\n` +
+                  `${baseUrl}/journals/${tpl.code}/documents/${doc.id}?verify=1`,
+              });
+              const supervisorLink = JSON.stringify({
+                kind: `wesetup-verifier-summary`,
+                baseUrl,
+                integrationId: integration.id,
+                documentId: doc.id,
+                rowKey: `verifier-summary:${doc.id}`,
+                label: `Проверить ${tpl.name}`,
+                isFreeText: false,
+                taskScope: "verifier",
+                verifyUrl: `${baseUrl}/journals/${tpl.code}/documents/${doc.id}?verify=1`,
+              });
+              await client
+                .updateTask(supervisorTask.id, {
+                  journalLink: supervisorLink,
+                } as never)
+                .catch((err) =>
+                  console.warn(
+                    "[bulk-assign-today] supervisor journalLink update failed",
+                    err,
+                  ),
+                );
+              await db.tasksFlowTaskLink.create({
+                data: {
+                  integrationId: integration.id,
+                  journalCode: tpl.code,
+                  journalDocumentId: doc.id,
+                  rowKey: `verifier-summary:${doc.id}`,
+                  kind: "verifier",
+                  tasksflowTaskId: supervisorTask.id,
+                  remoteStatus: "active",
+                  lastDirection: "push",
+                },
+              });
+            } catch (err) {
+              console.warn(
+                "[bulk-assign-today] supervisor-task creation failed",
+                err instanceof Error ? err.message : err,
+              );
+            }
+          }
+        }
+      }
+    }
+
     reports.push(report);
   }
 
