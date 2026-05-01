@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       role: true,
       createdAt: true,
       positionTitle: true,
-      jobPosition: { select: { name: true } },
+      jobPosition: { select: { name: true, seesAllTasks: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     role: u.role,
     createdAt: u.createdAt,
     positionTitle: u.jobPosition?.name ?? u.positionTitle ?? null,
+    seesAllTasks: u.jobPosition?.seesAllTasks === true,
   }));
 
   let remoteUsers;

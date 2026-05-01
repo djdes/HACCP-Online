@@ -368,6 +368,20 @@ model JobPosition {
   /// /settings/position-staff-visibility.
   visibleUserIds  String[]                   @default([])
 
+  /// «Видит ВСЕ задачи всех сотрудников в TasksFlow» — флаг для
+  /// руководящих должностей. Когда true — sync ставит isAdmin=true
+  /// в TasksFlow для всех юзеров этой должности (TF Dashboard
+  /// показывает им все задачи компании). По умолчанию false для
+  /// ВСЕХ должностей — admin orgi сам в /settings/task-visibility
+  /// включает нужную (обычно одну, например «Админ» или
+  /// «Управляющий»).
+  ///
+  /// Если ни у одной должности в орге не выставлено true —
+  /// fallback на legacy behavior (первый management-юзер = isAdmin).
+  /// Это back-compat для старых орг'ов которые ничего не
+  /// настраивали.
+  seesAllTasks    Boolean                    @default(false)
+
   @@unique([organizationId, categoryKey, name])
   @@index([organizationId, sortOrder])
 }

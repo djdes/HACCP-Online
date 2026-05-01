@@ -12,13 +12,22 @@ type WeSetupSyncUser = {
   name: string | null;
   phone: string | null;
   role: string | null;
-  /** ISO-timestamp создания. Используется чтобы определить кто первый
-   *  user в org (= owner) — он получает isAdmin=true в TasksFlow. */
+  /** ISO-timestamp создания. Используется как fallback (legacy behavior)
+   *  чтобы определить кто первый management user в org → получает
+   *  isAdmin=true в TasksFlow, если ни одна должность в org не имеет
+   *  seesAllTasks=true. */
   createdAt: Date;
   /** Должность пользователя (берётся из jobPosition.name либо
    *  positionTitle). Прокидывается в TasksFlow как users.position для
    *  UI «ФИО · Должность» и сортировки. */
   positionTitle?: string | null;
+  /**
+   * Phase admin-vis: true если jobPosition этого юзера имеет
+   * `seesAllTasks=true` в /settings/task-visibility. Если хотя бы у
+   * одного юзера в орге это true — sync использует ИХ как admins
+   * (всем им ставит isAdmin=true). Иначе fallback на ownerCandidate.
+   */
+  seesAllTasks?: boolean;
 };
 
 type ExistingSyncLink = {
@@ -103,19 +112,34 @@ export async function syncTasksflowUsers(args: {
   // тратят время. Помечаем флаг и пропускаем остальных.
   let remoteCreateDisabled: { status: number; message: string } | null = null;
 
-  // Определяем «owner» компании = первый user по createdAt с role,
-  // которая считается admin-ской (owner / manager). Этому юзеру в
-  // TasksFlow ставим isAdmin=true, чтобы он видел ВСЁ в компании TF
-  // (без managedWorkerIds-фильтра). Остальные management-юзеры
-  // (head_chef, прочие "manager") продолжают видеть только своих
-  // подчинённых через managed_worker_ids — это корректное per-role
-  // ограничение. Без этого фикса TF создавал ВСЕХ как worker'ов и
-  // даже владелец компании видел только свои задачи.
-  const ADMIN_ROLE_NAMES = new Set(["owner", "manager", "admin"]);
-  const ownerCandidate = [...args.wesetupUsers]
-    .filter((u) => ADMIN_ROLE_NAMES.has((u.role ?? "").toLowerCase()))
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0] ?? null;
-  const ownerId = ownerCandidate?.id ?? null;
+  // Phase admin-vis: определяем кому ставить isAdmin=true в TasksFlow.
+  //
+  // Новое поведение: если хотя бы у одной должности в орге есть
+  // jobPosition.seesAllTasks=true — admin'ами в TF становятся ТОЛЬКО
+  // юзеры этих должностей. Это позволяет менеджеру выбрать в
+  // /settings/task-visibility: «только должность Админ видит чужие»,
+  // — и управляющая больше не получает isAdmin (раньше она получала
+  // потому что была первой management-юзером по createdAt).
+  //
+  // Legacy fallback: если ни одна должность не выставила seesAllTasks,
+  // действует прежняя логика — первый management-user по createdAt =
+  // admin TF. Это нужно для back-compat: старые орги ничего не
+  // настраивали, но их единственный manager должен оставаться TF-admin.
+  const explicitAdmins = new Set(
+    args.wesetupUsers.filter((u) => u.seesAllTasks === true).map((u) => u.id),
+  );
+  let adminUserIds: Set<string>;
+  if (explicitAdmins.size > 0) {
+    adminUserIds = explicitAdmins;
+  } else {
+    const ADMIN_ROLE_NAMES = new Set(["owner", "manager", "admin"]);
+    const ownerCandidate = [...args.wesetupUsers]
+      .filter((u) => ADMIN_ROLE_NAMES.has((u.role ?? "").toLowerCase()))
+      .sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      )[0] ?? null;
+    adminUserIds = new Set(ownerCandidate?.id ? [ownerCandidate.id] : []);
+  }
 
   for (const user of args.wesetupUsers) {
     const phone = normalizeRussianPhone(user.phone);
@@ -140,7 +164,7 @@ export async function syncTasksflowUsers(args: {
       continue;
     }
 
-    const isOwner = user.id === ownerId;
+    const isOwner = adminUserIds.has(user.id);
     let remote = remoteByPhone.get(phone) ?? null;
     // Если remote уже существует — повторный POST createUser:
     //   - с isAdmin:true (если owner) — TF promote'ит через setUserAdmin

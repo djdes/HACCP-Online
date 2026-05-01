@@ -10,6 +10,7 @@ import {
   Coins,
   CreditCard,
   FileSpreadsheet,
+  Eye,
   Gauge,
   KeyRound,
   ListChecks,
@@ -230,6 +231,15 @@ const settingsCards = [
     icon: Scale,
     iconClass: "text-[#10b981]",
     bgClass: "bg-[#ecfdf5]",
+  },
+  {
+    title: "Видимость чужих задач",
+    description:
+      "Кто из руководства видит ВСЕ задачи в TasksFlow (admin-режим). По умолчанию — никто; включай только для одной должности (обычно «Админ»)",
+    href: "/settings/task-visibility",
+    icon: Eye,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
   },
   {
     title: "Иерархия журналов по должностям",
@@ -508,6 +518,7 @@ const GROUP_JOURNALS = new Set([
   "/settings/journal-bonuses",
   "/settings/journal-difficulty",
   "/settings/workload-balance",
+  "/settings/task-visibility",
   "/settings/auto-journals",
   "/settings/journal-access",
   "/settings/journals-by-position",

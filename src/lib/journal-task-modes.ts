@@ -136,6 +136,16 @@ export const VERIFICATION_HINTS: Record<TaskVerificationMode, string> = {
 /** Дефолт для журнала по его коду. Возвращается когда у org нет
  *  override в journalTaskModesJson. */
 export function getDefaultTaskMode(journalCode: string): TaskMode {
+  // Personnel-журналы — заполняются заведующей/менеджером ОДНОЙ
+  // сводной записью на всех сотрудников, не каждым по отдельности.
+  // По СанПиН 2.3/2.4.3590-20 п. 2.22:
+  //   • hygiene / health_check — утренний осмотр сотрудников проводит
+  //     заведующая (или шеф-повар) — это её ответственность, а не
+  //     каждого сотрудника. Один документ-список со всем составом.
+  //   • ppe_issuance — товаровед/заведующая выдаёт СИЗ и записывает в
+  //     реестр. Не каждый сотрудник.
+  //   • staff_training — менеджер по обучению или шеф проводит инструктаж
+  //     и расписывается в журнале за всех. Один документ.
   if (
     journalCode === "hygiene" ||
     journalCode === "health_check" ||
@@ -143,7 +153,7 @@ export function getDefaultTaskMode(journalCode: string): TaskMode {
     journalCode === "staff_training"
   ) {
     return {
-      distribution: "per-employee",
+      distribution: "one-summary",
       verification: "summary-task",
       siblingVisibility: false,
     };

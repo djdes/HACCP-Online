@@ -99,17 +99,19 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   // ═══ HEALTH & HYGIENE ═══
   {
     code: "hygiene",
-    who: "Шеф-повар или дежурный заведующий перед сменой осматривает каждого сотрудника (чистая форма, отсутствие порезов, маникюр в норме) и ставит «допущен/не допущен».",
-    keywords: ["повар", ...LEAD_KEYWORDS],
-    mode: "per-employee",
+    who: "Заведующая или шеф-повар перед сменой осматривает каждого сотрудника (чистая форма, отсутствие порезов, маникюр в норме) и ставит «допущен/не допущен» одним документом-списком на всех. По СанПиН — обязанность руководителя смены, не каждого работника.",
+    keywords: ["завед", "шеф", "управляющ", "менеджер", ...LEAD_KEYWORDS],
+    mode: "single",
     category: "health",
+    preferNamedPerson: true,
   },
   {
     code: "health_check",
-    who: "То же что гигиенический журнал — ХАССП на практике объединяет «здоровье» и «гигиену» в одну ежедневную проверку.",
-    keywords: ["повар", ...LEAD_KEYWORDS],
-    mode: "per-employee",
+    who: "То же что гигиенический журнал — ХАССП на практике объединяет «здоровье» и «гигиену» в одну ежедневную проверку. Заполняет заведующая утром.",
+    keywords: ["завед", "шеф", "управляющ", "менеджер", ...LEAD_KEYWORDS],
+    mode: "single",
     category: "health",
+    preferNamedPerson: true,
   },
   {
     code: "med_books",
@@ -311,17 +313,19 @@ export const JOURNAL_RESPONSIBILITY_META: readonly JournalResponsibilityMeta[] =
   },
   {
     code: "staff_training",
-    who: "Менеджер ведёт журнал, сотрудник расписывается в прохождении инструктажа (вводный, первичный, повторный, внеплановый).",
-    keywords: ["технолог", "кадр", ...LEAD_KEYWORDS],
-    mode: "per-employee",
+    who: "Менеджер по обучению или заведующая проводит инструктажи (вводный, первичный, повторный, внеплановый) и заполняет журнал на всех сотрудников. Один документ.",
+    keywords: ["технолог", "кадр", "завед", ...LEAD_KEYWORDS],
+    mode: "single",
     category: "training",
+    preferNamedPerson: true,
   },
   {
     code: "ppe_issuance",
-    who: "Товаровед или менеджер фиксирует выдачу СИЗ (перчатки, фартуки, маски) под подпись сотрудника.",
-    keywords: ["товаровед", "кладов", ...LEAD_KEYWORDS],
-    mode: "per-employee",
+    who: "Товаровед, заведующая или менеджер фиксирует выдачу СИЗ (перчатки, фартуки, маски) под подпись сотрудника. Один документ-реестр на всех.",
+    keywords: ["товаровед", "кладов", "завед", "менеджер", ...LEAD_KEYWORDS],
+    mode: "single",
     category: "training",
+    preferNamedPerson: true,
   },
 
   // ═══ INCIDENTS ═══
