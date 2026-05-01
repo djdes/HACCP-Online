@@ -4,7 +4,36 @@ import { db } from "@/lib/db";
 import {
   asDismissedItemIds,
   asNotificationItems,
+  type NotificationItem,
 } from "@/lib/notifications";
+
+/**
+ * Auto-migration старых notifications-items: если href сохранён в
+ * формате `/journals/<code>` (старый, до фикса deep-link фичи), на
+ * лету переписываем в новый формат `/settings/journal-responsibles?fix=<code>&reason=<...>`.
+ *
+ * Безопасно — мы НЕ пишем обратно в БД, переписываем только в response.
+ * При следующем upsertNotification (новый bulk-assign-today run) merge
+ * обновит persistent state.
+ */
+function migrateLegacyNotificationItem(
+  kind: string,
+  it: NotificationItem,
+): NotificationItem {
+  if (kind !== "tasksflow.bulk_assign.skipped") return it;
+  if (!it.href) return it;
+  // Новый формат уже есть.
+  if (it.href.startsWith("/settings/journal-responsibles?fix=")) return it;
+  // Старый формат — `/journals/<code>` или `/journals/<code>/...`.
+  const m = it.href.match(/^\/journals\/([^/?#]+)/);
+  if (!m) return it;
+  const code = m[1];
+  const reason = it.hint ? it.hint.slice(0, 120) : "";
+  return {
+    ...it,
+    href: `/settings/journal-responsibles?fix=${encodeURIComponent(code)}&reason=${encodeURIComponent(reason)}`,
+  };
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,9 +55,9 @@ export async function GET() {
   });
   const visible = rows.map((n) => {
     const dismissed = asDismissedItemIds(n.dismissedItemIds);
-    const items = asNotificationItems(n.items).filter(
-      (it) => !dismissed.has(it.id)
-    );
+    const items = asNotificationItems(n.items)
+      .filter((it) => !dismissed.has(it.id))
+      .map((it) => migrateLegacyNotificationItem(n.kind, it));
     return { ...n, items };
   });
   // Если у нотификации не осталось «живых» подзадач — она автоматически

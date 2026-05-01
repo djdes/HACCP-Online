@@ -90,11 +90,26 @@ export async function upsertNotification(args: {
     });
     return;
   }
-  const merged: NotificationItem[] = [
-    ...asNotificationItems(existing.items),
-  ];
+  // Merge by id — если incoming item имеет тот же id, что и существующий,
+  // ОБНОВЛЯЕМ его (label/hint/href). Раньше тут был игнор «if (!merged.some)»
+  // — это значит: если notifications был создан со старым href, новый
+  // bulk-assign-today его не перезапишет. После фикса href в коде это
+  // означало что юзеры долго оставались с устаревшим линком.
+  const existingItems = asNotificationItems(existing.items);
+  const incomingById = new Map(args.items.map((it) => [it.id, it]));
+  const merged: NotificationItem[] = [];
+  const seenIds = new Set<string>();
+  for (const old of existingItems) {
+    const fresh = incomingById.get(old.id);
+    if (fresh) {
+      merged.push(fresh); // обновляем
+      seenIds.add(fresh.id);
+    } else {
+      merged.push(old); // оставляем старое, если incoming не упомянул
+    }
+  }
   for (const incoming of args.items) {
-    if (!merged.some((m) => m.id === incoming.id)) merged.push(incoming);
+    if (!seenIds.has(incoming.id)) merged.push(incoming);
   }
   await db.notification.update({
     where: { id: existing.id },
