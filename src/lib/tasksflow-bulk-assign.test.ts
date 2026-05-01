@@ -107,8 +107,9 @@ test("team fan-out journals create one row per linked employee", () => {
 
 test("team fan-out fallback: responsibles не подходят, но в смене есть linked", () => {
   // Адаптер вернул row с responsibleUserId=u-old (уволенный, не в
-  // онDuty). Раньше journal skip'ался с notification. Теперь fallback
+  // onDuty). Раньше journal skip'ался с notification. Теперь fallback
   // плодит synthetic rows на каждого linked candidate в скоупе.
+  // RowKey в новом формате: `fanout:<journalCode>:<uid>` (per-user dedup).
   const result = selectRowsForBulkAssign({
     journalCode: "cleaning",
     rows: [row("orig-row", "u-old")],
@@ -121,10 +122,9 @@ test("team fan-out fallback: responsibles не подходят, но в сме�
   assert.equal(result.rows.length, 2);
   const rowKeys = result.rows.map((r) => r.rowKey).sort();
   assert.deepEqual(rowKeys, [
-    "orig-row:fallback:u1",
-    "orig-row:fallback:u2",
+    "fanout:cleaning:u1",
+    "fanout:cleaning:u2",
   ]);
-  // В synthetic rows responsibleUserId подменён на candidate'а.
   for (const r of result.rows) {
     assert.ok(r.responsibleUserId === "u1" || r.responsibleUserId === "u2");
   }
@@ -147,7 +147,14 @@ test("per-employee journals create one row for each linked scheduled employee", 
   assert.equal(result.skipReason, undefined);
 });
 
-test("per-employee journals skip atomically when a scheduled employee is not linked", () => {
+test("per-employee journals send to linked employees, skip unlinked silently", () => {
+  // Раньше: атомарный skip всего журнала если хотя бы один сотрудник
+  // не привязан к TasksFlow («Не все дежурные ответственные привязаны»).
+  // Это плохо: менеджер видит «journal не отправлен», хотя на самом деле
+  // 9 из 10 сотрудников привязаны и могли получить задачу.
+  // Новое поведение: задача уходит ВСЕМ кто linked. Unlinked — silently
+  // пропускаются (отдельная нотификация может попросить менеджера их
+  // привязать).
   const result = selectRowsForBulkAssign({
     journalCode: "health_check",
     rows: [row("u1-row", "u1"), row("u2-row", "u2")],
@@ -156,9 +163,12 @@ test("per-employee journals skip atomically when a scheduled employee is not lin
     linkedUserIds: new Set(["u1"]),
   });
 
-  assert.deepEqual(result.rows, []);
+  assert.deepEqual(
+    result.rows.map((r) => r.rowKey),
+    ["u1-row"],
+  );
   assert.equal(result.alreadyLinked, 0);
-  assert.match(result.skipReason ?? "", /TasksFlow/);
+  assert.equal(result.skipReason, undefined);
 });
 
 test("bulk row selection reports an empty candidate scope as a hierarchy issue", () => {

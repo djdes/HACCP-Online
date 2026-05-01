@@ -181,6 +181,22 @@ export function selectRowsForBulkAssign(args: {
    *  это просто весь scope менеджера (без shift-фильтра). Влияет на
    *  текст ошибки и на fallback-поведение. */
   respectShifts?: boolean;
+  /**
+   * Phase fan-out v2: дополнительный pool кандидатов для fan-out
+   * журналов (team / per-employee / bonus). Когда adapter возвращает
+   * мало или вообще не возвращает rows с responsibleUserId, мы
+   * синтезируем rows на этих юзеров. Включает всех eligible сотрудников
+   * (active + scope + linked + position-filter если задан).
+   *
+   * Раньше fallback требовал `args.rows.length > 0` — этого было
+   * недостаточно для адаптеров вроде cleaning, которые возвращали [],
+   * если у пользователя нет config.responsiblePairs. Теперь fan-out
+   * запускается даже на пустом adapter.rows.
+   */
+  fanOutCandidateIds?: Set<string>;
+  /** Шаблон для synthetic rows когда adapter rows пуст. Если не задан —
+   *  используем generic template. */
+  fanOutLabel?: string;
 }): BulkRowSelection {
   const fanOutToAll = shouldFanOutToAll({
     code: args.journalCode,
@@ -200,51 +216,15 @@ export function selectRowsForBulkAssign(args: {
     args.linkedUserIds.has(row.responsibleUserId ?? "")
   );
 
-  if (linkedOnDutyRows.length === 0) {
-    // Fallback fan-out: для team-fan-out журналов «ответственные не
-    // подходят» — НЕ блок. Раньше менеджер видел 13 уведомлений «не
-    // отправлено», шёл настраивать смены / ответственных. Теперь:
-    // если журнал team-based (любой из смены может закрыть), берём
-    // первую adapter row как template и плодим виртуальные rows под
-    // каждого linked-сотрудника в скоупе.
-    //
-    // rowKey суффикс `:fallback:${uid}` гарантирует уникальность в
-    // tasksFlowTaskLink (per-user dedup). Минус: applyRemoteCompletion
-    // на стороне WeSetup получит unknown rowKey и не запишет ячейку
-    // в журнал автоматически — но менеджер сам потом откроет журнал
-    // и проставит. Лучше задача ушла, чем не ушла вообще.
-    if (fanOutToAll && args.rows.length > 0) {
-      const linkedCandidates: string[] = [];
-      for (const uid of args.onDutyUserIds) {
-        if (args.linkedUserIds.has(uid)) linkedCandidates.push(uid);
-      }
-      if (linkedCandidates.length > 0) {
-        const template = args.rows[0];
-        const syntheticRows: AdapterRow[] = [];
-        for (const uid of linkedCandidates) {
-          const fallbackKey = `${template.rowKey}:fallback:${uid}`;
-          if (args.takenRowKeys.has(fallbackKey)) continue;
-          syntheticRows.push({
-            ...template,
-            rowKey: fallbackKey,
-            responsibleUserId: uid,
-          });
-        }
-        if (syntheticRows.length > 0) {
-          return { rows: syntheticRows, alreadyLinked: 0 };
-        }
-        // Все candidates уже получили задачу ранее — это успех, не skip.
-        return { rows: [], alreadyLinked: linkedCandidates.length };
-      }
-    }
-    return {
-      rows: [],
-      alreadyLinked: 0,
-      skipReason: noEligibleRowReason({ ...args, respectShifts }),
-    };
-  }
-
+  // ═══ NON-FAN-OUT (single-task journals) ═══
   if (!fanOutToAll) {
+    if (linkedOnDutyRows.length === 0) {
+      return {
+        rows: [],
+        alreadyLinked: 0,
+        skipReason: noEligibleRowReason({ ...args, respectShifts }),
+      };
+    }
     const firstAvailable = linkedOnDutyRows.find(
       (row) => !args.takenRowKeys.has(row.rowKey)
     );
@@ -254,25 +234,85 @@ export function selectRowsForBulkAssign(args: {
     return { rows: [firstAvailable], alreadyLinked: 0 };
   }
 
-  const unlinkedOnDutyRows = onDutyRows.filter(
-    (row) => !args.linkedUserIds.has(row.responsibleUserId ?? "")
-  );
-  if (unlinkedOnDutyRows.length > 0) {
+  // ═══ FAN-OUT (per-employee / team / bonus journals) ═══
+  // Стратегия:
+  //   1. Собираем candidate user ids:
+  //      • из adapter.rows (responsibleUserId которые linked + onDuty)
+  //      • из fanOutCandidateIds (явный pool из endpoint)
+  //   2. Для каждого user'а строим row:
+  //      • если есть orig row для этого user'а — используем её
+  //      • иначе synthetic с уникальным rowKey
+  //   3. Skip только если ВООБЩЕ нет candidates.
+
+  const candidateIds = new Set<string>();
+  for (const row of linkedOnDutyRows) {
+    if (row.responsibleUserId) candidateIds.add(row.responsibleUserId);
+  }
+  // Auto-fallback: если caller не передал fanOutCandidateIds — берём
+  // intersection (onDutyUserIds ∩ linkedUserIds) как разумный default.
+  // Caller-API endpoint всегда передаёт явный pool, но тесты и старые
+  // call sites могут полагаться на этот fallback.
+  const explicitPool = args.fanOutCandidateIds ?? (() => {
+    const def = new Set<string>();
+    for (const uid of args.onDutyUserIds) {
+      if (args.linkedUserIds.has(uid)) def.add(uid);
+    }
+    return def;
+  })();
+  for (const uid of explicitPool) {
+    if (args.linkedUserIds.has(uid)) candidateIds.add(uid);
+  }
+
+  if (candidateIds.size === 0) {
     return {
       rows: [],
       alreadyLinked: 0,
-      skipReason: "Не все дежурные ответственные привязаны к TasksFlow",
+      skipReason: noEligibleRowReason({
+        ...args,
+        rows: args.rows,
+        respectShifts,
+      }),
     };
   }
 
-  const rowsToCreate = linkedOnDutyRows.filter(
-    (row) => !args.takenRowKeys.has(row.rowKey)
-  );
-  const alreadyLinked = linkedOnDutyRows.length - rowsToCreate.length;
-
-  if (rowsToCreate.length === 0) {
-    return { rows: [], alreadyLinked };
+  // Map: userId → orig adapter row (если есть)
+  const origByUid = new Map<string, AdapterRow>();
+  for (const row of args.rows) {
+    if (row.responsibleUserId && !origByUid.has(row.responsibleUserId)) {
+      origByUid.set(row.responsibleUserId, row);
+    }
   }
 
-  return { rows: rowsToCreate, alreadyLinked };
+  const rowsToCreate: AdapterRow[] = [];
+  let alreadyLinkedCount = 0;
+  for (const uid of candidateIds) {
+    const orig = origByUid.get(uid);
+    if (orig) {
+      // Реальная adapter row — используем как есть, она знает как
+      // applyRemoteCompletion отметит ячейку в WeSetup.
+      if (args.takenRowKeys.has(orig.rowKey)) {
+        alreadyLinkedCount += 1;
+      } else {
+        rowsToCreate.push(orig);
+      }
+      continue;
+    }
+    // Synthetic row — нет оригинала из adapter'а. RowKey уникален
+    // per-user чтобы tasksFlowTaskLink не дублировал.
+    const syntheticKey = `fanout:${args.journalCode}:${uid}`;
+    if (args.takenRowKeys.has(syntheticKey)) {
+      alreadyLinkedCount += 1;
+      continue;
+    }
+    rowsToCreate.push({
+      rowKey: syntheticKey,
+      label: args.fanOutLabel ?? args.journalCode,
+      responsibleUserId: uid,
+    });
+  }
+
+  if (rowsToCreate.length === 0) {
+    return { rows: [], alreadyLinked: alreadyLinkedCount };
+  }
+  return { rows: rowsToCreate, alreadyLinked: alreadyLinkedCount };
 }

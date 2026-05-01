@@ -807,6 +807,34 @@ export async function POST(request: Request) {
     // (адаптерные rows). per-batch требует webhook на каждое заполнение
     // партии, что вне scope bulk-assign-today.
 
+    // Phase fan-out v2: формируем pool кандидатов для fan-out.
+    //   1. Берём candidateUserIds (scope + смены) ∩ linkedUserIds (TF).
+    //   2. Если для шаблона задан allowedPositions — применяем фильтр
+    //      ПО ПОЗИЦИИ (отсеиваем не-разрешённые должности).
+    //   3. Если после фильтра пусто И журнал team-fanout (где fan-out
+    //      важнее точной позиции) — fallback без position-filter:
+    //      лучше чтобы задача ушла кому-то, чем не ушла никому.
+    const fanOutCandidateIds = (() => {
+      const linkedScope = new Set<string>();
+      for (const uid of candidateUserIds) {
+        if (linkedUserIds.has(uid)) linkedScope.add(uid);
+      }
+      if (!allowedPositionIdsForTpl || allowedPositionIdsForTpl.size === 0) {
+        return linkedScope;
+      }
+      const filtered = new Set<string>();
+      for (const uid of linkedScope) {
+        const pid = positionByUserId.get(uid);
+        if (pid && allowedPositionIdsForTpl.has(pid)) filtered.add(uid);
+      }
+      // Если позиционный фильтр оставил 0 — fallback на полный pool
+      // (только для team-fanout / per-employee журналов, иначе single-
+      // task логика отдаст skip-reason). Это спасает кейс «менеджер
+      // настроил access только на 1 должность которой больше нет в орге».
+      if (filtered.size === 0) return linkedScope;
+      return filtered;
+    })();
+
     const rowSelection = selectRowsForBulkAssign({
       journalCode: tpl.code,
       bonusAmountKopecks: tpl.bonusAmountKopecks,
@@ -818,6 +846,8 @@ export async function POST(request: Request) {
       // адекватны: при respectShifts=false (default) onDuty == scope,
       // а не реальный график.
       respectShifts: respectShifts && scheduledUserIds.size > 0,
+      fanOutCandidateIds,
+      fanOutLabel: tpl.name,
     });
     report.alreadyLinked += rowSelection.alreadyLinked;
     if (rowSelection.skipReason) {
