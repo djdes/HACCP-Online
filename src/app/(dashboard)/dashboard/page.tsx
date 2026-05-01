@@ -2,18 +2,25 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
+  AlertCircle,
   AlertTriangle,
   ArrowRight,
   BookOpen,
   CheckCircle2,
   ClipboardList,
+  Clock4,
   Coins,
   FileDown,
+  GraduationCap,
   Hand,
+  Inbox,
+  ListChecks,
   Medal,
   Package,
+  Send,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   ThermometerSun,
   TrendingDown,
   Trophy,
@@ -34,6 +41,7 @@ import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
 import { TimeWindowAlerts } from "@/components/dashboard/time-window-alerts";
 import { BulkAssignPreviewCard } from "@/components/dashboard/bulk-assign-preview-card";
+import { DashboardSection } from "@/components/dashboard/dashboard-section";
 import { StaffTrainingCard } from "@/components/dashboard/staff-training-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
@@ -414,34 +422,103 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <CloseDayCard unfilledCount={unfilledCount} />
+        {/* Раскрывающиеся секции — каждая помнит state в localStorage.
+            По умолчанию открыты только самые важные «Закрыть день» и
+            «Превью отправки задач»; остальные свёрнуты чтобы дашборд
+            не выглядел как лендинг. Юзер открывает то что ему нужно. */}
+        <div className="space-y-3">
+          <DashboardSection
+            storageKey="close-day"
+            title="Закрыть день"
+            subtitle="Незаполненные журналы за сегодня и быстрая отчётность."
+            icon={CheckCircle2}
+            defaultOpen={true}
+            badge={
+              unfilledCount > 0
+                ? { text: `${unfilledCount} осталось`, tone: "warn" }
+                : { text: "всё закрыто", tone: "ok" }
+            }
+          >
+            <CloseDayCard unfilledCount={unfilledCount} />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <TimeWindowAlerts organizationId={organizationId} />
-        </div>
+          <DashboardSection
+            storageKey="time-window-alerts"
+            title="Срочно нужно заполнить"
+            subtitle="Журналы с нарушением периодичности по СанПиН."
+            icon={Clock4}
+            defaultOpen={true}
+          >
+            <TimeWindowAlerts organizationId={organizationId} />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <BulkAssignPreviewCard />
-        </div>
+          <DashboardSection
+            storageKey="bulk-assign-preview"
+            title="Превью отправки задач TasksFlow"
+            subtitle="Что и кому уйдёт при отправке — без реальной отправки. Управление задачами в одном месте."
+            icon={Send}
+            defaultOpen={true}
+          >
+            <BulkAssignPreviewCard />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <AnomaliesCard />
-        </div>
+          <DashboardSection
+            storageKey="anomalies"
+            title="Аномалии и отклонения"
+            subtitle="Что выбивается из нормы — температура, бракераж, ЧП за последние дни."
+            icon={AlertCircle}
+            defaultOpen={false}
+          >
+            <AnomaliesCard />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <LiveClaimsCard />
-        </div>
+          <DashboardSection
+            storageKey="live-claims"
+            title="Лента заполнений в реальном времени"
+            subtitle="Кто что заполнил сегодня — обновляется каждые 15 секунд."
+            icon={Inbox}
+            defaultOpen={false}
+          >
+            <LiveClaimsCard />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <MedBooksExpiryCard />
-        </div>
+          <DashboardSection
+            storageKey="med-books-expiry"
+            title="Медицинские книжки"
+            subtitle="Сроки действия и истекающие в ближайшие 30 дней."
+            icon={Stethoscope}
+            defaultOpen={false}
+          >
+            <MedBooksExpiryCard />
+          </DashboardSection>
 
-        <div className="mt-5">
-          <StaffTrainingCard />
-        </div>
+          <DashboardSection
+            storageKey="staff-training"
+            title="Обучение и инструктажи"
+            subtitle="Кому пора пройти повторный инструктаж по СанПиН."
+            icon={GraduationCap}
+            defaultOpen={false}
+          >
+            <StaffTrainingCard />
+          </DashboardSection>
 
-        {complianceItems.length > 0 && (
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {complianceItems.length > 0 && (
+            <DashboardSection
+              storageKey="compliance-grid"
+              title="Compliance — все журналы за сегодня"
+              subtitle="Карточный обзор: зелёные заполнены, красные нет. Клик ведёт на журнал."
+              icon={ListChecks}
+              defaultOpen={false}
+              badge={
+                unfilledCount > 0
+                  ? {
+                      text: `${filledCount}/${complianceItems.length}`,
+                      tone: unfilledCount === complianceItems.length ? "danger" : "warn",
+                    }
+                  : { text: "все ✓", tone: "ok" }
+              }
+            >
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {complianceItems.map((item) => (
               <Link
                 key={item.id}
@@ -481,8 +558,10 @@ export default async function DashboardPage() {
                 />
               </Link>
             ))}
-          </div>
-        )}
+              </div>
+            </DashboardSection>
+          )}
+        </div>
       </section>
 
       {/* Weekly tails — «просрочено за последние 7 дней», shortcut to
