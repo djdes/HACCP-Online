@@ -2,26 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Calendar,
   CheckCircle2,
   ClipboardCheck,
   Copy,
+  HelpCircle,
   Loader2,
   Plus,
   RotateCcw,
+  Send,
+  Sparkles,
+  Trophy,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TaskFillField } from "@/components/task-fill/task-fill-field";
+import { TaskFillHelperModal } from "@/components/task-fill/task-fill-helper-modal";
 import type {
   TaskFormField,
   TaskFormSchema,
@@ -30,6 +28,7 @@ import type {
 type Props = {
   taskId: number;
   token: string;
+  journalCode: string;
   returnUrl: string | null;
   journalLabel: string;
   documentTitle: string;
@@ -68,6 +67,7 @@ type Props = {
 export function TaskFillClient({
   taskId,
   token,
+  journalCode,
   returnUrl,
   journalLabel,
   documentTitle,
@@ -83,6 +83,7 @@ export function TaskFillClient({
   todaysEntryCount,
   closeEvent,
 }: Props) {
+  const [helperOpen, setHelperOpen] = useState(false);
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
     // HH:MM текущего времени — подставим в time-поля без defaultValue.
@@ -427,40 +428,65 @@ export function TaskFillClient({
   }
 
   return (
-    <main className="min-h-screen bg-[#fafbff]">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-[#0b1024] text-white">
+    <main className="min-h-screen bg-[#f5f6ff]">
+      {/* Hero — TF-style насыщенный indigo→violet с blur-орбами */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#3d4efc] via-[#5566f6] to-[#7a5cff] text-white">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
+          <div className="absolute -left-24 -top-32 size-[480px] rounded-full bg-[#a78bfa]/40 blur-[140px]" />
+          <div className="absolute -bottom-48 -right-32 size-[520px] rounded-full bg-[#3d4efc]/55 blur-[160px]" />
+          <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-white/10 blur-[120px]" />
         </div>
-        <div className="relative z-10 mx-auto max-w-xl px-5 py-10">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ClipboardCheck className="size-5" />
-            </div>
-            <div>
-              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/70">
+        <div className="relative z-10 mx-auto max-w-xl px-5 pb-12 pt-8 sm:px-6 sm:pb-14 sm:pt-9">
+          {/* Top bar: helper button right */}
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setHelperOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-[13px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/25"
+            >
+              <HelpCircle className="size-4" />
+              Как заполнять
+            </button>
+          </div>
+
+          {/* Title */}
+          <div className="mt-4 flex items-start gap-4">
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur-sm sm:size-16">
+              <ClipboardCheck className="size-7 sm:size-8" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 sm:text-[12px]">
                 {journalLabel}
               </div>
-              <h1 className="mt-1 text-[22px] font-semibold leading-tight tracking-[-0.02em]">
+              <h1 className="mt-1.5 text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[28px]">
                 {documentTitle}
               </h1>
               {employeeName ? (
-                <p className="mt-2 text-[14px] text-white/75">
-                  {employeeName}
-                  {employeePositionTitle
-                    ? ` · ${employeePositionTitle}`
-                    : ""}
-                </p>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[13px] backdrop-blur-sm sm:text-[13.5px]">
+                  <span className="size-1.5 rounded-full bg-emerald-300" />
+                  <span className="font-medium">{employeeName}</span>
+                  {employeePositionTitle ? (
+                    <span className="text-white/70">
+                      · {employeePositionTitle}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </div>
         </div>
       </section>
 
+      {/* Helper modal */}
+      <TaskFillHelperModal
+        open={helperOpen}
+        onClose={() => setHelperOpen(false)}
+        journalCode={journalCode}
+        journalLabel={journalLabel}
+      />
+
       {/* Body */}
-      <section className="mx-auto max-w-xl px-5 py-8">
+      <section className="mx-auto -mt-6 max-w-xl px-3 pb-12 sm:px-5">
         {done ? (
           <SuccessCard
             returnUrl={returnUrl}
@@ -489,20 +515,25 @@ export function TaskFillClient({
             locked={editLocked}
           />
         ) : (
-          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_20px_50px_-20px_rgba(11,16,36,0.18)] sm:p-6">
             {isShared ? (
-              <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-snug text-[#3c4053]">
-                <div>
-                  <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                    Общая задача смены
+              <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white p-4 text-[13px] leading-snug text-[#3c4053]">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5566f6]/15 text-[#3848c7]">
+                    <Calendar className="size-5" />
+                  </span>
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                      Общая задача смены
+                    </div>
+                    <div className="mt-1 text-[14.5px] font-semibold text-[#0b1024]">
+                      Записей сегодня: <span className="text-[#5566f6]">{entryCount}</span>
+                    </div>
+                    <p className="mt-0.5 text-[12.5px] text-[#6f7282]">
+                      Можно добавлять записи несколько раз — задача
+                      остаётся открытой до конца смены.
+                    </p>
                   </div>
-                  <div className="mt-1 text-[14px] text-[#0b1024]">
-                    Записей сегодня: <strong>{entryCount}</strong>
-                  </div>
-                  <p className="mt-1 text-[12px] text-[#6f7282]">
-                    Можно добавлять записи несколько раз — задача
-                    остаётся открытой до конца смены.
-                  </p>
                 </div>
                 {allowNoEvents ? (
                   <button
@@ -516,58 +547,64 @@ export function TaskFillClient({
               </div>
             ) : null}
             {editMode ? (
-              <div className="mb-5 rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-snug text-[#3c4053]">
-                Вы редактируете уже сохранённую запись журнала. После
-                подтверждения старые значения будут перезаписаны.
+              <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-[13.5px] leading-snug text-amber-900">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-200 text-amber-800">
+                  <RotateCcw className="size-4" />
+                </span>
+                <span>
+                  Вы редактируете уже сохранённую запись журнала. После
+                  подтверждения старые значения будут перезаписаны.
+                </span>
               </div>
             ) : null}
             {form?.intro ? (
-              <p className="mb-5 rounded-2xl bg-[#f5f6ff] p-4 text-[14px] leading-relaxed text-[#3c4053]">
-                {form.intro}
-              </p>
+              <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[#f5f6ff] p-4 text-[14px] leading-relaxed text-[#3c4053]">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/15 text-[#5566f6]">
+                  <Sparkles className="size-4" />
+                </span>
+                <p>{form.intro}</p>
+              </div>
             ) : null}
 
-            {/* Quick-fill кнопки — рядом друг с другом */}
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-              {/* «Заполнить как вчера» — показывается только если у этого
-                  сотрудника действительно есть вчерашняя entry с
-                  совпадающими ключами полей. */}
-              {hasYesterdayData && form && form.fields.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={fillFromYesterday}
-                  disabled={yesterdayBusy || submitting}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
-                >
-                  {yesterdayBusy ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  Заполнить как вчера
-                </button>
-              ) : null}
+            {/* Quick-fill кнопки — крупные карточки */}
+            {(hasYesterdayData && form && form.fields.length > 0) ||
+            allOkApplicable ? (
+              <div className="mb-5 grid gap-2 sm:grid-cols-2">
+                {hasYesterdayData && form && form.fields.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={fillFromYesterday}
+                    disabled={yesterdayBusy || submitting}
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] font-medium text-[#3848c7] transition-all hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+                  >
+                    {yesterdayBusy ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                    Заполнить как вчера
+                  </button>
+                ) : null}
 
-              {/* «Всё в норме» — для обходов где все измерения штатные.
-                  Подставляет midpoint(min,max) для number-полей и true
-                  для boolean. НЕ сабмитит — даёт юзеру тапнуть submit. */}
-              {allOkApplicable ? (
-                <button
-                  type="button"
-                  onClick={fillAllOk}
-                  disabled={submitting}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-2.5 text-[13px] font-medium text-[#116b2a] transition-colors hover:border-[#22c55e]/40 hover:bg-[#ecfdf5] disabled:opacity-60"
-                  title="Подставит средние значения нормы для всех замеров и true для галочек"
-                >
-                  ✓ Всё в норме
-                </button>
-              ) : null}
-            </div>
+                {allOkApplicable ? (
+                  <button
+                    type="button"
+                    onClick={fillAllOk}
+                    disabled={submitting}
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-4 text-[13.5px] font-semibold text-emerald-800 shadow-[0_8px_20px_-12px_rgba(34,197,94,0.4)] transition-all hover:border-emerald-300 hover:from-emerald-100 disabled:opacity-60"
+                    title="Подставит средние значения нормы для всех замеров и true для галочек"
+                  >
+                    <Trophy className="size-4 text-emerald-600" />
+                    Всё в норме
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             {form && form.fields.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {form.fields.map((field) => (
-                  <FieldInput
+                  <TaskFillField
                     key={field.key}
                     field={field}
                     value={values[field.key]}
@@ -591,8 +628,13 @@ export function TaskFillClient({
               type="button"
               onClick={() => setConfirmOpen(true)}
               disabled={!readyToSubmit || submitting}
-              className="mt-6 h-12 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0] shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]"
+              className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-[#3d4efc] to-[#7a5cff] px-5 text-[15.5px] font-semibold text-white shadow-[0_14px_36px_-12px_rgba(85,102,246,0.65)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:from-[#dcdfed] disabled:to-[#dcdfed] disabled:text-[#9b9fb3] disabled:shadow-none"
             >
+              {submitting ? (
+                <Loader2 className="size-5 animate-spin" />
+              ) : (
+                <Send className="size-5" />
+              )}
               {form?.submitLabel ?? "Выполнено"}
             </Button>
             {returnUrl ? (
@@ -1047,140 +1089,6 @@ function ConfirmSheet({
         </div>
       </div>
     </div>
-  );
-}
-
-function FieldInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: TaskFormField;
-  value: unknown;
-  onChange: (v: unknown) => void;
-}) {
-  switch (field.type) {
-    case "text":
-      return (
-        <div>
-          <Label label={field.label} required={field.required} />
-          {field.multiline ? (
-            <Textarea
-              value={(value as string) ?? ""}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={field.placeholder}
-              maxLength={field.maxLength}
-              rows={3}
-              className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-            />
-          ) : (
-            <Input
-              value={(value as string) ?? ""}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={field.placeholder}
-              maxLength={field.maxLength}
-              className="h-12 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
-            />
-          )}
-        </div>
-      );
-    case "number":
-      return (
-        <div>
-          <Label
-            label={field.label}
-            suffix={field.unit ? `(${field.unit})` : undefined}
-            required={field.required}
-          />
-          <Input
-            type="number"
-            inputMode="decimal"
-            value={value === null || value === undefined ? "" : String(value)}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") return onChange(null);
-              // RU-клавиатуры пишут запятую — Number("20,1") = NaN.
-              // Заменяем перед парсом.
-              const normalized = raw.replace(",", ".");
-              const parsed = Number(normalized);
-              onChange(Number.isFinite(parsed) ? parsed : raw);
-            }}
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            className="h-12 rounded-2xl border-[#dcdfed] px-4 text-[15px] font-semibold tabular-nums"
-          />
-        </div>
-      );
-    case "boolean":
-      return (
-        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]">
-          <Checkbox
-            checked={Boolean(value)}
-            onCheckedChange={(v) => onChange(Boolean(v))}
-            className="size-5"
-          />
-          <span className="text-[15px] text-[#0b1024]">{field.label}</span>
-        </label>
-      );
-    case "select":
-      return (
-        <div>
-          <Label label={field.label} required={field.required} />
-          <Select
-            value={(value as string) ?? ""}
-            onValueChange={(v) => onChange(v)}
-          >
-            <SelectTrigger className="h-12 rounded-2xl border-[#dcdfed] px-4 text-[15px]">
-              <SelectValue placeholder="Выберите значение" />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.code ? (
-                    <span className="mr-2 inline-flex min-w-[36px] justify-center rounded-md bg-[#eef1ff] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#3848c7]">
-                      {opt.code}
-                    </span>
-                  ) : null}
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      );
-    case "date":
-      return (
-        <div>
-          <Label label={field.label} required={field.required} />
-          <Input
-            type="date"
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-            className="h-12 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
-          />
-        </div>
-      );
-  }
-}
-
-function Label({
-  label,
-  suffix,
-  required,
-}: {
-  label: string;
-  suffix?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="mb-2 block text-[13px] font-medium text-[#3c4053]">
-      {label}
-      {suffix ? (
-        <span className="ml-1 text-[#9b9fb3] font-normal">{suffix}</span>
-      ) : null}
-      {required ? <span className="ml-0.5 text-[#d2453d]">*</span> : null}
-    </label>
   );
 }
 

@@ -180,6 +180,7 @@ export default async function TaskFillPage({
     <TaskFillClient
       taskId={taskId}
       token={token}
+      journalCode={link.journalCode}
       returnUrl={returnUrl ?? null}
       journalLabel={template?.name ?? link.journalCode}
       documentTitle={doc.title}
