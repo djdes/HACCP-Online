@@ -1,15 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import {
+  ChevronDown,
+  Sparkles,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 const STORAGE_KEY = "wesetup.last-seen-build-sha";
 
+/**
+ * Заметка может быть простой строкой (legacy) или категорией с
+ * вложенными items'ами. В UI:
+ *   • строки рендерятся плоским списком с фиолетовой точкой
+ *   • категории — accordion с раскрытием одной за раз
+ */
+export type WhatsNewNote =
+  | string
+  | {
+      category: string;
+      icon?: LucideIcon;
+      items: string[];
+    };
+
 type Props = {
   buildSha: string;
-  /** Заметки на текущую версию. Меняются вместе с buildSha. */
-  notes: string[];
+  notes: WhatsNewNote[];
 };
+
+function isCategoryNote(
+  n: WhatsNewNote,
+): n is { category: string; icon?: LucideIcon; items: string[] } {
+  return typeof n === "object" && n !== null && "category" in n;
+}
 
 /**
  * При первом заходе после новой сборки показываем modal со списком
@@ -20,9 +44,16 @@ type Props = {
  *   2. На клиенте useEffect читает localStorage[STORAGE_KEY].
  *   3. Если != currentSha → показываем modal.
  *   4. Закрытие → пишем currentSha в localStorage.
+ *
+ * Размер: карточка max-w-[480px], общая высота max-h-[90vh] (даже на
+ * мобилке helmet+address bar остаются видимы), внутренняя scroll-зона
+ * со списком категорий — overflow-y-auto. На больших экранах
+ * accordion'ы помещаются без скролла.
  */
 export function WhatsNewModal({ buildSha, notes }: Props) {
   const [open, setOpen] = useState(false);
+  // По умолчанию открыта первая категория (если есть). Иначе ничего.
+  const [openCategoryIdx, setOpenCategoryIdx] = useState<number | null>(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -42,6 +73,22 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
     }
   }, [buildSha]);
 
+  // ESC и body scroll lock пока открыта.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") dismiss();
+    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   function dismiss() {
     setOpen(false);
     try {
@@ -53,55 +100,150 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
 
   if (!open || notes.length === 0) return null;
 
+  // Разделяем notes на категории и плоские строки. Все строки рендерим
+  // одной общей секцией «Прочее» в конце (если они есть).
+  const categories = notes.filter(isCategoryNote);
+  const looseStrings = notes.filter((n): n is string => typeof n === "string");
+
+  const totalCategories = categories.length + (looseStrings.length > 0 ? 1 : 0);
+
   return (
     <div
       className="fixed inset-0 z-[55] flex items-end justify-center bg-black/40 p-3 sm:items-center"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="whats-new-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) dismiss();
+      }}
     >
-      <div className="w-full max-w-md rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]">
-        <div className="flex items-start justify-between gap-3">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
-            <Sparkles className="size-6" />
-          </span>
+      <div className="flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]">
+        {/* Header — fixed */}
+        <div className="relative shrink-0 border-b border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white p-5">
+          <div className="pointer-events-none absolute -right-12 -top-12 size-[180px] rounded-full bg-[#5566f6]/10 blur-3xl" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
+                <Sparkles className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <h2
+                  id="whats-new-title"
+                  className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]"
+                >
+                  Что нового в WeSetup
+                </h2>
+                <p className="mt-0.5 text-[12px] text-[#6f7282]">
+                  Сборка{" "}
+                  <span className="font-mono text-[#3848c7]">{buildSha}</span>
+                  {" · "}
+                  {new Date().toLocaleDateString("ru-RU", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={dismiss}
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#9b9fb3] hover:bg-white/60 hover:text-[#0b1024]"
+              aria-label="Закрыть"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body — scroll */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-2">
+            {categories.map((cat, idx) => {
+              const isOpen = openCategoryIdx === idx;
+              const Icon = cat.icon ?? Sparkles;
+              return (
+                <div
+                  key={cat.category}
+                  className={`overflow-hidden rounded-2xl border transition-colors ${
+                    isOpen
+                      ? "border-[#5566f6]/30 bg-[#f5f6ff]/40"
+                      : "border-[#ececf4] bg-white"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenCategoryIdx(isOpen ? null : idx)
+                    }
+                    className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-[#fafbff]"
+                  >
+                    <span
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                        isOpen
+                          ? "bg-[#5566f6] text-white"
+                          : "bg-[#eef1ff] text-[#3848c7]"
+                      }`}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="flex-1 text-[13px] font-semibold tracking-[-0.005em] text-[#0b1024]">
+                      {cat.category}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="rounded-full bg-[#eef1ff] px-1.5 py-0.5 text-[10px] tabular-nums font-semibold text-[#3848c7]">
+                        {cat.items.length}
+                      </span>
+                      <ChevronDown
+                        className={`size-4 text-[#9b9fb3] transition-transform ${
+                          isOpen ? "rotate-180 text-[#5566f6]" : ""
+                        }`}
+                      />
+                    </span>
+                  </button>
+                  {isOpen ? (
+                    <ul className="space-y-1.5 px-3.5 pb-3">
+                      {cat.items.map((item, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-white px-3 py-2 text-[12.5px] leading-[1.5] text-[#3c4053]"
+                        >
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            {looseStrings.length > 0 ? (
+              <ul className="space-y-1.5 pt-1">
+                {looseStrings.map((note, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12.5px] leading-[1.5] text-[#3c4053]"
+                  >
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Footer — fixed */}
+        <div className="shrink-0 border-t border-[#ececf4] bg-white p-4">
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-full p-1.5 text-[#9b9fb3] hover:bg-[#fafbff] hover:text-[#0b1024]"
-            aria-label="Закрыть"
+            className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
           >
-            <X className="size-4" />
+            Спасибо, понял · {totalCategories > 1 ? `${totalCategories} раздела` : "ок"}
           </button>
         </div>
-        <h2 className="mt-4 text-[20px] font-semibold tracking-[-0.02em] text-[#0b1024]">
-          Что нового в WeSetup
-        </h2>
-        <p className="mt-1 text-[13px] text-[#6f7282]">
-          Сборка <span className="font-mono text-[#3848c7]">{buildSha}</span> ·{" "}
-          {new Date().toLocaleDateString("ru-RU", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-        </p>
-        <ul className="mt-5 space-y-2">
-          {notes.map((note, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[13px] text-[#3c4053]"
-            >
-              <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-        <button
-          type="button"
-          onClick={dismiss}
-          className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
-        >
-          Спасибо, понял
-        </button>
       </div>
     </div>
   );
