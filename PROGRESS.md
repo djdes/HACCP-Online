@@ -174,3 +174,20 @@ one-click setup, явный demote NOT-admin юзеров в TF-sync. Подро
   `/mini/_components/geo-reminder.tsx`. Geo-напоминания в Mini App
   были мёртвой фичей с момента R4 (security headers). Меняем на
   `geolocation=(self)`. (commit e5e6f683)
+- [x] **R35-hotfix**: edge runtime для /og-default требовал wasm-bundle
+  для resvg который не залит в deploy.tar (ENOENT на @vercel/og resvg).
+  Переключил на nodejs runtime — нативный @resvg/resvg-js. (commit b5fb0713)
+- [x] **R39**: `X-Frame-Options: DENY` ломал Telegram Mini App в Web/Desktop.
+  Telegram Web (web.telegram.org) загружает Mini App в iframe, и DENY его
+  блокировал. Mini App был мёртв на десктопе с момента R4 (Mobile
+  WebView без iframe-restriction'а работал). Для /mini/* отдаём
+  CSP `frame-ancestors 'self' https://web.telegram.org https://*.telegram.org`
+  вместо X-Frame-Options. (commit 3bbbcfa5)
+- [x] **R40**: **КРИТИЧНЫЙ DEPLOY-BUG** — каждый деплой создавал
+  ~30-60 сек window когда **все JS chunks 500-или**. Старый PM2 процесс
+  обслуживал старый HTML с старыми chunk-именами, но `rm -rf .next`
+  удалял chunks с диска до того как PM2 успевал перезапуститься. Поймал
+  через `curl -sI /_next/static/chunks/*.js` во время очередного деплоя.
+  Решение в deploy.yml: бэкап `.next/static` перед rm, `cp -rn` старых
+  chunks обратно после build (`--no-clobber` → новые имеют приоритет,
+  hash-имена → coexist). (commit be226e78)
