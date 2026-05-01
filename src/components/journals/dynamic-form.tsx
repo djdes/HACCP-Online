@@ -78,6 +78,18 @@ interface DynamicFormProps {
    * `/mini/journals` so the redirect stays inside the Mini App shell.
    */
   journalsBasePath?: string;
+  /**
+   * Phase R: distribution=rolling. Если true — рендерим две кнопки
+   * сохранения: «Сохранить и продолжить» (создаёт следующую TF-задачу
+   * и сбрасывает форму) и «Готово на сегодня» (закрывает loop и
+   * редиректит как обычно). `dailyCountInitial` — сколько rolling-
+   * задач этот сотрудник уже создал за сегодня (для счётчика).
+   */
+  rollingMode?: boolean;
+  dailyCountInitial?: number;
+  rollingDailyCap?: number;
+  rollingContinueLabel?: string;
+  rollingDoneLabel?: string;
 }
 
 export function DynamicForm({
@@ -89,6 +101,11 @@ export function DynamicForm({
   employees = [],
   products = [],
   journalsBasePath = "/journals",
+  rollingMode = false,
+  dailyCountInitial = 0,
+  rollingDailyCap = 50,
+  rollingContinueLabel = "Сохранить и продолжить",
+  rollingDoneLabel = "Готово на сегодня",
 }: DynamicFormProps) {
   void _templateName;
   const router = useRouter();
@@ -97,7 +114,12 @@ export function DynamicForm({
   const [equipmentId, setEquipmentId] = useState<string>("");
   const [catalogProductId, setCatalogProductId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingMode, setSubmittingMode] = useState<
+    "default" | "rolling-continue" | "rolling-done"
+  >("default");
   const [error, setError] = useState<string | null>(null);
+  const [dailyCount, setDailyCount] = useState<number>(dailyCountInitial);
+  const [rollingNotice, setRollingNotice] = useState<string | null>(null);
   const [isFetchingSensor, setIsFetchingSensor] = useState(false);
   const [sensorInfo, setSensorInfo] = useState<{
     temperature: number;
@@ -240,16 +262,19 @@ export function DynamicForm({
     updateMultipleFields(updates);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitForm(continueRolling: boolean | null) {
     setIsSubmitting(true);
+    setSubmittingMode(
+      continueRolling === null
+        ? "default"
+        : continueRolling
+          ? "rolling-continue"
+          : "rolling-done",
+    );
     setError(null);
+    setRollingNotice(null);
 
     try {
-      // retryFetch: up to 3 attempts with exponential backoff on network
-      // errors only (HTTP 4xx/5xx still bubble up untouched). Shields TG
-      // Mini App users from transient mobile-radio drops without masking
-      // real server issues.
       const response = await retryFetch("/api/journals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,6 +283,10 @@ export function DynamicForm({
           areaId: areaId || undefined,
           equipmentId: equipmentId || undefined,
           data: formData,
+          // Rolling-флаг — если null, body.rolling вообще не уйдёт.
+          ...(continueRolling !== null
+            ? { rolling: { continue: continueRolling } }
+            : {}),
         }),
       });
 
@@ -266,13 +295,69 @@ export function DynamicForm({
         throw new Error(result.error || "Ошибка при сохранении");
       }
 
+      const result = await response.json().catch(() => ({}));
+      const rollingMeta = result?.rolling as
+        | {
+            enabled: boolean;
+            continued: boolean;
+            capped?: boolean;
+            dailyCount?: number;
+            remaining?: number;
+            reason?: string;
+          }
+        | undefined;
+
+      if (
+        rollingMode &&
+        continueRolling === true &&
+        rollingMeta?.continued
+      ) {
+        // Loop продолжается — НЕ редиректим, обнуляем форму, увеличиваем
+        // счётчик. Сотрудник видит «За сегодня заполнено: N» и заполняет
+        // следующую запись.
+        const newCount =
+          rollingMeta.dailyCount ?? dailyCount + 1;
+        setDailyCount(newCount);
+        setFormData({});
+        setError(null);
+        setRollingNotice(
+          rollingMeta.remaining !== undefined && rollingMeta.remaining <= 5
+            ? `Заполнено ${newCount}, осталось до лимита ${rollingMeta.remaining}.`
+            : `Заполнено ${newCount}. Готов к следующей записи.`,
+        );
+        // Скроллим вверх чтобы пользователь увидел чистую форму.
+        if (typeof window !== "undefined") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
+
+      if (rollingMode && continueRolling === true && rollingMeta?.capped) {
+        setRollingNotice(
+          `Достигнут лимит ${rollingDailyCap} записей в день. Запись сохранена, но новая задача не создана.`,
+        );
+        // Редиректим как «Готово на сегодня».
+        router.push(`${journalsBasePath}/${templateCode}`);
+        router.refresh();
+        return;
+      }
+
+      // Не-rolling save или «Готово на сегодня» — обычный редирект.
       router.push(`${journalsBasePath}/${templateCode}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при сохранении");
     } finally {
       setIsSubmitting(false);
+      setSubmittingMode("default");
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    // Default form submit (Enter в input'е) — для rolling воспринимается
+    // как «продолжить», для обычного — как save+redirect.
+    await submitForm(rollingMode ? true : null);
   }
 
   const visibleFields = fields.filter(
@@ -538,20 +623,85 @@ export function DynamicForm({
         </div>
       ))}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row">
-        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-          {isSubmitting ? "Сохранение..." : "Сохранить запись"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(`${journalsBasePath}/${templateCode}`)}
-          disabled={isSubmitting}
-          className="w-full sm:w-auto"
-        >
-          Отмена
-        </Button>
-      </div>
+      {rollingMode ? (
+        <div className="rounded-2xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#3848c7]">
+                Цикл «пока не нажмёте Готово»
+              </div>
+              <div className="mt-1 text-[13px] leading-snug text-[#3c4053]">
+                Заполните запись и жмите{" "}
+                <strong className="text-[#3848c7]">«{rollingContinueLabel}»</strong>{" "}
+                — система сразу создаст вам следующую такую же задачу.
+                Когда закончите смену — нажмите{" "}
+                <strong className="text-[#0b1024]">«{rollingDoneLabel}»</strong>.
+              </div>
+              {rollingNotice ? (
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[12px] font-medium text-emerald-700">
+                  ✓ {rollingNotice}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-[12px] font-medium text-[#3848c7] ring-1 ring-[#5566f6]/15">
+              За сегодня:{" "}
+              <span className="tabular-nums text-[16px] font-semibold">
+                {dailyCount}
+              </span>
+              <span className="text-[11px] text-[#9b9fb3]">
+                / {rollingDailyCap}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`${journalsBasePath}/${templateCode}`)}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void submitForm(false)}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {submittingMode === "rolling-done"
+                ? "Сохранение..."
+                : rollingDoneLabel}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void submitForm(true)}
+              disabled={isSubmitting}
+              className="w-full sm:flex-1"
+            >
+              {submittingMode === "rolling-continue"
+                ? "Сохранение..."
+                : rollingContinueLabel}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+            {isSubmitting ? "Сохранение..." : "Сохранить запись"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push(`${journalsBasePath}/${templateCode}`)}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
+            Отмена
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

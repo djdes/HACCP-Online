@@ -10,6 +10,9 @@ import { sendTemperatureAlertEmail, sendDeviationAlertEmail } from "@/lib/email"
 import { journalEntrySchema } from "@/lib/validators";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { spawnRollingTask } from "@/lib/journal-rolling";
+import { getJournalSpec } from "@/lib/journal-specs";
+import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -427,7 +430,77 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ entry }, { status: 201 });
+    // Phase R: Rolling distribution. Если у журнала режим rolling и
+    // фронт прислал rolling.continue=true, после save сразу создаём
+    // следующую TF-задачу того же типа на этого сотрудника. Loop
+    // прерывается когда юзер нажимает «Готово на сегодня» (фронт
+    // присылает rolling.continue=false и не делает повторный POST).
+    let rolling: {
+      enabled: boolean;
+      continued: boolean;
+      capped?: boolean;
+      dailyCount?: number;
+      remaining?: number;
+      nextTasksflowTaskId?: number;
+      reason?: string;
+    } | undefined;
+    try {
+      const rollingFlagRaw = (body as Record<string, unknown>)?.rolling;
+      const rollingFlag =
+        rollingFlagRaw && typeof rollingFlagRaw === "object"
+          ? (rollingFlagRaw as { continue?: boolean })
+          : null;
+
+      const org = await db.organization.findUnique({
+        where: { id: organizationId },
+        select: { journalTaskModesJson: true },
+      });
+      const mode = getEffectiveTaskMode(
+        templateCode,
+        org?.journalTaskModesJson,
+      );
+      const isRolling = mode.distribution === "rolling";
+      const spec = getJournalSpec(templateCode);
+
+      if (isRolling) {
+        if (rollingFlag?.continue) {
+          const result = await spawnRollingTask({
+            organizationId,
+            journalCode: templateCode,
+            filledByUserId: session.user.id,
+            title: `${template.name} — следующая запись`,
+            description: spec.shortDescription,
+            category: "Журналы",
+          });
+          if (result.ok) {
+            rolling = {
+              enabled: true,
+              continued: true,
+              dailyCount: result.dailyCount,
+              remaining: result.remaining,
+              nextTasksflowTaskId: result.tasksflowTaskId,
+            };
+          } else {
+            rolling = {
+              enabled: true,
+              continued: false,
+              capped: result.reason === "capped",
+              dailyCount: result.dailyCount,
+              reason: result.reason,
+            };
+          }
+        } else {
+          // continue=false → loop закрыт. Просто возвращаем флаг
+          // что журнал в rolling-режиме.
+          rolling = { enabled: true, continued: false };
+        }
+      }
+    } catch (err) {
+      // Best-effort: если rolling упал — не валим основной POST.
+      console.warn("[journals POST] rolling spawn failed", err);
+    }
+
+    return NextResponse.json({ entry, rolling }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

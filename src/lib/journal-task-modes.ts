@@ -66,6 +66,7 @@ export const TASK_DISTRIBUTION_MODES = [
   "by-rota",
   "one-summary",
   "one-per-filler",
+  "rolling",
 ] as const;
 
 export type TaskDistributionMode = (typeof TASK_DISTRIBUTION_MODES)[number];
@@ -96,6 +97,7 @@ export const DISTRIBUTION_LABELS: Record<TaskDistributionMode, string> = {
   "by-rota": "По графику дежурств",
   "one-summary": "Одна сводная задача",
   "one-per-filler": "По задаче каждому ответственному",
+  rolling: "Цикл «пока не нажмёт Готово»",
 };
 
 export const DISTRIBUTION_HINTS: Record<TaskDistributionMode, string> = {
@@ -113,6 +115,8 @@ export const DISTRIBUTION_HINTS: Record<TaskDistributionMode, string> = {
     "Одна задача-сводка primary-исполнителю. Самый простой режим, без размножения.",
   "one-per-filler":
     "Каждый назначенный исполнитель получает свою копию задачи (для комиссий).",
+  rolling:
+    "Сотрудник заполняет журнал столько раз, сколько нужно за смену. После каждой записи приходит новая задача автоматически — пока он не нажмёт «Готово на сегодня». Для бракеража готовых блюд (5-50 раз/смену), интенсивного охлаждения партий, проверки фритюра.",
 };
 
 export const VERIFICATION_LABELS: Record<TaskVerificationMode, string> = {
@@ -168,13 +172,25 @@ export function getDefaultTaskMode(journalCode: string): TaskMode {
       siblingVisibility: false,
     };
   }
+  // Rolling по умолчанию для журналов где количество заполнений за
+  // смену заранее неизвестно и зависит от количества готовых блюд /
+  // партий охлаждения / включений фритюра. См. journal-specs.ts.
   if (
     journalCode === "finished_product" ||
-    journalCode === "product_writeoff"
+    journalCode === "intensive_cooling" ||
+    journalCode === "fryer_oil" ||
+    journalCode === "disinfectant_usage"
   ) {
     return {
+      distribution: "rolling",
+      verification: "per-cell",
+      siblingVisibility: false,
+    };
+  }
+  if (journalCode === "product_writeoff") {
+    return {
       distribution: "one-per-filler",
-      verification: "per-cell", // комиссия — каждое блюдо проверяется
+      verification: "per-cell",
       siblingVisibility: false,
     };
   }

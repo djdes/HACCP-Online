@@ -10,6 +10,9 @@ import {
   aclActorFromSession,
   canWriteJournal,
 } from "@/lib/journal-acl";
+import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
+import { getJournalSpec } from "@/lib/journal-specs";
+import { countRollingToday } from "@/lib/journal-rolling";
 
 /**
  * Mini App "new journal entry" screen.
@@ -115,6 +118,26 @@ export default async function MiniNewJournalEntryPage({
     showIf?: { field: string; equals: unknown };
   }>;
 
+  // Phase R: rolling в Mini App работает так же — две кнопки save в
+  // форме, счётчик «За сегодня заполнено».
+  const orgForMode = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { journalTaskModesJson: true },
+  });
+  const taskMode = getEffectiveTaskMode(
+    code,
+    orgForMode?.journalTaskModesJson,
+  );
+  const rollingMode = taskMode.distribution === "rolling";
+  const spec = getJournalSpec(code);
+  const dailyCountInitial = rollingMode
+    ? await countRollingToday({
+        organizationId: getActiveOrgId(session),
+        journalCode: code,
+        userId: session.user.id,
+      })
+    : 0;
+
   return (
     <div className="flex flex-1 flex-col gap-4 pb-8">
       <Link
@@ -140,6 +163,13 @@ export default async function MiniNewJournalEntryPage({
           employees={employees}
           products={products}
           journalsBasePath="/mini/journals"
+          rollingMode={rollingMode}
+          dailyCountInitial={dailyCountInitial}
+          rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+          rollingContinueLabel={
+            spec.rolling?.continueLabel ?? "Сохранить и продолжить"
+          }
+          rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
         />
       </div>
     </div>

@@ -7,6 +7,9 @@ import { DynamicForm } from "@/components/journals/dynamic-form";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
+import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
+import { getJournalSpec } from "@/lib/journal-specs";
+import { countRollingToday } from "@/lib/journal-rolling";
 
 export default async function NewJournalEntryPage({
   params,
@@ -115,6 +118,26 @@ export default async function NewJournalEntryPage({
     showIf?: { field: string; equals: unknown };
   }>;
 
+  // Phase R: rolling-режим. Если у журнала distribution=rolling —
+  // включаем ему UI с двумя кнопками + счётчик.
+  const orgForMode = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { journalTaskModesJson: true },
+  });
+  const taskMode = getEffectiveTaskMode(
+    resolvedCode,
+    orgForMode?.journalTaskModesJson,
+  );
+  const rollingMode = taskMode.distribution === "rolling";
+  const spec = getJournalSpec(resolvedCode);
+  const dailyCountInitial = rollingMode
+    ? await countRollingToday({
+        organizationId: getActiveOrgId(session),
+        journalCode: resolvedCode,
+        userId: session.user.id,
+      })
+    : 0;
+
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
       <Link
@@ -160,6 +183,13 @@ export default async function NewJournalEntryPage({
           equipment={equipment}
           employees={employees}
           products={products}
+          rollingMode={rollingMode}
+          dailyCountInitial={dailyCountInitial}
+          rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+          rollingContinueLabel={
+            spec.rolling?.continueLabel ?? "Сохранить и продолжить"
+          }
+          rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
         />
       </div>
     </div>
