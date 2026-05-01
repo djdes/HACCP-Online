@@ -153,6 +153,25 @@ jobs:
             # Restore .env from backup if it exists
             [ -f .env.bak ] && cp .env.bak .env || true
 
+            echo "=== Backup OLD .next/static (chunks survive deploy window) ==="
+            # R40 fix: PM2 продолжает обслуживать СТАРЫЙ HTML до конца
+            # деплоя (его restart — последний шаг). Старый HTML ссылается
+            # на старые chunk-имена (/_next/static/chunks/<hash>.js),
+            # которые `rm -rf .next` ниже удаляет → активные пользователи
+            # получают 500 на КАЖДЫЙ JS chunk на ~30-60 сек, пока build
+            # идёт. Решение: бэкапим .next/static, и после build'а
+            # копируем СТАРЫЕ chunks обратно в .next/static (имена hash'ами,
+            # с новыми не конфликтуют — coexist'ят). После pm2 restart
+            # они становятся dead-weight и стираются на следующем деплое
+            # (тем же rm -rf .next). Window 500's закрыт.
+            rm -rf .next.static-backup 2>/dev/null || true
+            if [ -d .next/static ]; then
+              mv .next/static .next.static-backup
+              echo "[backup] .next/static → .next.static-backup ($(find .next.static-backup -type f | wc -l) files)"
+            else
+              echo "[backup] .next/static отсутствует — нечего бэкапить (первый деплой?)"
+            fi
+
             echo "=== Installing server dependencies (clean) ==="
             # Remove stale node_modules + CI-produced .next to prevent
             # "Cannot find module 'next/dist/compiled/cookie'" desync after
@@ -200,6 +219,28 @@ jobs:
             # перед каждой попыткой.
             rm -f .next/lock 2>/dev/null || true
             npm run build 2>&1 | tail -10
+
+            echo "=== Restoring OLD .next/static chunks (R40 fix) ==="
+            # cp -n = no-clobber: новые chunks от свежего build'а имеют
+            # приоритет, ничего не перезаписываем. Старые chunks с
+            # уникальными hash-именами просто доезжают рядом — их
+            # запрашивают пользователи которые уже загрузили СТАРУЮ
+            # HTML до pm2 restart.
+            if [ -d .next.static-backup ]; then
+              # Restore только chunks/ (где живут JS бандлы) и css/.
+              # media/ — fonts/images, тоже могут быть нужны.
+              for sub in chunks css media; do
+                if [ -d ".next.static-backup/$sub" ]; then
+                  mkdir -p ".next/static/$sub"
+                  cp -rn ".next.static-backup/$sub/." ".next/static/$sub/" 2>/dev/null || true
+                fi
+              done
+              restored=$(find .next.static-backup -type f | wc -l)
+              echo "[restore] $restored old static files preserved alongside new build"
+              rm -rf .next.static-backup
+            else
+              echo "[restore] no backup — пропуск (первый деплой / build с нуля)"
+            fi
 
             echo "=== Verifying client-reference manifests ==="
             # Next.js 16 периодически собирается «успешно», но без
