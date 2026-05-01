@@ -35,6 +35,7 @@ import {
   getJournalMonthlyWeight,
   type SlotUserMap as WorkloadSlotMap,
 } from "@/lib/journal-workload";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Position = {
   id: string;
@@ -593,6 +594,15 @@ export function JournalResponsiblesClient({
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
+  // Confirm-модалки. Каждая destructive операция держит свой open-state.
+  const [applyAllOpen, setApplyAllOpen] = useState(false);
+  const [saveAllOpen, setSaveAllOpen] = useState(false);
+  const [recreateOpen, setRecreateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePreflight, setDeletePreflight] = useState<{
+    docCount: number;
+    entryCount: number;
+  } | null>(null);
 
   const usersById = useMemo(
     () => new Map(users.map((u) => [u.id, u])),
@@ -935,19 +945,30 @@ export function JournalResponsiblesClient({
     workloadAcc?: Map<string, number>,
   ): SlotUserMap {
     const schema = getSchemaForJournal(journalCode);
-    const positionsById = new Map(positions.map((p) => [p.id, p]));
+    const positionsByIdLocal = new Map(positions.map((p) => [p.id, p]));
     const result: SlotUserMap = {};
     const usedIds = new Set<string>();
+
+    function matchesKeywords(u: UserItem, keywords: readonly string[]): boolean {
+      if (!u.jobPositionId) return false;
+      const pos = positionsByIdLocal.get(u.jobPositionId);
+      if (!pos) return false;
+      const lower = pos.name.toLowerCase();
+      return keywords.some((kw) => lower.includes(kw));
+    }
+
     for (const slot of schema.slots) {
       const isVerifier = slot.kind === "verifier";
+      const keywords = slot.positionKeywords ?? [];
+      const hasKeywords = keywords.length > 0;
 
+      // Шаг 1: pool — кандидаты до фильтрации keyword'ом.
+      //   • Verifier — все сотрудники (tier важнее keywords).
+      //   • Filler — фильтр по chips (positionIds), если они заданы.
       let pool: UserItem[];
       if (isVerifier) {
-        // Verifier — все сотрудники орги. Keywords применяются на
-        // следующем шаге как фильтр-prefer, не как hard cut.
         pool = users;
       } else {
-        // Filler — обязан быть из выбранных должностей (chips).
         pool = users;
         if (positionIds.size > 0) {
           pool = pool.filter(
@@ -956,28 +977,47 @@ export function JournalResponsiblesClient({
         }
       }
 
-      if (slot.positionKeywords && slot.positionKeywords.length > 0) {
-        const filtered = pool.filter((u) => {
-          if (!u.jobPositionId) return false;
-          const pos = positionsById.get(u.jobPositionId);
-          if (!pos) return false;
-          const lower = pos.name.toLowerCase();
-          return slot.positionKeywords!.some((kw) => lower.includes(kw));
-        });
-        if (filtered.length > 0) pool = filtered;
-      }
+      // Шаг 2: убираем тех кого уже взяли в другие слоты ЭТОГО журнала.
+      // Делаем ПЕРЕД keyword-фильтром — иначе если единственный
+      // matching-юзер уже filler, то verifier останется null.
+      pool = pool.filter((u) => !usedIds.has(u.id));
 
-      // Сортировка кандидатов — порядок предпочтения:
-      //   1. Не в usedIds (один человек не должен попасть в 2 слота
-      //      одного и того же журнала).
-      //   2. Для verifier: выше tier (admin > manager > head_chef).
-      //   3. Меньше накопленный workload (балансировка между
-      //      сотрудниками одной должности).
-      //   4. Имя по алфавиту (детерминированный fallback).
+      // Шаг 3: ranking. Сортировка многокритериальная:
+      //   • Для verifier: tier приоритетнее keywords. Админ (tier 3)
+      //     попадёт на 1 место даже если keywords (завед/менеджер) его
+      //     не упоминают.
+      //   • Для filler: keywords приоритетнее tier. Технолог встретится
+      //     раньше Заведующей, если тот у нас и тот и тот в pool'е.
+      //   • Tie-break — меньшая накопленная нагрузка (балансировка),
+      //     потом имя.
       const ranked = [...pool].sort((a, b) => {
         if (isVerifier) {
           const tierDiff = userTier(b) - userTier(a);
           if (tierDiff !== 0) return tierDiff;
+          if (hasKeywords) {
+            const am = matchesKeywords(a, keywords) ? 0 : 1;
+            const bm = matchesKeywords(b, keywords) ? 0 : 1;
+            if (am !== bm) return am - bm;
+          }
+        } else {
+          if (hasKeywords) {
+            const am = matchesKeywords(a, keywords) ? 0 : 1;
+            const bm = matchesKeywords(b, keywords) ? 0 : 1;
+            if (am !== bm) return am - bm;
+          }
+          // Для filler: chips-matched и keyword-matched > просто
+          // chips-matched > вне chips.
+          const aIn = a.jobPositionId
+            ? positionIds.has(a.jobPositionId)
+              ? 0
+              : 1
+            : 1;
+          const bIn = b.jobPositionId
+            ? positionIds.has(b.jobPositionId)
+              ? 0
+              : 1
+            : 1;
+          if (aIn !== bIn) return aIn - bIn;
         }
         const wa = workloadAcc?.get(a.id) ?? 0;
         const wb = workloadAcc?.get(b.id) ?? 0;
@@ -985,7 +1025,7 @@ export function JournalResponsiblesClient({
         return a.name.localeCompare(b.name, "ru");
       });
 
-      const pick = ranked.find((u) => !usedIds.has(u.id));
+      const pick = ranked[0];
       if (pick) {
         result[slot.id] = pick.id;
         usedIds.add(pick.id);
@@ -1228,13 +1268,23 @@ export function JournalResponsiblesClient({
       }
 
       const matched = matchPositionsForJournal(code, positions);
-      if (matched.length === 0) continue;
+      // Раньше при matched.length === 0 мы делали continue — журнал
+      // полностью игнорировался. Это плохо: даже если у журнала нет
+      // matching-должностей в keywords (например, equipment_calibration
+      // ищет "технолог/инженер", а в орге их нет), мы всё равно можем
+      // поставить verifier-админа и подобрать filler из общего пула.
+      // Сейчас не пропускаем — positionSet остаётся empty, и
+      // pickSlotUsersForJournal делает fallback на всех users.
       const positionSet = new Set(matched);
       const slotUsers = pickSlotUsersForJournal(
         code,
         positionSet,
         workloadAcc,
       );
+      // Если ВООБЩЕ ничего не подобрали (пустой результат) — журнал
+      // не сохраняем чтобы не ломать существующие.
+      const hasAnyAssignment = Object.values(slotUsers).some((v) => v);
+      if (!hasAnyAssignment && positionSet.size === 0) continue;
       result.set(code, { positionIds: positionSet, slotUsers });
 
       // Обновляем accumulator после выбора.
@@ -1314,20 +1364,16 @@ export function JournalResponsiblesClient({
     return { ok, failed };
   }
 
-  async function applyAllPresets() {
+  function requestApplyAllPresets() {
     if (applying) return;
     if (positions.length === 0) {
       toast.error("Сначала создайте должности и сотрудников");
       return;
     }
-    if (
-      !window.confirm(
-        "Применить умные пресеты ко ВСЕМ журналам? Существующие назначения " +
-          "будут перезаписаны на каждом журнале, для которого нашлась " +
-          "подходящая должность."
-      )
-    )
-      return;
+    setApplyAllOpen(true);
+  }
+
+  async function applyAllPresets() {
     setApplying(true);
     try {
       const allCodes = journals.map((j) => j.code);
@@ -1430,21 +1476,12 @@ export function JournalResponsiblesClient({
 
   // «Во всех» — с модальным confirm, потому что переписывает
   // закрытые/архивные документы и ломает аудит-trail.
-  async function saveAll() {
+  function requestSaveAll() {
     if (saving || dirty.size === 0) return;
-    const ok = window.confirm(
-      "ВНИМАНИЕ — изменить ответственных во ВСЕХ документах " +
-        "(включая закрытые и архивные)?\n\n" +
-        "• Это переписывает историю — старые подписи в PDF будут " +
-        "сменены на новые ФИО.\n" +
-        "• Также меняется проверяющий у УЖЕ ОТПРАВЛЕННЫХ " +
-        "TasksFlow-задач, включая те что в очереди «На проверке».\n" +
-        "• Откатить нельзя — каскад идёт и в БД, и в TasksFlow.\n\n" +
-        "Если просто обновляете состав на сегодня и далее — нажмите " +
-        "«Отмена» и используйте кнопку «В активных».\n\n" +
-        "Точно продолжить?",
-    );
-    if (!ok) return;
+    setSaveAllOpen(true);
+  }
+
+  async function saveAll() {
     await saveWithScope("all");
   }
 
@@ -1483,36 +1520,28 @@ export function JournalResponsiblesClient({
     }
   }
 
-  async function deleteAllDocuments() {
+  async function requestDeleteAllDocuments() {
     if (deleting) return;
-    // Preflight — узнаём сколько ИМЕННО удалится, показываем в
-    // prompt. Менеджер видит «удалится 33 документа, 1290 записей»
-    // и думает дважды, прежде чем напечатать «УДАЛИТЬ».
-    let counts: { docCount: number; entryCount: number } | null = null;
+    // Preflight — заглядываем сколько ИМЕННО удалится, показываем в
+    // модалке. Менеджер видит «33 документа, 1290 записей» и думает
+    // дважды перед тем как ввести «УДАЛИТЬ».
+    setDeletePreflight(null);
     try {
       const res = await fetch(
         "/api/settings/journals/delete-all-documents",
-        { method: "GET" }
+        { method: "GET" },
       );
-      if (res.ok) counts = await res.json();
-    } catch {
-      /* preflight не критичен — продолжаем без счётчика */
-    }
-    const sizeHint = counts
-      ? `\n\nСейчас в БД: ${counts.docCount} документ(ов), ${counts.entryCount} запис(ей).`
-      : "";
-    const phrase = window.prompt(
-      "ВНИМАНИЕ: эта операция удалит ВСЕ документы журналов организации " +
-        "вместе с заполненными записями. Восстановить нельзя." +
-        sizeHint +
-        "\n\nЧтобы продолжить, введите слово «УДАЛИТЬ» (заглавными):"
-    );
-    if (phrase !== "УДАЛИТЬ") {
-      if (phrase !== null) {
-        toast.error("Подтверждение не совпало — отменено");
+      if (res.ok) {
+        const counts = await res.json();
+        setDeletePreflight(counts);
       }
-      return;
+    } catch {
+      /* preflight не критичен */
     }
+    setDeleteOpen(true);
+  }
+
+  async function deleteAllDocuments() {
     setDeleting(true);
     try {
       const res = await fetch(
@@ -1542,17 +1571,12 @@ export function JournalResponsiblesClient({
     }
   }
 
-  async function recreateDocuments() {
+  function requestRecreateDocuments() {
     if (recreating) return;
-    if (
-      !window.confirm(
-        "«Пересоздать документы» закроет все ТЕКУЩИЕ активные документы и " +
-          "создаст свежие — с дефолтными строками и подтянутыми из настроек " +
-          "ответственными. Заполненные ранее записи останутся в закрытых " +
-          "документах (можно открыть для отчёта).\n\nПродолжить?"
-      )
-    )
-      return;
+    setRecreateOpen(true);
+  }
+
+  async function recreateDocuments() {
     setRecreating(true);
     try {
       const res = await fetch(
@@ -1591,7 +1615,7 @@ export function JournalResponsiblesClient({
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4">
         <button
           type="button"
-          onClick={applyAllPresets}
+          onClick={requestApplyAllPresets}
           disabled={applying || positions.length === 0}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-br from-[#5566f6] to-[#7a5cff] px-4 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.6)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
@@ -1620,7 +1644,7 @@ export function JournalResponsiblesClient({
 
         <button
           type="button"
-          onClick={recreateDocuments}
+          onClick={requestRecreateDocuments}
           disabled={recreating || resyncing || deleting}
           title="Закрыть все активные документы и создать свежие со строками по умолчанию и текущими ответственными. Старые записи сохранятся в закрытых документах."
           className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#ffd2cd] bg-white px-4 text-[13px] font-medium text-[#a13a32] hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:cursor-not-allowed disabled:opacity-60"
@@ -1635,7 +1659,7 @@ export function JournalResponsiblesClient({
 
         <button
           type="button"
-          onClick={deleteAllDocuments}
+          onClick={requestDeleteAllDocuments}
           disabled={deleting || recreating || resyncing}
           title="Опасно: удалит ВСЕ документы журналов вместе с заполненными записями. Используется только для полного сброса."
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#a13a32] px-4 text-[13px] font-medium text-white hover:bg-[#8b3128] disabled:cursor-not-allowed disabled:opacity-60"
@@ -1692,7 +1716,7 @@ export function JournalResponsiblesClient({
                 первичной. */}
             <button
               type="button"
-              onClick={saveAll}
+              onClick={requestSaveAll}
               disabled={saving}
               title="Каскадно применить во ВСЕ документы — включая закрытые и архивные. Также переписывает verifier на уже одобренных/отклонённых TasksFlow-задачах. Опасное действие — потребует подтверждения."
               className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#a13a32] bg-white px-3 text-[13px] font-medium text-[#a13a32] hover:bg-[#fff4f2] disabled:opacity-60"
@@ -2069,6 +2093,159 @@ export function JournalResponsiblesClient({
           </div>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={applyAllOpen}
+        onClose={() => setApplyAllOpen(false)}
+        onConfirm={async () => {
+          setApplyAllOpen(false);
+          await applyAllPresets();
+        }}
+        title="Применить умные пресеты ко всем журналам?"
+        description={
+          <>
+            Система пройдётся по всем журналам в порядке убывания нагрузки
+            и расставит должности и сотрудников по семантике. Уборка —
+            уборщикам, температура — поварам, поверка — технологу или
+            заведующей. Админ автоматически попадёт в «Кто проверяет».
+          </>
+        }
+        bullets={[
+          {
+            label:
+              "Существующие назначения будут перезаписаны там, где система нашла подходящих кандидатов.",
+            tone: "warn",
+          },
+          {
+            label:
+              "Если для журнала нет matching должностей — он не трогается.",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Да, применить ко всем"
+        variant="default"
+        icon={Wand2}
+      />
+
+      <ConfirmDialog
+        open={saveAllOpen}
+        onClose={() => setSaveAllOpen(false)}
+        onConfirm={async () => {
+          setSaveAllOpen(false);
+          await saveAll();
+        }}
+        title="Изменить ответственных во всех документах?"
+        description={
+          <>
+            Каскад затронет не только активные, но и закрытые/архивные
+            документы. Это удобно для ретроспективы, но переписывает
+            историю — будь осторожен.
+          </>
+        }
+        bullets={[
+          {
+            label:
+              "Старые подписи в PDF меняются на новые ФИО.",
+            tone: "warn",
+          },
+          {
+            label:
+              "Verifier меняется и у уже отправленных TasksFlow-задач, включая «На проверке».",
+            tone: "warn",
+          },
+          {
+            label:
+              "Откатить нельзя — каскад идёт в БД и в TasksFlow одновременно.",
+            tone: "warn",
+          },
+          {
+            label:
+              "Если хочешь только текущие/активные — закрой и используй кнопку «Сохранить (в активных)».",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Да, переписать все документы"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={recreateOpen}
+        onClose={() => setRecreateOpen(false)}
+        onConfirm={async () => {
+          setRecreateOpen(false);
+          await recreateDocuments();
+        }}
+        title="Пересоздать документы?"
+        description={
+          <>
+            Все ТЕКУЩИЕ активные документы будут закрыты, и взамен
+            создадутся свежие — с дефолтными строками и текущими
+            ответственными. Заполненные ранее записи останутся в
+            закрытых документах (можно открыть для отчёта).
+          </>
+        }
+        bullets={[
+          {
+            label:
+              "Старые записи не теряются — они уйдут в закрытые документы.",
+            tone: "info",
+          },
+          {
+            label:
+              "Новые документы возьмут ответственных из текущих настроек.",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Пересоздать"
+        variant="warn"
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          setDeleteOpen(false);
+          await deleteAllDocuments();
+        }}
+        title="Удалить ВСЕ документы журналов?"
+        description={
+          <>
+            {deletePreflight ? (
+              <span>
+                Сейчас в БД:{" "}
+                <strong className="text-[#a13a32]">
+                  {deletePreflight.docCount} документ(ов)
+                </strong>{" "}
+                и{" "}
+                <strong className="text-[#a13a32]">
+                  {deletePreflight.entryCount} запис(ей)
+                </strong>
+                . Все они уйдут безвозвратно.
+              </span>
+            ) : (
+              <span>
+                Все документы журналов организации будут удалены вместе со
+                всеми заполненными записями.
+              </span>
+            )}
+          </>
+        }
+        bullets={[
+          {
+            label:
+              "Восстановить нельзя — это полный сброс данных журналов.",
+            tone: "warn",
+          },
+          {
+            label:
+              "Используется только когда нужно начать с чистого листа (тестовая компания, прежний пилот).",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Удалить навсегда"
+        variant="danger"
+        typeToConfirm="УДАЛИТЬ"
+      />
     </div>
   );
 }

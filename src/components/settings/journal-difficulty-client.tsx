@@ -12,6 +12,7 @@ import {
   LINES_PER_ENTRY,
   type Difficulty,
 } from "@/lib/journal-workload";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Journal = {
   code: string;
@@ -53,6 +54,7 @@ export function JournalDifficultyClient({ journals, initialDifficulty }: Props) 
   );
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const dirty = useMemo(() => {
     const set = new Set<string>();
@@ -89,8 +91,10 @@ export function JournalDifficultyClient({ journals, initialDifficulty }: Props) 
     });
   }
 
+  function requestResetAll() {
+    setResetOpen(true);
+  }
   function resetAll() {
-    if (!window.confirm("Сбросить сложность всех журналов к дефолту?")) return;
     setCurr({});
   }
 
@@ -149,7 +153,7 @@ export function JournalDifficultyClient({ journals, initialDifficulty }: Props) 
 
         <button
           type="button"
-          onClick={resetAll}
+          onClick={requestResetAll}
           disabled={saving}
           className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
           title="Удалить все переопределения и вернуться к дефолтам"
@@ -289,6 +293,28 @@ export function JournalDifficultyClient({ journals, initialDifficulty }: Props) 
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        onConfirm={() => {
+          resetAll();
+          setResetOpen(false);
+        }}
+        title="Сбросить сложность всех журналов?"
+        description="Все ваши переопределения будут удалены, журналы вернутся к дефолтам по семантике (1 — отметка, 5 — аналитический документ)."
+        bullets={[
+          {
+            label:
+              "Сами заполненные журналы и записи не трогаются — это только настройки расчёта нагрузки.",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Сбросить"
+        cancelLabel="Не сбрасывать"
+        variant="warn"
+        icon={RotateCcw}
+      />
     </div>
   );
 }

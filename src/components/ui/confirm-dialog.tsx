@@ -1,0 +1,286 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  Check,
+  Loader2,
+  ShieldAlert,
+  Sparkles,
+  X,
+} from "lucide-react";
+
+type Variant = "default" | "info" | "danger" | "warn";
+
+const VARIANT_STYLES: Record<
+  Variant,
+  {
+    iconBg: string;
+    iconColor: string;
+    confirmBg: string;
+    confirmHover: string;
+    confirmRing: string;
+    accentBg: string;
+  }
+> = {
+  default: {
+    iconBg: "bg-[#eef1ff]",
+    iconColor: "text-[#5566f6]",
+    confirmBg: "bg-[#5566f6]",
+    confirmHover: "hover:bg-[#4a5bf0]",
+    confirmRing: "shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]",
+    accentBg: "bg-gradient-to-br from-[#f5f6ff] to-white",
+  },
+  info: {
+    iconBg: "bg-[#eef1ff]",
+    iconColor: "text-[#3848c7]",
+    confirmBg: "bg-[#5566f6]",
+    confirmHover: "hover:bg-[#4a5bf0]",
+    confirmRing: "shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)]",
+    accentBg: "bg-gradient-to-br from-[#f5f6ff] to-white",
+  },
+  warn: {
+    iconBg: "bg-[#fff8eb]",
+    iconColor: "text-[#a16d32]",
+    confirmBg: "bg-[#d97706]",
+    confirmHover: "hover:bg-[#b45309]",
+    confirmRing: "shadow-[0_10px_30px_-12px_rgba(217,119,6,0.45)]",
+    accentBg: "bg-gradient-to-br from-[#fff8eb] to-white",
+  },
+  danger: {
+    iconBg: "bg-[#fff4f2]",
+    iconColor: "text-[#a13a32]",
+    confirmBg: "bg-[#a13a32]",
+    confirmHover: "hover:bg-[#8b3128]",
+    confirmRing: "shadow-[0_10px_30px_-12px_rgba(161,58,50,0.55)]",
+    accentBg: "bg-gradient-to-br from-[#fff4f2] to-white",
+  },
+};
+
+const VARIANT_ICONS: Record<Variant, typeof Sparkles> = {
+  default: Sparkles,
+  info: Check,
+  warn: AlertTriangle,
+  danger: ShieldAlert,
+};
+
+export type ConfirmDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<void>;
+  title: string;
+  /// Описание — может быть строкой или JSX-блоком (для bullet-списков).
+  description?: React.ReactNode;
+  /// Список ключевых пунктов в стиле «что произойдёт» — рендерим как
+  /// яркий список перед кнопками. Лучше использовать для destructive
+  /// чтобы менеджер ОЧЕНЬ хорошо понял последствия.
+  bullets?: Array<{
+    label: string;
+    tone?: "default" | "warn" | "info";
+  }>;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: Variant;
+  /// Если задано — пользователь должен ввести эту фразу перед кнопкой.
+  /// Используется для самых опасных действий (удаление).
+  typeToConfirm?: string;
+  /// Кастомная иконка (override variant).
+  icon?: typeof Sparkles;
+};
+
+export function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  bullets,
+  confirmLabel = "Подтвердить",
+  cancelLabel = "Отмена",
+  variant = "default",
+  typeToConfirm,
+  icon: IconOverride,
+}: ConfirmDialogProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [phrase, setPhrase] = useState("");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const Icon = IconOverride ?? VARIANT_ICONS[variant];
+  const styles = VARIANT_STYLES[variant];
+
+  useEffect(() => {
+    if (!open) {
+      setPhrase("");
+      setSubmitting(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !submitting) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, submitting, onClose]);
+
+  // Body scroll lock пока открыта.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  const phraseOk =
+    !typeToConfirm || phrase.trim().toUpperCase() === typeToConfirm.toUpperCase();
+  const canConfirm = phraseOk && !submitting;
+
+  async function handleConfirm() {
+    if (!canConfirm) return;
+    setSubmitting(true);
+    try {
+      await onConfirm();
+    } catch {
+      // Ошибки выводим через toast в onConfirm — здесь только разлок.
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+    >
+      {/* Backdrop */}
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={() => !submitting && onClose()}
+        className="absolute inset-0 bg-[#0b1024]/40 backdrop-blur-sm transition-opacity"
+      />
+
+      {/* Card */}
+      <div
+        ref={dialogRef}
+        className={`relative w-full max-w-[480px] overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
+      >
+        {/* Header — gradient accent */}
+        <div className={`relative overflow-hidden ${styles.accentBg} p-6`}>
+          <div className="pointer-events-none absolute -right-12 -top-12 size-[200px] rounded-full bg-[#5566f6]/8 blur-3xl" />
+          <div className="relative flex items-start gap-3">
+            <div
+              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${styles.iconBg}`}
+            >
+              <Icon className={`size-6 ${styles.iconColor}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2
+                id="confirm-dialog-title"
+                className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]"
+              >
+                {title}
+              </h2>
+              {description ? (
+                <div className="mt-2 text-[13px] leading-[1.55] text-[#3c4053]">
+                  {description}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => !submitting && onClose()}
+              aria-label="Закрыть"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#9b9fb3] hover:bg-white/60 hover:text-[#0b1024]"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Bullets */}
+        {bullets && bullets.length > 0 ? (
+          <div className="space-y-2 px-6 pb-1 pt-4">
+            {bullets.map((b, i) => {
+              const tone = b.tone ?? "default";
+              const dot =
+                tone === "warn"
+                  ? "bg-[#a13a32]"
+                  : tone === "info"
+                    ? "bg-[#5566f6]"
+                    : "bg-[#9b9fb3]";
+              return (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-[13px] leading-[1.5] text-[#3c4053]"
+                >
+                  <span
+                    className={`mt-1.5 inline-block size-1.5 shrink-0 rounded-full ${dot}`}
+                  />
+                  <span>{b.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {/* Type-to-confirm */}
+        {typeToConfirm ? (
+          <div className="px-6 pb-1 pt-4">
+            <label className="block text-[12px] font-medium text-[#3c4053]">
+              Чтобы продолжить, введите{" "}
+              <span className="rounded-md bg-[#fff4f2] px-1.5 py-0.5 font-mono text-[12px] font-semibold text-[#a13a32]">
+                {typeToConfirm}
+              </span>
+            </label>
+            <input
+              type="text"
+              value={phrase}
+              onChange={(e) => setPhrase(e.target.value)}
+              autoFocus
+              placeholder={typeToConfirm}
+              disabled={submitting}
+              className={`mt-2 h-11 w-full rounded-2xl border bg-white px-4 text-[14px] tracking-wide text-[#0b1024] placeholder:text-[#9b9fb3] focus:outline-none focus:ring-4 disabled:opacity-60 ${
+                phraseOk && phrase.length > 0
+                  ? "border-emerald-300 focus:border-emerald-400 focus:ring-emerald-300/20"
+                  : "border-[#ffd2cd] focus:border-[#a13a32] focus:ring-[#a13a32]/15"
+              }`}
+            />
+            {phrase.length > 0 && !phraseOk ? (
+              <div className="mt-1 text-[11px] text-[#a13a32]">
+                Не совпало — введите точно так, как написано выше.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Buttons */}
+        <div className="flex items-center justify-end gap-2 px-6 pb-6 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="inline-flex h-11 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#fafbff] disabled:opacity-60"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+            className={`inline-flex h-11 items-center gap-2 rounded-2xl px-5 text-[14px] font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles.confirmBg} ${styles.confirmHover} ${styles.confirmRing}`}
+          >
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
