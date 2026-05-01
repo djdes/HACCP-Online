@@ -8,7 +8,6 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardList,
-  Clock4,
   Coins,
   FileDown,
   GraduationCap,
@@ -442,15 +441,11 @@ export default async function DashboardPage() {
             <CloseDayCard unfilledCount={unfilledCount} />
           </DashboardSection>
 
-          <DashboardSection
-            storageKey="time-window-alerts"
-            title="Срочно нужно заполнить"
-            subtitle="Журналы с нарушением периодичности по СанПиН."
-            icon={Clock4}
-            defaultOpen={true}
-          >
-            <TimeWindowAlerts organizationId={organizationId} />
-          </DashboardSection>
+          {/* TimeWindowAlerts — server-async компонент. Не оборачиваем
+              в client-DashboardSection (это требовало бы Suspense
+              boundary в Next 16). Виджет сам себя прячет если
+              просрочек нет, поэтому 'свернуть' его и не нужно. */}
+          <TimeWindowAlerts organizationId={organizationId} />
 
           <DashboardSection
             storageKey="bulk-assign-preview"
