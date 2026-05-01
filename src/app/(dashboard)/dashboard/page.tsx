@@ -40,7 +40,10 @@ import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
 import { TimeWindowAlerts } from "@/components/dashboard/time-window-alerts";
 import { BulkAssignPreviewCard } from "@/components/dashboard/bulk-assign-preview-card";
-import { DashboardSection } from "@/components/dashboard/dashboard-section";
+import {
+  DashboardSection,
+  DashboardSectionPersistScript,
+} from "@/components/dashboard/dashboard-section";
 import { StaffTrainingCard } from "@/components/dashboard/staff-training-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
@@ -301,6 +304,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Persist для DashboardSection (collapsible-блоки): inline-script
+          читает localStorage и настраивает initial open state. */}
+      <DashboardSectionPersistScript />
       {/* Soft-block: nag-modal для админа когда CAPA открыты > 7 дней.
           Dismissable per-session, появляется снова после reload. */}
       <StaleCapaNag count={staleCapaCount} />
@@ -441,11 +447,18 @@ export default async function DashboardPage() {
             <CloseDayCard unfilledCount={unfilledCount} />
           </DashboardSection>
 
-          {/* TimeWindowAlerts — server-async компонент. Не оборачиваем
-              в client-DashboardSection (это требовало бы Suspense
-              boundary в Next 16). Виджет сам себя прячет если
-              просрочек нет, поэтому 'свернуть' его и не нужно. */}
-          <TimeWindowAlerts organizationId={organizationId} />
+          {/* TimeWindowAlerts — server-async. Server-component
+              DashboardSection (native <details>) поддерживает
+              async children без Suspense boundary. */}
+          <DashboardSection
+            storageKey="time-window-alerts"
+            title="Срочно нужно заполнить"
+            subtitle="Журналы с нарушением периодичности по СанПиН."
+            icon={AlertCircle}
+            defaultOpen={true}
+          >
+            <TimeWindowAlerts organizationId={organizationId} />
+          </DashboardSection>
 
           <DashboardSection
             storageKey="bulk-assign-preview"

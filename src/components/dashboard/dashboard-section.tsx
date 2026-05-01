@@ -1,29 +1,19 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 
 type Props = {
-  /** Уникальный ключ для localStorage — чтобы предпочтение
-   *  «свёрнут / раскрыт» помнилось между сессиями. */
+  /** Уникальный ключ для localStorage. Inline-скрипт в dashboard
+   *  layout читает все [data-storage-key] и подменяет open. */
   storageKey: string;
-  /** Заголовок блока в свёрнутом и раскрытом состоянии. */
   title: string;
-  /** Краткое описание под заголовком. Показывается всегда. */
   subtitle?: string;
-  /** Иконка в pill (lucide-react). */
   icon?: LucideIcon;
-  /** Значок-pill справа от заголовка — например, «3 критично». */
   badge?: {
     text: string;
     tone?: "default" | "ok" | "warn" | "danger";
   };
-  /** По умолчанию раскрыт? Default false (компактнее). */
   defaultOpen?: boolean;
   children: React.ReactNode;
 };
-
-const STORAGE_PREFIX = "wesetup.dashboard.section.";
 
 const TONE_CLS: Record<NonNullable<Props["badge"]>["tone"] & string, string> = {
   default: "bg-[#eef1ff] text-[#3848c7]",
@@ -33,15 +23,14 @@ const TONE_CLS: Record<NonNullable<Props["badge"]>["tone"] & string, string> = {
 };
 
 /**
- * Раскрывающаяся секция дашборда. Кликнул на заголовок — увидел
- * содержимое; кликнул ещё раз — свернул. Состояние сохраняется в
- * localStorage по `storageKey` чтобы юзер один раз настроил под себя
- * и оно так осталось.
+ * Раскрывающаяся секция дашборда. Server-component с native
+ * `<details>` — работает с любыми children (включая async
+ * server-components), не требует client JS bundle, лёгкий SSR.
  *
- * SSR-safe: при первом рендере используется defaultOpen (без access
- * к localStorage), на client'е useEffect синхронизирует с сохранённым
- * значением. Это даёт лёгкий «мигающий» эффект при первом заходе если
- * предпочтение != default — компромисс ради SSR.
+ * Persist в localStorage реализован через inline-скрипт в
+ * dashboard layout (см. <DashboardSectionPersistScript />): он
+ * читает все [data-storage-key] и устанавливает initial open
+ * state, и на toggle event пишет обратно в localStorage.
  */
 export function DashboardSection({
   storageKey,
@@ -52,45 +41,16 @@ export function DashboardSection({
   defaultOpen = false,
   children,
 }: Props) {
-  const [open, setOpen] = useState(defaultOpen);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_PREFIX + storageKey);
-      if (raw === "1") setOpen(true);
-      else if (raw === "0") setOpen(false);
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
-  }, [storageKey]);
-
-  function toggle() {
-    setOpen((v) => {
-      const next = !v;
-      try {
-        window.localStorage.setItem(
-          STORAGE_PREFIX + storageKey,
-          next ? "1" : "0",
-        );
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
-
   return (
-    <section className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-      <button
-        type="button"
-        onClick={toggle}
-        className={`flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-[#fafbff] sm:p-5 ${
-          open ? "border-b border-[#ececf4]" : ""
-        }`}
-      >
+    <details
+      // open — нужно прокинуть как boolean prop (не через open={false})
+      // т.к. в JSX для native HTML element атрибут принимается как
+      // boolean (presence/absence). Используем conditional spread.
+      {...(defaultOpen ? { open: true } : {})}
+      data-storage-key={storageKey}
+      className="group overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+    >
+      <summary className="flex cursor-pointer list-none items-start gap-3 p-4 transition-colors hover:bg-[#fafbff] sm:p-5">
         {Icon ? (
           <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
             <Icon className="size-5" />
@@ -116,19 +76,55 @@ export function DashboardSection({
           ) : null}
         </div>
         <ChevronDown
-          className={`mt-1 size-5 shrink-0 text-[#9b9fb3] transition-transform ${
-            open ? "rotate-180 text-[#5566f6]" : ""
-          }`}
+          className="mt-1 size-5 shrink-0 text-[#9b9fb3] transition-transform group-open:rotate-180 group-open:text-[#5566f6]"
           aria-hidden
         />
-      </button>
-      {open ? (
-        <div
-          className={`p-4 sm:p-5 ${hydrated ? "" : "transition-opacity"}`}
-        >
-          {children}
-        </div>
-      ) : null}
-    </section>
+      </summary>
+      <div className="border-t border-[#ececf4] p-4 sm:p-5">{children}</div>
+    </details>
+  );
+}
+
+/**
+ * Inline-скрипт для localStorage persist. Размещается ОДИН раз в
+ * dashboard layout / page. Читает все [data-storage-key] на mount,
+ * устанавливает open state из localStorage; на toggle — пишет
+ * обратно. Без зависимости от React — работает даже если client JS
+ * ещё не загрузился.
+ */
+export function DashboardSectionPersistScript() {
+  const script = `
+(function(){
+  try {
+    var prefix = 'wesetup.dashboard.section.';
+    function apply() {
+      document.querySelectorAll('details[data-storage-key]').forEach(function(d){
+        if (d.__persistAttached) return;
+        d.__persistAttached = true;
+        var key = prefix + d.dataset.storageKey;
+        var saved = null;
+        try { saved = localStorage.getItem(key); } catch(e) {}
+        if (saved === '1') d.open = true;
+        else if (saved === '0') d.open = false;
+        d.addEventListener('toggle', function(){
+          try { localStorage.setItem(key, d.open ? '1' : '0'); } catch(e) {}
+        });
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply);
+    } else {
+      apply();
+    }
+    // Re-apply при router-navigation внутри Next (SPA), иначе attach не
+    // случится при F5 на другую страницу + back.
+    document.addEventListener('visibilitychange', apply);
+  } catch (e) { /* fail silently */ }
+})();`;
+  return (
+    <script
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: script }}
+    />
   );
 }
