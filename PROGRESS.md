@@ -191,3 +191,16 @@ one-click setup, явный demote NOT-admin юзеров в TF-sync. Подро
   Решение в deploy.yml: бэкап `.next/static` перед rm, `cp -rn` старых
   chunks обратно после build (`--no-clobber` → новые имеют приоритет,
   hash-имена → coexist). (commit be226e78)
+- [x] **R39 follow-up**: первый R39 фикс отдавал на /mini И CSP
+  frame-ancestors, И X-Frame-Options DENY одновременно (оба matching
+  rules применялись параллельно). DENY мог блокировать iframe в старых
+  browser'ах где CSP не уважается. Заменил wildcard на negative
+  lookahead `/((?!mini($|/)).*)` — матчит всё КРОМЕ /mini и /mini/*.
+  Теперь /mini получает только CSP. (commit 6e75702d)
+- [x] **R41**: schema.org Article/Product/SoftwareApplication.image на
+  3 страницах (home, blog/[slug], journals-info/[code]) был квадрат
+  /icons/icon-512.png. Google рекомендует landscape (1200×630, 1.91:1)
+  для rich snippets — карточка в выдаче будет с большой preview, не с
+  маленькой иконкой сбоку. Меняю на /og-default. Organization.logo и
+  Publisher.logo оставляю icon-512 — Google именно требует 'logo' поле
+  для бренд-маркировки. (commit 0763b2b5)
