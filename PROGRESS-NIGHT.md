@@ -29,3 +29,21 @@ staff_training, med_books
 - training_plan
 
 ## Хронология
+
+### Iteration 2 — 00:30 — guides batch 2
+- uv_lamp_runtime (УФ-лампы)
+- general_cleaning (генеральные уборки)
+- cleaning_ventilation_checklist (вентиляция)
+- glass_control (стеклоконтроль)
+- glass_items_list (опись хрупких)
+- 18 → 23/35 ✅
+- Осталось 12 missing
+
+### Iteration 1 — 00:24 — guides batch 1 (commit ee16f94b)
+- equipment_cleaning (мойка оборудования) — был в скрине у юзера, теперь закрыт
+- perishable_rejection (бракераж скоропорта)
+- complaint_register (жалобы)
+- accident_journal (аварии/ЧП)
+- pest_control (ДДД)
+- 13 → 18/35 ✅
+- Осталось 17/22 missing
