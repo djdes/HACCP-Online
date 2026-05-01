@@ -9,9 +9,12 @@ import {
   Loader2,
   Plus,
   Save,
+  Scale,
   Search,
   Sparkles,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +26,11 @@ import {
   type JournalCategory,
 } from "@/lib/journal-responsible-presets";
 import { getSchemaForJournal } from "@/lib/journal-responsible-schemas";
+import {
+  calculateUserWorkloads,
+  getJournalMonthlyWeight,
+  type SlotUserMap as WorkloadSlotMap,
+} from "@/lib/journal-workload";
 
 type Position = {
   id: string;
@@ -35,7 +43,36 @@ type UserItem = {
   id: string;
   name: string;
   jobPositionId: string | null;
+  /// Tier-определение для verifier-логики (admin > manager > head_chef > cook).
+  role: string;
+  isRoot: boolean;
 };
+
+/**
+ * Tier — числовой ранг должности для умного пресета:
+ *   3 = admin (isRoot или legacy "owner")
+ *   2 = manager
+ *   1 = head_chef / technologist
+ *   0 = cook / waiter / operator
+ *
+ * Используется чтобы pickSlotUsersForJournal предпочёл админа в качестве
+ * проверяющего (verifier), а в качестве "контролёра" (filler с keywords
+ * "менеджер/управляющ") — менеджера/заведующую, а не уборщика.
+ */
+function userTier(u: UserItem): number {
+  if (u.isRoot) return 3;
+  switch (u.role) {
+    case "owner":
+      return 3;
+    case "manager":
+      return 2;
+    case "head_chef":
+    case "technologist":
+      return 1;
+    default:
+      return 0;
+  }
+}
 
 type SlotUserMap = Record<string, string | null>;
 
@@ -51,6 +88,7 @@ type Props = {
   positions: Position[];
   users: UserItem[];
   journals: Journal[];
+  difficultyOverride: Record<string, number>;
 };
 
 type Selection = {
@@ -208,6 +246,7 @@ export function JournalResponsiblesClient({
   positions,
   users,
   journals,
+  difficultyOverride,
 }: Props) {
   const router = useRouter();
   const [base, setBase] = useState<Selection>(() => toSelection(journals));
@@ -252,6 +291,149 @@ export function JournalResponsiblesClient({
     () => new Map(positions.map((p) => [p.id, p])),
     [positions]
   );
+
+  /**
+   * Прогноз нагрузки в реальном времени: пересчёт workload каждый
+   * раз когда меняется base или curr. Сравниваем «было/станет» и
+   * показываем менеджеру что улучшилось/ухудшилось.
+   */
+  const userIds = useMemo(() => users.map((u) => u.id), [users]);
+
+  function buildSlotMapForCalc(sel: Selection): Record<string, WorkloadSlotMap> {
+    const out: Record<string, WorkloadSlotMap> = {};
+    for (const [code, slotMap] of sel.slots) {
+      out[code] = { ...slotMap };
+    }
+    return out;
+  }
+
+  const baseWorkloads = useMemo(
+    () =>
+      calculateUserWorkloads({
+        slotUsersByJournal: buildSlotMapForCalc(base),
+        difficultyOverride,
+        userIds,
+      }),
+    [base, difficultyOverride, userIds],
+  );
+  const currWorkloads = useMemo(
+    () =>
+      calculateUserWorkloads({
+        slotUsersByJournal: buildSlotMapForCalc(curr),
+        difficultyOverride,
+        userIds,
+      }),
+    [curr, difficultyOverride, userIds],
+  );
+
+  /**
+   * Diff карта userId → { before, after, delta }. Только пользователи
+   * у которых нагрузка изменилась.
+   */
+  const workloadDiffs = useMemo(() => {
+    const diffs: Array<{
+      userId: string;
+      name: string;
+      position: string | null;
+      before: number;
+      after: number;
+      delta: number;
+    }> = [];
+    for (const u of users) {
+      const before = baseWorkloads.get(u.id)?.totalWeight ?? 0;
+      const after = currWorkloads.get(u.id)?.totalWeight ?? 0;
+      if (Math.abs(after - before) < 0.5) continue;
+      const positionName = u.jobPositionId
+        ? (positionsById.get(u.jobPositionId)?.name ?? null)
+        : null;
+      diffs.push({
+        userId: u.id,
+        name: u.name,
+        position: positionName,
+        before,
+        after,
+        delta: after - before,
+      });
+    }
+    diffs.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    return diffs;
+  }, [users, baseWorkloads, currWorkloads, positionsById]);
+
+  /**
+   * Imbalance (max-min)/avg внутри каждой должности. Сравниваем
+   * before/after — менеджер видит «было 0.62 → станет 0.18» и
+   * понимает что сделал хорошо.
+   */
+  type ImbalanceRow = {
+    positionId: string;
+    positionName: string;
+    userCount: number;
+    beforeImb: number;
+    afterImb: number;
+  };
+
+  function imbalanceFor(
+    workloads: Map<string, { totalWeight: number }>,
+  ): Map<string, { positionName: string; userCount: number; imb: number }> {
+    const byPos = new Map<
+      string,
+      { name: string; weights: number[] }
+    >();
+    for (const u of users) {
+      if (!u.jobPositionId) continue;
+      const pos = positionsById.get(u.jobPositionId);
+      if (!pos) continue;
+      const bucket = byPos.get(u.jobPositionId) ?? {
+        name: pos.name,
+        weights: [],
+      };
+      bucket.weights.push(workloads.get(u.id)?.totalWeight ?? 0);
+      byPos.set(u.jobPositionId, bucket);
+    }
+    const out = new Map<
+      string,
+      { positionName: string; userCount: number; imb: number }
+    >();
+    for (const [pid, b] of byPos) {
+      const total = b.weights.reduce((a, x) => a + x, 0);
+      const avg = b.weights.length ? total / b.weights.length : 0;
+      const min = b.weights.length ? Math.min(...b.weights) : 0;
+      const max = b.weights.length ? Math.max(...b.weights) : 0;
+      const imb = avg > 0 ? (max - min) / avg : 0;
+      out.set(pid, { positionName: b.name, userCount: b.weights.length, imb });
+    }
+    return out;
+  }
+
+  const imbalanceDiffs = useMemo<ImbalanceRow[]>(() => {
+    const before = imbalanceFor(baseWorkloads);
+    const after = imbalanceFor(currWorkloads);
+    const rows: ImbalanceRow[] = [];
+    const allPos = new Set([...before.keys(), ...after.keys()]);
+    for (const pid of allPos) {
+      const b = before.get(pid);
+      const a = after.get(pid);
+      const userCount = a?.userCount ?? b?.userCount ?? 0;
+      if (userCount <= 1) continue; // одного — не сравниваем
+      const beforeImb = b?.imb ?? 0;
+      const afterImb = a?.imb ?? 0;
+      if (Math.abs(afterImb - beforeImb) < 0.05) continue; // не значимый
+      rows.push({
+        positionId: pid,
+        positionName: a?.positionName ?? b?.positionName ?? "",
+        userCount,
+        beforeImb,
+        afterImb,
+      });
+    }
+    rows.sort(
+      (a, b) =>
+        Math.abs(b.afterImb - b.beforeImb) -
+        Math.abs(a.afterImb - a.beforeImb),
+    );
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseWorkloads, currWorkloads, users, positionsById]);
 
   /**
    * Сотрудники для конкретного слота: фильтр по выбранным должностям +
@@ -313,25 +495,52 @@ export function JournalResponsiblesClient({
   }
 
   /**
-   * Авто-подбор слотов на стороне клиента — для UI feedback после
-   * presets. Сервер делает то же независимо. Алгоритм: пробегаем по
-   * слотам, для каждого ищем подходящего без дубликатов.
+   * Авто-подбор слотов на стороне клиента с балансировкой по нагрузке.
+   *
+   * Алгоритм:
+   *   1. Pool строится так:
+   *      • filler-slot — фильтр по positionIds (chips журнала) + keywords.
+   *      • verifier-slot — НЕ ограничиваем positionIds (verifier может
+   *        быть и не из тех должностей которые «заполняют»). Применяем
+   *        только keywords (с fallback на всех если никто не подходит).
+   *   2. Для verifier-slot: поднимаем юзеров с большим tier'ом
+   *      (admin > manager > head_chef) выше — компании естественно
+   *      хотят чтобы проверял старший по иерархии.
+   *   3. Tie-break: меньше накопленной нагрузки → выбираем. Так из 3-х
+   *      уборщиц с одинаковыми keywords первая дорогая задача уйдёт
+   *      одной, вторая — другой, третья — третьей.
+   *
+   * @param workloadAcc — накопленный вес по userId из ранее
+   *        распределённых журналов в этой же сессии presets.
+   *        Не мутируется — результат можно прибавить к нему снаружи.
    */
   function pickSlotUsersForJournal(
     journalCode: string,
-    positionIds: Set<string>
+    positionIds: Set<string>,
+    workloadAcc?: Map<string, number>,
   ): SlotUserMap {
     const schema = getSchemaForJournal(journalCode);
     const positionsById = new Map(positions.map((p) => [p.id, p]));
     const result: SlotUserMap = {};
     const usedIds = new Set<string>();
     for (const slot of schema.slots) {
-      let pool = users;
-      if (positionIds.size > 0) {
-        pool = pool.filter(
-          (u) => u.jobPositionId && positionIds.has(u.jobPositionId)
-        );
+      const isVerifier = slot.kind === "verifier";
+
+      let pool: UserItem[];
+      if (isVerifier) {
+        // Verifier — все сотрудники орги. Keywords применяются на
+        // следующем шаге как фильтр-prefer, не как hard cut.
+        pool = users;
+      } else {
+        // Filler — обязан быть из выбранных должностей (chips).
+        pool = users;
+        if (positionIds.size > 0) {
+          pool = pool.filter(
+            (u) => u.jobPositionId && positionIds.has(u.jobPositionId),
+          );
+        }
       }
+
       if (slot.positionKeywords && slot.positionKeywords.length > 0) {
         const filtered = pool.filter((u) => {
           if (!u.jobPositionId) return false;
@@ -342,10 +551,26 @@ export function JournalResponsiblesClient({
         });
         if (filtered.length > 0) pool = filtered;
       }
-      const sorted = [...pool].sort((a, b) =>
-        a.name.localeCompare(b.name, "ru")
-      );
-      const pick = sorted.find((u) => !usedIds.has(u.id));
+
+      // Сортировка кандидатов — порядок предпочтения:
+      //   1. Не в usedIds (один человек не должен попасть в 2 слота
+      //      одного и того же журнала).
+      //   2. Для verifier: выше tier (admin > manager > head_chef).
+      //   3. Меньше накопленный workload (балансировка между
+      //      сотрудниками одной должности).
+      //   4. Имя по алфавиту (детерминированный fallback).
+      const ranked = [...pool].sort((a, b) => {
+        if (isVerifier) {
+          const tierDiff = userTier(b) - userTier(a);
+          if (tierDiff !== 0) return tierDiff;
+        }
+        const wa = workloadAcc?.get(a.id) ?? 0;
+        const wb = workloadAcc?.get(b.id) ?? 0;
+        if (wa !== wb) return wa - wb;
+        return a.name.localeCompare(b.name, "ru");
+      });
+
+      const pick = ranked.find((u) => !usedIds.has(u.id));
       if (pick) {
         result[slot.id] = pick.id;
         usedIds.add(pick.id);
@@ -463,18 +688,85 @@ export function JournalResponsiblesClient({
     slotUsers: SlotUserMap;
   };
 
+  /**
+   * Балансировка: идём по журналам в порядке убывания их веса (тяжёлые
+   * первыми). Для каждого вызываем pickSlotUsersForJournal с текущим
+   * accumulator workload — это гарантирует что одинаково подходящие
+   * кандидаты получат разные журналы. После выбора прибавляем вес
+   * журнала к accumulator'у выбранных userId по их доле (filler-share
+   * 1/N, verifier-share 0.3 — те же коэффициенты что в lib).
+   */
   function computeAssignmentsFor(
-    codes: readonly string[]
+    codes: readonly string[],
   ): Map<string, Assignment> {
     const result = new Map<string, Assignment>();
-    for (const code of codes) {
+    const workloadAcc = new Map<string, number>();
+    // Старт: уже назначенные (не в codes — но в curr) тоже учитываем,
+    // чтобы preset не игнорировал то что менеджер сам уже расставил.
+    for (const [code, slotMap] of curr.slots) {
+      if (codes.includes(code)) continue;
+      const w = getJournalMonthlyWeight(code, difficultyOverride);
+      const fillerSlots = getSchemaForJournal(code).slots.filter(
+        (s) => s.kind !== "verifier",
+      );
+      const verifierSlots = getSchemaForJournal(code).slots.filter(
+        (s) => s.kind === "verifier",
+      );
+      const fillerUsers = fillerSlots
+        .map((s) => slotMap[s.id])
+        .filter((v): v is string => Boolean(v));
+      const verifierUsers = verifierSlots
+        .map((s) => slotMap[s.id])
+        .filter((v): v is string => Boolean(v));
+      if (fillerUsers.length > 0) {
+        const share = w / fillerUsers.length;
+        for (const uid of fillerUsers) {
+          workloadAcc.set(uid, (workloadAcc.get(uid) ?? 0) + share);
+        }
+      }
+      for (const uid of verifierUsers) {
+        workloadAcc.set(uid, (workloadAcc.get(uid) ?? 0) + w * 0.3);
+      }
+    }
+
+    // Сортируем целевые codes по весу — тяжёлые первыми.
+    const codesByWeight = [...codes].sort(
+      (a, b) =>
+        getJournalMonthlyWeight(b, difficultyOverride) -
+        getJournalMonthlyWeight(a, difficultyOverride),
+    );
+
+    for (const code of codesByWeight) {
       const matched = matchPositionsForJournal(code, positions);
       if (matched.length === 0) continue;
       const positionSet = new Set(matched);
-      result.set(code, {
-        positionIds: positionSet,
-        slotUsers: pickSlotUsersForJournal(code, positionSet),
-      });
+      const slotUsers = pickSlotUsersForJournal(
+        code,
+        positionSet,
+        workloadAcc,
+      );
+      result.set(code, { positionIds: positionSet, slotUsers });
+
+      // Обновляем accumulator после выбора.
+      const w = getJournalMonthlyWeight(code, difficultyOverride);
+      const schema = getSchemaForJournal(code);
+      const fillerUsers = schema.slots
+        .filter((s) => s.kind !== "verifier")
+        .map((s) => slotUsers[s.id])
+        .filter((v): v is string => Boolean(v));
+      const verifierUsers = schema.slots
+        .filter((s) => s.kind === "verifier")
+        .map((s) => slotUsers[s.id])
+        .filter((v): v is string => Boolean(v));
+      if (fillerUsers.length > 0) {
+        const share = w / fillerUsers.length;
+        for (const uid of fillerUsers) {
+          workloadAcc.set(uid, (workloadAcc.get(uid) ?? 0) + share);
+        }
+      }
+      for (const uid of verifierUsers) {
+        workloadAcc.set(uid, (workloadAcc.get(uid) ?? 0) + w * 0.3);
+      }
     }
     return result;
   }
@@ -934,6 +1226,108 @@ export function JournalResponsiblesClient({
             Сотрудники
           </a>
           .
+        </div>
+      ) : null}
+
+      {/* Live workload preview — показывается когда есть несохранённые
+          изменения. Помогает менеджеру понять «лучше или хуже стало». */}
+      {workloadDiffs.length > 0 || imbalanceDiffs.length > 0 ? (
+        <div className="sticky top-2 z-10 rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-4 shadow-[0_10px_24px_-12px_rgba(85,102,246,0.25)]">
+          <div className="mb-3 flex items-center gap-2">
+            <Scale className="size-4 text-[#5566f6]" />
+            <h3 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#0b1024]">
+              Прогноз нагрузки после сохранения
+            </h3>
+            <a
+              href="/settings/workload-balance"
+              className="ml-auto text-[11px] text-[#5566f6] hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Открыть полный дашборд распределения"
+            >
+              полный дашборд →
+            </a>
+          </div>
+
+          {imbalanceDiffs.length > 0 ? (
+            <div className="mb-3 grid gap-1.5 sm:grid-cols-2">
+              {imbalanceDiffs.slice(0, 4).map((row) => {
+                const improved = row.afterImb < row.beforeImb;
+                const stillBad = row.afterImb >= 0.5;
+                const tone = improved
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : stillBad
+                    ? "border-rose-200 bg-rose-50 text-rose-800"
+                    : "border-amber-200 bg-amber-50 text-amber-800";
+                const Icon = improved ? TrendingDown : TrendingUp;
+                return (
+                  <div
+                    key={row.positionId}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${tone}`}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-semibold">{row.positionName}</div>
+                      <div className="text-[11px] opacity-80">
+                        перекос:{" "}
+                        <span className="tabular-nums">
+                          {(row.beforeImb * 100).toFixed(0)}%
+                        </span>
+                        {" → "}
+                        <span className="tabular-nums font-semibold">
+                          {(row.afterImb * 100).toFixed(0)}%
+                        </span>
+                        {improved ? " · стало ровнее" : " · стало неравномернее"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {workloadDiffs.length > 0 ? (
+            <div className="space-y-1">
+              <div className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#6f7282]">
+                Изменения по сотрудникам
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {workloadDiffs.slice(0, 12).map((d) => {
+                  const positive = d.delta > 0;
+                  return (
+                    <span
+                      key={d.userId}
+                      title={`${d.name} (${d.position ?? "без должности"}): было ${Math.round(d.before)}, станет ${Math.round(d.after)}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] tabular-nums ${
+                        positive
+                          ? "bg-rose-50 text-rose-700"
+                          : "bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {d.name.split(" ")[0] ?? d.name}
+                      <span className="font-semibold">
+                        {positive ? "+" : ""}
+                        {Math.round(d.delta)}
+                      </span>
+                    </span>
+                  );
+                })}
+                {workloadDiffs.length > 12 ? (
+                  <span className="inline-flex items-center rounded-full bg-[#fafbff] px-2.5 py-1 text-[11px] text-[#9b9fb3]">
+                    +{workloadDiffs.length - 12} ещё
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {imbalanceDiffs.length === 0 && workloadDiffs.length > 0 ? (
+            <div className="mt-2 text-[11px] text-[#6f7282]">
+              Изменения внутри одной должности не меняют картину
+              перекоса — система просто перераспределяет работу между
+              сотрудниками одной роли.
+            </div>
+          ) : null}
         </div>
       ) : null}
 

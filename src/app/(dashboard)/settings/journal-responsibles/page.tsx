@@ -35,6 +35,8 @@ export default async function JournalResponsiblesPage() {
         id: true,
         name: true,
         jobPositionId: true,
+        role: true,
+        isRoot: true,
       },
     }),
     db.journalTemplate.findMany({
@@ -47,7 +49,10 @@ export default async function JournalResponsiblesPage() {
     }),
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { journalResponsibleUsersJson: true },
+      select: {
+        journalResponsibleUsersJson: true,
+        journalDifficultyJson: true,
+      },
     }),
   ]);
 
@@ -164,8 +169,13 @@ export default async function JournalResponsiblesPage() {
           id: u.id,
           name: u.name,
           jobPositionId: u.jobPositionId,
+          role: u.role,
+          isRoot: u.isRoot,
         }))}
         journals={journals}
+        difficultyOverride={
+          (org?.journalDifficultyJson ?? {}) as Record<string, number>
+        }
       />
     </div>
   );
