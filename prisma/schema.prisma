@@ -138,6 +138,14 @@ model Organization {
   /// Управляется в /settings/journal-task-mode. Если код не задан —
   /// дефолт из getDefaultTaskMode(journalCode).
   journalTaskModesJson     Json                       @default("{}")
+  /// Per-org override сложности журналов (1-5). Используется для
+  /// расчёта workload-balance — если в компании нет шеф-повара,
+  /// задачи распределяются между поварами равномерно по
+  /// difficulty × частота_заполнения. Default берётся из
+  /// DEFAULT_DIFFICULTY в src/lib/journal-workload.ts. Управляется
+  /// в /settings/journal-difficulty.
+  /// Структура: { [journalCode]: 1 | 2 | 3 | 4 | 5 }
+  journalDifficultyJson    Json                       @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]
