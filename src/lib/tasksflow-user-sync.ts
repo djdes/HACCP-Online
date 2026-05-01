@@ -39,6 +39,10 @@ type RemoteSyncUser = {
   id: number;
   name: string | null;
   phone: string;
+  /** Текущий isAdmin-флаг в TasksFlow. Опциональное поле — если не
+   *  передан, sync не будет делать explicit demote (только promote
+   *  для new admins). */
+  isAdmin?: boolean;
 };
 
 type UpsertSyncLinkInput = {
@@ -92,6 +96,7 @@ export async function syncTasksflowUsers(args: {
       id: user.id,
       name: user.name ?? null,
       phone: normalized,
+      isAdmin: user.isAdmin ?? false,
     });
   }
 
@@ -167,23 +172,27 @@ export async function syncTasksflowUsers(args: {
     const isOwner = adminUserIds.has(user.id);
     let remote = remoteByPhone.get(phone) ?? null;
     // Если remote уже существует — повторный POST createUser:
-    //   - с isAdmin:true (если owner) — TF promote'ит через setUserAdmin
-    //   - с position — TF обновит position в users (см. handler в TF)
-    // Это idempotent merge: при добавлении новых сотрудников или смене
-    // должностей нам не нужен отдельный endpoint.
-    if (remote && (isOwner || user.positionTitle)) {
+    //   - isAdmin:true (если owner и сейчас не admin в TF) — promote
+    //   - isAdmin:false (если НЕ owner и сейчас admin в TF) — DEMOTE
+    //     (новое поведение: WeSetup task-visibility снял пометку, но
+    //     TF юзер ещё admin → надо снять флаг).
+    //   - position — TF обновит должность.
+    const needsPromote = remote && isOwner && remote.isAdmin === false;
+    const needsDemote = remote && !isOwner && remote.isAdmin === true;
+    if (remote && (needsPromote || needsDemote || user.positionTitle)) {
       try {
         await args.createRemoteUser({
           name: user.name?.trim() || undefined,
           phone,
-          ...(isOwner ? { isAdmin: true } : {}),
+          ...(needsPromote ? { isAdmin: true } : {}),
+          ...(needsDemote ? { isAdmin: false } : {}),
           ...(user.positionTitle !== undefined
             ? { position: user.positionTitle }
             : {}),
         });
-        if (isOwner) promotedAdmin += 1;
+        if (needsPromote) promotedAdmin += 1;
       } catch {
-        // 400 «уже существует» норма если TF не promote'ит — пропускаем
+        // 400 «уже существует» норма если TF не promote/demote — пропускаем
       }
     }
     if (!remote && !remoteCreateDisabled) {
