@@ -132,7 +132,11 @@ const nextConfig: NextConfig = {
         // применяет ВСЕ matching rules одновременно, поэтому без
         // исключения /mini получает И CSP frame-ancestors, И
         // X-Frame-Options=DENY (последний переоригинировал бы).
-        source: "/((?!mini($|/)).*)",
+        //
+        // path-to-regexp запрещает capturing groups, поэтому
+        // `(?:$|/)` non-capturing вместо `($|/)`. Без `(?:` build
+        // фейлится с «Capturing groups are not allowed».
+        source: "/((?!mini(?:$|/)).*)",
         headers: denyFrameHeaders,
       },
       {
