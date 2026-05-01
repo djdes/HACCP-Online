@@ -1,6 +1,10 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+// nodejs runtime: edge runtime требует wasm-bundle для resvg который
+// не залит в deploy.tar (видим как ENOENT на проде). Node.js использует
+// нативный @resvg/resvg-js / sharp без wasm. Чуть больше RAM на cold-
+// start, но безопасно и работает out of the box.
+export const runtime = "nodejs";
 export const contentType = "image/png";
 export const dynamic = "force-static";
 export const revalidate = false;
