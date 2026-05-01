@@ -146,3 +146,31 @@ weeks-of-work проекты, требуют отдельных спринтов
   ДО `npm run build` (commit 4b3876d4). Безопасно: если build/verify
   упадёт, set -eo pipefail прерывает скрипт ДО pm2 restart, старый
   процесс с старым запечённым sha продолжает работать.
+
+## Compliance sprint (post-R34, 2026-05-01)
+
+После R34 — добавлены большие compliance-фичи (закоммичены, но не в
+PROGRESS): soft-archive с auto-notify, hidden filling-guide в каждом
+журнале, `/dashboard/compliance-audit` с rule-based scoring, шаблоны
+организаций (cafe-small/restaurant/school/production/stand) для
+one-click setup, явный demote NOT-admin юзеров в TF-sync. Подробности —
+в commit-сообщениях aba30f7a, 7f578765.
+
+## R35-R38 — production bugs после compliance sprint (2026-05-01)
+
+- [x] **R35**: og:image был квадрат 512×512 + twitter:card=summary →
+  Telegram/FB/LinkedIn cropили картинку или показывали серый
+  плейсхолдер. Создан `/og-default` route (next/og ImageResponse,
+  1200×630 brand с dark-hero gradient), meta-defaults переключены на
+  summary_large_image. Все 11 страниц использующих helper подхватили
+  автоматически. (commit de934646)
+- [x] **R36**: layout.tsx не выдавал `apple-touch-icon` — iOS-юзеры при
+  «Add to Home Screen» получали серый дефолтный screenshot. Добавил
+  link на /icons/icon-192.png и icon-512.png. (commit 8eb8ae00)
+- [x] **R37**: Нет `.well-known/security.txt` (RFC 9116). Добавил
+  с mailto:support@wesetup.ru, expires 2027-05-01. (commit 8eb8ae00)
+- [x] **R38**: **РЕАЛЬНЫЙ PROD-BUG** — `Permissions-Policy: geolocation=()`
+  блокировал `navigator.geolocation.watchPosition` в
+  `/mini/_components/geo-reminder.tsx`. Geo-напоминания в Mini App
+  были мёртвой фичей с момента R4 (security headers). Меняем на
+  `geolocation=(self)`. (commit e5e6f683)
