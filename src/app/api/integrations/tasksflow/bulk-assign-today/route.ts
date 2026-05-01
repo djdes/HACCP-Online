@@ -62,6 +62,16 @@ export const dynamic = "force-dynamic";
  * taps the button whenever they want without worrying about duplicates.
  */
 
+type RecipientPlan = {
+  userId: string;
+  name: string;
+  position: string | null;
+  rowKey: string;
+  /** "ready" — задача будет создана; "blocked" — пропуск с причиной. */
+  status: "ready" | "blocked";
+  blockedReason?: string;
+};
+
 type JournalReport = {
   code: string;
   label: string;
@@ -73,6 +83,9 @@ type JournalReport = {
   skipped: number;
   errors: number;
   skipReason?: string;
+  /** Phase preview-v1: список планируемых получателей. Заполняется и
+   *  в dry-run, и в normal-run (для прозрачности). */
+  recipients?: RecipientPlan[];
 };
 
 function currentMonthBounds(now: Date): { from: Date; to: Date } {
@@ -106,7 +119,14 @@ export async function POST(request: Request) {
   // и organizationId передаётся прямо в body. Секрет НЕ должен попадать
   // в публичные логи.
   const internalSecret = request.headers.get("x-internal-trigger");
-  type BulkAssignBody = { force?: unknown; organizationId?: unknown };
+  type BulkAssignBody = {
+    force?: unknown;
+    organizationId?: unknown;
+    /** Phase preview-v1: dryRun=true → ничего не создаётся в TF/DB,
+     *  endpoint только возвращает план «что куда уйдёт». Использует
+     *  тот же код что live-режим, без write-точек. */
+    dryRun?: unknown;
+  };
   let body: BulkAssignBody | null = null;
   try {
     const parsed = (await request
@@ -118,6 +138,7 @@ export async function POST(request: Request) {
     /* пустое тело — fall through */
   }
   const force = body?.force === true;
+  const dryRun = body?.dryRun === true;
   const isInternal = timingSafeEqualStrings(
     internalSecret,
     process.env.INTERNAL_TRIGGER_SECRET
@@ -239,7 +260,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (force) {
+  if (force && !dryRun) {
     const wiped = await db.tasksFlowTaskLink.deleteMany({
       where: { integrationId: integration.id },
     });
@@ -259,13 +280,14 @@ export async function POST(request: Request) {
   // Лёгкий sync TF-юзеров перед фан-аутом — избегаем «Дежурные
   // ответственные не привязаны к TasksFlow» когда админ только что
   // назначил ответственных в settings, а кто-то из них ещё не имеет
-  // TasksFlowUserLink. Создаёт remote-юзеров для тех у кого есть
-  // phone, линкует, тех у кого нет — пропускает молча. Если TF
-  // недоступен — proceed without (warn в логе).
-  const linkSyncResult = await ensureTasksflowUserLinks({
-    organizationId,
-    integration,
-  });
+  // TasksFlowUserLink. В dryRun пропускаем — preview не должно
+  // создавать новых TF-юзеров (они появятся при реальной отправке).
+  const linkSyncResult = dryRun
+    ? { created: 0, errors: [] }
+    : await ensureTasksflowUserLinks({
+        organizationId,
+        integration,
+      });
 
   // The selected set is every active template minus disabled journal codes.
   // Aperiodic templates are required here too, because this fan-out follows
@@ -435,7 +457,7 @@ export async function POST(request: Request) {
   }
 
   if (targetTemplates.length === 0) {
-    if (notificationItems.size > 0) {
+    if (notificationItems.size > 0 && !dryRun) {
       await notifyManagement({
         organizationId,
         kind: "tasksflow.bulk_assign.skipped",
@@ -447,13 +469,16 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json({
+      dryRun,
       created: 0,
       alreadyLinked: 0,
       skipped: reports.reduce((sum, report) => sum + report.skipped, 0),
       errors: 0,
       documentsCreated: 0,
       byJournal: reports,
-      message: "Все выбранные журналы за сегодня уже заполнены.",
+      message: dryRun
+        ? "Превью: все выбранные журналы за сегодня уже заполнены, отправлять нечего."
+        : "Все выбранные журналы за сегодня уже заполнены.",
     });
   }
 
@@ -507,7 +532,21 @@ export async function POST(request: Request) {
       tfUserIdByWesetup.set(link.wesetupUserId, link.tasksflowUserId);
     }
   }
-  const scopedUsers = filterSubordinates(activeUsersForScope, scope, actingUser.id);
+  // Phase fan-out v3: bulk-assign-today всегда триггерит management-
+  // юзер (admin / owner / manager / head_chef) — это проверяется выше
+  // на line 203 (hasFullWorkspaceAccess) для session, а internal/bearer
+  // подставляют первого management-юзера. filterSubordinates с узким
+  // scope отсекал поваров/уборщиков от admin'а: если admin не настроил
+  // staff-hierarchy явно, scope.subordinateUserIds пустой → scopedUsers
+  // = [admin] → fan-out шёл только админу.
+  //
+  // Решение: для bulk-assign-today используем ВСЕХ active users
+  // организации без manager-scope-фильтра. Этот endpoint — массовая
+  // рассылка задач от руководителя, и логически здесь scope всегда
+  // = вся орга. Если в будущем понадобится middle-manager с реально
+  // ограниченным scope — добавим явный флаг respectManagerScope в
+  // body и оттуда пойдёт filterSubordinates.
+  const scopedUsers = activeUsersForScope;
   const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
   const scheduledUserIds = new Set(onDutyUsers.map((user) => user.userId));
   // Читаем org-флаг bulkAssignRespectShifts. По умолчанию false —
@@ -864,6 +903,35 @@ export async function POST(request: Request) {
     // Раньше sequential — 15 row'ов × ~1.5s/row = 22+s. Теперь 5
     // параллельно → ~5s на пачку. TF rate-limit-friendly: 5 одновременно
     // не сильно бьёт по их API.
+
+    // Заполняем recipients для transparency — что куда будет отправлено.
+    // В dryRun этот массив отдаётся клиенту как «План отправки».
+    if (!report.recipients) report.recipients = [];
+    for (const row of rowSelection.rows) {
+      const uid = row.responsibleUserId;
+      if (!uid) continue;
+      const u = earlyUsersData.find((x) => x.id === uid);
+      if (!u) continue;
+      const linked = tfUserIdByWesetup.has(uid);
+      report.recipients.push({
+        userId: uid,
+        name: u.name,
+        position: u.jobPosition?.name ?? null,
+        rowKey: row.rowKey,
+        status: linked ? "ready" : "blocked",
+        blockedReason: linked ? undefined : "Нет привязки к TasksFlow (добавь телефон)",
+      });
+    }
+
+    // Phase preview-v1: dryRun — НЕ создаём TF tasks и не пишем DB.
+    // Просто аккумулируем report.recipients и переходим к следующему.
+    if (dryRun) {
+      report.created = report.recipients.filter((r) => r.status === "ready").length;
+      report.skipped += report.recipients.filter((r) => r.status === "blocked").length;
+      reports.push(report);
+      continue;
+    }
+
     await runWithConcurrency(rowSelection.rows, 5, async (row) => {
       if (takenRowKeys.has(row.rowKey)) {
         report.alreadyLinked += 1;
@@ -1087,14 +1155,17 @@ export async function POST(request: Request) {
     }
   );
 
-  if (summary.created > 0 || summary.alreadyLinked > 0 || summary.errors > 0) {
+  if (
+    !dryRun &&
+    (summary.created > 0 || summary.alreadyLinked > 0 || summary.errors > 0)
+  ) {
     await db.tasksFlowIntegration.update({
       where: { id: integration.id },
       data: { lastSyncAt: new Date() },
     });
   }
 
-  if (notificationItems.size > 0) {
+  if (notificationItems.size > 0 && !dryRun) {
     await notifyManagement({
       organizationId,
       kind: "tasksflow.bulk_assign.skipped",
@@ -1107,6 +1178,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
+    dryRun,
     ...summary,
     byJournal: reports,
     tfUserSync: linkSyncResult,
