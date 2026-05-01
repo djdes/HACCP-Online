@@ -57,14 +57,15 @@ jobs:
       - name: Generate Prisma client for CI build
         run: npx prisma generate
 
-      - name: Write build-time only (sha записывается на проде после build)
+      - name: Write build-time only (sha записывается на проде до build)
         run: |
           # КРИТИЧНО: .build-sha НЕ пишем тут. Если запишем — он попадёт
-          # в tar и применится на проде даже когда `npm run build`
-          # сломается → /api/health покажет «свежий» sha, мониторинг
-          # подумает «всё задеплоено», а .next/server/app окажется
-          # пустым и динамические страницы будут 500-ить.
-          # Sha записываем ТОЛЬКО после verify_manifests на сервере.
+          # в tar и при failed build на проде /api/health показывал бы
+          # «свежий» sha притом что новый код не задеплоен.
+          # Sha пишем НА ПРОДЕ перед `npm run build` — next.config.ts
+          # читает его в getBuildId() и запекает в NEXT_PUBLIC_BUILD_ID.
+          # Если build/verify упадёт — PM2 не рестартует, старый процесс
+          # с старым запечённым sha продолжает жить.
           echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .build-time
 
       - name: Create deploy tarball
@@ -128,8 +129,10 @@ jobs:
           password: ${{ secrets.DEPLOY_SSH_PASS }}
           port: ${{ secrets.DEPLOY_SSH_PORT }}
           # Пробрасываем github.sha как env-переменную внутрь SSH-сессии,
-          # чтобы скрипт мог записать .build-sha ТОЛЬКО после успешного
-          # build (а не в tar заранее).
+          # чтобы скрипт мог записать .build-sha ДО `npm run build`
+          # (next.config.ts читает его в getBuildId и запекает в
+          # NEXT_PUBLIC_BUILD_ID — без этого healthz возвращал sha
+          # *предыдущего* деплоя).
           envs: GITHUB_SHA
           timeout: 600s
           command_timeout: 10m
@@ -169,6 +172,20 @@ jobs:
 
             echo "=== Generating Prisma client ==="
             npx prisma generate 2>&1 | tail -5
+
+            echo "=== Writing .build-sha до build (next.config.ts читает его в getBuildId() и запекает NEXT_PUBLIC_BUILD_ID в bundle) ==="
+            # Раньше .build-sha писали ПОСЛЕ build'а — и каждый деплой
+            # запекал в JS bundle SHA *прошлого* деплоя (off-by-one):
+            # next build читал .build-sha с диска до того, как новый sha
+            # туда записывался → /api/healthz возвращал старый sha
+            # притом что код был свежий. Решение: писать BEFORE build.
+            #
+            # Безопасно ли это? Да: если build потом упадёт, set -eo
+            # pipefail или verify_manifests прервут деплой ДО pm2
+            # restart'а. Старый PM2-процесс останется жить со своим
+            # запечённым SHA. Disk-state не утекает в runtime пока
+            # next build не завершится успехом.
+            echo "$GITHUB_SHA" > .build-sha
 
             echo "=== Building Next.js on prod ==="
             # Build на том же хосте, где устанавливались node_modules,
@@ -245,15 +262,6 @@ jobs:
                 exit 1
               fi
             fi
-
-            echo "=== Writing .build-sha (after successful verify) ==="
-            # КРИТИЧНО: пишем sha ТОЛЬКО после verify_manifests. Если
-            # build упал и verify не прошёл — exit 1 выше, sha не
-            # обновился, /api/health показывает старый sha и мониторинг
-            # видит что deploy не дошёл. Раньше .build-sha записывался
-            # в CI step до build'а и попадал на прод даже при failed
-            # build — отсюда «зелёный buildSha» и сломанные страницы.
-            echo "$GITHUB_SHA" > .build-sha
 
             echo "=== Pushing schema to DB ==="
             # prisma db push зависит от `dotenv/config` в prisma.config.ts.
