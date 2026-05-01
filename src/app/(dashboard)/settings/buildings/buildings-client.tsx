@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 
 type Room = { id: string; name: string; kind: string; sortOrder: number };
 type Building = {
@@ -54,7 +55,13 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
   }
 
   async function deleteBuilding(id: string, name: string) {
-    if (!window.confirm(`Удалить «${name}» вместе со всеми помещениями?`)) return;
+    const ok = await confirmAsync({
+      title: "Удалить здание?",
+      description: `Здание «${name}» и все его помещения будут удалены. Записи журналов с привязкой к ним перестанут связываться с зоной.`,
+      variant: "danger",
+      confirmLabel: "Удалить здание",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/settings/buildings/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Не удалось удалить");
@@ -168,7 +175,13 @@ function BuildingCard({
   }
 
   async function deleteRoom(id: string, name: string) {
-    if (!window.confirm(`Удалить помещение «${name}»?`)) return;
+    const ok = await confirmAsync({
+      title: "Удалить помещение?",
+      description: `Помещение «${name}» будет удалено. Связанные записи журналов потеряют ссылку на зону.`,
+      variant: "danger",
+      confirmLabel: "Удалить помещение",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/settings/rooms/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Не удалось удалить");

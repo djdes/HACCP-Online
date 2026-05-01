@@ -60,6 +60,7 @@ import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 type EmployeeItem = {
@@ -609,7 +610,7 @@ export function ColdEquipmentDocumentClient({
       return;
     }
 
-    if (!window.confirm(`Удалить выбранные строки (${selectedEquipmentIds.length})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${selectedEquipmentIds.length}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     setIsDeleting(true);
     try {

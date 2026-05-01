@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -314,14 +315,27 @@ export function TasksFlowSettingsClient({
     });
   }
 
-  function handleDisconnect() {
-    if (
-      !window.confirm(
-        "Отключить интеграцию с TasksFlow? Маппинг сотрудников и связи задач будут удалены."
-      )
-    ) {
-      return;
-    }
+  async function handleDisconnect() {
+    const ok = await confirmAsync({
+      title: "Отключить интеграцию с TasksFlow?",
+      description:
+        "Маппинг сотрудников и связи задач будут удалены. Остановится автоматическая отправка задач в TasksFlow до повторной настройки интеграции.",
+      bullets: [
+        {
+          label:
+            "Сами задачи в TasksFlow не удаляются — там они останутся, просто без связи с этой WeSetup-оргой.",
+          tone: "info",
+        },
+        {
+          label:
+            "Если нужно очистить и в TasksFlow — сначала жми «Очистить невыполненные» в превью отправки, потом отключай.",
+          tone: "warn",
+        },
+      ],
+      confirmLabel: "Отключить",
+      variant: "danger",
+    });
+    if (!ok) return;
     startDisconnect(async () => {
       try {
         const response = await fetch("/api/integrations/tasksflow", {

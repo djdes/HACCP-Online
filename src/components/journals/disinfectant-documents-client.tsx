@@ -45,6 +45,7 @@ import {
 } from "@/lib/disinfectant-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -295,7 +296,7 @@ export function DisinfectantDocumentsClient({
   }
 
   async function handleDelete(documentId: string, docTitle: string) {
-    if (!window.confirm(`Удалить документ "${docTitle}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${docTitle}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     const response = await fetch(`/api/journal-documents/${documentId}`, {
       method: "DELETE",
     });

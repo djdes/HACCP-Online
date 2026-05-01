@@ -377,54 +377,110 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Action-first: what the user needs to do TODAY */}
+      {/* Action-first: what the user needs to do TODAY.
+          Карточка получает мягкий gradient-фон в зависимости от
+          compliance-tone (зелёный 100%, жёлтый частично, красный
+          ничего) — сразу понятно как дела с заполнением. */}
       <section
-        className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+        className={`relative overflow-hidden rounded-3xl border bg-white p-5 shadow-[0_10px_30px_-15px_rgba(11,16,36,0.1)] sm:p-6 ${
+          complianceItems.length === 0
+            ? "border-[#ececf4]"
+            : unfilledCount === 0
+              ? "border-emerald-200"
+              : compliancePercent >= 50
+                ? "border-amber-200"
+                : "border-rose-200"
+        }`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        {/* Subtle gradient accent sweep — лёгкий цвет «настроения» */}
+        <div
+          className={`pointer-events-none absolute -right-32 -top-32 size-[400px] rounded-full opacity-30 blur-3xl ${
+            complianceItems.length === 0
+              ? "bg-[#5566f6]/20"
+              : unfilledCount === 0
+                ? "bg-emerald-300"
+                : compliancePercent >= 50
+                  ? "bg-amber-300"
+                  : "bg-rose-300"
+          }`}
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
             <span
-              className={`flex size-10 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
+              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
             >
               {unfilledCount === 0 ? (
-                <CheckCircle2 className="size-5" />
+                <CheckCircle2 className="size-6" />
               ) : (
-                <ClipboardList className="size-5" />
+                <ClipboardList className="size-6" />
               )}
             </span>
-            <div>
-              <h2 className="text-[20px] font-semibold text-[#0b1024]">
-                {complianceItems.length === 0
-                  ? "Журналы ещё не настроены"
-                  : unfilledCount === 0
-                    ? "Все ежедневные журналы начаты"
-                    : `Не начинали заполняться: ${unfilledCount}`}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[22px]">
+                {complianceItems.length === 0 ? (
+                  "Журналы ещё не настроены"
+                ) : unfilledCount === 0 ? (
+                  "Все журналы начаты сегодня"
+                ) : (
+                  <>
+                    Нужно начать{" "}
+                    <span
+                      className={
+                        compliancePercent >= 50
+                          ? "text-amber-700"
+                          : "text-rose-700"
+                      }
+                    >
+                      {unfilledCount}{" "}
+                      {unfilledCount === 1
+                        ? "журнал"
+                        : unfilledCount < 5
+                          ? "журнала"
+                          : "журналов"}
+                    </span>
+                  </>
+                )}
               </h2>
-              <p className="mt-0.5 text-[13px] text-[#6f7282]">
+              <p className="mt-1 text-[13px] leading-snug text-[#6f7282] sm:text-[14px]">
                 {complianceItems.length === 0
-                  ? "Создайте первый документ в /journals — после этого журнал попадёт в готовность сегодня."
+                  ? "Создайте первый документ в журналах — после этого журнал попадёт в готовность сегодня."
                   : unfilledCount === 0
                     ? "Отличная работа — в каждом журнале есть хотя бы одна запись за сегодня."
-                    : "Нажмите на карточку, чтобы открыть журнал и внести первую запись за сегодня."}
+                    : "Нажмите на карточку ниже, чтобы открыть журнал и внести первую запись."}
               </p>
+              {/* Inline-stat: filled / total с прогресс-баром */}
+              {complianceItems.length > 0 ? (
+                <div className="mt-3">
+                  <div className="flex items-end justify-between gap-2 text-[11.5px] text-[#6f7282]">
+                    <span>
+                      <strong className="text-[#0b1024]">{filledCount}</strong>
+                      {" из "}
+                      <strong className="text-[#0b1024]">
+                        {complianceItems.length}
+                      </strong>
+                      {" заполнено"}
+                    </span>
+                    <span className={`font-semibold ${complianceTone.fgClass}`}>
+                      {compliancePercent}% · {complianceTone.label}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#ececf4]">
+                    <div
+                      className={`h-full transition-all ${
+                        unfilledCount === 0
+                          ? "bg-emerald-500"
+                          : compliancePercent >= 50
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                      }`}
+                      style={{ width: `${compliancePercent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <ComplianceRing percent={compliancePercent} />
-            <div className="hidden text-right sm:block">
-              <div className="text-[11px] uppercase tracking-wider text-[#9b9fb3]">
-                Готовность
-              </div>
-              <div
-                className={`text-[22px] font-semibold leading-tight ${complianceTone.fgClass}`}
-              >
-                {compliancePercent}%
-              </div>
-              <div className="text-[11px] text-[#9b9fb3]">
-                {complianceTone.label}
-              </div>
-            </div>
-          </div>
+          <ComplianceRing percent={compliancePercent} />
         </div>
 
         {/* Раскрывающиеся секции — каждая помнит state в localStorage.

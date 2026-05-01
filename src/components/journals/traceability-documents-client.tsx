@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -340,7 +341,14 @@ export function TraceabilityDocumentsClient({
   }
 
   async function handleDelete(doc: TraceabilityDocumentItem) {
-    if (!window.confirm(`Удалить документ "${doc.title || DEFAULT_TITLE}"?`)) return;
+    const title = doc.title || DEFAULT_TITLE;
+    const ok = await confirmAsync({
+      title: "Удалить документ?",
+      description: `Документ «${title}» и все его записи будут удалены безвозвратно.`,
+      variant: "danger",
+      confirmLabel: "Удалить",
+    });
+    if (!ok) return;
     const response = await fetch(`/api/journal-documents/${doc.id}`, { method: "DELETE" });
     if (!response.ok) {
       toast.error("Не удалось удалить документ");

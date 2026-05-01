@@ -36,6 +36,7 @@ import {
 } from "@/lib/traceability-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -622,7 +623,7 @@ export function TraceabilityDocumentClient(props: Props) {
   async function deleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    if (!window.confirm(`Удалить выбранные строки (${count})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     const idsToRemove = [...selectedRowIds];
     try {
       setSelectedRowIds([]);

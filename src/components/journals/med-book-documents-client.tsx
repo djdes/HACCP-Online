@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_TITLE_CLASS,
@@ -166,7 +167,7 @@ export function MedBookDocumentsClient({
   }
 
   async function deleteDocument(documentId: string, title: string) {
-    if (!window.confirm(`Удалить документ "${title}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     setBusyDocumentId(documentId);
     try {

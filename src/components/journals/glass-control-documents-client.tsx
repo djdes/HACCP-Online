@@ -39,6 +39,7 @@ import {
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -305,7 +306,7 @@ export function GlassControlDocumentsClient(props: Props) {
   }
 
   async function handleDelete(documentId: string, title: string) {
-    if (!window.confirm(`Удалить документ "${title}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     const response = await fetch(`/api/journal-documents/${documentId}`, {
       method: "DELETE",

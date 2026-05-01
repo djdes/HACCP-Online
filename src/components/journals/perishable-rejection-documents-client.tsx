@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -58,7 +59,7 @@ export function PerishableRejectionDocumentsClient({
   }, [editingDocument]);
 
   async function handleDelete(documentId: string, titleValue: string) {
-    if (!window.confirm(`Удалить документ "${titleValue}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${titleValue}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
     if (!response.ok) {
       toast.error("Не удалось удалить документ");

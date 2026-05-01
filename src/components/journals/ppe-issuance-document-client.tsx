@@ -52,6 +52,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 type UserItem = {
   id: string;
   name: string;
@@ -555,7 +556,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    if (!window.confirm(`Удалить выбранные строки (${count})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     try {
       const nextConfig = {
         ...config,

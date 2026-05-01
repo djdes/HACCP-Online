@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -219,7 +220,7 @@ export function HealthDocumentsClient(props: Props) {
     props.activeTab === "closed" ? "Журнал здоровья (Закрытые!!!)" : "Журнал здоровья";
 
   async function handleDelete(document: HealthListDocument) {
-    const confirmed = window.confirm(`Удалить документ "${document.title}"?`);
+    const confirmed = await confirmAsync({ title: "Удалить документ?", description: `Документ «${document.title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" });
     if (!confirmed) return;
 
     const response = await fetch(`/api/journal-documents/${document.id}`, {

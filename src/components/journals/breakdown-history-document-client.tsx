@@ -34,6 +34,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 type Props = {
   documentId: string;
@@ -488,7 +489,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    if (!window.confirm(`Удалить выбранные строки (${count})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     try {
       const nextConfig = {
         ...config,

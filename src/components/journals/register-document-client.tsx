@@ -39,6 +39,7 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
@@ -514,7 +515,7 @@ export function RegisterDocumentClient({
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    if (!window.confirm(`Удалить выбранные строки (${count})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     try {
       const nextConfig = {

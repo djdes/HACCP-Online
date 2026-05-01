@@ -7,6 +7,7 @@ import { BookOpenText, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -78,7 +79,7 @@ export function ScanJournalDocumentsClient({
   }
 
   async function handleDelete(document: JournalDocumentRow) {
-    if (!window.confirm(`Удалить документ "${document.title}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${document.title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     const response = await fetch(`/api/journal-documents/${document.id}`, {
       method: "DELETE",

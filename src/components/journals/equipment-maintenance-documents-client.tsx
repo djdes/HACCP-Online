@@ -35,6 +35,7 @@ import {
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -95,7 +96,7 @@ export function EquipmentMaintenanceDocumentsClient({
   }, [editingDoc]);
 
   async function handleDelete(docId: string, docTitle: string) {
-    if (!window.confirm(`Удалить документ "${docTitle}"?`)) return;
+    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${docTitle}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     const response = await fetch(`/api/journal-documents/${docId}`, { method: "DELETE" });
     if (!response.ok) throw new Error("Не удалось удалить документ");
     router.refresh();

@@ -45,6 +45,7 @@ import {
 } from "@/lib/pest-control-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -288,7 +289,7 @@ function TrackedDocumentClientImpl({
   async function removeSelectedEntries() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    if (!window.confirm(`Удалить выбранные строки (${count})?`)) return;
+    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
 
     try {
       const response = await fetch(`/api/journal-documents/${documentId}/entries`, {

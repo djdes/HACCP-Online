@@ -36,6 +36,7 @@ import {
 } from "@/lib/fryer-oil-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; date: string; data: FryerOilEntryData };
 type Props = {

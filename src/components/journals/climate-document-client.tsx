@@ -56,6 +56,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { PositionSelectItems } from "@/components/shared/position-select";
 type EmployeeItem = {
@@ -1149,7 +1150,7 @@ export function ClimateDocumentClient({
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
-    const confirmed = window.confirm(`Удалить выбранные строки (${count})?`);
+    const confirmed = await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" });
     if (!confirmed) return;
 
     try {

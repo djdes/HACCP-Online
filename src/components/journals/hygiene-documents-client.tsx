@@ -39,6 +39,7 @@ import {
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -290,7 +291,7 @@ export function HygieneDocumentsClient({
   const responsibleOptions = getStaffJournalResponsibleTitleOptions(users);
 
   async function handleDelete(document: JournalListDocument) {
-    const confirmed = window.confirm(`Удалить документ "${document.title}"?`);
+    const confirmed = await confirmAsync({ title: "Удалить документ?", description: `Документ «${document.title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" });
     if (!confirmed) return;
 
     const response = await fetch(`/api/journal-documents/${document.id}`, {
