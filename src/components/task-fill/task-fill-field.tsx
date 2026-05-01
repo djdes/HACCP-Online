@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,49 @@ import {
 } from "@/components/ui/select";
 import type { TaskFormField } from "@/lib/tasksflow-adapters/task-form";
 import { fieldIcon, fieldIconTone } from "./field-icons";
+
+/**
+ * Live-валидация числовых полей: возвращает статус и текст подсказки.
+ * Используется в TaskFillField чтобы показать «в норме» зелёным или
+ * «выходит за границы» красным сразу при вводе. Юзер видит статус
+ * до сабмита и может поправить сразу.
+ */
+function validateNumberField(
+  field: Extract<TaskFormField, { type: "number" }>,
+  value: unknown,
+): {
+  status: "neutral" | "ok" | "warn" | "error";
+  hint: string | null;
+} {
+  if (value === null || value === undefined || value === "") {
+    return { status: "neutral", hint: null };
+  }
+  const num = typeof value === "number" ? value : Number(String(value).replace(",", "."));
+  if (!Number.isFinite(num)) {
+    return { status: "error", hint: "Не похоже на число — введите цифрами" };
+  }
+  const min = field.min;
+  const max = field.max;
+  if (typeof min === "number" && num < min) {
+    return {
+      status: "error",
+      hint: `Меньше нормы (минимум ${min}${field.unit ? " " + field.unit : ""}). Это нарушение — нужно действие.`,
+    };
+  }
+  if (typeof max === "number" && num > max) {
+    return {
+      status: "error",
+      hint: `Выше нормы (максимум ${max}${field.unit ? " " + field.unit : ""}). Это нарушение — нужно действие.`,
+    };
+  }
+  if (typeof min === "number" && typeof max === "number") {
+    return {
+      status: "ok",
+      hint: `В норме (диапазон ${min}–${max}${field.unit ? " " + field.unit : ""})`,
+    };
+  }
+  return { status: "neutral", hint: null };
+}
 
 type Props = {
   field: TaskFormField;
@@ -81,8 +125,22 @@ export function TaskFillField({ field, value, onChange }: Props) {
       ? field.placeholder
       : undefined;
 
+  // Live-валидация для number-полей.
+  const numberStatus =
+    field.type === "number" ? validateNumberField(field, value) : null;
+
+  // Цвет рамки карточки по статусу.
+  const cardBorder =
+    numberStatus?.status === "error"
+      ? "border-rose-300"
+      : numberStatus?.status === "ok"
+        ? "border-emerald-200"
+        : "border-[#ececf4]";
+
   return (
-    <div className="rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors focus-within:border-[#5566f6]/45 focus-within:bg-white sm:p-5">
+    <div
+      className={`rounded-2xl border bg-white p-4 transition-colors focus-within:border-[#5566f6]/45 focus-within:bg-white sm:p-5 ${cardBorder}`}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
         <span
@@ -111,9 +169,28 @@ export function TaskFillField({ field, value, onChange }: Props) {
       {/* Input */}
       <div className="mt-3">{renderInput(field, value, onChange)}</div>
 
-      {/* Assistive text — placeholder подсказка дублируется как hint
-          под полем для тех кто не понимает плейсхолдер */}
-      {placeholder ? (
+      {/* Live validation status (number-поля) */}
+      {numberStatus && numberStatus.hint ? (
+        <div
+          className={`mt-2 flex items-start gap-1.5 text-[12.5px] leading-snug sm:text-[13px] ${
+            numberStatus.status === "error"
+              ? "text-rose-700"
+              : numberStatus.status === "ok"
+                ? "text-emerald-700"
+                : "text-[#9b9fb3]"
+          }`}
+        >
+          {numberStatus.status === "error" ? (
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          ) : numberStatus.status === "ok" ? (
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" />
+          ) : null}
+          <span>{numberStatus.hint}</span>
+        </div>
+      ) : placeholder ? (
+        /* Assistive text — placeholder подсказка дублируется как hint
+            под полем для тех кто не понимает плейсхолдер. Показывается
+            ТОЛЬКО когда нет live-validation подсказки. */
         <p className="mt-2 text-[12.5px] leading-snug text-[#9b9fb3] sm:text-[13px]">
           {placeholder}
         </p>

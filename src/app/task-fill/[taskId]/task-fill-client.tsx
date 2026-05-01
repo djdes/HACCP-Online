@@ -515,7 +515,7 @@ export function TaskFillClient({
             locked={editLocked}
           />
         ) : (
-          <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_20px_50px_-20px_rgba(11,16,36,0.18)] sm:p-6">
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_20px_50px_-20px_rgba(11,16,36,0.18)] animate-in fade-in-0 slide-in-from-bottom-4 duration-500 sm:p-6">
             {isShared ? (
               <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white p-4 text-[13px] leading-snug text-[#3c4053]">
                 <div className="flex items-start gap-3">
@@ -603,13 +603,18 @@ export function TaskFillClient({
 
             {form && form.fields.length > 0 ? (
               <div className="space-y-3">
-                {form.fields.map((field) => (
-                  <TaskFillField
+                {form.fields.map((field, idx) => (
+                  <div
                     key={field.key}
-                    field={field}
-                    value={values[field.key]}
-                    onChange={(v) => setField(field.key, v)}
-                  />
+                    className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 [animation-fill-mode:both]"
+                    style={{ animationDelay: `${100 + idx * 60}ms` }}
+                  >
+                    <TaskFillField
+                      field={field}
+                      value={values[field.key]}
+                      onChange={(v) => setField(field.key, v)}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -831,8 +836,8 @@ function NoEventsSheet({
     picked !== null &&
     (picked !== "__free__" || free.trim().length > 0);
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] sm:items-center">
-      <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] sm:rounded-3xl sm:border">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] animate-in fade-in-0 duration-200 sm:items-center">
+      <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] animate-in slide-in-from-bottom-8 fade-in-0 duration-300 sm:rounded-3xl sm:border sm:zoom-in-95">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-[18px] font-semibold text-[#0b1024]">
             Не требуется сегодня
@@ -1048,8 +1053,8 @@ function ConfirmSheet({
     }));
   }, [form, values]);
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] sm:items-center">
-      <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] sm:rounded-3xl sm:border">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] animate-in fade-in-0 duration-200 sm:items-center">
+      <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] animate-in slide-in-from-bottom-8 fade-in-0 duration-300 sm:rounded-3xl sm:border sm:zoom-in-95">
         <h3 className="text-[18px] font-semibold text-[#0b1024]">
           Проверьте данные
         </h3>

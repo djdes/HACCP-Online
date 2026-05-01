@@ -65,8 +65,8 @@ export function TaskFillHelperModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1024]/60 px-2 backdrop-blur-[3px] sm:items-center sm:px-4">
-      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-30px_80px_-20px_rgba(11,16,36,0.55)] sm:rounded-3xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1024]/60 px-2 backdrop-blur-[3px] animate-in fade-in-0 duration-200 sm:items-center sm:px-4">
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-30px_80px_-20px_rgba(11,16,36,0.55)] animate-in slide-in-from-bottom-8 fade-in-0 duration-300 sm:rounded-3xl sm:zoom-in-95">
         {/* Hero */}
         <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#3d4efc] via-[#5566f6] to-[#7a5cff] px-6 py-7 text-white">
           <div className="pointer-events-none absolute -right-16 -top-16 size-[240px] rounded-full bg-white/15 blur-[80px]" />
