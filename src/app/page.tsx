@@ -289,8 +289,10 @@ export default async function LandingPage() {
         description:
           "Электронные журналы СанПиН и ХАССП для общепита и пищевых производств. 35 журналов, автозаполнение, Telegram-бот, PDF для Роспотребнадзора.",
         // image — required для SoftwareApplication rich result в Google.
-        // Без неё карточка с ценой/operatingSystem не показывается.
-        image: ["https://wesetup.ru/icons/icon-512.png"],
+        // Раньше отдавали icon-512 (квадрат), но Google рекомендует
+        // landscape для product/app rich-результатов. /og-default —
+        // 1200×630 brand-hero, лучше карточка в выдаче.
+        image: ["https://wesetup.ru/og-default"],
         offers: {
           "@type": "Offer",
           price: "0",
@@ -313,7 +315,8 @@ export default async function LandingPage() {
           "35 журналов для общепита и пищевых производств. Telegram-бот, автозаполнение, PDF для проверок Роспотребнадзора.",
         // image — required для Product rich result. Без него Google не
         // показывает Offer-карточку с ценой/доступностью в выдаче.
-        image: ["https://wesetup.ru/icons/icon-512.png"],
+        // 1200×630 landscape лучше квадрата для Product rich snippet.
+        image: ["https://wesetup.ru/og-default"],
         brand: { "@id": "https://wesetup.ru/#org" },
         offers: [
           {

@@ -79,9 +79,10 @@ export default async function JournalInfoDetailPage({
     headline: seo?.title ?? info.tagline,
     description: seo?.description ?? info.why,
     // Article.image is required per Google rich-results spec — без него
-    // карточка не попадает в Article rich result. Тот же brand-logo что
-    // в og:image. См. идентичный фикс для blog/[slug] (7407176e).
-    image: ["https://wesetup.ru/icons/icon-512.png"],
+    // карточка не попадает в Article rich result. /og-default — 1200×630
+    // landscape brand-hero, лучше для rich-snippet чем квадрат
+    // icon-512.png. См. blog/[slug] для идентичного фикса.
+    image: ["https://wesetup.ru/og-default"],
     url: canonical,
     inLanguage: "ru-RU",
     keywords: seo?.keywords?.join(", "),

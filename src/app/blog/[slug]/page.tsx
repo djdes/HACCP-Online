@@ -114,15 +114,15 @@ export default async function BlogArticlePage({
 
   // E20: schema.org Article markup для расширенных snippet'ов в Google.
   // Per Google docs, Article requires `image` field — без него карточка
-  // не попадает в Article rich result. Используем тот же icon-512.png
-  // что и в og:image (квадратный 512×512). Когда у статей появятся
-  // designed hero-images, переключим на них.
+  // не попадает в Article rich result. /og-default — 1200×630 brand-hero,
+  // лучше для Article rich-snippet чем квадрат icon-512. Когда у статей
+  // появятся per-article designed hero-images, переключим.
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
-    image: ["https://wesetup.ru/icons/icon-512.png"],
+    image: ["https://wesetup.ru/og-default"],
     datePublished: article.publishedAt?.toISOString(),
     dateModified: article.publishedAt?.toISOString(),
     author: {
