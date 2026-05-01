@@ -35,6 +35,7 @@ import { listOnDutyToday } from "@/lib/work-shifts";
 import { notifyManagement, type NotificationItem } from "@/lib/notifications";
 import { timingSafeEqualStrings } from "@/lib/timing-safe";
 import { matchPositionsForJournal } from "@/lib/journal-responsible-presets";
+import { isSuperUser } from "@/lib/super-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,6 +127,11 @@ export async function POST(request: Request) {
      *  endpoint только возвращает план «что куда уйдёт». Использует
      *  тот же код что live-режим, без write-точек. */
     dryRun?: unknown;
+    /** Super-user only (см. src/lib/super-user.ts): bypass-фильтра
+     *  «уже заполнено сегодня» + bypass rate-limit. Используется для
+     *  тестирования force-fan-out'а без ожидания до завтра. Любому
+     *  другому юзеру эта опция игнорируется. */
+    bypassTimeFilter?: unknown;
   };
   let body: BulkAssignBody | null = null;
   try {
@@ -139,6 +145,7 @@ export async function POST(request: Request) {
   }
   const force = body?.force === true;
   const dryRun = body?.dryRun === true;
+  const bypassTimeFilterRequested = body?.bypassTimeFilter === true;
   const isInternal = timingSafeEqualStrings(
     internalSecret,
     process.env.INTERNAL_TRIGGER_SECRET
@@ -146,6 +153,7 @@ export async function POST(request: Request) {
 
   let organizationId: string;
   let actingUser: { id: string; name: string | null; email: string | null };
+  let superUser = false;
 
   if (isInternal) {
     if (typeof body?.organizationId !== "string" || !body.organizationId) {
@@ -230,12 +238,20 @@ export async function POST(request: Request) {
         name: session.user.name ?? null,
         email: session.user.email ?? null,
       };
+      superUser = isSuperUser(session);
     }
   }
 
+  // Super-user gate: bypassTimeFilter работает ТОЛЬКО для специального
+  // dev-аккаунта (см. src/lib/super-user.ts). У всех остальных флаг
+  // молча игнорируется. Любая логика «обхода фильтров» зависит от
+  // этого финального булева, а не от body-флага напрямую.
+  const bypassTimeFilter = bypassTimeFilterRequested && superUser;
+
   // Rate-limit: 3 fan-out'а / 5 мин / org. Защита от случайного
-  // двойного клика и CSRF-loop'а.
-  if (!bulkAssignRateLimiter.consume(`bulk-assign:${organizationId}`)) {
+  // двойного клика и CSRF-loop'а. Super-user с bypassTimeFilter
+  // обходит rate-limit — нужен для итеративного тестирования.
+  if (!bypassTimeFilter && !bulkAssignRateLimiter.consume(`bulk-assign:${organizationId}`)) {
     const ms = bulkAssignRateLimiter.remainingMs(
       `bulk-assign:${organizationId}`
     );
@@ -272,7 +288,11 @@ export async function POST(request: Request) {
         action: "tasksflow.bulk_assign.force_wipe",
         entity: "TasksFlowTaskLink",
         entityId: integration.id,
-        details: { wiped: wiped.count, internal: isInternal },
+        details: {
+          wiped: wiped.count,
+          internal: isInternal,
+          bypassTimeFilter,
+        },
       },
     });
   }
@@ -318,13 +338,15 @@ export async function POST(request: Request) {
   );
   const scope = await getManagerScope(actingUser.id, organizationId);
   const now = new Date();
-  const filledTemplateIds = await getTemplatesFilledToday(
-    organizationId,
-    now,
-    templates,
-    disabledCodes,
-    { treatAperiodicAsFilled: false }
-  );
+  const filledTemplateIds = bypassTimeFilter
+    ? new Set<string>()
+    : await getTemplatesFilledToday(
+        organizationId,
+        now,
+        templates,
+        disabledCodes,
+        { treatAperiodicAsFilled: false }
+      );
 
   const { targets: targetTemplates, skipped: hierarchySkipped } =
     selectBulkJournalTemplates({

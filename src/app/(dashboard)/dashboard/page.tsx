@@ -46,6 +46,8 @@ import {
 } from "@/components/dashboard/dashboard-section";
 import { StaffTrainingCard } from "@/components/dashboard/staff-training-card";
 import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
+import { SuperUserDevTools } from "@/components/dashboard/super-user-dev-tools";
+import { isSuperUser } from "@/lib/super-user";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
@@ -310,6 +312,11 @@ export default async function DashboardPage() {
       {/* Soft-block: nag-modal для админа когда CAPA открыты > 7 дней.
           Dismissable per-session, появляется снова после reload. */}
       <StaleCapaNag count={staleCapaCount} />
+
+      {/* Super-user dev-tools (видны ТОЛЬКО специальному dev-аккаунту,
+          см. src/lib/super-user.ts). Очистка журналов + force-bulk-assign
+          в TF без time-фильтра — для итеративного тестирования. */}
+      <SuperUserDevTools enabled={isSuperUser(session)} />
 
       {/* Dark hero with greeting + stat pills */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
