@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Check,
@@ -580,6 +580,11 @@ export function JournalResponsiblesClient({
   difficultyOverride,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fixCode = searchParams?.get("fix") ?? null;
+  const fixReason = searchParams?.get("reason") ?? null;
+  const [fixDismissed, setFixDismissed] = useState(false);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [base, setBase] = useState<Selection>(() => toSelection(journals));
   const [curr, setCurr] = useState<Selection>(() => toSelection(journals));
   const [query, setQuery] = useState("");
@@ -594,6 +599,27 @@ export function JournalResponsiblesClient({
   const [collapsed, setCollapsed] = useState<Set<JournalCategory>>(
     () => new Set()
   );
+
+  // Скроллим к карточке журнала + раскрываем категорию + добавляем
+  // красную рамку, когда юзер пришёл с ?fix=<code> из notification.
+  useEffect(() => {
+    if (!fixCode || fixDismissed) return;
+    setCollapsed(new Set()); // принудительно раскрываем все категории
+    const node = cardRefs.current.get(fixCode);
+    if (node) {
+      requestAnimationFrame(() => {
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    } else {
+      // Карточки ещё нет (рендер не завершён) — повторим через 200ms.
+      const t = setTimeout(() => {
+        const n = cardRefs.current.get(fixCode);
+        if (n) n.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  }, [fixCode, fixDismissed]);
+
   // Confirm-модалки. Каждая destructive операция держит свой open-state.
   const [applyAllOpen, setApplyAllOpen] = useState(false);
   const [saveAllOpen, setSaveAllOpen] = useState(false);
@@ -1743,6 +1769,157 @@ export function JournalResponsiblesClient({
         </div>
       ) : null}
 
+      {/* Fix-banner: показывается когда юзер пришёл с ?fix=<code> из
+          уведомления. Объясняет проблему конкретного журнала и
+          предлагает «Умный пресет» одним кликом — назначит подходящих
+          сотрудников по семантике должностей. */}
+      {fixCode && !fixDismissed
+        ? (() => {
+            const targetJournal = journals.find((j) => j.code === fixCode);
+            if (!targetJournal) return null;
+            // Собираем рекомендации из candidateGroupsForSlot. Берём
+            // первого recommended кандидата из каждого ключевого slot'а.
+            const schema = getSchemaForJournal(fixCode);
+            const fillerSlots = schema.slots.filter(
+              (s) => s.kind !== "verifier",
+            );
+            const verifierSlots = schema.slots.filter(
+              (s) => s.kind === "verifier",
+            );
+            const fillerSuggestions = fillerSlots
+              .map((s) => {
+                const groups = candidateGroupsForSlot(fixCode, s.id);
+                const top =
+                  groups.recommended[0] ??
+                  groups.ok[0] ??
+                  groups.notRecommended[0];
+                return top
+                  ? {
+                      slot: s,
+                      candidate: top,
+                    }
+                  : null;
+              })
+              .filter((v): v is NonNullable<typeof v> => v !== null);
+            const verifierSuggestion = (() => {
+              for (const s of verifierSlots) {
+                const groups = candidateGroupsForSlot(fixCode, s.id);
+                const top = groups.recommended[0] ?? groups.ok[0];
+                if (top) return { slot: s, candidate: top };
+              }
+              return null;
+            })();
+            const hasAnySuggestion =
+              fillerSuggestions.length > 0 || verifierSuggestion !== null;
+            return (
+              <div className="rounded-3xl border-2 border-[#a13a32]/30 bg-gradient-to-br from-[#fff4f2] to-white p-5 shadow-[0_10px_30px_-12px_rgba(161,58,50,0.2)]">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#a13a32] text-white shadow-[0_8px_18px_-8px_rgba(161,58,50,0.5)]">
+                    <Sparkles className="size-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#a13a32]">
+                      Проблема с уведомления
+                    </div>
+                    <h3 className="mt-1 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
+                      {targetJournal.name}
+                    </h3>
+                    {fixReason ? (
+                      <p className="mt-1 text-[13px] leading-snug text-[#3c4053]">
+                        Что не так:{" "}
+                        <strong className="text-[#a13a32]">{fixReason}</strong>
+                      </p>
+                    ) : null}
+
+                    {hasAnySuggestion ? (
+                      <div className="mt-3 rounded-2xl border border-[#dcdfed] bg-white p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#3848c7]">
+                          Рекомендация системы
+                        </div>
+                        <ul className="mt-1.5 space-y-1 text-[13px]">
+                          {fillerSuggestions.map((sug) => (
+                            <li
+                              key={sug.slot.id}
+                              className="flex items-start gap-1.5"
+                            >
+                              <span className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
+                              <span className="text-[#3c4053]">
+                                <strong>{sug.slot.label}</strong> →{" "}
+                                <span className="text-[#0b1024]">
+                                  {sug.candidate.user.name}
+                                </span>
+                                {sug.candidate.positionName ? (
+                                  <span className="text-[#9b9fb3]">
+                                    {" "}
+                                    · {sug.candidate.positionName}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </li>
+                          ))}
+                          {verifierSuggestion ? (
+                            <li className="flex items-start gap-1.5">
+                              <span className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full bg-[#a16d32]" />
+                              <span className="text-[#3c4053]">
+                                <strong>Кто проверяет</strong> →{" "}
+                                <span className="text-[#0b1024]">
+                                  {verifierSuggestion.candidate.user.name}
+                                </span>
+                                {verifierSuggestion.candidate.positionName ? (
+                                  <span className="text-[#9b9fb3]">
+                                    {" "}
+                                    ·{" "}
+                                    {verifierSuggestion.candidate.positionName}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </li>
+                          ) : null}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="mt-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-3 text-[13px] text-[#a13a32]">
+                        Не нашёл подходящих сотрудников. Заведите должность
+                        вроде «Заведующая» или «Старший повар» в{" "}
+                        <a
+                          href="/settings/users"
+                          className="underline"
+                        >
+                          Сотрудниках
+                        </a>
+                        .
+                      </p>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {hasAnySuggestion ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            applyJournalPreset(fixCode);
+                            // НЕ закрываем баннер — пусть юзер увидит
+                            // что заполнилось, и нажмёт «Сохранить».
+                          }}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white shadow-[0_8px_20px_-10px_rgba(85,102,246,0.5)] hover:bg-[#4a5bf0]"
+                        >
+                          <Wand2 className="size-3.5" />
+                          Применить рекомендацию
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setFixDismissed(true)}
+                        className="inline-flex h-9 items-center rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#fafbff]"
+                      >
+                        Скрыть подсказку
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        : null}
+
       {/* Live workload preview — показывается когда есть несохранённые
           изменения. Помогает менеджеру понять «лучше или хуже стало». */}
       {workloadDiffs.length > 0 || imbalanceDiffs.length > 0 ? (
@@ -1898,13 +2075,21 @@ export function JournalResponsiblesClient({
                     const isDirty = dirty.has(j.code);
                     const meta = j.meta;
                     const schema = getSchemaForJournal(j.code);
+                    const isFixTarget =
+                      fixCode === j.code && !fixDismissed;
                     return (
                       <div
                         key={j.code}
-                        className={`rounded-2xl border bg-white p-4 transition-colors ${
-                          isDirty
-                            ? "border-[#ffe9b0] bg-[#fff8eb]/40"
-                            : "border-[#ececf4]"
+                        ref={(el) => {
+                          if (el) cardRefs.current.set(j.code, el);
+                          else cardRefs.current.delete(j.code);
+                        }}
+                        className={`rounded-2xl border-2 bg-white p-4 transition-all ${
+                          isFixTarget
+                            ? "border-[#a13a32] bg-[#fff4f2]/40 ring-4 ring-[#a13a32]/15 shadow-[0_10px_30px_-12px_rgba(161,58,50,0.25)]"
+                            : isDirty
+                              ? "border-[#ffe9b0] bg-[#fff8eb]/40"
+                              : "border-[#ececf4]"
                         }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">

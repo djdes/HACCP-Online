@@ -331,7 +331,11 @@ export async function POST(request: Request) {
       id: code,
       label,
       hint,
-      href: `/journals/${code}`,
+      // Deep-link: ведём на /settings/journal-responsibles?fix=<code>
+      // вместо общего /journals/<code>. Страница-настройка
+      // подсветит проблемную карточку красным, scroll'ит к ней и
+      // покажет рекомендацию какого сотрудника назначить.
+      href: `/settings/journal-responsibles?fix=${encodeURIComponent(code)}&reason=${encodeURIComponent(hint.slice(0, 120))}`,
     });
   }
   for (const { template, reason } of hierarchySkipped) {
