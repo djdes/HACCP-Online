@@ -35,6 +35,7 @@ import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { DemoJournalWidget } from "@/components/landing/demo-journal-widget";
+import { JournalAutoplayVideo } from "@/components/landing/journal-autoplay-video";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
@@ -978,6 +979,52 @@ export default async function LandingPage() {
               <ArrowRight className="size-4 text-[#5566f6]" />
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* C10 — синтетическое «видео»: auto-playing цикличная анимация
+          планшета с заполнением журнала. Замена реальной съёмки повара
+          на кухне до тех пор, пока не появится исходник. */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+              <Smartphone className="size-4" />
+              30 секунд на смену
+            </div>
+            <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+              Так выглядит заполнение журнала на планшете
+            </h2>
+            <p className="mt-4 text-[15px] leading-[1.6] text-[#6f7282]">
+              Повар приходит на смену, открывает планшет на кухне, выбирает
+              журнал, вписывает значение, нажимает «Сохранить». Запись
+              автоматически подписывается логином сотрудника и попадает в
+              PDF для проверки. Никаких бумажек, никаких «забыл расписаться».
+            </p>
+            <ul className="mt-5 space-y-2 text-[14px] text-[#3c4053]">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <span>
+                  Автоматическая отметка «в норме / отклонение» по СанПиН
+                  диапазону
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <span>
+                  Время заполнения подставляется само — не переписать задним
+                  числом
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <span>
+                  Автозаполнение «как вчера» для постоянных значений
+                </span>
+              </li>
+            </ul>
+          </div>
+          <JournalAutoplayVideo />
         </div>
       </section>
 
