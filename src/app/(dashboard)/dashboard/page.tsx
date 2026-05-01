@@ -516,6 +516,25 @@ export default async function DashboardPage() {
             <TimeWindowAlerts organizationId={organizationId} />
           </DashboardSection>
 
+          {/* Compliance audit shortcut */}
+          <Link
+            href="/dashboard/compliance-audit"
+            className="group flex items-center gap-3 rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-4 transition-all hover:translate-y-[-1px] hover:border-[#5566f6]/40 hover:shadow-[0_8px_20px_-12px_rgba(85,102,246,0.35)]"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
+              <ShieldCheck className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[14px] font-semibold leading-tight text-[#0b1024]">
+                Готовность к проверке Роспотребнадзора
+              </div>
+              <div className="mt-0.5 text-[12px] text-[#6f7282]">
+                12 проверок · score 0-100 · конкретные «починить» по каждому пункту
+              </div>
+            </div>
+            <ArrowRight className="size-4 shrink-0 text-[#5566f6] transition-transform group-hover:translate-x-1" />
+          </Link>
+
           <DashboardSection
             storageKey="bulk-assign-preview"
             title="Превью отправки задач TasksFlow"

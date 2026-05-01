@@ -8,6 +8,7 @@ import {
   isFormInDeviation,
   getDeviationHint,
 } from "@/lib/journal-deviation-rules";
+import { JournalGuide } from "@/components/journals/journal-guide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -425,6 +426,11 @@ export function DynamicForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Sprint-compliance: гайд для нового сотрудника. Collapsible —
+          если знакомый журнал, занимает 1 строчку. Если нет — раскрыл и
+          увидел шаги по СанПиН. */}
+      <JournalGuide journalCode={templateCode} />
+
       {error && (
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}

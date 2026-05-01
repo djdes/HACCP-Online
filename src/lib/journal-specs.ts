@@ -33,6 +33,24 @@ export type RollingPolicy = {
   counterLabel: string;
 };
 
+export type FillingGuide = {
+  /// 1-2 предложения «что и зачем» — для нового сотрудника.
+  summary: string;
+  /// Что взять с собой перед началом задачи.
+  materials: string[];
+  /// Пошаговая инструкция «как делать», от начала до конца.
+  steps: Array<{
+    title: string;
+    detail: string;
+  }>;
+  /// Когда задача считается выполненной (acceptance criteria).
+  completionCriteria: string;
+  /// Топ-3 типичные ошибки новичков, которые нужно избежать.
+  commonMistakes: string[];
+  /// СанПиН/ХАССП пункт + краткая цитата из норматива.
+  regulationRef: string;
+};
+
 export type JournalSpec = {
   code: string;
   category: JournalCategory;
@@ -55,6 +73,10 @@ export type JournalSpec = {
   /// Time-window — если последняя запись > N часов назад, виджет
   /// «нужно сейчас». null если не применимо.
   timeWindowHours: number | null;
+  /// Sprint-compliance: подробный гайд для нового сотрудника. Показывается
+  /// сверху формы заполнения (collapsible) и на отдельной странице
+  /// /journals/<code>/guide. Если null — fallback на shortDescription.
+  fillingGuide?: FillingGuide;
 };
 
 const DEFAULT_ROLLING: RollingPolicy = {
