@@ -25,7 +25,7 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "e14aaf2";
+export const LATEST_NOTES_BUILD_SHA = "4972c25";
 
 // Re-export types для consumers (layout.tsx импортирует одной строкой).
 export type { WhatsNewNote, LucideIcon };
