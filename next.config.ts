@@ -127,8 +127,12 @@ const nextConfig: NextConfig = {
         headers: miniFrameHeaders,
       },
       {
-        // Все остальные пути — security headers + frame DENY.
-        source: "/:path*",
+        // Все остальные пути (кроме /mini, /mini/*) — security headers
+        // + frame DENY. Negative lookahead через regex-source: Next.js
+        // применяет ВСЕ matching rules одновременно, поэтому без
+        // исключения /mini получает И CSP frame-ancestors, И
+        // X-Frame-Options=DENY (последний переоригинировал бы).
+        source: "/((?!mini($|/)).*)",
         headers: denyFrameHeaders,
       },
       {
