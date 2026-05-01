@@ -134,3 +134,15 @@ weeks-of-work проекты, требуют отдельных спринтов
 - C10: синтетическое анимированное «видео» планшета вместо съёмки (65d10438)
 
 **Все 40 priority items + A1-A4 закрыты.** Block 5-8 остаются deferred как weeks-of-work проекты.
+
+## R34 — off-by-one в healthz buildSha (2026-05-01)
+
+- [x] **R34**: deploy.yml писал `.build-sha` ПОСЛЕ `npm run build`, но
+  `next.config.ts` → `getBuildId()` читает файл во время build'а и
+  запекает значение в `process.env.NEXT_PUBLIC_BUILD_ID` (Next stamps
+  его в JS bundle). Каждый деплой запекал sha *прошлого* деплоя →
+  `/api/healthz` возвращал старый sha притом что код был свежий
+  (например 1b1ec70 при HEAD=65f1d12). Решение: пишем `.build-sha`
+  ДО `npm run build` (commit 4b3876d4). Безопасно: если build/verify
+  упадёт, set -eo pipefail прерывает скрипт ДО pm2 restart, старый
+  процесс с старым запечённым sha продолжает работать.
