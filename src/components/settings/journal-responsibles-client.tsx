@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertCircle,
   Check,
   ChevronDown,
   ChevronRight,
+  Crown,
   Loader2,
+  Minus,
   Plus,
   Save,
   Scale,
@@ -16,6 +19,7 @@ import {
   TrendingDown,
   TrendingUp,
   Wand2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -82,7 +86,15 @@ type Journal = {
   description: string | null;
   initialPositionIds: string[];
   initialSlotUsers: SlotUserMap;
+  /// Distribution из journal-task-modes.ts. Если "per-employee" —
+  /// preset не выбирает filler users, а ставит ВСЕ должности
+  /// активных сотрудников в chips и admin'а в verifier.
+  distribution: string;
 };
+
+function isPerEmployeeJournal(j: Journal): boolean {
+  return j.distribution === "per-employee";
+}
 
 type Props = {
   positions: Position[];
@@ -159,6 +171,314 @@ const MODE_TONE: Record<string, string> = {
 /** Phase C: вспомогательный компонент для рендера одного slot-picker'а
  *  — раньше код был inline, после разделения «Заполняют»/«Проверяет»
  *  оба раздела вызывают этот же UI. */
+
+export type CandidateGroup = "recommended" | "ok" | "not-recommended";
+
+export type UserCandidate = {
+  user: UserItem;
+  positionName: string | null;
+  monthlyLoad: number;
+  group: CandidateGroup;
+  reason?: string;
+  tier: number; // 0..3
+};
+
+type UserPickerProps = {
+  value: string | null;
+  groups: {
+    recommended: UserCandidate[];
+    ok: UserCandidate[];
+    notRecommended: UserCandidate[];
+  };
+  onChange: (userId: string | null) => void;
+  placeholder?: string;
+  /// Сообщение когда вообще никого нет.
+  emptyHint?: string;
+};
+
+const TIER_LABELS: Record<number, string> = {
+  3: "админ",
+  2: "менеджер",
+  1: "шеф-повар",
+  0: "сотрудник",
+};
+
+function UserPicker({
+  value,
+  groups,
+  onChange,
+  placeholder = "— не выбран —",
+  emptyHint,
+}: UserPickerProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Click-outside для закрытия popover.
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  const allCandidates = [
+    ...groups.recommended,
+    ...groups.ok,
+    ...groups.notRecommended,
+  ];
+  const totalCount = allCandidates.length;
+  const selected = value
+    ? allCandidates.find((c) => c.user.id === value) ?? null
+    : null;
+
+  const q = query.trim().toLowerCase();
+  const filterFn = (c: UserCandidate) =>
+    !q ||
+    c.user.name.toLowerCase().includes(q) ||
+    (c.positionName ?? "").toLowerCase().includes(q);
+
+  const recommended = groups.recommended.filter(filterFn);
+  const ok = groups.ok.filter(filterFn);
+  const notRecommended = groups.notRecommended.filter(filterFn);
+
+  function pick(uid: string | null) {
+    onChange(uid);
+    setOpen(false);
+    setQuery("");
+  }
+
+  const triggerLabel = selected
+    ? `${selected.user.name}${
+        selected.positionName ? ` · ${selected.positionName}` : ""
+      }`
+    : placeholder;
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={totalCount === 0}
+        className={`flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 text-left text-[13px] transition-colors ${
+          totalCount === 0
+            ? "cursor-not-allowed border-[#ececf4] text-[#9b9fb3]"
+            : selected
+              ? "border-[#dcdfed] text-[#0b1024] hover:border-[#5566f6]/50"
+              : "border-[#dcdfed] text-[#9b9fb3] hover:border-[#5566f6]/50 hover:bg-[#fafbff]"
+        }`}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selected ? (
+            <>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#eef1ff] text-[11px] font-semibold uppercase text-[#3848c7]">
+                {selected.user.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="min-w-0 truncate">
+                <span className="font-medium text-[#0b1024]">
+                  {selected.user.name}
+                </span>
+                {selected.positionName ? (
+                  <span className="text-[#9b9fb3]">
+                    {" · "}
+                    {selected.positionName}
+                  </span>
+                ) : null}
+              </span>
+            </>
+          ) : (
+            <span className="truncate">{triggerLabel}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 transition-transform ${
+            open ? "rotate-180 text-[#5566f6]" : "text-[#9b9fb3]"
+          }`}
+        />
+      </button>
+
+      {totalCount === 0 ? (
+        <div className="mt-1 text-[11px] text-[#a13a32]">
+          {emptyHint ?? "Нет подходящих сотрудников. Заведите/назначьте."}
+        </div>
+      ) : null}
+
+      {open ? (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-[420px] overflow-hidden rounded-2xl border border-[#dcdfed] bg-white shadow-[0_20px_50px_-20px_rgba(11,16,36,0.35)]">
+          <div className="border-b border-[#ececf4] bg-[#fafbff] p-2">
+            <div className="relative flex items-center">
+              <Search className="absolute left-2.5 size-3.5 text-[#9b9fb3]" />
+              <input
+                type="text"
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Поиск сотрудника или должности…"
+                className="h-8 w-full rounded-lg border border-[#dcdfed] bg-white pl-8 pr-2 text-[12px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-[340px] overflow-y-auto py-1">
+            {selected ? (
+              <button
+                type="button"
+                onClick={() => pick(null)}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#a13a32] transition-colors hover:bg-[#fff4f2]"
+              >
+                <Minus className="size-3.5" />
+                Убрать выбор
+              </button>
+            ) : null}
+
+            {recommended.length > 0 ? (
+              <UserPickerGroup
+                title="Рекомендуем"
+                tone="recommended"
+                items={recommended}
+                selectedId={value}
+                onPick={pick}
+              />
+            ) : null}
+            {ok.length > 0 ? (
+              <UserPickerGroup
+                title="Можно"
+                tone="ok"
+                items={ok}
+                selectedId={value}
+                onPick={pick}
+              />
+            ) : null}
+            {notRecommended.length > 0 ? (
+              <UserPickerGroup
+                title="Не рекомендуем"
+                tone="not-recommended"
+                items={notRecommended}
+                selectedId={value}
+                onPick={pick}
+              />
+            ) : null}
+
+            {recommended.length === 0 &&
+            ok.length === 0 &&
+            notRecommended.length === 0 ? (
+              <div className="px-3 py-6 text-center text-[12px] text-[#9b9fb3]">
+                Никого не найдено под «{query}».
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function UserPickerGroup({
+  title,
+  tone,
+  items,
+  selectedId,
+  onPick,
+}: {
+  title: string;
+  tone: CandidateGroup;
+  items: UserCandidate[];
+  selectedId: string | null;
+  onPick: (uid: string) => void;
+}) {
+  const headerTone =
+    tone === "recommended"
+      ? "bg-emerald-50/60 text-emerald-700"
+      : tone === "ok"
+        ? "bg-[#fafbff] text-[#3c4053]"
+        : "bg-[#fff8eb]/40 text-[#a16d32]";
+  return (
+    <div className="py-0.5">
+      <div
+        className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${headerTone}`}
+      >
+        {tone === "recommended" ? (
+          <Sparkles className="size-3" />
+        ) : tone === "not-recommended" ? (
+          <AlertCircle className="size-3" />
+        ) : null}
+        {title}
+        <span className="text-[10px] font-normal opacity-70">
+          · {items.length}
+        </span>
+      </div>
+      {items.map((c) => {
+        const isSelected = c.user.id === selectedId;
+        return (
+          <button
+            key={c.user.id}
+            type="button"
+            onClick={() => onPick(c.user.id)}
+            className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition-colors ${
+              isSelected
+                ? "bg-[#eef1ff] text-[#3848c7]"
+                : "text-[#0b1024] hover:bg-[#fafbff]"
+            }`}
+          >
+            <span
+              className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold uppercase ${
+                isSelected
+                  ? "bg-[#5566f6] text-white"
+                  : "bg-[#eef1ff] text-[#3848c7]"
+              }`}
+            >
+              {c.user.name.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium leading-tight">
+                {c.user.name}
+                {c.tier >= 3 ? (
+                  <Crown
+                    className="ml-1 inline size-3 -translate-y-px text-[#a16d32]"
+                    aria-label="админ"
+                  />
+                ) : null}
+              </span>
+              <span className="block truncate text-[11px] text-[#9b9fb3]">
+                {c.positionName ?? "Без должности"}
+                {c.tier > 0 ? ` · ${TIER_LABELS[c.tier]}` : ""}
+                {c.reason ? ` · ${c.reason}` : ""}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
+              {c.monthlyLoad > 0 ? (
+                <span
+                  title="Текущая месячная нагрузка по всем журналам"
+                  className="rounded-full bg-[#fafbff] px-1.5 py-0.5 text-[10px] tabular-nums text-[#6f7282]"
+                >
+                  {Math.round(c.monthlyLoad)}
+                </span>
+              ) : null}
+              {isSelected ? <Check className="size-3.5 text-[#3848c7]" /> : null}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type SlotPickerProps = {
   journalCode: string;
   slot: import("@/lib/journal-responsible-schemas").ResponsibleSlot;
@@ -166,7 +486,14 @@ type SlotPickerProps = {
   slotMap: SlotUserMap;
   positionsById: Map<string, Position>;
   usersById: Map<string, UserItem>;
-  eligibleUsersForSlot: (journalCode: string, slotId: string) => UserItem[];
+  candidateGroupsForSlot: (
+    journalCode: string,
+    slotId: string,
+  ) => {
+    recommended: UserCandidate[];
+    ok: UserCandidate[];
+    notRecommended: UserCandidate[];
+  };
   onSetUser: (journalCode: string, slotId: string, userId: string | null) => void;
 };
 
@@ -177,14 +504,35 @@ function SlotPicker({
   slotMap,
   positionsById,
   usersById,
-  eligibleUsersForSlot,
+  candidateGroupsForSlot,
   onSetUser,
 }: SlotPickerProps) {
   const userId = slotMap[slot.id] ?? null;
-  const eligibleForSlot = eligibleUsersForSlot(journalCode, slot.id);
-  const showCurrent = userId
-    ? !eligibleForSlot.find((u) => u.id === userId) && usersById.get(userId)
-    : null;
+  const groups = candidateGroupsForSlot(journalCode, slot.id);
+  const totalCount =
+    groups.recommended.length +
+    groups.ok.length +
+    groups.notRecommended.length;
+  // Если выбран userId которого нет ни в одной группе (например, был
+  // удалён) — добавляем его как fallback в notRecommended «вне фильтра».
+  if (userId && !groups.recommended.find((c) => c.user.id === userId) &&
+      !groups.ok.find((c) => c.user.id === userId) &&
+      !groups.notRecommended.find((c) => c.user.id === userId)) {
+    const u = usersById.get(userId);
+    if (u) {
+      const pos = u.jobPositionId
+        ? positionsById.get(u.jobPositionId)
+        : null;
+      groups.notRecommended.unshift({
+        user: u,
+        positionName: pos?.name ?? null,
+        monthlyLoad: 0,
+        group: "not-recommended",
+        reason: "вне фильтра",
+        tier: 0,
+      });
+    }
+  }
   return (
     <div className="flex flex-wrap items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
       <div className="flex min-w-[180px] flex-col">
@@ -205,38 +553,20 @@ function SlotPicker({
           </div>
         ) : null}
       </div>
-      <div className="flex-1 min-w-[200px]">
-        <select
-          value={userId ?? ""}
-          onChange={(e) =>
-            onSetUser(journalCode, slot.id, e.target.value || null)
+      <div className="flex-1 min-w-[240px]">
+        <UserPicker
+          value={userId}
+          groups={groups}
+          onChange={(uid) => onSetUser(journalCode, slot.id, uid)}
+          placeholder={
+            totalCount === 0 ? "Нет подходящих" : "Выбрать сотрудника"
           }
-          disabled={eligibleForSlot.length === 0 && !showCurrent}
-          className="w-full rounded-lg border border-[#dcdfed] bg-white px-2.5 py-1.5 text-[12px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15 disabled:opacity-60"
-        >
-          <option value="">— не выбран —</option>
-          {showCurrent ? (
-            <option value={userId ?? ""}>
-              {showCurrent.name} (вне фильтра)
-            </option>
-          ) : null}
-          {eligibleForSlot.map((u) => {
-            const pos = u.jobPositionId
-              ? positionsById.get(u.jobPositionId)
-              : null;
-            return (
-              <option key={u.id} value={u.id}>
-                {u.name}
-                {pos ? ` · ${pos.name}` : ""}
-              </option>
-            );
-          })}
-        </select>
-        {eligibleForSlot.length === 0 && !showCurrent ? (
-          <div className="mt-1 text-[11px] text-[#a13a32]">
-            Нет подходящих сотрудников. Заведите/назначьте.
-          </div>
-        ) : null}
+          emptyHint={
+            totalCount === 0
+              ? "Нет сотрудников. Заведите в /settings/users."
+              : undefined
+          }
+        />
       </div>
     </div>
   );
@@ -436,62 +766,147 @@ export function JournalResponsiblesClient({
   }, [baseWorkloads, currWorkloads, users, positionsById]);
 
   /**
-   * Сотрудники для конкретного слота: фильтр по выбранным должностям +
-   * по slot.positionKeywords (если заданы). Если ничего не подошло — всех.
-   * Исключаем ids, которые уже взяты другими слотами этого же журнала.
+   * Категоризация кандидатов на слот для красивого dropdown'а:
+   *   • recommended — идеально подходит (matches keywords + position
+   *     для filler, или tier ≥ 2 для verifier)
+   *   • ok — формально подходит, но не идеально
+   *   • not-recommended — выходит за пределы рекомендации (cook
+   *     для verifier, или вне chips для filler)
    *
-   * Verifier-слот — особый случай: ВСЕГДА показываем всех сотрудников
-   * орги, без фильтра по chip'ам «Заполняют» и без keyword-фильтра.
-   * Раньше админа невозможно было выбрать как проверяющего, потому что:
-   *  1. Его должность обычно не в chips «Заполняют» (админ не заполняет
-   *     журналы) → positionSet filter его убирал.
-   *  2. DEFAULT_VERIFIER_KEYWORDS не включает "админ" (намеренно — но
-   *     логика подразумевала auto-pick, не запрет).
-   * Решение: keyword-фильтр оставляем только для auto-pick через
-   * presets, а UI dropdown'у даём весь пул сотрудников.
+   * Исключаем тех кто уже взят другими слотами этого журнала.
    */
-  function eligibleUsersForSlot(
+  function candidateGroupsForSlot(
     journalCode: string,
-    slotId: string
-  ): UserItem[] {
+    slotId: string,
+  ): {
+    recommended: UserCandidate[];
+    ok: UserCandidate[];
+    notRecommended: UserCandidate[];
+  } {
     const schema = getSchemaForJournal(journalCode);
     const slot = schema.slots.find((s) => s.id === slotId);
     const slotMap = curr.slots.get(journalCode) ?? {};
     const usedIds = new Set(
       Object.entries(slotMap)
         .filter(([sid, uid]) => sid !== slotId && uid)
-        .map(([, uid]) => uid as string)
+        .map(([, uid]) => uid as string),
     );
 
-    if (slot?.kind === "verifier") {
-      return [...users]
-        .filter((u) => !usedIds.has(u.id))
-        .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    const isVerifier = slot?.kind === "verifier";
+    const keywords = slot?.positionKeywords ?? null;
+    const positionSet = curr.positions.get(journalCode);
+
+    function matchesKeywords(u: UserItem): boolean {
+      if (!keywords || keywords.length === 0) return true;
+      if (!u.jobPositionId) return false;
+      const pos = positionsById.get(u.jobPositionId);
+      if (!pos) return false;
+      const lower = pos.name.toLowerCase();
+      return keywords.some((kw) => lower.includes(kw));
     }
 
-    const positionSet = curr.positions.get(journalCode);
-    let pool = users;
-    if (positionSet && positionSet.size > 0) {
-      pool = pool.filter(
-        (u) => u.jobPositionId && positionSet.has(u.jobPositionId)
-      );
+    function inPositionSet(u: UserItem): boolean {
+      if (!positionSet || positionSet.size === 0) return true;
+      return Boolean(u.jobPositionId && positionSet.has(u.jobPositionId));
     }
-    if (slot?.positionKeywords && slot.positionKeywords.length > 0) {
-      const positionsById = new Map(positions.map((p) => [p.id, p]));
-      const filtered = pool.filter((u) => {
-        if (!u.jobPositionId) return false;
-        const pos = positionsById.get(u.jobPositionId);
-        if (!pos) return false;
-        const lower = pos.name.toLowerCase();
-        return slot.positionKeywords!.some((kw) => lower.includes(kw));
+
+    function makeCandidate(
+      u: UserItem,
+      group: CandidateGroup,
+      reason?: string,
+    ): UserCandidate {
+      const pos = u.jobPositionId
+        ? (positionsById.get(u.jobPositionId) ?? null)
+        : null;
+      return {
+        user: u,
+        positionName: pos?.name ?? null,
+        monthlyLoad: currWorkloads.get(u.id)?.totalWeight ?? 0,
+        group,
+        reason,
+        tier: userTier(u),
+      };
+    }
+
+    const recommended: UserCandidate[] = [];
+    const ok: UserCandidate[] = [];
+    const notRecommended: UserCandidate[] = [];
+
+    for (const u of users) {
+      if (usedIds.has(u.id)) continue;
+
+      const t = userTier(u);
+      const kw = matchesKeywords(u);
+      const pset = inPositionSet(u);
+
+      if (isVerifier) {
+        // Verifier: tier >= 2 = идеально (admin/manager).
+        // Tier 1 (head_chef) — ok.
+        // Tier 0 (cook/waiter) — not-recommended.
+        // Keywords match повышает на одну ступень.
+        if (t >= 2) {
+          recommended.push(
+            makeCandidate(
+              u,
+              "recommended",
+              t === 3 ? "админ — самый главный" : "руководитель",
+            ),
+          );
+        } else if (t === 1 || kw) {
+          ok.push(
+            makeCandidate(
+              u,
+              "ok",
+              kw ? "matches keywords" : "шеф-повар",
+            ),
+          );
+        } else {
+          notRecommended.push(
+            makeCandidate(u, "not-recommended", "не управленческая роль"),
+          );
+        }
+      } else {
+        // Filler: matches keywords + matches positionSet = идеально.
+        // Один из двух = ok. Ни то ни другое = not-recommended.
+        if (kw && pset) {
+          recommended.push(makeCandidate(u, "recommended"));
+        } else if (kw || pset) {
+          ok.push(
+            makeCandidate(
+              u,
+              "ok",
+              kw ? "должность подходит, но не в chips" : "в chips, но другой профиль",
+            ),
+          );
+        } else {
+          notRecommended.push(
+            makeCandidate(u, "not-recommended", "не из назначенных должностей"),
+          );
+        }
+      }
+    }
+
+    // Сортировка внутри групп: по нагрузке возрастанием (меньше
+    // загруженный — выше), потом по имени.
+    function sortFn(a: UserCandidate, b: UserCandidate) {
+      if (Math.abs(a.monthlyLoad - b.monthlyLoad) > 0.5) {
+        return a.monthlyLoad - b.monthlyLoad;
+      }
+      return a.user.name.localeCompare(b.user.name, "ru");
+    }
+    recommended.sort(sortFn);
+    ok.sort(sortFn);
+    notRecommended.sort(sortFn);
+
+    // Для verifier — внутри recommended поднимаем admin'ов наверх.
+    if (isVerifier) {
+      recommended.sort((a, b) => {
+        if (a.tier !== b.tier) return b.tier - a.tier;
+        return sortFn(a, b);
       });
-      // Если по keywords никого нет — даём весь pool, не оставляем
-      // юзера с пустым select'ом.
-      if (filtered.length > 0) pool = filtered;
     }
-    return [...pool]
-      .filter((u) => !usedIds.has(u.id))
-      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+    return { recommended, ok, notRecommended };
   }
 
   /**
@@ -653,7 +1068,66 @@ export function JournalResponsiblesClient({
     });
   }
 
+  /**
+   * Для per-employee журналов (гигиена/медкнижки/инструктажи) preset
+   * специальный:
+   *   • positionIds = ВСЕ должности с активными сотрудниками — чтобы
+   *     задача автоматически создавалась на каждого работника.
+   *   • Filler-slot users: оставляем null, потому что filler не
+   *     один — это «каждый сотрудник за себя».
+   *   • Verifier-slot user: самый старший по tier (admin > manager).
+   */
+  function buildPerEmployeeAssignment(code: string): {
+    positionIds: Set<string>;
+    slotUsers: SlotUserMap;
+  } {
+    const allPositions = new Set(
+      positions.filter((p) => p.activeUsers > 0).map((p) => p.id),
+    );
+    const schema = getSchemaForJournal(code);
+    const slotUsers: SlotUserMap = {};
+    for (const slot of schema.slots) {
+      if (slot.kind === "verifier") {
+        const sorted = [...users].sort((a, b) => {
+          const td = userTier(b) - userTier(a);
+          if (td !== 0) return td;
+          return a.name.localeCompare(b.name, "ru");
+        });
+        slotUsers[slot.id] = sorted[0]?.id ?? null;
+      } else {
+        slotUsers[slot.id] = null;
+      }
+    }
+    return { positionIds: allPositions, slotUsers };
+  }
+
   function applyJournalPreset(code: string) {
+    const journal = journals.find((j) => j.code === code);
+    if (journal && isPerEmployeeJournal(journal)) {
+      const a = buildPerEmployeeAssignment(code);
+      if (a.positionIds.size === 0) {
+        toast.error(
+          "Нет должностей с активными сотрудниками — preset нечего распределять",
+        );
+        return;
+      }
+      setCurr((prev) => {
+        const pmap = new Map(prev.positions);
+        const smap = new Map(prev.slots);
+        pmap.set(code, a.positionIds);
+        smap.set(code, a.slotUsers);
+        return { positions: pmap, slots: smap };
+      });
+      const verifierUser = Object.values(a.slotUsers).find((v) => v);
+      const verifierName = verifierUser
+        ? users.find((u) => u.id === verifierUser)?.name
+        : null;
+      toast.success(
+        `На каждого сотрудника · все должности (${a.positionIds.size})${verifierName ? `, проверяет ${verifierName}` : ""}`,
+      );
+      return;
+    }
+
     const meta = getJournalResponsibilityMeta(code);
     if (!meta) {
       toast.error("Для этого журнала не описан умный пресет");
@@ -737,6 +1211,22 @@ export function JournalResponsiblesClient({
     );
 
     for (const code of codesByWeight) {
+      const journal = journals.find((j) => j.code === code);
+      // Per-employee — спец-логика: все должности + admin verifier.
+      if (journal && isPerEmployeeJournal(journal)) {
+        const a = buildPerEmployeeAssignment(code);
+        if (a.positionIds.size === 0) continue;
+        result.set(code, a);
+        const w = getJournalMonthlyWeight(code, difficultyOverride);
+        const verifierUsers = Object.values(a.slotUsers).filter(
+          (v): v is string => Boolean(v),
+        );
+        for (const uid of verifierUsers) {
+          workloadAcc.set(uid, (workloadAcc.get(uid) ?? 0) + w * 0.3);
+        }
+        continue;
+      }
+
       const matched = matchPositionsForJournal(code, positions);
       if (matched.length === 0) continue;
       const positionSet = new Set(matched);
@@ -1514,14 +2004,27 @@ export function JournalResponsiblesClient({
                                       slotMap={slotMap}
                                       positionsById={positionsById}
                                       usersById={usersById}
-                                      eligibleUsersForSlot={
-                                        eligibleUsersForSlot
+                                      candidateGroupsForSlot={
+                                        candidateGroupsForSlot
                                       }
                                       onSetUser={setSlotUser}
                                     />
                                   ))}
                                 </div>
                               </div>
+                              {/* Per-employee — preset раздаёт всем
+                                  должностям и админу-проверяющему.
+                                  Помечаем явно подсказкой. */}
+                              {isPerEmployeeJournal(j) ? (
+                                <div className="mt-2 rounded-xl border border-[#5566f6]/15 bg-[#f5f6ff] p-2.5 text-[11px] leading-snug text-[#3848c7]">
+                                  Журнал «На каждого сотрудника» —
+                                  filler-слоты не нужны. Чек выполняет
+                                  сам сотрудник, проверяет старший.
+                                  Жми «Умный пресет» — добавит все
+                                  должности и поставит админа в
+                                  «Кто проверяет».
+                                </div>
+                              ) : null}
                               {verifierSlots.length > 0 ? (
                                 <div className="mt-3">
                                   <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
@@ -1538,8 +2041,8 @@ export function JournalResponsiblesClient({
                                         slotMap={slotMap}
                                         positionsById={positionsById}
                                         usersById={usersById}
-                                        eligibleUsersForSlot={
-                                          eligibleUsersForSlot
+                                        candidateGroupsForSlot={
+                                          candidateGroupsForSlot
                                         }
                                         onSetUser={setSlotUser}
                                       />

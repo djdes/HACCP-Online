@@ -7,6 +7,10 @@ import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalResponsiblesClient } from "@/components/settings/journal-responsibles-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import {
+  getDefaultTaskMode,
+  parseTaskModesJson,
+} from "@/lib/journal-task-modes";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +56,7 @@ export default async function JournalResponsiblesPage() {
       select: {
         journalResponsibleUsersJson: true,
         journalDifficultyJson: true,
+        journalTaskModesJson: true,
       },
     }),
   ]);
@@ -72,14 +77,22 @@ export default async function JournalResponsiblesPage() {
     Record<string, string | null>
   >;
 
+  // Per-journal task-mode (включая distribution: per-employee/per-area/...).
+  // Используется в client'е чтобы preset для per-employee журналов
+  // распределял на ВСЕ должности и ставил админа в verifier.
+  const taskModesOverride = parseTaskModesJson(org?.journalTaskModesJson);
+
   const journals = ACTIVE_JOURNAL_CATALOG.map((j) => {
     const tpl = templates.find((t) => t.code === j.code);
+    const def = getDefaultTaskMode(j.code);
+    const ovr = taskModesOverride[j.code] ?? {};
     return {
       code: j.code,
       name: j.name,
       description: tpl?.description ?? null,
       initialPositionIds: positionsByJournal.get(j.code) ?? [],
       initialSlotUsers: orgSlotUsers[j.code] ?? {},
+      distribution: (ovr.distribution ?? def.distribution) as string,
     };
   });
 
