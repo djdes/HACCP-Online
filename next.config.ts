@@ -58,11 +58,7 @@ const nextConfig: NextConfig = {
     // аудит inline-скриптов / третьесторонних embed'ов (Telegram WebApp
     // SDK, Yandex.Metrika, и т.д.). Раскатывать без аудита = риск
     // сломать Telegram Mini App / iframe widget'ы. Это отдельная задача.
-    const securityHeaders = [
-      {
-        key: "X-Frame-Options",
-        value: "DENY",
-      },
+    const commonSecurityHeaders = [
       {
         key: "X-Content-Type-Options",
         value: "nosniff",
@@ -97,11 +93,43 @@ const nextConfig: NextConfig = {
       },
     ];
 
+    // Default frame policy: DENY всё.
+    const denyFrameHeaders = [
+      ...commonSecurityHeaders,
+      { key: "X-Frame-Options", value: "DENY" },
+    ];
+
+    // Mini App внутри Telegram Web (web.telegram.org) загружается в
+    // iframe. С X-Frame-Options=DENY этот iframe блокировался —
+    // Mini App был мёртв на Telegram Web/Desktop. Mobile (iOS/Android)
+    // использует WebView, без iframe-restriction'а, поэтому работало.
+    //
+    // Решение: для /mini/* отдаём CSP frame-ancestors с явным whitelist'ом
+    // Telegram-доменов вместо X-Frame-Options. CSP frame-ancestors
+    // overрайдит X-Frame-Options в современных browser'ах.
+    const miniFrameHeaders = [
+      ...commonSecurityHeaders,
+      {
+        key: "Content-Security-Policy",
+        value:
+          "frame-ancestors 'self' https://web.telegram.org https://telegram.org https://*.telegram.org",
+      },
+    ];
+
     return [
       {
-        // Все пути — security headers.
+        // Mini App: разрешаем embedding в Telegram Web.
+        source: "/mini/:path*",
+        headers: miniFrameHeaders,
+      },
+      {
+        source: "/mini",
+        headers: miniFrameHeaders,
+      },
+      {
+        // Все остальные пути — security headers + frame DENY.
         source: "/:path*",
-        headers: securityHeaders,
+        headers: denyFrameHeaders,
       },
       {
         source:
