@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Eye,
   Gauge,
+  Wand2,
   KeyRound,
   ListChecks,
   Package,
@@ -213,6 +214,15 @@ const settingsCards = [
     icon: Settings2,
     iconClass: "text-[#3848c7]",
     bgClass: "bg-[#eef1ff]",
+  },
+  {
+    title: "Шаблоны заведений",
+    description:
+      "Один клик — и настроены должности, помещения, оборудование, обязательные журналы под тип бизнеса (прилавок/кафе/ресторан/школа/производство)",
+    href: "/settings/onboarding-template",
+    icon: Wand2,
+    iconClass: "text-[#7a5cff]",
+    bgClass: "bg-[#f0edff]",
   },
   {
     title: "Сложность журналов",
