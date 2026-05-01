@@ -486,8 +486,10 @@ export default async function DashboardPage() {
         {/* Раскрывающиеся секции — каждая помнит state в localStorage.
             По умолчанию открыты только самые важные «Закрыть день» и
             «Превью отправки задач»; остальные свёрнуты чтобы дашборд
-            не выглядел как лендинг. Юзер открывает то что ему нужно. */}
-        <div className="space-y-3">
+            не выглядел как лендинг. Юзер открывает то что ему нужно.
+            mt-6 + border-t — визуальный divider между hero и секциями,
+            раньше прогресс-бар «склеивался» с первой секцией. */}
+        <div className="mt-6 space-y-3 border-t border-[#ececf4] pt-5 sm:mt-7 sm:pt-6">
           <DashboardSection
             storageKey="close-day"
             title="Закрыть день"
