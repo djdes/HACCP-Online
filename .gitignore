@@ -87,3 +87,9 @@ public/screenshots/
 # ESLint output
 eslint-report.json
 
+# Playwright MCP debug artefacts (console logs, page snapshots) — local-only
+.playwright-mcp/
+
+# Tuya broker debug log
+cf2.log
+
