@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { DynamicForm } from "@/components/journals/dynamic-form";
+import { FinishedProductPipeline } from "@/components/journals/finished-product-pipeline";
 import {
   aclActorFromSession,
   canWriteJournal,
@@ -154,23 +155,34 @@ export default async function MiniNewJournalEntryPage({
         <p className="mt-0.5 text-[13px] leading-5 text-slate-500">{template.name}</p>
       </header>
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.28)] sm:p-5">
-        <DynamicForm
-          templateCode={code}
-          templateName={template.name}
-          fields={fields}
-          areas={areas}
-          equipment={equipment}
-          employees={employees}
-          products={products}
-          journalsBasePath="/mini/journals"
-          rollingMode={rollingMode}
-          dailyCountInitial={dailyCountInitial}
-          rollingDailyCap={spec.rolling?.dailyCap ?? 50}
-          rollingContinueLabel={
-            spec.rolling?.continueLabel ?? "Сохранить и продолжить"
-          }
-          rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
-        />
+        {code === "finished_product" ? (
+          <FinishedProductPipeline
+            journalsBasePath="/mini/journals"
+            rollingMode={rollingMode}
+            dailyCountInitial={dailyCountInitial}
+            rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+            rollingContinueLabel="Сохранить и следующее блюдо"
+            rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
+          />
+        ) : (
+          <DynamicForm
+            templateCode={code}
+            templateName={template.name}
+            fields={fields}
+            areas={areas}
+            equipment={equipment}
+            employees={employees}
+            products={products}
+            journalsBasePath="/mini/journals"
+            rollingMode={rollingMode}
+            dailyCountInitial={dailyCountInitial}
+            rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+            rollingContinueLabel={
+              spec.rolling?.continueLabel ?? "Сохранить и продолжить"
+            }
+            rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
+          />
+        )}
       </div>
     </div>
   );

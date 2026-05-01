@@ -13,6 +13,11 @@ import { canWriteJournal } from "@/lib/journal-acl";
 import { spawnRollingTask } from "@/lib/journal-rolling";
 import { getJournalSpec } from "@/lib/journal-specs";
 import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
+import {
+  generateBatchKey,
+  isTraceabilitySource,
+  extractBatchKeyFromData,
+} from "@/lib/journal-traceability";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -226,6 +231,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // Phase C: Cross-journal traceability. Для traceability-source
+    // (incoming_control / perishable_rejection / etc.) auto-генерим
+    // batchKey если пользователь не задал. Для consumer'ов (finished_product
+    // / product_writeoff) — берём batchKey из data (если выбрана партия).
+    let batchKey = extractBatchKeyFromData(data as Prisma.JsonValue);
+    if (!batchKey && isTraceabilitySource(templateCode)) {
+      batchKey = generateBatchKey(organizationId);
+      // Записываем сгенерированный ключ в data чтобы он был и в JSON.
+      (data as Record<string, unknown>).batchKey = batchKey;
+    }
+
     const entry = await db.journalEntry.create({
       data: {
         templateId: template.id,
@@ -233,9 +249,9 @@ export async function POST(request: Request) {
         filledById: session.user.id,
         areaId: areaId || null,
         equipmentId: equipmentId || null,
-        // Zod-validated as Record<string, unknown>; Prisma accepts any JSON-serialisable value.
         data: data as Prisma.InputJsonValue,
         status: "submitted",
+        batchKey: batchKey ?? null,
       },
     });
 

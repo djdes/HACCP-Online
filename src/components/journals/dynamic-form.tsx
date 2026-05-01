@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wifi, Loader2 } from "lucide-react";
+import { AlertTriangle, Wifi, Loader2 } from "lucide-react";
+import { getJournalSpec } from "@/lib/journal-specs";
+import {
+  isFormInDeviation,
+  getDeviationHint,
+} from "@/lib/journal-deviation-rules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,6 +114,17 @@ export function DynamicForm({
 }: DynamicFormProps) {
   void _templateName;
   const router = useRouter();
+  // Phase B: Conditional required fields. Используем journal-spec для
+  // поиска полей которые становятся обязательными при отклонении +
+  // правила определения «отклонения» из journal-deviation-rules.
+  const journalSpec = useMemo(
+    () => getJournalSpec(templateCode),
+    [templateCode],
+  );
+  const conditionallyRequiredKeys = useMemo<Set<string>>(
+    () => new Set(journalSpec.conditionalRequiredOnDeviation ?? []),
+    [journalSpec],
+  );
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [areaId, setAreaId] = useState<string>("");
   const [equipmentId, setEquipmentId] = useState<string>("");
@@ -263,6 +279,27 @@ export function DynamicForm({
   }
 
   async function submitForm(continueRolling: boolean | null) {
+    // Phase B: блокируем submit если форма в отклонении и
+    // обязательные поля пустые. Это server-side тоже валидируется,
+    // но перехват на client'е даёт мгновенный feedback.
+    const inDev = isFormInDeviation(templateCode, formData);
+    if (inDev) {
+      const missing: string[] = [];
+      for (const key of conditionallyRequiredKeys) {
+        const v = formData[key];
+        if (v === undefined || v === null || v === "") {
+          const f = fields.find((x) => x.key === key);
+          missing.push(f?.label ?? key);
+        }
+      }
+      if (missing.length > 0) {
+        setError(
+          `Отклонение от нормы — обязательно заполни: ${missing.join(", ")}.`,
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmittingMode(
       continueRolling === null
@@ -364,6 +401,28 @@ export function DynamicForm({
     (field) => !field.auto && isFieldVisible(field)
   );
 
+  // Phase B: detection of deviation. Если форма в отклонении — некоторые
+  // поля становятся обязательными (из spec.conditionalRequiredOnDeviation),
+  // и сверху показываем жёлтый alert с пояснением.
+  const inDeviation = useMemo(
+    () => isFormInDeviation(templateCode, formData),
+    [templateCode, formData],
+  );
+  const deviationHint = inDeviation ? getDeviationHint(templateCode) : null;
+  const deviationMissingFields = useMemo<string[]>(() => {
+    if (!inDeviation) return [];
+    const missing: string[] = [];
+    for (const key of conditionallyRequiredKeys) {
+      const v = formData[key];
+      if (v === undefined || v === null || v === "") {
+        // Найдём label для дружелюбного сообщения.
+        const f = fields.find((x) => x.key === key);
+        missing.push(f?.label ?? key);
+      }
+    }
+    return missing;
+  }, [inDeviation, conditionallyRequiredKeys, formData, fields]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
@@ -371,6 +430,27 @@ export function DynamicForm({
           {error}
         </div>
       )}
+
+      {/* Deviation banner — желтое предупреждение когда форма
+          сигнализирует об отклонении нормы. Показывает требуемые
+          поля чтобы повар не закрыл запись с пустыми. */}
+      {inDeviation && deviationHint ? (
+        <div className="flex items-start gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-amber-900">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold leading-tight">
+              Внимание: отклонение от нормы
+            </div>
+            <p className="mt-1 text-[13px] leading-snug">{deviationHint}</p>
+            {deviationMissingFields.length > 0 ? (
+              <div className="mt-2 rounded-xl border border-amber-300 bg-white/60 p-2 text-[12.5px]">
+                <strong>Заполните обязательно:</strong>{" "}
+                {deviationMissingFields.join(", ")}.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* Photo OCR for incoming control */}
       {supportsPhotoOcr && (

@@ -1063,12 +1063,23 @@ model JournalEntry {
   filledBy       User                     @relation(fields: [filledById], references: [id])
   data           Json
   status         String                   @default("submitted")
+  /// Cross-journal traceability (Phase C). Уникальный ключ партии,
+  /// одинаковый у всех связанных entries: incoming_control (приёмка) →
+  /// finished_product (бракераж) → product_writeoff (списание). Позволяет
+  /// в один запрос показать историю партии для прохождения трассировки
+  /// по ХАССП (СанПиН + ТР ТС 021/2011 «Прослеживаемость продукции»).
+  ///
+  /// Формат: «<orgPrefix>-<YYYYMMDD>-<shortHash>».
+  /// Auto-генерится для incoming_*; для других журналов — берётся
+  /// пользователем через UI selector.
+  batchKey       String?
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
   attachments    JournalEntryAttachment[]
 
   @@index([organizationId, templateId, createdAt])
   @@index([filledById])
+  @@index([organizationId, batchKey])
 }
 
 model JournalEntryAttachment {

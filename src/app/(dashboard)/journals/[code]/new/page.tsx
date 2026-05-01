@@ -4,6 +4,7 @@ import { ArrowLeft, NotebookPen } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
+import { FinishedProductPipeline } from "@/components/journals/finished-product-pipeline";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
@@ -175,22 +176,32 @@ export default async function NewJournalEntryPage({
       </section>
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6 md:p-8">
-        <DynamicForm
-          templateCode={resolvedCode}
-          templateName={template.name}
-          fields={fields}
-          areas={areas}
-          equipment={equipment}
-          employees={employees}
-          products={products}
-          rollingMode={rollingMode}
-          dailyCountInitial={dailyCountInitial}
-          rollingDailyCap={spec.rolling?.dailyCap ?? 50}
-          rollingContinueLabel={
-            spec.rolling?.continueLabel ?? "Сохранить и продолжить"
-          }
-          rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
-        />
+        {resolvedCode === "finished_product" ? (
+          <FinishedProductPipeline
+            rollingMode={rollingMode}
+            dailyCountInitial={dailyCountInitial}
+            rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+            rollingContinueLabel="Сохранить и следующее блюдо"
+            rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
+          />
+        ) : (
+          <DynamicForm
+            templateCode={resolvedCode}
+            templateName={template.name}
+            fields={fields}
+            areas={areas}
+            equipment={equipment}
+            employees={employees}
+            products={products}
+            rollingMode={rollingMode}
+            dailyCountInitial={dailyCountInitial}
+            rollingDailyCap={spec.rolling?.dailyCap ?? 50}
+            rollingContinueLabel={
+              spec.rolling?.continueLabel ?? "Сохранить и продолжить"
+            }
+            rollingDoneLabel={spec.rolling?.doneLabel ?? "Готово на сегодня"}
+          />
+        )}
       </div>
     </div>
   );
