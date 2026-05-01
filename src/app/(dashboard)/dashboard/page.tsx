@@ -28,7 +28,6 @@ import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
-import { BulkAssignTodayButton } from "@/components/dashboard/bulk-assign-today-button";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
@@ -414,22 +413,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {hasTasksflowIntegration && unfilledCount > 0 ? (
-          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
-            <div className="flex-1 min-w-[200px] text-[13px] text-[#3c4053]">
-              Одним нажатием разошлёт TasksFlow-задачи всем ответственным
-              по {unfilledCount}{" "}
-              {unfilledCount === 1
-                ? "незаполненному журналу"
-                : unfilledCount < 5
-                  ? "незаполненным журналам"
-                  : "незаполненным журналам"}
-              . Уже назначенные пропустит.
-            </div>
-            <BulkAssignTodayButton unfilledCount={unfilledCount} />
-          </div>
-        ) : null}
 
         <CloseDayCard unfilledCount={unfilledCount} />
 

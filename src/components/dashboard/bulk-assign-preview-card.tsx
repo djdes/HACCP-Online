@@ -6,12 +6,16 @@ import {
   ChevronDown,
   CheckCircle2,
   Loader2,
+  RotateCcw,
   Send,
   Sparkles,
+  Trash2,
   User as UserIcon,
+  Wand2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Recipient = {
   userId: string;
@@ -62,8 +66,12 @@ export function BulkAssignPreviewCard() {
   const [data, setData] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [forcing, setForcing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openJournals, setOpenJournals] = useState<Set<string>>(new Set());
+  const [forceOpen, setForceOpen] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
 
   const fetchPreview = async () => {
     setLoading(true);
@@ -156,12 +164,65 @@ export function BulkAssignPreviewCard() {
       toast.success(
         `Создано задач: ${json.created ?? 0}, ошибок: ${json.errors ?? 0}.`,
       );
-      // refresh preview after send
       await fetchPreview();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось отправить");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function actuallyForce() {
+    if (forcing) return;
+    setForcing(true);
+    try {
+      const res = await fetch(
+        "/api/integrations/tasksflow/bulk-assign-today",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ force: true }),
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "Ошибка пересоздания");
+      }
+      const json = await res.json();
+      toast.success(
+        `Пересоздано задач: ${json.created ?? 0}, ошибок: ${json.errors ?? 0}.`,
+      );
+      await fetchPreview();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось пересоздать");
+    } finally {
+      setForcing(false);
+    }
+  }
+
+  async function actuallyCleanup() {
+    if (cleaning) return;
+    setCleaning(true);
+    try {
+      const res = await fetch(
+        "/api/integrations/tasksflow/cleanup-pending",
+        { method: "POST" },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error ?? "Не удалось очистить");
+      }
+      const total = (json?.deletedTfTasks ?? 0) + (json?.alreadyGone ?? 0);
+      toast.success(
+        total === 0
+          ? json?.message ?? "Нет невыполненных задач"
+          : `Удалено невыполненных: ${total}`,
+      );
+      await fetchPreview();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось очистить");
+    } finally {
+      setCleaning(false);
     }
   }
 
@@ -183,15 +244,44 @@ export function BulkAssignPreviewCard() {
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void fetchPreview()}
             disabled={loading}
+            title="Перепроверить план без реальной отправки"
             className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#fafbff] disabled:opacity-60"
           >
             {loading ? <Loader2 className="size-3.5 animate-spin" /> : null}
             Обновить
+          </button>
+          <button
+            type="button"
+            onClick={() => setForceOpen(true)}
+            disabled={forcing || sending || loading}
+            title="Сбросить локальные связки и заново создать задачи"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ffd2cd] bg-white px-3 text-[13px] font-medium text-[#a13a32] hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:opacity-60"
+          >
+            {forcing ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="size-3.5" />
+            )}
+            Пересоздать
+          </button>
+          <button
+            type="button"
+            onClick={() => setCleanupOpen(true)}
+            disabled={cleaning || sending || loading}
+            title="Удалить ВСЕ невыполненные задачи в TasksFlow"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ffd2cd] bg-white px-3 text-[13px] font-medium text-[#a13a32] hover:border-[#a13a32]/50 hover:bg-[#fff4f2] disabled:opacity-60"
+          >
+            {cleaning ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="size-3.5" />
+            )}
+            Очистить
           </button>
           <button
             type="button"
@@ -383,6 +473,67 @@ export function BulkAssignPreviewCard() {
           </div>
         </>
       ) : null}
+
+      <ConfirmDialog
+        open={forceOpen}
+        onClose={() => setForceOpen(false)}
+        onConfirm={async () => {
+          setForceOpen(false);
+          await actuallyForce();
+        }}
+        title="Пересоздать все задачи?"
+        description={
+          <>
+            Сбросит ВСЕ локальные связки задач TasksFlow и заново создаст
+            задачи для незаполненных журналов. Сами задачи в TasksFlow при
+            этом НЕ удаляются — если ты не удалил их вручную в TasksFlow,
+            могут остаться дубли.
+          </>
+        }
+        bullets={[
+          {
+            label: "Используй когда удалил задачи в TasksFlow напрямую и хочешь начать с чистого листа.",
+            tone: "info",
+          },
+          {
+            label: "Если ничего не удалял — сначала жми «Очистить», потом «Пересоздать».",
+            tone: "warn",
+          },
+        ]}
+        confirmLabel="Да, пересоздать"
+        variant="warn"
+        icon={Wand2}
+      />
+
+      <ConfirmDialog
+        open={cleanupOpen}
+        onClose={() => setCleanupOpen(false)}
+        onConfirm={async () => {
+          setCleanupOpen(false);
+          await actuallyCleanup();
+        }}
+        title="Очистить невыполненные задачи?"
+        description={
+          <>
+            Удалит ВСЕ незавершённые задачи в TasksFlow которые были
+            созданы из этого аккаунта WeSetup. Выполненные задачи НЕ
+            трогаем — они нужны для compliance-истории.
+          </>
+        }
+        bullets={[
+          {
+            label: "Используется когда подвисли некорректные задачи и ты хочешь зачистить очередь.",
+            tone: "info",
+          },
+          {
+            label: "После очистки можно сразу нажать «Отправить готовые» чтобы создать заново правильные.",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Удалить невыполненные"
+        variant="danger"
+        icon={Trash2}
+      />
     </div>
   );
 }
