@@ -82,11 +82,18 @@ const nextConfig: NextConfig = {
         value: "max-age=31536000",
       },
       {
-        // Restrict browser APIs которые мы не используем. Если когда-то
-        // понадобится geolocation — тут разрешим. Сейчас все три =
-        // explicitly disabled.
+        // Restrict browser APIs которые мы не используем.
+        // - camera/microphone: WeSetup ни на одной странице не запрашивает
+        //   доступ к камере/микрофону (фото attachments через <input
+        //   type='file' capture> работают БЕЗ getUserMedia, открывают
+        //   нативный picker). → блокируем полностью.
+        // - geolocation: USED by mini/_components/geo-reminder.tsx
+        //   (watchPosition). Раньше стояло `geolocation=()` — это блокировало
+        //   geo-напоминания в Mini App. Меняем на `geolocation=(self)` —
+        //   разрешает gel API на нашем origin, но блокирует в третьесторонних
+        //   iframe'ах.
         key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=()",
+        value: "camera=(), microphone=(), geolocation=(self)",
       },
     ];
 
