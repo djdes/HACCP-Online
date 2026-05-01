@@ -34,6 +34,7 @@ import { filterSubordinates, getManagerScope } from "@/lib/manager-scope";
 import { listOnDutyToday } from "@/lib/work-shifts";
 import { notifyManagement, type NotificationItem } from "@/lib/notifications";
 import { timingSafeEqualStrings } from "@/lib/timing-safe";
+import { matchPositionsForJournal } from "@/lib/journal-responsible-presets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -311,6 +312,93 @@ export async function POST(request: Request) {
       scope,
     });
 
+  // Раннее догружаем все active users + положения и TF-привязки —
+  // используется и в основном loop'е, и в hint'ах рекомендаций для
+  // skipped notifications. Вытащено наверх чтобы pushSkippedItem ниже
+  // мог сразу формировать «Назначь Иванову» через данные users'ов.
+  const earlyUsersData = await db.user.findMany({
+    where: { organizationId, isActive: true, archivedAt: null },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      isRoot: true,
+      jobPositionId: true,
+      jobPosition: { select: { id: true, name: true } },
+    },
+  });
+  const earlyTfLinks = await db.tasksFlowUserLink.findMany({
+    where: { integrationId: integration.id, tasksflowUserId: { not: null } },
+    select: { wesetupUserId: true, tasksflowUserId: true },
+  });
+  const earlyTfUserIds = new Set(earlyTfLinks.map((l) => l.wesetupUserId));
+
+  // Tier для recommendation ranking — admin > manager > head_chef > cook.
+  function userTier(u: { role: string; isRoot: boolean }): number {
+    if (u.isRoot) return 3;
+    if (u.role === "owner") return 3;
+    if (u.role === "manager") return 2;
+    if (u.role === "head_chef" || u.role === "technologist") return 1;
+    return 0;
+  }
+
+  /**
+   * Строит человеко-понятную рекомендацию: «<reason>. Назначь
+   * Иванову (Заведующая) — она привязана к TasksFlow и подходит по
+   * роли». Если подходящих нет — «<reason>. Заведи должность Заведующая
+   * в Сотрудниках».
+   *
+   * Логика выбора:
+   *   1. Сначала сужаем по journal-presets keywords (если есть).
+   *   2. Из них предпочтительнее те, кто привязан к TF (linkedUserIds)
+   *      — иначе задача всё равно не разлетится.
+   *   3. Сортировка по tier (admin > manager > head_chef > cook).
+   */
+  function buildRecommendation(code: string, reason: string): string {
+    // Извлекаем подходящие positions через journal-presets.
+    const allPositions = earlyUsersData
+      .map((u) => u.jobPosition)
+      .filter((p): p is { id: string; name: string } => p !== null);
+    // dedupe по id.
+    const positionsMap = new Map(allPositions.map((p) => [p.id, p]));
+    const positionsArr = [...positionsMap.values()];
+    const matchedPositionIds = new Set(
+      matchPositionsForJournal(code, positionsArr),
+    );
+
+    // Кандидаты — активные users у которых positionId matches keywords.
+    let candidates = earlyUsersData.filter(
+      (u) => u.jobPositionId && matchedPositionIds.has(u.jobPositionId),
+    );
+    // Если ничего не подошло — берём всех users с tier ≥ 1 (managers и
+    // выше) — они хотя бы могут назначить.
+    if (candidates.length === 0) {
+      candidates = earlyUsersData.filter((u) => userTier(u) >= 1);
+    }
+    // Если совсем никого — возвращаем generic совет.
+    if (candidates.length === 0) {
+      return `${reason}. Совет: заведи должность вроде «Заведующая» или «Старший повар» в Сотрудниках, и привяжи телефон сотрудника к TasksFlow.`;
+    }
+
+    // Предпочитаем привязанных к TF.
+    const tfLinked = candidates.filter((u) => earlyTfUserIds.has(u.id));
+    const pool = tfLinked.length > 0 ? tfLinked : candidates;
+
+    // Сортировка: tier desc → имя.
+    pool.sort((a, b) => {
+      const td = userTier(b) - userTier(a);
+      if (td !== 0) return td;
+      return a.name.localeCompare(b.name, "ru");
+    });
+
+    const top = pool[0];
+    const positionLabel = top.jobPosition?.name ?? "сотрудник";
+    const tfNote = earlyTfUserIds.has(top.id)
+      ? "(привязан к TasksFlow — задача дойдёт сразу)"
+      : "(нет привязки к TasksFlow — добавь телефон в карточке сотрудника)";
+    return `${reason}. Совет: назначь ${top.name} (${positionLabel}) ${tfNote}.`;
+  }
+
   const reports: JournalReport[] = hierarchySkipped.map(({ template, reason }) => ({
     code: template.code,
     label: template.name,
@@ -327,14 +415,18 @@ export async function POST(request: Request) {
   // соответствующий журнал, а не на общий /settings/staff-hierarchy.
   // (Общий linkHref остаётся как fallback в шапке нотификации.)
   function pushSkippedItem(code: string, label: string, hint: string) {
+    // Расширяем hint конкретной рекомендацией «Назначь X (должность)»
+    // на основе текущего состава сотрудников и их привязки к TasksFlow.
+    // Раньше юзер видел только сухой reason — даже не понимая что
+    // делать дальше. Теперь рекомендация прямо в bell-панели.
+    const enrichedHint = buildRecommendation(code, hint);
     notificationItems.set(code, {
       id: code,
       label,
-      hint,
+      hint: enrichedHint,
       // Deep-link: ведём на /settings/journal-responsibles?fix=<code>
-      // вместо общего /journals/<code>. Страница-настройка
-      // подсветит проблемную карточку красным, scroll'ит к ней и
-      // покажет рекомендацию какого сотрудника назначить.
+      // — страница подсветит проблемную карточку красным и предложит
+      // в баннере применить пресет одним кликом.
       href: `/settings/journal-responsibles?fix=${encodeURIComponent(code)}&reason=${encodeURIComponent(hint.slice(0, 120))}`,
     });
   }
@@ -382,18 +474,11 @@ export async function POST(request: Request) {
   // per-worker lookups against this in-memory map.
   const [userLinks, onDutyUsers, activeUsersForScope, allAccessRows] =
     await Promise.all([
-      db.tasksFlowUserLink.findMany({
-        where: {
-          integrationId: integration.id,
-          tasksflowUserId: { not: null },
-        },
-        select: { wesetupUserId: true, tasksflowUserId: true },
-      }),
+      // earlyTfLinks уже загружен выше — переиспользуем.
+      Promise.resolve(earlyTfLinks),
       listOnDutyToday(organizationId, now),
-      db.user.findMany({
-        where: { organizationId, isActive: true, archivedAt: null },
-        select: { id: true, jobPositionId: true },
-      }),
+      // earlyUsersData уже загружен выше — переиспользуем.
+      Promise.resolve(earlyUsersData),
       // Per-position journal access — нужно отфильтровать row'ы которые
       // adapter возвращает по всем employees: бармен/грузчик/повар не
       // должны попадать в чек-лист уборки. Если для шаблона нет ни одной

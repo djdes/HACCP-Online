@@ -8,13 +8,14 @@ import {
 } from "@/lib/notifications";
 
 /**
- * Auto-migration старых notifications-items: если href сохранён в
- * формате `/journals/<code>` (старый, до фикса deep-link фичи), на
- * лету переписываем в новый формат `/settings/journal-responsibles?fix=<code>&reason=<...>`.
+ * Auto-migration старых notifications-items: если href в формате
+ * `/journals/<code>` (старый, до фикса deep-link) или hint без
+ * рекомендации — на лету переписываем в новый формат с deep-link и
+ * подсказкой «Совет: ...».
  *
  * Безопасно — мы НЕ пишем обратно в БД, переписываем только в response.
- * При следующем upsertNotification (новый bulk-assign-today run) merge
- * обновит persistent state.
+ * При следующем upsertNotification (новый bulk-assign-today run)
+ * persistent state обновится через merge.
  */
 function migrateLegacyNotificationItem(
   kind: string,
@@ -22,17 +23,29 @@ function migrateLegacyNotificationItem(
 ): NotificationItem {
   if (kind !== "tasksflow.bulk_assign.skipped") return it;
   if (!it.href) return it;
-  // Новый формат уже есть.
-  if (it.href.startsWith("/settings/journal-responsibles?fix=")) return it;
-  // Старый формат — `/journals/<code>` или `/journals/<code>/...`.
-  const m = it.href.match(/^\/journals\/([^/?#]+)/);
-  if (!m) return it;
-  const code = m[1];
-  const reason = it.hint ? it.hint.slice(0, 120) : "";
-  return {
-    ...it,
-    href: `/settings/journal-responsibles?fix=${encodeURIComponent(code)}&reason=${encodeURIComponent(reason)}`,
-  };
+  let next = it;
+  // 1. Перепишем href если старый формат `/journals/<code>`.
+  if (!next.href!.startsWith("/settings/journal-responsibles?fix=")) {
+    const m = next.href!.match(/^\/journals\/([^/?#]+)/);
+    if (m) {
+      const code = m[1];
+      const reason = next.hint ? next.hint.slice(0, 120) : "";
+      next = {
+        ...next,
+        href: `/settings/journal-responsibles?fix=${encodeURIComponent(code)}&reason=${encodeURIComponent(reason)}`,
+      };
+    }
+  }
+  // 2. Если hint без рекомендации (нет «Совет:») — добавим generic
+  // подсказку. Реальная персонализированная рекомендация формируется
+  // на server'е bulk-assign-today, а здесь — fallback для старых.
+  if (next.hint && !next.hint.includes("Совет:")) {
+    next = {
+      ...next,
+      hint: `${next.hint}. Открой настройку — система предложит кого назначить.`,
+    };
+  }
+  return next;
 }
 
 export const runtime = "nodejs";
