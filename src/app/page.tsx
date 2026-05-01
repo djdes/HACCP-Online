@@ -34,6 +34,7 @@ import { ScreenshotFan } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
+import { DemoJournalWidget } from "@/components/landing/demo-journal-widget";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
@@ -556,6 +557,26 @@ export default async function LandingPage() {
             </Link>
           ))}
         </div>
+      </section>
+
+      {/* C9 — interactive demo journal: позволяет посетителю «потрогать»
+          форму без регистрации. Снимает страх «слишком сложно». */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="mb-8 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Wand2 className="size-4" />
+            Попробуйте сами
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Заполните журнал прямо здесь — без регистрации
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Это контроль температуры холодильника — типичный ежедневный
+            журнал. Введите данные и сохраните, чтобы увидеть как это
+            работает в реальном WeSetup.
+          </p>
+        </div>
+        <DemoJournalWidget />
       </section>
 
       {/* TRIAL BANNER */}
