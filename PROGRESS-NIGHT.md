@@ -30,6 +30,19 @@ staff_training, med_books
 
 ## Хронология
 
+### Iteration 5 — 00:48 — Phase 4 анимации + Phase 1 live-валидация (commit 6331073c)
+**Phase 4 — анимации:**
+- TaskFillHelperModal: backdrop fade-in + slide-up + sm:zoom-in-95
+- ConfirmSheet, NoEventsSheet — те же анимации
+- Form-card: slide-up-from-bottom-4 fade-in (500ms)
+- Поля формы: stagger по 60ms между каждым полем
+
+**Phase 1 — live-валидация:**
+- validateNumberField() сравнивает с min/max адаптера
+- Под input показывается «В норме» (emerald) / «Выше/ниже нормы — нарушение» (rose)
+- Border карточки меняет цвет на rose-300 / emerald-200 в зависимости от статуса
+- Юзер видит ошибку до сабмита периферийным зрением
+
 ### Iteration 4 — 00:42 — guides batch 4 — ВСЕ 35 ПОКРЫТЫ ✅
 - product_writeoff (бракераж/списание)
 - incoming_raw_materials_control (входной контроль сырья)
