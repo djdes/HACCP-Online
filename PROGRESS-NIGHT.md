@@ -30,6 +30,22 @@ staff_training, med_books
 
 ## Хронология
 
+### Iteration 4 — 00:42 — guides batch 4 — ВСЕ 35 ПОКРЫТЫ ✅
+- product_writeoff (бракераж/списание)
+- incoming_raw_materials_control (входной контроль сырья)
+- sanitary_day_control (санитарный день)
+- audit_plan (план аудитов)
+- audit_protocol (протокол аудита)
+- audit_report (отчёт аудита)
+- training_plan (план обучения)
+- 28 → 35/35 ✅✅✅
+- **Phase 2 полностью завершена**
+
+### Iteration 3 — 00:36 — guides batch 3 (commit 4ac3cbdf)
+- equipment_maintenance, equipment_calibration, breakdown_history
+- metal_impurity, traceability_test
+- 23 → 28/35
+
 ### Iteration 2 — 00:30 — guides batch 2
 - uv_lamp_runtime (УФ-лампы)
 - general_cleaning (генеральные уборки)
