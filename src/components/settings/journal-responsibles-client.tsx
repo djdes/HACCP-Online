@@ -257,6 +257,16 @@ export function JournalResponsiblesClient({
    * Сотрудники для конкретного слота: фильтр по выбранным должностям +
    * по slot.positionKeywords (если заданы). Если ничего не подошло — всех.
    * Исключаем ids, которые уже взяты другими слотами этого же журнала.
+   *
+   * Verifier-слот — особый случай: ВСЕГДА показываем всех сотрудников
+   * орги, без фильтра по chip'ам «Заполняют» и без keyword-фильтра.
+   * Раньше админа невозможно было выбрать как проверяющего, потому что:
+   *  1. Его должность обычно не в chips «Заполняют» (админ не заполняет
+   *     журналы) → positionSet filter его убирал.
+   *  2. DEFAULT_VERIFIER_KEYWORDS не включает "админ" (намеренно — но
+   *     логика подразумевала auto-pick, не запрет).
+   * Решение: keyword-фильтр оставляем только для auto-pick через
+   * presets, а UI dropdown'у даём весь пул сотрудников.
    */
   function eligibleUsersForSlot(
     journalCode: string,
@@ -264,7 +274,6 @@ export function JournalResponsiblesClient({
   ): UserItem[] {
     const schema = getSchemaForJournal(journalCode);
     const slot = schema.slots.find((s) => s.id === slotId);
-    const positionSet = curr.positions.get(journalCode);
     const slotMap = curr.slots.get(journalCode) ?? {};
     const usedIds = new Set(
       Object.entries(slotMap)
@@ -272,6 +281,13 @@ export function JournalResponsiblesClient({
         .map(([, uid]) => uid as string)
     );
 
+    if (slot?.kind === "verifier") {
+      return [...users]
+        .filter((u) => !usedIds.has(u.id))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    }
+
+    const positionSet = curr.positions.get(journalCode);
     let pool = users;
     if (positionSet && positionSet.size > 0) {
       pool = pool.filter(
