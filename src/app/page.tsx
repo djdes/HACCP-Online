@@ -807,6 +807,95 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* D13 — illustrative cases (типовые сценарии, не реальные клиенты).
+          Реальные брендированные кейсы вернутся когда появятся подписанные
+          разрешения на показ — пока даём «вилки» на основе наблюдений.   */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Sparkles className="size-4" />
+            До и после
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Типичные результаты перехода с бумаги
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Цифры — на основе наблюдений за заведениями, которые перешли с
+            бумажных журналов. Точная экономия зависит от количества журналов
+            и сотрудников.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            {
+              title: "Кафе на 10 сотрудников",
+              before:
+                "Шеф 30 минут утром тратит на бракераж и проверку гигиены. Журналы заполняются вечером «задним числом».",
+              after:
+                "Бракераж и гигиена через Telegram-бот за 3 минуты. Перед проверкой РПН — PDF одной кнопкой.",
+              metric: "≈15 ч/мес",
+              metricLabel: "экономия времени",
+            },
+            {
+              title: "Школьная столовая",
+              before:
+                "9 бумажных журналов, директор переписывает их перед каждым визитом надзора.",
+              after:
+                "Все журналы в одном кабинете. Повара заполняют с планшета, директор — отчёт по расписанию.",
+              metric: "0 замечаний",
+              metricLabel: "при последних проверках",
+            },
+            {
+              title: "Пекарня с прослеживаемостью",
+              before:
+                "Партии муки и заквасок учитываются в Excel-таблице, при претензии непонятно от какого поставщика дефект.",
+              after:
+                "Каждая партия в lot-tracking, история от поставщика до полки доступна за 2 клика.",
+              metric: "100% lot-coverage",
+              metricLabel: "после 2 недель",
+            },
+          ].map((c) => (
+            <div
+              key={c.title}
+              className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+            >
+              <div className="text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024]">
+                {c.title}
+              </div>
+              <div className="mt-5">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a13a32]">
+                  Было
+                </div>
+                <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
+                  {c.before}
+                </p>
+              </div>
+              <div className="mt-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                  Стало
+                </div>
+                <p className="mt-1 text-[13px] leading-[1.55] text-[#0b1024]">
+                  {c.after}
+                </p>
+              </div>
+              <div className="mt-5 rounded-2xl bg-[#f5f6ff] p-4">
+                <div className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[#3848c7]">
+                  {c.metric}
+                </div>
+                <div className="text-[12px] text-[#6f7282]">
+                  {c.metricLabel}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 text-[12px] text-[#9b9fb3]">
+          * Это типичные сценарии, а не реальные клиенты. Брендированные
+          кейс-стади появятся, когда подписанные клиенты дадут разрешение на
+          показ.
+        </div>
+      </section>
+
       {/* AUDIENCE */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
@@ -1003,6 +1092,46 @@ export default async function LandingPage() {
       {/* TESTIMONIALS section убрана — без реальных отзывов. */}
       {/* Вернётся когда появятся клиенты, готовые подписать кейс. */}
 
+      {/* C5 — final reorder: FAQ → BLOG → CTA (recommended pattern). */}
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <HelpCircle className="size-4" />
+            Вопросы и ответы
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Быстрая справка перед регистрацией
+          </h2>
+        </div>
+        <div className="divide-y divide-[#ececf4] overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 text-[16px] font-medium text-[#0b1024] hover:bg-[#fafbff]">
+                <span>{item.q}</span>
+                <span className="flex size-7 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-transform group-open:rotate-45">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+              </summary>
+              <div className="px-5 pb-5 text-[14px] leading-[1.6] text-[#6f7282]">
+                {item.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* BLOG */}
       {latestArticles.length > 0 && (
         <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
@@ -1063,44 +1192,6 @@ export default async function LandingPage() {
           </div>
         </section>
       )}
-
-      {/* FAQ */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <HelpCircle className="size-4" />
-            Вопросы и ответы
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Быстрая справка перед регистрацией
-          </h2>
-        </div>
-        <div className="divide-y divide-[#ececf4] overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-          {FAQ.map((item) => (
-            <details key={item.q} className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 text-[16px] font-medium text-[#0b1024] hover:bg-[#fafbff]">
-                <span>{item.q}</span>
-                <span className="flex size-7 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-transform group-open:rotate-45">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </span>
-              </summary>
-              <div className="px-5 pb-5 text-[14px] leading-[1.6] text-[#6f7282]">
-                {item.a}
-              </div>
-            </details>
-          ))}
-        </div>
-      </section>
 
       {/* FINAL CTA */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
