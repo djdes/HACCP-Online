@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import {
   ChevronDown,
+  Gauge,
+  ListChecks,
+  Plug,
+  Settings2,
   Sparkles,
+  Wand2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -15,12 +20,15 @@ const STORAGE_KEY = "wesetup.last-seen-build-sha";
  * вложенными items'ами. В UI:
  *   • строки рендерятся плоским списком с фиолетовой точкой
  *   • категории — accordion с раскрытием одной за раз
+ *
+ * NB: icon-component сюда передавать нельзя — Server Components не
+ * сериализуют функции в client. Иконку выбираем по category name через
+ * CATEGORY_ICONS ниже.
  */
 export type WhatsNewNote =
   | string
   | {
       category: string;
-      icon?: LucideIcon;
       items: string[];
     };
 
@@ -31,8 +39,26 @@ type Props = {
 
 function isCategoryNote(
   n: WhatsNewNote,
-): n is { category: string; icon?: LucideIcon; items: string[] } {
+): n is { category: string; items: string[] } {
   return typeof n === "object" && n !== null && "category" in n;
+}
+
+/**
+ * Маппинг category name → иконка. Если категории нет в этом списке —
+ * fallback на Sparkles. Добавлять новые иконки в whats-new-notes.ts
+ * нельзя (server→client serialization), поэтому держим mapping здесь.
+ */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Распределение задач": Gauge,
+  "Умные пресеты": Wand2,
+  Интерфейс: Settings2,
+  Интеграции: Plug,
+  Журналы: ListChecks,
+  "Раньше — тоже полезное": ListChecks,
+};
+
+function iconForCategory(name: string): LucideIcon {
+  return CATEGORY_ICONS[name] ?? Sparkles;
 }
 
 /**
@@ -161,7 +187,7 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
           <div className="space-y-2">
             {categories.map((cat, idx) => {
               const isOpen = openCategoryIdx === idx;
-              const Icon = cat.icon ?? Sparkles;
+              const Icon = iconForCategory(cat.category);
               return (
                 <div
                   key={cat.category}

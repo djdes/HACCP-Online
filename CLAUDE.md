@@ -106,6 +106,11 @@ This file provides guidance to Claude Code when working with code in this reposi
      при свернутом, белая на фиолетовом при раскрытом).
    - Категории сортируются от самой важной к менее важной — наверху
      должно быть то, ради чего вообще show'аем модалку.
+   - **Иконки категорий держим в client component** (`CATEGORY_ICONS`
+     map в `whats-new-modal.tsx`). НЕ передаём `LucideIcon` через
+     props из server-component'а — RSC не сериализует функции и это
+     даёт runtime error. Если появилась новая категория — добавить
+     иконку в map, не в `whats-new-notes.ts`.
 
    После деплоя ВАЖНОГО для пользователя изменения — обязательно
    обновляй `whats-new-notes.ts`. Это часть «доделать таску до конца»,

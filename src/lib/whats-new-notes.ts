@@ -1,10 +1,3 @@
-import {
-  Gauge,
-  ListChecks,
-  Sparkles,
-  Wand2,
-  type LucideIcon,
-} from "lucide-react";
 import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
 
 /**
@@ -20,20 +13,22 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  * Только когда есть что показать пользователю.
  *
  * Формат: либо строка (плоский bullet), либо
- *   { category, icon, items: [...] } — раскрывающийся accordion.
- * Когда новостей много — лучше группировать.
+ *   { category, items: [...] } — раскрывающийся accordion.
+ *
+ * Иконку для категории НЕ передаём — иконки выбираются на клиенте
+ * через WHATS_NEW_CATEGORY_ICONS (см. whats-new-modal.tsx). Передавать
+ * сюда LucideIcon-компонент нельзя — RSC не сериализует функции в
+ * client component'ы (runtime error 500).
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "4972c25";
+export const LATEST_NOTES_BUILD_SHA = "ace1917";
 
-// Re-export types для consumers (layout.tsx импортирует одной строкой).
-export type { WhatsNewNote, LucideIcon };
+export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
   {
     category: "Распределение задач",
-    icon: Gauge,
     items: [
       "Новый раздел «Сложность журналов» в настройках — для команд без шеф-повара. Поставьте 1-5 каждому журналу, и система равномерно распределит задачи между поварами.",
       "Новый дашборд «Распределение задач» (/settings/workload-balance) — таблица сколько каждый сотрудник заполняет журналов в месяц с подсветкой перекоса (зелёный/жёлтый/красный).",
@@ -42,7 +37,6 @@ export const WHATS_NEW_NOTES: WhatsNewNote[] = [
   },
   {
     category: "Умные пресеты",
-    icon: Wand2,
     items: [
       "Пресеты теперь балансируют нагрузку: тяжёлые журналы расходятся первыми, у одинаково подходящих кандидатов разная итоговая загрузка.",
       "Per-employee журналы (гигиена, медкнижки, инструктажи): пресет добавляет ВСЕ должности и ставит админа в «Кто проверяет».",
@@ -51,7 +45,6 @@ export const WHATS_NEW_NOTES: WhatsNewNote[] = [
   },
   {
     category: "Интерфейс",
-    icon: Sparkles,
     items: [
       "Дропдаун выбора сотрудника стал группированным: «Рекомендуем» / «Можно» / «Не рекомендуем». С поиском, нагрузкой и короной у админа.",
       "Все confirm-окна (применить пресет, удалить документы, изменить во всех) теперь в стиле сайта — с описанием последствий и полем «введите УДАЛИТЬ» для самых опасных операций.",
@@ -60,7 +53,6 @@ export const WHATS_NEW_NOTES: WhatsNewNote[] = [
   },
   {
     category: "Раньше — тоже полезное",
-    icon: ListChecks,
     items: [
       "В журналах «Дезинсекция» и «Интенсивное охлаждение» при создании записи время автоматически подставляется (можно перевыбрать).",
       "На дашборде — карточка «Кому помочь» с тремя сотрудниками с минимумом записей за месяц.",
