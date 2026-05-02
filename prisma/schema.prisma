@@ -151,6 +151,8 @@ model Organization {
   journalEntries           JournalEntry[]
   products                 Product[]
   auditLogs                AuditLog[]
+  journalChecklistItems    JournalChecklistItem[]
+  journalChecklistChecks   JournalChecklistCheck[]
   managerScopes            ManagerScope[]
   batches                  Batch[]
   capaTickets              CapaTicket[]
@@ -1514,4 +1516,73 @@ model TasksFlowTaskLink {
 
   @@unique([integrationId, journalDocumentId, rowKey])
   @@index([tasksflowTaskId])
+}
+
+/// Per-organization чеклист пунктов для журнала. Админ создаёт пункты
+/// в /settings/journal-responsibles/[code]; повар видит их в TaskFill
+/// перед отправкой формы. Required-пункты блокируют submit.
+///
+/// Чеклист — рабочий инструмент сотрудника (что физически сделать),
+/// не данные журнала. В таблицу журнала идёт только итог («выполнено
+/// + дата + подпись»). Каждая отметка галочки → JournalChecklistCheck.
+///
+/// Архивируется soft-delete (archivedAt) — старые чеки сохраняют
+/// referential integrity, новые задачи не видят архивный пункт.
+model JournalChecklistItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Один из ACTIVE_JOURNAL_CATALOG codes. Не FK на JournalTemplate
+  /// чтобы пункты переживали изменения шаблона.
+  journalCode    String
+  /// Текст пункта (видит сотрудник).
+  label          String
+  /// Сортировка (0, 1, 2, ...). Меньшее число = выше в списке.
+  sortOrder      Int          @default(0)
+  /// Если true — submit формы блокируется пока не отмечено.
+  required       Boolean      @default(true)
+  /// Опциональная подсказка/уточнение под пунктом.
+  hint           String?
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdByUserId String?
+  /// Galаchki по этому пункту (audit-trail кто-когда отметил).
+  checks         JournalChecklistCheck[]
+
+  @@index([organizationId, journalCode, archivedAt])
+  @@index([organizationId, journalCode, sortOrder])
+}
+
+/// Запись отметки галочки чек-листа сотрудником в момент заполнения
+/// журнала. Append-only — даже если юзер «снимает» галочку, мы пишем
+/// новую запись с checked=false (не редактируем старую). Audit-trail
+/// для проверок РПН.
+///
+/// Привязывается к taskFillTaskId (TasksFlow путь, HMAC-токен) или
+/// к journalEntryId (in-app dashboard путь). Один из них заполнен.
+model JournalChecklistCheck {
+  id              String               @id @default(cuid())
+  organizationId  String
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  checklistItemId String
+  checklistItem   JournalChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  /// TF-task если отметка пришла из task-fill flow.
+  taskFillTaskId  Int?
+  rowKey          String?
+  /// In-app journal entry если отметка пришла из дашборда.
+  journalEntryId  String?
+  /// Состояние после события (true = отметили, false = сняли).
+  checked         Boolean
+  /// Кто отметил. userId nullable — TaskFill приходит без сессии,
+  /// есть только rowKey-зашитый employeeId.
+  checkedByUserId String?
+  checkedByName   String?
+  ipAddress       String?
+  createdAt       DateTime             @default(now())
+
+  @@index([checklistItemId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([taskFillTaskId, rowKey])
+  @@index([journalEntryId])
 }
