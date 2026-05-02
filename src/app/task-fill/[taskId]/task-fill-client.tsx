@@ -86,40 +86,50 @@ export function TaskFillClient({
   const [helperOpen, setHelperOpen] = useState(false);
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
-    // HH:MM текущего времени — подставим в time-поля без defaultValue.
-    // Это feature A7 в brainstorm: «Время выпуска / Время приёмки» —
-    // повар вписывал руками, а уж лучше сразу подставить и дать
-    // править если что.
+    // Автозаполнение по типу/ключу поля если адаптер не подставил
+    // defaultValue. Юзер может стереть и ввести вручную — это не
+    // блокирует submit, просто экономит тапы на типичных значениях.
     const nowHHMM = new Date().toTimeString().slice(0, 5);
+    const todayISO = new Date().toISOString().slice(0, 10);
     if (form) {
       for (const field of form.fields) {
         const dv = (field as { defaultValue?: unknown }).defaultValue;
         if (field.type === "boolean") {
           init[field.key] = typeof dv === "boolean" ? dv : false;
         } else if (field.type === "number") {
-          // Подхватываем prefill из адаптера (если задача уже выполнялась
-          // и мы открываем её для редактирования — defaults берутся из
-          // существующей journal-row).
           init[field.key] =
             typeof dv === "number"
               ? dv
               : typeof dv === "string" && dv.trim() !== ""
                 ? Number(dv)
                 : "";
+        } else if (field.type === "date") {
+          // Date-поле без defaultValue → сегодняшняя дата (ISO).
+          // Подавляющее большинство записей — за сегодняшний день.
+          init[field.key] = typeof dv === "string" && dv.trim() !== "" ? dv : todayISO;
         } else {
-          // Smart default для time-полей: если адаптер не указал
-          // defaultValue, а maxLength=5 (как объявлены time-поля), —
-          // подставляем сейчас. Юзер может стереть и ввести вручную.
+          // text-поле. Несколько эвристик автозаполнения:
+          //   1. defaultValue из адаптера — приоритет (для редактирования).
+          //   2. time-поле (maxLength=5 или метка «ЧЧ:ММ») → текущее HH:MM.
+          //   3. ФИО / подпись / исполнитель → employeeName из props.
+          //   4. иначе — пусто.
+          const key = (field.key ?? "").toLowerCase();
+          const lbl = (field.label ?? "").toLowerCase();
           const looksLikeTime =
             field.type === "text" &&
             ((field as { maxLength?: number }).maxLength === 5 ||
               field.label?.includes("ЧЧ:ММ"));
+          const looksLikeName =
+            /(^|[^а-я])(фио|подпис|исполнител|ответствен|повар|работник|имя\b)/i.test(
+              `${key} ${lbl}`,
+            );
+          let autofill = "";
+          if (looksLikeTime) autofill = nowHHMM;
+          else if (looksLikeName && employeeName) autofill = employeeName;
           init[field.key] =
             typeof dv === "string" || typeof dv === "number"
               ? String(dv)
-              : looksLikeTime
-                ? nowHHMM
-                : "";
+              : autofill;
         }
       }
     }
