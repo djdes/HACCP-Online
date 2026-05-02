@@ -18,6 +18,16 @@ const ACTION_LABELS: Record<string, string> = {
   "position.delete": "Удаление должности",
   "user.invite": "Приглашение пользователя",
   "user.archive": "Архивирование пользователя",
+  // Чек-листы (Phase 3) — каждое действие админа и сотрудника.
+  "checklist.item.create": "Чек-лист: добавлен пункт",
+  "checklist.item.update": "Чек-лист: обновлён пункт",
+  "checklist.item.delete": "Чек-лист: удалён пункт",
+  "checklist.check.set": "Чек-лист: пункт ОТМЕЧЕН сотрудником",
+  "checklist.check.unset": "Чек-лист: пункт снят сотрудником",
+  // Прочие важные действия которые уже логируются.
+  "tasksflow.bulk_assign.force_wipe": "TasksFlow: force-wipe задач",
+  "staff.archived.responsibles_orphan":
+    "Архив сотрудника: освобождены слоты ответственных",
 };
 
 function formatDate(d: Date): string {

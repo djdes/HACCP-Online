@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskFillField } from "@/components/task-fill/task-fill-field";
 import { TaskFillHelperModal } from "@/components/task-fill/task-fill-helper-modal";
+import { TaskFillChecklist } from "@/components/task-fill/task-fill-checklist";
 import type {
   TaskFormField,
   TaskFormSchema,
@@ -84,6 +85,10 @@ export function TaskFillClient({
   closeEvent,
 }: Props) {
   const [helperOpen, setHelperOpen] = useState(false);
+  // Чек-лист: ready=true когда все required-пункты отмечены. Если
+  // в данной орге чеклиста для этого журнала нет, компонент молчаливо
+  // возвращает null и ready остаётся true (default — нет блокировки).
+  const [checklistReady, setChecklistReady] = useState(true);
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
     // Автозаполнение по типу/ключу поля если адаптер не подставил
@@ -525,6 +530,17 @@ export function TaskFillClient({
             locked={editLocked}
           />
         ) : (
+          <div className="space-y-4">
+          {/* Чек-лист действий — выше формы. Сотрудник сначала
+              физически делает работу + ставит галочки, потом
+              заполняет числовые замеры. Required блокирует submit. */}
+          {!editMode ? (
+            <TaskFillChecklist
+              taskId={taskId}
+              token={token}
+              onReadyChange={setChecklistReady}
+            />
+          ) : null}
           <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_20px_50px_-20px_rgba(11,16,36,0.18)] animate-in fade-in-0 slide-in-from-bottom-4 duration-500 sm:p-6">
             {isShared ? (
               <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white p-4 text-[13px] leading-snug text-[#3c4053]">
@@ -642,8 +658,13 @@ export function TaskFillClient({
             <Button
               type="button"
               onClick={() => setConfirmOpen(true)}
-              disabled={!readyToSubmit || submitting}
+              disabled={!readyToSubmit || !checklistReady || submitting}
               className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-[#3d4efc] to-[#7a5cff] px-5 text-[15.5px] font-semibold text-white shadow-[0_14px_36px_-12px_rgba(85,102,246,0.65)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:from-[#dcdfed] disabled:to-[#dcdfed] disabled:text-[#9b9fb3] disabled:shadow-none"
+              title={
+                !checklistReady
+                  ? "Сначала отметь все обязательные пункты чек-листа"
+                  : undefined
+              }
             >
               {submitting ? (
                 <Loader2 className="size-5 animate-spin" />
@@ -660,6 +681,7 @@ export function TaskFillClient({
                 Отмена — вернуться
               </a>
             ) : null}
+          </div>
           </div>
         )}
 
