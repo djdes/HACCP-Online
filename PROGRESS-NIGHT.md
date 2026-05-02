@@ -1,7 +1,8 @@
-# Ночная работа 2026-05-02
+# Ночная работа 2026-05-02 + дневная 2026-05-02
 
-Cron `*/5 * * * *`, job `d374f9b9`. Self-stop в 07:00 — после этого
-итерации возвращают «Стоп» без работы.
+Cron `*/5 * * * *`, job `d374f9b9` (умер ~00:35 из-за обрыва сессии,
+не влияло на дневную работу). Финальный статус: **5 фаз, 12 коммитов,
+все Phase 1-3 закрыты + Phase 4 done**.
 
 ## Цели ночи
 
@@ -29,6 +30,35 @@ staff_training, med_books
 - training_plan
 
 ## Хронология
+
+### Iteration 7 — 13:00 — Phase 3 MVP2 + verification (commits 41f80fe7)
+**UI complete для Phase 3:**
+- /settings/journal-checklists hub-page со списком всех 35 журналов
+- /settings/journal-checklists/[code] editor — drag/sort/edit/delete с ConfirmDialog
+- TaskFillChecklist component — рендерится в task-fill ВЫШЕ формы
+- Submit-кнопка disabled пока не все required отмечены
+- /settings home — карточка «Чек-листы для журналов»
+- /root/audit — extended ACTION_LABELS для всех checklist actions
+
+**Visual verification on prod (build 41f80fe):**
+- Hub-page рендерится, 35 журналов видны
+- Editor: создал 5 пунктов через API (4 required + 1 optional) для equipment_cleaning
+- 121 TF-задач созданы через force-bulk-assign
+- TaskFill: чек-лист рендерится сверху формы, progress-bar emerald,
+  required-pills, hint-text под label
+- Auto-save отметок работает (4 клика → 4 AuditLog записи)
+- Submit-кнопка active'ируется когда все required отмечены
+
+### Iteration 6 — 12:30 — Phase 1 autofill + Phase 3 MVP1 schema+API (commits 7be0d6ae, f9696a7a)
+**Phase 1 finishing:**
+- Date-поля автозаполняются today (ISO YYYY-MM-DD)
+- Text-поля с key/label «фио/подпис/исполнител/повар» → employeeName
+
+**Phase 3 MVP1 — backend:**
+- Prisma: JournalChecklistItem + JournalChecklistCheck (append-only audit)
+- 5 API endpoints: settings CRUD + task-fill GET/POST с HMAC verify
+- Все мутации пишут в AuditLog: checklist.item.create/update/delete
+  + checklist.check.set/unset
 
 ### Iteration 5 — 00:48 — Phase 4 анимации + Phase 1 live-валидация (commit 6331073c)
 **Phase 4 — анимации:**
