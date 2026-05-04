@@ -213,7 +213,7 @@ export default async function JournalDocumentPage({
       }),
       db.organization.findUnique({
         where: { id: getActiveOrgId(session) },
-        select: { name: true, disabledJournalCodes: true },
+        select: { name: true, disabledJournalCodes: true, experimentalUiV2: true },
       }),
       db.user.findMany({
         where: {
@@ -963,6 +963,7 @@ export default async function JournalDocumentPage({
           data: normalizeCleaningEntryData(entry.data),
         }))}
         hasTasksFlowIntegration={hasTasksFlowIntegration}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

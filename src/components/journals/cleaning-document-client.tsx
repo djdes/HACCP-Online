@@ -37,6 +37,7 @@ import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { PositionNativeOptions, PositionSelectItems } from "@/components/shared/position-select";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
@@ -70,6 +71,14 @@ type Props = {
     name: string;
     rooms: Array<{ id: string; name: string; kind: string }>;
   }>;
+  /**
+   * Если true — рендерим Settings dialog в Design v2 стиле через
+   * `<JournalSettingsModal>`. Сама механика и data-flow остаются
+   * прежними; меняется только обёртка модалки. Включается через
+   * `Organization.experimentalUiV2`. Default false — legacy.
+   * См. docs/PIPELINE-VISION.md раздел P3.
+   */
+  useV2?: boolean;
 };
 type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
 type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string; generalScope: string };
@@ -791,7 +800,124 @@ export function CleaningDocumentClient(props: Props) {
           ) : null}
         </DialogContent>
       </Dialog>
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]"><DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
+      {props.useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Название журнала и ответственные. Изменения применяются ко всему периоду документа."
+          size="md"
+          isSaving={saving}
+          onSave={async () => {
+            await updateSettings({});
+            setSettingsOpen(false);
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
+            <Input
+              value={settingsState.title}
+              onChange={(event) =>
+                setSettingsState((current) => ({ ...current, title: event.target.value }))
+              }
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность ответственного за уборку
+            </Label>
+            <Select
+              value={settingsState.cleaningRole}
+              onValueChange={(value) =>
+                setSettingsState((current) => ({
+                  ...current,
+                  cleaningRole: value,
+                  cleaningUserId: primaryUserId(props.users, value),
+                }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                <PositionSelectItems users={props.users} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник
+            </Label>
+            <Select
+              value={settingsState.cleaningUserId}
+              onValueChange={(value) =>
+                setSettingsState((current) => ({ ...current, cleaningUserId: value }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                {getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность ответственного за контроль
+            </Label>
+            <Select
+              value={settingsState.controlRole}
+              onValueChange={(value) =>
+                setSettingsState((current) => ({
+                  ...current,
+                  controlRole: value,
+                  controlUserId: primaryUserId(props.users, value),
+                }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                <PositionSelectItems users={props.users} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник
+            </Label>
+            <Select
+              value={settingsState.controlUserId}
+              onValueChange={(value) =>
+                setSettingsState((current) => ({ ...current, controlUserId: value }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                {getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]"><DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
+      )}
       <ConfirmDialog open={deleteOpen} title="Удалить выбранные строки?" submitLabel="Удалить" onOpenChange={setDeleteOpen} onSubmit={deleteSelectedRows} />
     </>
   );
