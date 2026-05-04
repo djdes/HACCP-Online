@@ -36,6 +36,7 @@ import {
 } from "@/lib/equipment-maintenance-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -58,6 +59,8 @@ type Props = {
   status: string;
   initialConfig: EquipmentMaintenanceConfig;
   users: { id: string; name: string; role: string }[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
@@ -78,6 +81,7 @@ export function EquipmentMaintenanceDocumentClient({
   status,
   initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -783,43 +787,64 @@ export function EquipmentMaintenanceDocumentClient({
       </Dialog>
 
       {/* ---------- Settings Dialog ---------- */}
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>Настройки журнала</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Label>Название документа</Label>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки журнала"
+          description="Название, дата, год и две роли: утверждающий и ответственный."
+          size="md"
+          isSaving={isSaving}
+          onSave={handleSaveSettings}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
-
-            <Label>Дата документа</Label>
-            <Input
-              type="date"
-              value={settingsDate}
-              onChange={(e) => setSettingsDate(e.target.value)}
-            />
-
-            <Label>Год</Label>
-            <Select
-              value={String(settingsYear)}
-              onValueChange={(val) => setSettingsYear(Number(val))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Label>Должность &laquo;Утверждаю&raquo;</Label>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Дата документа
+              </Label>
+              <Input
+                type="date"
+                value={settingsDate}
+                onChange={(e) => setSettingsDate(e.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Год
+              </Label>
+              <Select
+                value={String(settingsYear)}
+                onValueChange={(val) => setSettingsYear(Number(val))}
+              >
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность «Утверждаю»
+            </Label>
             <Select
               value={settingsApproveRole}
               onValueChange={(value) => {
@@ -829,15 +854,18 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
               }}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={users} />
               </SelectContent>
             </Select>
-
-            <Label>Сотрудник (утверждает)</Label>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник (утверждает)
+            </Label>
             <Select
               value={settingsApproveEmployeeId}
               onValueChange={(value) => {
@@ -847,8 +875,8 @@ export function EquipmentMaintenanceDocumentClient({
                 if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
               }}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
                 {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
@@ -858,8 +886,11 @@ export function EquipmentMaintenanceDocumentClient({
                 ))}
               </SelectContent>
             </Select>
-
-            <Label>Должность ответственного</Label>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность ответственного
+            </Label>
             <Select
               value={settingsResponsibleRole}
               onValueChange={(value) => {
@@ -869,15 +900,18 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
               }}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={users} />
               </SelectContent>
             </Select>
-
-            <Label>Сотрудник (ответственный)</Label>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник (ответственный)
+            </Label>
             <Select
               value={settingsResponsibleEmployeeId}
               onValueChange={(value) => {
@@ -887,8 +921,8 @@ export function EquipmentMaintenanceDocumentClient({
                 if (user) setSettingsResponsibleRole(getUserRoleLabel(user.role));
               }}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
                 {(settingsResponsibleRole ? getUsersForRoleLabel(users, settingsResponsibleRole) : users).map((u) => (
@@ -898,15 +932,134 @@ export function EquipmentMaintenanceDocumentClient({
                 ))}
               </SelectContent>
             </Select>
-
-            <div className="flex justify-end">
-              <Button onClick={handleSaveSettings} disabled={isSaving}>
-                Сохранить
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle>Настройки журнала</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label>Название документа</Label>
+              <Input
+                value={settingsTitle}
+                onChange={(e) => setSettingsTitle(e.target.value)}
+              />
+
+              <Label>Дата документа</Label>
+              <Input
+                type="date"
+                value={settingsDate}
+                onChange={(e) => setSettingsDate(e.target.value)}
+              />
+
+              <Label>Год</Label>
+              <Select
+                value={String(settingsYear)}
+                onValueChange={(val) => setSettingsYear(Number(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Label>Должность &laquo;Утверждаю&raquo;</Label>
+              <Select
+                value={settingsApproveRole}
+                onValueChange={(value) => {
+                  const user = users.find((item) => getUserRoleLabel(item.role) === value);
+                  setSettingsApproveRole(value);
+                  setSettingsApproveEmployeeId(user?.id || "");
+                  setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  <PositionSelectItems users={users} />
+                </SelectContent>
+              </Select>
+
+              <Label>Сотрудник (утверждает)</Label>
+              <Select
+                value={settingsApproveEmployeeId}
+                onValueChange={(value) => {
+                  const user = users.find((item) => item.id === value);
+                  setSettingsApproveEmployeeId(value);
+                  setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
+                  if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {buildStaffOptionLabel(u)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Label>Должность ответственного</Label>
+              <Select
+                value={settingsResponsibleRole}
+                onValueChange={(value) => {
+                  const user = users.find((item) => getUserRoleLabel(item.role) === value);
+                  setSettingsResponsibleRole(value);
+                  setSettingsResponsibleEmployeeId(user?.id || "");
+                  setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  <PositionSelectItems users={users} />
+                </SelectContent>
+              </Select>
+
+              <Label>Сотрудник (ответственный)</Label>
+              <Select
+                value={settingsResponsibleEmployeeId}
+                onValueChange={(value) => {
+                  const user = users.find((item) => item.id === value);
+                  setSettingsResponsibleEmployeeId(value);
+                  setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
+                  if (user) setSettingsResponsibleRole(getUserRoleLabel(user.role));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="- Выберите значение -" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(settingsResponsibleRole ? getUsersForRoleLabel(users, settingsResponsibleRole) : users).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {buildStaffOptionLabel(u)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSettings} disabled={isSaving}>
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

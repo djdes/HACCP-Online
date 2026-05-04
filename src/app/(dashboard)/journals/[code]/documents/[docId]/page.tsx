@@ -522,6 +522,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
         users={enrichedEmployees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
