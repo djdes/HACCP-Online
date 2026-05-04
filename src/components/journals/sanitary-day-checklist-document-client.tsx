@@ -32,6 +32,7 @@ import {
   type SdcItem,
 } from "@/lib/sanitary-day-checklist-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -54,6 +55,8 @@ type Props = {
   config: SdcConfig;
   initialEntries: { id: string; date: string; data: SdcEntryData }[];
   routeCode: string;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 /* ─── Helpers ─── */
@@ -104,6 +107,7 @@ function SettingsDialog(props: {
   title: string;
   dateFrom: string;
   onSaved: () => void;
+  useV2?: boolean;
 }) {
   const [docTitle, setDocTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
@@ -135,6 +139,43 @@ function SettingsDialog(props: {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и дата документа."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={docTitle}
+            onChange={(e) => setDocTitle(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата
+          </Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -645,6 +686,7 @@ export function SanitaryDayChecklistDocumentClient({
   config: initialConfig,
   initialEntries,
   routeCode,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState<SdcConfig>(() =>
@@ -1041,6 +1083,7 @@ export function SanitaryDayChecklistDocumentClient({
         title={documentTitle}
         dateFrom={entryDate}
         onSaved={() => router.refresh()}
+        useV2={useV2}
       />
       {addItemOpen && (
         <AddItemDialog
