@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B5 — ppe-issuance v2**
+**Текущий приоритет:** **P3.B6 — med-book v2**
 
 ---
 
@@ -144,7 +144,7 @@
 - [x] P3.B2 — equipment-calibration — DONE wave-1 @ 56bc6f19 @ 2026-05-05 03:05 МСК
 - [x] P3.B3 — equipment-maintenance — DONE wave-1 @ 6bbd9b42 @ 2026-05-05 03:20 МСК
 - [x] P3.B4 — disinfectant — DONE wave-1 @ 4c73cec1 @ 2026-05-05 03:35 МСК
-- [ ] P3.B5 — ppe-issuance
+- [x] P3.B5 — ppe-issuance — DONE wave-1 @ 950be4ef @ 2026-05-05 03:50 МСК
 - [ ] P3.B6 — med-book
 - [ ] P3.B7 — sanitation-day
 - [ ] P3.B8 — sanitary-day-checklist
