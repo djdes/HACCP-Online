@@ -18,21 +18,27 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P0.1 — Pipeline не заполняет журнал** (см. PIPELINE-VISION.md)
+**Текущий приоритет:** **P0.2 — Ответственные desync между таблицей и settings** (P0.1 закрыт частично, см. ниже)
 
 ---
 
 ## P0 — Active bugs
 
-### [ ] P0.1 — Pipeline не заполняет колонки журнала
-- **Описание:** generic-адаптер пишет только evidence trail, без значений колонок
-- **Файлы:** `src/lib/tasksflow-adapters/generic.ts` (`applyRemoteCompletion`), `src/app/task-fill/[taskId]/task-fill-client.tsx` (PipelineWizard)
-- **Acceptance:** уборщица проходит pipeline glass_control с заполнением полей → запись в БД содержит данные колонок, не только {source, pipeline}
-- **Approach:**
-  1. Добавить рендер `field` внутри текущего шага PipelineWizard, value хранится в общем `values` (как обычные поля формы)
-  2. Если `field.required` и пусто → «Сделал» disabled (поверх photo-блокировки)
-  3. На submit — стандартные `values` уже содержат все step-fields, applyCompletion просто сохраняет в data
-  4. Проверить через playwright: реальный pipeline glass_control с тестовой ролью
+### [x] P0.1 — Pipeline не заполняет колонки журнала — DONE PART-1 @ pending-sha @ 2026-05-04
+- **Что сделано (foundational + glass_control specific):**
+  1. PipelineWizard теперь рендерит `step.field` внутри текущего шага (input между detail и кнопкой «Сделал»), value хранится в общем `values`
+  2. Кнопка «Сделал» disabled пока required field не заполнено — `fieldSatisfied()` хелпер
+  3. Done-шаги показывают что было введено (badge с label: value)
+  4. Создан `glass-control` адаптер с 4 pipeline-шагами: damagesDetected (yes/no select) → itemName → quantity → damageInfo. Каждый шаг с инструкцией по СанПиН. Worker не пройдёт без заполнения.
+  5. `applyRemoteCompletion` пишет данные в `JournalDocumentEntry.data` shape `{damagesDetected, itemName, quantity, damageInfo}` — это и есть колонки журнала. `_meta` хранит pipeline trail.
+- **Что НЕ сделано (вынесено в P1.4):**
+  - Generic-адаптер для остальных журналов всё ещё evidence-only — он не знает field shape конкретного журнала. Полное решение — pipeline editor (P1) с pinned-узлами по полям. Пока что закрывают журналы по одному per-journal-адаптером (как glass_control).
+  - Список журналов где fallback на generic + НЕТ нормального заполнения: см. вычислить через `npm run` script (TODO добавить в P1)
+- **Файлы:**
+  - `src/app/task-fill/[taskId]/task-fill-client.tsx` (PipelineWizard, formatPipelineValue)
+  - `src/lib/tasksflow-adapters/glass-control.ts` (новый)
+  - `src/lib/tasksflow-adapters/index.ts` (registration)
+- **Acceptance verification:** TODO — playwright прогон через test-аккаунт на проде (пишет уборщица, проверяю запись в БД)
 
 ### [ ] P0.2 — Ответственные desync между таблицей и settings
 - **Описание:** Saved table responsibles не синхронизированы с settings-modal

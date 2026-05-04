@@ -41,6 +41,7 @@ import { metalImpurityAdapter } from "./metal-impurity";
 import { ppeIssuanceAdapter } from "./ppe-issuance";
 import { disinfectantUsageAdapter } from "./disinfectant-usage";
 import { glassListAdapter } from "./glass-list";
+import { glassControlAdapter } from "./glass-control";
 import { staffTrainingAdapter } from "./staff-training";
 import { trainingPlanAdapter } from "./training-plan";
 import { auditPlanAdapter } from "./audit-plan";
@@ -76,6 +77,7 @@ const SPECIFIC_ADAPTERS: JournalAdapter[] = [
   ppeIssuanceAdapter,
   disinfectantUsageAdapter,
   glassListAdapter,
+  glassControlAdapter,
   staffTrainingAdapter,
   trainingPlanAdapter,
   auditPlanAdapter,

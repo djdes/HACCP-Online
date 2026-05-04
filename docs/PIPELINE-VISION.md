@@ -307,6 +307,47 @@ Drag handle (⋮) на левом краю каждой строки. При dra
 
 ---
 
+## External resources — haccp-online.ru competitor reference
+
+Конкурент с готовыми UI-паттернами по большинству журналов. Каждая UI-задача в loop'е должна **сначала** посмотреть как у них реализовано.
+
+**URL:** https://lk.haccp-online.ru/
+**Логин страница:** https://lk.haccp-online.ru/docs/login
+**Логин:** `test4`
+**Пароль:** `test8`
+
+(Креды публичные — раздаются сайтом бесплатно для демо. Можно класть в репо.)
+
+**Как использовать в loop'е:**
+
+Через MCP Playwright (доступен при запуске loop'а):
+
+```javascript
+mcp__plugin_playwright_playwright__browser_navigate({ url: "https://lk.haccp-online.ru/docs/login" })
+mcp__plugin_playwright_playwright__browser_snapshot()  // see structure
+mcp__plugin_playwright_playwright__browser_fill_form({ fields: [
+  { ref: "<login input ref>", value: "test4" },
+  { ref: "<password input ref>", value: "test8" }
+]})
+mcp__plugin_playwright_playwright__browser_click({ ref: "<submit button ref>" })
+// после логина — навигация по конкретному журналу
+mcp__plugin_playwright_playwright__browser_navigate({ url: "https://lk.haccp-online.ru/docs/glasscontroljournal" })
+mcp__plugin_playwright_playwright__browser_snapshot()
+mcp__plugin_playwright_playwright__browser_take_screenshot({ filename: "haccp-glass-control.png" })
+```
+
+Браузер сохраняет cookies на сессию — после логина все навигации работают как с авторизованного юзера.
+
+**Список ключевых URL'ов:**
+- `/docs/healthjournal` — Гигиенический журнал
+- `/docs/cleaning1journal` — Журнал уборки
+- `/docs/brakeryjournal` — Бракераж готовой продукции
+- `/docs/glasscontroljournal` — Контроль стекла (сейчас наш P0)
+- `/docs/healthjournal/doc/<id>/?id=<entryId>` — внутрь конкретного документа
+- `/docs/healthjournal/doc/<id>/settings` — модалка настроек документа
+
+---
+
 ## Constraints
 
 1. **Не ломать существующее.** Каждый коммит должен оставлять прод green. Если break — откатить, разобраться, переделать.

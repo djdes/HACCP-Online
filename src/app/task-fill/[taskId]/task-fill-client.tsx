@@ -776,6 +776,8 @@ export function TaskFillClient({
                 onConfirm={confirmPipelineStep}
                 onUploadPhoto={uploadStepPhoto}
                 stepPhotos={stepPhotos}
+                values={values}
+                onFieldChange={setField}
                 disabled={submitting}
               />
             ) : null}
@@ -1289,6 +1291,22 @@ function ConfirmSheet({
   );
 }
 
+/**
+ * Краткое представление значения поля для done-шага pipeline'а.
+ * Отличается от formatValue ниже только для boolean: «Да/Нет» → ✓/✗.
+ */
+function formatPipelineValue(field: TaskFormField, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (field.type === "boolean") return value ? "✓ Да" : "✗ Нет";
+  if (field.type === "select") {
+    const opt = field.options.find((o) => o.value === value);
+    return opt ? opt.label : String(value);
+  }
+  if (field.type === "number")
+    return field.unit ? `${value} ${field.unit}` : String(value);
+  return String(value).length > 60 ? String(value).slice(0, 60) + "…" : String(value);
+}
+
 function formatValue(field: TaskFormField, value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   switch (field.type) {
@@ -1326,6 +1344,8 @@ function PipelineWizard({
   onConfirm,
   onUploadPhoto,
   stepPhotos,
+  values,
+  onFieldChange,
   disabled,
 }: {
   steps: PipelineStep[];
@@ -1334,6 +1354,8 @@ function PipelineWizard({
   onConfirm: (index: number) => void;
   onUploadPhoto: (index: number, file: File) => Promise<void>;
   stepPhotos: Record<number, string>;
+  values: Record<string, unknown>;
+  onFieldChange: (key: string, value: unknown) => void;
   disabled: boolean;
 }) {
   const total = steps.length;
@@ -1352,6 +1374,18 @@ function PipelineWizard({
     } finally {
       setUploadingIdx(null);
     }
+  }
+
+  // Поле шага считается «достаточно заполненным» если: оно не required,
+  // ИЛИ value не пустое (пустая строка / null / undefined блокируют).
+  // Пустые boolean=false тоже считаем валидным (это валидное значение).
+  function fieldSatisfied(step: PipelineStep): boolean {
+    if (!step.field) return true;
+    const required = "required" in step.field ? Boolean(step.field.required) : false;
+    if (!required) return true;
+    const v = values[step.field.key];
+    if (step.field.type === "boolean") return typeof v === "boolean";
+    return v !== null && v !== undefined && v !== "";
   }
   return (
     <div className="space-y-3">
@@ -1432,6 +1466,21 @@ function PipelineWizard({
                       {step.hint}
                     </p>
                   ) : null}
+                  {isCurrent && step.field ? (
+                    <div className="mt-3">
+                      <TaskFillField
+                        field={step.field}
+                        value={values[step.field.key]}
+                        onChange={(v) => onFieldChange(step.field!.key, v)}
+                      />
+                    </div>
+                  ) : null}
+                  {isDone && step.field ? (
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] text-emerald-700">
+                      <Check className="size-3" />
+                      {step.field.label}: {formatPipelineValue(step.field, values[step.field.key])}
+                    </div>
+                  ) : null}
                   {isCurrent && step.requirePhoto ? (
                     <div className="mt-3 space-y-2">
                       {stepPhotos[index] ? (
@@ -1501,12 +1550,15 @@ function PipelineWizard({
                         disabled={
                           disabled ||
                           uploadingIdx === index ||
-                          (step.requirePhoto && !stepPhotos[index])
+                          (step.requirePhoto && !stepPhotos[index]) ||
+                          !fieldSatisfied(step)
                         }
                         title={
                           step.requirePhoto && !stepPhotos[index]
                             ? "Сначала загрузите фото"
-                            : undefined
+                            : !fieldSatisfied(step)
+                              ? `Заполните поле «${step.field?.label ?? ""}»`
+                              : undefined
                         }
                         className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
                       >
