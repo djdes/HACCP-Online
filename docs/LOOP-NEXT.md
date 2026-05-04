@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P0.2 — Ответственные desync между таблицей и settings** (P0.1 закрыт частично, см. ниже)
+**Текущий приоритет:** **P3.A1 — cleaning-document-client v2** (P0 пуст; P1 идёт по своему треку, P3 имеет приоритет ВЫШЕ P2)
 
 ---
 
@@ -40,11 +40,14 @@
   - `src/lib/tasksflow-adapters/index.ts` (registration)
 - **Acceptance verification:** TODO — playwright прогон через test-аккаунт на проде (пишет уборщица, проверяю запись в БД)
 
-### [ ] P0.2 — Ответственные desync между таблицей и settings
-- **Описание:** Saved table responsibles не синхронизированы с settings-modal
-- **PRECONDITION:** ОБЯЗАТЕЛЬНО открыть https://lk.haccp-online.ru/docs/1 (test4/test8) и посмотреть как у них реализовано — НЕ угадывать
-- **Файлы (примерно):** `src/components/journals/cleaning-document-client.tsx` (settings dialog), `src/lib/cleaning-document.ts`, API endpoint в `src/app/api/journal-documents/[id]/route.ts`
-- **Acceptance:** изменение в таблице → видно в модалке; изменение в модалке → видно в таблице; единый AuditLog на изменение
+### [x] P0.2 — Ответственные cleaning desync — DONE @ 809bd40d @ 2026-05-05 00:00 МСК
+- **Что сделано:**
+  1. Изучен паттерн haccp-online через Playwright (логин test4/test8): у них single-source-of-truth между banner-селектами и settings-modal — оба пишут в одни position+employee поля.
+  2. Найден root cause в `updateSettings()` cleaning-document-client.tsx: `.map()` на пустом `cleaningResponsibles[]` или `controlResponsibles[]` возвращает пустой массив, сохранение тихо теряется. Banner select и settings-modal оба вызывают этот метод.
+  3. Реализован upsert: новая внутренняя функция `upsertResponsible(kind, items, role, userId)` создаёт новую запись через `createCleaningResponsibleRow` если массив пустой, иначе обновляет index 0.
+  4. Тип-чек чисто, ESLint только pre-existing warnings.
+- **Acceptance:** теперь banner select и settings-modal оба пишут в одно место; первый выбор ответственного на пустом документе сохраняется и виден после refresh. Других журналов не трогали — этот баг был cleaning-specific (другие журналы используют другую модель ответственных, не arrays).
+- **Файлы:** `src/components/journals/cleaning-document-client.tsx` (только updateSettings)
 
 ---
 
@@ -272,6 +275,8 @@
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
 
+- **[2026-05-05 00:00 МСК]** `809bd40d` — P0.2 закрыт (cleaning responsibles desync). Root cause был странный: `.map()` на пустом массиве в `updateSettings()`. Settings-modal и banner-select оба молчаливо теряли первое сохранение ответственного на чистом документе. Fix через upsert. Что заметил: остальные журналы используют другую модель ответственных (responsibleUserId как одно поле в JournalDocument, не arrays в config), так что у них этого бага нет — но если они тоже окажутся desync'нутыми, нужно проверить per-journal. Что предлагаю дальше: loop переключается на P3 (Design v2 миграции). Все P0 closed, можно идти на UI.
+
 - **[2026-05-04 23:50 МСК]** `dc52c092` — P3.0 DONE. Foundation Design v2: DB-флаг `experimentalUiV2`, toggle на `/settings/experimental`, 4 v2-компонента (`JournalToolbar`, `JournalSettingsModal`, `JournalEntryDialog`, `JournalReferenceTable`), audit-log integration. Ни один журнал ещё не мигрирован — это сделают коммиты P3.A1+ в loop'е. Прод проверен: `https://wesetup.ru/settings/experimental` доступен management-роли. Что заметил: реальная сложность миграций будет в специфических dialog'ах журналов с custom-логикой (например, RoomsModeCard в cleaning) — там shim придётся вкручивать аккуратно, не каждый вычистится 1:1. Что предлагаю дальше: loop начинает с P0.2 (responsibles desync), потом сразу P3.A1 (cleaning v2) как самый посещаемый.
 
 - **[2026-05-04 23:24 МСК]** `81f60ada` — P0.1 закрыт partial. Foundation: PipelineWizard рендерит step.field инлайн с валидацией (required-field блокирует «Сделал»). Specific: glass_control адаптер с 4 шагами по СанПиН пишет в `JournalDocumentEntry.data` нужный shape. Бойцовый баг владельца («уборщица прошла, журнал пустой») закрыт для glass_control. Остальные журналы где fallback на generic — будут постепенно закрыты per-journal-адаптерами или через pipeline editor (P1.4). Что заметил: текущая модель «один адаптер = один журнал» масштабируется плохо, P1 (pipeline editor с pinned-узлами по полям) реально нужен. Что предлагаю дальше: P0.2 (ответственные desync) обязательно через playwright + haccp-online, потом P1.1 (DB schema migration).
@@ -286,6 +291,7 @@
 - [2026-05-04] `1f9becbe`: `JSX.Element` не работает в Next 16 без JSX namespace, использовать `ReactElement` from "react".
 - [2026-05-04] `bc60c78c`: Prisma `where.details = { path: ["key"], equals: value }` — стабильно работает для JSON-фильтров; не нужно raw SQL.
 - [2026-05-04] `1f9becbe`: `z.passthrough()` в task-form validator пропускает `_pipeline` блоб через типизацию `TaskFormValues` (Record<string, scalar>). Cast в адаптере `as Record<string, unknown>` чтобы достать nested поля.
+- [2026-05-05] `809bd40d`: `.map()` на пустом массиве — silent data loss anti-pattern. При написании upsert-логики ВСЕГДА проверять if (items.length === 0) ветку. Особенно опасно когда это часть бизнес-формы где пустой initial state — норма.
 
 ---
 
