@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,6 +58,8 @@ type Props = {
   status: string;
   initialConfig: RegisterDocumentConfig;
   users: EmployeeItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function ComplaintRowDialog({
@@ -209,12 +212,14 @@ function SettingsDialog({
   title,
   dateFrom,
   onSave,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   dateFrom: string;
   onSave: (params: { title: string; dateFrom: string }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [draftTitle, setDraftTitle] = useState(title);
   const [draftDate, setDraftDate] = useState(dateFrom);
@@ -236,6 +241,43 @@ function SettingsDialog({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и дата начала."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={draftDate}
+            onChange={(event) => setDraftDate(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -335,6 +377,7 @@ export function ComplaintDocumentClient({
   dateFrom,
   status,
   initialConfig,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(() => normalizeComplaintConfig(initialConfig));
@@ -700,6 +743,7 @@ export function ComplaintDocumentClient({
         title={documentTitle}
         dateFrom={dateFrom}
         onSave={handleSaveSettings}
+        useV2={useV2}
       />
 
       <FinishDialog

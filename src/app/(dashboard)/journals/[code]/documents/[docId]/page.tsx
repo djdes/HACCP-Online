@@ -568,6 +568,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeComplaintConfig(document.config)}
         users={enrichedEmployees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
