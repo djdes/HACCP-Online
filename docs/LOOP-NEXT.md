@@ -117,7 +117,7 @@
 > **Loop правило:** P3 имеет приоритет ВЫШЕ P2 но НИЖЕ P0/P1. Когда P0+P1 пусты — берётся следующий из P3. P2 трогается только когда P3 пуст.
 
 ### Foundation
-- [x] P3.0 — DB flag `experimentalUiV2` + `/settings/experimental` toggle + `src/components/journals/v2/*.tsx` scaffold — **DONE PART-1 @ pending-sha @ 2026-05-04**
+- [x] P3.0 — DB flag `experimentalUiV2` + `/settings/experimental` toggle + `src/components/journals/v2/*.tsx` scaffold — **DONE @ dc52c092 @ 2026-05-04 23:50 МСК**
   - DB: `Organization.experimentalUiV2 Boolean @default(false)` (deploy.yml сделает prisma db push)
   - API: `PATCH /api/settings/experimental { experimentalUiV2 }` с audit-log
   - UI: `/settings/experimental` page с toggle, ссылка из главного settings
@@ -271,6 +271,8 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-04 23:50 МСК]** `dc52c092` — P3.0 DONE. Foundation Design v2: DB-флаг `experimentalUiV2`, toggle на `/settings/experimental`, 4 v2-компонента (`JournalToolbar`, `JournalSettingsModal`, `JournalEntryDialog`, `JournalReferenceTable`), audit-log integration. Ни один журнал ещё не мигрирован — это сделают коммиты P3.A1+ в loop'е. Прод проверен: `https://wesetup.ru/settings/experimental` доступен management-роли. Что заметил: реальная сложность миграций будет в специфических dialog'ах журналов с custom-логикой (например, RoomsModeCard в cleaning) — там shim придётся вкручивать аккуратно, не каждый вычистится 1:1. Что предлагаю дальше: loop начинает с P0.2 (responsibles desync), потом сразу P3.A1 (cleaning v2) как самый посещаемый.
 
 - **[2026-05-04 23:24 МСК]** `81f60ada` — P0.1 закрыт partial. Foundation: PipelineWizard рендерит step.field инлайн с валидацией (required-field блокирует «Сделал»). Specific: glass_control адаптер с 4 шагами по СанПиН пишет в `JournalDocumentEntry.data` нужный shape. Бойцовый баг владельца («уборщица прошла, журнал пустой») закрыт для glass_control. Остальные журналы где fallback на generic — будут постепенно закрыты per-journal-адаптерами или через pipeline editor (P1.4). Что заметил: текущая модель «один адаптер = один журнал» масштабируется плохо, P1 (pipeline editor с pinned-узлами по полям) реально нужен. Что предлагаю дальше: P0.2 (ответственные desync) обязательно через playwright + haccp-online, потом P1.1 (DB schema migration).
 
