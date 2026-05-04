@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B7 — sanitation-day v2**
+**Текущий приоритет:** **P3.B8 — sanitary-day-checklist v2**
 
 ---
 
@@ -146,7 +146,7 @@
 - [x] P3.B4 — disinfectant — DONE wave-1 @ 4c73cec1 @ 2026-05-05 03:35 МСК
 - [x] P3.B5 — ppe-issuance — DONE wave-1 @ 950be4ef @ 2026-05-05 03:50 МСК
 - [x] P3.B6 — med-book — DONE wave-1 @ e26b0473 @ 2026-05-05 04:05 МСК (бонус: список прививок теперь видимый pills с удалением, не только add)
-- [ ] P3.B7 — sanitation-day
+- [x] P3.B7 — sanitation-day — DONE wave-1 @ 089429aa @ 2026-05-05 04:25 МСК
 - [ ] P3.B8 — sanitary-day-checklist
 - [ ] P3.B9 — complaint
 - [ ] P3.B10 — accident
