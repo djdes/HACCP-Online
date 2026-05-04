@@ -311,6 +311,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeHygieneEntryData(entry.data),
         }))}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
@@ -341,6 +342,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeHealthEntryData(entry.data),
         }))}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

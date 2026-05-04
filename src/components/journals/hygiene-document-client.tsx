@@ -39,6 +39,8 @@ type Props = {
   autoFill?: boolean;
   employees: { id: string; name: string; role: string }[];
   initialEntries: { employeeId: string; date: string; data: HygieneEntryData }[];
+  /** Design v2 flag — пробрасывается в StaffJournalToolbar для v2-модалки. */
+  useV2?: boolean;
 };
 
 const STATUS_CYCLE: Array<HygieneStatus | null> = [
@@ -167,6 +169,7 @@ export function HygieneDocumentClient({
   autoFill = false,
   employees,
   initialEntries,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -422,6 +425,7 @@ export function HygieneDocumentClient({
           routeCode={routeCode}
           organizationName={organizationLabel}
           showHeaderActions
+          useV2={useV2}
         />
 
         {isActive && selectedCount > 0 ? (

@@ -44,6 +44,8 @@ type Props = {
   employees: { id: string; name: string; role: string }[];
   initialEntries: { employeeId: string; date: string; data: HealthEntryData }[];
   printEmptyRows?: number;
+  /** Design v2 flag — пробрасывается в StaffJournalToolbar для v2-модалки. */
+  useV2?: boolean;
 };
 
 function HealthCheckbox(props: {
@@ -132,6 +134,7 @@ export function HealthDocumentClient(props: Props) {
     employees,
     initialEntries,
     printEmptyRows = 0,
+    useV2 = false,
   } = props;
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -326,6 +329,7 @@ export function HealthDocumentClient(props: Props) {
             organizationName={organizationLabel}
             showHeaderActions
             hideAutoFill
+            useV2={useV2}
             onSettingsClick={() => {
               setSettingsDocTitle(documentTitle);
               setEmptyRows(String(printEmptyRows));

@@ -36,6 +36,7 @@ import {
   PositionEmployeePicker,
   PositionSelectItems,
 } from "@/components/shared/position-select";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 type UserItem = {
   id: string;
   name: string;
@@ -59,6 +60,12 @@ type Props = {
   hidePrint?: boolean;
   hideAutoFill?: boolean;
   onSettingsClick?: () => void;
+  /**
+   * Design v2 toggle — модалка «Настройки журнала» рендерится через
+   * `<JournalSettingsModal>` вместо собственного Dialog. Действия
+   * не меняются, только обёртка. См. docs/PIPELINE-VISION.md P3.
+   */
+  useV2?: boolean;
 };
 
 async function requestJson(url: string, init: RequestInit) {
@@ -282,6 +289,7 @@ function JournalSettingsDialog({
   responsibleTitle,
   responsibleUserId,
   users,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -290,6 +298,7 @@ function JournalSettingsDialog({
   responsibleTitle: string | null;
   responsibleUserId: string | null;
   users: UserItem[];
+  useV2?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState(title);
@@ -325,6 +334,88 @@ function JournalSettingsDialog({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и ответственный сотрудник. Применяется ко всему периоду документа."
+        size="md"
+        isSaving={isSubmitting}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label
+            htmlFor="journal-title-v2"
+            className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+          >
+            Название документа
+          </Label>
+          <Input
+            id="journal-title-v2"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Введите название документа"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Select
+            value={responsible}
+            onValueChange={(value) => {
+              setResponsible(value);
+              const candidates = getUsersForRoleLabel(users, value);
+              if (responsibleUser && !candidates.some((u) => u.id === responsibleUser)) {
+                setResponsibleUser(candidates[0]?.id || "");
+              } else if (!responsibleUser && candidates[0]) {
+                setResponsibleUser(candidates[0].id);
+              }
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <PositionSelectItems users={users} />
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select value={responsibleUser} onValueChange={setResponsibleUser}>
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {(responsible ? getUsersForRoleLabel(users, responsible) : users).map(
+                (user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Периодичность контроля
+          </div>
+          <div className="mt-1.5 text-[14px] leading-[1.55] text-[#0b1024]">
+            {HYGIENE_PERIODICITY_TEXT}
+          </div>
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -424,6 +515,7 @@ export function StaffJournalToolbar({
   hidePrint = false,
   hideAutoFill = false,
   onSettingsClick,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -599,6 +691,7 @@ export function StaffJournalToolbar({
         responsibleTitle={responsibleTitle}
         responsibleUserId={responsibleUserId}
         users={users}
+        useV2={useV2}
       />
 
       <AddEmployeeDialog
