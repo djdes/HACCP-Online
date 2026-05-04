@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B1 — equipment-cleaning v2** (Tier A полностью закрыт wave-1; перехожу в Tier B)
+**Текущий приоритет:** **P3.B2 — equipment-calibration v2**
 
 ---
 
@@ -140,7 +140,7 @@
 - [x] P3.A10 — glass-control-document-client v2 — DONE wave-1 @ 742defb2 @ 2026-05-05 02:35 МСК — **TIER A FULLY DONE**
 
 ### Tier B (12 средних)
-- [ ] P3.B1 — equipment-cleaning
+- [x] P3.B1 — equipment-cleaning — DONE wave-1 @ 3ccd2a9f @ 2026-05-05 02:50 МСК
 - [ ] P3.B2 — equipment-calibration
 - [ ] P3.B3 — equipment-maintenance
 - [ ] P3.B4 — disinfectant
