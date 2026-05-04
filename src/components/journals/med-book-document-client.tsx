@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JournalDocumentHeader,
@@ -88,6 +89,8 @@ type Props = {
   employees: Employee[];
   initialRows: Row[];
   documentDateKey: string;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -124,6 +127,7 @@ export function MedBookDocumentClient({
   employees,
   initialRows,
   documentDateKey,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const isClosed = status === "closed";
@@ -845,73 +849,167 @@ export function MedBookDocumentClient({
         </div>
       ) : null}
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b border-[#e5e7f0] px-8 py-6">
-            <DialogTitle className="text-[20px] font-medium text-black">
-              Настройки документа
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 px-8 py-6">
-            <Label>Название документа</Label>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Название журнала, перечень обследований и прививок."
+          size="md"
+          isSaving={saving}
+          saveDisabled={!settingsTitle.trim()}
+          onSave={async () => {
+            try {
+              await sync(rows, settingsTitle.trim(), {
+                examinations: examColumns,
+                vaccinations: vaccColumns,
+                includeVaccinations,
+              });
+              setDocTitle(settingsTitle.trim());
+              setSettingsOpen(false);
+              router.refresh();
+            } catch (error) {
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "Не удалось сохранить настройки",
+              );
+            }
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
             <Input
               value={settingsTitle}
               onChange={(event) => setSettingsTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
-            <label className="flex items-center gap-3 text-[16px] text-black">
-              <input
-                type="checkbox"
-                checked={includeVaccinations}
-                onChange={(event) =>
-                  setIncludeVaccinations(event.target.checked)
-                }
-                className="size-5 rounded accent-[#5863f8]"
-              />
-              включить &quot;Прививки&quot;
-            </label>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5"
-              onClick={() => {
-                const name = window.prompt("Введите название прививки");
-                if (name?.trim() && !vaccColumns.includes(name.trim()))
-                  setVaccColumns((current) => [...current, name.trim()]);
-              }}
-            >
-              Добавить прививку
-            </Button>
-            <div className="flex justify-end">
+          </div>
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+            <input
+              type="checkbox"
+              checked={includeVaccinations}
+              onChange={(event) => setIncludeVaccinations(event.target.checked)}
+              className="size-4 rounded accent-[#5566f6]"
+            />
+            <span className="text-[14px] text-[#0b1024]">Включить колонку «Прививки»</span>
+          </label>
+          {includeVaccinations ? (
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Прививки в журнале ({vaccColumns.length})
+              </Label>
+              {vaccColumns.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {vaccColumns.map((v) => (
+                    <span
+                      key={v}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-3 py-1 text-[12px] text-[#3848c7]"
+                    >
+                      {v}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVaccColumns((current) => current.filter((item) => item !== v))
+                        }
+                        className="text-[#9b9fb3] hover:text-[#a13a32]"
+                        aria-label={`Удалить ${v}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12px] text-[#9b9fb3]">Список пуст. Добавьте первую прививку.</p>
+              )}
               <Button
                 type="button"
-                disabled={saving || !settingsTitle.trim()}
-                className="h-12 rounded-2xl bg-[#5863f8] px-6 text-[16px] text-white"
-                onClick={async () => {
-                  try {
-                    await sync(rows, settingsTitle.trim(), {
-                      examinations: examColumns,
-                      vaccinations: vaccColumns,
-                      includeVaccinations,
-                    });
-                    setDocTitle(settingsTitle.trim());
-                    setSettingsOpen(false);
-                    router.refresh();
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : "Не удалось сохранить настройки",
-                    );
-                  }
+                variant="outline"
+                className="h-10 rounded-2xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                onClick={() => {
+                  const name = window.prompt("Введите название прививки");
+                  if (name?.trim() && !vaccColumns.includes(name.trim()))
+                    setVaccColumns((current) => [...current, name.trim()]);
                 }}
               >
-                {saving ? "Сохранение..." : "Сохранить"}
+                + Добавить прививку
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          ) : null}
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
+            <DialogHeader className="border-b border-[#e5e7f0] px-8 py-6">
+              <DialogTitle className="text-[20px] font-medium text-black">
+                Настройки документа
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 px-8 py-6">
+              <Label>Название документа</Label>
+              <Input
+                value={settingsTitle}
+                onChange={(event) => setSettingsTitle(event.target.value)}
+                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              />
+              <label className="flex items-center gap-3 text-[16px] text-black">
+                <input
+                  type="checkbox"
+                  checked={includeVaccinations}
+                  onChange={(event) =>
+                    setIncludeVaccinations(event.target.checked)
+                  }
+                  className="size-5 rounded accent-[#5863f8]"
+                />
+                включить &quot;Прививки&quot;
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-2xl border-[#dfe1ec] px-5"
+                onClick={() => {
+                  const name = window.prompt("Введите название прививки");
+                  if (name?.trim() && !vaccColumns.includes(name.trim()))
+                    setVaccColumns((current) => [...current, name.trim()]);
+                }}
+              >
+                Добавить прививку
+              </Button>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  disabled={saving || !settingsTitle.trim()}
+                  className="h-12 rounded-2xl bg-[#5863f8] px-6 text-[16px] text-white"
+                  onClick={async () => {
+                    try {
+                      await sync(rows, settingsTitle.trim(), {
+                        examinations: examColumns,
+                        vaccinations: vaccColumns,
+                        includeVaccinations,
+                      });
+                      setDocTitle(settingsTitle.trim());
+                      setSettingsOpen(false);
+                      router.refresh();
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Не удалось сохранить настройки",
+                      );
+                    }
+                  }}
+                >
+                  {saving ? "Сохранение..." : "Сохранить"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">

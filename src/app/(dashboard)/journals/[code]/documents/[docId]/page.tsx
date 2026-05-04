@@ -426,6 +426,7 @@ export default async function JournalDocumentPage({
         employees={enrichedEmployees}
         initialRows={medRows}
         documentDateKey={toDateKey(document.dateFrom)}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
