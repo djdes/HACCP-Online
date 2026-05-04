@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,6 +65,8 @@ type Props = {
   status: string;
   users: UserItem[];
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function roleOptionsFromUsers(users: UserItem[]) {
@@ -940,10 +943,114 @@ function DocumentSettingsDialog(props: {
     responsibleEmployeeId: string;
     responsibleEmployee: string;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [state, setState] = useState(props.initial);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await props.onSubmit(state);
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={(v) => {
+          if (v) setState(props.initial);
+          props.onOpenChange(v);
+        }}
+        title="Настройки документа"
+        description="Название журнала и ответственный сотрудник."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={state.title}
+            onChange={(e) => setState({ ...state, title: e.target.value })}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Select
+            value={state.responsibleRole}
+            onValueChange={(v) => {
+              const user = usersForRole(props.users, v)[0];
+              setState({
+                ...state,
+                responsibleRole: v,
+                responsibleEmployeeId: user?.id || "",
+                responsibleEmployee: user?.name || state.responsibleEmployee,
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select
+            value={state.responsibleEmployeeId || "__empty__"}
+            onValueChange={(v) => {
+              if (v === "__empty__") {
+                setState({
+                  ...state,
+                  responsibleEmployeeId: "",
+                  responsibleEmployee: "",
+                });
+                return;
+              }
+              const user = props.users.find((item) => item.id === v);
+              setState({
+                ...state,
+                responsibleEmployeeId: v,
+                responsibleEmployee: user?.name || "",
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">— не выбран —</SelectItem>
+              {usersForRole(props.users, state.responsibleRole).map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {buildStaffOptionLabel(u)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog
@@ -1042,15 +1149,7 @@ function DocumentSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSubmit(state);
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
               className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
@@ -1070,6 +1169,7 @@ export function DisinfectantDocumentClient({
   status,
   users,
   config,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const normalized = normalizeDisinfectantConfig(config);
@@ -1890,6 +1990,7 @@ export function DisinfectantDocumentClient({
             value.title.trim() || title
           );
         }}
+        useV2={useV2}
       />
     </div>
   );
