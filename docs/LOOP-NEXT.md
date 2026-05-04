@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.A8 — climate-document-client v2**
+**Текущий приоритет:** **P3.A9 — cleaning-ventilation-checklist-document-client v2**
 
 ---
 
@@ -135,7 +135,7 @@
 - [x] P3.A5 — finished-product-document-client v2 — DONE wave-1 @ 79112ad1 @ 2026-05-05 01:30 МСК (settings modal только; add-row dialog + catalog dialog → отдельные коммиты P3.A5.b, P3.A5.c)
 - [x] P3.A6 — perishable-rejection-document-client v2 — N/A wave-1 @ 2026-05-05 01:35 МСК (нет отдельной Settings-модалки; будет в wave-2 когда мигрируем add-row + catalog dialogs)
 - [x] P3.A7 — acceptance-document-client v2 — DONE wave-1 @ ea3421d6 @ 2026-05-05 01:50 МСК (settings modal только; add-row/edit-row/import — отдельные коммиты)
-- [ ] P3.A8 — climate-document-client v2
+- [x] P3.A8 — climate-document-client v2 — DONE wave-1 @ 3aa2463d @ 2026-05-05 02:05 МСК (settings modal только)
 - [ ] P3.A9 — cleaning-ventilation-checklist-document-client v2
 - [ ] P3.A10 — glass-control-document-client v2
 
