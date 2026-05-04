@@ -927,6 +927,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeClimateEntryData(entry.data),
         }))}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

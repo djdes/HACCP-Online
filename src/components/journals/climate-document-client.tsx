@@ -43,6 +43,7 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -85,6 +86,8 @@ type Props = {
   employees: EmployeeItem[];
   config: ClimateDocumentConfig;
   initialEntries: RowItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function formatRange(min: number | null, max: number | null, unit: string) {
@@ -576,6 +579,7 @@ function JournalSettingsDialog({
   employees,
   config,
   onSave,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -590,6 +594,7 @@ function JournalSettingsDialog({
     responsibleUserId: string | null;
     config: ClimateDocumentConfig;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [name, setName] = useState(title);
   const [position, setPosition] = useState(responsibleTitle || "");
@@ -640,6 +645,122 @@ function JournalSettingsDialog({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки документа"
+        description="Название журнала, ответственный сотрудник по умолчанию и расписание контроля."
+        size="lg"
+        isSaving={isSubmitting}
+        saveDisabled={name.trim() === ""}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label
+            htmlFor="climate-title-v2"
+            className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+          >
+            Название журнала
+          </Label>
+          <Input
+            id="climate-title-v2"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность ответственного
+            </Label>
+            <Select
+              value={position}
+              onValueChange={(value) => {
+                setPosition(value);
+                const candidates = getUsersForRoleLabel(employees, value);
+                if (userId && !candidates.some((u) => u.id === userId)) {
+                  setUserId(candidates[0]?.id || "");
+                } else if (!userId && candidates[0]) {
+                  setUserId(candidates[0].id);
+                }
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                <PositionSelectItems users={employees} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник по умолчанию
+            </Label>
+            <Select value={userId} onValueChange={setUserId}>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                {(position ? getUsersForRoleLabel(employees, position) : employees).map(
+                  (employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label
+              htmlFor="climate-time-one-v2"
+              className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+            >
+              Время контроля 1
+            </Label>
+            <Input
+              id="climate-time-one-v2"
+              type="time"
+              value={timeOne}
+              onChange={(event) => setTimeOne(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label
+              htmlFor="climate-time-two-v2"
+              className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+            >
+              Время контроля 2
+            </Label>
+            <Input
+              id="climate-time-two-v2"
+              type="time"
+              value={timeTwo}
+              onChange={(event) => setTimeTwo(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            />
+          </div>
+        </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+          <Checkbox
+            id="climate-skip-weekends-v2"
+            checked={skipWeekends}
+            onCheckedChange={(checked) => setSkipWeekends(checked === true)}
+          />
+          <span className="text-[14px] text-[#0b1024]">Не заполнять в выходные дни</span>
+        </label>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -776,6 +897,7 @@ export function ClimateDocumentClient({
   employees,
   config: initialConfig,
   initialEntries,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -1679,6 +1801,7 @@ export function ClimateDocumentClient({
         employees={employees}
         config={config}
         onSave={handleSaveSettings}
+        useV2={useV2}
       />
 
       <RoomDialog
