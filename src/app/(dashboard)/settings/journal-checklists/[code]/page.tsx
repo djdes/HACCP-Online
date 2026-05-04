@@ -33,10 +33,28 @@ export default async function JournalChecklistEditorPage({
   const meta = ACTIVE_JOURNAL_CATALOG.find((j) => j.code === code);
   if (!meta) notFound();
 
-  const items = await db.journalChecklistItem.findMany({
-    where: { organizationId, journalCode: code, archivedAt: null },
-    orderBy: { sortOrder: "asc" },
-  });
+  // Per-room support: для cleaning-журналов админ может задавать
+  // отдельные пункты под каждую комнату. Список комнат орги.
+  const isCleaningJournal =
+    code === "cleaning" ||
+    code === "general_cleaning" ||
+    code === "equipment_cleaning" ||
+    code === "cleaning_ventilation_checklist" ||
+    code === "sanitary_day_checklist";
+
+  const [items, rooms] = await Promise.all([
+    db.journalChecklistItem.findMany({
+      where: { organizationId, journalCode: code, archivedAt: null },
+      orderBy: [{ roomId: "asc" }, { sortOrder: "asc" }],
+    }),
+    isCleaningJournal
+      ? db.room.findMany({
+          where: { building: { organizationId } },
+          select: { id: true, name: true, kind: true },
+          orderBy: [{ kind: "asc" }, { name: "asc" }],
+        })
+      : Promise.resolve([] as { id: string; name: string; kind: string }[]),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -81,12 +99,18 @@ export default async function JournalChecklistEditorPage({
 
       <ChecklistEditor
         journalCode={code}
+        rooms={rooms}
+        isCleaningJournal={isCleaningJournal}
         initial={items.map((i) => ({
           id: i.id,
           label: i.label,
           required: i.required,
           hint: i.hint,
           sortOrder: i.sortOrder,
+          roomId: i.roomId,
+          frequency: i.frequency,
+          weekDays: i.weekDays,
+          monthDay: i.monthDay,
         }))}
       />
     </div>

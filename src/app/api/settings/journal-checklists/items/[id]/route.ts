@@ -21,6 +21,10 @@ const UpdateBody = z.object({
   required: z.boolean().optional(),
   hint: z.string().max(500).nullable().optional(),
   sortOrder: z.number().int().min(0).max(10000).optional(),
+  roomId: z.string().nullable().optional(),
+  frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+  weekDays: z.array(z.number().int().min(1).max(7)).optional(),
+  monthDay: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 export async function PUT(
@@ -58,6 +62,10 @@ export async function PUT(
   if (parsed.data.hint !== undefined)
     data.hint = parsed.data.hint?.trim() || null;
   if (parsed.data.sortOrder !== undefined) data.sortOrder = parsed.data.sortOrder;
+  if (parsed.data.roomId !== undefined) data.roomId = parsed.data.roomId;
+  if (parsed.data.frequency !== undefined) data.frequency = parsed.data.frequency;
+  if (parsed.data.weekDays !== undefined) data.weekDays = parsed.data.weekDays;
+  if (parsed.data.monthDay !== undefined) data.monthDay = parsed.data.monthDay;
 
   const item = await db.journalChecklistItem.update({
     where: { id },

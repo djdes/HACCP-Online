@@ -10,6 +10,10 @@ export type ChecklistItem = {
   required: boolean;
   hint: string | null;
   sortOrder: number;
+  /** Если задан — пункт привязан к конкретной комнате. */
+  roomId?: string | null;
+  /** "daily" | "weekly" | "monthly" — для UI-индикатора. */
+  frequency?: string;
 };
 
 type Props = {

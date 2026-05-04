@@ -1535,6 +1535,16 @@ model JournalChecklistItem {
   /// Один из ACTIVE_JOURNAL_CATALOG codes. Не FK на JournalTemplate
   /// чтобы пункты переживали изменения шаблона.
   journalCode    String
+  /// Опциональная привязка к конкретной комнате (Room.id из Building).
+  /// Используется для cleaning-журналов где разные комнаты имеют разные
+  /// чек-листы:
+  ///   • roomId=NULL   — общий пункт для всего журнала (по умолчанию)
+  ///   • roomId="abc"  — пункт показывается ТОЛЬКО для задач этой комнаты
+  ///                     (определяется по rowKey: room::<roomId>::cleaner::<uid>)
+  /// Не FK на Room чтобы переживало удаление комнаты (soft-delete via
+  /// archivedAt). При полном удалении комнаты пункт остаётся в БД но
+  /// никогда не показывается.
+  roomId         String?
   /// Текст пункта (видит сотрудник).
   label          String
   /// Сортировка (0, 1, 2, ...). Меньшее число = выше в списке.
@@ -1543,15 +1553,29 @@ model JournalChecklistItem {
   required       Boolean      @default(true)
   /// Опциональная подсказка/уточнение под пунктом.
   hint           String?
+  /// Частота выполнения. По умолчанию `daily` — пункт показывается
+  /// каждый день. Другие варианты:
+  ///   • "weekly"  — только в дни weekDays (см. ниже)
+  ///   • "monthly" — только в день monthDay месяца
+  /// Если frequency не подходит к сегодняшней дате, пункт не
+  /// показывается в TaskFill этого дня (но и не блокирует submit).
+  frequency      String       @default("daily")
+  /// Дни недели для frequency=weekly. ISO-формат: 1=Пн, 7=Вс.
+  /// Пример: [1,3,5] — пункт показывается Пн, Ср, Пт.
+  weekDays       Int[]        @default([])
+  /// День месяца (1-31) для frequency=monthly. Если месяц короче,
+  /// клиппим (день 31 в феврале → последний день февраля).
+  monthDay       Int?
   archivedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   createdByUserId String?
-  /// Galаchki по этому пункту (audit-trail кто-когда отметил).
+  /// Galочки по этому пункту (audit-trail кто-когда отметил).
   checks         JournalChecklistCheck[]
 
   @@index([organizationId, journalCode, archivedAt])
   @@index([organizationId, journalCode, sortOrder])
+  @@index([organizationId, journalCode, roomId])
 }
 
 /// Запись отметки галочки чек-листа сотрудником в момент заполнения

@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
+  Calendar,
+  CalendarDays,
   CheckCircle2,
   GripVertical,
+  Home,
   Loader2,
   Plus,
   Trash2,
@@ -20,18 +23,34 @@ type Item = {
   required: boolean;
   hint: string | null;
   sortOrder: number;
+  roomId: string | null;
+  frequency: string;
+  weekDays: number[];
+  monthDay: number | null;
 };
 
+type Room = { id: string; name: string; kind: string };
+
 type Draft = {
-  /** Стейбл-ключ для рендера (id если уже сохранён, локальный uid если новый). */
+  /** Стейбл-ключ для рендера. */
   key: string;
+  /** id=null для нового пункта (ещё не сохранён). */
   id: string | null;
   label: string;
   required: boolean;
-  hint: string;
+  hint: string | null;
+  sortOrder: number;
+  roomId: string | null;
+  frequency: string;
+  weekDays: number[];
+  monthDay: number | null;
   /** dirty=true если local-state расходится с сервером. */
   dirty: boolean;
+  /** justCreated — для UI «новый, ещё не сохранён». */
+  justCreated: boolean;
 };
+
+const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 function makeKey(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -39,44 +58,80 @@ function makeKey(): string {
 
 export function ChecklistEditor({
   journalCode,
+  rooms,
+  isCleaningJournal,
   initial,
 }: {
   journalCode: string;
+  rooms: Room[];
+  isCleaningJournal: boolean;
   initial: Item[];
 }) {
   const router = useRouter();
   const [drafts, setDrafts] = useState<Draft[]>(
     initial.map((i) => ({
+      ...i,
       key: i.id,
-      id: i.id,
-      label: i.label,
-      required: i.required,
-      hint: i.hint ?? "",
       dirty: false,
+      justCreated: false,
     })),
   );
   const [busy, setBusy] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Draft | null>(null);
 
-  function addNew() {
+  // Группируем drafts по roomId для UI секций.
+  const groups = useMemo(() => {
+    const byRoom = new Map<string | null, Draft[]>();
+    for (const d of drafts) {
+      const list = byRoom.get(d.roomId) ?? [];
+      list.push(d);
+      byRoom.set(d.roomId, list);
+    }
+    // Сортировка секций: общие (null) первыми, потом по имени комнаты.
+    const sections: Array<{
+      roomId: string | null;
+      roomName: string;
+      items: Draft[];
+    }> = [];
+    if (byRoom.has(null)) {
+      sections.push({
+        roomId: null,
+        roomName: "Общие пункты (для всего журнала)",
+        items: byRoom.get(null)!,
+      });
+    }
+    for (const room of rooms) {
+      const items = byRoom.get(room.id);
+      if (items && items.length > 0) {
+        sections.push({ roomId: room.id, roomName: room.name, items });
+      }
+    }
+    return sections;
+  }, [drafts, rooms]);
+
+  function addNew(roomId: string | null) {
     setDrafts((d) => [
       ...d,
       {
         key: makeKey(),
         id: null,
+        roomId,
         label: "",
         required: true,
         hint: "",
+        sortOrder: d.length,
+        frequency: "daily",
+        weekDays: [],
+        monthDay: null,
         dirty: true,
+        justCreated: true,
       },
     ]);
   }
 
   function update(key: string, patch: Partial<Draft>) {
     setDrafts((d) =>
-      d.map((it) =>
-        it.key === key ? { ...it, ...patch, dirty: true } : it,
-      ),
+      d.map((it) => (it.key === key ? { ...it, ...patch, dirty: true } : it)),
     );
   }
 
@@ -85,10 +140,12 @@ export function ChecklistEditor({
       const idx = d.findIndex((it) => it.key === key);
       const next = idx + dir;
       if (idx < 0 || next < 0 || next >= d.length) return d;
+      // Move only within same room-group.
+      if (d[idx].roomId !== d[next].roomId) return d;
       const arr = [...d];
       const [m] = arr.splice(idx, 1);
       arr.splice(next, 0, m);
-      return arr;
+      return arr.map((it, i) => ({ ...it, sortOrder: i }));
     });
   }
 
@@ -97,43 +154,38 @@ export function ChecklistEditor({
     try {
       let savedCount = 0;
       let updatedCount = 0;
-      // 1. Создать новые.
       for (const d of drafts) {
-        if (d.id !== null) continue;
-        if (!d.label.trim()) continue; // пустые игнорим
-        const res = await fetch(
-          `/api/settings/journal-checklists/${journalCode}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              label: d.label,
-              required: d.required,
-              hint: d.hint || undefined,
-            }),
-          },
-        );
-        if (res.ok) savedCount += 1;
-      }
-      // 2. Обновить существующие dirty (sortOrder тоже синкаем
-      //    т.к. порядок мог поменяться из-за move()).
-      for (let i = 0; i < drafts.length; i += 1) {
-        const d = drafts[i];
-        if (!d.id) continue;
-        const res = await fetch(
-          `/api/settings/journal-checklists/items/${d.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              label: d.label,
-              required: d.required,
-              hint: d.hint || null,
-              sortOrder: i,
-            }),
-          },
-        );
-        if (res.ok) updatedCount += 1;
+        const payload = {
+          label: d.label,
+          required: d.required,
+          hint: d.hint || undefined,
+          roomId: d.roomId,
+          frequency: d.frequency,
+          weekDays: d.weekDays,
+          monthDay: d.monthDay,
+        };
+        if (d.id === null) {
+          if (!d.label.trim()) continue;
+          const res = await fetch(
+            `/api/settings/journal-checklists/${journalCode}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            },
+          );
+          if (res.ok) savedCount += 1;
+        } else {
+          const res = await fetch(
+            `/api/settings/journal-checklists/items/${d.id}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ...payload, sortOrder: d.sortOrder }),
+            },
+          );
+          if (res.ok) updatedCount += 1;
+        }
       }
       toast.success(
         `Сохранено: ${savedCount} новых, ${updatedCount} обновлено`,
@@ -148,7 +200,6 @@ export function ChecklistEditor({
 
   async function confirmDelete(draft: Draft) {
     if (!draft.id) {
-      // Локальный пункт — просто убираем из state.
       setDrafts((d) => d.filter((it) => it.key !== draft.key));
       return;
     }
@@ -165,11 +216,12 @@ export function ChecklistEditor({
     router.refresh();
   }
 
-  const requiredCount = drafts.filter((d) => d.required).length;
   const totalCount = drafts.length;
+  const requiredCount = drafts.filter((d) => d.required).length;
+  const hasDirty = drafts.some((d) => d.dirty || d.id === null);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Stats banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4 sm:p-5">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
@@ -179,27 +231,30 @@ export function ChecklistEditor({
           <div className="text-[14.5px] font-semibold text-[#0b1024]">
             {totalCount === 0
               ? "Чек-лист пуст"
-              : `${totalCount} ${totalCount === 1 ? "пункт" : totalCount < 5 ? "пункта" : "пунктов"} в чек-листе`}
+              : `${totalCount} пунктов в чек-листе`}
+            {isCleaningJournal && rooms.length > 0
+              ? ` · ${rooms.length} комнат доступно`
+              : ""}
           </div>
           <p className="mt-0.5 text-[13px] text-[#6f7282]">
             {requiredCount > 0
               ? `${requiredCount} обязательных — без отметки сотрудник не сможет отправить форму.`
-              : "Все пункты — по желанию. Можно сделать обязательными для строгого контроля."}
+              : "Добавь пункты — без них чек-лист не показывается сотруднику."}
           </p>
         </div>
         <button
           type="button"
-          onClick={addNew}
+          onClick={() => addNew(null)}
           disabled={busy}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13.5px] font-medium text-white shadow-[0_8px_22px_-12px_rgba(85,102,246,0.6)] hover:bg-[#4a5bf0] disabled:opacity-60"
         >
           <Plus className="size-4" />
-          Добавить пункт
+          {isCleaningJournal ? "Общий пункт" : "Добавить пункт"}
         </button>
       </div>
 
-      {/* Items */}
-      {drafts.length === 0 ? (
+      {/* Empty state */}
+      {totalCount === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
             <CheckCircle2 className="size-6" />
@@ -208,98 +263,99 @@ export function ChecklistEditor({
             Пока нет ни одного пункта
           </div>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] text-[#6f7282]">
-            Добавь первый пункт — например «Разобрать оборудование» —
-            и сотрудник увидит его в форме заполнения этого журнала.
+            {isCleaningJournal
+              ? "Можно добавить общие пункты ИЛИ привязать к конкретным комнатам — для уборщицы будут разные списки в каждой задаче."
+              : "Например «Разобрать оборудование», «Промыть детали»."}
           </p>
-          <button
-            type="button"
-            onClick={addNew}
-            className="mt-5 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13.5px] font-medium text-white shadow-[0_8px_22px_-12px_rgba(85,102,246,0.6)] hover:bg-[#4a5bf0]"
-          >
-            <Plus className="size-4" />
-            Добавить первый пункт
-          </button>
         </div>
-      ) : (
-        <div className="space-y-2.5">
-          {drafts.map((d, idx) => (
-            <div
-              key={d.key}
-              className={`rounded-2xl border bg-white p-4 transition-colors sm:p-5 ${
-                d.dirty
-                  ? "border-amber-200 bg-amber-50/30"
-                  : "border-[#ececf4]"
+      ) : null}
+
+      {/* Sections (общие + per-room) */}
+      {groups.map((section) => (
+        <section
+          key={section.roomId ?? "__null__"}
+          className="rounded-3xl border border-[#ececf4] bg-white p-4 sm:p-5"
+        >
+          <div className="mb-3 flex items-center gap-2">
+            <span
+              className={`flex size-8 items-center justify-center rounded-xl ${
+                section.roomId
+                  ? "bg-[#eef1ff] text-[#3848c7]"
+                  : "bg-[#f5f6ff] text-[#9b9fb3]"
               }`}
             >
-              <div className="flex items-start gap-3">
-                <span className="mt-1 flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg bg-[#fafbff] text-[#9b9fb3]">
-                  <GripVertical className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1 space-y-3">
-                  <input
-                    type="text"
-                    value={d.label}
-                    onChange={(e) => update(d.key, { label: e.target.value })}
-                    placeholder="Что нужно сделать?"
-                    className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-                  />
-                  <input
-                    type="text"
-                    value={d.hint}
-                    onChange={(e) => update(d.key, { hint: e.target.value })}
-                    placeholder="Подсказка (по желанию) — например «температура воды 65°C»"
-                    className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] text-[#3c4053] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        update(d.key, { required: !d.required })
-                      }
-                      className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors ${
-                        d.required
-                          ? "bg-rose-100 text-rose-700 hover:bg-rose-200"
-                          : "bg-[#f5f6ff] text-[#9b9fb3] hover:bg-[#eef1ff]"
-                      }`}
-                    >
-                      {d.required ? "обязательно" : "по желанию"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(d.key, -1)}
-                      disabled={idx === 0}
-                      className="inline-flex size-9 items-center justify-center rounded-full bg-[#fafbff] text-[#6f7282] hover:bg-[#eef1ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Выше"
-                    >
-                      <ArrowUp className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(d.key, 1)}
-                      disabled={idx === drafts.length - 1}
-                      className="inline-flex size-9 items-center justify-center rounded-full bg-[#fafbff] text-[#6f7282] hover:bg-[#eef1ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Ниже"
-                    >
-                      <ArrowDown className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPendingDelete(d)}
-                      className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-[12.5px] font-medium text-rose-700 hover:bg-rose-100"
-                    >
-                      <Trash2 className="size-3.5" />
-                      Удалить
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              {section.roomId ? (
+                <Home className="size-4" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+            </span>
+            <h3 className="text-[14.5px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+              {section.roomName}
+            </h3>
+            <span className="text-[12px] text-[#9b9fb3]">
+              {section.items.length}{" "}
+              {section.items.length === 1
+                ? "пункт"
+                : section.items.length < 5
+                  ? "пункта"
+                  : "пунктов"}
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {section.items.map((d, idxInSection) => (
+              <DraftRow
+                key={d.key}
+                draft={d}
+                isFirstInSection={idxInSection === 0}
+                isLastInSection={idxInSection === section.items.length - 1}
+                rooms={rooms}
+                isCleaningJournal={isCleaningJournal}
+                onUpdate={(patch) => update(d.key, patch)}
+                onMove={(dir) => move(d.key, dir)}
+                onDelete={() => setPendingDelete(d)}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
 
-      {/* Save bar (sticky bottom когда есть изменения) */}
-      {drafts.some((d) => d.dirty || d.id === null) ? (
+      {/* Add per-room section helper */}
+      {isCleaningJournal && rooms.length > 0 ? (
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-4 sm:p-5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Привязать к комнате
+          </div>
+          <p className="mt-1 text-[12.5px] text-[#9b9fb3]">
+            Для каждой комнаты можно сделать свой набор пунктов — сотрудник
+            увидит их только в задаче этой комнаты.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {rooms.map((r) => {
+              const hasItems = drafts.some((d) => d.roomId === r.id);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => addNew(r.id)}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium transition-colors ${
+                    hasItems
+                      ? "border-[#5566f6]/30 bg-[#eef1ff] text-[#3848c7]"
+                      : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#5566f6]/30 hover:bg-[#f5f6ff]"
+                  }`}
+                >
+                  <Home className="size-3.5" />
+                  {r.name}
+                  <Plus className="size-3.5" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Save bar */}
+      {hasDirty ? (
         <div className="sticky bottom-3 flex items-center justify-end gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#eef1ff] p-4 shadow-[0_12px_32px_-12px_rgba(85,102,246,0.4)]">
           <span className="text-[13px] text-[#3848c7]">
             Есть несохранённые изменения
@@ -333,8 +389,8 @@ export function ChecklistEditor({
           description={
             <>
               Пункт «<strong>{pendingDelete.label || "(без названия)"}</strong>»
-              будет архивирован — для новых задач он не будет показан, но
-              старые галочки в audit-log сохранятся.
+              будет архивирован — для новых задач он не показан, старые галочки
+              в audit-log сохранятся.
             </>
           }
           confirmLabel="Удалить"
@@ -345,3 +401,199 @@ export function ChecklistEditor({
     </div>
   );
 }
+
+function DraftRow({
+  draft: d,
+  isFirstInSection,
+  isLastInSection,
+  rooms,
+  isCleaningJournal,
+  onUpdate,
+  onMove,
+  onDelete,
+}: {
+  draft: Draft;
+  isFirstInSection: boolean;
+  isLastInSection: boolean;
+  rooms: Room[];
+  isCleaningJournal: boolean;
+  onUpdate: (p: Partial<Draft>) => void;
+  onMove: (dir: -1 | 1) => void;
+  onDelete: () => void;
+}) {
+  const dirtyMark = d.dirty
+    ? "border-amber-200 bg-amber-50/30"
+    : "border-[#ececf4]";
+
+  function toggleWeekday(day1to7: number) {
+    const set = new Set(d.weekDays);
+    if (set.has(day1to7)) set.delete(day1to7);
+    else set.add(day1to7);
+    onUpdate({ weekDays: [...set].sort((a, b) => a - b) });
+  }
+
+  return (
+    <div className={`rounded-2xl border bg-white p-4 transition-colors sm:p-5 ${dirtyMark}`}>
+      <div className="flex items-start gap-3">
+        <span className="mt-1 flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg bg-[#fafbff] text-[#9b9fb3]">
+          <GripVertical className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1 space-y-3">
+          <input
+            type="text"
+            value={d.label}
+            onChange={(e) => onUpdate({ label: e.target.value })}
+            placeholder="Что нужно сделать?"
+            className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+          <input
+            type="text"
+            value={d.hint ?? ""}
+            onChange={(e) => onUpdate({ hint: e.target.value })}
+            placeholder="Подсказка (по желанию) — например «температура воды 65°C»"
+            className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] text-[#3c4053] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+
+          {/* Frequency control */}
+          <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12.5px] font-medium text-[#6f7282]">
+                Частота:
+              </span>
+              {(["daily", "weekly", "monthly"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => onUpdate({ frequency: f })}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors ${
+                    d.frequency === f
+                      ? "bg-[#5566f6] text-white"
+                      : "bg-white text-[#3c4053] hover:bg-[#eef1ff]"
+                  }`}
+                >
+                  {f === "daily"
+                    ? "Каждый день"
+                    : f === "weekly"
+                      ? "По дням недели"
+                      : "Раз в месяц"}
+                </button>
+              ))}
+            </div>
+
+            {d.frequency === "weekly" ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {WEEKDAY_LABELS.map((lbl, i) => {
+                  const day = i + 1;
+                  const active = d.weekDays.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleWeekday(day)}
+                      className={`flex size-9 items-center justify-center rounded-full text-[12px] font-medium transition-colors ${
+                        active
+                          ? "bg-[#5566f6] text-white"
+                          : "bg-white text-[#6f7282] hover:bg-[#eef1ff]"
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {d.frequency === "monthly" ? (
+              <div className="mt-3 flex items-center gap-2">
+                <CalendarDays className="size-4 text-[#9b9fb3]" />
+                <span className="text-[12.5px] text-[#6f7282]">День месяца:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={d.monthDay ?? ""}
+                  onChange={(e) =>
+                    onUpdate({
+                      monthDay: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                  placeholder="15"
+                  className="h-9 w-20 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13.5px] tabular-nums focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+                <span className="text-[12px] text-[#9b9fb3]">
+                  (если короткий месяц — последний день)
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Per-room toggle (только для cleaning + если есть комнаты) */}
+          {isCleaningJournal && rooms.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12.5px] font-medium text-[#6f7282]">
+                Комната:
+              </span>
+              <select
+                value={d.roomId ?? ""}
+                onChange={(e) =>
+                  onUpdate({ roomId: e.target.value || null })
+                }
+                className="h-8 rounded-lg border border-[#dcdfed] bg-white px-2 text-[12.5px] text-[#3c4053] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15"
+              >
+                <option value="">— Общий (все комнаты) —</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onUpdate({ required: !d.required })}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors ${
+                d.required
+                  ? "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                  : "bg-[#f5f6ff] text-[#9b9fb3] hover:bg-[#eef1ff]"
+              }`}
+            >
+              {d.required ? "обязательно" : "по желанию"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onMove(-1)}
+              disabled={isFirstInSection}
+              className="inline-flex size-9 items-center justify-center rounded-full bg-[#fafbff] text-[#6f7282] hover:bg-[#eef1ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Выше"
+            >
+              <ArrowUp className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onMove(1)}
+              disabled={isLastInSection}
+              className="inline-flex size-9 items-center justify-center rounded-full bg-[#fafbff] text-[#6f7282] hover:bg-[#eef1ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Ниже"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-[12.5px] font-medium text-rose-700 hover:bg-rose-100"
+            >
+              <Trash2 className="size-3.5" />
+              Удалить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Used in shared/imports check (no-op)
+export const _calendar = Calendar;

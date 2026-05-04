@@ -19,10 +19,18 @@ const CreateBody = z.object({
   label: z.string().min(1).max(200),
   required: z.boolean().optional(),
   hint: z.string().max(500).optional(),
+  /** Опционально привязка к комнате (для cleaning-журналов). */
+  roomId: z.string().nullable().optional(),
+  /** "daily" (default) | "weekly" | "monthly" */
+  frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+  /** Дни недели для frequency=weekly (1=Пн ... 7=Вс). */
+  weekDays: z.array(z.number().int().min(1).max(7)).optional(),
+  /** День месяца для frequency=monthly (1-31). */
+  monthDay: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const auth = await requireApiAuth();
@@ -31,11 +39,36 @@ export async function GET(
   const organizationId = getActiveOrgId(session);
   const { code } = await params;
 
+  // Фильтр по roomId через query-string. ?roomId=null → только общие
+  // (roomId IS NULL). ?roomId=<id> → пункты для этой комнаты.
+  // Без параметра → все пункты журнала (общие + per-room).
+  const url = new URL(request.url);
+  const roomFilter = url.searchParams.get("roomId");
+  const where: { organizationId: string; journalCode: string; archivedAt: null; roomId?: string | null } = {
+    organizationId,
+    journalCode: code,
+    archivedAt: null,
+  };
+  if (roomFilter !== null) {
+    where.roomId = roomFilter === "null" ? null : roomFilter;
+  }
+
   const items = await db.journalChecklistItem.findMany({
-    where: { organizationId, journalCode: code, archivedAt: null },
-    orderBy: { sortOrder: "asc" },
+    where,
+    orderBy: [{ roomId: "asc" }, { sortOrder: "asc" }],
   });
-  return NextResponse.json({ items });
+  // Подгружаем имена комнат для UI чтобы не дёргать отдельным запросом.
+  const roomIds = [
+    ...new Set(items.map((i) => i.roomId).filter((id): id is string => Boolean(id))),
+  ];
+  const rooms = roomIds.length
+    ? await db.room.findMany({
+        where: { id: { in: roomIds } },
+        select: { id: true, name: true, kind: true },
+      })
+    : [];
+  const roomNameById = Object.fromEntries(rooms.map((r) => [r.id, r.name]));
+  return NextResponse.json({ items, rooms, roomNameById });
 }
 
 export async function POST(
@@ -60,9 +93,15 @@ export async function POST(
     );
   }
 
-  // sortOrder = next after max существующего.
+  // sortOrder = next after max в этой room-scope (или общем).
+  const targetRoomId = parsed.data.roomId ?? null;
   const lastItem = await db.journalChecklistItem.findFirst({
-    where: { organizationId, journalCode: code, archivedAt: null },
+    where: {
+      organizationId,
+      journalCode: code,
+      archivedAt: null,
+      roomId: targetRoomId,
+    },
     orderBy: { sortOrder: "desc" },
     select: { sortOrder: true },
   });
@@ -72,9 +111,13 @@ export async function POST(
     data: {
       organizationId,
       journalCode: code,
+      roomId: targetRoomId,
       label: parsed.data.label.trim(),
       required: parsed.data.required ?? true,
       hint: parsed.data.hint?.trim() || null,
+      frequency: parsed.data.frequency ?? "daily",
+      weekDays: parsed.data.weekDays ?? [],
+      monthDay: parsed.data.monthDay ?? null,
       sortOrder,
       createdByUserId: session.user.id,
     },
@@ -89,9 +132,13 @@ export async function POST(
     entityId: item.id,
     details: {
       journalCode: code,
+      roomId: item.roomId,
       label: item.label,
       required: item.required,
       hint: item.hint,
+      frequency: item.frequency,
+      weekDays: item.weekDays,
+      monthDay: item.monthDay,
     },
   });
 

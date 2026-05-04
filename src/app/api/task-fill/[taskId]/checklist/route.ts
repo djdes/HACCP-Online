@@ -57,14 +57,28 @@ export async function GET(
   }
   const organizationId = link.integration.organizationId;
 
-  const [items, latestChecks] = await Promise.all([
+  // Парсим roomId из rowKey. Поддерживаемые форматы:
+  //   • room::<roomId>::cleaner::<uid>   (cleaning rooms-mode)
+  //   • employee-<uid>                    (per-employee — roomId=null)
+  //   • прочее                            (roomId=null)
+  // Если в rowKey есть roomId, фильтруем чек-лист по нему +
+  // по общим (roomId=null) пунктам.
+  let rowRoomId: string | null = null;
+  const roomMatch = /^room::([^:]+)::cleaner::/.exec(link.rowKey);
+  if (roomMatch) rowRoomId = roomMatch[1];
+
+  const [allItems, latestChecks] = await Promise.all([
     db.journalChecklistItem.findMany({
       where: {
         organizationId,
         journalCode: link.journalCode,
         archivedAt: null,
+        // Либо общие (roomId=null), либо привязанные к этой комнате.
+        OR: rowRoomId
+          ? [{ roomId: null }, { roomId: rowRoomId }]
+          : [{ roomId: null }],
       },
-      orderBy: { sortOrder: "asc" },
+      orderBy: [{ roomId: "asc" }, { sortOrder: "asc" }],
     }),
     db.journalChecklistCheck.findMany({
       where: {
@@ -75,6 +89,33 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     }),
   ]);
+
+  // Фильтр по частоте: показываем пункт только если по расписанию
+  // он сегодня уместен.
+  //   • daily   — всегда
+  //   • weekly  — если сегодняшний weekday в weekDays[]
+  //   • monthly — если сегодняшняя day-of-month == monthDay
+  //                (с clip'ом для коротких месяцев)
+  const today = new Date();
+  const todayWeekday = ((today.getDay() + 6) % 7) + 1; // 1=Пн ... 7=Вс
+  const todayDay = today.getDate();
+  const lastDayOfThisMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+
+  const items = allItems.filter((it) => {
+    if (it.frequency === "weekly") {
+      return Array.isArray(it.weekDays) && it.weekDays.includes(todayWeekday);
+    }
+    if (it.frequency === "monthly") {
+      if (it.monthDay == null) return false;
+      const effectiveDay = Math.min(it.monthDay, lastDayOfThisMonth);
+      return todayDay === effectiveDay;
+    }
+    return true; // daily
+  });
 
   // Для каждого пункта — последняя по createdAt запись.
   const stateById: Record<string, boolean> = {};
@@ -91,8 +132,11 @@ export async function GET(
       required: i.required,
       hint: i.hint,
       sortOrder: i.sortOrder,
+      roomId: i.roomId,
+      frequency: i.frequency,
     })),
     checks: stateById,
+    rowRoomId,
   });
 }
 
