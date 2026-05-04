@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B2 — equipment-calibration v2**
+**Текущий приоритет:** **P3.B3 — equipment-maintenance v2**
 
 ---
 
@@ -141,7 +141,7 @@
 
 ### Tier B (12 средних)
 - [x] P3.B1 — equipment-cleaning — DONE wave-1 @ 3ccd2a9f @ 2026-05-05 02:50 МСК
-- [ ] P3.B2 — equipment-calibration
+- [x] P3.B2 — equipment-calibration — DONE wave-1 @ 56bc6f19 @ 2026-05-05 03:05 МСК
 - [ ] P3.B3 — equipment-maintenance
 - [ ] P3.B4 — disinfectant
 - [ ] P3.B5 — ppe-issuance
