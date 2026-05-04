@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalLegendBlock } from "@/components/journals/journal-document-header";
 import {
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
@@ -800,6 +801,20 @@ export function HygieneDocumentClient({
               {HYGIENE_REGISTER_NOTES.map((note) => (
                 <div key={note}>- {note}</div>
               ))}
+            </div>
+
+            {/* Условные обозначения — для печати, инспектор увидит легенду */}
+            <div className="mt-6 print:mt-4">
+              <JournalLegendBlock
+                items={[
+                  { symbol: "Зд", description: "здоров (допущен к работе)" },
+                  { symbol: "В", description: "выходной / отпуск / отгул" },
+                  { symbol: "Б/л", description: "больничный лист — отстранён по причине болезни" },
+                  { symbol: "ОТ", description: "отстранён от работы (другие причины)" },
+                  { symbol: "Отп", description: "отпуск" },
+                  { symbol: "—", description: "сотрудник не выходил на смену" },
+                ]}
+              />
             </div>
 
             <div className="hygiene-reminder mt-8 text-[16px] font-semibold leading-7">

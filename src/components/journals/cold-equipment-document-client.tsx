@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
+import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -1089,6 +1093,18 @@ export function ColdEquipmentDocumentClient({
         ) : null}
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
+        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
+        <div className="mb-4 print:mb-2">
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="Журнал контроля температурного режима холодильного и морозильного оборудования"
+          />
+          <div className="mt-3">
+            <JournalDocumentTitle>
+              Журнал контроля температурного режима
+            </JournalDocumentTitle>
+          </div>
+        </div>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#d9dce6] bg-white">
           <table className="min-w-[1900px] border-collapse text-[16px]">
             <thead>

@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
+import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -1236,6 +1240,19 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           emptyLabel="Записей не найдено."
         />
       ) : null}
+
+      {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
+      <div className="mb-4 print:mb-2">
+        <JournalDocumentHeader
+          orgName={props.organizationName}
+          title="Журнал учета работы УФ бактерицидной установки"
+        />
+        <div className="mt-3">
+          <JournalDocumentTitle>
+            Журнал учета работы УФ бактерицидной установки
+          </JournalDocumentTitle>
+        </div>
+      </div>
 
       {/* Data table */}
       <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[12px] border border-[#eceef5] bg-white print:rounded-none print:border-[#ccc]">

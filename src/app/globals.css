@@ -808,3 +808,64 @@
     transition: none !important;
   }
 }
+
+/* ============================================================
+ * Print styles — для журналов
+ * ============================================================
+ *
+ * Когда юзер жмёт PrintJournalButton (window.print()) или Ctrl+P
+ * на journal-document странице — скрываем navigation chrome,
+ * sticky-bars, кнопки. Оставляем только сам документ + header
+ * + таблицу + legend для инспектора.
+ *
+ * Применяется ко ВСЕМ страницам — невидимые элементы остаются,
+ * но при печати они hidden. */
+@media print {
+  /* Hide navigation, header, sidebars, buttons */
+  header,
+  nav,
+  aside,
+  footer,
+  [role="navigation"],
+  [role="banner"],
+  [data-print-hide],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Force single-column, no shadows, no rounded for paper */
+  body {
+    background: white !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Document tables — чёрные границы, белый фон, монохром */
+  table,
+  th,
+  td {
+    border-color: black !important;
+    color: black !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Полностью убираем переходы и анимации при печати */
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Page break setup для multi-page журналов */
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+}

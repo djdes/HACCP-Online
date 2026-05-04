@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -484,6 +488,18 @@ export function MedBookDocumentClient({
           />
         ) : null}
 
+        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
+        <div className="mb-4 print:mb-2">
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="Журнал учёта медицинских книжек сотрудников"
+          />
+          <div className="mt-3">
+            <JournalDocumentTitle>
+              Медицинские книжки
+            </JournalDocumentTitle>
+          </div>
+        </div>
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div className="h-6 min-w-[1320px] bg-[#ececec]" />
         </MobileViewTableWrapper>
