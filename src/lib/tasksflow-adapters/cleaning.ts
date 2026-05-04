@@ -343,22 +343,32 @@ function buildRoomsModeRows(
 ): AdapterRow[] {
   const rooms = config.selectedRoomIds ?? [];
   const cleaners = config.selectedCleanerUserIds ?? [];
-  const rows: AdapterRow[] = [];
-  for (const roomId of rooms) {
-    const roomName = roomNameById.get(roomId);
-    if (!roomName) continue;
-    for (const cleanerId of cleaners) {
-      const cleanerName = userNameById.get(cleanerId);
-      if (!cleanerName) continue;
-      rows.push({
-        rowKey: `room::${roomId}::cleaner::${cleanerId}`,
-        label: `Уборка · ${roomName}`,
-        sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
-        responsibleUserId: cleanerId,
-      });
-    }
-  }
-  return rows;
+  if (rooms.length === 0 || cleaners.length === 0) return [];
+
+  // 2026-05-04: ВАЖНОЕ изменение. Раньше тут был Cartesian product
+  // (rooms × cleaners) — на N комнат × M уборщиков получалось N×M rows.
+  // Это ломалось в bulk-assign:
+  //   • selectRowsForBulkAssign дедуплицировал по responsibleUserId
+  //     → каждый уборщик получал task ТОЛЬКО для первой комнаты
+  //   • остальные комнаты молча терялись
+  //
+  // Новая логика: round-robin — на каждую комнату ровно ОДИН уборщик
+  // (распределяется по индексу). Если 5 комнат и 2 уборщика —
+  // первый делает комнаты 0,2,4 а второй комнаты 1,3.
+  //
+  // Для «race-mode» (несколько уборщиков на одну комнату) нужна
+  // отдельная конфигурация per-room cleanerIds — TODO в config.
+  return rooms.map((roomId, idx) => {
+    const cleanerId = cleaners[idx % cleaners.length];
+    const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";
+    const cleanerName = userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
+    return {
+      rowKey: `room::${roomId}::cleaner::${cleanerId}`,
+      label: `Уборка · ${roomName}`,
+      sublabel: `Уборщик: ${cleanerName}`,
+      responsibleUserId: cleanerId,
+    };
+  });
 }
 
 function parseRoomsModeRowKey(

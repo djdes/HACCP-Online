@@ -275,30 +275,39 @@ export function selectRowsForBulkAssign(args: {
     };
   }
 
-  // Map: userId → orig adapter row (если есть)
-  const origByUid = new Map<string, AdapterRow>();
-  for (const row of args.rows) {
-    if (row.responsibleUserId && !origByUid.has(row.responsibleUserId)) {
-      origByUid.set(row.responsibleUserId, row);
-    }
-  }
+  // 2026-05-04: новая логика фан-аута. Раньше дедуплицировали по
+  // responsibleUserId (1 row per user), что ломало cleaning rooms-mode
+  // — уборщица назначенная на 3 комнаты получала task только для
+  // ПЕРВОЙ. Теперь:
+  //   • Pass 1: создаём adapter row'ы как есть, дедуп ТОЛЬКО по rowKey
+  //     (= уникальный room/area/equipment + user). Если адаптер дал
+  //     2 row'a с тем же uid но разными roomId — оба остаются.
+  //   • Pass 2: для users в candidateIds которым адаптер вообще не
+  //     дал ни одной row'и — synthetic fanout-row.
 
   const rowsToCreate: AdapterRow[] = [];
+  const seenRowKeys = new Set<string>();
+  const usersWithAdapterRow = new Set<string>();
   let alreadyLinkedCount = 0;
-  for (const uid of candidateIds) {
-    const orig = origByUid.get(uid);
-    if (orig) {
-      // Реальная adapter row — используем как есть, она знает как
-      // applyRemoteCompletion отметит ячейку в WeSetup.
-      if (args.takenRowKeys.has(orig.rowKey)) {
-        alreadyLinkedCount += 1;
-      } else {
-        rowsToCreate.push(orig);
-      }
+
+  // Pass 1: preserve per-row metadata (room/area/equipment).
+  for (const row of args.rows) {
+    const uid = row.responsibleUserId;
+    if (!uid) continue;
+    if (!candidateIds.has(uid)) continue;
+    if (seenRowKeys.has(row.rowKey)) continue;
+    seenRowKeys.add(row.rowKey);
+    usersWithAdapterRow.add(uid);
+    if (args.takenRowKeys.has(row.rowKey)) {
+      alreadyLinkedCount += 1;
       continue;
     }
-    // Synthetic row — нет оригинала из adapter'а. RowKey уникален
-    // per-user чтобы tasksFlowTaskLink не дублировал.
+    rowsToCreate.push(row);
+  }
+
+  // Pass 2: synthetic fanout-row для users у которых адаптер row не дал.
+  for (const uid of candidateIds) {
+    if (usersWithAdapterRow.has(uid)) continue;
     const syntheticKey = `fanout:${args.journalCode}:${uid}`;
     if (args.takenRowKeys.has(syntheticKey)) {
       alreadyLinkedCount += 1;

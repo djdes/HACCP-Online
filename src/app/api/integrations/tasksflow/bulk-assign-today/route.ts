@@ -781,16 +781,42 @@ export async function POST(request: Request) {
     if (taskMode.distribution === "per-area") {
       // По одной задаче на каждое помещение, round-robin между
       // linked-исполнителями.
-      const areas = await getAreas();
-      const linkedCandidates = linkedFromCandidates();
-      if (areas.length > 0 && linkedCandidates.length > 0) {
-        rowsForSelection = areas.map((area, i) => ({
-          rowKey: `area:${area.id}`,
-          label: area.name,
-          responsibleUserId:
-            linkedCandidates[i % linkedCandidates.length],
-        })) as typeof filteredRows;
+      //
+      // 2026-05-04: ВАЖНО. Раньше этот блок БЕЗУСЛОВНО заменял
+      // filteredRows на synthetic `area:<id>` rows из db.area.findMany().
+      // Это ломало cleaning-журналы:
+      //   • cleaning адаптер генерирует `room::{roomId}::cleaner::{uid}`
+      //     rows на основе config.selectedRoomIds — то есть админ уже
+      //     выбрал конкретные комнаты для уборки в документе.
+      //   • equipment_cleaning, cleaning_ventilation_checklist —
+      //     генерируют per-employee rows.
+      //   • Synthetic `area:<areaId>` row никогда не совпадёт с
+      //     adapter rowKey'ом → applyRemoteCompletion не найдёт куда
+      //     писать результат → задачи в TF создавались но при закрытии
+      //     записи журнала не появлялись.
+      //
+      // Новая логика: если адаптер уже выдал per-row distribution
+      // (filteredRows.length > 0 И каждая row имеет responsibleUserId,
+      // значит адаптер думал per-employee/per-room), используем adapter
+      // rows. Иначе fallback на synthetic per-area (для журналов где
+      // адаптер вернул только summary row).
+      const adapterDidPerRowDistribution =
+        filteredRows.length > 0 &&
+        filteredRows.every((r) => Boolean(r.responsibleUserId));
+      if (!adapterDidPerRowDistribution) {
+        const areas = await getAreas();
+        const linkedCandidates = linkedFromCandidates();
+        if (areas.length > 0 && linkedCandidates.length > 0) {
+          rowsForSelection = areas.map((area, i) => ({
+            rowKey: `area:${area.id}`,
+            label: area.name,
+            responsibleUserId:
+              linkedCandidates[i % linkedCandidates.length],
+          })) as typeof filteredRows;
+        }
       }
+      // adapterDidPerRowDistribution=true → rowsForSelection=filteredRows
+      // (адаптерные rows уже корректны, не трогаем).
     } else if (taskMode.distribution === "per-shift") {
       // По одной задаче на каждого юзера в WorkShift с
       // status=scheduled на сегодня. Pure-shift семантика:
