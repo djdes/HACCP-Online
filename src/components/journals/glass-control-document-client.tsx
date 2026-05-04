@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -90,6 +91,8 @@ type Props = {
   config: unknown;
   initialEntries: EntryItem[];
   itemSuggestions?: string[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function emptyEntryData(): GlassControlEntryData {
@@ -174,6 +177,7 @@ function GlassControlSettingsDialog(props: {
     responsibleTitle: string;
     responsibleUserId: string;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState(props.initialState.title);
@@ -200,6 +204,119 @@ function GlassControlSettingsDialog(props: {
     setResponsibleTitle(props.initialState.responsibleTitle);
     setResponsibleUserId(props.initialState.responsibleUserId);
   }, [props.initialState, props.open]);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await props.onSave({
+        title,
+        dateFrom,
+        controlFrequency,
+        responsibleTitle,
+        responsibleUserId,
+      });
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала, частота контроля и ответственный сотрудник."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Дата начала
+            </Label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Частота контроля
+            </Label>
+            <Input
+              value={controlFrequency}
+              onChange={(event) => setControlFrequency(event.target.value)}
+              placeholder="Например: 1 раз в смену"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Select
+            value={responsibleTitle}
+            onValueChange={(value) => {
+              setResponsibleTitle(value);
+              const candidates = getUsersForRoleLabel(props.users, value);
+              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
+                setResponsibleUserId(candidates[0]?.id || "");
+              } else if (!responsibleUserId && candidates[0]) {
+                setResponsibleUserId(candidates[0].id);
+              }
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from(new Set(options.titles)).map((titleItem) => (
+                <SelectItem key={titleItem} value={titleItem}>
+                  {titleItem}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map(
+                (user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -296,21 +413,7 @@ function GlassControlSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSave({
-                    title,
-                    dateFrom,
-                    controlFrequency,
-                    responsibleTitle,
-                    responsibleUserId,
-                  });
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
               className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
@@ -1009,6 +1112,7 @@ export function GlassControlDocumentClient(props: Props) {
           responsibleUserId: props.responsibleUserId || fallbackEmployeeId,
         }}
         onSave={saveSettings}
+        useV2={props.useV2}
       />
 
       <RowDialog

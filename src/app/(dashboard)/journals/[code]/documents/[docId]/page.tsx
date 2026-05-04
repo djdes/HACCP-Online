@@ -492,6 +492,7 @@ export default async function JournalDocumentPage({
           data: normalizeGlassControlEntryData(entry.data),
         }))}
         itemSuggestions={equipment.map((item) => item.name)}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
