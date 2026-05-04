@@ -24,7 +24,7 @@
 
 ## P0 — Active bugs
 
-### [x] P0.1 — Pipeline не заполняет колонки журнала — DONE PART-1 @ pending-sha @ 2026-05-04
+### [x] P0.1 — Pipeline не заполняет колонки журнала — DONE PART-1 @ 81f60ada @ 2026-05-04 23:24 МСК
 - **Что сделано (foundational + glass_control specific):**
   1. PipelineWizard теперь рендерит `step.field` внутри текущего шага (input между detail и кнопкой «Сделал»), value хранится в общем `values`
   2. Кнопка «Сделал» disabled пока required field не заполнено — `fieldSatisfied()` хелпер
@@ -205,7 +205,7 @@
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
 
-_(пусто — первая итерация ещё не была)_
+- **[2026-05-04 23:24 МСК]** `81f60ada` — P0.1 закрыт partial. Foundation: PipelineWizard рендерит step.field инлайн с валидацией (required-field блокирует «Сделал»). Specific: glass_control адаптер с 4 шагами по СанПиН пишет в `JournalDocumentEntry.data` нужный shape. Бойцовый баг владельца («уборщица прошла, журнал пустой») закрыт для glass_control. Остальные журналы где fallback на generic — будут постепенно закрыты per-journal-адаптерами или через pipeline editor (P1.4). Что заметил: текущая модель «один адаптер = один журнал» масштабируется плохо, P1 (pipeline editor с pinned-узлами по полям) реально нужен. Что предлагаю дальше: P0.2 (ответственные desync) обязательно через playwright + haccp-online, потом P1.1 (DB schema migration).
 
 ---
 
