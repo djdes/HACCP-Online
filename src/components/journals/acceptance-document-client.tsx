@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,8 @@ type Props = {
   status: string;
   config: unknown;
   users: User[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -841,6 +844,7 @@ function SettingsDialog(props: {
   users: User[];
   config: AcceptanceDocumentConfig;
   onSave: (params: { title: string; dateFrom: string; config: AcceptanceDocumentConfig }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
@@ -875,6 +879,125 @@ function SettingsDialog(props: {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  const fields = (
+    <>
+      <div className="space-y-2">
+        <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          Название документа
+        </Label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          Дата начала
+        </Label>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+        />
+      </div>
+      <div className="space-y-2">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          Название поля для срока
+        </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+          <input
+            type="radio"
+            name="expiryLabel-v2"
+            checked={expiryLabel === "expiry_deadline"}
+            onChange={() => setExpiryLabel("expiry_deadline")}
+            className="size-4 accent-[#5566f6]"
+          />
+          <span className="text-[14px] text-[#0b1024]">
+            «Предельный срок реализации»
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+          <input
+            type="radio"
+            name="expiryLabel-v2"
+            checked={expiryLabel === "shelf_life"}
+            onChange={() => setExpiryLabel("shelf_life")}
+            className="size-4 accent-[#5566f6]"
+          />
+          <span className="text-[14px] text-[#0b1024]">«Срок годности»</span>
+        </label>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          Должность ответственного
+        </Label>
+        <Select
+          value={responsibleTitle}
+          onValueChange={(v) => {
+            const candidates = getUsersForRoleLabel(props.users, v);
+            const stillValid = candidates.some((u) => u.id === responsibleUserId);
+            setResponsibleTitle(v);
+            if (!stillValid) setResponsibleUserId("");
+          }}
+        >
+          <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectValue placeholder="— Выберите —" />
+          </SelectTrigger>
+          <SelectContent>
+            <PositionSelectItems users={props.users} />
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+          Сотрудник
+        </Label>
+        <Select
+          value={responsibleUserId}
+          onValueChange={(v) => {
+            setResponsibleUserId(v);
+            if (!responsibleTitle) {
+              const user = props.users.find((u) => u.id === v);
+              if (user) setResponsibleTitle(getUserRoleLabel(user.role));
+            }
+          }}
+        >
+          <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectValue placeholder="— Выберите —" />
+          </SelectTrigger>
+          <SelectContent>
+            {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map(
+              (u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name}
+                </SelectItem>
+              )
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала, дата начала, формат поля срока и ответственный по умолчанию."
+        size="md"
+        isSaving={isSubmitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        {fields}
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -1680,7 +1803,7 @@ export function AcceptanceDocumentClient(props: Props) {
         </MobileViewTableWrapper>
       </div>
 
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} useV2={props.useV2} />
       {editListsOpen && (
         <IncomingControlEditListsDialog
           key={`${config.products.join("|")}::${config.manufacturers.join("|")}::${config.suppliers.join("|")}`}

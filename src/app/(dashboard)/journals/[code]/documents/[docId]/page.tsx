@@ -737,6 +737,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={normalizeAcceptanceDocumentConfig(document.config, enrichedEmployees)}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
