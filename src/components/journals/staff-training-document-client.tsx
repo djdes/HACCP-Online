@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Settings, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Printer, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -326,7 +326,16 @@ export function StaffTrainingDocumentClient({
             {title}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+          >
+            <Printer className="size-4" />
+            Печать
+          </Button>
           {!isClosed && (
             <Button
               type="button"

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -835,16 +835,27 @@ export function SanitaryDayChecklistDocumentClient({
             <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
               {title || getSanitaryDayChecklistTitle(routeCode)}
             </h1>
-            {isActive && (
+            <div className="flex flex-wrap gap-2 self-start sm:self-auto">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] self-start sm:self-auto"
+                onClick={() => window.print()}
+                title="Распечатать журнал"
+                className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
-                Настройки журнала
+                <Printer className="size-4" />Печать
               </Button>
-            )}
+              {isActive && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSettingsOpen(true)}
+                  className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                >
+                  Настройки журнала
+                </Button>
+              )}
+            </div>
           </div>
 
           {isActive && (

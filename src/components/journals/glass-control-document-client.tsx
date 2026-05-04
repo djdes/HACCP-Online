@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -756,6 +756,16 @@ export function GlassControlDocumentClient(props: Props) {
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="mb-8 flex items-center justify-end gap-4 print:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            <Printer className="size-4" />
+            Печать
+          </Button>
           <Button
             type="button"
             variant="outline"

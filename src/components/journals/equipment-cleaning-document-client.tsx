@@ -351,18 +351,29 @@ export function EquipmentCleaningDocumentClient({
 
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${journalRouteCode}`} documentId={documentId} />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
         <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
           {title}
         </h1>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setSettingsOpen(true)}
-          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-        >
-          Настройки журнала
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            <Printer className="size-4" />Печать
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSettingsOpen(true)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            Настройки журнала
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">

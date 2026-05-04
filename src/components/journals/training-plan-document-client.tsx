@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Settings2, X } from "lucide-react";
+import { CalendarDays, Plus, Printer, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -549,7 +549,17 @@ export function TrainingPlanDocumentClient({
         <DocumentBackLink href="/journals/training_plan" documentId={documentId} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div />
-        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto print:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+            className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6] hover:bg-[#f6f7ff]"
+          >
+            <Printer className="size-4" />
+            Печать
+          </Button>
           {!readOnly && (
             <Button
               type="button"

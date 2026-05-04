@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -173,7 +173,16 @@ export function GlassListDocumentClient({
       )}
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
-        <div className="mb-6 flex items-center justify-end gap-3 text-[14px] text-[#73738a]">
+        <div className="mb-6 flex items-center justify-end gap-3 text-[14px] text-[#73738a] print:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            <Printer className="size-4" />Печать
+          </Button>
           <Button
             type="button"
             variant="outline"

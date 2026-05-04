@@ -411,6 +411,7 @@ export function FryerOilDocumentClient(props: Props) {
             <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">{title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[#3848c7] print:hidden"><Printer className="size-5" />Печать</Button>
             <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[#3848c7]" onClick={() => setSettingsOpen(true)}><Settings2 className="size-5" />Настройки журнала</Button>
           </div>
         </div>

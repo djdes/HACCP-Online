@@ -1506,7 +1506,16 @@ export function AcceptanceDocumentClient(props: Props) {
               <span>Сортировать по сроку годности</span>
             </label>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 print:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            >
+              <Printer className="size-4" />Печать
+            </Button>
             <Button
               type="button"
               variant="outline"

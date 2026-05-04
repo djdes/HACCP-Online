@@ -692,17 +692,29 @@ export function IntensiveCoolingDocumentClient(props: Props) {
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}
           rightActions={
-            isActive ? (
+            <>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => window.print()}
+                title="Распечатать журнал"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
               >
-                <Settings2 className="size-4" />
-                Настройки журнала
+                <Printer className="size-4" />
+                Печать
               </Button>
-            ) : null
+              {isActive ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Settings2 className="size-4" />
+                  Настройки журнала
+                </Button>
+              ) : null}
+            </>
           }
         />
 

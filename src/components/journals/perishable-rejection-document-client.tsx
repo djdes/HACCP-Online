@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
+import { ChevronDown, Plus, Printer, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -391,12 +391,21 @@ export function PerishableRejectionDocumentClient({
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
       <DocumentBackLink href="/journals/perishable_rejection" documentId={documentId} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
             {title}
           </h1>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => window.print()}
+          title="Распечатать журнал"
+          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+        >
+          <Printer className="size-4" />Печать
+        </Button>
       </div>
 
       {!readOnly ? (

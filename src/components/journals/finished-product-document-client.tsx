@@ -213,16 +213,27 @@ export function FinishedProductDocumentClient({
           backHref="/journals/finished_product"
           documentId={documentId}
           rightActions={
-            !readOnly ? (
+            <>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => window.print()}
+                title="Распечатать журнал"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
               >
-                <Settings2 className="size-4" />Настройки журнала
+                <Printer className="size-4" />Печать
               </Button>
-            ) : null
+              {!readOnly ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Settings2 className="size-4" />Настройки журнала
+                </Button>
+              ) : null}
+            </>
           }
         />
         <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
