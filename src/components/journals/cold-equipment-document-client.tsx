@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import {
   JournalDocumentHeader,
   JournalDocumentTitle,
@@ -93,6 +94,8 @@ type Props = {
   employees: EmployeeItem[];
   config: ColdEquipmentDocumentConfig;
   initialEntries: EntryRow[];
+  /** Design v2 toggle. Settings dialog → JournalSettingsModal style. */
+  useV2?: boolean;
 };
 
 function formatRange(min: number | null, max: number | null) {
@@ -297,6 +300,7 @@ function JournalSettingsDialog({
   employees,
   config,
   onSave,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -311,6 +315,7 @@ function JournalSettingsDialog({
     responsibleUserId: string | null;
     config: ColdEquipmentDocumentConfig;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const titleOptions = useMemo(
     () => [...new Set(employees.map((employee) => getHygienePositionLabel(employee.role)))],
@@ -347,6 +352,87 @@ function JournalSettingsDialog({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки журнала"
+        description="Название журнала, ответственный сотрудник и режим заполнения."
+        size="md"
+        isSaving={isSubmitting}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label
+            htmlFor="cold-journal-title-v2"
+            className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+          >
+            Название журнала
+          </Label>
+          <Input
+            id="cold-journal-title-v2"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного за снятие показателей
+          </Label>
+          <Select
+            value={position}
+            onValueChange={(value) => {
+              setPosition(value);
+              const candidates = getUsersForRoleLabel(employees, value);
+              if (userId && !candidates.some((u) => u.id === userId)) {
+                setUserId(candidates[0]?.id || "");
+              } else if (!userId && candidates[0]) {
+                setUserId(candidates[0].id);
+              }
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <PositionSelectItems users={employees} />
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select value={userId} onValueChange={setUserId}>
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {(position ? getUsersForRoleLabel(employees, position) : employees).map(
+                (employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+          <Checkbox
+            id="cold-skip-weekends-v2"
+            checked={skipWeekends}
+            onCheckedChange={(checked) => setSkipWeekends(checked === true)}
+          />
+          <span className="text-[14px] text-[#0b1024]">Не заполнять в выходные дни</span>
+        </label>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -465,6 +551,7 @@ export function ColdEquipmentDocumentClient({
   employees,
   config,
   initialEntries,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [documentTitle, setDocumentTitle] = useState(title);
@@ -1259,6 +1346,7 @@ export function ColdEquipmentDocumentClient({
         employees={employees}
         config={config}
         onSave={handleSaveSettings}
+        useV2={useV2}
       />
 
       <EquipmentDialog
