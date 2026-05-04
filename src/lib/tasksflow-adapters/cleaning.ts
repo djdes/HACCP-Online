@@ -360,6 +360,16 @@ function buildRoomsModeRows(
   //   5 комнат × 2 уборщика → 5 task'ов: Маркова делает комнаты
   //   0,2,4, Захаров — 1,3. Каждый знает свой набор. Подходит
   //   для строгого распределения зон ответственности.
+  // Per-room verifier resolver — приоритет verifierByRoomId[roomId]
+  // → fallback controlUserId → fallback null (тогда bulk-assign
+  // возьмёт document-wide doc.verifierUserId).
+  const verifierByRoomId = config.verifierByRoomId ?? {};
+  function verifierForRoom(roomId: string): string | null {
+    return (
+      verifierByRoomId[roomId] ?? config.controlUserId ?? null
+    );
+  }
+
   if (config.roomsRaceMode === true) {
     const rows: AdapterRow[] = [];
     for (const roomId of rooms) {
@@ -372,6 +382,7 @@ function buildRoomsModeRows(
           label: `Уборка · ${roomName}`,
           sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
           responsibleUserId: cleanerId,
+          verifierUserId: verifierForRoom(roomId),
         });
       }
     }
@@ -387,6 +398,7 @@ function buildRoomsModeRows(
       label: `Уборка · ${roomName}`,
       sublabel: `Уборщик: ${cleanerName}`,
       responsibleUserId: cleanerId,
+      verifierUserId: verifierForRoom(roomId),
     };
   });
 }

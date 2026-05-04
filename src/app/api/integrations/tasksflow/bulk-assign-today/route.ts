@@ -1002,17 +1002,21 @@ export async function POST(request: Request) {
       const bonusRubles = Math.floor((tpl.bonusAmountKopecks ?? 0) / 100);
 
       // Phase C двухстадийной верификации: verifier — отдельная
-      // роль от исполнителя. Источник:
-      //   1. doc.verifierUserId (новое поле, выставленное в
-      //      /settings/journal-responsibles → секция «Кто проверяет»).
-      //   2. Fallback на doc.responsibleUserId — для документов
-      //      созданных ДО разделения filler/verifier (back-compat).
+      // роль от исполнителя. Приоритет:
+      //   1. row.verifierUserId — per-row override (cleaning rooms-mode
+      //      с verifierByRoomId — разные supervisor'ы для разных комнат).
+      //   2. doc.verifierUserId (document-wide, /settings/journal-responsibles).
+      //   3. Fallback на doc.responsibleUserId (back-compat для старых
+      //      документов до разделения filler/verifier).
       //
       // Если verifier == worker (одинокий случай — заведующая в смене
       // и сама отв. за заполнение и проверку) — не ставим, task
       // закрывается обычным /complete.
       const verifierWesetupId =
-        doc.verifierUserId ?? doc.responsibleUserId ?? null;
+        row.verifierUserId ??
+        doc.verifierUserId ??
+        doc.responsibleUserId ??
+        null;
       let verifierTfId: number | null = null;
       if (verifierWesetupId) {
         const candidate = tfUserIdByWesetup.get(verifierWesetupId);

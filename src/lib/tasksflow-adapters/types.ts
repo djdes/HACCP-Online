@@ -36,6 +36,16 @@ export type AdapterRow = {
   responsibleUserId: string | null;
   /** Optional badge (e.g. "СанПиН", "ХАССП") rendered in picker. */
   badge?: string;
+  /**
+   * Per-row override проверяющего (Phase E verifier). Если задан,
+   * bulk-assign использует ИМЕННО этого юзера как verifier для
+   * supervisor-task'а вместо document-wide doc.verifierUserId.
+   *
+   * Используется в cleaning rooms-mode когда разные комнаты должен
+   * проверять разный контролёр (например, кухню — шеф, гостевую —
+   * заведующая). null/undefined = fallback на document-wide.
+   */
+  verifierUserId?: string | null;
 };
 
 /** A journal document grouping rows. */

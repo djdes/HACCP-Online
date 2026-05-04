@@ -491,6 +491,7 @@ export function CleaningDocumentClient(props: Props) {
             selectedRoomIds={config.selectedRoomIds ?? []}
             selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
             controlUserId={config.controlUserId ?? null}
+            verifierByRoomId={config.verifierByRoomId ?? {}}
             onSave={async (patch) => {
               await patchDocument({
                 ...config,
@@ -498,6 +499,7 @@ export function CleaningDocumentClient(props: Props) {
                 selectedRoomIds: patch.selectedRoomIds,
                 selectedCleanerUserIds: patch.selectedCleanerUserIds,
                 controlUserId: patch.controlUserId,
+                verifierByRoomId: patch.verifierByRoomId,
               });
             }}
           />
@@ -766,11 +768,14 @@ type RoomsModeCardProps = {
   selectedRoomIds: string[];
   selectedCleanerUserIds: string[];
   controlUserId: string | null;
+  /** Per-room overrides контролёра. Map roomId → userId. */
+  verifierByRoomId: Record<string, string>;
   onSave: (patch: {
     cleaningMode: "pairs" | "rooms";
     selectedRoomIds: string[];
     selectedCleanerUserIds: string[];
     controlUserId: string | null;
+    verifierByRoomId: Record<string, string>;
   }) => Promise<void>;
 };
 
@@ -781,6 +786,12 @@ function RoomsModeCard(props: RoomsModeCardProps) {
     props.selectedCleanerUserIds
   );
   const [control, setControl] = useState<string | null>(props.controlUserId);
+  const [verifierByRoomId, setVerifierByRoomId] = useState<
+    Record<string, string>
+  >(props.verifierByRoomId ?? {});
+  const [showPerRoomVerifiers, setShowPerRoomVerifiers] = useState(
+    Object.keys(props.verifierByRoomId ?? {}).length > 0,
+  );
   const [busy, setBusy] = useState(false);
 
   function toggleRoom(id: string) {
@@ -793,6 +804,14 @@ function RoomsModeCard(props: RoomsModeCardProps) {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
+  function setRoomVerifier(roomId: string, userId: string | "") {
+    setVerifierByRoomId((prev) => {
+      const next = { ...prev };
+      if (userId) next[roomId] = userId;
+      else delete next[roomId];
+      return next;
+    });
+  }
 
   async function save() {
     setBusy(true);
@@ -802,11 +821,18 @@ function RoomsModeCard(props: RoomsModeCardProps) {
         selectedRoomIds: rooms,
         selectedCleanerUserIds: cleaners,
         controlUserId: control,
+        verifierByRoomId,
       });
     } finally {
       setBusy(false);
     }
   }
+
+  // Все комнаты org для UI per-room verifier (не только selected).
+  const allRooms = props.buildings.flatMap((b) =>
+    b.rooms.map((r) => ({ ...r, buildingName: b.name })),
+  );
+  const selectedRoomList = allRooms.filter((r) => rooms.includes(r.id));
 
   // Кандидаты на role «cleaner»: позиция «Уборщик» + cook-роль.
   // Кандидаты на role «control»: management roles.
@@ -920,10 +946,10 @@ function RoomsModeCard(props: RoomsModeCardProps) {
             </div>
           </div>
 
-          {/* Контролёр */}
+          {/* Контролёр (общий) */}
           <div>
             <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-              Ответственный за контроль
+              Ответственный за контроль (общий)
             </div>
             <select
               value={control ?? ""}
@@ -938,7 +964,62 @@ function RoomsModeCard(props: RoomsModeCardProps) {
                 </option>
               ))}
             </select>
+            <p className="mt-1.5 text-[11.5px] text-[#9b9fb3]">
+              Применяется к комнатам у которых не задан per-room контролёр.
+            </p>
           </div>
+
+          {/* Per-room контролёры (override) */}
+          {selectedRoomList.length > 0 ? (
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                  Контролёры по комнатам (по желанию)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPerRoomVerifiers((s) => !s)}
+                  className="text-[12px] font-medium text-[#5566f6] hover:text-[#4a5bf0]"
+                >
+                  {showPerRoomVerifiers ? "Скрыть" : "Настроить"}
+                </button>
+              </div>
+              {showPerRoomVerifiers ? (
+                <div className="space-y-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
+                  <p className="mb-1 text-[11.5px] text-[#6f7282]">
+                    Если разные комнаты должен проверять разный сотрудник —
+                    выбери здесь. Пусто = используется общий контролёр выше.
+                  </p>
+                  {selectedRoomList.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-2.5"
+                    >
+                      <span className="min-w-[140px] text-[12.5px] font-medium text-[#0b1024]">
+                        {r.name}
+                        <span className="ml-1.5 text-[11px] font-normal text-[#9b9fb3]">
+                          ({r.buildingName})
+                        </span>
+                      </span>
+                      <select
+                        value={verifierByRoomId[r.id] ?? ""}
+                        disabled={props.disabled}
+                        onChange={(e) => setRoomVerifier(r.id, e.target.value)}
+                        className="h-9 flex-1 min-w-[160px] rounded-lg border border-[#dcdfed] bg-white px-2 text-[12.5px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15"
+                      >
+                        <option value="">— общий контролёр —</option>
+                        {props.users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[13px] text-[#6f7282]">

@@ -147,8 +147,19 @@ export type CleaningDocumentConfig = {
   /// сохраняет все (Pass 1 dedupe by rowKey не userId), TF создаёт
   /// task на каждого. claimedByWorkerId отметит «занято» у остальных.
   roomsRaceMode?: boolean;
+  /// Per-room контролёры — разные supervisor'ы для разных комнат.
+  /// Map roomId → userId. Если для комнаты нет записи — fallback на
+  /// document-wide controlUserId. Используется в rooms-mode когда
+  /// например, кухню проверяет шеф, а гостевую зону — заведующая.
+  ///
+  /// Технически при bulk-assign cleaning адаптер прокидывает
+  /// verifierUserId per-row через AdapterRow.verifierUserId, и
+  /// bulk-assign создаёт supervisor-task на этого юзера вместо
+  /// document-wide.
+  verifierByRoomId?: Record<string, string>;
   /// User-id ответственного за контроль. В rooms-режиме он получает
-  /// одну сводную задачу в конце дня.
+  /// одну сводную задачу в конце дня. Используется как fallback если
+  /// для конкретной комнаты нет записи в verifierByRoomId.
   controlUserId?: string | null;
 };
 
@@ -1048,6 +1059,18 @@ export function normalizeCleaningDocumentConfig(
       )
     : [];
   next.roomsRaceMode = record.roomsRaceMode === true;
+  // Per-room verifiers: filter only valid string→string entries.
+  if (record.verifierByRoomId && typeof record.verifierByRoomId === "object" && !Array.isArray(record.verifierByRoomId)) {
+    const cleaned: Record<string, string> = {};
+    for (const [roomId, uid] of Object.entries(record.verifierByRoomId as Record<string, unknown>)) {
+      if (typeof roomId === "string" && typeof uid === "string" && uid.length > 0) {
+        cleaned[roomId] = uid;
+      }
+    }
+    next.verifierByRoomId = cleaned;
+  } else {
+    next.verifierByRoomId = {};
+  }
   next.controlUserId =
     typeof record.controlUserId === "string" && record.controlUserId.length > 0
       ? record.controlUserId
