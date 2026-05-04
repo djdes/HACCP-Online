@@ -78,11 +78,49 @@ export type TaskFormField =
       defaultValue?: string;
     };
 
+/**
+ * Шаг pipeline'а в форме task-fill. Каждый шаг — мини-инструкция
+ * («что сделать») + чекбокс «Сделал». Worker не может перейти к
+ * следующему шагу пока не отметил текущий.
+ *
+ * Опциональное `field` позволяет внутри шага собрать данные (напр.
+ * температура, наблюдения) — но обычно достаточно простого confirm.
+ *
+ * Источник: для большинства журналов pipeline собирается автоматом
+ * из `journal-filling-guides[code].steps[]`. Для специальных
+ * (бракераж, охлаждение) — кастомный pipeline в адаптере.
+ */
+export type PipelineStep = {
+  /** Стабильный ID — используется для AuditLog details.stepId. */
+  id: string;
+  /** Заголовок шага (что делать). Краткий, glanceable. */
+  title: string;
+  /** Подробное объяснение «как сделать», с конкретикой. */
+  detail: string;
+  /** Опциональное поле для ввода данных в этом шаге. */
+  field?: TaskFormField;
+  /** СанПиН-ссылка или подсказка по конкретному шагу. */
+  hint?: string;
+};
+
 export type TaskFormSchema = {
   /** Rendered above the form — free-text task description from admin
    *  is concatenated on top of this. Optional. */
   intro?: string;
   fields: TaskFormField[];
+  /**
+   * Опциональный пошаговый pipeline. Если задан, task-fill UI
+   * рендерит wizard вместо одной формы:
+   *   1. Каждый шаг показывается как карточка с заголовком + детальным
+   *      описанием.
+   *   2. Worker подтверждает «Сделал» — пишется AuditLog,
+   *      переключается следующий шаг.
+   *   3. После всех шагов — форма с `fields` (если есть) + комментарий
+   *      + Готово.
+   *
+   * Без pipeline — поведение прежнее (одна форма с fields).
+   */
+  pipeline?: PipelineStep[];
   /**
    * Validates the responder's payload against the schema. Called on
    * the server before handing to `applyCompletion`. Returns sanitized

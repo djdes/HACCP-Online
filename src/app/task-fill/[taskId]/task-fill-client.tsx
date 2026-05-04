@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
+  Check,
   CheckCircle2,
   ClipboardCheck,
   Copy,
   HelpCircle,
   Loader2,
+  Lock,
   Plus,
   RotateCcw,
   Send,
@@ -22,6 +24,7 @@ import { TaskFillField } from "@/components/task-fill/task-fill-field";
 import { TaskFillHelperModal } from "@/components/task-fill/task-fill-helper-modal";
 import { TaskFillChecklist } from "@/components/task-fill/task-fill-checklist";
 import type {
+  PipelineStep,
   TaskFormField,
   TaskFormSchema,
 } from "@/lib/tasksflow-adapters/task-form";
@@ -159,6 +162,64 @@ export function TaskFillClient({
   // Создаём один раз при mount (Date.now() в useState init).
   const [formOpenedAt] = useState(() => Date.now());
 
+  // Pipeline state — wizard mode для журналов с pipeline в форме.
+  // Worker последовательно подтверждает шаги «Сделал», только после
+  // всех шагов открывается финальная форма + Готово. Каждое
+  // подтверждение мгновенно пишется в AuditLog через /step endpoint.
+  type PipelineConfirm = {
+    stepId: string;
+    stepIndex: number;
+    stepTitle: string;
+    confirmedAt: string; // ISO
+    msSinceFormOpen: number;
+  };
+  const pipelineSteps = form?.pipeline ?? null;
+  const [pipelineConfirms, setPipelineConfirms] = useState<PipelineConfirm[]>(
+    []
+  );
+  // Edit-mode (повторное открытие выполненной задачи) — pipeline уже
+  // пройден ранее, не заставляем worker'а проходить заново.
+  const pipelineSkipped = alreadyCompleted;
+  const pipelineComplete =
+    pipelineSkipped ||
+    !pipelineSteps ||
+    pipelineSteps.length === 0 ||
+    pipelineConfirms.length >= pipelineSteps.length;
+  const currentPipelineIndex = pipelineConfirms.length;
+
+  async function confirmPipelineStep(stepIndex: number) {
+    if (!pipelineSteps || stepIndex !== pipelineConfirms.length) return;
+    const step = pipelineSteps[stepIndex];
+    const msSinceFormOpen = Math.max(0, Date.now() - formOpenedAt);
+    const entry: PipelineConfirm = {
+      stepId: step.id,
+      stepIndex,
+      stepTitle: step.title,
+      confirmedAt: new Date().toISOString(),
+      msSinceFormOpen,
+    };
+    // Optimistic — мгновенно двигаем UI вперёд, audit-log пишется в
+    // фоне. Если запись провалится — пользователь не заметит, но
+    // финальный submit всё равно содержит весь _pipeline trail.
+    setPipelineConfirms((prev) => [...prev, entry]);
+    try {
+      await fetch(`/api/task-fill/${taskId}/step`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          stepId: step.id,
+          stepIndex,
+          stepTitle: step.title,
+          totalSteps: pipelineSteps.length,
+          msSinceFormOpen,
+        }),
+      });
+    } catch {
+      // best-effort
+    }
+  }
+
   // Shared-task state — счётчик записей и closure (могут меняться
   // прямо в этой сессии после нажатий кнопок).
   const [entryCount, setEntryCount] = useState(todaysEntryCount);
@@ -235,10 +296,29 @@ export function TaskFillClient({
     setSubmitting(true);
     setError(null);
     try {
+      // Если есть pipeline — прицепляем trail подтверждений в values.
+      // Backend сохранит это в JournalDocumentEntry.data.pipeline и
+      // напишет один итоговый AuditLog с полной хронологией.
+      const valuesWithPipeline =
+        pipelineSteps && pipelineConfirms.length > 0
+          ? {
+              ...values,
+              _pipeline: {
+                totalSteps: pipelineSteps.length,
+                steps: pipelineConfirms,
+                completedAt: new Date().toISOString(),
+                totalDurationMs: Math.max(0, Date.now() - formOpenedAt),
+              },
+            }
+          : values;
       const response = await fetch(`/api/task-fill/${taskId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, values, openedAt: formOpenedAt }),
+        body: JSON.stringify({
+          token,
+          values: valuesWithPipeline,
+          openedAt: formOpenedAt,
+        }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -655,7 +735,17 @@ export function TaskFillClient({
               </div>
             ) : null}
 
-            {form && form.fields.length > 0 ? (
+            {pipelineSteps && pipelineSteps.length > 0 && !pipelineSkipped ? (
+              <PipelineWizard
+                steps={pipelineSteps}
+                confirmedCount={pipelineConfirms.length}
+                currentIndex={currentPipelineIndex}
+                onConfirm={confirmPipelineStep}
+                disabled={submitting}
+              />
+            ) : null}
+
+            {pipelineComplete && form && form.fields.length > 0 ? (
               <div className="space-y-3">
                 {form.fields.map((field, idx) => (
                   <div
@@ -671,11 +761,11 @@ export function TaskFillClient({
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : pipelineComplete && (!form || form.fields.length === 0) ? (
               <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-4 text-[14px] text-[#6f7282]">
                 Форма не требует заполнения — просто подтвердите выполнение.
               </p>
-            )}
+            ) : null}
 
             {error ? (
               <div className="mt-4 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-4 text-[13px] text-[#a13a32]">
@@ -686,12 +776,19 @@ export function TaskFillClient({
             <Button
               type="button"
               onClick={() => setConfirmOpen(true)}
-              disabled={!readyToSubmit || !checklistReady || submitting}
+              disabled={
+                !pipelineComplete ||
+                !readyToSubmit ||
+                !checklistReady ||
+                submitting
+              }
               className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-[#3d4efc] to-[#7a5cff] px-5 text-[15.5px] font-semibold text-white shadow-[0_14px_36px_-12px_rgba(85,102,246,0.65)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:from-[#dcdfed] disabled:to-[#dcdfed] disabled:text-[#9b9fb3] disabled:shadow-none"
               title={
-                !checklistReady
-                  ? "Сначала отметь все обязательные пункты чек-листа"
-                  : undefined
+                !pipelineComplete
+                  ? `Пройдите все шаги (${pipelineConfirms.length}/${pipelineSteps?.length ?? 0})`
+                  : !checklistReady
+                    ? "Сначала отметь все обязательные пункты чек-листа"
+                    : undefined
               }
             >
               {submitting ? (
@@ -1171,4 +1268,142 @@ function formatValue(field: TaskFormField, value: unknown): string {
     default:
       return String(value);
   }
+}
+
+/**
+ * Wizard для пошагового заполнения задачи. Шаги показываются как
+ * вертикальный timeline:
+ *   • завершённые — компактные, с зелёной галочкой;
+ *   • текущий — раскрытый, с детальным описанием и кнопкой «Сделал»;
+ *   • будущие — заблокированы, lock-иконка.
+ *
+ * После каждого нажатия «Сделал» прогресс продвигается на 1 и
+ * соответствующий шаг записывается в AuditLog (через onConfirm).
+ *
+ * Компонент чистый — все side-effect'ы (audit-log, network) делает
+ * родитель в onConfirm. Это позволяет тестировать его в storybook
+ * без mock'ов.
+ */
+function PipelineWizard({
+  steps,
+  confirmedCount,
+  currentIndex,
+  onConfirm,
+  disabled,
+}: {
+  steps: PipelineStep[];
+  confirmedCount: number;
+  currentIndex: number;
+  onConfirm: (index: number) => void;
+  disabled: boolean;
+}) {
+  const total = steps.length;
+  const allDone = confirmedCount >= total;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3">
+        <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
+          <ClipboardCheck className="size-4 text-[#5566f6]" />
+          Пошаговое выполнение
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-[13px] font-semibold tabular-nums text-[#0b1024]">
+            {confirmedCount}/{total}
+          </div>
+          <div className="h-2 w-24 overflow-hidden rounded-full bg-[#eef1ff]">
+            <div
+              className="h-full bg-gradient-to-r from-[#5566f6] to-[#7a5cff] transition-all duration-500"
+              style={{ width: `${Math.round((confirmedCount / total) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <ol className="space-y-2.5">
+        {steps.map((step, index) => {
+          const isDone = index < confirmedCount;
+          const isCurrent = !allDone && index === currentIndex;
+          const isLocked = !isDone && !isCurrent;
+          return (
+            <li
+              key={step.id}
+              className={[
+                "rounded-2xl border transition-colors",
+                isDone
+                  ? "border-emerald-200 bg-emerald-50/60"
+                  : isCurrent
+                    ? "border-[#5566f6]/40 bg-white shadow-[0_8px_24px_-12px_rgba(85,102,246,0.35)]"
+                    : "border-[#ececf4] bg-[#fafbff]",
+              ].join(" ")}
+            >
+              <div className="flex items-start gap-3 p-4">
+                <div
+                  className={[
+                    "flex size-9 shrink-0 items-center justify-center rounded-xl text-[15px] font-semibold tabular-nums",
+                    isDone
+                      ? "bg-emerald-500 text-white"
+                      : isCurrent
+                        ? "bg-[#5566f6] text-white"
+                        : "bg-[#eef1ff] text-[#9b9fb3]",
+                  ].join(" ")}
+                >
+                  {isDone ? (
+                    <Check className="size-5" />
+                  ) : isLocked ? (
+                    <Lock className="size-4" />
+                  ) : (
+                    index + 1
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className={[
+                      "text-[15px] font-semibold leading-snug",
+                      isLocked ? "text-[#9b9fb3]" : "text-[#0b1024]",
+                    ].join(" ")}
+                  >
+                    {step.title}
+                  </div>
+                  {(isCurrent || isDone) && step.detail ? (
+                    <p className="mt-1.5 whitespace-pre-line text-[14px] leading-relaxed text-[#3c4053]">
+                      {isDone
+                        ? step.detail.length > 80
+                          ? step.detail.slice(0, 80) + "…"
+                          : step.detail
+                        : step.detail}
+                    </p>
+                  ) : null}
+                  {isCurrent && step.hint ? (
+                    <p className="mt-2 rounded-xl bg-[#f5f6ff] px-3 py-2 text-[12.5px] leading-snug text-[#6f7282]">
+                      {step.hint}
+                    </p>
+                  ) : null}
+                  {isCurrent ? (
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        onClick={() => onConfirm(index)}
+                        disabled={disabled}
+                        className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+                      >
+                        <Check className="size-4" />
+                        Сделал
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      {allDone ? (
+        <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-[13.5px] text-emerald-800">
+          <CheckCircle2 className="size-5 shrink-0" />
+          Все шаги пройдены — заполните комментарий и нажмите «Готово».
+        </div>
+      ) : null}
+    </div>
+  );
 }

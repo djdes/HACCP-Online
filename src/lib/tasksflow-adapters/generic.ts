@@ -19,6 +19,7 @@
  * shape allows for it.
  */
 import { db } from "@/lib/db";
+import { FILLING_GUIDES } from "@/lib/journal-filling-guides";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -26,25 +27,69 @@ import {
   type JournalAdapter,
   type TaskSchedule,
 } from "./types";
-import type { TaskFormSchema } from "./task-form";
+import type { PipelineStep, TaskFormSchema } from "./task-form";
 import { extractEmployeeId, rowKeyForEmployee } from "./row-key";
 
-const GENERIC_TASK_FORM: TaskFormSchema = {
-  intro:
-    "Подтвердите выполнение задачи. Можно оставить комментарий — он " +
-    "сохранится в журнал WeSetup как запись.",
-  submitLabel: "Готово",
-  fields: [
-    {
-      type: "text",
-      key: "comment",
-      label: "Комментарий (необязательно)",
-      multiline: true,
-      maxLength: 500,
-      placeholder: "Например: всё в порядке, замечаний нет",
-    },
-  ],
+const COMMENT_FIELD = {
+  type: "text" as const,
+  key: "comment",
+  label: "Комментарий (необязательно)",
+  multiline: true,
+  maxLength: 500,
+  placeholder: "Например: всё в порядке, замечаний нет",
 };
+
+/**
+ * Build a pipeline-driven form for journals that have a filling-guide.
+ * Each guide step becomes a confirmation step; worker has to tap
+ * «Сделал» on each before reaching the final comment + submit.
+ *
+ * If the journal has no guide entry, returns the legacy single-step
+ * form (just a comment + Готово).
+ */
+function buildGenericForm(templateCode: string): TaskFormSchema {
+  const guide = FILLING_GUIDES[templateCode];
+  if (!guide || !guide.steps || guide.steps.length === 0) {
+    return {
+      intro:
+        "Подтвердите выполнение задачи. Можно оставить комментарий — он " +
+        "сохранится в журнал WeSetup как запись.",
+      submitLabel: "Готово",
+      fields: [COMMENT_FIELD],
+    };
+  }
+  // Material-step prepended only if there are materials — это
+  // помогает сотруднику собрать всё нужное прежде чем идти на смену.
+  const steps: PipelineStep[] = [];
+  if (guide.materials && guide.materials.length > 0) {
+    steps.push({
+      id: "materials",
+      title: "Что взять с собой",
+      detail: guide.materials.map((m) => `• ${m}`).join("\n"),
+      hint: guide.summary,
+    });
+  }
+  for (let i = 0; i < guide.steps.length; i += 1) {
+    const step = guide.steps[i];
+    steps.push({
+      id: `step-${i + 1}`,
+      title: step.title,
+      detail: step.detail,
+    });
+  }
+  steps.push({
+    id: "completion",
+    title: "Завершение",
+    detail: guide.completionCriteria,
+    hint: guide.regulationRef,
+  });
+  return {
+    intro: guide.summary,
+    submitLabel: "Готово — записать в журнал",
+    pipeline: steps,
+    fields: [COMMENT_FIELD],
+  };
+}
 
 const employeeIdFromRowKey = extractEmployeeId;
 
@@ -136,7 +181,7 @@ export function buildGenericAdapter(
     },
 
     async getTaskForm() {
-      return GENERIC_TASK_FORM;
+      return buildGenericForm(templateCode);
     },
 
     async applyRemoteCompletion({ documentId, rowKey, completed, todayKey, values }) {
@@ -152,11 +197,25 @@ export function buildGenericAdapter(
 
       const comment =
         typeof values?.comment === "string" ? values.comment.trim() : "";
+
+      // Pipeline trail: client sends `_pipeline` блоб с timeline
+      // подтверждений (см. task-fill-client). Сохраняем это в data
+      // как evidence trail — манагер увидит что worker реально
+      // прошёл через все шаги, а не просто нажал Готово.
+      const pipelineTrail = (() => {
+        const raw = (values as Record<string, unknown> | undefined)?._pipeline;
+        if (!raw || typeof raw !== "object") return null;
+        const steps = (raw as { steps?: unknown }).steps;
+        if (!Array.isArray(steps) || steps.length === 0) return null;
+        return raw;
+      })();
+
       const data = {
         source: "tasksflow",
         templateCode,
         completedAt: new Date().toISOString(),
         ...(comment ? { comment } : {}),
+        ...(pipelineTrail ? { pipeline: pipelineTrail } : {}),
       };
 
       await db.journalDocumentEntry.upsert({

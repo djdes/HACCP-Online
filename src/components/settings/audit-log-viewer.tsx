@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import type { ReactElement } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  CheckCircle2,
+  Search,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 
 interface AuditEntry {
   id: string;
@@ -30,12 +32,45 @@ interface AuditEntry {
   createdAt: string;
 }
 
-const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const ACTION_LABELS: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
   create: { label: "Создание", variant: "default" },
   update: { label: "Изменение", variant: "secondary" },
   delete: { label: "Удаление", variant: "destructive" },
   login: { label: "Вход", variant: "outline" },
   export: { label: "Экспорт", variant: "outline" },
+  // Pipeline / task-fill actions
+  "journal.fill.step": { label: "Шаг pipeline", variant: "outline" },
+  "journal.fill.completed": { label: "Журнал заполнен", variant: "default" },
+  "journal.fill.reopened": { label: "Повторное открытие", variant: "secondary" },
+  "journal.entry.create": { label: "Запись создана", variant: "default" },
+  "journal.entry.update": { label: "Запись изменена", variant: "secondary" },
+  "journal.entry.delete": { label: "Запись удалена", variant: "destructive" },
+  "journal.document.close": { label: "Журнал закрыт", variant: "secondary" },
+  "journal.document.reopen": { label: "Журнал переоткрыт", variant: "outline" },
+  // Settings / admin actions
+  "settings.tasksflow.connect": {
+    label: "TasksFlow подключён",
+    variant: "default",
+  },
+  "settings.tasksflow.disconnect": {
+    label: "TasksFlow отключён",
+    variant: "destructive",
+  },
+  "settings.responsibles.update": {
+    label: "Ответственные обновлены",
+    variant: "secondary",
+  },
+  "settings.user.archive": {
+    label: "Сотрудник архивирован",
+    variant: "destructive",
+  },
+  "settings.user.unarchive": {
+    label: "Сотрудник восстановлен",
+    variant: "default",
+  },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -43,9 +78,96 @@ const ENTITY_LABELS: Record<string, string> = {
   equipment: "Оборудование",
   user: "Пользователь",
   journal_entry: "Запись журнала",
+  journal_task: "Задача (TasksFlow)",
+  journal_document: "Документ журнала",
   product: "Продукт",
   organization: "Организация",
+  TasksFlowIntegration: "Интеграция TasksFlow",
+  manager_scope: "Видимость менеджера",
+  position: "Должность",
 };
+
+const JOURNAL_LABEL_BY_CODE: Record<string, string> =
+  ACTIVE_JOURNAL_CATALOG.reduce<Record<string, string>>((acc, item) => {
+    acc[item.code] = item.name;
+    return acc;
+  }, {});
+
+function formatDuration(ms: number | null | undefined): string | null {
+  if (typeof ms !== "number" || ms <= 0) return null;
+  if (ms < 1000) return `${ms} мс`;
+  const sec = Math.round(ms / 1000);
+  if (sec < 60) return `${sec} сек`;
+  const min = Math.floor(sec / 60);
+  const restSec = sec % 60;
+  return restSec > 0 ? `${min} мин ${restSec} сек` : `${min} мин`;
+}
+
+function renderDetails(entry: AuditEntry): ReactElement {
+  const d = entry.details ?? {};
+
+  // Pipeline step — самый важный case: показываем шаг с длительностью
+  if (entry.action === "journal.fill.step") {
+    const idx = (d as { stepIndex?: number }).stepIndex;
+    const total = (d as { totalSteps?: number }).totalSteps;
+    const title = (d as { stepTitle?: string }).stepTitle;
+    const journalLabel =
+      (d as { journalLabel?: string }).journalLabel ??
+      JOURNAL_LABEL_BY_CODE[(d as { journalCode?: string }).journalCode ?? ""] ??
+      (d as { journalCode?: string }).journalCode ??
+      "—";
+    const dur = formatDuration(
+      (d as { msSinceFormOpen?: number }).msSinceFormOpen
+    );
+    return (
+      <div className="space-y-1">
+        <div className="font-medium text-[#0b1024]">
+          {typeof idx === "number" && typeof total === "number" ? (
+            <span className="mr-2 inline-flex items-center gap-1 rounded-md bg-[#eef1ff] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#3848c7]">
+              {idx + 1}/{total}
+            </span>
+          ) : null}
+          {title ?? "—"}
+        </div>
+        <div className="text-[12px] text-[#6f7282]">
+          {journalLabel}
+          {dur ? <span> · через {dur} от открытия формы</span> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (entry.action === "journal.fill.completed") {
+    const stepsCount = (d as { stepsConfirmed?: number }).stepsConfirmed;
+    const journalLabel =
+      (d as { journalLabel?: string }).journalLabel ??
+      JOURNAL_LABEL_BY_CODE[(d as { journalCode?: string }).journalCode ?? ""] ??
+      (d as { journalCode?: string }).journalCode ??
+      "—";
+    const dur = formatDuration(
+      (d as { totalDurationMs?: number }).totalDurationMs
+    );
+    return (
+      <div className="space-y-1">
+        <div className="font-medium text-emerald-700">
+          ✓ {journalLabel}
+        </div>
+        <div className="text-[12px] text-[#6f7282]">
+          {stepsCount ? `${stepsCount} шаг${stepsCount === 1 ? "" : "ов"}` : ""}
+          {dur ? ` · всего ${dur}` : ""}
+        </div>
+      </div>
+    );
+  }
+
+  // Generic — JSON в одну строку, без stack-trace'ов
+  const json = JSON.stringify(d);
+  return (
+    <div className="text-[12px] text-[#6f7282]">
+      {json.length > 120 ? json.slice(0, 120) + "…" : json}
+    </div>
+  );
+}
 
 export function AuditLogViewer() {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
@@ -54,6 +176,8 @@ export function AuditLogViewer() {
   const [totalPages, setTotalPages] = useState(1);
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");
+  const [journalFilter, setJournalFilter] = useState<string>("all");
+  const [userQuery, setUserQuery] = useState("");
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -61,6 +185,7 @@ export function AuditLogViewer() {
       const params = new URLSearchParams({ page: String(page), limit: "30" });
       if (entityFilter !== "all") params.set("entity", entityFilter);
       if (actionFilter !== "all") params.set("action", actionFilter);
+      if (journalFilter !== "all") params.set("journalCode", journalFilter);
 
       const res = await fetch(`/api/audit?${params}`);
       if (res.ok) {
@@ -73,98 +198,209 @@ export function AuditLogViewer() {
     } finally {
       setLoading(false);
     }
-  }, [page, entityFilter, actionFilter]);
+  }, [page, entityFilter, actionFilter, journalFilter]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
+  // Группируем подряд идущие записи одного пользователя в «сессии»
+  // (split при разрыве > 10 минут или смене пользователя). Это
+  // ровно то что нужно манагеру — увидеть полный trail одного
+  // прохода workflow'а а не разрозненные строки.
+  const groupedLogs = useMemo(() => {
+    const filtered = userQuery
+      ? logs.filter((l) =>
+          (l.userName ?? "")
+            .toLowerCase()
+            .includes(userQuery.toLowerCase())
+        )
+      : logs;
+    const groups: { sessionKey: string; entries: AuditEntry[] }[] = [];
+    for (const log of filtered) {
+      const last = groups[groups.length - 1];
+      const sameUser = last && last.entries[0].userName === log.userName;
+      const lastTime = last
+        ? new Date(last.entries[last.entries.length - 1].createdAt).getTime()
+        : 0;
+      const currTime = new Date(log.createdAt).getTime();
+      const gapMs = lastTime - currTime; // logs DESC, so previous is later
+      if (sameUser && gapMs >= 0 && gapMs < 10 * 60 * 1000) {
+        last.entries.push(log);
+      } else {
+        groups.push({
+          sessionKey: `${log.userName ?? "anon"}-${log.createdAt}`,
+          entries: [log],
+        });
+      }
+    }
+    return groups;
+  }, [logs, userQuery]);
+
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <Select
+          value={entityFilter}
+          onValueChange={(v) => {
+            setEntityFilter(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Все сущности" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Все сущности</SelectItem>
             {Object.entries(ENTITY_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
+              <SelectItem key={k} value={k}>
+                {v}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+        <Select
+          value={actionFilter}
+          onValueChange={(v) => {
+            setActionFilter(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[220px]">
             <SelectValue placeholder="Все действия" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Все действия</SelectItem>
             {Object.entries(ACTION_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              <SelectItem key={k} value={k}>
+                {v.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={journalFilter}
+          onValueChange={(v) => {
+            setJournalFilter(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[260px]">
+            <SelectValue placeholder="Все журналы" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все журналы</SelectItem>
+            {ACTIVE_JOURNAL_CATALOG.map((j) => (
+              <SelectItem key={j.code} value={j.code}>
+                {j.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative w-full sm:w-[220px]">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
+          <Input
+            placeholder="Сотрудник…"
+            value={userQuery}
+            onChange={(e) => setUserQuery(e.target.value)}
+            className="h-10 rounded-2xl border-[#dcdfed] pl-9 text-[14px]"
+          />
+        </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-[#9b9fb3]" />
         </div>
-      ) : logs.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
+      ) : groupedLogs.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] py-12 text-center text-[#6f7282]">
           Записей не найдено
         </div>
       ) : (
         <>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[160px]">Дата</TableHead>
-                  <TableHead>Пользователь</TableHead>
-                  <TableHead>Действие</TableHead>
-                  <TableHead>Объект</TableHead>
-                  <TableHead>Детали</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => {
-                  const actionInfo = ACTION_LABELS[log.action] || { label: log.action, variant: "outline" as const };
-                  return (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {new Date(log.createdAt).toLocaleString("ru-RU")}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {log.userName || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={actionInfo.variant}>
-                          {actionInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {ENTITY_LABELS[log.entity] || log.entity}
-                        {log.entityId && (
-                          <span className="ml-1 text-xs text-muted-foreground font-mono">
-                            {log.entityId.slice(0, 8)}...
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                        {log.details ? JSON.stringify(log.details).slice(0, 80) : "—"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <div className="space-y-3">
+            {groupedLogs.map((group) => {
+              const first = group.entries[0];
+              const last = group.entries[group.entries.length - 1];
+              const sessionMs =
+                new Date(first.createdAt).getTime() -
+                new Date(last.createdAt).getTime();
+              const isPipelineSession = group.entries.some(
+                (e) =>
+                  e.action === "journal.fill.step" ||
+                  e.action === "journal.fill.completed"
+              );
+              return (
+                <div
+                  key={group.sessionKey}
+                  className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ececf4] bg-[#fafbff] px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      {isPipelineSession ? (
+                        <ClipboardCheck className="size-4 text-[#5566f6]" />
+                      ) : (
+                        <CheckCircle2 className="size-4 text-[#9b9fb3]" />
+                      )}
+                      <div className="text-[14px] font-semibold text-[#0b1024]">
+                        {first.userName ?? "—"}
+                      </div>
+                      <div className="text-[12px] text-[#6f7282]">
+                        {group.entries.length}{" "}
+                        {group.entries.length === 1 ? "событие" : "событий"}
+                      </div>
+                    </div>
+                    <div className="text-[12px] text-[#6f7282] tabular-nums">
+                      {new Date(last.createdAt).toLocaleString("ru-RU")}
+                      {sessionMs > 1000 ? (
+                        <span className="ml-2 text-[#9b9fb3]">
+                          · сессия {formatDuration(sessionMs)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="divide-y divide-[#ececf4]">
+                    {[...group.entries].reverse().map((log) => {
+                      const actionInfo =
+                        ACTION_LABELS[log.action] ?? {
+                          label: log.action,
+                          variant: "outline" as const,
+                        };
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex flex-wrap items-start gap-3 px-5 py-3"
+                        >
+                          <div className="w-[80px] shrink-0 text-[12px] tabular-nums text-[#6f7282]">
+                            {new Date(log.createdAt).toLocaleTimeString(
+                              "ru-RU",
+                              { hour: "2-digit", minute: "2-digit", second: "2-digit" }
+                            )}
+                          </div>
+                          <div className="w-[160px] shrink-0">
+                            <Badge variant={actionInfo.variant}>
+                              {actionInfo.label}
+                            </Badge>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {renderDetails(log)}
+                          </div>
+                          <div className="shrink-0 text-[11px] text-[#9b9fb3]">
+                            {ENTITY_LABELS[log.entity] ?? log.entity}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-[13px] text-[#6f7282]">
               Страница {page} из {totalPages}
             </span>
             <div className="flex gap-1">

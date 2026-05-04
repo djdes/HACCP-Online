@@ -35,8 +35,11 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
     const entity = searchParams.get("entity");
     const action = searchParams.get("action");
+    const journalCode = searchParams.get("journalCode");
 
-    const where: Record<string, string> = {
+    // Динамический where с расширением через JSON-path для journalCode
+    // фильтра (нужно для просмотра «всё что связано с конкретным журналом»).
+    const where: Record<string, unknown> = {
       organizationId: getActiveOrgId(session),
     };
 
@@ -46,6 +49,15 @@ export async function GET(request: Request) {
 
     if (action) {
       where.action = action;
+    }
+
+    if (journalCode) {
+      // Prisma JSON-path: details->>journalCode = $1. Если в записи
+      // нет details или нет journalCode — она не пройдёт.
+      where.details = {
+        path: ["journalCode"],
+        equals: journalCode,
+      };
     }
 
     const [logs, total] = await Promise.all([
