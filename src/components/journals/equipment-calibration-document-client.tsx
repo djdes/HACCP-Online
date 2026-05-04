@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Settings, Trash2, X } from "lucide-react";
+import { Plus, Printer, Settings, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -317,22 +317,34 @@ export function EquipmentCalibrationDocumentClient({
       {/* screen header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
         <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">{title}</h1>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setSettingsTitle(title);
-            setSettingsDate(config.documentDate);
-            setSettingsYear(config.year);
-            setSettingsApproveRole(config.approveRole);
-            setSettingsApproveEmployeeId(config.approveEmployeeId || "");
-            setSettingsApproveEmployee(config.approveEmployee);
-            setSettingsOpen(true);
-          }}
-          className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-        >
-          Настройки журнала
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+            className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            <Printer className="size-4" />
+            Печать
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSettingsTitle(title);
+              setSettingsDate(config.documentDate);
+              setSettingsYear(config.year);
+              setSettingsApproveRole(config.approveRole);
+              setSettingsApproveEmployeeId(config.approveEmployeeId || "");
+              setSettingsApproveEmployee(config.approveEmployee);
+              setSettingsOpen(true);
+            }}
+            className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          >
+            Настройки журнала
+          </Button>
+        </div>
       </div>
 
       {/* Selection bar */}

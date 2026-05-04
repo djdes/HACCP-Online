@@ -7,6 +7,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Printer,
   Trash2,
   X,
 } from "lucide-react";
@@ -1131,16 +1132,28 @@ export function MetalImpurityDocumentClient({
               {documentTitle}
             </h1>
           </div>
-          {status === "active" && (
+          <div className="flex flex-wrap gap-2 self-start sm:self-auto print:hidden">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none self-start sm:self-auto"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
             >
-              Настройки журнала
+              <Printer className="size-4" />
+              Печать
             </Button>
-          )}
+            {status === "active" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSettingsOpen(true)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
+              >
+                Настройки журнала
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

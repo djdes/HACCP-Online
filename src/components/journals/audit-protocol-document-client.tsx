@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -287,6 +287,10 @@ export function AuditProtocolDocumentClient({
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/audit_protocol" documentId={documentId} />
         <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
+          <Button variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]">
+            <Printer className="size-4" />
+            Печать
+          </Button>
           {status === "active" && (
             <>
             <Button variant="outline" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]" onClick={() => setSettingsOpen(true)}>

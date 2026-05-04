@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -707,16 +707,27 @@ export function AuditPlanDocumentClient({
         <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
       <div className="flex items-center justify-between print:hidden">
         <div />
-        {!readOnly && (
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
             className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-            onClick={() => setSettingsOpen(true)}
           >
-            <Settings2 className="size-4" />
-            Настройки журнала
+            <Printer className="size-4" />
+            Печать
           </Button>
-        )}
+          {!readOnly && (
+            <Button
+              variant="outline"
+              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 className="size-4" />
+              Настройки журнала
+            </Button>
+          )}
+        </div>
       </div>
 
       <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024] print:hidden">

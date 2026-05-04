@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Settings, Trash2 } from "lucide-react";
+import { Plus, Printer, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -315,7 +315,16 @@ export function EquipmentMaintenanceDocumentClient({
             {title}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
+          >
+            <Printer className="size-4" />
+            Печать
+          </Button>
           <Button
             type="button"
             variant="outline"

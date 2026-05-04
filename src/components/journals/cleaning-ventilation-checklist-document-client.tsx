@@ -650,7 +650,17 @@ export function CleaningVentilationChecklistDocumentClient({
           <h1 className="max-w-[980px] text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
             {docTitle}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 print:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[17px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            >
+              <Printer className="size-4" />
+              Печать
+            </Button>
             {isActive ? (
               <>
                 <CopyYesterdayButton documentId={documentId} />

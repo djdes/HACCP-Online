@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CalendarDays, Plus, Settings2, X } from "lucide-react";
+import { CalendarDays, Plus, Printer, Settings2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -526,7 +526,17 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">
             {title || BREAKDOWN_HISTORY_HEADING}
           </h1>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 print:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            >
+              <Printer className="size-4" />
+              Печать
+            </Button>
             <Button
               type="button"
               variant="outline"

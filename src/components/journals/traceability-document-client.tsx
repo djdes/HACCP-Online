@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChevronDown,
   Plus,
+  Printer,
   Trash2,
   Upload,
   X,
@@ -683,6 +684,7 @@ export function TraceabilityDocumentClient(props: Props) {
           {!isClosed && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" disabled={saving || isPending} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"><Plus className="size-6" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"><DropdownMenuItem className="h-12 rounded-2xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}><Plus className="mr-2 size-4" />Добавить</DropdownMenuItem><DropdownMenuItem className="h-12 rounded-2xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}><Upload className="mr-2 size-4" />Добавить из файла</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
           {!isClosed && <button type="button" onClick={() => setListsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Редактировать списки</button>}
           <div className="flex-1" />
+          <button type="button" onClick={() => window.print()} title="Распечатать журнал" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" />Печать</button>
           {!isClosed && <button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Настройки документа</button>}
           {!isClosed && <button type="button" onClick={() => setFinishOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Закончить журнал</button>}
         </div>

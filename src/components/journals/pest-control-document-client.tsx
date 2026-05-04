@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -613,20 +613,32 @@ export function PestControlDocumentClient(props: Props) {
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
         <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
           {props.title || PEST_CONTROL_DOCUMENT_TITLE}
         </h1>
-        {!readOnly && (
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="outline"
+            onClick={() => window.print()}
+            title="Распечатать журнал"
             className="h-12 rounded-xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            onClick={() => setSettingsOpen(true)}
           >
-            Настройки журнала
+            <Printer className="size-4" />
+            Печать
           </Button>
-        )}
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 rounded-xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              onClick={() => setSettingsOpen(true)}
+            >
+              Настройки журнала
+            </Button>
+          )}
+        </div>
       </div>
 
       <HeaderTable

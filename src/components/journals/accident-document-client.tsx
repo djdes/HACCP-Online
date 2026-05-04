@@ -602,19 +602,31 @@ export function AccidentDocumentClient(props: Props) {
         <DocumentBackLink href="/journals/accident_journal" documentId={props.documentId} />
 
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 print:hidden">
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">
             {title || ACCIDENT_DOCUMENT_HEADING}
           </h1>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 className="size-4" />
-            Настройки журнала
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            >
+              <Printer className="size-4" />
+              Печать
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 className="size-4" />
+              Настройки журнала
+            </Button>
+          </div>
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
