@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.A5 — finished-product-document-client v2** (бракераж готовой продукции)
+**Текущий приоритет:** **P3.A6 — perishable-rejection-document-client v2** (бракераж скоропортящейся)
 
 ---
 
@@ -132,7 +132,7 @@
 - [x] P3.A2 — hygiene-document-client v2 — DONE wave-1 @ b4f678b6 @ 2026-05-05 00:55 МСК (shared StaffJournalToolbar)
 - [x] P3.A3 — health-document-client v2 — DONE wave-1 @ b4f678b6 @ 2026-05-05 00:55 МСК (но health использует свою кастомную settingsOpen-модалку с printEmptyRows — нужен отдельный коммит P3.A3.b чтобы её тоже мигрировать на v2)
 - [x] P3.A4 — cold-equipment-document-client v2 — DONE wave-1 @ 6a55438a @ 2026-05-05 01:15 МСК (settings modal только; equipment-dialog остаётся legacy)
-- [ ] P3.A5 — finished-product-document-client v2 (бракераж готовой продукции)
+- [x] P3.A5 — finished-product-document-client v2 — DONE wave-1 @ 79112ad1 @ 2026-05-05 01:30 МСК (settings modal только; add-row dialog + catalog dialog → отдельные коммиты P3.A5.b, P3.A5.c)
 - [ ] P3.A6 — perishable-rejection-document-client v2
 - [ ] P3.A7 — acceptance-document-client v2
 - [ ] P3.A8 — climate-document-client v2
