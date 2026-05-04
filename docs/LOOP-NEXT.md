@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.A1 — cleaning-document-client v2** (P0 пуст; P1 идёт по своему треку, P3 имеет приоритет ВЫШЕ P2)
+**Текущий приоритет:** **P3.A2 — hygiene-document-client v2** (P0 пуст; P3.A1 закрыт wave-1 — settings modal только; полная миграция сервиса требует много отдельных коммитов)
 
 ---
 
@@ -128,7 +128,7 @@
   - **Что НЕ сделано в этом коммите:** ни один journal-document-client ещё НЕ использует v2-компоненты. Toggle включается, но ничего не меняется в UI журналов до миграций P3.A1+. Это намеренно — foundation отдельно от миграций.
 
 ### Tier A (топ-10 traffic) — каждый отдельный commit
-- [ ] P3.A1 — cleaning-document-client v2
+- [x] P3.A1 — cleaning-document-client v2 — DONE wave-1 (settings modal only) @ 91cd0170 @ 2026-05-05 00:30 МСК. Banner/toolbar/table остались legacy — это сознательно, чтобы коммит был мелкий и обратимый. Полная миграция cleaning требует отдельных коммитов P3.A1.b, P3.A1.c.
 - [ ] P3.A2 — hygiene-document-client v2
 - [ ] P3.A3 — health-document-client v2
 - [ ] P3.A4 — cold-equipment-document-client v2
@@ -292,6 +292,7 @@
 - [2026-05-04] `bc60c78c`: Prisma `where.details = { path: ["key"], equals: value }` — стабильно работает для JSON-фильтров; не нужно raw SQL.
 - [2026-05-04] `1f9becbe`: `z.passthrough()` в task-form validator пропускает `_pipeline` блоб через типизацию `TaskFormValues` (Record<string, scalar>). Cast в адаптере `as Record<string, unknown>` чтобы достать nested поля.
 - [2026-05-05] `809bd40d`: `.map()` на пустом массиве — silent data loss anti-pattern. При написании upsert-логики ВСЕГДА проверять if (items.length === 0) ветку. Особенно опасно когда это часть бизнес-формы где пустой initial state — норма.
+- [2026-05-05] `91cd0170`: миграция на v2-компонент через `if (props.useV2) { <NewModal/> } else { <LegacyDialog/> }` — обе ветки в одном файле. Плюс: trivial rollback (выключил toggle), легко A/B сравнить, нет дубликата файла. Минус: файл вырастает. Размер cleaning-document-client теперь ~870 строк против 750 — приемлемо для wave-1, для wave-2/3 имеет смысл вынести в отдельный CleaningDocumentClientV2.tsx.
 
 ---
 
