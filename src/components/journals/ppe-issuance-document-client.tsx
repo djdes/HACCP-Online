@@ -5,6 +5,7 @@ import { ChevronDown, Plus, Printer, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,8 @@ type Props = {
   status: string;
   config: unknown;
   users: UserItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type RowDialogState = {
@@ -160,6 +163,7 @@ function SettingsDialog(props: {
     dateFrom: string;
     config: PpeIssuanceConfig;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [documentTitle, setDocumentTitle] = useState(props.title);
   const [documentDate, setDocumentDate] = useState(props.dateFrom);
@@ -186,6 +190,129 @@ function SettingsDialog(props: {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Колонки выдачи СИЗ, дата начала и ответственный по умолчанию."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={documentTitle}
+            onChange={(e) => setDocumentTitle(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={documentDate}
+            onChange={(e) => setDocumentDate(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Колонки выдачи
+          </div>
+          <FieldToggle
+            checked={state.showGloves}
+            onCheckedChange={(checked) => setState({ ...state, showGloves: checked })}
+            label="Выдача перчаток"
+          />
+          <FieldToggle
+            checked={state.showShoes}
+            onCheckedChange={(checked) => setState({ ...state, showShoes: checked })}
+            label="Выдача обуви"
+          />
+          <FieldToggle
+            checked={state.showClothing}
+            onCheckedChange={(checked) => setState({ ...state, showClothing: checked })}
+            label="Выдача спец. одежды"
+          />
+          <FieldToggle
+            checked={state.showCaps}
+            onCheckedChange={(checked) => setState({ ...state, showCaps: checked })}
+            label="Выдача шапочек"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность лица, выдавшего СИЗ
+          </Label>
+          <Select
+            value={state.defaultIssuerTitle || ""}
+            onValueChange={(value) => {
+              const candidates = getUsersForRoleLabel(props.users, value);
+              const currentId = state.defaultIssuerUserId || "";
+              const stillValid = currentId && candidates.some((u) => u.id === currentId);
+              setState({
+                ...state,
+                defaultIssuerTitle: value,
+                defaultIssuerUserId: stillValid ? currentId : candidates[0]?.id || "",
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {titles.map((title) => (
+                <SelectItem key={title} value={title}>
+                  {title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник по умолчанию
+          </Label>
+          <Select
+            value={state.defaultIssuerUserId || ""}
+            onValueChange={(value) => {
+              const user = props.users.find((item) => item.id === value);
+              setState({
+                ...state,
+                defaultIssuerUserId: value,
+                defaultIssuerTitle:
+                  state.defaultIssuerTitle ||
+                  (user ? getHygienePositionLabel(user.role) : null),
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {(state.defaultIssuerTitle
+                ? getUsersForRoleLabel(props.users, state.defaultIssuerTitle)
+                : props.users
+              ).map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -881,6 +1008,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
         onSave={async (params) => {
           await persist(params.title, params.dateFrom, params.config);
         }}
+        useV2={props.useV2}
       />
 
       <RowDialog

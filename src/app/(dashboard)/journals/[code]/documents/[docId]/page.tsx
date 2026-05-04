@@ -757,6 +757,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={normalizePpeIssuanceConfig(document.config, enrichedEmployees)}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
