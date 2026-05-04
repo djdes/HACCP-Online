@@ -982,6 +982,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeFinishedProductDocumentConfig(document.config)}
         users={employees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

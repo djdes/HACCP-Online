@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,8 @@ type Props = {
   status: string;
   initialConfig: FinishedProductDocumentConfig;
   users: { id: string; name: string; role: string }[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const QUALITY_GUIDELINES = [
@@ -105,6 +108,7 @@ export function FinishedProductDocumentClient({
   status,
   initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -435,15 +439,76 @@ export function FinishedProductDocumentClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={readOnly ? false : settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="sm:max-w-[640px]"><DialogHeader><DialogTitle>Настройки журнала</DialogTitle></DialogHeader><div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showProductTemp} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showProductTemp: value === true }))} />T°C внутри продукта</label>
-          <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCorrectiveAction} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCorrectiveAction: value === true }))} />Корректирующие действия</label>
-          <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCourierTime} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCourierTime: value === true }))} />Время передачи блюд курьеру</label>
-          <Textarea value={config.footerNote} onChange={(e) => setConfig((prev) => ({ ...prev, footerNote: e.target.value }))} />
-          <div className="flex justify-end"><Button onClick={() => saveConfig()} disabled={isSaving}>{isSaving ? "Сохранение..." : "Сохранить"}</Button></div>
-        </div></DialogContent>
-      </Dialog>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={readOnly ? false : settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки журнала"
+          description="Колонки таблицы и подпись внизу журнала."
+          size="md"
+          isSaving={isSaving}
+          onSave={async () => {
+            await saveConfig();
+            setSettingsOpen(false);
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Колонки таблицы
+            </div>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+              <Checkbox
+                checked={config.showProductTemp}
+                onCheckedChange={(value) =>
+                  setConfig((prev) => ({ ...prev, showProductTemp: value === true }))
+                }
+              />
+              <span className="text-[14px] text-[#0b1024]">T°C внутри продукта</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+              <Checkbox
+                checked={config.showCorrectiveAction}
+                onCheckedChange={(value) =>
+                  setConfig((prev) => ({ ...prev, showCorrectiveAction: value === true }))
+                }
+              />
+              <span className="text-[14px] text-[#0b1024]">Корректирующие действия</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+              <Checkbox
+                checked={config.showCourierTime}
+                onCheckedChange={(value) =>
+                  setConfig((prev) => ({ ...prev, showCourierTime: value === true }))
+                }
+              />
+              <span className="text-[14px] text-[#0b1024]">Время передачи блюд курьеру</span>
+            </label>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Примечание под таблицей
+            </Label>
+            <Textarea
+              value={config.footerNote}
+              onChange={(e) =>
+                setConfig((prev) => ({ ...prev, footerNote: e.target.value }))
+              }
+              className="min-h-[80px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[14px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={readOnly ? false : settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="sm:max-w-[640px]"><DialogHeader><DialogTitle>Настройки журнала</DialogTitle></DialogHeader><div className="space-y-4">
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showProductTemp} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showProductTemp: value === true }))} />T°C внутри продукта</label>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCorrectiveAction} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCorrectiveAction: value === true }))} />Корректирующие действия</label>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCourierTime} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCourierTime: value === true }))} />Время передачи блюд курьеру</label>
+            <Textarea value={config.footerNote} onChange={(e) => setConfig((prev) => ({ ...prev, footerNote: e.target.value }))} />
+            <div className="flex justify-end"><Button onClick={() => saveConfig()} disabled={isSaving}>{isSaving ? "Сохранение..." : "Сохранить"}</Button></div>
+          </div></DialogContent>
+        </Dialog>
+      )}
 
       <Dialog open={readOnly ? false : catalogOpen} onOpenChange={setCatalogOpen}>
         <DialogContent className="sm:max-w-[640px]"><DialogHeader><DialogTitle>Список изделий</DialogTitle></DialogHeader><div className="space-y-4">
