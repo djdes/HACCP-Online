@@ -385,6 +385,7 @@ export default async function JournalDocumentPage({
           id: entry.id,
           data: normalizeEquipmentCleaningRowData(entry.data),
         }))}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

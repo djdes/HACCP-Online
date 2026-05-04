@@ -25,6 +25,7 @@ import {
   type EquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -61,6 +62,8 @@ type Props = {
   users: UserItem[];
   equipmentOptions: string[];
   initialRows: EquipmentCleaningRow[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type RowDraftState = {
@@ -109,6 +112,7 @@ export function EquipmentCleaningDocumentClient({
   users,
   equipmentOptions,
   initialRows,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const journalRouteCode = routeCode || templateCode;
@@ -790,50 +794,108 @@ export function EquipmentCleaningDocumentClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[720px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[24px] font-medium text-black">
-              Настройки документа
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 px-6 py-5">
-            <div className="space-y-3">
-              <Label>Название документа</Label>
-              <Input value={settingsTitle} onChange={(e) => setSettingsTitle(e.target.value)} />
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Название журнала, дата начала и формат поля."
+          size="md"
+          isSaving={isSaving}
+          onSave={async () => {
+            await saveSettings();
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
+            <Input
+              value={settingsTitle}
+              onChange={(e) => setSettingsTitle(e.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Дата начала
+            </Label>
+            <Input
+              type="date"
+              value={settingsDateFrom}
+              onChange={(e) => setSettingsDateFrom(e.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название поля
             </div>
-            <div className="space-y-3">
-              <Label>Дата начала</Label>
-              <Input
-                type="date"
-                value={settingsDateFrom}
-                onChange={(e) => setSettingsDateFrom(e.target.value)}
-              />
-            </div>
-            <div className="space-y-3">
-              <div className="text-[18px] font-semibold text-black">Название поля</div>
-              <div className="flex flex-col gap-3 text-[18px] text-black sm:flex-row sm:gap-8">
-                {(Object.keys(EQUIPMENT_CLEANING_VARIANT_LABELS) as EquipmentCleaningFieldVariant[]).map((variant) => (
-                  <label key={variant} className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      checked={fieldVariant === variant}
-                      onChange={() => setFieldVariant(variant)}
-                      className="size-5 accent-[#5566f6]"
-                    />
-                    {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
-                  </label>
-                ))}
+            {(Object.keys(EQUIPMENT_CLEANING_VARIANT_LABELS) as EquipmentCleaningFieldVariant[]).map((variant) => (
+              <label
+                key={variant}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]"
+              >
+                <input
+                  type="radio"
+                  checked={fieldVariant === variant}
+                  onChange={() => setFieldVariant(variant)}
+                  className="size-4 accent-[#5566f6]"
+                />
+                <span className="text-[14px] text-[#0b1024]">
+                  {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
+                </span>
+              </label>
+            ))}
+          </div>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[720px]">
+            <DialogHeader className="border-b px-6 py-5">
+              <DialogTitle className="text-[24px] font-medium text-black">
+                Настройки документа
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 px-6 py-5">
+              <div className="space-y-3">
+                <Label>Название документа</Label>
+                <Input value={settingsTitle} onChange={(e) => setSettingsTitle(e.target.value)} />
+              </div>
+              <div className="space-y-3">
+                <Label>Дата начала</Label>
+                <Input
+                  type="date"
+                  value={settingsDateFrom}
+                  onChange={(e) => setSettingsDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-3">
+                <div className="text-[18px] font-semibold text-black">Название поля</div>
+                <div className="flex flex-col gap-3 text-[18px] text-black sm:flex-row sm:gap-8">
+                  {(Object.keys(EQUIPMENT_CLEANING_VARIANT_LABELS) as EquipmentCleaningFieldVariant[]).map((variant) => (
+                    <label key={variant} className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={fieldVariant === variant}
+                        onChange={() => setFieldVariant(variant)}
+                        className="size-5 accent-[#5566f6]"
+                      />
+                      {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={saveSettings} disabled={isSaving} className="bg-[#5566f6] text-white hover:bg-[#4d58f5]">
+                  {isSaving ? "Сохранение..." : "Сохранить"}
+                </Button>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button onClick={saveSettings} disabled={isSaving} className="bg-[#5566f6] text-white hover:bg-[#4d58f5]">
-                {isSaving ? "Сохранение..." : "Сохранить"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
