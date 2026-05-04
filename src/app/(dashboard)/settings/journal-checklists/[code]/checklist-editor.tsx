@@ -56,17 +56,88 @@ function makeKey(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
+type CleaningDocInfo = {
+  docId: string;
+  title: string;
+  currentMode: "pairs" | "rooms";
+} | null;
+
 export function ChecklistEditor({
   journalCode,
   rooms,
   isCleaningJournal,
+  cleaningDocInfo,
   initial,
 }: {
   journalCode: string;
   rooms: Room[];
   isCleaningJournal: boolean;
+  cleaningDocInfo?: CleaningDocInfo;
   initial: Item[];
 }) {
+  const [autoSwitching, setAutoSwitching] = useState(false);
+
+  async function autoSwitchToRoomsMode() {
+    if (!cleaningDocInfo) return;
+    setAutoSwitching(true);
+    try {
+      const res = await fetch(`/api/journal-documents/${cleaningDocInfo.docId}`);
+      if (!res.ok) throw new Error("Не удалось загрузить документ");
+      const doc = await res.json();
+      // Все комнаты + все юзеры с подходящей должностью.
+      const usedRoomIds = [
+        ...new Set(initial.filter((i) => i.roomId).map((i) => i.roomId!)),
+      ];
+      const targetRoomIds = usedRoomIds.length > 0
+        ? usedRoomIds
+        : rooms.map((r) => r.id);
+      // Достанем cleaners — по responsiblePairs или existing config
+      const existingCleaners =
+        Array.isArray(doc?.config?.selectedCleanerUserIds) &&
+        doc.config.selectedCleanerUserIds.length > 0
+          ? doc.config.selectedCleanerUserIds
+          : Array.isArray(doc?.config?.responsiblePairs)
+            ? doc.config.responsiblePairs
+                .map((p: { cleaningUserId?: string }) => p.cleaningUserId)
+                .filter((x: unknown): x is string => typeof x === "string")
+            : [];
+
+      if (existingCleaners.length === 0) {
+        toast.error(
+          "В документе нет ни одного уборщика. Сначала открой /journals/cleaning и добавь уборщиков.",
+        );
+        return;
+      }
+
+      const newConfig = {
+        ...doc.config,
+        cleaningMode: "rooms",
+        selectedRoomIds: targetRoomIds,
+        selectedCleanerUserIds: existingCleaners,
+      };
+      const patchRes = await fetch(
+        `/api/journal-documents/${cleaningDocInfo.docId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config: newConfig }),
+        },
+      );
+      if (!patchRes.ok) {
+        const err = await patchRes.json().catch(() => null);
+        toast.error(err?.error ?? "Не удалось переключить режим");
+        return;
+      }
+      toast.success(
+        `Документ в rooms-mode! ${targetRoomIds.length} комнат × ${existingCleaners.length} уборщиков. Жми «Force-отправить в TasksFlow» на дашборде чтобы увидеть room-задачи.`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setAutoSwitching(false);
+    }
+  }
+
   const router = useRouter();
   const [drafts, setDrafts] = useState<Draft[]>(
     initial.map((i) => ({
@@ -223,33 +294,63 @@ export function ChecklistEditor({
 
   return (
     <div className="space-y-5">
-      {/* Hint banner для cleaning-журналов с per-room пунктами:
-          напоминание что для работы per-room привязки документ
-          должен быть в rooms-mode. */}
-      {isCleaningJournal && hasPerRoomItems ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-          <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-200/60 text-amber-800">
-            <CalendarDays className="size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[13.5px] font-semibold text-amber-900">
-              Per-room пункты — нужен документ в режиме «По комнатам»
+      {/* Hint banner для cleaning-журналов: показывает текущий режим
+          документа + кнопку быстрого авто-переключения в rooms-mode
+          (если документ в pairs-mode). Для других режимов — просто
+          status-индикатор. */}
+      {isCleaningJournal && cleaningDocInfo ? (
+        cleaningDocInfo.currentMode === "rooms" ? (
+          // ✅ Rooms-mode active — всё ок, per-room работают.
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-200/60 text-emerald-800">
+              <CheckCircle2 className="size-5" />
             </div>
-            <p className="mt-1 text-[12.5px] leading-snug text-amber-800">
-              У тебя есть пункты привязанные к комнатам — они будут
-              показываться в TasksFlow только когда cleaning-документ
-              переведён в режим «По комнатам». Открой документ в{" "}
-              <a
-                href={`/journals/${journalCode}`}
-                className="font-medium underline underline-offset-2 hover:text-amber-950"
-              >
-                /journals/{journalCode}
-              </a>
-              {" "}→ настройки документа → выбери «По комнатам» → отметь
-              комнаты и уборщиков.
-            </p>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold text-emerald-900">
+                Документ в режиме «По комнатам» — per-room работают
+              </div>
+              <p className="mt-1 text-[12.5px] leading-snug text-emerald-800">
+                «{cleaningDocInfo.title}» — каждая комната получит
+                отдельную задачу в TasksFlow. Чек-лист внутри задачи
+                фильтруется по комнате (общие пункты + per-room).
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          // ⚠️ Pairs-mode — per-room не показываются. Кнопка для
+          // одного-кликом переключения.
+          <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:flex-row sm:items-start">
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-200/60 text-amber-800">
+              <Home className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold text-amber-900">
+                Документ в режиме «Пары» — per-room пункты НЕ
+                показываются
+              </div>
+              <p className="mt-1 text-[12.5px] leading-snug text-amber-800">
+                «{cleaningDocInfo.title}» сейчас в pairs-mode (1 пара
+                cleaner-control = 1 task). Чтобы каждая комната получила
+                отдельную задачу с per-room чек-листом — переключи
+                документ в режим «По комнатам». Существующие настройки
+                (уборщики, контролёры) сохранятся.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={autoSwitchToRoomsMode}
+              disabled={autoSwitching}
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl bg-amber-600 px-4 text-[13px] font-medium text-white shadow-[0_8px_22px_-12px_rgba(217,119,6,0.6)] hover:bg-amber-700 disabled:opacity-60"
+            >
+              {autoSwitching ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Home className="size-4" />
+              )}
+              Переключить
+            </button>
+          </div>
+        )
       ) : null}
       {/* Stats banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4 sm:p-5">

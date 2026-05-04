@@ -133,6 +133,20 @@ export type CleaningDocumentConfig = {
   /// IDs User-ов, которые могут забирать задачи на уборку (race).
   /// Только для cleaningMode="rooms".
   selectedCleanerUserIds?: string[];
+  /// Режим распределения уборщиков по комнатам (только rooms-mode):
+  ///   • false (default) — round-robin: на каждую комнату ровно ОДИН
+  ///     уборщик (cleaners[i % cleaners.length]). Маркова делает 0,2,4,
+  ///     Захаров делает 1,3,5. Каждый знает свой набор.
+  ///   • true — race: на каждую комнату создаётся task для КАЖДОГО
+  ///     выбранного уборщика. Кто первый закроет — у остальных задача
+  ///     уходит в «выполнено другим». Подходит для гибких смен где
+  ///     уборщица сама выбирает что делать.
+  ///
+  /// Технически: при true адаптер генерирует rooms × cleaners rows,
+  /// все с rowKey 'room::<roomId>::cleaner::<uid>'. selectRowsForBulkAssign
+  /// сохраняет все (Pass 1 dedupe by rowKey не userId), TF создаёт
+  /// task на каждого. claimedByWorkerId отметит «занято» у остальных.
+  roomsRaceMode?: boolean;
   /// User-id ответственного за контроль. В rooms-режиме он получает
   /// одну сводную задачу в конце дня.
   controlUserId?: string | null;
@@ -1033,6 +1047,7 @@ export function normalizeCleaningDocumentConfig(
         (x): x is string => typeof x === "string" && x.length > 0
       )
     : [];
+  next.roomsRaceMode = record.roomsRaceMode === true;
   next.controlUserId =
     typeof record.controlUserId === "string" && record.controlUserId.length > 0
       ? record.controlUserId

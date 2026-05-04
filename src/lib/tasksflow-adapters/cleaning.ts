@@ -345,19 +345,39 @@ function buildRoomsModeRows(
   const cleaners = config.selectedCleanerUserIds ?? [];
   if (rooms.length === 0 || cleaners.length === 0) return [];
 
-  // 2026-05-04: ВАЖНОЕ изменение. Раньше тут был Cartesian product
-  // (rooms × cleaners) — на N комнат × M уборщиков получалось N×M rows.
-  // Это ломалось в bulk-assign:
-  //   • selectRowsForBulkAssign дедуплицировал по responsibleUserId
-  //     → каждый уборщик получал task ТОЛЬКО для первой комнаты
-  //   • остальные комнаты молча терялись
+  // 2026-05-04: ДВА режима через config.roomsRaceMode.
   //
-  // Новая логика: round-robin — на каждую комнату ровно ОДИН уборщик
-  // (распределяется по индексу). Если 5 комнат и 2 уборщика —
-  // первый делает комнаты 0,2,4 а второй комнаты 1,3.
+  // RACE-MODE (config.roomsRaceMode === true):
+  //   На каждую комнату задача СРАЗУ для всех выбранных уборщиков.
+  //   В TasksFlow появляется N×M task'ов; кто первый отметит —
+  //   остальные видят «выполнено другим». Подходит для гибких смен
+  //   где уборщица сама решает что делать. После Stage 1 фикса
+  //   selectRowsForBulkAssign сохраняет все rows (dedup by rowKey,
+  //   не userId).
   //
-  // Для «race-mode» (несколько уборщиков на одну комнату) нужна
-  // отдельная конфигурация per-room cleanerIds — TODO в config.
+  // ROUND-ROBIN (default — config.roomsRaceMode !== true):
+  //   На каждую комнату ровно ОДИН уборщик (cleaners[i % M]).
+  //   5 комнат × 2 уборщика → 5 task'ов: Маркова делает комнаты
+  //   0,2,4, Захаров — 1,3. Каждый знает свой набор. Подходит
+  //   для строгого распределения зон ответственности.
+  if (config.roomsRaceMode === true) {
+    const rows: AdapterRow[] = [];
+    for (const roomId of rooms) {
+      const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";
+      for (const cleanerId of cleaners) {
+        const cleanerName =
+          userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
+        rows.push({
+          rowKey: `room::${roomId}::cleaner::${cleanerId}`,
+          label: `Уборка · ${roomName}`,
+          sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
+          responsibleUserId: cleanerId,
+        });
+      }
+    }
+    return rows;
+  }
+
   return rooms.map((roomId, idx) => {
     const cleanerId = cleaners[idx % cleaners.length];
     const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";

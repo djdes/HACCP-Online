@@ -42,7 +42,7 @@ export default async function JournalChecklistEditorPage({
     code === "cleaning_ventilation_checklist" ||
     code === "sanitary_day_checklist";
 
-  const [items, rooms] = await Promise.all([
+  const [items, rooms, cleaningDoc] = await Promise.all([
     db.journalChecklistItem.findMany({
       where: { organizationId, journalCode: code, archivedAt: null },
       orderBy: [{ roomId: "asc" }, { sortOrder: "asc" }],
@@ -54,7 +54,38 @@ export default async function JournalChecklistEditorPage({
           orderBy: [{ kind: "asc" }, { name: "asc" }],
         })
       : Promise.resolve([] as { id: string; name: string; kind: string }[]),
+    // Найдём текущий cleaning документ для UI auto-switch.
+    isCleaningJournal && code === "cleaning"
+      ? db.journalDocument.findFirst({
+          where: {
+            organizationId,
+            template: { code: "cleaning" },
+            status: { not: "closed" },
+          },
+          orderBy: { dateFrom: "desc" },
+          select: { id: true, title: true, config: true },
+        })
+      : Promise.resolve(null),
   ]);
+
+  // Извлекаем текущий cleaningMode для подсветки в UI.
+  const cleaningDocMode =
+    cleaningDoc?.config &&
+    typeof cleaningDoc.config === "object" &&
+    !Array.isArray(cleaningDoc.config) &&
+    "cleaningMode" in cleaningDoc.config
+      ? (cleaningDoc.config as { cleaningMode?: unknown }).cleaningMode
+      : undefined;
+  const cleaningDocInfo:
+    | { docId: string; title: string; currentMode: "pairs" | "rooms" }
+    | null =
+    isCleaningJournal && code === "cleaning" && cleaningDoc
+      ? {
+          docId: cleaningDoc.id,
+          title: cleaningDoc.title,
+          currentMode: cleaningDocMode === "rooms" ? "rooms" : "pairs",
+        }
+      : null;
 
   return (
     <div className="space-y-6">
@@ -101,6 +132,7 @@ export default async function JournalChecklistEditorPage({
         journalCode={code}
         rooms={rooms}
         isCleaningJournal={isCleaningJournal}
+        cleaningDocInfo={cleaningDocInfo}
         initial={items.map((i) => ({
           id: i.id,
           label: i.label,
