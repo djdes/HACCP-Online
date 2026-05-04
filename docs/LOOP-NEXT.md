@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.A10 — glass-control-document-client v2** (последний в Tier A)
+**Текущий приоритет:** **P3.B1 — equipment-cleaning v2** (Tier A полностью закрыт wave-1; перехожу в Tier B)
 
 ---
 
@@ -137,7 +137,7 @@
 - [x] P3.A7 — acceptance-document-client v2 — DONE wave-1 @ ea3421d6 @ 2026-05-05 01:50 МСК (settings modal только; add-row/edit-row/import — отдельные коммиты)
 - [x] P3.A8 — climate-document-client v2 — DONE wave-1 @ 3aa2463d @ 2026-05-05 02:05 МСК (settings modal только)
 - [x] P3.A9 — cleaning-ventilation-checklist-document-client v2 — DONE wave-1 @ 3402fc66 @ 2026-05-05 02:20 МСК
-- [ ] P3.A10 — glass-control-document-client v2
+- [x] P3.A10 — glass-control-document-client v2 — DONE wave-1 @ 742defb2 @ 2026-05-05 02:35 МСК — **TIER A FULLY DONE**
 
 ### Tier B (12 средних)
 - [ ] P3.B1 — equipment-cleaning
@@ -274,6 +274,8 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 02:35 МСК]** `742defb2` — **P3 Tier A DONE wave-1 (10/10 журналов)**. Все топ-traffic журналы (cleaning, hygiene, health, cold-equipment, finished-product, perishable N/A, acceptance, climate, cleaning-ventilation, glass-control) имеют settings-modal в Design v2 за `experimentalUiV2` toggle. Открой `/settings/experimental`, включи toggle, обходи журналы — все «Настройки документа» теперь в едином стиле с uppercase-labels, indigo focus, sticky footer, max-h-90vh. Что заметил: pattern «inline shim if useV2 / else legacy» уже устоялся, 8 миграций по нему — работает стабильно. Tier B (12 средних journal'ов) идёт следующим. Что предлагаю дальше: продолжить loop — Tier B потом C, потом возможно дозакрытие per-journal customizations (health printEmptyRows, cleaning toolbar, prixleinable add-row + catalog dialogs).
 
 - **[2026-05-05 00:00 МСК]** `809bd40d` — P0.2 закрыт (cleaning responsibles desync). Root cause был странный: `.map()` на пустом массиве в `updateSettings()`. Settings-modal и banner-select оба молчаливо теряли первое сохранение ответственного на чистом документе. Fix через upsert. Что заметил: остальные журналы используют другую модель ответственных (responsibleUserId как одно поле в JournalDocument, не arrays в config), так что у них этого бага нет — но если они тоже окажутся desync'нутыми, нужно проверить per-journal. Что предлагаю дальше: loop переключается на P3 (Design v2 миграции). Все P0 closed, можно идти на UI.
 
