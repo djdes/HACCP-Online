@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, Pencil, Plus, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
+import { ChevronDown, LayoutGrid, Pencil, Plus, Printer, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -427,6 +427,16 @@ export function CleaningDocumentClient(props: Props) {
                   {tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow"}
                 </Button>
               ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.print()}
+                title="Распечатать журнал"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+              >
+                <Printer className="size-4" />
+                Печать
+              </Button>
               <Button
                 type="button"
                 variant="outline"

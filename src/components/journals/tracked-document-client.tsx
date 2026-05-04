@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Printer, Settings2, Trash2 } from "lucide-react";
+import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -124,6 +128,7 @@ function TrackedDocumentClientImpl({
   employees,
   fields,
   initialEntries,
+  organizationName,
 }: Props) {
   const router = useRouter();
   const [entries, setEntries] = useState(sortedEntries(initialEntries));
@@ -428,6 +433,14 @@ function TrackedDocumentClientImpl({
               Печать
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
+      <div className="mb-4 print:mb-2">
+        <JournalDocumentHeader orgName={organizationName} title={title} />
+        <div className="mt-3">
+          <JournalDocumentTitle>{title}</JournalDocumentTitle>
         </div>
       </div>
 

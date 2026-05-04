@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Settings2, Trash2, X } from "lucide-react";
+import { CalendarDays, Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
@@ -1237,13 +1237,23 @@ export function DisinfectantDocumentClient({
         documentId={documentId}
         rightActions={
           !readOnly ? (
-            <Button
-              variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings2 className="size-4" /> Настройки журнала
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => window.print()}
+                title="Распечатать журнал"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+              >
+                <Printer className="size-4" /> Печать
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="size-4" /> Настройки журнала
+              </Button>
+            </>
           ) : null
         }
       />

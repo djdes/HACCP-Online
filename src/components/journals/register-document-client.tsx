@@ -12,6 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -436,7 +440,7 @@ export function RegisterDocumentClient({
   users,
   equipment,
 }: Props) {
-  void organizationName;
+  // organizationName используется в JournalDocumentHeader ниже.
   const router = useRouter();
   const [config, setConfig] = useState(() =>
     normalizeRegisterDocumentConfig(initialConfig, fields)
@@ -649,6 +653,17 @@ export function RegisterDocumentClient({
             )}
           </StickyActionBar>
         )}
+
+        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
+        <div className="mb-4 print:mb-2">
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title={documentTitle}
+          />
+          <div className="mt-3">
+            <JournalDocumentTitle>{documentTitle}</JournalDocumentTitle>
+          </div>
+        </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#ececf4] bg-white">
           <table className="min-w-[1400px] w-full border-collapse text-[15px]">

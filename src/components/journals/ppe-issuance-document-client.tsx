@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Plus, Printer, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
@@ -615,6 +615,17 @@ export function PpeIssuanceDocumentClient(props: Props) {
           backHref="/journals/ppe_issuance"
           documentId={props.documentId}
           rightActions={
+            <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              title="Распечатать журнал"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+            >
+              <Printer className="size-4" />
+              Печать
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -623,6 +634,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
             >
               Настройки журнала
             </Button>
+            </>
           }
         />
 
