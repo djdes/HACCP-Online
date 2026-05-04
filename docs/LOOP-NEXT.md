@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.A2 — hygiene-document-client v2** (P0 пуст; P3.A1 закрыт wave-1 — settings modal только; полная миграция сервиса требует много отдельных коммитов)
+**Текущий приоритет:** **P3.A4 — cold-equipment-document-client v2** (P3.A2 + P3.A3 wave-1 закрыты одним коммитом через shared StaffJournalToolbar)
 
 ---
 
@@ -129,8 +129,8 @@
 
 ### Tier A (топ-10 traffic) — каждый отдельный commit
 - [x] P3.A1 — cleaning-document-client v2 — DONE wave-1 (settings modal only) @ 91cd0170 @ 2026-05-05 00:30 МСК. Banner/toolbar/table остались legacy — это сознательно, чтобы коммит был мелкий и обратимый. Полная миграция cleaning требует отдельных коммитов P3.A1.b, P3.A1.c.
-- [ ] P3.A2 — hygiene-document-client v2
-- [ ] P3.A3 — health-document-client v2
+- [x] P3.A2 — hygiene-document-client v2 — DONE wave-1 @ b4f678b6 @ 2026-05-05 00:55 МСК (shared StaffJournalToolbar)
+- [x] P3.A3 — health-document-client v2 — DONE wave-1 @ b4f678b6 @ 2026-05-05 00:55 МСК (но health использует свою кастомную settingsOpen-модалку с printEmptyRows — нужен отдельный коммит P3.A3.b чтобы её тоже мигрировать на v2)
 - [ ] P3.A4 — cold-equipment-document-client v2
 - [ ] P3.A5 — finished-product-document-client v2 (бракераж готовой продукции)
 - [ ] P3.A6 — perishable-rejection-document-client v2
@@ -293,6 +293,7 @@
 - [2026-05-04] `1f9becbe`: `z.passthrough()` в task-form validator пропускает `_pipeline` блоб через типизацию `TaskFormValues` (Record<string, scalar>). Cast в адаптере `as Record<string, unknown>` чтобы достать nested поля.
 - [2026-05-05] `809bd40d`: `.map()` на пустом массиве — silent data loss anti-pattern. При написании upsert-логики ВСЕГДА проверять if (items.length === 0) ветку. Особенно опасно когда это часть бизнес-формы где пустой initial state — норма.
 - [2026-05-05] `91cd0170`: миграция на v2-компонент через `if (props.useV2) { <NewModal/> } else { <LegacyDialog/> }` — обе ветки в одном файле. Плюс: trivial rollback (выключил toggle), легко A/B сравнить, нет дубликата файла. Минус: файл вырастает. Размер cleaning-document-client теперь ~870 строк против 750 — приемлемо для wave-1, для wave-2/3 имеет смысл вынести в отдельный CleaningDocumentClientV2.tsx.
+- [2026-05-05] `b4f678b6`: shared-toolbar approach (StaffJournalToolbar используется hygiene + health) → одна правка покрывает 2 журнала. Лучший ROI на коммит. ОДНАКО health имеет custom onSettingsClick override со своей собственной settingsOpen-модалкой (для printEmptyRows) — она НЕ покрылась, нужен отдельный wave-1.b. Принцип: shared component миграция покрывает только common-path; per-journal customizations требуют отдельных миграций.
 
 ---
 
