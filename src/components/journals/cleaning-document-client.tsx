@@ -319,12 +319,55 @@ export function CleaningDocumentClient(props: Props) {
   async function updateSettings(patch: Partial<SettingsState>) {
     const nextState = { ...settingsState, ...patch };
     setSettingsState(nextState);
+    // Upsert ответственных:
+    //   • если массив непустой — обновляем index 0 (как раньше)
+    //   • если массив пустой и пользователь выбрал role+userId — создаём
+    //     новую запись через createCleaningResponsibleRow (это и был
+    //     баг P0.2: пустой .map() возвращал пустой массив, и сохранение
+    //     терялось — settings-modal/banner-select показывали выбор, но
+    //     после router.refresh() значение слетало)
+    //   • если массив пустой и role+userId тоже пустые — оставляем как есть
+    function upsertResponsible(
+      kind: "cleaning" | "control",
+      items: CleaningResponsible[],
+      role: string,
+      userId: string
+    ): CleaningResponsible[] {
+      const userName = userNameById(props.users, userId);
+      if (items.length > 0) {
+        return items.map((item, index) =>
+          index === 0
+            ? { ...item, title: role, userId, userName }
+            : item
+        );
+      }
+      // empty array
+      if (!role && !userId) return items;
+      return [
+        createCleaningResponsibleRow({
+          kind,
+          title: role,
+          userId,
+          userName,
+        }),
+      ];
+    }
     const nextConfig = normalizeCleaningDocumentConfig({
       ...config,
       title: nextState.title.trim() || CLEANING_DOCUMENT_TITLE,
       documentTitle: nextState.title.trim() || CLEANING_DOCUMENT_TITLE,
-      cleaningResponsibles: config.cleaningResponsibles.map((item, index) => index === 0 ? { ...item, title: nextState.cleaningRole, userId: nextState.cleaningUserId, userName: userNameById(props.users, nextState.cleaningUserId) } : item),
-      controlResponsibles: config.controlResponsibles.map((item, index) => index === 0 ? { ...item, title: nextState.controlRole, userId: nextState.controlUserId, userName: userNameById(props.users, nextState.controlUserId) } : item),
+      cleaningResponsibles: upsertResponsible(
+        "cleaning",
+        config.cleaningResponsibles,
+        nextState.cleaningRole,
+        nextState.cleaningUserId
+      ),
+      controlResponsibles: upsertResponsible(
+        "control",
+        config.controlResponsibles,
+        nextState.controlRole,
+        nextState.controlUserId
+      ),
     }, { users: props.users });
     await patchDocument(nextConfig);
   }
