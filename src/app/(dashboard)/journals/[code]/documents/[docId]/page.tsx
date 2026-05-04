@@ -606,6 +606,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
