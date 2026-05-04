@@ -1,0 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+
+type Props = {
+  initialExperimentalUiV2: boolean;
+};
+
+export function ExperimentalClient({ initialExperimentalUiV2 }: Props) {
+  const [v2, setV2] = useState(initialExperimentalUiV2);
+  const [savingV2, setSavingV2] = useState(false);
+
+  async function handleV2Toggle(next: boolean) {
+    const prev = v2;
+    setV2(next);
+    setSavingV2(true);
+    try {
+      const response = await fetch("/api/settings/experimental", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experimentalUiV2: next }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Не удалось сохранить");
+      }
+      toast.success(
+        next
+          ? "Design v2 включён. Журналы постепенно переходят на новый вид."
+          : "Design v2 выключен. Вернулись к старому виду."
+      );
+    } catch (error) {
+      setV2(prev);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingV2(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="flex items-start gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">
+            <Sparkles className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Design v2 для журнальных интерфейсов
+                </div>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+                  Унифицированный визуал всех страниц журналов: одинаковые
+                  модалки, тулбары, диалоги добавления записей. Старая
+                  функциональность сохраняется 1:1 — те же действия, те же
+                  таблицы, те же кнопки. Меняется только внешний вид и
+                  единообразие.
+                  <br />
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    Журналы переходят на v2 постепенно. Если включили и
+                    что-то выглядит странно — выключите toggle, вернётесь
+                    к старому виду без потери данных. Это пока бета.
+                  </span>
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {savingV2 ? (
+                  <Loader2 className="size-4 animate-spin text-[#9b9fb3]" />
+                ) : null}
+                <Switch
+                  checked={v2}
+                  onCheckedChange={(next) => {
+                    if (savingV2) return;
+                    void handleV2Toggle(next);
+                  }}
+                  disabled={savingV2}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

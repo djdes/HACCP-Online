@@ -72,6 +72,14 @@ const ACTION_LABELS: Record<
     label: "Сотрудник восстановлен",
     variant: "default",
   },
+  "settings.experimental.v2.enable": {
+    label: "Design v2 включён",
+    variant: "default",
+  },
+  "settings.experimental.v2.disable": {
+    label: "Design v2 выключен",
+    variant: "secondary",
+  },
 };
 
 const ENTITY_LABELS: Record<string, string> = {

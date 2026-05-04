@@ -240,6 +240,108 @@ Drag handle (⋮) на левом краю каждой строки. При dra
 
 ---
 
+## P3 — Design v2 (унифицированный визуал журналов, behind feature flag)
+
+**Контекст:** владелец заметил что модалки в журналах разные (лейблы, шрифты, отступы). Хочет привести всё к единому стилю в `wesetup-design`. Эксперимент — поэтому через feature-flag, не сразу всем.
+
+### P3.0 — Foundation (заложен в коммите ниже)
+
+**DB:** `Organization.experimentalUiV2: Boolean @default(false)`. Per-org toggle. Будущий per-user override через `User.experimentalUiV2Override` (пока не нужно).
+
+**Settings UI:** `/settings/experimental` — beta-toggles. Один из них — Design v2.
+
+**Component library:** `src/components/journals/v2/` (scaffold + 4 канонических компонента ниже).
+
+### P3.1 — Базовые компоненты v2
+
+Каждый журнал ниже мигрируется на эти 4 компонента.
+
+| Компонент                | Что делает                                                           | Существующие места к замене                                |
+|--------------------------|----------------------------------------------------------------------|------------------------------------------------------------|
+| `JournalToolbar`         | Шапка документа: backlink + title + rightActions (Print/Settings/Close) | `<DocumentBackLink>` + h1 + кнопки на каждом journal-document-client |
+| `JournalSettingsModal`   | Унифицированная модалка «Настройки журнала»                          | Все Dialog'и которые открываются по «Настройки журнала»     |
+| `JournalEntryDialog`     | Унифицированный «Добавить/Редактировать запись»                       | Все Dialog'и для add/edit row                              |
+| `JournalReferenceTable`  | Стандартная таблица-справочник (legend, «Что моется», пр.)            | `<JournalLegendBlock>`, ad-hoc tables в clean/brakery/etc. |
+
+**Правила оформления (инварианты):**
+- Радиус: `rounded-3xl` (24px) для карточек, `rounded-2xl` (16px) для кнопок/инпутов, `rounded-full` для pill'ов.
+- Цвета: только токены из `.claude/skills/design-system` (хекс-литералы `#5566f6`, `#0b1024`, и т.д.). Никаких `text-muted-foreground`, `bg-card`.
+- Заголовки: H1 = `text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]`. H2 = `text-[18px] font-semibold`. Лейблы = `text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]`.
+- Шрифт: тот что в системе (system stack из CLAUDE.md). НЕ импортировать webfont'ы.
+- Spacing: 4px baseline. `gap-2/3/5/8`, `p-5/6/7`.
+- Тени: для модалок `shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]`, для карточек `shadow-[0_0_0_1px_rgba(240,240,250,0.45)]`.
+
+**Инварианты функциональности (при миграции каждого журнала):**
+- ✅ Все существующие действия на странице должны быть представлены (никаких «удалил кнопку»)
+- ✅ Primary-CTA («Сохранить», «Готово», «Создать запись») виден без скролла на 1024×768
+- ✅ Destructive-действия (Удалить / Закончить журнал) визуально отделены — красно-розовая тень или отдельный slot в toolbar
+- ✅ Все confirm — через `<ConfirmDialog>`, никаких `window.confirm/prompt`
+- ✅ Таблицы остаются таблицами (это удобно сотрудникам — владелец явно сказал)
+- ✅ `MobileViewToggle` сохранён — на мобиле кнопка «Карточки/Таблица» работает
+- ✅ Печать (`window.print()` + `print:hidden` правила) работает
+- ✅ Sticky-header для длинных страниц (на десктопе при scroll шапка остаётся)
+
+### P3.2 — Migration order (priority by user traffic)
+
+Из проды (rough): `cleaning`, `hygiene`, `health_check`, `cold_equipment` — самые посещаемые. Бракераж и приёмка — топ-2 для бизнеса (event-log).
+
+**Tier A** (топ-10, делаем первыми):
+- [ ] cleaning-document-client
+- [ ] hygiene-document-client
+- [ ] health-document-client
+- [ ] cold-equipment-document-client
+- [ ] finished-product-document-client (бракераж)
+- [ ] perishable-rejection-document-client
+- [ ] acceptance-document-client
+- [ ] climate-document-client
+- [ ] cleaning-ventilation-checklist-document-client
+- [ ] glass-control-document-client (только что P0.1 чинили — на свежую голову)
+
+**Tier B** (следующие 12):
+- [ ] equipment-cleaning, equipment-calibration, equipment-maintenance
+- [ ] disinfectant, ppe-issuance, med-book
+- [ ] sanitation-day, sanitary-day-checklist
+- [ ] complaint, accident, breakdown-history
+- [ ] pest-control
+
+**Tier C** (остальные 13):
+- [ ] traceability, intensive-cooling, fryer-oil
+- [ ] glass-list, metal-impurity, product-writeoff
+- [ ] register, tracked, scan-journal
+- [ ] audit-plan, audit-protocol, audit-report
+- [ ] uv-lamp-runtime, staff-training, training-plan
+
+### P3.3 — Per-journal migration protocol
+
+Каждый журнал = один коммит `feat(v2): миграция <journal_name> на Design v2`.
+
+1. **PRE:** открыть `https://lk.haccp-online.ru/docs/<их код>` через playwright, сделать screenshot — посмотреть как у конкурента (для inspiration).
+2. **Snapshot legacy:** запустить playwright на `https://wesetup.ru/journals/<code>/documents/<id>` (с тестовой ROOT-ролью) → сохранить в `docs/screenshots/v2/<code>-before.png`.
+3. **Implement:** в `<code>-document-client.tsx` добавить shim на самой первой строке return:
+   ```tsx
+   if (useV2 /* prop from page.tsx based on org.experimentalUiV2 */) {
+     return <V2Layout {...props} />;
+   }
+   ```
+4. **V2Layout:** новая структура с `JournalToolbar` + `JournalSettingsModal` + и т.д. Использует те же data-props и те же handler'ы — функциональность 1:1.
+5. **Snapshot v2:** прогнать через playwright (включив toggle для тестовой орг) → `docs/screenshots/v2/<code>-after.png`.
+6. **Commit:** русское сообщение, упоминание before/after путей.
+7. **Push + verify deploy + smoke** (login 200, страница 200).
+
+### P3.4 — Settings page
+
+`/settings/experimental` — beta-зона. Один toggle «Design v2 для журналов» с предупреждением «Экспериментальный визуал. Если что-то пошло не так — выключите toggle и вернётесь к старому виду без потери данных».
+
+Audit-log на каждое включение/выключение.
+
+### P3.5 — Stop-conditions / safety
+
+- Если хоть один журнал V2 ломает функциональность (404, 500, JS error) — НЕ выкатывать, откатить commit, разобрать причину.
+- Каждый коммит независим — `git revert <sha>` откатит ровно один журнал.
+- Tier A → Tier B → Tier C **только** после того как все журналы предыдущего тира помечены DONE.
+
+---
+
 ## P2 — Feature backlog (200-1000 фишек)
 
 Источник: `LOOP-NEXT.md` секция «Feature backlog». Каждый цикл `/loop 10m`:

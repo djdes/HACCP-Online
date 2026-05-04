@@ -110,6 +110,73 @@
 
 ---
 
+## P3 — Design v2 migrations (по очереди один журнал за коммит)
+
+> Foundation заложен в коммите P3.0 (см. ниже). Каждый journal-document-client мигрируется на v2 компоненты с screenshot before/after.
+>
+> **Loop правило:** P3 имеет приоритет ВЫШЕ P2 но НИЖЕ P0/P1. Когда P0+P1 пусты — берётся следующий из P3. P2 трогается только когда P3 пуст.
+
+### Foundation
+- [x] P3.0 — DB flag `experimentalUiV2` + `/settings/experimental` toggle + `src/components/journals/v2/*.tsx` scaffold — **DONE PART-1 @ pending-sha @ 2026-05-04**
+  - DB: `Organization.experimentalUiV2 Boolean @default(false)` (deploy.yml сделает prisma db push)
+  - API: `PATCH /api/settings/experimental { experimentalUiV2 }` с audit-log
+  - UI: `/settings/experimental` page с toggle, ссылка из главного settings
+  - Components: `src/components/journals/v2/{journal-toolbar,journal-settings-modal,journal-entry-dialog,journal-reference-table,README.md}`
+  - **Что НЕ сделано в этом коммите:** ни один journal-document-client ещё НЕ использует v2-компоненты. Toggle включается, но ничего не меняется в UI журналов до миграций P3.A1+. Это намеренно — foundation отдельно от миграций.
+
+### Tier A (топ-10 traffic) — каждый отдельный commit
+- [ ] P3.A1 — cleaning-document-client v2
+- [ ] P3.A2 — hygiene-document-client v2
+- [ ] P3.A3 — health-document-client v2
+- [ ] P3.A4 — cold-equipment-document-client v2
+- [ ] P3.A5 — finished-product-document-client v2 (бракераж готовой продукции)
+- [ ] P3.A6 — perishable-rejection-document-client v2
+- [ ] P3.A7 — acceptance-document-client v2
+- [ ] P3.A8 — climate-document-client v2
+- [ ] P3.A9 — cleaning-ventilation-checklist-document-client v2
+- [ ] P3.A10 — glass-control-document-client v2
+
+### Tier B (12 средних)
+- [ ] P3.B1 — equipment-cleaning
+- [ ] P3.B2 — equipment-calibration
+- [ ] P3.B3 — equipment-maintenance
+- [ ] P3.B4 — disinfectant
+- [ ] P3.B5 — ppe-issuance
+- [ ] P3.B6 — med-book
+- [ ] P3.B7 — sanitation-day
+- [ ] P3.B8 — sanitary-day-checklist
+- [ ] P3.B9 — complaint
+- [ ] P3.B10 — accident
+- [ ] P3.B11 — breakdown-history
+- [ ] P3.B12 — pest-control
+
+### Tier C (13 остальных)
+- [ ] P3.C1 — traceability
+- [ ] P3.C2 — intensive-cooling
+- [ ] P3.C3 — fryer-oil
+- [ ] P3.C4 — glass-list
+- [ ] P3.C5 — metal-impurity
+- [ ] P3.C6 — product-writeoff
+- [ ] P3.C7 — register
+- [ ] P3.C8 — tracked
+- [ ] P3.C9 — scan-journal
+- [ ] P3.C10 — audit-plan
+- [ ] P3.C11 — audit-protocol
+- [ ] P3.C12 — audit-report
+- [ ] P3.C13 — uv-lamp-runtime
+- [ ] P3.C14 — staff-training
+- [ ] P3.C15 — training-plan
+
+**Migration protocol на каждый журнал** (см. P3.3 в PIPELINE-VISION.md):
+1. Playwright screenshot конкурента haccp-online (если эквивалент есть)
+2. Playwright screenshot текущей wesetup-страницы → `docs/screenshots/v2/<code>-before.png`
+3. Реализация V2Layout shim в `<code>-document-client.tsx`
+4. Playwright screenshot v2 → `docs/screenshots/v2/<code>-after.png`
+5. Commit + push + deploy + smoke
+6. Mark DONE в LOOP-NEXT с git-sha
+
+---
+
 ## P2 — Feature backlog
 
 > Loop генерирует отсюда top-3-5 пунктов когда P0/P1 пусты.
