@@ -1041,6 +1041,37 @@ export function normalizeCleaningDocumentConfig(
   return syncCompatibilityFields(next);
 }
 
+/**
+ * Серверная валидация cleaning-документа. Используется в PATCH endpoint
+ * для отсечения невалидных конфигураций ДО save'а — чтобы юзер получил
+ * явную ошибку вместо silent-fail в bulk-assign.
+ *
+ * Бросает Error с понятным сообщением для UI. Возвращает void.
+ */
+export function validateCleaningDocumentConfig(
+  config: CleaningDocumentConfig,
+): void {
+  if (config.cleaningMode === "rooms") {
+    if (!config.selectedRoomIds || config.selectedRoomIds.length === 0) {
+      throw new Error(
+        "Режим «По комнатам» требует выбрать хотя бы одну комнату " +
+          "(selectedRoomIds). Открой настройки документа и отметь " +
+          "комнаты для уборки.",
+      );
+    }
+    if (
+      !config.selectedCleanerUserIds ||
+      config.selectedCleanerUserIds.length === 0
+    ) {
+      throw new Error(
+        "Режим «По комнатам» требует выбрать хотя бы одного уборщика " +
+          "(selectedCleanerUserIds). Открой настройки документа и " +
+          "отметь сотрудников.",
+      );
+    }
+  }
+}
+
 export function normalizeCleaningEntryData(value: unknown): CleaningEntryData {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { activities: [] };

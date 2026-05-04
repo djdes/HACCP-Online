@@ -20,6 +20,11 @@ import {
   normalizeSanitationDayConfig,
 } from "@/lib/sanitation-day-document";
 import {
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+  validateCleaningDocumentConfig,
+  type CleaningDocumentConfig,
+} from "@/lib/cleaning-document";
+import {
   normalizeJournalDocumentStaffState,
   normalizeJournalStaffBoundConfig,
 } from "@/lib/journal-staff-binding";
@@ -245,6 +250,24 @@ export async function PATCH(
     );
 
     if (body.config !== undefined) {
+      // Server-side validation для cleaning rooms-mode — отсекаем
+      // невалидные конфиги ДО save'а чтобы юзер увидел понятную ошибку,
+      // а не silent-fail в bulk-assign.
+      if (template.code === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+        try {
+          validateCleaningDocumentConfig(
+            normalizedDocumentState.config as CleaningDocumentConfig,
+          );
+        } catch (err) {
+          return NextResponse.json(
+            {
+              error:
+                err instanceof Error ? err.message : "Невалидная конфигурация",
+            },
+            { status: 400 },
+          );
+        }
+      }
       data.config = normalizedDocumentState.config;
     }
 

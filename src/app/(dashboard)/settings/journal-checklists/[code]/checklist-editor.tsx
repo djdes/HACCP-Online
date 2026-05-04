@@ -219,9 +219,38 @@ export function ChecklistEditor({
   const totalCount = drafts.length;
   const requiredCount = drafts.filter((d) => d.required).length;
   const hasDirty = drafts.some((d) => d.dirty || d.id === null);
+  const hasPerRoomItems = drafts.some((d) => d.roomId !== null);
 
   return (
     <div className="space-y-5">
+      {/* Hint banner для cleaning-журналов с per-room пунктами:
+          напоминание что для работы per-room привязки документ
+          должен быть в rooms-mode. */}
+      {isCleaningJournal && hasPerRoomItems ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-200/60 text-amber-800">
+            <CalendarDays className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13.5px] font-semibold text-amber-900">
+              Per-room пункты — нужен документ в режиме «По комнатам»
+            </div>
+            <p className="mt-1 text-[12.5px] leading-snug text-amber-800">
+              У тебя есть пункты привязанные к комнатам — они будут
+              показываться в TasksFlow только когда cleaning-документ
+              переведён в режим «По комнатам». Открой документ в{" "}
+              <a
+                href={`/journals/${journalCode}`}
+                className="font-medium underline underline-offset-2 hover:text-amber-950"
+              >
+                /journals/{journalCode}
+              </a>
+              {" "}→ настройки документа → выбери «По комнатам» → отметь
+              комнаты и уборщиков.
+            </p>
+          </div>
+        </div>
+      ) : null}
       {/* Stats banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-[#ececf4] bg-white p-4 sm:p-5">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
