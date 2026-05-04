@@ -170,6 +170,19 @@ export function TaskFillClient({
   const [noEventsOpen, setNoEventsOpen] = useState(false);
   const isShared = taskScope === "shared";
 
+  // Не показываем journalLabel если documentTitle уже содержит его
+  // целиком (auto-created документы делают title = label + дата).
+  // Раньше получался дубль: «ЖУРНАЛ X» (uppercase) над «Журнал X · с
+  // 02 мая…» — выглядело как ошибка вёрстки.
+  const normalizedLabel = journalLabel.trim().toLowerCase();
+  const normalizedTitle = documentTitle.trim().toLowerCase();
+  const isLabelInTitle =
+    normalizedLabel.length > 0 &&
+    (normalizedTitle === normalizedLabel ||
+      normalizedTitle.startsWith(normalizedLabel + " ") ||
+      normalizedTitle.startsWith(normalizedLabel + " ·") ||
+      normalizedTitle.startsWith(normalizedLabel + ","));
+
   const readyToSubmit = useMemo(() => {
     if (!form) return true; // no-form tasks (generic) can always submit
     for (const f of form.fields) {
@@ -444,50 +457,65 @@ export function TaskFillClient({
 
   return (
     <main className="min-h-screen bg-[#f5f6ff]">
-      {/* Hero — TF-style насыщенный indigo→violet с blur-орбами */}
+      {/* Hero — TF-style насыщенный indigo→violet с blur-орбами.
+          Layout: на мобиле иконка СВЕРХУ заголовка (column),
+          на sm+ — рядом (row). Раньше иконка size-14 «прижимала»
+          длинный title к правому краю, текст переносился на 3
+          строки и визуально «наезжал» на иконку. Кнопка «Как
+          заполнять» теперь компактнее и не перетягивает внимание
+          с заголовка. */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#3d4efc] via-[#5566f6] to-[#7a5cff] text-white">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 -top-32 size-[480px] rounded-full bg-[#a78bfa]/40 blur-[140px]" />
           <div className="absolute -bottom-48 -right-32 size-[520px] rounded-full bg-[#3d4efc]/55 blur-[160px]" />
           <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-white/10 blur-[120px]" />
         </div>
-        <div className="relative z-10 mx-auto max-w-xl px-5 pb-12 pt-8 sm:px-6 sm:pb-14 sm:pt-9">
-          {/* Top bar: helper button right */}
-          <div className="flex items-center justify-end">
+        <div className="relative z-10 mx-auto max-w-xl px-5 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8">
+          {/* Top bar: иконка слева + helper-кнопка справа.
+              Раздельные блоки в одной строке — не «налегают» */}
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur-sm">
+              <ClipboardCheck className="size-6" />
+            </span>
             <button
               type="button"
               onClick={() => setHelperOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-[13px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/25"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[12.5px] font-medium text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/25"
             >
-              <HelpCircle className="size-4" />
+              <HelpCircle className="size-3.5" />
               Как заполнять
             </button>
           </div>
 
-          {/* Title */}
-          <div className="mt-4 flex items-start gap-4">
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur-sm sm:size-16">
-              <ClipboardCheck className="size-7 sm:size-8" />
-            </span>
-            <div className="min-w-0 flex-1">
+          {/* Title — единый блок без иконки внутри. Если documentTitle
+              полностью содержит journalLabel (типичный случай auto-create:
+              «Журнал X» / «Журнал X · с DD месяца YYYY г.»), показываем
+              только documentTitle. Иначе — небольшой подзаголовок-тег
+              сверху + жирный title. */}
+          <div className="mt-5 min-w-0">
+            {!isLabelInTitle && journalLabel ? (
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 sm:text-[12px]">
                 {journalLabel}
               </div>
-              <h1 className="mt-1.5 text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[28px]">
-                {documentTitle}
-              </h1>
-              {employeeName ? (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[13px] backdrop-blur-sm sm:text-[13.5px]">
-                  <span className="size-1.5 rounded-full bg-emerald-300" />
-                  <span className="font-medium">{employeeName}</span>
-                  {employeePositionTitle ? (
-                    <span className="text-white/70">
-                      · {employeePositionTitle}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            ) : null}
+            <h1
+              className={`text-[22px] font-semibold leading-[1.15] tracking-[-0.015em] sm:text-[26px] ${
+                !isLabelInTitle && journalLabel ? "mt-1.5" : ""
+              }`}
+            >
+              {documentTitle}
+            </h1>
+            {employeeName ? (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[13px] backdrop-blur-sm sm:text-[13.5px]">
+                <span className="size-1.5 rounded-full bg-emerald-300" />
+                <span className="font-medium">{employeeName}</span>
+                {employeePositionTitle ? (
+                  <span className="text-white/70">
+                    · {employeePositionTitle}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

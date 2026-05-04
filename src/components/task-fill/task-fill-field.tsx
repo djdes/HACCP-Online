@@ -120,10 +120,6 @@ export function TaskFillField({ field, value, onChange }: Props) {
   }
 
   const required = "required" in field && field.required === true;
-  const placeholder =
-    "placeholder" in field && typeof field.placeholder === "string"
-      ? field.placeholder
-      : undefined;
 
   // Live-валидация для number-полей.
   const numberStatus =
@@ -169,7 +165,9 @@ export function TaskFillField({ field, value, onChange }: Props) {
       {/* Input */}
       <div className="mt-3">{renderInput(field, value, onChange)}</div>
 
-      {/* Live validation status (number-поля) */}
+      {/* Live validation status (number-поля) — text/select/date не
+          получают дубль placeholder'а под полем: он уже виден внутри
+          input'а сам по себе и второй раз внизу выглядел как мусор. */}
       {numberStatus && numberStatus.hint ? (
         <div
           className={`mt-2 flex items-start gap-1.5 text-[12.5px] leading-snug sm:text-[13px] ${
@@ -187,13 +185,6 @@ export function TaskFillField({ field, value, onChange }: Props) {
           ) : null}
           <span>{numberStatus.hint}</span>
         </div>
-      ) : placeholder ? (
-        /* Assistive text — placeholder подсказка дублируется как hint
-            под полем для тех кто не понимает плейсхолдер. Показывается
-            ТОЛЬКО когда нет live-validation подсказки. */
-        <p className="mt-2 text-[12.5px] leading-snug text-[#9b9fb3] sm:text-[13px]">
-          {placeholder}
-        </p>
       ) : null}
     </div>
   );
