@@ -43,6 +43,7 @@ import {
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { isManagementRole } from "@/lib/user-roles";
@@ -88,6 +89,8 @@ type Props = {
   users: UserItem[];
   config: CleaningVentilationChecklistConfig;
   initialEntries: { id: string; date: string; data: CleaningVentilationChecklistEntryData }[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type SettingsState = {
@@ -186,9 +189,135 @@ function DocumentSettingsDialog(props: {
   users: UserItem[];
   initial: SettingsState;
   onSubmit: (value: SettingsState) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await props.onSubmit(state);
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) setState(props.initial);
+          props.onOpenChange(nextOpen);
+        }}
+        title="Настройки документа"
+        description="Название журнала, дата начала, режим проветривания и ответственный сотрудник."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={state.title}
+            onChange={(event) =>
+              setState((current) => ({ ...current, title: event.target.value }))
+            }
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={state.dateFrom}
+            onChange={(event) =>
+              setState((current) => ({ ...current, dateFrom: event.target.value }))
+            }
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+          <Checkbox
+            checked={state.ventilationEnabled}
+            onCheckedChange={(checked) =>
+              setState((current) => ({
+                ...current,
+                ventilationEnabled: checked === true,
+              }))
+            }
+          />
+          <div className="text-[14px] text-[#0b1024]">
+            Проветривание
+            <div className="mt-0.5 text-[12px] text-[#6f7282]">
+              Включайте если помещение реально проветривается.
+            </div>
+          </div>
+        </label>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Select
+            value={state.mainResponsibleTitle}
+            onValueChange={(value) =>
+              setState((current) => {
+                const candidates = filterUsersByBucket(props.users, value);
+                const stillValid =
+                  current.mainResponsibleUserId &&
+                  candidates.some((u) => u.id === current.mainResponsibleUserId);
+                return {
+                  ...current,
+                  mainResponsibleTitle: value,
+                  mainResponsibleUserId: stillValid
+                    ? current.mainResponsibleUserId
+                    : candidates[0]?.id || "",
+                };
+              })
+            }
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <PositionSelectItems users={props.users} />
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select
+            value={state.mainResponsibleUserId}
+            onValueChange={(value) =>
+              setState((current) => ({ ...current, mainResponsibleUserId: value }))
+            }
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {filterUsersByBucket(props.users, state.mainResponsibleTitle).map(
+                (user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog
@@ -428,6 +557,7 @@ export function CleaningVentilationChecklistDocumentClient({
   users,
   config: initialConfig,
   initialEntries,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(() =>
@@ -1099,6 +1229,7 @@ export function CleaningVentilationChecklistDocumentClient({
             }
           );
         }}
+        useV2={useV2}
       />
 
       <AddResponsibleDialog
