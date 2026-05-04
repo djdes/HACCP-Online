@@ -21,6 +21,7 @@ export default async function CompliancePage() {
       requireAdminForJournalEdit: true,
       shiftEndHour: true,
       lockPastDayEdits: true,
+      requirePhotoOnTaskFillStep: true,
     },
   });
 
@@ -58,6 +59,9 @@ export default async function CompliancePage() {
         }
         initialShiftEndHour={org?.shiftEndHour ?? 0}
         initialLockPastDayEdits={org?.lockPastDayEdits ?? false}
+        initialRequirePhotoOnTaskFillStep={
+          org?.requirePhotoOnTaskFillStep ?? false
+        }
       />
     </div>
   );

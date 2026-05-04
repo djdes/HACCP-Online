@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
+  Camera,
   Check,
   CheckCircle2,
   ClipboardCheck,
   Copy,
   HelpCircle,
+  ImageIcon,
   Loader2,
   Lock,
   Plus,
@@ -172,11 +174,17 @@ export function TaskFillClient({
     stepTitle: string;
     confirmedAt: string; // ISO
     msSinceFormOpen: number;
+    photoUrl?: string;
   };
   const pipelineSteps = form?.pipeline ?? null;
   const [pipelineConfirms, setPipelineConfirms] = useState<PipelineConfirm[]>(
     []
   );
+  // photo URLs uploaded for the CURRENT-step (cleared on confirm).
+  // Map stepIndex → URL. Хранится отдельно от pipelineConfirms потому
+  // что фото загружается ДО подтверждения шага (чтобы блокировать
+  // кнопку «Сделал» пока фото не загрузилось).
+  const [stepPhotos, setStepPhotos] = useState<Record<number, string>>({});
   // Edit-mode (повторное открытие выполненной задачи) — pipeline уже
   // пройден ранее, не заставляем worker'а проходить заново.
   const pipelineSkipped = alreadyCompleted;
@@ -187,16 +195,40 @@ export function TaskFillClient({
     pipelineConfirms.length >= pipelineSteps.length;
   const currentPipelineIndex = pipelineConfirms.length;
 
+  async function uploadStepPhoto(stepIndex: number, file: File): Promise<void> {
+    if (!pipelineSteps) return;
+    const step = pipelineSteps[stepIndex];
+    if (!step) return;
+    const fd = new FormData();
+    fd.append("token", token);
+    fd.append("file", file);
+    fd.append("stepId", step.id);
+    fd.append("stepIndex", String(stepIndex));
+    const res = await fetch(`/api/task-fill/${taskId}/photo`, {
+      method: "POST",
+      body: fd,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.url) {
+      throw new Error(data?.error ?? "Не удалось загрузить фото");
+    }
+    setStepPhotos((prev) => ({ ...prev, [stepIndex]: data.url as string }));
+  }
+
   async function confirmPipelineStep(stepIndex: number) {
     if (!pipelineSteps || stepIndex !== pipelineConfirms.length) return;
     const step = pipelineSteps[stepIndex];
+    // Фото-блок: если шаг требует фото, оно должно быть загружено.
+    if (step.requirePhoto && !stepPhotos[stepIndex]) return;
     const msSinceFormOpen = Math.max(0, Date.now() - formOpenedAt);
+    const photoUrl = stepPhotos[stepIndex];
     const entry: PipelineConfirm = {
       stepId: step.id,
       stepIndex,
       stepTitle: step.title,
       confirmedAt: new Date().toISOString(),
       msSinceFormOpen,
+      ...(photoUrl ? { photoUrl } : {}),
     };
     // Optimistic — мгновенно двигаем UI вперёд, audit-log пишется в
     // фоне. Если запись провалится — пользователь не заметит, но
@@ -213,6 +245,7 @@ export function TaskFillClient({
           stepTitle: step.title,
           totalSteps: pipelineSteps.length,
           msSinceFormOpen,
+          ...(photoUrl ? { photoUrl } : {}),
         }),
       });
     } catch {
@@ -741,6 +774,8 @@ export function TaskFillClient({
                 confirmedCount={pipelineConfirms.length}
                 currentIndex={currentPipelineIndex}
                 onConfirm={confirmPipelineStep}
+                onUploadPhoto={uploadStepPhoto}
+                stepPhotos={stepPhotos}
                 disabled={submitting}
               />
             ) : null}
@@ -1289,16 +1324,35 @@ function PipelineWizard({
   confirmedCount,
   currentIndex,
   onConfirm,
+  onUploadPhoto,
+  stepPhotos,
   disabled,
 }: {
   steps: PipelineStep[];
   confirmedCount: number;
   currentIndex: number;
   onConfirm: (index: number) => void;
+  onUploadPhoto: (index: number, file: File) => Promise<void>;
+  stepPhotos: Record<number, string>;
   disabled: boolean;
 }) {
   const total = steps.length;
   const allDone = confirmedCount >= total;
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFile(index: number, file: File | null) {
+    if (!file) return;
+    setUploadError(null);
+    setUploadingIdx(index);
+    try {
+      await onUploadPhoto(index, file);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Не удалось загрузить");
+    } finally {
+      setUploadingIdx(null);
+    }
+  }
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3">
@@ -1378,17 +1432,93 @@ function PipelineWizard({
                       {step.hint}
                     </p>
                   ) : null}
+                  {isCurrent && step.requirePhoto ? (
+                    <div className="mt-3 space-y-2">
+                      {stepPhotos[index] ? (
+                        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+                          <img
+                            src={stepPhotos[index]}
+                            alt="Фото шага"
+                            className="size-16 rounded-xl object-cover"
+                          />
+                          <div className="flex-1 text-[13px] text-emerald-800">
+                            <div className="font-semibold">Фото загружено</div>
+                            <label className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[12px] text-emerald-700 underline">
+                              Заменить
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleFile(
+                                    index,
+                                    e.target.files?.[0] ?? null
+                                  )
+                                }
+                                disabled={disabled || uploadingIdx === index}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-[#5566f6]/30 bg-[#f5f6ff] px-4 py-3 text-[14px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6] hover:bg-[#eef1ff]">
+                          {uploadingIdx === index ? (
+                            <Loader2 className="size-5 shrink-0 animate-spin" />
+                          ) : (
+                            <Camera className="size-5 shrink-0" />
+                          )}
+                          <span className="flex-1">
+                            {uploadingIdx === index
+                              ? "Загружаем фото…"
+                              : "Сфотографировать (обязательно)"}
+                          </span>
+                          <ImageIcon className="size-4 opacity-50" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFile(index, e.target.files?.[0] ?? null)
+                            }
+                            disabled={disabled || uploadingIdx === index}
+                          />
+                        </label>
+                      )}
+                      {uploadError ? (
+                        <div className="rounded-xl bg-[#fff4f2] px-3 py-2 text-[12px] text-[#a13a32]">
+                          {uploadError}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {isCurrent ? (
                     <div className="mt-3">
                       <Button
                         type="button"
                         onClick={() => onConfirm(index)}
-                        disabled={disabled}
+                        disabled={
+                          disabled ||
+                          uploadingIdx === index ||
+                          (step.requirePhoto && !stepPhotos[index])
+                        }
+                        title={
+                          step.requirePhoto && !stepPhotos[index]
+                            ? "Сначала загрузите фото"
+                            : undefined
+                        }
                         className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
                       >
                         <Check className="size-4" />
                         Сделал
                       </Button>
+                    </div>
+                  ) : null}
+                  {isDone && stepPhotos[index] ? (
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] text-emerald-700">
+                      <ImageIcon className="size-3" />
+                      Фото прикреплено
                     </div>
                   ) : null}
                 </div>

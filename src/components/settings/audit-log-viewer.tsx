@@ -43,6 +43,7 @@ const ACTION_LABELS: Record<
   export: { label: "Экспорт", variant: "outline" },
   // Pipeline / task-fill actions
   "journal.fill.step": { label: "Шаг pipeline", variant: "outline" },
+  "journal.fill.photo": { label: "Фото загружено", variant: "outline" },
   "journal.fill.completed": { label: "Журнал заполнен", variant: "default" },
   "journal.fill.reopened": { label: "Повторное открытие", variant: "secondary" },
   "journal.entry.create": { label: "Запись создана", variant: "default" },
@@ -119,19 +120,63 @@ function renderDetails(entry: AuditEntry): ReactElement {
     const dur = formatDuration(
       (d as { msSinceFormOpen?: number }).msSinceFormOpen
     );
+    const photoUrl = (d as { photoUrl?: string }).photoUrl;
     return (
-      <div className="space-y-1">
-        <div className="font-medium text-[#0b1024]">
-          {typeof idx === "number" && typeof total === "number" ? (
-            <span className="mr-2 inline-flex items-center gap-1 rounded-md bg-[#eef1ff] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#3848c7]">
-              {idx + 1}/{total}
-            </span>
-          ) : null}
-          {title ?? "—"}
+      <div className="flex items-start gap-3">
+        {photoUrl ? (
+          <a
+            href={photoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block size-12 shrink-0 overflow-hidden rounded-xl border border-[#dcdfed]"
+          >
+            <img src={photoUrl} alt="Фото" className="size-full object-cover" />
+          </a>
+        ) : null}
+        <div className="min-w-0 space-y-1">
+          <div className="font-medium text-[#0b1024]">
+            {typeof idx === "number" && typeof total === "number" ? (
+              <span className="mr-2 inline-flex items-center gap-1 rounded-md bg-[#eef1ff] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#3848c7]">
+                {idx + 1}/{total}
+              </span>
+            ) : null}
+            {title ?? "—"}
+          </div>
+          <div className="text-[12px] text-[#6f7282]">
+            {journalLabel}
+            {dur ? <span> · через {dur} от открытия формы</span> : null}
+            {photoUrl ? <span className="ml-1 text-emerald-700">· с фото</span> : null}
+          </div>
         </div>
-        <div className="text-[12px] text-[#6f7282]">
-          {journalLabel}
-          {dur ? <span> · через {dur} от открытия формы</span> : null}
+      </div>
+    );
+  }
+
+  // Photo upload event — показываем thumbnail
+  if (entry.action === "journal.fill.photo") {
+    const photoUrl = (d as { url?: string }).url;
+    const stepIdx = (d as { stepIndex?: number }).stepIndex;
+    const journalLabel =
+      JOURNAL_LABEL_BY_CODE[(d as { journalCode?: string }).journalCode ?? ""] ??
+      (d as { journalCode?: string }).journalCode ??
+      "—";
+    return (
+      <div className="flex items-start gap-3">
+        {photoUrl ? (
+          <a
+            href={photoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block size-14 shrink-0 overflow-hidden rounded-xl border border-[#dcdfed]"
+          >
+            <img src={photoUrl} alt="Фото" className="size-full object-cover" />
+          </a>
+        ) : null}
+        <div className="min-w-0 space-y-1">
+          <div className="font-medium text-[#0b1024]">
+            Фото-доказательство шага {typeof stepIdx === "number" ? stepIdx + 1 : "?"}
+          </div>
+          <div className="text-[12px] text-[#6f7282]">{journalLabel}</div>
         </div>
       </div>
     );

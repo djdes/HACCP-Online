@@ -26,6 +26,7 @@ export async function PATCH(request: Request) {
         requireAdminForJournalEdit?: unknown;
         shiftEndHour?: unknown;
         lockPastDayEdits?: unknown;
+        requirePhotoOnTaskFillStep?: unknown;
       }
     | null;
   if (!body || typeof body !== "object") {
@@ -36,6 +37,7 @@ export async function PATCH(request: Request) {
     requireAdminForJournalEdit?: boolean;
     shiftEndHour?: number;
     lockPastDayEdits?: boolean;
+    requirePhotoOnTaskFillStep?: boolean;
   } = {};
   if (typeof body.requireAdminForJournalEdit === "boolean") {
     data.requireAdminForJournalEdit = body.requireAdminForJournalEdit;
@@ -53,6 +55,9 @@ export async function PATCH(request: Request) {
   if (typeof body.lockPastDayEdits === "boolean") {
     data.lockPastDayEdits = body.lockPastDayEdits;
   }
+  if (typeof body.requirePhotoOnTaskFillStep === "boolean") {
+    data.requirePhotoOnTaskFillStep = body.requirePhotoOnTaskFillStep;
+  }
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
       { error: "Нет полей для обновления" },
@@ -67,6 +72,7 @@ export async function PATCH(request: Request) {
       requireAdminForJournalEdit: true,
       shiftEndHour: true,
       lockPastDayEdits: true,
+      requirePhotoOnTaskFillStep: true,
     },
   });
 

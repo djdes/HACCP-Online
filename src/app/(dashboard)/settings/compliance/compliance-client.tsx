@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, Clock, Loader2, ShieldCheck } from "lucide-react";
+import { Camera, Lock, Clock, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -9,19 +9,25 @@ type Props = {
   initialRequireAdminForJournalEdit: boolean;
   initialShiftEndHour: number;
   initialLockPastDayEdits: boolean;
+  initialRequirePhotoOnTaskFillStep: boolean;
 };
 
 export function ComplianceClient({
   initialRequireAdminForJournalEdit,
   initialShiftEndHour,
   initialLockPastDayEdits,
+  initialRequirePhotoOnTaskFillStep,
 }: Props) {
   const [value, setValue] = useState(initialRequireAdminForJournalEdit);
   const [shiftEndHour, setShiftEndHour] = useState(initialShiftEndHour);
   const [lockPastDay, setLockPastDay] = useState(initialLockPastDayEdits);
+  const [requirePhoto, setRequirePhoto] = useState(
+    initialRequirePhotoOnTaskFillStep
+  );
   const [saving, setSaving] = useState(false);
   const [savingShift, setSavingShift] = useState(false);
   const [savingLock, setSavingLock] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   async function handleToggle(next: boolean) {
     const previous = value;
@@ -76,6 +82,33 @@ export function ComplianceClient({
       toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
       setSavingLock(false);
+    }
+  }
+
+  async function handleRequirePhotoToggle(next: boolean) {
+    const previous = requirePhoto;
+    setRequirePhoto(next);
+    setSavingPhoto(true);
+    try {
+      const response = await fetch("/api/settings/compliance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirePhotoOnTaskFillStep: next }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Не удалось сохранить");
+      }
+      toast.success(
+        next
+          ? "Фото-доказательство включено: каждый шаг pipeline теперь требует фото"
+          : "Фото-доказательство выключено: pipeline-шаги подтверждаются одной кнопкой"
+      );
+    } catch (error) {
+      setRequirePhoto(previous);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingPhoto(false);
     }
   }
 
@@ -242,6 +275,52 @@ export function ComplianceClient({
                     void handleLockPastDayToggle(next);
                   }}
                   disabled={savingLock}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="flex items-start gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#3848c7]">
+            <Camera className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Фото-доказательство на каждом шаге pipeline
+                </div>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+                  Когда включено — в задаче TasksFlow для каждого шага
+                  pipeline'а сотрудник обязан загрузить фотографию
+                  (камера телефона). Кнопка «Сделал» заблокирована пока
+                  фото не появилось. Каждое фото попадает в audit-log
+                  с привязкой к конкретному шагу — manager в любой
+                  момент может посмотреть «как именно повар проверил
+                  холодильник в 09:34».
+                  <br />
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    Превращает заполнение журнала из «голой галочки» в
+                    реальное evidence trail для проверок РПН. Минус — у
+                    сотрудников каждая задача занимает на 30-60 секунд
+                    дольше.
+                  </span>
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {savingPhoto ? (
+                  <Loader2 className="size-4 animate-spin text-[#9b9fb3]" />
+                ) : null}
+                <Switch
+                  checked={requirePhoto}
+                  onCheckedChange={(next) => {
+                    if (savingPhoto) return;
+                    void handleRequirePhotoToggle(next);
+                  }}
+                  disabled={savingPhoto}
                 />
               </div>
             </div>

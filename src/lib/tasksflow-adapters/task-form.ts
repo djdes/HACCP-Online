@@ -101,6 +101,13 @@ export type PipelineStep = {
   field?: TaskFormField;
   /** СанПиН-ссылка или подсказка по конкретному шагу. */
   hint?: string;
+  /**
+   * Если true — для подтверждения шага worker обязан загрузить фото.
+   * Включается через org-настройку `requirePhotoOnTaskFillStep`. Без
+   * фото кнопка «Сделал» заблокирована. Фото сохраняется в /uploads
+   * и URL прикрепляется к pipeline-trail для evidence-аудита.
+   */
+  requirePhoto?: boolean;
 };
 
 export type TaskFormSchema = {

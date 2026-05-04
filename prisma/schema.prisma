@@ -42,6 +42,13 @@ model Organization {
   /// any user who originally filled a task is allowed to re-open and
   /// correct it. Toggled from /settings/compliance.
   requireAdminForJournalEdit Boolean                  @default(false)
+  /// Compliance toggle: «фото-доказательство на каждом шаге pipeline'а».
+  /// Когда true, в task-fill wizard'е каждый шаг подтверждается ТОЛЬКО
+  /// после загрузки фотографии (камера телефона / выбор файла). Без
+  /// фото кнопка «Сделал» заблокирована. Это превращает заполнение
+  /// журнала из «галочки» в реальный evidence trail для проверок РПН.
+  /// По умолчанию false — каждая орга включает по необходимости.
+  requirePhotoOnTaskFillStep Boolean                  @default(false)
   /// Час суток (0-23 по локальному часовому поясу организации) когда
   /// смена заканчивается и cron auto-close срабатывает на shared-задачах
   /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен

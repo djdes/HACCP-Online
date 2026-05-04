@@ -46,8 +46,14 @@ const COMMENT_FIELD = {
  *
  * If the journal has no guide entry, returns the legacy single-step
  * form (just a comment + Готово).
+ *
+ * `requirePhoto` — если true, к каждому action-шагу (кроме
+ * «Что взять» и «Завершение») добавляется требование фото.
  */
-function buildGenericForm(templateCode: string): TaskFormSchema {
+function buildGenericForm(
+  templateCode: string,
+  options: { requirePhoto: boolean }
+): TaskFormSchema {
   const guide = FILLING_GUIDES[templateCode];
   if (!guide || !guide.steps || guide.steps.length === 0) {
     return {
@@ -67,6 +73,8 @@ function buildGenericForm(templateCode: string): TaskFormSchema {
       title: "Что взять с собой",
       detail: guide.materials.map((m) => `• ${m}`).join("\n"),
       hint: guide.summary,
+      // Materials-шаг — это «прочитай и собери», фото не нужно.
+      requirePhoto: false,
     });
   }
   for (let i = 0; i < guide.steps.length; i += 1) {
@@ -75,6 +83,7 @@ function buildGenericForm(templateCode: string): TaskFormSchema {
       id: `step-${i + 1}`,
       title: step.title,
       detail: step.detail,
+      requirePhoto: options.requirePhoto,
     });
   }
   steps.push({
@@ -82,6 +91,8 @@ function buildGenericForm(templateCode: string): TaskFormSchema {
     title: "Завершение",
     detail: guide.completionCriteria,
     hint: guide.regulationRef,
+    // Финальный шаг — резюме, фото не нужно (комментарий обязательнее).
+    requirePhoto: false,
   });
   return {
     intro: guide.summary,
@@ -180,8 +191,26 @@ export function buildGenericAdapter(
       return EMPTY_SYNC_REPORT;
     },
 
-    async getTaskForm() {
-      return buildGenericForm(templateCode);
+    async getTaskForm(input) {
+      // Достаём org-настройку «Требовать фото на каждом шаге». input
+      // содержит documentId — через него вытаскиваем organizationId
+      // (быстрее чем join из адаптера). Best-effort: если запрос
+      // упадёт, считаем что фото не требуется.
+      let requirePhoto = false;
+      try {
+        const doc = await db.journalDocument.findUnique({
+          where: { id: input.documentId },
+          select: {
+            organization: {
+              select: { requirePhotoOnTaskFillStep: true },
+            },
+          },
+        });
+        requirePhoto = Boolean(doc?.organization?.requirePhotoOnTaskFillStep);
+      } catch {
+        requirePhoto = false;
+      }
+      return buildGenericForm(templateCode, { requirePhoto });
     },
 
     async applyRemoteCompletion({ documentId, rowKey, completed, todayKey, values }) {

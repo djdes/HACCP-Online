@@ -30,6 +30,16 @@ const bodySchema = z.object({
   stepTitle: z.string().min(1).max(300),
   totalSteps: z.number().int().min(1).max(50),
   msSinceFormOpen: z.number().int().min(0).max(60 * 60 * 1000).optional(),
+  /**
+   * URL фото-доказательства (если шаг требовал requirePhoto). Должен
+   * начинаться на /uploads/ — иначе явно не наш upload.
+   */
+  photoUrl: z
+    .string()
+    .min(2)
+    .max(500)
+    .regex(/^\/uploads\//)
+    .optional(),
 });
 
 export async function POST(
@@ -114,6 +124,7 @@ export async function POST(
       stepTitle: parsed.stepTitle,
       totalSteps: parsed.totalSteps,
       msSinceFormOpen: parsed.msSinceFormOpen ?? null,
+      photoUrl: parsed.photoUrl ?? null,
     },
   });
 
