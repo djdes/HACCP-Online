@@ -175,6 +175,10 @@ export function TaskFillClient({
     confirmedAt: string; // ISO
     msSinceFormOpen: number;
     photoUrl?: string;
+    /** P1.6 wave-b — комментарий-evidence от worker'а (если шаг требовал). */
+    comment?: string;
+    /** P1.6 wave-b — подпись (ФИО) worker'а на этом шаге. */
+    signature?: string;
   };
   const pipelineSteps = form?.pipeline ?? null;
   const [pipelineConfirms, setPipelineConfirms] = useState<PipelineConfirm[]>(
@@ -185,6 +189,12 @@ export function TaskFillClient({
   // что фото загружается ДО подтверждения шага (чтобы блокировать
   // кнопку «Сделал» пока фото не загрузилось).
   const [stepPhotos, setStepPhotos] = useState<Record<number, string>>({});
+  // P1.6 wave-b — per-step comment/signature inputs. Storage по stepIndex
+  // (не stepId), потому что worker всегда заполняет шаги в порядке.
+  const [stepComments, setStepComments] = useState<Record<number, string>>({});
+  const [stepSignatures, setStepSignatures] = useState<Record<number, string>>(
+    {}
+  );
   // Edit-mode (повторное открытие выполненной задачи) — pipeline уже
   // пройден ранее, не заставляем worker'а проходить заново.
   const pipelineSkipped = alreadyCompleted;
@@ -224,6 +234,11 @@ export function TaskFillClient({
       step.photoMode === "required" ||
       (step.photoMode === undefined && step.requirePhoto === true);
     if (photoRequired && !stepPhotos[stepIndex]) return;
+    // P1.6 wave-b: comment/signature gating
+    const commentValue = (stepComments[stepIndex] ?? "").trim();
+    const signatureValue = (stepSignatures[stepIndex] ?? "").trim();
+    if (step.requireComment && !commentValue) return;
+    if (step.requireSignature && !signatureValue) return;
     const msSinceFormOpen = Math.max(0, Date.now() - formOpenedAt);
     const photoUrl = stepPhotos[stepIndex];
     const entry: PipelineConfirm = {
@@ -233,6 +248,8 @@ export function TaskFillClient({
       confirmedAt: new Date().toISOString(),
       msSinceFormOpen,
       ...(photoUrl ? { photoUrl } : {}),
+      ...(commentValue ? { comment: commentValue } : {}),
+      ...(signatureValue ? { signature: signatureValue } : {}),
     };
     // Optimistic — мгновенно двигаем UI вперёд, audit-log пишется в
     // фоне. Если запись провалится — пользователь не заметит, но
@@ -780,6 +797,14 @@ export function TaskFillClient({
                 onConfirm={confirmPipelineStep}
                 onUploadPhoto={uploadStepPhoto}
                 stepPhotos={stepPhotos}
+                stepComments={stepComments}
+                onCommentChange={(idx, value) =>
+                  setStepComments((prev) => ({ ...prev, [idx]: value }))
+                }
+                stepSignatures={stepSignatures}
+                onSignatureChange={(idx, value) =>
+                  setStepSignatures((prev) => ({ ...prev, [idx]: value }))
+                }
                 values={values}
                 onFieldChange={setField}
                 disabled={submitting}
@@ -1348,6 +1373,10 @@ function PipelineWizard({
   onConfirm,
   onUploadPhoto,
   stepPhotos,
+  stepComments,
+  onCommentChange,
+  stepSignatures,
+  onSignatureChange,
   values,
   onFieldChange,
   disabled,
@@ -1358,6 +1387,10 @@ function PipelineWizard({
   onConfirm: (index: number) => void;
   onUploadPhoto: (index: number, file: File) => Promise<void>;
   stepPhotos: Record<number, string>;
+  stepComments: Record<number, string>;
+  onCommentChange: (index: number, value: string) => void;
+  stepSignatures: Record<number, string>;
+  onSignatureChange: (index: number, value: string) => void;
   values: Record<string, unknown>;
   onFieldChange: (key: string, value: unknown) => void;
   disabled: boolean;
@@ -1574,6 +1607,37 @@ function PipelineWizard({
                       </div>
                     );
                   })()}
+                  {isCurrent && step.requireComment ? (
+                    <div className="mt-3 space-y-1.5">
+                      <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
+                        Комментарий (обязательно)
+                      </label>
+                      <textarea
+                        value={stepComments[index] ?? ""}
+                        onChange={(e) => onCommentChange(index, e.target.value)}
+                        placeholder="Что заметили на этом шаге, что важно записать"
+                        disabled={disabled}
+                        className="min-h-[80px] w-full rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                      />
+                    </div>
+                  ) : null}
+                  {isCurrent && step.requireSignature ? (
+                    <div className="mt-3 space-y-1.5">
+                      <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
+                        Подпись — ваше ФИО (обязательно)
+                      </label>
+                      <input
+                        type="text"
+                        value={stepSignatures[index] ?? ""}
+                        onChange={(e) =>
+                          onSignatureChange(index, e.target.value)
+                        }
+                        placeholder="Например: Иванов И.И."
+                        disabled={disabled}
+                        className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                      />
+                    </div>
+                  ) : null}
                   {isCurrent ? (
                     <div className="mt-3">
                       <Button
@@ -1586,16 +1650,39 @@ function PipelineWizard({
                             "required";
                           if (isPhotoRequired && !stepPhotos[index]) return true;
                           if (!fieldSatisfied(step)) return true;
+                          if (
+                            step.requireComment &&
+                            !(stepComments[index] ?? "").trim()
+                          )
+                            return true;
+                          if (
+                            step.requireSignature &&
+                            !(stepSignatures[index] ?? "").trim()
+                          )
+                            return true;
                           return false;
                         })()}
-                        title={
-                          (step.photoMode ?? (step.requirePhoto ? "required" : "none")) ===
-                            "required" && !stepPhotos[index]
-                            ? "Сначала загрузите фото"
-                            : !fieldSatisfied(step)
-                              ? `Заполните поле «${step.field?.label ?? ""}»`
-                              : undefined
-                        }
+                        title={(() => {
+                          if (
+                            (step.photoMode ?? (step.requirePhoto ? "required" : "none")) ===
+                              "required" &&
+                            !stepPhotos[index]
+                          )
+                            return "Сначала загрузите фото";
+                          if (!fieldSatisfied(step))
+                            return `Заполните поле «${step.field?.label ?? ""}»`;
+                          if (
+                            step.requireComment &&
+                            !(stepComments[index] ?? "").trim()
+                          )
+                            return "Сначала напишите комментарий";
+                          if (
+                            step.requireSignature &&
+                            !(stepSignatures[index] ?? "").trim()
+                          )
+                            return "Сначала введите ФИО (подпись)";
+                          return undefined;
+                        })()}
                         className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
                       >
                         <Check className="size-4" />
