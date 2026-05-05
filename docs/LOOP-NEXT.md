@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C2 — intensive-cooling v2**
+**Текущий приоритет:** **P3.C3 — fryer-oil v2**
 
 ---
 
@@ -155,7 +155,7 @@
 
 ### Tier C (13 остальных)
 - [x] P3.C1 — traceability — DONE wave-1 @ 79fa90c1 @ 2026-05-05 05:55 МСК
-- [ ] P3.C2 — intensive-cooling
+- [x] P3.C2 — intensive-cooling — DONE wave-1 @ 8de9d1c7 @ 2026-05-05 06:10 МСК
 - [ ] P3.C3 — fryer-oil
 - [ ] P3.C4 — glass-list
 - [ ] P3.C5 — metal-impurity
