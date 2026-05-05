@@ -104,16 +104,38 @@ PRIVATE_ROUTES=(
 # Несуществующий путь — компилирует /_not-found manifest.
 NOT_FOUND_TRIGGER="/__deploy-warm-404"
 
+# Hit route с retry на 500. После pm2 delete+start node-процесс
+# иногда стартует когда .next в transitional state (новые chunks,
+# старые manifest references в memory). Первый hit ловит «Invariant:
+# client reference manifest does not exist» → 500. После того как
+# Next.js регистрирует manifest в runtime-map, повторный hit success.
+# До 3 попыток с экспоненциальным sleep'ом.
+hit_with_retry() {
+  local path="$1"
+  local code
+  for attempt in 1 2 3; do
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${BASE}${path}" || echo "ERR")
+    if [ "$code" != "500" ] && [ "$code" != "ERR" ]; then
+      if [ "$attempt" -gt "1" ]; then
+        echo "  $path → $code (attempt $attempt)"
+      else
+        echo "  $path → $code"
+      fi
+      return 0
+    fi
+    sleep $((attempt * 2))
+  done
+  echo "  $path → $code (gave up after 3 retries)"
+}
+
 echo "[prewarm] public routes ($(echo "${PUBLIC_ROUTES[@]}" | wc -w))"
 for path in "${PUBLIC_ROUTES[@]}"; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${BASE}${path}" || echo "ERR")
-  echo "  $path → $code"
+  hit_with_retry "$path"
 done
 
 echo "[prewarm] private routes ($(echo "${PRIVATE_ROUTES[@]}" | wc -w))"
 for path in "${PRIVATE_ROUTES[@]}"; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${BASE}${path}" || echo "ERR")
-  echo "  $path → $code"
+  hit_with_retry "$path"
 done
 
 echo "[prewarm] not-found trigger"
