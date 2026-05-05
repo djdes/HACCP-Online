@@ -241,6 +241,7 @@ export function TreeEditorClient({
   const [confirmDelete, setConfirmDelete] = useState<PipelineNode | null>(null);
   const [confirmSplit, setConfirmSplit] = useState<PipelineNode | null>(null);
   const [confirmClearCustom, setConfirmClearCustom] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [editingNode, setEditingNode] = useState<PipelineNode | null>(null);
 
   const flatNodes = useMemo(
@@ -332,6 +333,26 @@ export function TreeEditorClient({
         : "Очищено"
     );
     setConfirmClearCustom(false);
+    startTransition(() => router.refresh());
+  }
+
+  async function handleClearAll() {
+    const response = await fetch(
+      `/api/settings/journal-pipelines/${code}/clear-all`,
+      { method: "POST" }
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(data?.error || "Не удалось очистить дерево");
+      return;
+    }
+    setTree(data.tree);
+    toast.success(
+      data.removed
+        ? `Удалено узлов: ${data.removed}`
+        : "Дерево очищено"
+    );
+    setConfirmClearAll(false);
     startTransition(() => router.refresh());
   }
 
@@ -555,21 +576,34 @@ export function TreeEditorClient({
                 </ul>
               </SortableContext>
             </DndContext>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1">
-              <p className="text-[12px] text-[#9b9fb3]">
+            <div className="mt-3 flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[12px] leading-snug text-[#9b9fb3]">
                 💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
               </p>
-              {customNodeCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirmClearCustom(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4f2] px-3 py-1 text-[12px] font-medium text-[#a13a32] hover:bg-[#ffe5e1]"
-                  title={`Удалить все custom-узлы (${customNodeCount})`}
-                >
-                  <Trash2 className="size-3" />
-                  Очистить custom-шаги ({customNodeCount})
-                </button>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                {customNodeCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearCustom(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4f2] px-3 py-1 text-[12px] font-medium text-[#a13a32] hover:bg-[#ffe5e1]"
+                    title="Удалить только свои шаги — pinned (📌) останутся"
+                  >
+                    <Trash2 className="size-3" />
+                    Удалить свои шаги ({customNodeCount})
+                  </button>
+                ) : null}
+                {flatNodes.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearAll(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#fed4ce] bg-[#fff4f2] px-3 py-1 text-[12px] font-semibold text-[#a13a32] hover:border-[#a13a32]/30 hover:bg-[#ffe5e1]"
+                    title={`Полностью очистить всё дерево (${flatNodes.length} узлов: pinned + custom). Требует подтверждения «удалить»`}
+                  >
+                    <Trash2 className="size-3" />
+                    Удалить ВСЁ ({flatNodes.length})
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
           <WizardPreview nodes={flatNodes} />
@@ -657,6 +691,39 @@ export function TreeEditorClient({
         typeToConfirm="ОЧИСТИТЬ"
         confirmLabel="Очистить"
         onConfirm={handleClearCustom}
+      />
+
+      <ConfirmDialog
+        open={confirmClearAll}
+        onClose={() => setConfirmClearAll(false)}
+        variant="danger"
+        title="Полностью очистить дерево?"
+        description={
+          <span>
+            Будут удалены <strong>ВСЕ {flatNodes.length} узлов</strong> —
+            и pinned (📌, привязанные к колонкам журнала), и custom (✏,
+            добавленные тобой). Дерево станет пустым.
+          </span>
+        }
+        bullets={[
+          {
+            label:
+              "После этого нажми «Создать из колонок журнала» чтобы получить чистый шаблон по колонкам — заново.",
+          },
+          {
+            label:
+              "Это полностью удалит всю текущую настройку pipeline'а — и base, и кастомные шаги.",
+            tone: "warn",
+          },
+          {
+            label:
+              "Действие необратимо. Если хочешь оставить базовые pinned-узлы — используй кнопку «Удалить свои шаги».",
+            tone: "warn",
+          },
+        ]}
+        typeToConfirm="удалить"
+        confirmLabel="Удалить ВСЁ"
+        onConfirm={handleClearAll}
       />
 
       <ConfirmDialog

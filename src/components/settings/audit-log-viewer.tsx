@@ -113,6 +113,10 @@ const ACTION_LABELS: Record<
     label: "Custom-шаги очищены",
     variant: "destructive",
   },
+  "settings.journal-pipelines.clear-all": {
+    label: "Pipeline полностью очищен",
+    variant: "destructive",
+  },
   // P1 Guide editor — пользовательский гайд «как заполнять» в БД
   "settings.journal-guides.node.create": {
     label: "Шаг гайда добавлен",
@@ -306,6 +310,9 @@ function renderDetails(entry: AuditEntry): ReactElement {
     } else if (entry.action === "settings.journal-pipelines.clear-custom") {
       const removed = (d as { removed?: number }).removed ?? 0;
       primary = `Удалено custom-узлов: ${removed}`;
+    } else if (entry.action === "settings.journal-pipelines.clear-all") {
+      const removed = (d as { removed?: number }).removed ?? 0;
+      primary = `Удалено всех узлов: ${removed} (pinned + custom)`;
     } else if (entry.action.endsWith(".node.create")) {
       primary = title ? `«${title}»` : "(новый узел)";
     } else if (entry.action.endsWith(".node.delete")) {
