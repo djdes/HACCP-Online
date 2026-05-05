@@ -189,6 +189,11 @@
 .app-shell[data-app-theme="dark"] .bg-gray-100 {
   background-color: #0e1224 !important;
 }
+/* #ececf4 = border-color же используется и как surface для progress
+   bars, badges, pill-backgrounds. На dark — slightly lifted than body. */
+.app-shell[data-app-theme="dark"] .bg-\[\#ececf4\] {
+  background-color: #1f2540 !important;
+}
 .app-shell[data-app-theme="dark"] .bg-\[\#f5f6ff\] {
   background-color: #1a1f3a !important;
 }
