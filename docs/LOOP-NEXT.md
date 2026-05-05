@@ -336,9 +336,9 @@
 ### Section H — Performance
 
 - [ ] H.1 — Кэшировать `getJournalDocument` результаты на 60 сек (LRU)
-- [ ] H.2 — Lazy-load изображений в audit-log viewer
+- [x] H.2 — Lazy-load изображений в audit-log viewer — DONE @ 81549061 @ 2026-05-05 16:05 МСК (`loading="lazy"` + `decoding="async"` на `<img>` тэгах в `journal.fill.step` и `journal.fill.photo` cards)
 - [ ] H.3 — Bundle split: `react-pdf` загружается только на report'ах
-- [ ] H.4 — Skeleton states вместо spinner'а на дашборде
+- [x] H.4 — Skeleton states вместо spinner'а на дашборде — DONE @ 81549061 @ 2026-05-05 16:05 МСК (catch-up grid skeleton: 8 строк × 7 колонок с staggered animation-delay; spinner был только там — остальные dashboard widgets SSR)
 - [ ] H.5 — Prefetch следующих 3 страниц журналов при scroll
 
 ### Section I — A11y
