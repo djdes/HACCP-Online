@@ -57,7 +57,11 @@ function utcDayStart(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-const STATUS_LABEL: Record<string, string> = {
+/** Pure mapping shiftStatus → русскоязычный label с иконкой. Извлечено
+ *  для testability (см. staff-tools-helpers.test.ts).
+ *  Unknown статусы возвращаются как-есть — для forward-compat с
+ *  будущими migration'ами. */
+export const SHIFT_STATUS_LABEL: Record<string, string> = {
   none: "🆕 Смена ещё не открыта",
   scheduled: "🕒 По графику, но ещё не на смене",
   working: "🟢 На смене сейчас",
@@ -67,6 +71,30 @@ const STATUS_LABEL: Record<string, string> = {
   vacation: "✈️ Отпуск",
   sick: "🤒 Больничный",
 };
+
+export function formatShiftStatusLabel(status: string): string {
+  return SHIFT_STATUS_LABEL[status] ?? status;
+}
+
+/** Pure decision — какие inline-buttons показать в /shift на конкретном
+ *  shiftStatus. Возвращает массив action-id'ов; UI-каркас всегда
+ *  одинаковый. Тестируем decision logic без grammy/Telegram. */
+export function shiftStatusActions(status: string): Array<"start" | "end"> {
+  if (status === "working") return ["end"];
+  if (
+    status === "ended" ||
+    status === "absent" ||
+    status === "off" ||
+    status === "vacation" ||
+    status === "sick"
+  ) {
+    return [];
+  }
+  // none, scheduled, или любой другой → предлагаем «вышел».
+  return ["start"];
+}
+
+const STATUS_LABEL = SHIFT_STATUS_LABEL;
 
 function buildShiftKeyboard(args: {
   shiftStatus: string;

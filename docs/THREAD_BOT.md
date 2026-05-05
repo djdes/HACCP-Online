@@ -47,37 +47,127 @@ docs/THREAD_BOT.md                     # этот файл
 
 ## Бэклог фич для этого потока
 
-### Приоритет 1 — критичное / в незакрытом MANUAL-статусе после QA-loop
+> **Статус 2026-05-06**: после двух loop-сессий поток закрыл основную
+> массу из P1-P4, прошло 4 review-pass'а с независимыми code-review
+> subagent'ами. Mini App + bot готовы к продакшен-нагрузкам. Ниже —
+> только **открытые** задачи.
 
-1. **Mini-app onboarding tour (3 экрана)** (F-044) — после первого `signIn("telegram", ...)` показывается тур: «вот журналы», «вот как заполнять», «вот photo evidence». Persist `seenOnboarding=true` в User или localStorage.
-2. **Telegram personalize {name}/{timeOfDay}/{dayOfWeek}** (F-056) — функция `personalizeMessage()` есть в `src/lib/telegram.ts:117`. Проверить что используется в weekly-digest, mini-digest, push'ах напоминаний.
+### Открытые
 
-### Приоритет 2 — новые идеи для Mini App
+#### P2 — нереализованные новые идеи для Mini App
 
-3. **Voice-input для notes / комментариев** — в любой `<textarea>` Mini App кнопка микрофона: запись 10–30s → загрузка в `/api/mini/voice` → Whisper-транскрипция (если есть AI ключ) → вставка в textarea.
-4. **Offline-first для журналов** — сохранять заполненные карточки в IndexedDB и слать в `/api/mini/.../entries` пачкой когда соединение вернётся. Сейчас Mini App требует онлайн.
-5. **QR-сканер для локаций** — на дверце холодильника наклейка с QR (`https://wesetup.ru/qr/cold-3`); сканер в Mini App открывает форму температурного журнала с уже выбранным холодильником №3.
-6. **«Я вышел на смену / закончил смену»** — две большие кнопки в `/mini` для `WorkShift.start/end`; геолокация автоматом (если разрешено в Telegram).
-7. **Bottom-sheet для photo capture** — нативный pattern: tap «прикрепить фото» → bottom-sheet с опциями «камера / галерея / документ». Сейчас просто `<input type="file">`.
-8. **Skeleton-loading состояния** — пока `/api/mini/home` грузится, показывать skeleton-карточки (D2 в WeSetup есть, надо принести в mini).
-9. **Pull-to-refresh** — top-of-list жест: дёргает `/api/mini/home`, показывает spinner.
-10. **Push «вы не заполнили смену»** — если staff на смене (`WorkShift.startedAt`) но за 4 часа ни одной записи в журнале — пинг от бота: «всё ок?». Cron каждые 30 мин.
+1. **Voice-input через Whisper API** — нужен внешний STT-ключ (OpenAI
+   Whisper или Yandex SpeechKit). Web Speech API уже работает (см.
+   `_components/voice-input.tsx`); нужен fallback для iOS Safari /
+   старых WebView через `/api/mini/voice` endpoint. Без ключа — 501.
+2. **Offline-first для журналов** — IndexedDB queue для journal entries.
+   Сохранять заполненные карточки локально и слать в
+   `/api/mini/.../entries` пачкой когда соединение вернётся. Сейчас
+   Mini App требует онлайн (`navigator.onLine` детект уже есть в
+   `_components/offline-indicator.tsx`).
+3. **Voice-note → запись в журнал** — сотрудник надиктовывает «холодильник
+   3, минус 18, всё ок» → бот через AI вытаскивает t° и пишет в журнал.
+   Завязано на (1).
 
-### Приоритет 3 — функционал бота (вне Mini App)
+#### P3 — функционал бота (нереализованный)
 
-11. **Бот-команды для owner-а** — `/today` (что заполнено сегодня), `/missing` (что не заполнено), `/capa` (открытые), `/stats` (% за неделю). Сейчас весь бот пассивный — только push'ы.
-12. **Inline-buttons на push'ах** — у каждого push'а «Заполнить сейчас» (deep-link в Mini App), «Отложить на 1 час» (snooze), «Передать другому» (переназначение).
-13. **Группа организации** — owner создаёт group-chat с ботом, бот шлёт туда дайджесты, отчёты, escalations. Сейчас всё DM-only.
-14. **Voice-note → запись в журнал** — сотрудник без рук (повар) надиктовывает «холодильник 3, минус 18, всё ок» → бот через AI вытаскивает t° и пишет в журнал.
-15. **Telegram Stars / Premium-канал** — за пейволлом некоторые AI-фичи (например, AI-помощник в чате). Не первая фича, но отметить.
+4. **Inline-buttons «Передать другому» на push'ах** — snooze уже
+   реализован (`notif:snooze:60`), а «передать другому» требует
+   двухшагового callback flow (выбор delegatee из dropdown). Сложнее.
+5. **Группа организации** — owner создаёт group-chat с ботом; бот
+   шлёт туда дайджесты, отчёты, escalations. Сейчас всё DM-only. Big
+   задача (group-chat handlers, permission model).
+6. **Telegram Stars / Premium-канал** — пейволл для некоторых AI-фич
+   (AI-помощник в чате). Бизнес-решение, не приоритет.
 
-### Приоритет 4 — техдолг / DX
+#### P4 — техдолг
 
-16. **Тесты для `personalizeMessage()`** — снэпшот-тесты с разным контекстом (имя пустое, timeOfDay граничные часы 0/6/12/18/23).
-17. **Структурированный лог TelegramLog** — добавить `latencyMs`, `retryCount`, `errorCode` для диагностики 429/5xx Bot API.
-18. **Rate-limit на webhook /api/telegram/webhook** — защита от flood'а Telegram.
-19. **Health-check бота** — `/api/telegram/health` который проверяет `getMe()` и валидность `TELEGRAM_BOT_TOKEN`. Дашборд `/root/telegram-logs` показывает зелёный/красный.
-20. **`grammy` мидлвары** — если ещё не используется grammy, подумать о миграции с raw-fetch на grammy для удобства.
+7. **Структурированный лог TelegramLog в БД** — `latencyMs`,
+   `retryCount`, `errorCode` отдельные колонки. Сейчас structured-log
+   только в stdout (см. `tag=tg-send` JSON). Требует schema-migration —
+   shared с потоком 1.
+8. **`/api/mini/voice` endpoint** — выше (1).
+9. **Pre-fetch hover/touch для journal cards в /mini home** — мгновенная
+   навигация. Минорный win, не критично.
+
+### Закрытое (история)
+
+> 25 коммитов за две loop-сессии, ~50 fixes из 4 review-pass'ов:
+
+#### Реализовано
+- ✅ **F-044** Mini-app onboarding tour (3 экрана) + anti-anon gate.
+- ✅ **F-056** `personalizeMessage` с `{greeting}` (правильный род),
+  HTML-escape `{name}`, snapshot-тесты, distribute в digest builders +
+  `notifyOrganization`.
+- ✅ **QR-сканер** с поддержкой `wesetup.ru/qr/<slug>` коротких ссылок
+  (`cold-3`, `eq-<uuid>`, `journal-<code>`) + 8 unit-тестов.
+- ✅ **«Я вышел / закончил смену»** в `/mini` (`MyShiftButton`) +
+  `/api/mini/shift/me` API.
+- ✅ **Photo bottom-sheet** «камера / галерея».
+- ✅ **Photo client-side compression** (1600px @0.85, 3MB→500KB на
+  cellular) + 10 unit-тестов.
+- ✅ **Skeleton-loading** на `/mini` home и `/mini/journals/[code]`.
+- ✅ **Pull-to-refresh** свайпом вниз с retry-on-500.
+- ✅ **Shift-watcher Stage 3** — friendly DM сотруднику после 4ч
+  бездействия с кнопкой «🔕 Отложить 1ч» (snooze).
+- ✅ **Bot-команды для рук-ва**: `/today`, `/missing`, `/capa`, `/stats`,
+  `/staff`, `/batches`, `/losses`, **`/who-late`**, **`/health`**.
+- ✅ **Bot-команды для сотрудника**: `/shift` (inline start/end),
+  `/me`, **`/my-digest`**.
+- ✅ **Inline-buttons «Заполнить» / «Отложить»** на push'ах —
+  `notif:snooze:60` + `web_app` deep-link в Mini App.
+- ✅ **Snapshot-тесты для `personalizeMessage`** — 14 тестов на
+  граничные часы 0/6/12/18/23, имена, дни недели.
+- ✅ **Structured-log TelegramLog** в stdout (JSON `tag=tg-send`,
+  latencyMs, attempts, errorCode).
+- ✅ **Rate-limit на webhook** + на все bot-callbacks
+  (`botCallbackRateLimiter` 30/min на pair (chatId, prefix)).
+- ✅ **Health-check бота** — `/api/telegram/health` с `getMe()` race
+  + 5s timeout. Утечку `BOT_TOKEN` через err.message закрыли redaction.
+- ✅ Bot всё на grammy (composer, callbackQuery, command).
+
+#### Critical security/HACCP fixes (Pass-1/2/3/4)
+- HTML-injection в `/api/mini/notify` (escape + zod schema 2000 chars
+  + URL hostname whitelist).
+- Disk-fill DoS на `/api/mini/attachments` (60/day rate-limit).
+- HACCP compliance falsification: `bulk-copy-yesterday` теперь
+  блокируется для document-журналов (раньше создавал phantom-rows).
+- Bulk-copy race-condition: `db.$transaction({Serializable})` +
+  sequential `for` внутри tx.
+- Дублирующий callback `shift:start` (shift-gate VS staff-tools) —
+  переименован в `shift-tg:start/end`.
+- VoiceInput stale-closure снежный ком.
+- Claim/complete mutex на `/mini/today`.
+- syntheticEmail UUID + P2002 retry.
+- Audit details redaction (REDACT_KEYS recursive) + 9 unit-тестов.
+
+#### UX
+- Telegram BackButton wiring на всех вложенных `/mini/*`.
+- signIn 12s timeout с явным error-state + retry-button.
+- Empty-state «нет назначенных задач» для нового сотрудника (vs
+  ложного «всё выполнено»).
+- ConfirmDialog для destructive (sign-out, unlink с typeToConfirm).
+- Safe-area-inset для iPhone notch / home-indicator.
+- Phone normalize (+7/7/8/10-digit).
+
+#### Performance
+- `/api/mini/today` 64 sequential queries → 33 (batch claims, parallel pool/ACL).
+- `/stats` 7 sequential `groupBy` → 1 query.
+- Photo compression на клиенте.
+- ObjectURL вместо data-URL в image-compress (37% memory).
+
+#### Theme/visual
+- Dark/light migration на ВСЕ `/mini/*` (page, journals, shift-handover,
+  iot, equipment, audit, staff, me).
+- Skeleton-каркасы.
+- Emoji ▶️/⚡ → lucide Play/Zap.
+- Tap-target ≥44×44 в onboarding-tour.
+
+#### Infra
+- **Persistent prod 500's** на nested `/mini/*` побеждены: `prewarm-routes.sh`
+  покрывает все 10 routes + `hit_with_retry` (3 попытки) обрабатывает
+  Next.js 16 client-reference-manifest JIT race.
+- Webhook rate-limit (60 req/min на IP).
 
 ## Правила деплоя
 
