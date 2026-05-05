@@ -98,10 +98,12 @@ export function MiniTour() {
           <span className="flex size-12 items-center justify-center rounded-2xl bg-[#5566f6]/15 text-[#a3b0ff]">
             <Icon className="size-6" />
           </span>
+          {/* Tap-target ≥ 44×44 px (iOS HIG): p-3 на 16-px X = 44×44.
+              Раньше p-1.5 давал ~32×32 — толстым пальцем мимо. */}
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-full p-1.5 text-white/40 hover:bg-white/5 hover:text-white"
+            className="-m-3 rounded-full p-3 text-white/40 hover:bg-white/5 hover:text-white"
             aria-label="Закрыть"
           >
             <X className="size-4" />

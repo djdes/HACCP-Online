@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { ArrowLeft, LogOut, Moon, Sun, Unlink } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useMiniTheme } from "../_components/mini-theme";
 
 /**
@@ -21,6 +22,11 @@ export default function MiniMePage() {
   const { theme, setTheme } = useMiniTheme();
   const [busy, setBusy] = useState<"none" | "signout" | "unlink">("none");
   const [error, setError] = useState<string | null>(null);
+  // Confirm-state для двух destructive actions. Project rule (CLAUDE.md
+  // §6): native window.confirm не используем — только ConfirmDialog с
+  // bullet-описанием последствий.
+  const [confirmSignOutOpen, setConfirmSignOutOpen] = useState(false);
+  const [confirmUnlinkOpen, setConfirmUnlinkOpen] = useState(false);
 
   // Раньше: hasFullWorkspaceAccess gate перенаправлял staff'а обратно
   // на /mini. Но «Профиль» нужен и линейному сотруднику — выйти,
@@ -207,7 +213,7 @@ export default function MiniMePage() {
       <section className="space-y-2">
         <button
           type="button"
-          onClick={handleSignOut}
+          onClick={() => setConfirmSignOutOpen(true)}
           disabled={busy !== "none"}
           className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium disabled:opacity-50"
           style={{
@@ -232,7 +238,7 @@ export default function MiniMePage() {
         </button>
         <button
           type="button"
-          onClick={handleUnlink}
+          onClick={() => setConfirmUnlinkOpen(true)}
           disabled={busy !== "none"}
           className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium disabled:opacity-50"
           style={{
@@ -250,6 +256,40 @@ export default function MiniMePage() {
           </span>
         </button>
       </section>
+
+      <ConfirmDialog
+        open={confirmSignOutOpen}
+        onClose={() => setConfirmSignOutOpen(false)}
+        onConfirm={async () => {
+          setConfirmSignOutOpen(false);
+          await handleSignOut();
+        }}
+        title="Выйти из аккаунта?"
+        description="Текущая сессия будет сброшена. Чтобы вернуться, откройте Mini App снова через Telegram — авторизация по initData пройдёт автоматически."
+        confirmLabel="Выйти"
+        cancelLabel="Отмена"
+        variant="info"
+      />
+
+      <ConfirmDialog
+        open={confirmUnlinkOpen}
+        onClose={() => setConfirmUnlinkOpen(false)}
+        onConfirm={async () => {
+          setConfirmUnlinkOpen(false);
+          await handleUnlink();
+        }}
+        title="Точно отвязать Telegram?"
+        description="После отвязки доступ к Mini App пропадёт — даже из этого же чата. Чтобы вернуться, понадобится новая ссылка-приглашение от руководителя."
+        bullets={[
+          { label: "Сессия будет сброшена", tone: "default" },
+          { label: "Привязка User → Telegram-чат удалится", tone: "warn" },
+          { label: "Понадобится новый инвайт от руководителя", tone: "warn" },
+        ]}
+        confirmLabel="Отвязать"
+        cancelLabel="Отмена"
+        variant="danger"
+        typeToConfirm="ОТВЯЗАТЬ"
+      />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   Clock,
   Loader2,
   Lock,
+  Play,
   Sparkles,
   UserCheck,
 } from "lucide-react";
@@ -177,7 +178,7 @@ export default function MiniTodayPage() {
             {startingShift ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
-              <span>▶️</span>
+              <Play className="size-5 fill-current" />
             )}
             Начать смену
           </button>

@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Loader2,
+  Play,
   ShieldAlert,
+  Zap,
 } from "lucide-react";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
 import { MiniCard } from "./_components/mini-card";
@@ -349,7 +351,11 @@ export default function MiniHomePage() {
               color: "var(--mini-text-on-lime)",
             }}
           >
-            {startingShift ? <Loader2 className="size-5 animate-spin" /> : <span>▶️</span>}
+            {startingShift ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <Play className="size-5 fill-current" />
+            )}
             Начать смену
           </button>
         </div>
@@ -606,7 +612,7 @@ export default function MiniHomePage() {
               color: "var(--mini-text-on-lime)",
             }}
           >
-            ⚡
+            <Zap className="size-5 fill-current" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold" style={{ color: "var(--mini-text)" }}>
