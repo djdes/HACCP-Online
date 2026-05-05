@@ -35,7 +35,10 @@ import {
   getDefaultEquipmentCalibrationConfig,
 } from "./equipment-calibration-document";
 import { getDefaultEquipmentCleaningConfig } from "./equipment-cleaning-document";
-import { getDefaultEquipmentMaintenanceConfig } from "./equipment-maintenance-document";
+import {
+  buildEquipmentMaintenanceConfigFromEquipment,
+  getDefaultEquipmentMaintenanceConfig,
+} from "./equipment-maintenance-document";
 import { getDefaultFinishedProductDocumentConfig } from "./finished-product-document";
 import { getDefaultGlassControlConfig } from "./glass-control-document";
 import {
@@ -49,7 +52,10 @@ import { getDefaultPerishableRejectionConfig } from "./perishable-rejection-docu
 import { getPpeIssuanceDefaultConfig } from "./ppe-issuance-document";
 import { getDefaultProductWriteoffConfig } from "./product-writeoff-document";
 import { getDefaultRegisterDocumentConfig } from "./register-document";
-import { getSanitationDayDefaultConfig } from "./sanitation-day-document";
+import {
+  buildSanitationDayConfigFromAreas,
+  getSanitationDayDefaultConfig,
+} from "./sanitation-day-document";
 import { defaultSdcConfig } from "./sanitary-day-checklist-document";
 import { getTrainingPlanDefaultConfig } from "./training-plan-document";
 
@@ -110,10 +116,25 @@ const PROVIDERS: Record<string, Provider> = {
   // ═══ УБОРКА ═══
   cleaning: () =>
     getDefaultCleaningDocumentConfig() as unknown as Record<string, unknown>,
-  general_cleaning: () =>
-    getSanitationDayDefaultConfig() as unknown as Record<string, unknown>,
-  cleaning_ventilation_checklist: () =>
-    getDefaultCleaningVentilationConfig() as unknown as Record<string, unknown>,
+  general_cleaning: (orgData) => {
+    if (orgData?.areas && orgData.areas.length > 0) {
+      return buildSanitationDayConfigFromAreas(
+        orgData.areas
+      ) as unknown as Record<string, unknown>;
+    }
+    return getSanitationDayDefaultConfig() as unknown as Record<string, unknown>;
+  },
+  cleaning_ventilation_checklist: (orgData) => {
+    if (orgData?.users && orgData.users.length > 0) {
+      return getDefaultCleaningVentilationConfig(
+        orgData.users
+      ) as unknown as Record<string, unknown>;
+    }
+    return getDefaultCleaningVentilationConfig() as unknown as Record<
+      string,
+      unknown
+    >;
+  },
   uv_lamp_runtime: () =>
     getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
   disinfectant_usage: () =>
@@ -162,10 +183,23 @@ const PROVIDERS: Record<string, Provider> = {
       unknown
     >;
   },
-  equipment_maintenance: () =>
-    getDefaultEquipmentMaintenanceConfig(
-      new Date().getUTCFullYear()
-    ) as unknown as Record<string, unknown>,
+  equipment_maintenance: (orgData) => {
+    const year = new Date().getUTCFullYear();
+    if (orgData?.equipment && orgData.equipment.length > 0) {
+      return buildEquipmentMaintenanceConfigFromEquipment(
+        orgData.equipment.map((e) => ({
+          id: e.id,
+          name: e.name,
+          type: e.type ?? null,
+        })),
+        year
+      ) as unknown as Record<string, unknown>;
+    }
+    return getDefaultEquipmentMaintenanceConfig(year) as unknown as Record<
+      string,
+      unknown
+    >;
+  },
   breakdown_history: () =>
     getBreakdownHistoryDefaultConfig() as unknown as Record<string, unknown>,
   glass_items_list: (orgData) => {

@@ -117,6 +117,42 @@ function normalizeRows(value: unknown): SanitationRoomRow[] {
     .filter((item): item is SanitationRoomRow => item !== null);
 }
 
+/**
+ * Строит конфиг санитарного дня из списка цехов/помещений (Area).
+ * Каждый цех становится строкой таблицы с пустыми planned/fact
+ * месяцами — заведующая потом проставит даты по графику.
+ *
+ * Если areas пустой — возвращает stub-дефолт с двумя примерами.
+ */
+export function buildSanitationDayConfigFromAreas(
+  areas: Array<{ id: string; name: string }>,
+  date = new Date(),
+): SanitationDayConfig {
+  if (areas.length === 0) {
+    return getSanitationDayDefaultConfig(date);
+  }
+
+  const year = date.getUTCFullYear();
+  const d = new Date(Date.UTC(year, 0, 1));
+
+  return {
+    year,
+    documentDate: toDateKey(d),
+    approveRole: "Управляющий",
+    approveEmployeeId: null,
+    approveEmployee: "",
+    responsibleRole: "Управляющий",
+    responsibleEmployeeId: null,
+    responsibleEmployee: "",
+    rows: areas.map((area, index) => ({
+      id: `row-area-${area.id || `idx-${index}`}`,
+      roomName: area.name,
+      plan: createMonthValues("-"),
+      fact: createMonthValues("-"),
+    })),
+  };
+}
+
 export function getSanitationDayDefaultConfig(
   date = new Date(),
 ): SanitationDayConfig {

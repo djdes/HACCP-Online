@@ -74,6 +74,65 @@ export function createEquipmentMaintenanceRow(
   };
 }
 
+type EquipmentMaintenanceSource = {
+  id: string;
+  name: string;
+  type?: string | null;
+};
+
+/**
+ * Строит конфиг ППР из реального списка Equipment орги. Каждая
+ * единица оборудования становится отдельной строкой графика. Тип
+ * обслуживания эвристически берётся из `Equipment.type`:
+ *   - холодильное / морозильное → "B" (профилактика)
+ *   - всё остальное → "A" (текущее обслуживание)
+ *
+ * Если equipment пуст — возвращает stub-дефолт от
+ * `getDefaultEquipmentMaintenanceConfig`.
+ */
+export function buildEquipmentMaintenanceConfigFromEquipment(
+  equipment: EquipmentMaintenanceSource[],
+  year = new Date().getUTCFullYear()
+): EquipmentMaintenanceConfig {
+  if (equipment.length === 0) {
+    return getDefaultEquipmentMaintenanceConfig(year);
+  }
+
+  const emptyPlan: Record<string, string> = {};
+  const emptyFact: Record<string, string> = {};
+  for (const key of MONTH_KEYS) {
+    emptyPlan[key] = "-";
+    emptyFact[key] = "";
+  }
+
+  const rows = equipment.map((item) => {
+    const normalizedType = (item.type ?? "").toLowerCase();
+    const isCold =
+      normalizedType.includes("refrigerator") ||
+      normalizedType.includes("freezer") ||
+      normalizedType.includes("холодильн") ||
+      normalizedType.includes("морозильн");
+    return createEquipmentMaintenanceRow({
+      equipmentName: item.name,
+      maintenanceType: isCold ? "B" : "A",
+      plan: { ...emptyPlan },
+      fact: { ...emptyFact },
+    });
+  });
+
+  return {
+    year,
+    documentDate: `${year}-01-01`,
+    approveRole: "Управляющий",
+    approveEmployeeId: null,
+    approveEmployee: "",
+    responsibleRole: "Шеф-повар",
+    responsibleEmployeeId: null,
+    responsibleEmployee: "",
+    rows,
+  };
+}
+
 export function getDefaultEquipmentMaintenanceConfig(
   year = new Date().getUTCFullYear()
 ): EquipmentMaintenanceConfig {
