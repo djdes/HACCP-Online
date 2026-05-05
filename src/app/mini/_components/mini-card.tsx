@@ -12,6 +12,7 @@ export function MiniCard({
   subtitle,
   status,
   index,
+  prefetch = true,
 }: {
   href: string;
   title: string;
@@ -19,6 +20,14 @@ export function MiniCard({
   status?: { kind: "todo" | "done" | "idle"; label: string };
   /** 1-based порядковый номер для mono-префикса слева. */
   index?: number;
+  /**
+   * Eager prefetch при первом рендере карточки (вместо viewport-based).
+   * Включён по дефолту: журнал-карточки на /mini home обычно тапаются
+   * почти сразу, и пары лишних КБ network-data стоят мгновенного
+   * перехода. Можно отключить (`prefetch={false}`) для cards в дальнем
+   * конце длинного списка.
+   */
+  prefetch?: boolean;
 }) {
   const tone =
     status?.kind === "todo"
@@ -30,6 +39,7 @@ export function MiniCard({
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className="mini-press mini-card group flex items-stretch gap-3 px-3.5 py-3"
     >
       {/* Vertical index numeral — mono */}

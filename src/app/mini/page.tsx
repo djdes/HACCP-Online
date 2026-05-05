@@ -718,6 +718,11 @@ export default function MiniHomePage() {
                     : { kind: "idle", label: "—" }
                 }
                 index={idx + 1}
+                // Top 5 cards в полном списке prefetch'нем eager —
+                // дальше viewport-based hover prefetch (default Link
+                // behavior). На cellular грузить 30+ targets eager
+                // = лишние ~150KB.
+                prefetch={idx < 5}
               />
             </div>
           ))
