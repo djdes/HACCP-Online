@@ -410,6 +410,27 @@ export function DynamicForm({
     await submitForm(rollingMode ? true : null);
   }
 
+  // P2.A.5 — Ctrl+S / ⌘+S сохраняет форму. preventDefault'им browser
+  // «save page», вызываем стандартный submit. Для rolling — продолжение
+  // loop'а (как обычный submit), для не-rolling — save+redirect.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isSave = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s";
+      if (!isSave) return;
+      e.preventDefault();
+      if (isSubmitting) return;
+      // Тригерим submit, как если бы пользователь нажал кнопку «Сохранить».
+      submitForm(rollingMode ? true : null).catch(() => {
+        // ошибки уже обрабатываются в submitForm через toast
+      });
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // submitForm и rollingMode стабильны для жизни компонента; isSubmitting
+    // нужен чтобы не дёргать дублирующий submit пока первый ещё в полёте.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubmitting, rollingMode]);
+
   const visibleFields = fields.filter(
     (field) => !field.auto && isFieldVisible(field)
   );
