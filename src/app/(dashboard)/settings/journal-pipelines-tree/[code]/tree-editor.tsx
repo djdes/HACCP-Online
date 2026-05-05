@@ -95,6 +95,7 @@ function SortableNodeRow({
   onEdit,
   onDelete,
   onSplit,
+  onAddSubtask,
 }: {
   node: PipelineNode;
   index: number;
@@ -102,6 +103,7 @@ function SortableNodeRow({
   onEdit: () => void;
   onDelete: () => void;
   onSplit: () => void;
+  onAddSubtask: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id });
@@ -171,6 +173,19 @@ function SortableNodeRow({
           ) : null}
         </div>
         <div className="flex shrink-0 gap-1">
+          {/* Limit nesting к depth 2 (root=0, child=1, grandchild=2 max). */}
+          {depth < 2 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              title="Добавить подшаг"
+              onClick={onAddSubtask}
+              className="h-8 rounded-xl px-2 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+            >
+              <Plus className="size-4" />
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -508,6 +523,10 @@ export function TreeEditorClient({
                       onEdit={() => setEditingNode(node)}
                       onDelete={() => setConfirmDelete(node)}
                       onSplit={() => handleSplit(node)}
+                      onAddSubtask={() => {
+                        setAddParentId(node.id);
+                        setAddOpen(true);
+                      }}
                     />
                   ))}
                 </ul>
@@ -621,9 +640,13 @@ function WizardPreview({ nodes }: { nodes: PipelineNode[] }) {
             <ol className="space-y-2.5">
               {nodes.map((node, index) => {
                 const isCurrent = index === 0;
+                // P1.7 — indent в preview (точно как в реальном wizard'е).
+                const previewDepth = depthOf(node, nodes);
+                const indentPx = previewDepth * 24;
                 return (
                   <li
                     key={node.id}
+                    style={indentPx ? { marginLeft: `${indentPx}px` } : undefined}
                     className={[
                       "rounded-2xl border transition-colors",
                       isCurrent

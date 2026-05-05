@@ -129,6 +129,13 @@ export type PipelineStep = {
    * Если true — рендерим input, «Сделал» заблокирована до non-empty.
    */
   requireSignature?: boolean;
+  /**
+   * P1.7 — глубина в дереве: 0 = root, 1 = subtask, 2 = sub-subtask.
+   * Wizard рендерит indent (marginLeft) пропорционально depth.
+   * Используется только для визуального indent — порядок шагов
+   * сохраняется через flatten в адаптере.
+   */
+  depth?: number;
 };
 
 export type TaskFormSchema = {

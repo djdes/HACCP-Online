@@ -1449,9 +1449,12 @@ function PipelineWizard({
           const isDone = index < confirmedCount;
           const isCurrent = !allDone && index === currentIndex;
           const isLocked = !isDone && !isCurrent;
+          // P1.7 — indent для подшагов (depth=1 → 24px, depth=2 → 48px).
+          const indentPx = (step.depth ?? 0) * 24;
           return (
             <li
               key={step.id}
+              style={indentPx ? { marginLeft: `${indentPx}px` } : undefined}
               className={[
                 "rounded-2xl border transition-colors",
                 isDone

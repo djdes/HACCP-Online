@@ -209,7 +209,9 @@ function buildFormFromPipelineTree(
     if (tf) fieldByKey.set(tf.key, tf);
   }
 
-  // Flatten в DFS-порядке: root nodes по ordering, потом children
+  // Flatten в DFS-порядке: root nodes по ordering, потом children.
+  // P1.7 — параллельно считаем `depth` каждого узла (0 = root) для
+  // wizard-indent.
   const byParent = new Map<string | null, typeof nodes>();
   for (const n of nodes) {
     const list = byParent.get(n.parentId) ?? [];
@@ -219,16 +221,16 @@ function buildFormFromPipelineTree(
   for (const list of byParent.values()) {
     list.sort((a, b) => a.ordering - b.ordering);
   }
-  const flat: typeof nodes = [];
-  function walk(parentId: string | null) {
+  const flat: Array<{ node: (typeof nodes)[number]; depth: number }> = [];
+  function walk(parentId: string | null, depth: number) {
     for (const n of byParent.get(parentId) ?? []) {
-      flat.push(n);
-      walk(n.id);
+      flat.push({ node: n, depth });
+      walk(n.id, depth + 1);
     }
   }
-  walk(null);
+  walk(null, 0);
 
-  const steps: PipelineStep[] = flat.map((node) => {
+  const steps: PipelineStep[] = flat.map(({ node, depth }) => {
     const field =
       node.kind === "pinned" && node.linkedFieldKey
         ? fieldByKey.get(node.linkedFieldKey)
@@ -252,6 +254,7 @@ function buildFormFromPipelineTree(
       photoMode,
       requireComment: node.requireComment === true,
       requireSignature: node.requireSignature === true,
+      depth,
     };
   });
 
