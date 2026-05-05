@@ -542,25 +542,26 @@ html, body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  /* CASE 2: document-wrapper с max-w-[1840px] / max-w-[1280px] —
-     обёртки для wide-table документов (climate, hygiene grid и т.п.).
-     На mobile должны скроллиться по горизонтали и иметь max-width:100%. */
-  .app-shell main .max-w-\[1840px\],
-  .app-shell main .max-w-\[1640px\],
-  .app-shell main .max-w-\[1280px\] {
+  /* CASE 2: any wide-table-containing div — find via :has() и
+     attribute substring без [ символа (Tailwind/PostCSS эскейпит
+     [ в строке к \[ — что НЕ MATCH'ит class="min-w-[..." в HTML).
+     Используем `min-w-` substring без bracket — Tailwind его не трогает. */
+  .app-shell main div:has(table[class*="min-w-"]) {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     max-width: 100% !important;
   }
+  /* Также обрабатываем стандартные tailwind utilities min-w-screen-XX */
+  .app-shell main div:has(> table.w-full[style*="min-width"]) {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
 
   /* ── Большие headings — auto-shrink ────────────────────────── */
-  .app-shell main [class*="text-[3"][class*="px"]:not([class*="px-"]),
-  .app-shell main [class*="text-[4"][class*="px"]:not([class*="px-"]) {
-    font-size: 1.625rem !important;
-    line-height: 1.15 !important;
-  }
-  .app-shell main h1[class*="text-["],
-  .app-shell main h2[class*="text-["] {
+  /* Heading с большим текстом auto-wrap (если в className встречается
+     text-[Npx] — Tailwind/PostCSS эскейпит [, поэтому matchим без него) */
+  .app-shell main h1[class*="text-"],
+  .app-shell main h2[class*="text-"] {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
