@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.10 — Audit-log integration** (pretty-render `settings.journal-pipelines.*` action'ов в audit viewer'е).
+**Текущий приоритет:** **P1 ЗАКРЫТ ПОЛНОСТЬЮ — Pipeline Editor 100% feature-complete. Дальше P2 backlog.**
 
 ---
 
@@ -185,9 +185,20 @@
 - Bullets описывают: «когда удобно», «pinned не затрагиваются», «действие необратимо»
 - toast «Удалено custom-узлов: N» с количеством удалённых из API response.removed
 
-### [ ] P1.10 — Audit-log integration
-- Каждый PATCH/DELETE/POST на pipeline-tree → AuditLog
-- Pretty-render в audit-viewer
+### [x] P1.10 — Audit-log integration — DONE @ 5e546ef5 @ 2026-05-05 15:05 МСК
+- AuditLog запись на каждую мутацию в API endpoints — DONE @ a97a8a0b/43360d86/abaca6d6 (P1.2 + P1.5 wave-a)
+- Pretty-render в `audit-log-viewer.tsx`:
+  - 11 action labels добавлены: `settings.journal-pipelines.{seed,clear-custom,node.{create,update,delete,move,split}}` + `settings.journal-guides.node.{create,update,delete,move}`
+  - 4 entity labels: `JournalPipelineTemplate/Node`, `JournalGuideTemplate/Node`
+  - `renderDetails`-функция теперь имеет специальную ветку для `settings.journal-pipelines.*` и `.journal-guides.*`:
+    - seed → «Создано pinned-узлов: N»
+    - clear-custom → «Удалено custom-узлов: N»
+    - node.create → «Title узла»
+    - node.update → «Title · поля: title, detail, photoMode...»
+    - node.move → «Перемещён внутрь подузла» / «Перемещён на root»
+    - node.split → «Разделён → создан "(часть 2)"»
+  - Бейдж 🌳 Pipeline (indigo) или 📖 Guide (purple) для визуального разграничения, потом название журнала
+- Acceptance: Owner открывает `/settings/audit` → видит все мутации pipeline/guide-tree в человекочитаемой форме с правильными labels и icons
 
 ---
 
@@ -352,6 +363,29 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 15:05 МСК]** `5e546ef5` — **🎉 P1 ЗАКРЫТ ПОЛНОСТЬЮ — Pipeline Editor end-to-end за 1 день**.
+  - **10 пунктов** P1.1–P1.10 закрыты в 17 итерациях `/loop 10m` подряд (start `1dff4912` 12:15 → finish `5e546ef5` 15:05). Это **3 часа реальной разработки**.
+  - **Что Owner может попробовать прямо сейчас:**
+    1. `/settings/journal-pipelines` под management → клик «🌳 Pipeline (beta)» на любом журнале
+    2. «Создать из колонок» → seed pinned-узлов по полям журнала (P1.1+P1.2.b)
+    3. «Добавить шаг» → custom-узел с title/detail/фото-policy (P1.3 wave-a)
+    4. ⋮ Drag-handle → переставить порядок (P1.3 wave-c, optimistic UI)
+    5. ⚙ Edit → menu полей (title, detail, hint, photoMode 3-state, requireComment, requireSignature) (P1.3 wave-b)
+    6. ⤚ Split на pinned → разделить на «(часть 1)» + «(часть 2)» с одинаковым linkedFieldKey (P1.8 confirm-modal)
+    7. + на узле → подшаги до 3 уровней (P1.7)
+    8. 🗑 Delete → confirm-dialog (P1.3 wave-a)
+    9. «Очистить custom-шаги (N)» → typeToConfirm="ОЧИСТИТЬ" (P1.9)
+    10. Live preview справа — как worker увидит pipeline в TasksFlow (P1.3 wave-d)
+  - **Backend:**
+    - 4 Prisma модели + индексы (P1.1)
+    - 8 API endpoints (P1.2 wave-a + b): GET/POST/PATCH/DELETE с auth + AuditLog
+    - Generic-adapter (P1.4): pipeline-tree → форма task-fill с pinned-полями привязанными к колонкам журнала. **Закрывает P0.1 для всех журналов**.
+    - Photo-mode tri-state в wizard (P1.6 wave-a), requireComment + requireSignature на шагах (P1.6 wave-b)
+    - Все мутации в audit-log с pretty-render (P1.10): «🌳 Pipeline» / «📖 Guide» бейджи, человеко-читаемые labels
+  - **Параллельно (P1.5)** — guide-editor для «как заполнять журнал» инструкции, симметричный pipeline'у. `/settings/journal-guides-tree/[code]` для редактирования. Сотрудник видит эти шаги в FillingGuide modal'ке вместо хардкода (P1.5 wave-c integration).
+  - **Lessons:** vertical-slice'ы по схеме «P1.X schema → P1.Y API → P1.Z UI» собирались за 4–6 итераций каждый. Каждый слой — контракт-driven, минимум плумбинга. После P1.4 wiring получили end-to-end flow «owner → editor → worker → pipeline-trail в data», по которому теперь P0/P1 unblocked.
+  - **Что предлагаю дальше:** 1) Owner может пилотно настроить pipeline+guide для пары журналов (например cleaning + hygiene) и попросить сотрудника пройти — увидит реальное наполнение колонок. 2) Loop переключается на P2 — backlog 200-1000 features, среди которых: nested-DnD (cross-parent moves), audit-log filters по pipelines/guides, миграция legacy `journal-filling-guides.steps[]` в БД, и далее по плану. 3) Если Owner хочет паузу — может отменить cron `c7754085` через CronDelete.
 
 - **[2026-05-05 13:15 МСК]** `e443d170` — **P1.5 ЗАКРЫТ — Guide editor end-to-end**. Менеджер открывает `/settings/journal-pipelines` → жмёт «📖 Гайд (beta)» рядом с журналом → попадает на `/settings/journal-guides-tree/[code]` → добавляет шаги (title + описание + опционально фото-URL) → DnD reorder → сохраняет.
   - Сотрудник видит этот кастомный гайд:
