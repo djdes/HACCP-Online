@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +46,8 @@ type Props = {
   status: string;
   initialConfig: GlassListConfig;
   users: UserItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type RowDialogState = {
@@ -66,6 +69,7 @@ export function GlassListDocumentClient({
   status,
   initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const isClosed = status === "closed";
@@ -351,107 +355,220 @@ export function GlassListDocumentClient({
         </div>
       </div>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-          <DialogHeader className="border-b px-14 py-10">
-            <DialogTitle className="text-[22px] font-medium text-black">
-              Настройки документа
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-8 px-14 py-12">
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-              <Input
-                value={config.documentName}
-                onChange={(event) =>
-                  setConfig((prev) => ({ ...prev, documentName: event.target.value }))
-                }
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Место расположения (участок)</Label>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Название, место расположения, дата и ответственный сотрудник."
+          size="md"
+          isSaving={saving}
+          onSave={async () => {
+            await saveSettings();
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
+            <Input
+              value={config.documentName}
+              onChange={(event) =>
+                setConfig((prev) => ({ ...prev, documentName: event.target.value }))
+              }
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Место расположения
+              </Label>
               <Input
                 value={config.location}
                 onChange={(event) =>
                   setConfig((prev) => ({ ...prev, location: event.target.value }))
                 }
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                placeholder="Участок"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Дата документа
+              </Label>
               <Input
                 type="date"
                 value={config.documentDate}
                 onChange={(event) =>
                   setConfig((prev) => ({ ...prev, documentDate: event.target.value }))
                 }
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
               />
             </div>
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Должность</Label>
-              <select
-                value={config.responsibleTitle}
-                onChange={(event) => {
-                  const newTitle = event.target.value;
-                  setConfig((prev) => {
-                    const candidates = getUsersForRoleLabel(users, newTitle);
-                    const stillValid = candidates.some((u) => u.id === prev.responsibleUserId);
-                    return {
-                      ...prev,
-                      responsibleTitle: newTitle,
-                      responsibleUserId: stillValid
-                        ? prev.responsibleUserId
-                        : candidates[0]?.id || "",
-                    };
-                  });
-                }}
-                className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
-              >
-                <PositionNativeOptions users={users} />
-              </select>
-            </div>
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
-              <select
-                value={config.responsibleUserId}
-                onChange={(event) => {
-                  const userId = event.target.value;
-                  setConfig((prev) => {
-                    if (!prev.responsibleTitle && userId) {
-                      const user = users.find((u) => u.id === userId);
-                      if (user) {
-                        return { ...prev, responsibleUserId: userId, responsibleTitle: getUserRoleLabel(user.role) };
-                      }
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность
+            </Label>
+            <select
+              value={config.responsibleTitle}
+              onChange={(event) => {
+                const newTitle = event.target.value;
+                setConfig((prev) => {
+                  const candidates = getUsersForRoleLabel(users, newTitle);
+                  const stillValid = candidates.some((u) => u.id === prev.responsibleUserId);
+                  return {
+                    ...prev,
+                    responsibleTitle: newTitle,
+                    responsibleUserId: stillValid ? prev.responsibleUserId : candidates[0]?.id || "",
+                  };
+                });
+              }}
+              className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+            >
+              <PositionNativeOptions users={users} />
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Сотрудник
+            </Label>
+            <select
+              value={config.responsibleUserId}
+              onChange={(event) => {
+                const userId = event.target.value;
+                setConfig((prev) => {
+                  if (!prev.responsibleTitle && userId) {
+                    const user = users.find((u) => u.id === userId);
+                    if (user) {
+                      return {
+                        ...prev,
+                        responsibleUserId: userId,
+                        responsibleTitle: getUserRoleLabel(user.role),
+                      };
                     }
-                    return { ...prev, responsibleUserId: userId };
-                  });
-                }}
-                className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
-              >
-                <option value="">- Выберите значение -</option>
-                {(config.responsibleTitle ? getUsersForRoleLabel(users, config.responsibleTitle) : users).map((user) => (
+                  }
+                  return { ...prev, responsibleUserId: userId };
+                });
+              }}
+              className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+            >
+              <option value="">— Выберите —</option>
+              {(config.responsibleTitle ? getUsersForRoleLabel(users, config.responsibleTitle) : users).map(
+                (user) => (
                   <option key={user.id} value={user.id}>
                     {user.name}
                   </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => saveSettings().catch(() => undefined)}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
-              >
-                {saving ? "Сохранение..." : "Сохранить"}
-              </Button>
-            </div>
+                )
+              )}
+            </select>
           </div>
-        </DialogContent>
-      </Dialog>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
+            <DialogHeader className="border-b px-14 py-10">
+              <DialogTitle className="text-[22px] font-medium text-black">
+                Настройки документа
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-8 px-14 py-12">
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Название документа</Label>
+                <Input
+                  value={config.documentName}
+                  onChange={(event) =>
+                    setConfig((prev) => ({ ...prev, documentName: event.target.value }))
+                  }
+                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Место расположения (участок)</Label>
+                <Input
+                  value={config.location}
+                  onChange={(event) =>
+                    setConfig((prev) => ({ ...prev, location: event.target.value }))
+                  }
+                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
+                <Input
+                  type="date"
+                  value={config.documentDate}
+                  onChange={(event) =>
+                    setConfig((prev) => ({ ...prev, documentDate: event.target.value }))
+                  }
+                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Должность</Label>
+                <select
+                  value={config.responsibleTitle}
+                  onChange={(event) => {
+                    const newTitle = event.target.value;
+                    setConfig((prev) => {
+                      const candidates = getUsersForRoleLabel(users, newTitle);
+                      const stillValid = candidates.some((u) => u.id === prev.responsibleUserId);
+                      return {
+                        ...prev,
+                        responsibleTitle: newTitle,
+                        responsibleUserId: stillValid
+                          ? prev.responsibleUserId
+                          : candidates[0]?.id || "",
+                      };
+                    });
+                  }}
+                  className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
+                >
+                  <PositionNativeOptions users={users} />
+                </select>
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+                <select
+                  value={config.responsibleUserId}
+                  onChange={(event) => {
+                    const userId = event.target.value;
+                    setConfig((prev) => {
+                      if (!prev.responsibleTitle && userId) {
+                        const user = users.find((u) => u.id === userId);
+                        if (user) {
+                          return { ...prev, responsibleUserId: userId, responsibleTitle: getUserRoleLabel(user.role) };
+                        }
+                      }
+                      return { ...prev, responsibleUserId: userId };
+                    });
+                  }}
+                  className="h-18 w-full rounded-[22px] border border-[#dfe1ec] bg-[#f3f4fb] px-7 text-[15px]"
+                >
+                  <option value="">- Выберите значение -</option>
+                  {(config.responsibleTitle ? getUsersForRoleLabel(users, config.responsibleTitle) : users).map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => saveSettings().catch(() => undefined)}
+                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+                >
+                  {saving ? "Сохранение..." : "Сохранить"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Dialog
         open={rowDialog.open}

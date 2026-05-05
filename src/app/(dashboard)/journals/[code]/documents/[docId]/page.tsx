@@ -468,6 +468,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeGlassListConfig(document.config)}
         users={enrichedEmployees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
