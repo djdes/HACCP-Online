@@ -680,6 +680,7 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || 'ООО "Тест"'}
         status={document.status}
         config={normalizeAuditReportConfig(document.config)}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

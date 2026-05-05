@@ -26,6 +26,7 @@ import {
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 
 import { toast } from "sonner";
 type Props = {
@@ -34,6 +35,8 @@ type Props = {
   organizationName: string;
   status: string;
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function FindingDialog({
@@ -86,6 +89,7 @@ export function AuditReportDocumentClient({
   organizationName,
   status,
   config: initialConfig,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -286,37 +290,110 @@ export function AuditReportDocumentClient({
         </section>
       </div>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-          <DialogHeader className="border-b px-12 py-10">
-            <DialogTitle className="text-[22px] font-medium text-black">Настройки документа</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 px-12 py-10">
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-              <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Параметры отчёта о внутреннем аудите"
+          size="md"
+          onSave={async () => {
+            await persist(documentTitle.trim() || AUDIT_REPORT_DOCUMENT_TITLE, config);
+            setSettingsOpen(false);
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Название документа</Label>
+              <Input
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-              <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f5f6fb] px-4 text-[15px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planned">Плановая</SelectItem>
-                  <SelectItem value="unplanned">Внеплановая</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Дата документа</Label>
+                <Input
+                  type="date"
+                  value={config.documentDate}
+                  onChange={(e) => setConfig({ ...config, documentDate: e.target.value })}
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Тип проверки</Label>
+                <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planned">Плановая</SelectItem>
+                    <SelectItem value="unplanned">Внеплановая</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} placeholder="Основание проверки" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} placeholder="Объект аудита" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <Input value={config.auditors.join(", ")} onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Аудиторы через запятую" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <div className="flex justify-end">
-              <Button type="button" onClick={async () => { await persist(documentTitle.trim() || AUDIT_REPORT_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
-                Сохранить
-              </Button>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Основание проверки</Label>
+              <Input
+                value={config.basisTitle}
+                onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Объект аудита</Label>
+              <Input
+                value={config.auditedObject}
+                onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Аудиторы (через запятую)</Label>
+              <Input
+                value={config.auditors.join(", ")}
+                onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
+            <DialogHeader className="border-b px-12 py-10">
+              <DialogTitle className="text-[22px] font-medium text-black">Настройки документа</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 px-12 py-10">
+              <div className="space-y-3">
+                <Label className="text-[14px] text-[#73738a]">Название документа</Label>
+                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f5f6fb] px-4 text-[15px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planned">Плановая</SelectItem>
+                    <SelectItem value="unplanned">Внеплановая</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} placeholder="Основание проверки" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} placeholder="Объект аудита" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Input value={config.auditors.join(", ")} onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Аудиторы через запятую" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <div className="flex justify-end">
+                <Button type="button" onClick={async () => { await persist(documentTitle.trim() || AUDIT_REPORT_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {findingOpen && (
         <FindingDialog
