@@ -661,7 +661,7 @@ export function CreateDocumentDialog({
                       </SelectTrigger>
                       <SelectContent>
                         {(responsibleTitle
-                          ? getUsersForRoleLabel(users, responsibleTitle)
+                          ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId })
                           : users
                         ).map((user) => (
                           <SelectItem key={user.id} value={user.id}>
@@ -701,7 +701,7 @@ export function CreateDocumentDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {(responsibleTitle
-                        ? getUsersForRoleLabel(users, responsibleTitle)
+                        ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId })
                         : users
                       ).map((user) => (
                         <SelectItem key={user.id} value={user.id}>

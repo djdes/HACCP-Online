@@ -240,7 +240,7 @@ function UvRuntimeSettingsDialog(props: {
               </SelectTrigger>
               <SelectContent>
                 {(responsibleTitle
-                  ? getUsersForRoleLabel(props.users, responsibleTitle)
+                  ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId })
                   : props.users
                 ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>

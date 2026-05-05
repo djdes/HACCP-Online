@@ -235,7 +235,7 @@ function EditTrackedDocumentDialog({
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
+                  {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId }) : users).map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
                     </SelectItem>
@@ -283,7 +283,7 @@ function EditTrackedDocumentDialog({
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle) : users).map((user) => (
+                    {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId }) : users).map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name}
                       </SelectItem>

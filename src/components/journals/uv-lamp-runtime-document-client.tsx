@@ -489,7 +489,7 @@ function UvRuntimeSettingsDialog(props: {
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
+                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -588,7 +588,7 @@ function UvRuntimeSettingsDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
+                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -779,7 +779,7 @@ function AddRowDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
+                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: employeeId }) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

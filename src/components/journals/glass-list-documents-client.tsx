@@ -188,7 +188,7 @@ function GlassListFormDialog(props: {
             >
               <option value="">- Выберите значение -</option>
               {(state.responsibleTitle
-                ? getUsersForRoleLabel(props.users, state.responsibleTitle)
+                ? getUsersForRoleLabel(props.users, state.responsibleTitle, { keepUserId: state.responsibleUserId })
                 : props.users
               ).map((user) => (
                 <option key={user.id} value={user.id}>

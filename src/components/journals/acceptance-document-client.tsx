@@ -504,7 +504,7 @@ function RowDialog(props: {
                 }}
               >
                 <option value="">— выберите —</option>
-                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle) : props.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
           </div>
@@ -936,12 +936,19 @@ function SettingsDialog(props: {
           Должность ответственного
         </Label>
         <Select
-          value={responsibleTitle}
+          value={
+            // Если title не задан, но employee есть — деривируем title
+            // из его должности, чтобы dropdown показывал что-то осмысленное.
+            responsibleTitle ||
+            (() => {
+              const u = props.users.find((u2) => u2.id === responsibleUserId);
+              return u ? getUserRoleLabel(u.role) : "";
+            })()
+          }
           onValueChange={(v) => {
-            const candidates = getUsersForRoleLabel(props.users, v);
-            const stillValid = candidates.some((u) => u.id === responsibleUserId);
+            // Не очищаем employee при смене title — keepUserId в Сотрудник
+            // dropdown ниже его всё равно покажет, manager сам сменит.
             setResponsibleTitle(v);
-            if (!stillValid) setResponsibleUserId("");
           }}
         >
           <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
@@ -960,23 +967,26 @@ function SettingsDialog(props: {
           value={responsibleUserId}
           onValueChange={(v) => {
             setResponsibleUserId(v);
-            if (!responsibleTitle) {
-              const user = props.users.find((u) => u.id === v);
-              if (user) setResponsibleTitle(getUserRoleLabel(user.role));
-            }
+            // Auto-sync title с фактической должностью сотрудника, чтобы
+            // preview-карточка показывала «Должность: ФИО».
+            const user = props.users.find((u) => u.id === v);
+            if (user) setResponsibleTitle(getUserRoleLabel(user.role));
           }}
         >
           <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
             <SelectValue placeholder="— Выберите —" />
           </SelectTrigger>
           <SelectContent>
-            {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map(
-              (u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.name}
-                </SelectItem>
-              )
-            )}
+            {(responsibleTitle
+              ? getUsersForRoleLabel(props.users, responsibleTitle, {
+                  keepUserId: responsibleUserId,
+                })
+              : props.users
+            ).map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -1029,12 +1039,16 @@ function SettingsDialog(props: {
           </div>
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={(v) => {
-              const candidates = getUsersForRoleLabel(props.users, v);
-              const stillValid = candidates.some((u) => u.id === responsibleUserId);
-              setResponsibleTitle(v);
-              if (!stillValid) setResponsibleUserId("");
-            }}>
+            <Select
+              value={
+                responsibleTitle ||
+                (() => {
+                  const u = props.users.find((u2) => u2.id === responsibleUserId);
+                  return u ? getUserRoleLabel(u.role) : "";
+                })()
+              }
+              onValueChange={(v) => setResponsibleTitle(v)}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={props.users} />
@@ -1045,14 +1059,12 @@ function SettingsDialog(props: {
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={(v) => {
               setResponsibleUserId(v);
-              if (!responsibleTitle) {
-                const user = props.users.find((u) => u.id === v);
-                if (user) setResponsibleTitle(getUserRoleLabel(user.role));
-              }
+              const user = props.users.find((u) => u.id === v);
+              if (user) setResponsibleTitle(getUserRoleLabel(user.role));
             }}>
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
-                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

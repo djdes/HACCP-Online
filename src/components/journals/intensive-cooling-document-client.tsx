@@ -311,7 +311,7 @@ function RowDialog(props: {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle) : props.users).map((user) => (
+                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
