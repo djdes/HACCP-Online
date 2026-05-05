@@ -437,6 +437,88 @@ export function registerOwnerExtendedHandlers(composer: Composer<Context>): void
     });
   });
 
+  // /who-late — кто на смене (status='working') но без journal-активности
+  // последние 2 часа. Это «рука помощи» для управляющего: ОДНОЙ командой
+  // увидеть кому нужно позвонить или зайти проверить, без открытия Mini App.
+  // Перекликается с shift-watcher cron'ом, но on-demand: менеджер хочет
+  // сразу узнать состояние, не ждать следующего cron-tick'а.
+  composer.command("who-late", async (ctx) => {
+    const user = await resolveManagementUser(ctx.from?.id);
+    if (!user) return replyNotAuthorized(ctx);
+
+    const now = new Date();
+    const today = utcDayStart(now);
+    // Все активные смены сегодня в орге.
+    const shifts = await db.workShift.findMany({
+      where: {
+        organizationId: user.organizationId,
+        date: today,
+        status: { in: ["working", "scheduled"] },
+      },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        user: { select: { name: true } },
+      },
+    });
+    if (shifts.length === 0) {
+      await ctx.reply(
+        "🕓 <b>Сегодня нет активных смен</b>\nПроверьте график: возможно вы забыли проставить смены в кабинете.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+
+    // Activity threshold = 2h. За последние 2 часа была ли запись?
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const userIds = shifts.map((s) => s.userId);
+    const recentActivity = await db.journalEntry.findMany({
+      where: {
+        organizationId: user.organizationId,
+        filledById: { in: userIds },
+        createdAt: { gte: twoHoursAgo },
+      },
+      select: { filledById: true },
+      distinct: ["filledById"],
+    });
+    const activeUserIds = new Set(
+      recentActivity
+        .map((r) => r.filledById)
+        .filter((id): id is string => Boolean(id))
+    );
+
+    const late = shifts.filter((s) => !activeUserIds.has(s.userId));
+    if (late.length === 0) {
+      await ctx.reply(
+        "✅ <b>Все на месте</b>\nКаждый сотрудник со сменой сегодня заполнял что-то в журналах за последние 2 часа.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+
+    const STATUS_LABEL: Record<string, string> = {
+      scheduled: "по графику (не вышел?)",
+      working: "на смене > 2ч без записей",
+    };
+    const lines = [
+      `⚠️ <b>Подозрительные смены · ${late.length}</b>`,
+      `Сотрудники без активности в журналах за 2 часа:`,
+      "",
+      ...late.map((s) => {
+        const name = s.user.name?.trim() || "—";
+        const label = STATUS_LABEL[s.status] ?? s.status;
+        return `• <b>${esc(name)}</b> — ${esc(label)}`;
+      }),
+      "",
+      "Может стоит позвонить или зайти проверить.",
+    ];
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
   // /health — diagnostic для admin'а / ROOT'а. Показывает последний
   // build sha + время + Telegram API latency. Polly-pinch для on-call:
   // когда пользователи жалуются «бот не отвечает», admin спрашивает

@@ -24,15 +24,43 @@ const QUALITY = 0.85;
 const MIN_SIZE_BYTES = 1024 * 1024; // 1MB — ниже не сжимаем
 const COMPRESS_MIME = "image/jpeg";
 
+/**
+ * Pure helper — стоит ли вообще пытаться сжимать этот mime+size?
+ * Извлечено для testability (compressImageIfWorthwhile зависит от
+ * browser-only canvas/Image — не testable в Node).
+ */
+export function shouldAttemptCompression(file: {
+  type: string;
+  size: number;
+}): boolean {
+  if (!file.type.startsWith("image/")) return false;
+  // Не трогаем PNG (текст-скриншоты) и WebP (уже сжатый).
+  if (file.type === "image/png" || file.type === "image/webp") return false;
+  if (file.size < MIN_SIZE_BYTES) return false;
+  return true;
+}
+
+/**
+ * Pure helper — вычисляет целевые размеры с сохранением aspect ratio.
+ */
+export function computeCompressedDimensions(
+  srcW: number,
+  srcH: number
+): { width: number; height: number } {
+  if (srcW <= 0 || srcH <= 0) return { width: 0, height: 0 };
+  const scale = Math.min(1, MAX_SIDE / Math.max(srcW, srcH));
+  return {
+    width: Math.round(srcW * scale),
+    height: Math.round(srcH * scale),
+  };
+}
+
 /** Возвращает сжатый File или null если compression не имеет смысла. */
 export async function compressImageIfWorthwhile(
   file: File
 ): Promise<File | null> {
   if (typeof window === "undefined") return null;
-  if (!file.type.startsWith("image/")) return null;
-  // Не трогаем PNG (текст-скриншоты) и WebP (уже сжатый).
-  if (file.type === "image/png" || file.type === "image/webp") return null;
-  if (file.size < MIN_SIZE_BYTES) return null;
+  if (!shouldAttemptCompression(file)) return null;
 
   // ObjectURL вместо data-URL — экономия ~37% памяти (data-URL
   // base64 раздувает blob на 1.37×). На 4MB JPEG это разница между
@@ -40,12 +68,11 @@ export async function compressImageIfWorthwhile(
   const objectUrl = URL.createObjectURL(file);
   try {
     const img = await loadImage(objectUrl);
-    const { width: srcW, height: srcH } = img;
-    if (srcW === 0 || srcH === 0) return null;
-
-    const scale = Math.min(1, MAX_SIDE / Math.max(srcW, srcH));
-    const dstW = Math.round(srcW * scale);
-    const dstH = Math.round(srcH * scale);
+    const { width: dstW, height: dstH } = computeCompressedDimensions(
+      img.width,
+      img.height
+    );
+    if (dstW === 0 || dstH === 0) return null;
 
     const canvas = document.createElement("canvas");
     canvas.width = dstW;

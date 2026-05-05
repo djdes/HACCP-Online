@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
+import { redactSensitiveDetails } from "@/lib/audit-redact";
 
 export const dynamic = "force-dynamic";
 
@@ -52,46 +53,8 @@ export async function GET() {
   // видеть log — сырые секреты отдавать всё равно не стоит.
   const redactedLogs = logs.map((log) => ({
     ...log,
-    details: redactDetails(log.details),
+    details: redactSensitiveDetails(log.details),
   }));
 
   return NextResponse.json({ logs: redactedLogs });
-}
-
-const REDACT_KEYS = new Set([
-  "password",
-  "passwordhash",
-  "password_hash",
-  "newhash",
-  "oldhash",
-  "token",
-  "secret",
-  "apikey",
-  "api_key",
-  "accesstoken",
-  "access_token",
-  "refreshtoken",
-  "refresh_token",
-  "webhooksecret",
-  "webhook_secret",
-  "initdata",
-  "init_data",
-]);
-
-function redactDetails(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-  if (typeof value !== "object") return value;
-  if (Array.isArray(value)) {
-    return value.map((v) => redactDetails(v));
-  }
-  const obj = value as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (REDACT_KEYS.has(k.toLowerCase())) {
-      out[k] = "[REDACTED]";
-    } else {
-      out[k] = redactDetails(v);
-    }
-  }
-  return out;
 }

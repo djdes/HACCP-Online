@@ -89,6 +89,7 @@ export function registerShortcutHandlers(composer: Composer<Context>): void {
         "• /batches — активные партии\n" +
         "• /losses — списания за неделю\n" +
         "• /stats — недельный график выполнения\n" +
+        "• /who-late — кто на смене > 2ч без записей в журналах\n" +
         "• /health — диагностика бота (build sha, DB, Telegram API)\n" +
         "• /reports — PDF и ZIP для инспектора\n\n" +
         "<b>Прочее</b>\n" +
