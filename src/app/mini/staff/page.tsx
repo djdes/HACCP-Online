@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Bell, UserPlus } from "lucide-react";
+import { Bell, Loader2, UserPlus } from "lucide-react";
 
 type Employee = {
   id: string;
@@ -114,17 +114,16 @@ export default function MiniStaffPage() {
     }
   }
 
-  if (status !== "authenticated") {
+  if (status !== "authenticated" || state.kind === "loading") {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
-        Загружаем…
-      </div>
-    );
-  }
-
-  if (state.kind === "loading") {
-    return (
-      <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+      <div
+        className="flex flex-1 items-center justify-center text-[14px]"
+        style={{ color: "var(--mini-text-muted)" }}
+      >
+        <Loader2
+          className="mr-2 size-4 animate-spin"
+          style={{ color: "var(--mini-lime)" }}
+        />
         Загружаем…
       </div>
     );
@@ -132,12 +131,23 @@ export default function MiniStaffPage() {
 
   if (state.kind === "error") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-        <h1 className="text-lg font-semibold">Ошибка</h1>
-        <p className="text-sm text-red-500">{state.message}</p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <h1
+          className="text-lg font-semibold"
+          style={{ color: "var(--mini-text)" }}
+        >
+          Ошибка
+        </h1>
+        <p className="text-sm" style={{ color: "var(--mini-crimson)" }}>
+          {state.message}
+        </p>
         <button
           onClick={() => loadData()}
-          className="mt-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          className="mt-1 rounded-xl px-4 py-2 text-sm font-medium"
+          style={{
+            background: "var(--mini-lime)",
+            color: "var(--mini-primary-contrast)",
+          }}
         >
           Повторить
         </button>
@@ -146,11 +156,7 @@ export default function MiniStaffPage() {
   }
 
   if (state.kind !== "ready") {
-    return (
-      <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
-        Загружаем…
-      </div>
-    );
+    return null;
   }
 
   const { employees, positions } = state.data;
@@ -158,10 +164,20 @@ export default function MiniStaffPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
       <header className="flex items-center justify-between pt-2">
-        <h1 className="text-[22px] font-semibold text-[#0b1024]">Сотрудники</h1>
+        <h1
+          className="text-[22px] font-semibold"
+          style={{ color: "var(--mini-text)" }}
+        >
+          Сотрудники
+        </h1>
         <button
           onClick={() => setShowForm((s) => !s)}
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-[#5566f6] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_12px_30px_-18px_rgba(85,102,246,0.9)]"
+          className="inline-flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-[13px] font-medium"
+          style={{
+            background: "var(--mini-lime)",
+            color: "var(--mini-primary-contrast)",
+            boxShadow: "var(--mini-primary-shadow)",
+          }}
         >
           {showForm ? (
             "Отмена"
@@ -177,16 +193,28 @@ export default function MiniStaffPage() {
       {showForm ? (
         <form
           onSubmit={handleSubmit}
-          className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4"
+          className="space-y-3 rounded-2xl p-4"
+          style={{
+            background: "var(--mini-card-solid-bg)",
+            border: "1px solid var(--mini-divider)",
+          }}
         >
           <div>
-            <label className="block text-[13px] font-medium text-slate-700">
+            <label
+              className="block text-[13px] font-medium"
+              style={{ color: "var(--mini-text)" }}
+            >
               Должность
             </label>
             <select
               name="position"
               required
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] focus:border-slate-400 focus:outline-none"
+              className="mt-1 w-full rounded-xl px-3 py-2 text-[14px] focus:outline-none"
+              style={{
+                background: "var(--mini-surface-2)",
+                border: "1px solid var(--mini-divider-strong)",
+                color: "var(--mini-text)",
+              }}
             >
               <option value="">Выберите…</option>
               {positions.map((p: Position) => (
@@ -197,56 +225,102 @@ export default function MiniStaffPage() {
             </select>
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-slate-700">
+            <label
+              className="block text-[13px] font-medium"
+              style={{ color: "var(--mini-text)" }}
+            >
               ФИО
             </label>
             <input
               name="name"
               required
               placeholder="Иванов Иван Иванович"
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] focus:border-slate-400 focus:outline-none"
+              className="mt-1 w-full rounded-xl px-3 py-2 text-[14px] focus:outline-none"
+              style={{
+                background: "var(--mini-surface-2)",
+                border: "1px solid var(--mini-divider-strong)",
+                color: "var(--mini-text)",
+              }}
             />
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-slate-700">
+            <label
+              className="block text-[13px] font-medium"
+              style={{ color: "var(--mini-text)" }}
+            >
               Телефон
             </label>
             <input
               name="phone"
               required
               placeholder="+7 985 123-45-67"
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] focus:border-slate-400 focus:outline-none"
+              className="mt-1 w-full rounded-xl px-3 py-2 text-[14px] focus:outline-none"
+              style={{
+                background: "var(--mini-surface-2)",
+                border: "1px solid var(--mini-divider-strong)",
+                color: "var(--mini-text)",
+              }}
             />
           </div>
           {formError ? (
-            <p className="text-[13px] text-red-500">{formError}</p>
+            <p className="text-[13px]" style={{ color: "var(--mini-crimson)" }}>
+              {formError}
+            </p>
           ) : null}
           <button
             type="submit"
             disabled={formLoading}
-            className="w-full rounded-xl bg-slate-900 py-2.5 text-[14px] font-medium text-white disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[14px] font-medium disabled:opacity-50"
+            style={{
+              background: "var(--mini-lime)",
+              color: "var(--mini-primary-contrast)",
+            }}
           >
-            {formLoading ? "Сохраняем…" : "Добавить сотрудника"}
+            {formLoading ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                Сохраняем…
+              </>
+            ) : (
+              "Добавить сотрудника"
+            )}
           </button>
         </form>
       ) : null}
 
       <section className="space-y-2">
         {employees.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-[14px] text-slate-500">
+          <div
+            className="rounded-2xl px-4 py-4 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
             Пока нет сотрудников.
           </div>
         ) : (
           employees.map((emp: Employee) => (
             <div
               key={emp.id}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-2xl px-4 py-3"
+              style={{
+                background: "var(--mini-card-solid-bg)",
+                border: "1px solid var(--mini-divider)",
+              }}
             >
-              <div>
-                <p className="text-[15px] font-medium text-slate-900">
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-[15px] font-medium"
+                  style={{ color: "var(--mini-text)" }}
+                >
                   {emp.name}
                 </p>
-                <p className="text-[13px] text-slate-500">
+                <p
+                  className="truncate text-[13px]"
+                  style={{ color: "var(--mini-text-muted)" }}
+                >
                   {emp.positionTitle || "—"}
                   {emp.phone ? ` · ${emp.phone}` : ""}
                 </p>
@@ -254,7 +328,13 @@ export default function MiniStaffPage() {
               <div className="flex items-center gap-2">
                 {emp.telegramLinked ? (
                   <>
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{
+                        background: "var(--mini-sage-soft)",
+                        color: "var(--mini-sage)",
+                      }}
+                    >
                       TG
                     </span>
                     <button
@@ -288,17 +368,27 @@ export default function MiniStaffPage() {
                         }, 3000);
                       }}
                       disabled={notifyStatus[emp.id] === "sending"}
-                      className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-xl bg-[#f5f6ff] px-2 py-1 text-[11px] font-medium text-[#3848c7] active:bg-[#eef1ff] disabled:opacity-50"
+                      className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium disabled:opacity-50"
+                      style={{
+                        background: "var(--mini-lime-soft)",
+                        color: "var(--mini-lime)",
+                      }}
                     >
                       {notifyStatus[emp.id] === "sending"
                         ? "…"
                         : notifyStatus[emp.id] === "sent"
-                        ? "✓"
-                        : <Bell className="size-3.5" />}
+                          ? "✓"
+                          : <Bell className="size-3.5" />}
                     </button>
                   </>
                 ) : (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      background: "var(--mini-surface-2)",
+                      color: "var(--mini-text-muted)",
+                    }}
+                  >
                     Нет TG
                   </span>
                 )}
@@ -307,8 +397,6 @@ export default function MiniStaffPage() {
           ))
         )}
       </section>
-
-
     </div>
   );
 }

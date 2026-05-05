@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 type AuditLog = {
   id: string;
@@ -38,29 +38,59 @@ export default function MiniAuditPage() {
     <div className="flex flex-1 flex-col gap-4 pb-24">
       <Link
         href="/mini"
-        className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500"
+        className="inline-flex items-center gap-1 text-[13px] font-medium"
+        style={{ color: "var(--mini-text-muted)" }}
       >
         <ArrowLeft className="size-4" />
         На главную
       </Link>
 
       <header className="px-1">
-        <h1 className="text-[20px] font-semibold text-slate-900">
+        <h1
+          className="text-[20px] font-semibold"
+          style={{ color: "var(--mini-text)" }}
+        >
           Журнал аудита
         </h1>
-        <p className="mt-0.5 text-[13px] text-slate-500">
+        <p
+          className="mt-0.5 text-[13px]"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           Последние 100 действий
         </p>
       </header>
 
       {loading ? (
-        <div className="text-center text-sm text-slate-500">Загружаем…</div>
+        <div
+          className="flex items-center justify-center text-[14px]"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
+          <Loader2
+            className="mr-2 size-4 animate-spin"
+            style={{ color: "var(--mini-lime)" }}
+          />
+          Загружаем…
+        </div>
       ) : error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div
+          className="rounded-2xl px-4 py-3 text-[13px]"
+          style={{
+            background: "var(--mini-crimson-soft)",
+            border: "1px solid rgba(255, 82, 104, 0.24)",
+            color: "var(--mini-crimson)",
+          }}
+        >
           {error}
         </div>
       ) : logs.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[14px] text-slate-500">
+        <div
+          className="rounded-2xl px-4 py-6 text-center text-[14px]"
+          style={{
+            background: "var(--mini-surface-1)",
+            border: "1px dashed var(--mini-divider-strong)",
+            color: "var(--mini-text-muted)",
+          }}
+        >
           Пока нет записей.
         </div>
       ) : (
@@ -76,20 +106,38 @@ export default function MiniAuditPage() {
             return (
               <div
                 key={log.id}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                className="rounded-2xl px-4 py-3"
+                style={{
+                  background: "var(--mini-card-solid-bg)",
+                  border: "1px solid var(--mini-divider)",
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-slate-500">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className="text-[12px] font-medium"
+                    style={{ color: "var(--mini-text-muted)" }}
+                  >
                     {actionLabel}
                   </span>
-                  <span className="text-[11px] text-slate-400">{dt}</span>
+                  <span
+                    className="text-[11px]"
+                    style={{ color: "var(--mini-text-faint)" }}
+                  >
+                    {dt}
+                  </span>
                 </div>
-                <div className="mt-1 text-[13px] text-slate-700">
+                <div
+                  className="mt-1 text-[13px]"
+                  style={{ color: "var(--mini-text)" }}
+                >
                   {log.userName ?? "Неизвестный"} · {log.entity}
                   {log.entityId ? ` · ${log.entityId.slice(0, 8)}` : ""}
                 </div>
                 {log.details ? (
-                  <div className="mt-1 text-[11px] text-slate-400">
+                  <div
+                    className="mt-1 text-[11px]"
+                    style={{ color: "var(--mini-text-faint)" }}
+                  >
                     {JSON.stringify(log.details).slice(0, 120)}
                   </div>
                 ) : null}
