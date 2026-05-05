@@ -22,11 +22,35 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "5c4d7f96";
+export const LATEST_NOTES_BUILD_SHA = "3911d7ee";
 
 export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    category: "Mini App — большая чистка после двух code-review проходов",
+    items: [
+      "Безопасность: /api/mini/notify теперь HTML-escape'ит сообщение, валидирует длину (max 2000) и whitelist'ит actionUrl (только wesetup.ru). Раньше менеджер мог инжектить <a href> в чужой Telegram-чат.",
+      "Защита от спама: rate-limit 5 push'ей в минуту на пару (менеджер→сотрудник). Раньше можно было флуднуть Telegram-квоту бота.",
+      "Защита от disk-fill: /api/mini/attachments — лимит 60 загрузок в день на пользователя. Без него любой авторизованный сотрудник мог забить сервер 5MB-файлами.",
+      "HACCP integrity fix: «Заполнить как вчера» для табличных журналов (гигиена, уборка, климат и т.д.) теперь возвращает понятную ошибку вместо тихого создания phantom-rows. Раньше это falsified compliance статус — инспектор мог увидеть «выполнено» когда таблицу никто не заполнял.",
+      "Voice-input: исправлен «снежный ком» при долгой записи — раньше каждое финальное распознавание дублировало предыдущий текст.",
+      "Pull-to-refresh: устранён race-condition при mid-touch смене phase — touch-listener'ы больше не свапаются на каждое движение пальца.",
+      "Telegram BackButton: на всех вложенных /mini/* экранах появилась нативная Telegram-кнопка «<» в шапке (раньше только наш custom <ArrowLeft>, который перекрывался клавиатурой на формах).",
+      "Sign-in таймаут 12s: на тонком cellular из подвала кухни больше нет вечного skeleton'а — появляется человеческое «Telegram отвечает медленно» с кнопкой «Повторить».",
+      "iPhone notch / home-indicator: добавлен env(safe-area-inset-*) — контент больше не клипается под notch'ем сверху и под home-indicator-полосой снизу.",
+      "Empty-state: новый сотрудник без assignments видит «Пока нет назначенных задач, напишите руководителю» вместо демoralизирующего «все задачи выполнены».",
+      "Двойные тапы: /mini/today и формы /mini/staff защищены mutex'ом — нельзя стартовать второй POST пока первый в полёте. Ошибки больше не silent — приходят toast'ы с понятными причинами (409 «уже забрали», 403 «нет прав»).",
+      "Тёмная тема: все /mini/* экраны (iot, equipment, audit, staff, shift-handover, journals/[code]) переписаны на mini-theme palette. При переключении dark↔light в /mini/me теперь всё консистентно.",
+      "Skeleton-каркасы: при загрузке журнал-страницы /mini/journals/<code> показывается мерцающий каркас вместо plain «Загружаем…».",
+      "Photo bottom-sheet: убран пункт «Документ или PDF» — API его не принимал и пользователь видел cryptic «Upload failed».",
+      "QR-сканер: native alert() заменён на toast.error в стиле приложения.",
+      "ConfirmDialog: «Выйти» и «Отвязать Telegram» в /mini/me теперь требуют подтверждения (отвязка — с typeToConfirm «ОТВЯЗАТЬ»). Раньше клик мимо пальцем означал потерю доступа до получения нового инвайта.",
+      "Onboarding tour: tap-target кнопки «Закрыть» увеличен до 44×44 px (iOS HIG).",
+      "Скорость загрузки: устранены ненужные re-render'ы из-за пересчёта nextPath в /mini home (useMemo).",
+      "Production stability: исправлены persistent 500-ошибки на nested /mini/* routes (Next.js 16 client-reference-manifest race) — pre-warm script теперь покрывает все 10 routes и retry'ит на 500 до 3 раз.",
+    ],
+  },
   {
     category: "Документы и pipeline'ы готовы к проверке РПН",
     items: [
