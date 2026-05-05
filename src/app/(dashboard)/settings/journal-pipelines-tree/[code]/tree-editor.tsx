@@ -5,13 +5,32 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  GripVertical,
   ListTree,
   Pin,
   Plus,
   Settings2,
   Sparkles,
+  Split,
   Trash2,
 } from "lucide-react";
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +81,127 @@ function depthOf(node: PipelineNode, all: PipelineNode[]): number {
     if (depth > 5) break;
   }
   return depth;
+}
+
+function SortableNodeRow({
+  node,
+  index,
+  depth,
+  onEdit,
+  onDelete,
+  onSplit,
+}: {
+  node: PipelineNode;
+  index: number;
+  depth: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  onSplit: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: node.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    marginLeft: `${depth * 24}px`,
+  };
+  const isPinned = node.kind === "pinned";
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-2xl border bg-white p-4 transition-colors ${
+        isDragging
+          ? "border-[#5566f6] bg-[#f5f6ff] shadow-[0_16px_40px_-24px_rgba(85,102,246,0.55)]"
+          : "border-[#ececf4] hover:border-[#5566f6]/40 hover:bg-[#fafbff]"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Перетащить"
+          className="mt-0.5 flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-[#9b9fb3] hover:bg-[#f5f6ff] hover:text-[#5566f6] active:cursor-grabbing"
+        >
+          <GripVertical className="size-4" />
+        </button>
+        <div
+          className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[12px] font-semibold ${
+            isPinned ? "bg-[#5566f6] text-white" : "bg-[#eef1ff] text-[#3848c7]"
+          }`}
+        >
+          {isPinned ? <Pin className="size-4" /> : index + 1}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[15px] font-medium text-[#0b1024]">
+              {node.title || "(без названия)"}
+            </span>
+            {isPinned ? (
+              <span className="rounded-full bg-[#eef1ff] px-2.5 py-0.5 font-mono text-[11px] text-[#3848c7]">
+                {node.linkedFieldKey}
+              </span>
+            ) : (
+              <span className="rounded-full bg-[#fafbff] px-2.5 py-0.5 text-[11px] text-[#6f7282]">
+                custom
+              </span>
+            )}
+            {node.photoMode !== "none" ? (
+              <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] text-[#a13a32]">
+                фото: {node.photoMode}
+              </span>
+            ) : null}
+            {node.requireComment ? (
+              <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] text-[#a13a32]">
+                комментарий обязателен
+              </span>
+            ) : null}
+          </div>
+          {node.detail ? (
+            <p className="mt-1 line-clamp-2 text-[13px] text-[#6f7282]">
+              {node.detail}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            title="Редактировать"
+            onClick={onEdit}
+            className="h-8 rounded-xl px-2 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+          >
+            <Settings2 className="size-4" />
+          </Button>
+          {isPinned ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              title="Разделить на два шага"
+              onClick={onSplit}
+              className="h-8 rounded-xl px-2 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+            >
+              <Split className="size-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="h-8 rounded-xl px-2 text-[#a13a32] hover:bg-[#fff4f2]"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export function TreeEditorClient({
@@ -136,6 +276,90 @@ export function TreeEditorClient({
     setConfirmDelete(null);
     startTransition(() => router.refresh());
   }
+
+  async function handleSplit(node: PipelineNode) {
+    const response = await fetch(
+      `/api/settings/journal-pipelines/${code}/nodes/${node.id}/split`,
+      { method: "POST" }
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(data?.error || "Не удалось разделить узел");
+      return;
+    }
+    setTree(data.tree);
+    toast.success("Узел разделён");
+    startTransition(() => router.refresh());
+  }
+
+  /// Вычисляем новое значение `ordering` после drop'а.
+  /// Если узел пришёл в начало — берём `firstOrdering / 2`. В конец —
+  /// `lastOrdering + 1024`. В середину — `(prev + next) / 2`. Float-ordering
+  /// в schema позволяет ⊃100 раз вставлять без коллизии прежде чем
+  /// потребуется reindexing.
+  function computeOrdering(
+    siblings: PipelineNode[],
+    targetIndex: number
+  ): number {
+    const before = siblings[targetIndex - 1]?.ordering;
+    const after = siblings[targetIndex]?.ordering;
+    if (before === undefined && after === undefined) return 1024;
+    if (before === undefined && after !== undefined) return after / 2;
+    if (after === undefined && before !== undefined) return before + 1024;
+    return ((before ?? 0) + (after ?? 0)) / 2;
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !tree) return;
+
+    // siblings = root-level узлы (parentId === null), отсортированные по ordering
+    const rootNodes = [...tree.nodes]
+      .filter((n) => n.parentId === null)
+      .sort((a, b) => a.ordering - b.ordering);
+    const oldIndex = rootNodes.findIndex((n) => n.id === active.id);
+    const newIndex = rootNodes.findIndex((n) => n.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Новый список после move (для определения соседей)
+    const reordered = arrayMove(rootNodes, oldIndex, newIndex);
+    const targetIndex = reordered.findIndex((n) => n.id === active.id);
+    const newOrdering = computeOrdering(
+      reordered.filter((n) => n.id !== active.id),
+      targetIndex
+    );
+
+    // Optimistic UI: меняем local state сразу
+    const next = tree.nodes.map((n) =>
+      n.id === active.id ? { ...n, ordering: newOrdering } : n
+    );
+    setTree({ ...tree, nodes: next });
+
+    const response = await fetch(
+      `/api/settings/journal-pipelines/${code}/nodes/${active.id}/move`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentId: null, ordering: newOrdering }),
+      }
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(data?.error || "Не удалось переместить узел");
+      // Rollback
+      await refresh();
+      return;
+    }
+    setTree(data.tree);
+    startTransition(() => router.refresh());
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   return (
     <div className="space-y-6">
@@ -259,85 +483,33 @@ export function TreeEditorClient({
         </div>
       ) : (
         <div className="rounded-3xl border border-[#ececf4] bg-white p-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-4">
-          <ul className="space-y-2">
-            {flatNodes.map((node, index) => {
-              const depth = depthOf(node, flatNodes);
-              const isPinned = node.kind === "pinned";
-              return (
-                <li
-                  key={node.id}
-                  className="rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors hover:border-[#5566f6]/40 hover:bg-[#fafbff]"
-                  style={{ marginLeft: `${depth * 24}px` }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-[12px] font-semibold ${
-                        isPinned
-                          ? "bg-[#5566f6] text-white"
-                          : "bg-[#eef1ff] text-[#3848c7]"
-                      }`}
-                    >
-                      {isPinned ? <Pin className="size-4" /> : index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[15px] font-medium text-[#0b1024]">
-                          {node.title || "(без названия)"}
-                        </span>
-                        {isPinned ? (
-                          <span className="rounded-full bg-[#eef1ff] px-2.5 py-0.5 font-mono text-[11px] text-[#3848c7]">
-                            {node.linkedFieldKey}
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-[#fafbff] px-2.5 py-0.5 text-[11px] text-[#6f7282]">
-                            custom
-                          </span>
-                        )}
-                        {node.photoMode !== "none" ? (
-                          <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] text-[#a13a32]">
-                            фото: {node.photoMode}
-                          </span>
-                        ) : null}
-                        {node.requireComment ? (
-                          <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] text-[#a13a32]">
-                            комментарий обязателен
-                          </span>
-                        ) : null}
-                      </div>
-                      {node.detail ? (
-                        <p className="mt-1 line-clamp-2 text-[13px] text-[#6f7282]">
-                          {node.detail}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        title="Редактировать"
-                        onClick={() => setEditingNode(node)}
-                        className="h-8 rounded-xl px-2 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
-                      >
-                        <Settings2 className="size-4" />
-                      </Button>
-                      {!isPinned ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmDelete(node)}
-                          className="h-8 rounded-xl px-2 text-[#a13a32] hover:bg-[#fff4f2]"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={flatNodes.map((n) => n.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-2">
+                {flatNodes.map((node, index) => (
+                  <SortableNodeRow
+                    key={node.id}
+                    node={node}
+                    index={index}
+                    depth={depthOf(node, flatNodes)}
+                    onEdit={() => setEditingNode(node)}
+                    onDelete={() => setConfirmDelete(node)}
+                    onSplit={() => handleSplit(node)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+          <p className="mt-3 px-1 text-[12px] text-[#9b9fb3]">
+            💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
+          </p>
         </div>
       )}
 
