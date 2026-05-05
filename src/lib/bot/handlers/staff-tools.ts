@@ -230,6 +230,52 @@ export function registerStaffToolsHandlers(composer: Composer<Context>): void {
     });
   });
 
+  // Callback `notif:snooze:<minutes>` — пользователь нажал «Отложить»
+  // на push'е. Записываем `notificationPrefs.snoozedUntil = now + minutes`,
+  // notifyEmployee увидит этот флаг и пропустит будущие отправки.
+  composer.callbackQuery(/^notif:snooze:(\d+)$/, async (ctx) => {
+    const minutes = Math.min(24 * 60, Math.max(1, Number(ctx.match[1])));
+    const user = await resolveLinkedUser(ctx.from?.id);
+    if (!user) {
+      await ctx.answerCallbackQuery({
+        text: "Чат не привязан к аккаунту",
+        show_alert: true,
+      });
+      return;
+    }
+    const snoozedUntil = new Date(Date.now() + minutes * 60 * 1000);
+    const existing = await db.user.findUnique({
+      where: { id: user.id },
+      select: { notificationPrefs: true },
+    });
+    const prefs =
+      (existing?.notificationPrefs as Record<string, unknown> | null) ?? {};
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        notificationPrefs: {
+          ...prefs,
+          snoozedUntil: snoozedUntil.toISOString(),
+        },
+      },
+    });
+    const until = snoozedUntil.toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    await ctx.answerCallbackQuery({
+      text: `Отложено до ${until}`,
+      show_alert: false,
+    });
+    // Убираем кнопку «Отложить» из исходного сообщения (само сообщение
+    // оставляем — пользователь захочет позже к нему вернуться).
+    try {
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+    } catch {
+      /* старое или удалённое сообщение — не критично */
+    }
+  });
+
   // Callback-handler для inline-кнопок start/end из /shift.
   composer.callbackQuery(/^shift:(start|end)$/, async (ctx) => {
     const action = ctx.match[1] as "start" | "end";

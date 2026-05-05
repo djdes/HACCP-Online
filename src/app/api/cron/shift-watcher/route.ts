@@ -210,7 +210,10 @@ async function handle(request: Request) {
         `Если уже работаете — заполните хотя бы первое наблюдение, ` +
         `чтобы руководство видело активность. Если что-то не так — ` +
         `напишите менеджеру.`;
-      await notifyEmployee(shift.userId, message);
+      await notifyEmployee(shift.userId, message, undefined, {
+        // Это soft-pings, не critical alert — даём «Отложить 1ч».
+        addSnoozeButton: true,
+      });
       staffCheckIns += 1;
     }
 

@@ -416,7 +416,18 @@ export async function notifyEmployee(
   userId: string,
   text: string,
   action?: { label: string; miniAppUrl: string },
-  opts?: Omit<TelegramSendOptions, "userId">
+  opts?: Omit<TelegramSendOptions, "userId"> & {
+    /**
+     * Если true — добавляем inline-кнопку «🔕 Отложить 1ч» рядом с
+     * web_app кнопкой действия. Пользователь нажмёт → callback handler
+     * `notif:snooze:60` запишет `notificationPrefs.snoozedUntil = now+60м`.
+     * Все последующие notifyEmployee'ы для этого пользователя в окне
+     * snooze будут молча пропущены (skipBecauseSnoozed). Используется
+     * на cron-push'ах (mini-digest, shift-watcher) — для срочных
+     * сообщений (нарушение температуры, инцидент) snooze не предлагаем.
+     */
+    addSnoozeButton?: boolean;
+  }
 ): Promise<void> {
   const { db } = await import("./db");
   const user = await db.user.findUnique({
@@ -426,11 +437,28 @@ export async function notifyEmployee(
       name: true,
       telegramChatId: true,
       isActive: true,
+      notificationPrefs: true,
     },
   });
   if (!user || !user.isActive || !user.telegramChatId) {
     return;
   }
+
+  // Проверяем активный snooze. notificationPrefs — JSON, может содержать
+  // snoozedUntil как ISO-строку или null/undefined. Если timestamp в
+  // будущем — скипаем send (тихо, без логов: это ожидаемое поведение,
+  // не ошибка).
+  const prefs = (user.notificationPrefs ?? null) as
+    | { snoozedUntil?: string | number | null }
+    | null;
+  const snoozedUntilRaw = prefs?.snoozedUntil ?? null;
+  if (snoozedUntilRaw) {
+    const snoozedUntil = new Date(snoozedUntilRaw);
+    if (Number.isFinite(snoozedUntil.getTime()) && snoozedUntil > new Date()) {
+      return;
+    }
+  }
+
   // Persoналиize: подставляем {name}, {timeOfDay}, {dayOfWeek},
   // {greeting} в text. Callers могут пропустить — без placeholder'ов
   // helper ничего не делает.
@@ -471,19 +499,40 @@ export async function notifyEmployee(
     return;
   }
 
-  const replyMarkup = action
-    ? buildTelegramWebAppKeyboard({
-        label: action.label,
-        url: action.miniAppUrl,
-      })
-    : undefined;
+  // Если caller просит snooze-кнопку — комбинируем web_app + callback в
+  // одной inline-keyboard. buildTelegramWebAppKeyboard возвращает
+  // структуру { inline_keyboard: [[{text, web_app:{url}}]] }; мы её
+  // расширяем второй строкой `notif:snooze:60`.
+  const replyMarkup = ((): unknown | undefined => {
+    if (!action && !opts?.addSnoozeButton) return undefined;
+    const rows: Array<Array<Record<string, unknown>>> = [];
+    if (action) {
+      rows.push([
+        { text: action.label, web_app: { url: action.miniAppUrl } },
+      ]);
+    }
+    if (opts?.addSnoozeButton) {
+      rows.push([
+        { text: "🔕 Отложить на 1 час", callback_data: "notif:snooze:60" },
+      ]);
+    }
+    return { inline_keyboard: rows };
+  })();
+
+  type SendMessageReplyMarkup = Parameters<
+    typeof bot.api.sendMessage
+  >[2] extends { reply_markup?: infer T }
+    ? T
+    : never;
 
   await executeTelegramSend(
     log.id,
     () =>
       bot.api.sendMessage(user.telegramChatId!, text, {
         parse_mode: "HTML",
-        reply_markup: replyMarkup,
+        ...(replyMarkup
+          ? { reply_markup: replyMarkup as SendMessageReplyMarkup }
+          : {}),
       }),
     "Telegram employee notification error"
   );

@@ -223,6 +223,8 @@ export async function runMiniDigestCron(
             skipOnRerun: true,
             now: requestNow,
           },
+          // Утренний дайджест — информационный, snooze ОК.
+          addSnoozeButton: true,
         }
       );
       notifiedStaff += 1;
