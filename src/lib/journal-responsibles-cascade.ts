@@ -219,6 +219,16 @@ export async function cascadeResponsibleToActiveDocuments(input: {
       const data: Record<string, unknown> = {};
       if (primaryUserId && validUserIds.has(primaryUserId)) {
         data.responsibleUserId = primaryUserId;
+        // Также синхронизируем `responsibleTitle` (название должности
+        // primary-сотрудника) — чтобы preview-карточка журнала на
+        // /journals/<code> показывала «<position>: <name>», а не «—».
+        // Без этого изменения в /settings/journal-responsibles обновляли
+        // только userId — title оставался null/устаревший, и menager
+        // видел «—» в preview.
+        const primaryPosName = userPosMap.get(primaryUserId);
+        if (primaryPosName) {
+          data.responsibleTitle = primaryPosName;
+        }
       }
       // Phase C: пишем verifierUserId если verifier-slot заполнен.
       // Если null — оставляем поле без change'а (legacy doc'и

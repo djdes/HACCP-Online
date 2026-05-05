@@ -204,7 +204,9 @@ function GlassControlFormDialog(props: {
               </SelectTrigger>
               <SelectContent>
                 {(state.responsibleTitle
-                  ? getUsersForRoleLabel(props.users, state.responsibleTitle)
+                  ? getUsersForRoleLabel(props.users, state.responsibleTitle, {
+                      keepUserId: state.responsibleUserId,
+                    })
                   : props.users
                 ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
