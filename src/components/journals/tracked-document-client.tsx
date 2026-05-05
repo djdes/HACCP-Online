@@ -88,6 +88,8 @@ type Props = {
   employees: EmployeeItem[];
   fields: FieldItem[];
   initialEntries: EntryItem[];
+  /** Design v2 toggle — пробрасывается в PestControlDocumentClient. */
+  useV2?: boolean;
 };
 
 function formatDateLabel(date: string) {
@@ -826,6 +828,7 @@ export function TrackedDocumentClient(props: Props) {
             entry.employeeId
           ),
         }))}
+        useV2={props.useV2}
       />
     );
   }

@@ -8,6 +8,7 @@ import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -33,6 +34,7 @@ import {
   type PestControlEntryData,
 } from "@/lib/pest-control-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -65,6 +67,8 @@ type Props = {
   routeCode: string;
   users: UserItem[];
   initialEntries: EntryItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type EditingEntry = {
@@ -117,6 +121,7 @@ function DocumentSettingsDialog(props: {
   initialTitle: string;
   initialDateFrom: string;
   onSubmit: (payload: { title: string; dateFrom: string }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [title, setTitle] = useState(props.initialTitle);
   const [dateFrom, setDateFrom] = useState(props.initialDateFrom);
@@ -127,6 +132,58 @@ function DocumentSettingsDialog(props: {
     setTitle(props.initialTitle);
     setDateFrom(props.initialDateFrom);
   }, [props.open, props.initialDateFrom, props.initialTitle]);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await props.onSubmit({
+        title: title.trim() || PEST_CONTROL_DOCUMENT_TITLE,
+        dateFrom,
+      });
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и дата начала."
+        size="md"
+        isSaving={submitting}
+        saveDisabled={!dateFrom}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Введите название"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -161,18 +218,7 @@ function DocumentSettingsDialog(props: {
               type="button"
               disabled={submitting || !dateFrom}
               className="h-12 rounded-xl bg-[#5863f8] px-7 text-[18px] text-white hover:bg-[#4b57f3]"
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSubmit({
-                    title: title.trim() || PEST_CONTROL_DOCUMENT_TITLE,
-                    dateFrom,
-                  });
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -790,6 +836,7 @@ export function PestControlDocumentClient(props: Props) {
         initialTitle={props.title || PEST_CONTROL_DOCUMENT_TITLE}
         initialDateFrom={props.dateFrom}
         onSubmit={saveDocumentSettings}
+        useV2={props.useV2}
       />
 
       <EntryDialog
