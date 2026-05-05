@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C1 — traceability v2** (Tier B полностью закрыт; перехожу в Tier C)
+**Текущий приоритет:** **P3.C2 — intensive-cooling v2**
 
 ---
 
@@ -154,7 +154,7 @@
 - [x] P3.B12 — pest-control — DONE wave-1 @ f9625807 @ 2026-05-05 05:40 МСК — **TIER B FULLY DONE**
 
 ### Tier C (13 остальных)
-- [ ] P3.C1 — traceability
+- [x] P3.C1 — traceability — DONE wave-1 @ 79fa90c1 @ 2026-05-05 05:55 МСК
 - [ ] P3.C2 — intensive-cooling
 - [ ] P3.C3 — fryer-oil
 - [ ] P3.C4 — glass-list
