@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -79,6 +79,7 @@ export function TreeEditorClient({
   const [addOpen, setAddOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PipelineNode | null>(null);
+  const [editingNode, setEditingNode] = useState<PipelineNode | null>(null);
 
   const flatNodes = useMemo(
     () => (tree?.nodes ? flattenTree(tree.nodes) : []),
@@ -314,9 +315,9 @@ export function TreeEditorClient({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        title="Редактирование добавим в wave-b"
-                        disabled
-                        className="h-8 rounded-xl px-2 text-[#6f7282]"
+                        title="Редактировать"
+                        onClick={() => setEditingNode(node)}
+                        className="h-8 rounded-xl px-2 text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
                       >
                         <Settings2 className="size-4" />
                       </Button>
@@ -355,6 +356,19 @@ export function TreeEditorClient({
         code={code}
         onCreated={async () => {
           setAddOpen(false);
+          await refresh();
+        }}
+      />
+
+      <EditNodeDialog
+        open={editingNode !== null}
+        node={editingNode}
+        code={code}
+        onOpenChange={(value) => {
+          if (!value) setEditingNode(null);
+        }}
+        onSaved={async () => {
+          setEditingNode(null);
           await refresh();
         }}
       />
@@ -524,5 +538,206 @@ function AddCustomDialog({
       </div>
     </JournalSettingsModal>
   );
+}
+
+function EditNodeDialog({
+  open,
+  node,
+  code,
+  onOpenChange,
+  onSaved,
+}: {
+  open: boolean;
+  node: PipelineNode | null;
+  code: string;
+  onOpenChange: (value: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [hint, setHint] = useState("");
+  const [photoMode, setPhotoMode] = useState<
+    "none" | "optional" | "required"
+  >("none");
+  const [requireComment, setRequireComment] = useState(false);
+  const [requireSignature, setRequireSignature] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // Sync state with node when dialog opens.
+  useNodeSync(node, open, (n) => {
+    setTitle(n.title);
+    setDetail(n.detail ?? "");
+    setHint(n.hint ?? "");
+    setPhotoMode(n.photoMode);
+    setRequireComment(n.requireComment);
+    setRequireSignature(n.requireSignature);
+  });
+
+  if (!node) return null;
+  const isPinned = node.kind === "pinned";
+
+  async function handleSave() {
+    if (!title.trim() || !node) return;
+    setBusy(true);
+    try {
+      const response = await fetch(
+        `/api/settings/journal-pipelines/${code}/nodes/${node.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            detail: detail.trim() || null,
+            hint: hint.trim() || null,
+            photoMode,
+            requireComment,
+            requireSignature,
+          }),
+        }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        toast.error(data?.error || "Не удалось сохранить узел");
+        return;
+      }
+      toast.success("Узел сохранён");
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <JournalSettingsModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Редактирование узла"
+      description={
+        isPinned
+          ? `Pinned-шаг привязан к колонке журнала «${node.linkedFieldKey ?? ""}». Можно менять название и инструкцию, но удалить нельзя.`
+          : "Custom-шаг — ваш произвольный шаг pipeline'а."
+      }
+      size="md"
+      isSaving={busy}
+      saveDisabled={!title.trim()}
+      onSave={handleSave}
+      onCancel={() => onOpenChange(false)}
+    >
+      <div className="space-y-5">
+        {isPinned ? (
+          <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[13px] text-[#3c4053]">
+            📌 <span className="font-medium">linkedFieldKey:</span>{" "}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[12px] text-[#3848c7]">
+              {node.linkedFieldKey ?? "—"}
+            </code>
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название шага
+          </Label>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Подробное описание
+          </Label>
+          <Textarea
+            value={detail}
+            onChange={(event) => setDetail(event.target.value)}
+            placeholder="Что именно сделать. Можно несколько строк."
+            className="min-h-[120px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Подсказка (показывается мелким шрифтом)
+          </Label>
+          <Input
+            value={hint}
+            onChange={(event) => setHint(event.target.value)}
+            placeholder="Например: «См. фото в WhatsApp»"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Фото-доказательство
+          </Label>
+          <div className="grid grid-cols-3 gap-2">
+            {(["none", "optional", "required"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setPhotoMode(mode)}
+                className={`rounded-2xl border px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                  photoMode === mode
+                    ? "border-[#5566f6] bg-[#f5f6ff] text-[#3848c7]"
+                    : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/40"
+                }`}
+              >
+                {mode === "none"
+                  ? "Не нужно"
+                  : mode === "optional"
+                    ? "По желанию"
+                    : "Обязательно"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-3">
+          <input
+            type="checkbox"
+            checked={requireComment}
+            onChange={(event) => setRequireComment(event.target.checked)}
+            className="size-4 accent-[#5566f6]"
+          />
+          <div className="text-[13px] text-[#0b1024]">
+            <div className="font-medium">Требовать комментарий</div>
+            <div className="text-[12px] text-[#6f7282]">
+              Сотрудник должен написать текст перед «Сделал».
+            </div>
+          </div>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-3">
+          <input
+            type="checkbox"
+            checked={requireSignature}
+            onChange={(event) => setRequireSignature(event.target.checked)}
+            className="size-4 accent-[#5566f6]"
+          />
+          <div className="text-[13px] text-[#0b1024]">
+            <div className="font-medium">Требовать подпись (ФИО)</div>
+            <div className="text-[12px] text-[#6f7282]">
+              Полезно для финальных шагов — сотрудник вводит ФИО.
+            </div>
+          </div>
+        </label>
+      </div>
+    </JournalSettingsModal>
+  );
+}
+
+/// Вытягивает поля узла в state редактора при каждом открытии.
+/// Без него редактор покажет старые значения если открыть → закрыть → открыть.
+function useNodeSync(
+  node: PipelineNode | null,
+  open: boolean,
+  apply: (n: PipelineNode) => void
+) {
+  useEffect(() => {
+    if (open && node) apply(node);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, node?.id]);
 }
 
