@@ -5,8 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Camera,
+  Check,
+  ClipboardCheck,
   GripVertical,
   ListTree,
+  MessageSquare,
+  PenLine,
   Pin,
   Plus,
   Settings2,
@@ -482,34 +487,37 @@ export function TreeEditorClient({
           </div>
         </div>
       ) : (
-        <div className="rounded-3xl border border-[#ececf4] bg-white p-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={flatNodes.map((n) => n.id)}
-              strategy={verticalListSortingStrategy}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <ul className="space-y-2">
-                {flatNodes.map((node, index) => (
-                  <SortableNodeRow
-                    key={node.id}
-                    node={node}
-                    index={index}
-                    depth={depthOf(node, flatNodes)}
-                    onEdit={() => setEditingNode(node)}
-                    onDelete={() => setConfirmDelete(node)}
-                    onSplit={() => handleSplit(node)}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-          <p className="mt-3 px-1 text-[12px] text-[#9b9fb3]">
-            💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
-          </p>
+              <SortableContext
+                items={flatNodes.map((n) => n.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="space-y-2">
+                  {flatNodes.map((node, index) => (
+                    <SortableNodeRow
+                      key={node.id}
+                      node={node}
+                      index={index}
+                      depth={depthOf(node, flatNodes)}
+                      onEdit={() => setEditingNode(node)}
+                      onDelete={() => setConfirmDelete(node)}
+                      onSplit={() => handleSplit(node)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+            <p className="mt-3 px-1 text-[12px] text-[#9b9fb3]">
+              💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
+            </p>
+          </div>
+          <WizardPreview nodes={flatNodes} />
         </div>
       )}
 
@@ -563,6 +571,146 @@ export function TreeEditorClient({
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Read-only превью того, как сотрудник увидит pipeline в TasksFlow / Mini App.
+ * Не интерактивный — все шаги в expanded-виде показывают title, detail, hint
+ * и flag-bagde'ы (фото / комментарий / подпись). Цель: дать менеджеру
+ * мгновенный визуальный feedback после edit/reorder/split в дереве.
+ *
+ * Воспроизводит layout `<PipelineWizard>` из task-fill-client.tsx:
+ * progress-bar шапка → ol со step-карточками. Текущий шаг (1) показан
+ * в indigo-current стиле, остальные — в lock-стиле.
+ */
+function WizardPreview({ nodes }: { nodes: PipelineNode[] }) {
+  const total = nodes.length;
+  return (
+    <aside className="lg:sticky lg:top-6 lg:self-start">
+      <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Превью wizard'а
+          </div>
+          <div className="rounded-full bg-white px-2.5 py-0.5 text-[11px] text-[#9b9fb3]">
+            как увидит сотрудник
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3">
+            <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
+              <ClipboardCheck className="size-4 text-[#5566f6]" />
+              Пошаговое выполнение
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-[13px] font-semibold tabular-nums text-[#0b1024]">
+                0/{total}
+              </div>
+              <div className="h-2 w-20 overflow-hidden rounded-full bg-[#eef1ff]">
+                <div className="h-full w-0 bg-gradient-to-r from-[#5566f6] to-[#7a5cff]" />
+              </div>
+            </div>
+          </div>
+
+          {total === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-white px-4 py-8 text-center text-[13px] text-[#9b9fb3]">
+              Нет шагов для превью
+            </div>
+          ) : (
+            <ol className="space-y-2.5">
+              {nodes.map((node, index) => {
+                const isCurrent = index === 0;
+                return (
+                  <li
+                    key={node.id}
+                    className={[
+                      "rounded-2xl border transition-colors",
+                      isCurrent
+                        ? "border-[#5566f6]/40 bg-white shadow-[0_8px_24px_-12px_rgba(85,102,246,0.35)]"
+                        : "border-[#ececf4] bg-white",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start gap-3 p-4">
+                      <div
+                        className={[
+                          "flex size-9 shrink-0 items-center justify-center rounded-xl text-[15px] font-semibold tabular-nums",
+                          isCurrent
+                            ? "bg-[#5566f6] text-white"
+                            : "bg-[#eef1ff] text-[#9b9fb3]",
+                        ].join(" ")}
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className={[
+                            "text-[15px] font-semibold leading-snug",
+                            isCurrent ? "text-[#0b1024]" : "text-[#9b9fb3]",
+                          ].join(" ")}
+                        >
+                          {node.title || "(без названия)"}
+                        </div>
+                        {isCurrent && node.detail ? (
+                          <p className="mt-1.5 whitespace-pre-line text-[14px] leading-relaxed text-[#3c4053]">
+                            {node.detail}
+                          </p>
+                        ) : null}
+                        {isCurrent && node.hint ? (
+                          <p className="mt-2 rounded-xl bg-[#f5f6ff] px-3 py-2 text-[12.5px] leading-snug text-[#6f7282]">
+                            💡 {node.hint}
+                          </p>
+                        ) : null}
+                        {isCurrent ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {node.photoMode === "required" ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                                <Camera className="size-3" />
+                                фото обязательно
+                              </span>
+                            ) : node.photoMode === "optional" ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[11px] text-[#3848c7]">
+                                <Camera className="size-3" />
+                                можно фото
+                              </span>
+                            ) : null}
+                            {node.requireComment ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                                <MessageSquare className="size-3" />
+                                комментарий
+                              </span>
+                            ) : null}
+                            {node.requireSignature ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                                <PenLine className="size-3" />
+                                подпись
+                              </span>
+                            ) : null}
+                            {node.kind === "pinned" && node.linkedFieldKey ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2.5 py-0.5 font-mono text-[11px] text-[#3848c7]">
+                                → {node.linkedFieldKey}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    {isCurrent ? (
+                      <div className="border-t border-[#ececf4] px-4 py-3">
+                        <div className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6]/30 px-4 text-[13px] font-medium text-white opacity-50">
+                          <Check className="size-4" />
+                          Сделал
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 }
 
