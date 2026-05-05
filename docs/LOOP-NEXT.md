@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C15 — training-plan v2** (последний журнал Tier C)
+**Текущий приоритет:** **P3 ЗАКРЫТ — все 35/35 журналов мигрированы (wave-1 Settings v2). Дальше — P1 Pipeline Editor / P2 backlog.**
 
 ---
 
@@ -168,7 +168,7 @@
 - [x] P3.C12 — audit-report — DONE wave-1 @ eb319270 @ 2026-05-05 08:25 МСК
 - [x] P3.C13 — uv-lamp-runtime — DONE wave-1 @ 43e70208 @ 2026-05-05 08:50 МСК
 - [x] P3.C14 — staff-training — DONE wave-1 @ 6542cec3 @ 2026-05-05 09:10 МСК
-- [ ] P3.C15 — training-plan
+- [x] P3.C15 — training-plan — DONE wave-1 @ ac27de78 @ 2026-05-05 09:35 МСК — **Tier C complete, P3 wave-1 33/33 active + 2 N/A = 35/35**
 
 **Migration protocol на каждый журнал** (см. P3.3 в PIPELINE-VISION.md):
 1. Playwright screenshot конкурента haccp-online (если эквивалент есть)
@@ -275,6 +275,8 @@
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
 
+- **[2026-05-05 09:35 МСК]** `ac27de78` — **P3 ЗАКРЫТ ПОЛНОСТЬЮ wave-1 (35/35 журналов)**. Tier C wave-1 завершён за iter 23-35: traceability, intensive-cooling, fryer-oil, glass-list, metal-impurity, product-writeoff, register, tracked, scan-journal (N/A), audit-plan, audit-protocol, audit-report, uv-lamp-runtime, staff-training, training-plan. Все 33 активных Tier-журнала + 2 N/A (perishable + scan-journal — без Settings) теперь имеют унифицированный `JournalSettingsModal` за `experimentalUiV2`-toggle. Pattern «inline shim if useV2 / else legacy» доказал свою живучесть на 33 миграциях подряд. Что заметил: некоторые журналы (uv-lamp-runtime, training-plan) имели вынесенные функции `*SettingsDialog`, в них useV2 пробрасывался как доп. prop, а не через inline-shim — оба варианта работают одинаково. Что предлагаю дальше: 1) Owner может включить `experimentalUiV2` в `/settings/experimental` и обходить все 33 журнала — должны быть в едином стиле. 2) wave-2: вторичные диалоги (Add Row, Edit Topic, и т.п.) — их сейчас ~50, не покрыты. 3) или сразу к P1: Pipeline Editor с DB schema + drag-drop UI. 4) или P2 backlog (200-1000 features). Жду указания, куда двигать loop.
+
 - **[2026-05-05 05:40 МСК]** `f9625807` — **P3 Tier B DONE wave-1 (12/12 журналов)**. Закрытые: equipment-cleaning, equipment-calibration, equipment-maintenance, disinfectant, ppe-issuance, med-book, sanitation-day, sanitary-day-checklist, complaint, accident, breakdown-history, pest-control. Все имеют унифицированный settings-modal в v2-стиле. Pest-control оказался скрытым через TrackedDocumentClient shell — пришлось пробросить useV2 через 2 уровня. Что заметил: med-book получил бонус-улучшение (видимый список прививок с pills+× вместо blind add). Tier C 13 журналов — следующий, на нём дойдёт до 35/35.
 
 - **[2026-05-05 02:35 МСК]** `742defb2` — **P3 Tier A DONE wave-1 (10/10 журналов)**. Все топ-traffic журналы (cleaning, hygiene, health, cold-equipment, finished-product, perishable N/A, acceptance, climate, cleaning-ventilation, glass-control) имеют settings-modal в Design v2 за `experimentalUiV2` toggle. Открой `/settings/experimental`, включи toggle, обходи журналы — все «Настройки документа» теперь в едином стиле с uppercase-labels, indigo focus, sticky footer, max-h-90vh. Что заметил: pattern «inline shim if useV2 / else legacy» уже устоялся, 8 миграций по нему — работает стабильно. Tier B (12 средних journal'ов) идёт следующим. Что предлагаю дальше: продолжить loop — Tier B потом C, потом возможно дозакрытие per-journal customizations (health printEmptyRows, cleaning toolbar, prixleinable add-row + catalog dialogs).
@@ -298,6 +300,8 @@
 - [2026-05-05] `809bd40d`: `.map()` на пустом массиве — silent data loss anti-pattern. При написании upsert-логики ВСЕГДА проверять if (items.length === 0) ветку. Особенно опасно когда это часть бизнес-формы где пустой initial state — норма.
 - [2026-05-05] `91cd0170`: миграция на v2-компонент через `if (props.useV2) { <NewModal/> } else { <LegacyDialog/> }` — обе ветки в одном файле. Плюс: trivial rollback (выключил toggle), легко A/B сравнить, нет дубликата файла. Минус: файл вырастает. Размер cleaning-document-client теперь ~870 строк против 750 — приемлемо для wave-1, для wave-2/3 имеет смысл вынести в отдельный CleaningDocumentClientV2.tsx.
 - [2026-05-05] `b4f678b6`: shared-toolbar approach (StaffJournalToolbar используется hygiene + health) → одна правка покрывает 2 журнала. Лучший ROI на коммит. ОДНАКО health имеет custom onSettingsClick override со своей собственной settingsOpen-модалкой (для printEmptyRows) — она НЕ покрылась, нужен отдельный wave-1.b. Принцип: shared component миграция покрывает только common-path; per-journal customizations требуют отдельных миграций.
+- [2026-05-05] `2e1cd3e7`: nested document-clients (TrackedDocumentClient → PestControlDocumentClientImpl) — useV2 нужно пробрасывать через ВСЕ уровни, иначе wrapper вызывает Impl без флага и v2 не активируется. Решение: outer Props получает useV2, передаёт его в spread `{...props}`, Impl деструктурит `useV2 = false` явно.
+- [2026-05-05] `43e70208`: для journals с вынесенным `*SettingsDialog`-компонентом (uv-lamp-runtime, training-plan) — добавлять `useV2?: boolean` в его собственные props и ветвиться внутри него (`if (props.useV2) return <JournalSettingsModal>`). Это ровно так же чисто, как inline-shim в основном клиенте, плюс позволяет переиспользовать `handleSave`. Pattern: если Settings уже извлечён в функцию — useV2 живёт в её props, иначе — inline в основном клиенте.
 
 ---
 
