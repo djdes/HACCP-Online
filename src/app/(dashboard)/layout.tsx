@@ -10,6 +10,7 @@ import {
 import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
 import { SupportWidget } from "@/components/support/support-widget";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
 import {
   LATEST_NOTES_BUILD_SHA,
@@ -121,6 +122,8 @@ export default async function DashboardLayout({
           {/* ⌘K — палитра-навигатор. Один глобальный listener на keydown,
               ноль cost когда не открыт. Доступна всем кто видит dashboard. */}
           <CommandPalette />
+          {/* P2.A.1 — Ctrl+Shift+N → срочный журнал → /journals/[code]/new */}
+          <UrgentJournalHotkey />
         </div>
         <Toaster />
       </SiteThemeProvider>
