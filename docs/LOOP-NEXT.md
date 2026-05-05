@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.2 — API endpoints для pipeline tree** (P1.1 schema задеплоен).
+**Текущий приоритет:** **P1.2.b — seed + split endpoints** (требуют чтения JournalSpec.fields). Затем P1.3 — UI.
 
 ---
 
@@ -64,11 +64,19 @@
 - `npx prisma generate` clean локально, `prisma db push` отработал в deploy.yml на проде, PM2 stable
 - Acceptance: типы доступны через `db.journalPipelineTemplate.create({...})` и т.д.
 
-### [ ] P1.2 — API: GET/PATCH/POST/DELETE для pipeline tree
-- Эндпоинты в `src/app/api/settings/journal-pipelines/[code]/...`
-- Auth через `hasFullWorkspaceAccess`
-- AuditLog на каждую мутацию
-- Acceptance: curl-тесты создания/перемещения/удаления узлов
+### [x] P1.2 — API: GET/PATCH/POST/DELETE для pipeline tree — DONE wave-a @ a97a8a0b @ 2026-05-05 10:05 МСК
+- 6 endpoints из 8 закрыты:
+  - `GET /api/settings/journal-pipelines/[code]` — load tree (добавлен в legacy-route.ts)
+  - `POST /[code]/nodes` — создать custom-узел
+  - `PATCH /[code]/nodes/[id]` — редактировать (title/detail/hint/photoMode/requireComment/requireSignature)
+  - `DELETE /[code]/nodes/[id]` — удалить (только custom; pinned → 403)
+  - `PATCH /[code]/nodes/[id]/move` — перемещение (parentId + ordering, защита от циклов)
+  - `POST /[code]/clear-custom` — drop all custom-узлов
+- Все защищены `requireApiAuth` + `hasFullWorkspaceAccess` (401/403)
+- Каждая мутация пишет AuditLog (`settings.journal-pipelines.*`)
+- Helper-модуль `src/lib/journal-pipeline-tree.ts` — `findPipelineTemplate`, `ensurePipelineTemplate`, `loadPipelineTree`, `computeNextOrdering`
+- **Wave-b (вынесено):** `POST /[code]/seed` (initial seed pinned из JournalSpec.fields) и `POST /[code]/nodes/[id]/split` (split pinned на два) — требуют доступа к journal-spec, делаем отдельным коммитом
+- Acceptance: 401 на unauthenticated curl ко всем 6 endpoint'ам, prod не сломан, login=200
 
 ### [ ] P1.3 — Pipeline editor UI с drag-drop
 - Страница `src/app/(dashboard)/settings/journal-pipelines/[code]/page.tsx`
