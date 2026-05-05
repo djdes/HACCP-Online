@@ -64,6 +64,23 @@ PRIVATE_ROUTES=(
   /mini
   /mini/journals/cleaning
   /mini/journals/cleaning/new
+  # Прежде эти routes отдавали 500 на холодном PM2: Next.js 16 JIT
+  # триггер происходит при первом hit'е каждого page'а, и до тех пор
+  # client reference manifest не существует в runtime'е (хотя файлы на
+  # диске есть — verify_manifests их видит). Каждый из этих routes
+  # нужно «коснуться» curl'ом из pre-warm, иначе первый пользователь
+  # получает InvariantError + белый экран на мобильном.
+  /mini/staff
+  /mini/equipment
+  /mini/iot
+  /mini/reports
+  /mini/audit
+  /mini/shift
+  /mini/shift-handover
+  /mini/me
+  /mini/today
+  /mini/open
+  /mini/documents/_warm
   /settings
   /settings/users
   /settings/journals
