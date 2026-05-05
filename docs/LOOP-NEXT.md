@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.5 wave-b — Guide editor UI** (страница `/settings/journal-guides-tree/[code]`).
+**Текущий приоритет:** **P1.5 wave-c — заменить hardcoded `journal-filling-guides` на загрузку из БД** в FillingGuide modal'ке.
 
 ---
 
@@ -126,7 +126,15 @@
   - Без `kind`/`linkedFieldKey`/seed/split — гайды проще: title + detail + photoUrl + tree-структура
   - Все защищены `requireApiAuth` + `hasFullWorkspaceAccess`, AuditLog на каждую мутацию (`settings.journal-guides.*`)
   - Acceptance: 401 на unauthenticated POST, prod не сломан, login=200
-- [ ] **wave-b** — UI page `/settings/journal-guides-tree/[code]` (можно reuse паттерн из tree-editor.tsx с упрощениями)
+- [x] **wave-b @ 6f86ac5a @ 2026-05-05 12:50 МСК** — Guide editor UI:
+  - `src/app/(dashboard)/settings/journal-guides-tree/[code]/page.tsx` (server) + `tree-editor.tsx` (client)
+  - Reuse tree-editor pattern из pipeline'а с упрощениями: нет split, нет seed, нет pinned/custom badge
+  - Add modal: title + detail + photoUrl (URL текстовый input, не upload — нет pipeline для guide-фото пока)
+  - Edit modal с тем же шейпом
+  - DnD reorder через @dnd-kit (root-level only, как в pipeline)
+  - Delete через ConfirmDialog danger
+  - Hero-блок с BookOpen иконкой и индиго-фиолетовым accent (`#7a5cff`) чтобы визуально отличаться от pipeline (#5566f6)
+  - На list-page `/settings/journal-pipelines` добавлен 3-й link «📖 Гайд (beta)» + бейдж со счётчиком guide-узлов (фиолетовый pill)
 - [ ] **wave-c** — заменить hardcoded `journal-filling-guides` в FillingGuide modal'ке на загрузку из БД через `loadGuideTree`
 
 ### [ ] P1.6 — Photo-mode per node
