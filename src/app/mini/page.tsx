@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
-  ClipboardCheck,
   Loader2,
   Play,
   ShieldAlert,
@@ -99,10 +98,13 @@ export default function MiniHomePage() {
   const signInStarted = useRef(false);
   const fetchStarted = useRef(false);
   const redirectStarted = useRef(false);
-  const nextPath = (() => {
+  // useMemo: searchParams возвращает свежий объект на каждом render'е,
+  // а nextPath — стабильная строка/null. Без memo dependent-effect'ы
+  // ([nextPath, status, ...]) пере-fire'ят при каждом render parent'а.
+  const nextPath = useMemo<string | null>(() => {
     const target = sanitizeMiniAppRedirectPath(searchParams.get("next") ?? "");
     return target === "/mini" ? null : target;
-  })();
+  }, [searchParams]);
 
   useEffect(() => {
     if (status !== "unauthenticated" || signInStarted.current) return;
