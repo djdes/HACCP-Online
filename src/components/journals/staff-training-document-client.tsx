@@ -54,6 +54,7 @@ import {
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 type Props = {
   documentId: string;
   title: string;
@@ -62,6 +63,8 @@ type Props = {
   status: string;
   initialConfig: StaffTrainingConfig;
   users: { id: string; name: string; role: string }[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
@@ -78,6 +81,7 @@ export function StaffTrainingDocumentClient({
   status,
   initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -887,42 +891,78 @@ export function StaffTrainingDocumentClient({
       </Dialog>
 
       {/* ---------- Settings Dialog ---------- */}
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Настройки журнала</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Label>Название журнала</Label>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки журнала"
+          description="Параметры журнала обучения и аттестации персонала"
+          size="md"
+          onSave={async () => {
+            try {
+              const response = await fetch(`/api/journal-documents/${documentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: settingsTitle }),
+              });
+              if (!response.ok) {
+                throw new Error("Не удалось сохранить настройки");
+              }
+              setSettingsOpen(false);
+              router.refresh();
+            } catch {
+              toast.error("Не удалось сохранить настройки");
+            }
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Название журнала</Label>
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
-            <div className="flex justify-end">
-              <Button
-                onClick={async () => {
-                  try {
-                    const response = await fetch(`/api/journal-documents/${documentId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ title: settingsTitle }),
-                    });
-                    if (!response.ok) {
-                      throw new Error("Не удалось сохранить настройки");
-                    }
-                    setSettingsOpen(false);
-                    router.refresh();
-                  } catch {
-                    toast.error("Не удалось сохранить настройки");
-                  }
-                }}
-              >
-                Сохранить
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Настройки журнала</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label>Название журнала</Label>
+              <Input
+                value={settingsTitle}
+                onChange={(e) => setSettingsTitle(e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/journal-documents/${documentId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: settingsTitle }),
+                      });
+                      if (!response.ok) {
+                        throw new Error("Не удалось сохранить настройки");
+                      }
+                      setSettingsOpen(false);
+                      router.refresh();
+                    } catch {
+                      toast.error("Не удалось сохранить настройки");
+                    }
+                  }}
+                >
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
