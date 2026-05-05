@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.6 — Photo-mode per node** (radio в редакторе + соответствующий wizard render). Большая часть уже сделана в P1.3 wave-b — осталось проверить wizard render.
+**Текущий приоритет:** **P1.6 wave-b — requireComment + requireSignature wizard rendering** (UI inputs на шагах + gate «Сделал»).
 
 ---
 
@@ -146,10 +146,18 @@
     - `/mini/journals/[code]/new` (Mini App) → `<DynamicForm customGuideNodes>`
 - [x] **P1.5 ЗАКРЫТ** — Guide editor end-to-end: API + UI + integration. Менеджер настраивает гайд → сотрудник видит его на каждой форме заполнения и на standalone странице.
 
-### [ ] P1.6 — Photo-mode per node
-- В UI редактора — radio (none/optional/required)
-- В wizard — соответствующее UI (uploader появляется только если != none)
-- Required = блок «Сделал»
+### [/] P1.6 — Photo-mode per node — IN PROGRESS
+- [x] UI редактора (3-кнопочный selector none/optional/required) — DONE в P1.3 wave-b @ 59de6148
+- [x] **wave-a @ a56babce @ 2026-05-05 13:35 МСК** — wizard render:
+  - `PipelineStep` тип расширен: `photoMode?: "none"|"optional"|"required"`, `requireComment?`, `requireSignature?`
+  - `buildFormFromPipelineTree` (generic.ts) пробрасывает `photoMode` напрямую (не через `requirePhoto`-only). Backwards compat: `requirePhoto = photoMode === "required"` для legacy-readers.
+  - `<PipelineWizard>` в task-fill-client.tsx:
+    - `effectivePhotoMode = step.photoMode ?? (requirePhoto ? "required" : "none")`
+    - `effectivePhotoMode === "none"` → uploader скрыт
+    - `"optional"` → uploader виден, неблокирующий стиль (серая окантовка), label «(по желанию)»
+    - `"required"` → uploader виден, indigo-стиль, label «(обязательно)», кнопка «Сделал» заблокирована до загрузки
+  - `confirmPipelineStep` тоже использует tri-state guard
+- [ ] **wave-b** — requireComment + requireSignature: state в parent, textarea/input на шагах, gate «Сделал», запись в pipeline-trail
 
 ### [ ] P1.7 — Subtasks (nested pipeline nodes)
 - UI поддержка глубины 3
