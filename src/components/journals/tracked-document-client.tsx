@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JOURNAL_DIALOG_BODY_CLASS,
@@ -131,6 +132,7 @@ function TrackedDocumentClientImpl({
   fields,
   initialEntries,
   organizationName,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [entries, setEntries] = useState(sortedEntries(initialEntries));
@@ -730,79 +732,143 @@ function TrackedDocumentClientImpl({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[860px]">
-          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
-            <DialogTitle className="text-[22px] font-medium text-black">
-              Настройки журнала
-            </DialogTitle>
-          </DialogHeader>
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки журнала"
+          description="Название журнала и ответственный сотрудник."
+          size="md"
+          onSave={async () => {
+            try {
+              await saveSettings();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Ошибка сохранения настроек");
+            }
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label
+              htmlFor="tracked-title-v2"
+              className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+            >
+              Название журнала
+            </Label>
+            <Input
+              id="tracked-title-v2"
+              value={titleInput}
+              onChange={(event) => setTitleInput(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Ответственный
+            </Label>
+            <Select
+              value={responsibleUserIdInput}
+              onValueChange={(value) => setResponsibleUserIdInput(value)}
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue placeholder="— Выберите —" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Должность ответственного
+            </Label>
+            <Input
+              value={responsibleTitleInput}
+              onChange={(event) => setResponsibleTitleInput(event.target.value)}
+              placeholder="Например: Технолог"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[860px]">
+            <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+              <DialogTitle className="text-[22px] font-medium text-black">
+                Настройки журнала
+              </DialogTitle>
+            </DialogHeader>
 
-          <div className={JOURNAL_DIALOG_BODY_CLASS}>
-            <div className="space-y-3">
-              <Label htmlFor="journal-title" className="text-[14px] text-[#73738a]">
-                Название журнала
-              </Label>
-              <Input
-                id="journal-title"
-                value={titleInput}
-                onChange={(event) => setTitleInput(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-              />
-            </div>
-
-            <div className={JOURNAL_DIALOG_GRID_CLASS}>
+            <div className={JOURNAL_DIALOG_BODY_CLASS}>
               <div className="space-y-3">
-                <Label className="text-[14px] text-[#73738a]">Ответственный</Label>
-                <Select
-                  value={responsibleUserIdInput}
-                  onValueChange={(value) => setResponsibleUserIdInput(value)}
-                >
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                    <SelectValue placeholder="Выберите сотрудника" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="journal-responsible-title" className="text-[14px] text-[#73738a]">
-                  Должность ответственного
+                <Label htmlFor="journal-title" className="text-[14px] text-[#73738a]">
+                  Название журнала
                 </Label>
                 <Input
-                  id="journal-responsible-title"
-                  value={responsibleTitleInput}
-                  onChange={(event) => setResponsibleTitleInput(event.target.value)}
+                  id="journal-title"
+                  value={titleInput}
+                  onChange={(event) => setTitleInput(event.target.value)}
                   className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                  placeholder="Например: Технолог"
                 />
               </div>
-            </div>
 
-            <div className="flex justify-end pt-2">
-              <Button
-                type="button"
-                onClick={() =>
-                  saveSettings().catch((error) =>
-                    toast.error(
-                      error instanceof Error ? error.message : "Ошибка сохранения настроек"
+              <div className={JOURNAL_DIALOG_GRID_CLASS}>
+                <div className="space-y-3">
+                  <Label className="text-[14px] text-[#73738a]">Ответственный</Label>
+                  <Select
+                    value={responsibleUserIdInput}
+                    onValueChange={(value) => setResponsibleUserIdInput(value)}
+                  >
+                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                      <SelectValue placeholder="Выберите сотрудника" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="journal-responsible-title" className="text-[14px] text-[#73738a]">
+                    Должность ответственного
+                  </Label>
+                  <Input
+                    id="journal-responsible-title"
+                    value={responsibleTitleInput}
+                    onChange={(event) => setResponsibleTitleInput(event.target.value)}
+                    className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                    placeholder="Например: Технолог"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  onClick={() =>
+                    saveSettings().catch((error) =>
+                      toast.error(
+                        error instanceof Error ? error.message : "Ошибка сохранения настроек"
+                      )
                     )
-                  )
-                }
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
-              >
-                Сохранить
-              </Button>
+                  }
+                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+                >
+                  Сохранить
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
