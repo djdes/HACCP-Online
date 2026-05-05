@@ -11,42 +11,11 @@ import { SeedAllPipelinesButton } from "./seed-all-button";
 
 export const dynamic = "force-dynamic";
 
-const ALL_JOURNALS = [
-  { code: "hygiene", label: "Гигиена" },
-  { code: "health_check", label: "Проверка здоровья" },
-  { code: "cold_equipment_control", label: "Холодильники" },
-  { code: "climate_control", label: "Климат-контроль" },
-  { code: "cleaning", label: "Уборка" },
-  { code: "incoming_control", label: "Приёмка" },
-  { code: "finished_product", label: "Бракераж" },
-  { code: "disinfectant_usage", label: "Дезсредства" },
-  { code: "fryer_oil", label: "Фритюрный жир" },
-  { code: "accident_journal", label: "Аварии" },
-  { code: "complaint_register", label: "Жалобы" },
-  { code: "breakdown_history", label: "Поломки" },
-  { code: "ppe_issuance", label: "СИЗ" },
-  { code: "glass_items_list", label: "Стекло — список" },
-  { code: "glass_control", label: "Контроль стекла" },
-  { code: "metal_impurity", label: "Металлопримеси" },
-  { code: "perishable_rejection", label: "Скоропорт" },
-  { code: "product_writeoff", label: "Списание" },
-  { code: "traceability_test", label: "Прослеживаемость" },
-  { code: "general_cleaning", label: "Генуборка" },
-  { code: "sanitation_day_control", label: "Сан. день" },
-  { code: "sanitary_day_control", label: "Сан. день (alt)" },
-  { code: "pest_control", label: "Дератизация" },
-  { code: "intensive_cooling", label: "Интенс. охлаждение" },
-  { code: "uv_lamp_runtime", label: "УФ-лампа" },
-  { code: "equipment_maintenance", label: "Тех. обслуживание" },
-  { code: "equipment_calibration", label: "Поверка" },
-  { code: "equipment_cleaning", label: "Чистка оборудования" },
-  { code: "audit_plan", label: "План аудита" },
-  { code: "audit_protocol", label: "Протокол аудита" },
-  { code: "audit_report", label: "Отчёт аудита" },
-  { code: "training_plan", label: "План обучения" },
-  { code: "staff_training", label: "Обучение персонала" },
-  { code: "med_books", label: "Медкнижки" },
-];
+// Список журналов подтягивается из БД (db.journalTemplate.findMany).
+// Раньше был хардкодным с короткими лейблами вроде «Скоропорт» вместо
+// полного «Журнал бракеража скоропортящейся пищевой продукции», и
+// при добавлении нового журнала в seed.ts — нужно было ещё и тут
+// дописать. Теперь list = source of truth = JournalTemplate (active).
 
 export default async function JournalPipelinesPage() {
   const session = await getServerSession(authOptions);
@@ -54,34 +23,43 @@ export default async function JournalPipelinesPage() {
   if (!hasCapability(session.user, "admin.full")) redirect("/journals");
 
   const organizationId = getActiveOrgId(session);
-  const org = await db.organization.findUnique({
-    where: { id: organizationId },
-    select: { journalPipelinesJson: true },
-  });
+
+  const [org, allJournals, treeTemplates, guideTemplates] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { journalPipelinesJson: true },
+    }),
+    db.journalTemplate.findMany({
+      where: { isActive: true },
+      select: { code: true, name: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    db.journalPipelineTemplate.findMany({
+      where: { organizationId },
+      select: {
+        templateCode: true,
+        _count: { select: { nodes: true } },
+      },
+    }),
+    db.journalGuideTemplate.findMany({
+      where: { organizationId },
+      select: {
+        templateCode: true,
+        _count: { select: { nodes: true } },
+      },
+    }),
+  ]);
+
   const overrides = (org?.journalPipelinesJson ?? {}) as Record<
     string,
     { steps: { id: string }[] }
   >;
 
-  const treeTemplates = await db.journalPipelineTemplate.findMany({
-    where: { organizationId },
-    select: {
-      templateCode: true,
-      _count: { select: { nodes: true } },
-    },
-  });
   const treeStatus = new Map<string, number>();
   for (const tpl of treeTemplates) {
     treeStatus.set(tpl.templateCode, tpl._count.nodes);
   }
 
-  const guideTemplates = await db.journalGuideTemplate.findMany({
-    where: { organizationId },
-    select: {
-      templateCode: true,
-      _count: { select: { nodes: true } },
-    },
-  });
   const guideStatus = new Map<string, number>();
   for (const tpl of guideTemplates) {
     guideStatus.set(tpl.templateCode, tpl._count.nodes);
@@ -139,7 +117,7 @@ export default async function JournalPipelinesPage() {
         </div>
         <SeedAllPipelinesButton
           totalActiveTrees={treeTemplates.length}
-          totalJournals={ALL_JOURNALS.length}
+          totalJournals={allJournals.length}
         />
       </div>
 
@@ -151,7 +129,7 @@ export default async function JournalPipelinesPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ALL_JOURNALS.map((j) => {
+        {allJournals.map((j) => {
           const hasOverride = Boolean(overrides[j.code]?.steps?.length);
           const hasDefault = Boolean(getDefaultPipeline(j.code));
           const treeNodeCount = treeStatus.get(j.code) ?? 0;
@@ -175,7 +153,7 @@ export default async function JournalPipelinesPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[14px] font-medium leading-tight text-[#0b1024]">
-                    {j.label}
+                    {j.name}
                   </div>
                   <div className="mt-0.5 font-mono text-[10px] text-[#9b9fb3]">
                     {j.code}
