@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { generatePoolForDay, type TaskScope } from "@/lib/journal-task-pool";
 import {
   getActiveClaimForUser,
-  listClaimsForJournal,
+  type ClaimRow,
 } from "@/lib/journal-task-claims";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { hasJournalAccess } from "@/lib/journal-acl";
@@ -125,61 +125,123 @@ export async function GET() {
   // Уборщица видела scope'ы health_check (медосмотр) с именами коллег,
   // даже если её ACL запрещает доступ к этому журналу. Фильтруем по
   // hasJournalAccess — management/root проходят без фильтра.
+  //
+  // Pass-3 HIGH #5 — N+1 fix: раньше цикл по 32 кодам делал по 2
+  // sequential query (generatePool + listClaims) на каждый = 64
+  // queries в худшем случае. Теперь:
+  //   1. ACL для всех кодов параллельно (LRU-cached, но parallelism
+  //      помогает на cold cache).
+  //   2. ОДИН batch query на все claims (`journalCode: { in: ... }`).
+  //   3. generatePoolForDay параллельно для allowed-кодов.
   const aclActor = {
     id: userId,
     role: session.user.role,
     isRoot: session.user.isRoot === true,
   };
-  for (const code of POOL_CODES) {
-    if (disabled.has(code)) continue;
-    if (!(await hasJournalAccess(aclActor, code))) continue;
-    const [pool, claims] = await Promise.all([
-      generatePoolForDay({ organizationId, journalCode: code, date: today }),
-      listClaimsForJournal({
-        organizationId,
-        journalCode: code,
-        dateKey: today,
+
+  const candidateCodes = POOL_CODES.filter((c) => !disabled.has(c));
+  const aclResults = await Promise.all(
+    candidateCodes.map((c) => hasJournalAccess(aclActor, c))
+  );
+  const allowedCodes = candidateCodes.filter((_, i) => aclResults[i]);
+
+  if (allowedCodes.length > 0) {
+    // Day-window для batch claims-query.
+    const dayStart = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate()
+      )
+    );
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+    const [pools, allClaimsRaw] = await Promise.all([
+      Promise.all(
+        allowedCodes.map((code) =>
+          generatePoolForDay({ organizationId, journalCode: code, date: today })
+        )
+      ),
+      db.journalTaskClaim.findMany({
+        where: {
+          organizationId,
+          journalCode: { in: allowedCodes },
+          dateKey: { gte: dayStart, lt: dayEnd },
+        },
+        include: { user: { select: { name: true } } },
+        orderBy: { claimedAt: "asc" },
       }),
     ]);
-    if (!pool.pool || pool.scopes.length === 0) continue;
-    const claimByScope = new Map<
-      string,
-      { active?: typeof claims[number]; completed?: typeof claims[number] }
-    >();
-    for (const c of claims) {
-      const b = claimByScope.get(c.scopeKey) ?? {};
-      if (c.status === "active") b.active = c;
-      if (c.status === "completed") b.completed = c;
-      claimByScope.set(c.scopeKey, b);
+
+    // Группируем claims по journalCode → ClaimRow[]
+    const claimsByCode = new Map<string, ClaimRow[]>();
+    for (const c of allClaimsRaw) {
+      const list = claimsByCode.get(c.journalCode) ?? [];
+      list.push({
+        id: c.id,
+        organizationId: c.organizationId,
+        journalCode: c.journalCode,
+        scopeKey: c.scopeKey,
+        scopeLabel: c.scopeLabel,
+        dateKey: c.dateKey,
+        userId: c.userId,
+        userName: c.user?.name,
+        status: c.status as ClaimRow["status"],
+        claimedAt: c.claimedAt,
+        completedAt: c.completedAt,
+        releasedAt: c.releasedAt,
+        parentHint: c.parentHint,
+        entryId: c.entryId,
+        tasksFlowTaskId: c.tasksFlowTaskId,
+      });
+      claimsByCode.set(c.journalCode, list);
     }
-    const enriched: EnrichedScope[] = pool.scopes.map((s) => {
-      const b = claimByScope.get(s.scopeKey) ?? {};
-      let availability: EnrichedScope["availability"] = "available";
-      let claimUserName: string | null | undefined;
-      let claimId: string | undefined;
-      if (b.completed) {
-        availability = "completed";
-        claimUserName = b.completed.userName;
-        claimId = b.completed.id;
-      } else if (b.active) {
-        availability = b.active.userId === userId ? "mine" : "taken";
-        claimUserName = b.active.userName;
-        claimId = b.active.id;
+
+    for (let i = 0; i < allowedCodes.length; i++) {
+      const code = allowedCodes[i];
+      const pool = pools[i];
+      if (!pool.pool || pool.scopes.length === 0) continue;
+      const claims = claimsByCode.get(code) ?? [];
+      const claimByScope = new Map<
+        string,
+        { active?: ClaimRow; completed?: ClaimRow }
+      >();
+      for (const c of claims) {
+        const b = claimByScope.get(c.scopeKey) ?? {};
+        if (c.status === "active") b.active = c;
+        if (c.status === "completed") b.completed = c;
+        claimByScope.set(c.scopeKey, b);
       }
-      return {
-        ...s,
-        journalCode: code,
-        journalLabel: JOURNAL_LABELS[code] ?? code,
-        availability,
-        claimUserName,
-        claimId,
-      };
-    });
-    groups.push({
-      code,
-      label: JOURNAL_LABELS[code] ?? code,
-      scopes: enriched,
-    });
+      const enriched: EnrichedScope[] = pool.scopes.map((s) => {
+        const b = claimByScope.get(s.scopeKey) ?? {};
+        let availability: EnrichedScope["availability"] = "available";
+        let claimUserName: string | null | undefined;
+        let claimId: string | undefined;
+        if (b.completed) {
+          availability = "completed";
+          claimUserName = b.completed.userName;
+          claimId = b.completed.id;
+        } else if (b.active) {
+          availability = b.active.userId === userId ? "mine" : "taken";
+          claimUserName = b.active.userName;
+          claimId = b.active.id;
+        }
+        return {
+          ...s,
+          journalCode: code,
+          journalLabel: JOURNAL_LABELS[code] ?? code,
+          availability,
+          claimUserName,
+          claimId,
+        };
+      });
+      groups.push({
+        code,
+        label: JOURNAL_LABELS[code] ?? code,
+        scopes: enriched,
+      });
+    }
   }
 
   return NextResponse.json({
