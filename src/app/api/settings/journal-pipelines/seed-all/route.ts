@@ -5,6 +5,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { recordAuditLog } from "@/lib/audit-log";
 import { ensurePipelineTemplate } from "@/lib/journal-pipeline-tree";
 import { upsertNotification } from "@/lib/notifications";
+import { resolvePipelineFields } from "@/lib/journal-default-pipelines";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +15,6 @@ type SeedSummary = {
   skippedExisting: { code: string; name: string; existingNodeCount: number }[];
   skippedNoFields: { code: string; name: string }[];
 };
-
-type FieldDef = { key?: unknown; label?: unknown };
 
 /**
  * POST /api/settings/journal-pipelines/seed-all
@@ -57,12 +56,12 @@ export async function POST(request: Request) {
   };
 
   for (const journal of journals) {
-    const rawFields = journal.fields;
-    const fields = Array.isArray(rawFields) ? (rawFields as FieldDef[]) : [];
-    const validFields = fields.filter(
-      (f) => typeof f?.key === "string" && (f.label === undefined || typeof f.label === "string")
-    );
-    if (validFields.length === 0) {
+    const rawFields = Array.isArray(journal.fields)
+      ? (journal.fields as unknown[])
+      : [];
+    // resolvePipelineFields: template.fields[] || default-registry || null
+    const validFields = resolvePipelineFields(journal.code, rawFields);
+    if (!validFields) {
       summary.skippedNoFields.push({ code: journal.code, name: journal.name });
       continue;
     }
@@ -83,9 +82,8 @@ export async function POST(request: Request) {
     let createdCount = 0;
     for (let index = 0; index < validFields.length; index++) {
       const field = validFields[index];
-      const key = String(field.key);
-      const label =
-        typeof field.label === "string" && field.label ? field.label : key;
+      const key = field.key;
+      const label = field.label || key;
       await db.journalPipelineNode.create({
         data: {
           templateId: template.id,

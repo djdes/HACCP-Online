@@ -7,16 +7,10 @@ import {
   ensurePipelineTemplate,
   loadPipelineTree,
 } from "@/lib/journal-pipeline-tree";
+import { resolvePipelineFields } from "@/lib/journal-default-pipelines";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type FieldDef = {
-  key?: unknown;
-  label?: unknown;
-  type?: unknown;
-  required?: unknown;
-};
 
 /**
  * POST /api/settings/journal-pipelines/[code]/seed
@@ -58,10 +52,19 @@ export async function POST(
     );
   }
 
-  const rawFields = journalTemplate.fields;
-  if (!Array.isArray(rawFields)) {
+  const rawFields = Array.isArray(journalTemplate.fields)
+    ? (journalTemplate.fields as unknown[])
+    : [];
+  // resolvePipelineFields(): если у template.fields[] нет колонок,
+  // подтягиваем из реестра дефолтов (см. journal-default-pipelines.ts).
+  // null = нечего сидить (журнал не из набора + fields пуст).
+  const fields = resolvePipelineFields(code, rawFields);
+  if (!fields) {
     return NextResponse.json(
-      { error: "У журнала нет описанных колонок (fields пуст)" },
+      {
+        error:
+          "У журнала нет описанных колонок и нет default-pipeline в реестре. Добавь journal-код в src/lib/journal-default-pipelines.ts.",
+      },
       { status: 400 }
     );
   }
@@ -81,14 +84,12 @@ export async function POST(
     );
   }
 
-  const fields = rawFields as FieldDef[];
   const created: { id: string; linkedFieldKey: string; title: string }[] = [];
 
   for (let index = 0; index < fields.length; index++) {
     const field = fields[index];
-    const key = typeof field?.key === "string" ? field.key : null;
-    const label = typeof field?.label === "string" ? field.label : key;
-    if (!key || !label) continue;
+    const key = field.key;
+    const label = field.label || key;
 
     const node = await db.journalPipelineNode.create({
       data: {
