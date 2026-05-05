@@ -318,6 +318,42 @@
     max-width: 100%;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Hero-блоки с большим padding (p-8 / p-10 md:p-10) занимают почти
+     весь экран на mobile. Сжимаем padding до 5 для блоков с rounded-3xl. */
+  .app-shell main .rounded-3xl.p-8,
+  .app-shell main .rounded-3xl.p-10 {
+    padding: 1.25rem !important;
+  }
+
+  /* Большие hero-заголовки (h1 с clamp) масштабируются автоматически,
+     но если использован hardcoded text-[36px]/text-[32px] — на 360px
+     экранах будет clip. Принудительно ограничиваем. */
+  .app-shell main h1.text-\[36px\],
+  .app-shell main h1.text-\[32px\] {
+    font-size: 1.625rem !important;
+    line-height: 1.15 !important;
+  }
+
+  /* Stat-cards в grid'ах часто используют grid-cols-4 — на mobile это
+     слишком тесно. Сжимаем до 2-cols автоматически для small viewport
+     внутри dashboard hero. */
+  .app-shell main .grid.grid-cols-4:not(.no-mobile-shrink) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Settings sidebar / app menu: на mobile должен сворачиваться в
+   bottom-sheet или drawer. По умолчанию sidebar position:sticky слева
+   на узком viewport ломает контент. */
+@media (max-width: 767px) {
+  .app-shell aside.sticky,
+  .app-shell aside[class*="sticky"] {
+    position: relative !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+  }
 }
 
 @keyframes landing-rise {
