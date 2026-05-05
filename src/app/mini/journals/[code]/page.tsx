@@ -111,16 +111,47 @@ export default function MiniJournalPage({
     return (
       <div className="space-y-4">
         <BackLink />
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div
+          className="rounded-2xl p-4 text-sm"
+          style={{
+            background: "var(--mini-crimson-soft)",
+            border: "1px solid rgba(255, 82, 104, 0.24)",
+            color: "var(--mini-crimson)",
+          }}
+        >
           {error}
         </div>
       </div>
     );
   }
   if (!payload) {
+    // Skeleton-каркас вместо plain "Загружаем…" — структурно зеркалит
+    // header (журнал-название) + 3 карточки entries.
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
-        Загружаем…
+      <div className="flex flex-1 flex-col gap-4 pb-28" aria-label="Загружаем журнал">
+        <div
+          className="mini-skeleton-bar"
+          style={{ width: 120, height: 13, borderRadius: 8 }}
+        />
+        <div className="space-y-2">
+          <div
+            className="mini-skeleton-bar"
+            style={{ width: "65%", height: 22, borderRadius: 11 }}
+          />
+          <div
+            className="mini-skeleton-bar"
+            style={{ width: "85%", height: 13, borderRadius: 7 }}
+          />
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="mini-skeleton-bar"
+              style={{ width: "100%", height: 76, borderRadius: 16 }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -129,18 +160,31 @@ export default function MiniJournalPage({
     <div className="flex flex-1 flex-col gap-4 pb-28">
       <BackLink />
       <header className="px-1">
-        <h1 className="text-[20px] font-semibold leading-6 text-slate-900">
+        <h1
+          className="text-[20px] font-semibold leading-6"
+          style={{ color: "var(--mini-text)" }}
+        >
           {payload.template.name}
         </h1>
         {payload.template.description ? (
-          <p className="mt-1 text-[13px] leading-5 text-slate-500">
+          <p
+            className="mt-1 text-[13px] leading-5"
+            style={{ color: "var(--mini-text-muted)" }}
+          >
             {payload.template.description}
           </p>
         ) : null}
       </header>
 
       {copyMsg ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
+        <div
+          className="rounded-xl px-3 py-2 text-[13px]"
+          style={{
+            background: "var(--mini-sage-soft)",
+            border: "1px solid var(--mini-divider-strong)",
+            color: "var(--mini-sage)",
+          }}
+        >
           {copyMsg}
         </div>
       ) : null}
@@ -206,7 +250,8 @@ function BackLink() {
   return (
     <Link
       href="/mini"
-      className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500"
+      className="inline-flex items-center gap-1 text-[13px] font-medium"
+      style={{ color: "var(--mini-text-muted)" }}
     >
       <ArrowLeft className="size-4" />
       На главную
@@ -231,18 +276,33 @@ function FieldJournalBody({
         <button
           onClick={onCopyYesterday}
           disabled={copying}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-medium text-slate-700 shadow-sm active:bg-slate-50 disabled:opacity-50"
+          className="w-full rounded-xl px-3 py-2.5 text-[13px] font-medium shadow-sm disabled:opacity-50"
+          style={{
+            background: "var(--mini-surface-1)",
+            border: "1px solid var(--mini-divider-strong)",
+            color: "var(--mini-text)",
+          }}
         >
-          {copying ? "Копируем…" : "📋 Заполнить как вчера"}
+          {copying ? "Копируем…" : "Заполнить как вчера"}
         </button>
       ) : null}
 
       <section className="space-y-2">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
+        <h2
+          className="px-1 text-[12px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           Последние записи
         </h2>
         {entries.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[14px] text-slate-500">
+          <div
+            className="rounded-2xl px-4 py-6 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
             Пока нет записей за 7 дней. Создайте первую.
           </div>
         ) : (
@@ -252,7 +312,12 @@ function FieldJournalBody({
 
       <Link
         href={`/mini/journals/${code}/new`}
-        className="fixed bottom-4 left-1/2 z-10 flex w-[calc(100%-24px)] max-w-lg -translate-x-1/2 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-4 text-[15px] font-semibold text-white shadow-lg active:scale-[0.98] sm:w-[calc(100%-32px)]"
+        className="fixed bottom-4 left-1/2 z-10 flex w-[calc(100%-24px)] max-w-lg -translate-x-1/2 items-center justify-center gap-2 rounded-2xl px-5 py-4 text-[15px] font-semibold shadow-lg active:scale-[0.98] sm:w-[calc(100%-32px)]"
+        style={{
+          background: "var(--mini-lime)",
+          color: "var(--mini-primary-contrast)",
+          boxShadow: "var(--mini-primary-shadow)",
+        }}
       >
         <Plus className="size-5" />
         Новая запись
@@ -270,18 +335,35 @@ function DocumentJournalBody({
 }) {
   return (
     <>
-      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-[13px] leading-5 text-indigo-800">
+      <div
+        className="rounded-2xl px-4 py-3 text-[13px] leading-5"
+        style={{
+          background: "var(--mini-ice-soft)",
+          border: "1px solid var(--mini-divider-strong)",
+          color: "var(--mini-ice)",
+        }}
+      >
         Этот журнал ведётся таблицей за период. В v1 заполнение таблицы
         доступно на сайте — в один тап по кнопке ниже. Список ваших смен
         синхронизирован с сайтом.
       </div>
 
       <section className="space-y-2">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
+        <h2
+          className="px-1 text-[12px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           Мои таблицы
         </h2>
         {documents.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[14px] text-slate-500">
+          <div
+            className="rounded-2xl px-4 py-6 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
             Руководитель ещё не создал ни одного документа этого типа.
           </div>
         ) : (
@@ -291,18 +373,31 @@ function DocumentJournalBody({
               <Link
                 key={d.id}
                 href={`/mini/documents/${d.id}`}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 active:scale-[0.98] sm:items-center"
+                className="flex items-start gap-3 rounded-2xl px-4 py-3.5 active:scale-[0.98] sm:items-center"
+                style={{
+                  background: "var(--mini-card-solid-bg)",
+                  border: "1px solid var(--mini-divider)",
+                }}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="text-[14px] font-medium leading-5 text-slate-900">
+                  <div
+                    className="text-[14px] font-medium leading-5"
+                    style={{ color: "var(--mini-text)" }}
+                  >
                     {d.title || dateRange}
                   </div>
-                  <div className="mt-1 text-[12px] leading-4 text-slate-500">
+                  <div
+                    className="mt-1 text-[12px] leading-4"
+                    style={{ color: "var(--mini-text-muted)" }}
+                  >
                     {dateRange}
                     {d.status === "closed" ? " · закрыт" : ""}
                   </div>
                 </div>
-                <ExternalLink className="mt-0.5 size-4 shrink-0 text-slate-400 sm:mt-0" />
+                <ExternalLink
+                  className="mt-0.5 size-4 shrink-0 sm:mt-0"
+                  style={{ color: "var(--mini-text-faint)" }}
+                />
               </Link>
             );
           })
@@ -330,15 +425,32 @@ function EntryRow({ entry }: { entry: EntryItem }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+    <div
+      className="rounded-2xl px-4 py-3"
+      style={{
+        background: "var(--mini-card-solid-bg)",
+        border: "1px solid var(--mini-divider)",
+      }}
+    >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-[13px] font-medium text-slate-900">{dt}</div>
-        <div className="text-[11px] text-slate-500">
+        <div
+          className="text-[13px] font-medium"
+          style={{ color: "var(--mini-text)" }}
+        >
+          {dt}
+        </div>
+        <div
+          className="text-[11px]"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           {entry.filledBy?.name ?? "—"}
         </div>
       </div>
       {preview ? (
-        <div className="mt-1 line-clamp-2 text-[12px] text-slate-600">
+        <div
+          className="mt-1 line-clamp-2 text-[12px]"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           {preview}
         </div>
       ) : null}
