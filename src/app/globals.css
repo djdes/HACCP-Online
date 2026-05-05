@@ -295,6 +295,126 @@
   background-color: #252b56 !important;
 }
 
+/* ── Inline-styles с hex (style="background-color:#xxx") ──────────
+ * Лидерборды, badge-pills, индикаторы рангов часто используют
+ * inline style вместо tailwind class (так как hex берётся из data-
+ * driven palette: { gold: "#fff8eb", silver: "#f5f5f5", … }).
+ *
+ * Inline style имеет специфичность 1,0,0,0 — выше любого CSS class.
+ * Перезаписываем через attribute-selector + !important. */
+.app-shell[data-app-theme="dark"] [style*="background-color:#fff8eb"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #fff8eb"] {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#f5f5f5"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #f5f5f5"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#fff4f2"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #fff4f2"] {
+  background-color: rgba(161, 58, 50, 0.18) !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#ecfdf5"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #ecfdf5"] {
+  background-color: rgba(19, 107, 42, 0.18) !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#eef1ff"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #eef1ff"] {
+  background-color: #1f254a !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#f5f6ff"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #f5f6ff"] {
+  background-color: #1a1f3a !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#ffffff"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #ffffff"],
+.app-shell[data-app-theme="dark"] [style*="background-color:#fff;"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #fff;"] {
+  background-color: #131726 !important;
+}
+.app-shell[data-app-theme="dark"] [style*="background-color:#fafbff"],
+.app-shell[data-app-theme="dark"] [style*="background-color: #fafbff"] {
+  background-color: #0e1224 !important;
+}
+
+/* Inline text colors — light text стоковых state palettes тоже надо
+   адаптировать (typically #b25f00 amber, #136b2a green, #a13a32 red). */
+.app-shell[data-app-theme="dark"] [style*="color:#b25f00"],
+.app-shell[data-app-theme="dark"] [style*="color: #b25f00"] {
+  color: #fbbf24 !important;
+}
+.app-shell[data-app-theme="dark"] [style*="color:#136b2a"],
+.app-shell[data-app-theme="dark"] [style*="color: #136b2a"],
+.app-shell[data-app-theme="dark"] [style*="color:#116b2a"],
+.app-shell[data-app-theme="dark"] [style*="color: #116b2a"] {
+  color: #5edc8a !important;
+}
+.app-shell[data-app-theme="dark"] [style*="color:#a13a32"],
+.app-shell[data-app-theme="dark"] [style*="color: #a13a32"] {
+  color: #ff8a82 !important;
+}
+.app-shell[data-app-theme="dark"] [style*="color:#0b1024"],
+.app-shell[data-app-theme="dark"] [style*="color: #0b1024"] {
+  color: #e8e9f5 !important;
+}
+
+/* ── Gradients with light hex sources ────────────────────────────────
+ * `bg-gradient-to-br from-[#fff4f2] to-[#fafbff]` style gradients от
+ * light themes выглядят молочно на dark фоне. В dark-режиме гасим
+ * gradient до плоского цвета (overrides --tw-gradient-from/to). */
+
+/* From light surface hex → dark equivalents */
+.app-shell[data-app-theme="dark"] .from-\[\#fff4f2\],
+.app-shell[data-app-theme="dark"] .from-\[\#fff8eb\] {
+  --tw-gradient-from: rgba(161, 58, 50, 0.16) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\] {
+  --tw-gradient-from: #1a1f3a !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.app-shell[data-app-theme="dark"] .from-\[\#fafbff\] {
+  --tw-gradient-from: #0e1224 !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.app-shell[data-app-theme="dark"] .from-\[\#fde68a\] {
+  --tw-gradient-from: rgba(245, 158, 11, 0.2) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+
+/* TO target — same set */
+.app-shell[data-app-theme="dark"] .to-\[\#fff4f2\],
+.app-shell[data-app-theme="dark"] .to-\[\#fff8eb\] {
+  --tw-gradient-to: rgba(161, 58, 50, 0.16) !important;
+}
+.app-shell[data-app-theme="dark"] .to-\[\#f5f6ff\] {
+  --tw-gradient-to: #1a1f3a !important;
+}
+.app-shell[data-app-theme="dark"] .to-\[\#fafbff\] {
+  --tw-gradient-to: #0e1224 !important;
+}
+.app-shell[data-app-theme="dark"] .to-\[\#ffffff\],
+.app-shell[data-app-theme="dark"] .to-\[\#fff\],
+.app-shell[data-app-theme="dark"] .to-white {
+  --tw-gradient-to: #131726 !important;
+}
+
+/* Tailwind's named light scales used in compliance-audit page */
+.app-shell[data-app-theme="dark"] .from-amber-50 {
+  --tw-gradient-from: rgba(245, 158, 11, 0.16) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.app-shell[data-app-theme="dark"] .from-rose-50 {
+  --tw-gradient-from: rgba(244, 63, 94, 0.16) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.app-shell[data-app-theme="dark"] .border-amber-300 {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+.app-shell[data-app-theme="dark"] .border-rose-300 {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+}
+
 /* ════════════════════════════════════════════════════════════════════
  * Mobile responsive utilities
  *
