@@ -240,12 +240,14 @@ export function TreeEditorClient({
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PipelineNode | null>(null);
   const [confirmSplit, setConfirmSplit] = useState<PipelineNode | null>(null);
+  const [confirmClearCustom, setConfirmClearCustom] = useState(false);
   const [editingNode, setEditingNode] = useState<PipelineNode | null>(null);
 
   const flatNodes = useMemo(
     () => (tree?.nodes ? flattenTree(tree.nodes) : []),
     [tree?.nodes]
   );
+  const customNodeCount = flatNodes.filter((n) => n.kind === "custom").length;
 
   async function refresh() {
     const response = await fetch(
@@ -310,6 +312,26 @@ export function TreeEditorClient({
     }
     setTree(data.tree);
     toast.success("Узел разделён");
+    startTransition(() => router.refresh());
+  }
+
+  async function handleClearCustom() {
+    const response = await fetch(
+      `/api/settings/journal-pipelines/${code}/clear-custom`,
+      { method: "POST" }
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(data?.error || "Не удалось очистить custom-шаги");
+      return;
+    }
+    setTree(data.tree);
+    toast.success(
+      data.removed
+        ? `Удалено custom-узлов: ${data.removed}`
+        : "Очищено"
+    );
+    setConfirmClearCustom(false);
     startTransition(() => router.refresh());
   }
 
@@ -533,9 +555,22 @@ export function TreeEditorClient({
                 </ul>
               </SortableContext>
             </DndContext>
-            <p className="mt-3 px-1 text-[12px] text-[#9b9fb3]">
-              💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
-            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1">
+              <p className="text-[12px] text-[#9b9fb3]">
+                💡 Перетаскивайте узлы за иконку <GripVertical className="inline size-3 align-text-bottom" /> чтобы изменить порядок. Изменения сохраняются автоматически.
+              </p>
+              {customNodeCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClearCustom(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4f2] px-3 py-1 text-[12px] font-medium text-[#a13a32] hover:bg-[#ffe5e1]"
+                  title={`Удалить все custom-узлы (${customNodeCount})`}
+                >
+                  <Trash2 className="size-3" />
+                  Очистить custom-шаги ({customNodeCount})
+                </button>
+              ) : null}
+            </div>
           </div>
           <WizardPreview nodes={flatNodes} />
         </div>
@@ -589,6 +624,39 @@ export function TreeEditorClient({
             await handleDelete(confirmDelete);
           }
         }}
+      />
+
+      <ConfirmDialog
+        open={confirmClearCustom}
+        onClose={() => setConfirmClearCustom(false)}
+        variant="danger"
+        title="Удалить все custom-шаги?"
+        description={
+          <span>
+            Будут удалены <strong>{customNodeCount}</strong> custom-узлов.
+            Pinned (📌) останутся — они привязаны к колонкам журнала и
+            восстановятся в исходном виде. Подшаги custom-узлов тоже
+            удалятся каскадом.
+          </span>
+        }
+        bullets={[
+          {
+            label:
+              "Это удобно когда заиграл с шагами и хочется откатить к минимальной форме «только колонки журнала».",
+          },
+          {
+            label:
+              "Pinned-узлы (📌) и их редактирование (title/photoMode/requireComment) НЕ затрагиваются.",
+          },
+          {
+            label:
+              "Действие необратимо. Удалённые custom-узлы и их подшаги придётся создавать заново.",
+            tone: "warn",
+          },
+        ]}
+        typeToConfirm="ОЧИСТИТЬ"
+        confirmLabel="Очистить"
+        onConfirm={handleClearCustom}
       />
 
       <ConfirmDialog
