@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B11 — breakdown-history v2**
+**Текущий приоритет:** **P3.B12 — pest-control v2** (последний в Tier B)
 
 ---
 
@@ -150,7 +150,7 @@
 - [x] P3.B8 — sanitary-day-checklist — DONE wave-1 @ 08db83f2 @ 2026-05-05 04:40 МСК
 - [x] P3.B9 — complaint — DONE wave-1 @ 2105d105 @ 2026-05-05 04:55 МСК
 - [x] P3.B10 — accident — DONE wave-1 @ f0a83d45 @ 2026-05-05 05:10 МСК
-- [ ] P3.B11 — breakdown-history
+- [x] P3.B11 — breakdown-history — DONE wave-1 @ bcac17f3 @ 2026-05-05 05:25 МСК
 - [ ] P3.B12 — pest-control
 
 ### Tier C (13 остальных)
