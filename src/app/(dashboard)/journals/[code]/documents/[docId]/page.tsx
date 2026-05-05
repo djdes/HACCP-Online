@@ -701,6 +701,7 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { CalendarDays, Plus, Printer, Settings2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,6 +44,8 @@ type Props = {
   dateFrom: string;
   status: string;
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function formatDateLabel(date: string) {
@@ -258,6 +261,7 @@ function SettingsDialog(props: {
   title: string;
   dateFrom: string;
   onSave: (params: { title: string; dateFrom: string }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
@@ -271,6 +275,43 @@ function SettingsDialog(props: {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и дата начала."
+        size="md"
+        isSaving={isSubmitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -773,6 +814,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           title={title}
           dateFrom={dateFrom}
           onSave={handleSaveSettings}
+          useV2={props.useV2}
         />
       )}
 
