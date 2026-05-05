@@ -137,6 +137,187 @@
   }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * Dark-mode overrides для hardcoded hex tailwind-классов.
+ *
+ * Большинство компонентов написано через `bg-[#fafbff]`, `text-[#0b1024]`,
+ * `border-[#dcdfed]` и т.п. — эти классы НЕ адаптируются автоматически
+ * между темами. Чтобы не переписывать 286 файлов вручную, переопределяем
+ * tailwind-сгенерированные классы в тёмной теме здесь.
+ *
+ * Scope ограничен `[data-app-theme="dark"]` — селекторы applies только
+ * когда корневой `.app-shell` помечен dark. Public-страницы (landing,
+ * blog, dashboard в light) не затрагиваются.
+ *
+ * Спецификация селекторов:
+ *   `[data-app-theme="dark"] .bg-\[\#fafbff\]` — обычный matched class
+ *   `[data-app-theme="dark"] .dark\:bg-... ` оставляет приоритет за
+ *   уже написанными dark:-модификаторами (если кто-то всё-таки писал).
+ *
+ * НЕ переопределяем:
+ *   • `bg-[#0b1024]` — это dark-hero, и так чёрный по дизайну.
+ *   • `bg-[#5566f6]` / `text-[#5566f6]` — primary indigo, brand.
+ *   • `text-white` / `text-black` — раз уж явно использован.
+ * ════════════════════════════════════════════════════════════════════ */
+
+[data-app-theme="dark"] {
+  /* ── Surface (фоны карточек/панелей) ─────────────────────────── */
+  /* Пара #ffffff → #131726 (приподнятая карточка) */
+  & .bg-\[\#ffffff\],
+  & .bg-\[\#fff\],
+  & .bg-white {
+    background-color: #131726;
+  }
+  /* #fafbff (soft-surface), #f3f4fb, #f1f2f8, #f2f2f2, #ececec → ещё темнее */
+  & .bg-\[\#fafbff\],
+  & .bg-\[\#f3f4fb\],
+  & .bg-\[\#f1f2f8\],
+  & .bg-\[\#f2f2f2\],
+  & .bg-\[\#ececec\] {
+    background-color: #0e1224;
+  }
+  /* #f5f6ff (tint-indigo), #eef1ff (tint-indigo-2) — slightly indigo tint */
+  & .bg-\[\#f5f6ff\] {
+    background-color: #1a1f3a;
+  }
+  & .bg-\[\#eef1ff\] {
+    background-color: #1f254a;
+  }
+  /* Состояния — error/warn/success backgrounds (мягкие пастельные) */
+  & .bg-\[\#fff4f2\],
+  & .bg-\[\#fff3f2\],
+  & .bg-\[\#fff2f1\] {
+    background-color: rgba(161, 58, 50, 0.18);
+  }
+  & .bg-\[\#fff8eb\] {
+    background-color: rgba(245, 158, 11, 0.16);
+  }
+  & .bg-\[\#ecfdf5\] {
+    background-color: rgba(19, 107, 42, 0.18);
+  }
+
+  /* ── Borders ──────────────────────────────────────────────────── */
+  & .border-\[\#ececf4\],
+  & .border-\[\#eceef5\],
+  & .border-\[\#e8ebf7\] {
+    border-color: #1f2540;
+  }
+  & .border-\[\#dcdfed\],
+  & .border-\[\#dfe1ec\],
+  & .border-\[\#d8dae6\],
+  & .border-\[\#d9dceb\],
+  & .border-\[\#d7dbea\],
+  & .border-\[\#d9dce8\] {
+    border-color: #2a3258;
+  }
+  & .border-\[\#ccc\] {
+    border-color: #2a3258;
+  }
+  & .border-\[\#ffd2cd\],
+  & .border-\[\#ffd7d3\] {
+    border-color: rgba(161, 58, 50, 0.35);
+  }
+  & .border-\[\#ffe9b0\] {
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  & .border-\[\#c8f0d5\] {
+    border-color: rgba(19, 107, 42, 0.4);
+  }
+
+  /* ── Text colors ──────────────────────────────────────────────── */
+  /* #0b1024 (text-primary) → light */
+  & .text-\[\#0b1024\],
+  & .text-\[\#101425\] {
+    color: #e8e9f5;
+  }
+  /* #3c4053 (secondary) */
+  & .text-\[\#3c4053\],
+  & .text-\[\#3a3f55\] {
+    color: #c4c7d8;
+  }
+  /* #6f7282 (muted), #6e7080, #6e7387, #73738a, #7a7c8e */
+  & .text-\[\#6f7282\],
+  & .text-\[\#6e7080\],
+  & .text-\[\#6e7387\],
+  & .text-\[\#73738a\],
+  & .text-\[\#7a7c8e\] {
+    color: #9ea2bb;
+  }
+  /* #9b9fb3 (faint), #8a8ea4 — placeholder */
+  & .text-\[\#9b9fb3\],
+  & .text-\[\#8a8ea4\] {
+    color: #6e7290;
+  }
+  /* Indigo deep text — нужен светлее на dark фоне */
+  & .text-\[\#3848c7\] {
+    color: #8e9eff;
+  }
+  /* Success/warn fg на цветных tint-bg в dark остаётся читаемым */
+  & .text-\[\#136b2a\],
+  & .text-\[\#116b2a\] {
+    color: #5edc8a;
+  }
+  & .text-\[\#a13a32\] {
+    color: #ff8a82;
+  }
+  & .text-\[\#b25f00\],
+  & .text-\[\#a16d32\] {
+    color: #fbbf24;
+  }
+  & .text-\[\#d2453d\],
+  & .text-\[\#ff3b30\] {
+    color: #ff6e66;
+  }
+  & .text-\[\#c7ccea\] {
+    color: #c4c7d8;
+  }
+
+  /* ── Card shadow halo: subtle 1px ring ─────────────────────────── */
+  /* #f0f0fa с opacity 0.45 — на dark становится почти невидимым,
+     заменяем на тонкую светлую обводку. */
+  & .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  /* ── Hover surfaces — индиго тинт чуть ярче для контраста ─── */
+  & .hover\:bg-\[\#f5f6ff\]:hover {
+    background-color: #1f254a;
+  }
+  & .hover\:bg-\[\#eef1ff\]:hover {
+    background-color: #252b56;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Mobile responsive utilities
+ *
+ * Глобальные правила для случаев которые часто пропускают:
+ *   • <table> внутри обычной страницы должен быть scrollable по X
+ *     (не ломать viewport на узких экранах)
+ *   • Hero-блоки с большим padding должны иметь меньше padding на mobile
+ *   • Длинные tabular-nums не должны wrap'ить криво
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Утилита для table-wrappers — оборачивай таблицу:
+   <div class="ds-table-scroll"><table>...</table></div> */
+.ds-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Любая <table> в dashboard/journals по умолчанию не должна выползать
+   за viewport. Если родительский контейнер не имеет overflow-x, всё
+   равно показываем horizontal scroll на самой таблице через fallback. */
+@media (max-width: 767px) {
+  .app-shell main table:not(.ds-no-scroll) {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 @keyframes landing-rise {
   from {
     opacity: 0;
