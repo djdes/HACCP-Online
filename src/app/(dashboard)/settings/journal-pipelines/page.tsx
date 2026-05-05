@@ -7,6 +7,7 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasCapability } from "@/lib/permission-presets";
 import { getDefaultPipeline } from "@/lib/journal-pipelines";
+import { SeedAllPipelinesButton } from "./seed-all-button";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,28 @@ export default async function JournalPipelinesPage() {
           </div>
         </div>
       </section>
+
+      <div className="flex flex-col gap-3 rounded-3xl border border-[#dcdfed] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            🚀 Быстрый старт
+          </div>
+          <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+            Создать pipeline для всех журналов одним кликом
+          </h2>
+          <p className="mt-1 max-w-[600px] text-[13px] leading-[1.55] text-[#6f7282]">
+            Создаёт базовое дерево pinned-узлов на каждый журнал по
+            его колонкам. Уже настроенные журналы (
+            <strong>{treeTemplates.length}</strong>) не пересоздаются.
+            Журналы без описанных колонок придут в уведомления для
+            ручной настройки.
+          </p>
+        </div>
+        <SeedAllPipelinesButton
+          totalActiveTrees={treeTemplates.length}
+          totalJournals={ALL_JOURNALS.length}
+        />
+      </div>
 
       <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] text-[#3c4053]">
         💡 Если pipeline не настроен — Mini App покажет default-инструкцию

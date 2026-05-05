@@ -85,6 +85,10 @@ const ACTION_LABELS: Record<
     label: "Pipeline создан из колонок",
     variant: "default",
   },
+  "settings.journal-pipelines.seed-all": {
+    label: "Pipeline создан bulk-операцией",
+    variant: "default",
+  },
   "settings.journal-pipelines.node.create": {
     label: "Шаг pipeline добавлен",
     variant: "default",
@@ -292,6 +296,13 @@ function renderDetails(entry: AuditEntry): ReactElement {
     if (entry.action === "settings.journal-pipelines.seed") {
       const count = (d as { createdCount?: number }).createdCount ?? 0;
       primary = `Создано pinned-узлов: ${count}`;
+    } else if (entry.action === "settings.journal-pipelines.seed-all") {
+      const created = (d as { created?: number }).created ?? 0;
+      const skippedExisting =
+        (d as { skippedExisting?: number }).skippedExisting ?? 0;
+      const skippedNoFields =
+        (d as { skippedNoFields?: number }).skippedNoFields ?? 0;
+      primary = `Создано: ${created} · Уже было: ${skippedExisting} · Без колонок: ${skippedNoFields}`;
     } else if (entry.action === "settings.journal-pipelines.clear-custom") {
       const removed = (d as { removed?: number }).removed ?? 0;
       primary = `Удалено custom-узлов: ${removed}`;
