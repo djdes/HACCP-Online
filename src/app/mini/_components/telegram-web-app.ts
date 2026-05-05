@@ -31,6 +31,18 @@ export type TelegramWebApp = {
     impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
     notificationOccurred(type: "error" | "success" | "warning"): void;
   };
+  /**
+   * Telegram-native верхняя «<» кнопка в шапке. Показываем на всех
+   * вложенных экранах /mini/* кроме корня. Пользователь привычно
+   * жмёт её на iOS (где нет системной back-кнопки внутри WebApp).
+   */
+  BackButton?: {
+    isVisible: boolean;
+    show(): void;
+    hide(): void;
+    onClick(callback: () => void): void;
+    offClick(callback: () => void): void;
+  };
 };
 
 declare global {

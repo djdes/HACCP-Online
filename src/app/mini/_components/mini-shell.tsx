@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
@@ -28,6 +28,8 @@ function titleForPath(pathname: string): string {
 
 export function MiniTelegramRuntime() {
   const { theme } = useMiniTheme();
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const tg = getTelegramWebApp();
@@ -56,6 +58,53 @@ export function MiniTelegramRuntime() {
       /* old client — silent */
     }
   }, [theme]);
+
+  // Telegram-native «<» кнопка в шапке. Показываем на всех вложенных
+  // экранах кроме root /mini. На iOS Telegram WebApp нет системной
+  // back-кнопки внутри iframe — без BackButton пользователь застревает
+  // на форме когда клавиатура закрывает наш custom <ArrowLeft>-link.
+  useEffect(() => {
+    const tg = getTelegramWebApp();
+    if (!tg?.BackButton) return;
+    const isRoot = pathname === "/mini";
+    const handler = () => {
+      try {
+        tg.HapticFeedback?.impactOccurred("light");
+      } catch {
+        /* old client */
+      }
+      // Если history-stack пустой (пришли по deep-link), router.back()
+      // ничего не сделает — пушим явно на /mini. window.history.length
+      // включает initial entry, так что 1 == «нет куда возвращаться».
+      if (typeof window !== "undefined" && window.history.length > 1) {
+        router.back();
+      } else {
+        router.push("/mini");
+      }
+    };
+    if (isRoot) {
+      try {
+        tg.BackButton.hide();
+      } catch {
+        /* */
+      }
+      return;
+    }
+    try {
+      tg.BackButton.onClick(handler);
+      tg.BackButton.show();
+    } catch {
+      /* */
+    }
+    return () => {
+      try {
+        tg.BackButton?.offClick(handler);
+        tg.BackButton?.hide();
+      } catch {
+        /* */
+      }
+    };
+  }, [pathname, router]);
 
   return null;
 }

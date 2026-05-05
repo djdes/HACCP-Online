@@ -6,7 +6,6 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
-  ClipboardCheck,
   Loader2,
   Play,
   ShieldAlert,
@@ -121,14 +120,32 @@ export default function MiniHomePage() {
     }
     signInStarted.current = true;
     void (async () => {
-      const result = await signIn("telegram", {
+      // Race с таймаутом 12s — на тонком cellular из подвала кухни
+      // signIn может зависнуть навсегда. Пользователю нужен явный
+      // error-state с кнопкой «Повторить» вместо вечного skeleton'а.
+      const timeoutPromise = new Promise<{ timeout: true }>((resolve) =>
+        setTimeout(() => resolve({ timeout: true }), 12000)
+      );
+      const signInPromise = signIn("telegram", {
         initData: webApp.initData,
         redirect: false,
       });
-      if (!result || result.error) {
+      const result = await Promise.race([
+        signInPromise.then((r) => ({ timeout: false as const, r })),
+        timeoutPromise,
+      ]);
+      if ("timeout" in result && result.timeout) {
         setLocalState({
           kind: "error",
-          message: result?.error || "Сессия Telegram не получена",
+          message: "Telegram отвечает медленно. Проверьте подключение.",
+        });
+        return;
+      }
+      const r = "r" in result ? result.r : null;
+      if (!r || r.error) {
+        setLocalState({
+          kind: "error",
+          message: r?.error || "Сессия Telegram не получена",
         });
       }
     })();
@@ -366,7 +383,14 @@ export default function MiniHomePage() {
   const displayName = session?.user?.name ?? home.user.name;
   const perms = new Set(home.permissions);
   const showStaffNow = home.mode === "staff" && home.now.length > 0;
-  const showStaffDoneBanner = home.mode === "staff" && home.now.length === 0;
+  // Различаем «всё на сегодня закрыто» (Done!) и «новому сотруднику
+  // не назначено ничего» (No-assignments). Раньше оба случая показывали
+  // «Все задачи выполнены» — что demoralizing для новичка с нулём
+  // assignments.
+  const showStaffNoAssignments =
+    home.mode === "staff" && home.now.length === 0 && home.all.length === 0;
+  const showStaffDoneBanner =
+    home.mode === "staff" && home.now.length === 0 && home.all.length > 0;
   const isReadonly = home.mode === "readonly";
 
   const greeting = timeGreeting();
@@ -545,6 +569,30 @@ export default function MiniHomePage() {
           <span style={{ color: "var(--mini-text)" }}>
             Смена закрыта. Все задачи на сегодня выполнены.
           </span>
+        </section>
+      ) : null}
+
+      {showStaffNoAssignments ? (
+        <section
+          className="rounded-2xl px-5 py-6 text-center"
+          style={{
+            background: "var(--mini-surface-1)",
+            border: "1px dashed var(--mini-divider-strong)",
+          }}
+        >
+          <div
+            className="mini-display-bold"
+            style={{ fontSize: 18, color: "var(--mini-text)" }}
+          >
+            Пока нет назначенных задач
+          </div>
+          <p
+            className="mt-2 text-[14px] leading-relaxed"
+            style={{ color: "var(--mini-text-muted)" }}
+          >
+            Руководитель ещё не дал доступ к журналам. Напишите ему — он
+            подключит вас к нужным задачам в один клик.
+          </p>
         </section>
       ) : null}
 
