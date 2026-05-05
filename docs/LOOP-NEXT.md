@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C7 — register v2**
+**Текущий приоритет:** **P3.C8 — tracked v2** (общий shell — useV2 уже пробрасывается в pest-control)
 
 ---
 
@@ -160,7 +160,7 @@
 - [x] P3.C4 — glass-list — DONE wave-1 @ 01e6ab78 @ 2026-05-05 06:40 МСК
 - [x] P3.C5 — metal-impurity — DONE wave-1 @ d5638202 @ 2026-05-05 06:55 МСК
 - [x] P3.C6 — product-writeoff — DONE wave-1 @ 1350b2a8 @ 2026-05-05 07:10 МСК
-- [ ] P3.C7 — register
+- [x] P3.C7 — register — DONE wave-1 @ b8a9b9c9 @ 2026-05-05 07:25 МСК
 - [ ] P3.C8 — tracked
 - [ ] P3.C9 — scan-journal
 - [ ] P3.C10 — audit-plan
