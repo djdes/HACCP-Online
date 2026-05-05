@@ -75,6 +75,12 @@ PRIVATE_ROUTES=(
   /settings/journal-pipelines/cleaning
   /settings/journal-pipelines-tree/cleaning
   /settings/journal-guides-tree/cleaning
+  /settings/onboarding
+  /settings/organization
+  /settings/integrations/tasksflow
+  /settings/role-presets
+  /settings/staff-hierarchy
+  /settings/journal-flow
   /sanpin
 )
 
