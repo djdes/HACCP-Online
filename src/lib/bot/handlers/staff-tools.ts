@@ -9,6 +9,8 @@ import {
 import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 import { getUserRoleLabel } from "@/lib/user-roles";
 import { botCallbackRateLimiter } from "@/lib/rate-limit";
+import { listOpenJournalObligationsForUser } from "@/lib/journal-obligations";
+import { buildStaffObligationDigest } from "@/lib/telegram-obligation-digests";
 
 /**
  * Команды для линейного сотрудника. В отличие от /today/missing
@@ -184,6 +186,61 @@ export function registerStaffToolsHandlers(composer: Composer<Context>): void {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
       ...(reply.reply_markup ? { reply_markup: reply.reply_markup } : {}),
+    });
+  });
+
+  // /my-digest — on-demand копия утреннего mini-digest'а. Сотрудник
+  // может в любой момент спросить «что мне делать сегодня?» и получить
+  // тот же список open-obligations, что и в утреннем push'е, не
+  // открывая Mini App. Полезно когда повар на смене получил сообщение
+  // о смене ответственных и хочет сразу узнать актуальный список.
+  composer.command("my-digest", async (ctx) => {
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:my-digest`)) {
+      await ctx.reply("Слишком много запросов, подождите минуту.", {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+    const user = await resolveLinkedUser(fromId);
+    if (!user) {
+      await ctx.reply(
+        "🔒 Ваш Telegram-чат пока не привязан к рабочему аккаунту. Попросите руководителя выслать ссылку-приглашение.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+    const obligations = await listOpenJournalObligationsForUser(user.id);
+    const miniAppBaseUrl = getMiniAppBaseUrlFromEnv();
+    const digest = buildStaffObligationDigest({
+      userId: user.id,
+      openObligations: obligations,
+      miniAppBaseUrl,
+    });
+    if (!digest) {
+      await ctx.reply(
+        personalizeMessage(
+          "✅ <b>{greeting}, {name}!</b>\n\nНа сегодня всё закрыто — отличная смена.",
+          { name: user.name }
+        ),
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+    // digest.body содержит {greeting} {name} placeholder'ы из template —
+    // разворачиваем их personalizeMessage'ом перед отправкой.
+    const body = personalizeMessage(digest.body, { name: user.name });
+    const replyMarkup = digest.primaryCta
+      ? buildTelegramWebAppKeyboard({
+          label: digest.primaryCta.label,
+          url: digest.primaryCta.url,
+        })
+      : undefined;
+    await ctx.reply(body, {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     });
   });
 

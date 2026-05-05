@@ -79,6 +79,7 @@ export function registerShortcutHandlers(composer: Composer<Context>): void {
         "• /start — домашний экран\n" +
         "• /shift — моя смена · открыть/закрыть в один тап\n" +
         "• /tasks — что надо заполнить сегодня\n" +
+        "• /my-digest — те же задачи, но списком в чате\n" +
         "• /journals — журналы СанПиН и ХАССП\n" +
         "• /me — мой профиль\n\n" +
         "<b>Руководителю</b>\n" +

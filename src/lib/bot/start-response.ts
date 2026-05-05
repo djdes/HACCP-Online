@@ -31,6 +31,7 @@ export const TELEGRAM_COMMANDS = [
   { command: "start", description: "🏠 Открыть WeSetup" },
   { command: "shift", description: "🕓 Моя смена · открыть/закрыть" },
   { command: "tasks", description: "✅ Задачи на сегодня" },
+  { command: "my-digest", description: "📋 Что заполнять сегодня · мне" },
   { command: "journals", description: "📋 Мои журналы" },
   { command: "edit", description: "✏️ Изменить документы журналов" },
   { command: "me", description: "👤 Мой профиль" },
