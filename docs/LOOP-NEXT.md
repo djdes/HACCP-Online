@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.3 — Pipeline editor UI** (drag-drop tree редактор `/settings/journal-pipelines/[code]`).
+**Текущий приоритет:** **P1.3 wave-b — edit-dialog для узлов** (нажатие на ⚙ в дереве должно открывать модалку редактирования).
 
 ---
 
@@ -80,13 +80,19 @@
   - `POST /[code]/nodes/[id]/split` — разделяет pinned на два с тем же `linkedFieldKey`. Title оригинала становится «(часть 1)», новый — «(часть 2)». Поддерживает повторный split (увеличивает номер). $transaction для atomicity.
 - Acceptance: 401 на unauthenticated POST ко всем 8 endpoint'ам, GET/DELETE на seed → 405, prod не сломан, login=200
 
-### [ ] P1.3 — Pipeline editor UI с drag-drop
-- Страница `src/app/(dashboard)/settings/journal-pipelines/[code]/page.tsx`
-- Список журналов с превью статуса pipeline'а на `/settings/journal-pipelines/page.tsx`
-- `@dnd-kit/sortable` для tree DnD
-- Превью wizard'а live справа
-- ОБЯЗАТЕЛЬНО открыть haccp-online.ru, посмотреть их редактор шаблонов если есть
-- Acceptance: можно добавить custom-шаг, перетянуть его выше pinned, сохранить, увидеть в task-fill
+### [/] P1.3 — Pipeline editor UI с drag-drop — IN PROGRESS
+- [x] **wave-a @ ea77008a @ 2026-05-05 10:50 МСК** — read-only tree page `/settings/journal-pipelines-tree/[code]`:
+  - Server-component читает `loadPipelineTree` + `JournalTemplate.fields`
+  - Client-component список узлов с indent по depth, badge'ы (pinned/custom/photo/comment)
+  - Кнопка «Создать из колонок» → POST /seed (с подтверждением через `JournalSettingsModal`)
+  - Кнопка «Добавить custom-шаг» → POST /nodes (форма title + detail + photoRequired)
+  - Кнопка корзины на custom → DELETE /nodes/[id] через `ConfirmDialog danger`
+  - Empty-state UI когда `tree === null` или `nodes === []`
+  - Hero-блок в Design v2 с Pin-иконкой и breadcrumb «← К списку журналов»
+  - На list-page `/settings/journal-pipelines` добавлены ссылки «🌳 Дерево (beta)» и счётчик активных узлов
+- [ ] **wave-b** — edit-dialog по клику на ⚙ (PATCH /nodes/[id])
+- [ ] **wave-c** — DnD reorder через @dnd-kit/sortable + split-pinned button
+- [ ] **wave-d** — live wizard preview справа
 
 ### [ ] P1.4 — Generic-adapter использует JournalPipelineTemplate
 - `getTaskForm` читает БД, fallback на legacy
