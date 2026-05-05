@@ -690,6 +690,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         config={normalizeMetalImpurityConfig(document.config)}
         users={enrichedEmployees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

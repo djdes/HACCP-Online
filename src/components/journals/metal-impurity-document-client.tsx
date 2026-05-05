@@ -41,6 +41,7 @@ import {
 } from "@/lib/metal-impurity-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -61,6 +62,8 @@ type Props = {
   status: string;
   config: unknown;
   users: MetalImpurityUser[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type RowDialogProps = {
@@ -430,6 +433,7 @@ function SettingsDialog({
   users,
   employeeOptions,
   onSave,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -438,6 +442,7 @@ function SettingsDialog({
   users: MetalImpurityUser[];
   employeeOptions: MetalImpurityUser[];
   onSave: (params: { title: string; config: MetalImpurityDocumentConfig }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [draftTitle, setDraftTitle] = useState(title);
   const [draftConfig, setDraftConfig] = useState(config);
@@ -471,6 +476,117 @@ function SettingsDialog({
       }));
     }
   }, [draftConfig.responsibleEmployeeId, filteredEmployees, open]);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await onSave({ title: draftTitle, config: draftConfig });
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки документа"
+        description="Название журнала, дата и ответственный сотрудник."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={draftConfig.startDate}
+            onChange={(event) =>
+              setDraftConfig({ ...draftConfig, startDate: event.target.value })
+            }
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Select
+            value={draftConfig.responsiblePosition}
+            onValueChange={(value) => {
+              const nextEmployee =
+                getMetalImpurityEmployeeOptions(users, value, draftConfig.responsibleEmployeeId)[0] ||
+                null;
+              setDraftConfig({
+                ...draftConfig,
+                responsiblePosition: value,
+                responsibleEmployeeId: nextEmployee?.id || draftConfig.responsibleEmployeeId || null,
+                responsibleEmployee: nextEmployee?.name || draftConfig.responsibleEmployee,
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <PositionSelectItems users={users} />
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select
+            value={draftConfig.responsibleEmployeeId || "__empty__"}
+            onValueChange={(value) => {
+              if (value === "__empty__") {
+                setDraftConfig({
+                  ...draftConfig,
+                  responsibleEmployeeId: null,
+                  responsibleEmployee: "",
+                });
+                return;
+              }
+              const user = users.find((item) => item.id === value) || null;
+              setDraftConfig({
+                ...draftConfig,
+                responsibleEmployeeId: value,
+                responsibleEmployee: user?.name || "",
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">— не выбран —</SelectItem>
+              {filteredEmployees.map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {buildStaffOptionLabel(employee)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -565,15 +681,7 @@ function SettingsDialog({
             <Button
               type="button"
               disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await onSave({ title: draftTitle, config: draftConfig });
-                  onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
               className="h-11 rounded-2xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
@@ -908,6 +1016,7 @@ export function MetalImpurityDocumentClient({
   status,
   config: initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -1373,6 +1482,7 @@ export function MetalImpurityDocumentClient({
         onSave={async ({ title: nextTitle, config: nextConfig }) => {
           await persist(nextTitle.trim() || METAL_IMPURITY_DOCUMENT_TITLE, nextConfig);
         }}
+        useV2={useV2}
       />
 
       <ListsDialog
