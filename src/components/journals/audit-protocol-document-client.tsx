@@ -39,6 +39,7 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 
 import { toast } from "sonner";
 type Props = {
@@ -47,6 +48,8 @@ type Props = {
   organizationName: string;
   status: string;
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function SectionDialog({
@@ -141,6 +144,7 @@ export function AuditProtocolDocumentClient({
   organizationName,
   status,
   config: initialConfig,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -429,36 +433,87 @@ export function AuditProtocolDocumentClient({
         </section>
       </div>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-          <DialogHeader className="border-b px-8 py-6">
-            <DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 px-8 py-6">
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Параметры протокола внутреннего аудита"
+          size="md"
+          onSave={async () => {
+            await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config);
+            setSettingsOpen(false);
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-              <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Название документа</Label>
+              <Input
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
-              <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Дата документа</Label>
+              <Input
+                type="date"
+                value={config.documentDate}
+                onChange={(e) => setConfig({ ...config, documentDate: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#73738a]">Основание проверки</Label>
-              <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Основание проверки</Label>
+              <Input
+                value={config.basisTitle}
+                onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#73738a]">Проверяемый объект</Label>
-              <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
-            </div>
-            <div className="flex justify-end">
-              <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
-                Сохранить
-              </Button>
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Проверяемый объект</Label>
+              <Input
+                value={config.auditedObject}
+                onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
+            <DialogHeader className="border-b px-8 py-6">
+              <DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 px-8 py-6">
+              <div className="space-y-2">
+                <Label className="text-[14px] text-[#73738a]">Название документа</Label>
+                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
+                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[14px] text-[#73738a]">Основание проверки</Label>
+                <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[14px] text-[#73738a]">Проверяемый объект</Label>
+                <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <SectionDialog open={sectionOpen} onOpenChange={setSectionOpen} onCreate={addSection} />
       {rowOpen && (
