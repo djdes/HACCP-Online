@@ -257,6 +257,22 @@ export default function MiniHomePage() {
           >
             {localState.message}
           </p>
+          {/* Retry-кнопка: signInStarted был установлен в true и без
+              сброса повторный signIn никогда не запустится. Сбрасываем
+              guard-флаги и переводим state в init — useEffect status-edge
+              переподнимет signIn при `unauthenticated`. */}
+          <button
+            type="button"
+            onClick={() => {
+              signInStarted.current = false;
+              fetchStarted.current = false;
+              setLocalState({ kind: "init" });
+              setHome(null);
+            }}
+            className="mt-5 inline-flex h-10 items-center gap-2 rounded-2xl bg-white/8 px-5 text-[14px] font-medium text-white transition-colors hover:bg-white/12"
+          >
+            Повторить вход
+          </button>
         </section>
       </div>
     );

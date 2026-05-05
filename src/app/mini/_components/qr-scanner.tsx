@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { QrCode } from "lucide-react";
+import { toast } from "sonner";
 import { getTelegramWebApp } from "./telegram-web-app";
 
 /**
@@ -78,7 +79,7 @@ export function QrScannerButton() {
   const handleScan = useCallback(() => {
     const tg = getTelegramWebApp();
     if (!tg) {
-      alert("Сканер QR доступен только внутри Telegram");
+      toast.error("Сканер QR доступен только внутри Telegram");
       return;
     }
 
@@ -100,7 +101,7 @@ export function QrScannerButton() {
         }
       );
     } catch {
-      alert("Не удалось открыть сканер QR. Обновите Telegram.");
+      toast.error("Не удалось открыть сканер QR. Обновите Telegram.");
     }
   }, [router]);
 

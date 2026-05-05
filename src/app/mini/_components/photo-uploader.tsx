@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Camera, Image as ImageIcon, FileText, X, Loader2 } from "lucide-react";
+import { Camera, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { haptic } from "./use-haptic";
 
 export type PhotoFile = {
@@ -10,21 +10,25 @@ export type PhotoFile = {
   size: number;
 };
 
-type Source = "camera" | "gallery" | "document";
+type Source = "camera" | "gallery";
 
 /**
- * Native bottom-sheet pattern: тап «прикрепить» → sheet с тремя пунктами:
- * камера / галерея / документ. Каждый пункт триггерит свой `<input>` с
+ * Native bottom-sheet pattern: тап «прикрепить» → sheet с двумя пунктами:
+ * камера / галерея. Каждый пункт триггерит свой `<input>` с
  * правильными атрибутами:
  *  - камера   → accept="image/*" capture="environment" (на iOS открывает
  *               сразу заднюю камеру, без галереи).
  *  - галерея  → accept="image/*" без capture (галерея без камеры).
- *  - документ → accept="application/pdf,image/*" (для накладных, PDF).
  *
  * iOS Safari и так умеет показывать native action-sheet для одного `<input>`
  * с capture, но (а) не на всех клиентах Telegram WebApp пользовательский
  * выбор работает, и (б) UX без явных подписей хуже на Android. Свой sheet
  * работает одинаково везде.
+ *
+ * PDF/документ — отдельный пункт умышленно не делаем: API
+ * `/api/mini/attachments` whitelistит только image/jpeg|png|webp с cap'ом
+ * 5MB. Если пользователь выберет PDF, бэкенд вернёт 400 и пользователь
+ * увидит «Upload failed» без объяснения. Лучше не предлагать.
  */
 export function PhotoUploader({
   entryId,
@@ -35,7 +39,6 @@ export function PhotoUploader({
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const documentRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -87,8 +90,7 @@ export function PhotoUploader({
     // открывается на фоне исчезающего overlay'я и UX становится дёрганым).
     setTimeout(() => {
       if (source === "camera") cameraRef.current?.click();
-      else if (source === "gallery") galleryRef.current?.click();
-      else documentRef.current?.click();
+      else galleryRef.current?.click();
     }, 50);
   }
 
@@ -107,13 +109,6 @@ export function PhotoUploader({
         type="file"
         accept="image/*"
         onChange={handleFile(galleryRef)}
-        className="hidden"
-      />
-      <input
-        ref={documentRef}
-        type="file"
-        accept="application/pdf,image/*"
-        onChange={handleFile(documentRef)}
         className="hidden"
       />
 
@@ -175,12 +170,6 @@ export function PhotoUploader({
               label="Галерея"
               hint="Уже снятое фото из библиотеки"
               onClick={() => pick("gallery")}
-            />
-            <SheetItem
-              icon={FileText}
-              label="Документ или PDF"
-              hint="Накладная, сертификат, акт"
-              onClick={() => pick("document")}
             />
           </div>
         </div>

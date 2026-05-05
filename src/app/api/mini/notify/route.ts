@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { isManagementRole } from "@/lib/user-roles";
-import { notifyEmployee } from "@/lib/telegram";
+import { escapeTelegramHtml, notifyEmployee } from "@/lib/telegram";
 import { db } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -57,11 +57,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const action = actionLabel && actionUrl
-      ? { label: actionLabel, miniAppUrl: actionUrl }
-      : undefined;
+    // HTML-escape user-controlled fields. notifyEmployee пускает их в
+    // sendMessage с parse_mode: "HTML" — без escape менеджер мог бы
+    // инъектировать <a href="phishing">, <b>, <pre> и т.п. в чужой
+    // Telegram-чат сотрудника той же орги.
+    const safeMessage = escapeTelegramHtml(message);
+    const action =
+      actionLabel && actionUrl
+        ? { label: escapeTelegramHtml(actionLabel), miniAppUrl: actionUrl }
+        : undefined;
 
-    await notifyEmployee(userId, message, action);
+    await notifyEmployee(userId, safeMessage, action);
 
     return NextResponse.json({ sent: true });
   } catch (err) {

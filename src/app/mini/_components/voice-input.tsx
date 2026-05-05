@@ -2,37 +2,49 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-declare global {
-  interface Window {
-    webkitSpeechRecognition?: new () => SpeechRecognition;
-    SpeechRecognition?: new () => SpeechRecognition;
-  }
-}
+/**
+ * Voice-input для textarea. Использует Web Speech API (Chrome/Safari)
+ * для real-time транскрипции на родном устройстве — без отправки аудио
+ * на сервер. На неподдерживаемых браузерах (часть Telegram WebApp на
+ * iOS, Firefox) деградирует в обычный textarea.
+ *
+ * Race fix (decemberreview-find P0 #2): finalTranscript храним в ref
+ * (а не в `let` внутри toggleRecording), и при `onresult` берём
+ * стартовое value из props через ref'у. Без этого fix'а каждый
+ * следующий final-event дублировал прошлый текст: `value` в closure
+ * был stale, и `onChange(value + finalTranscript + interim)` каждый
+ * раз перезаписывал свежие правки пользователя.
+ */
 
-interface SpeechRecognition {
+// Web Speech API — declare global уже сделан в src/components/journals/voice-input.tsx
+// (shared, поток 1), плюс TypeScript 5.6+ может ship'ить встроенные типы.
+// Дублировать interface Window — конфликт TS2717. Используем структурную
+// типизацию через cast: `window as unknown as { ... }` — никакой
+// global-declarations не делаем, локальные types для events.
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
+};
+type SpeechRecognitionInstance = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
-}
+};
+type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
-interface SpeechRecognitionEvent {
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean;
-  [index: number]: { transcript: string };
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
 export function VoiceInput({
@@ -48,14 +60,18 @@ export function VoiceInput({
 }) {
   const [recording, setRecording] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  // Базовое значение textarea на момент старта записи — все final/interim
+  // транскрипты дописываются именно к нему, чтобы не было «снежного кома»
+  // (см. JSDoc выше: stale-closure caused doubling).
+  const baseValueRef = useRef<string>("");
+  // Накопленные final-фрагменты текущей сессии записи. Reset на старте.
+  const finalAccRef = useRef<string>("");
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    if (!getSpeechRecognitionCtor()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUnsupported(true);
-      return;
     }
   }, []);
 
@@ -66,29 +82,35 @@ export function VoiceInput({
       return;
     }
 
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
 
-    const rec = new SpeechRecognition();
+    const rec = new Ctor();
     rec.lang = "ru-RU";
     rec.continuous = true;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
-    let finalTranscript = "";
+    // Зафиксировать базу один раз — больше «эффекта снежного кома».
+    baseValueRef.current = value;
+    finalAccRef.current = "";
 
-    rec.onresult = (event: SpeechRecognitionEvent) => {
+    rec.onresult = (event) => {
+      // Iterate forward from event.resultIndex — Web Speech API кладёт
+      // в `event.results` накопленный массив за всю сессию, но `resultIndex`
+      // указывает первый НОВЫЙ result в этом конкретном событии. Берём
+      // только новые final'ы и текущий interim, чтобы не дублировать.
       let interim = "";
-      for (let i = event.results.length - 1; i >= 0; i--) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
+        const transcript = result[0]?.transcript ?? "";
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + " ";
+          finalAccRef.current += transcript + " ";
         } else {
-          interim = result[0].transcript;
+          interim = transcript;
         }
       }
-      onChange(value + finalTranscript + interim);
+      onChange(baseValueRef.current + finalAccRef.current + interim);
     };
 
     rec.onerror = () => {
