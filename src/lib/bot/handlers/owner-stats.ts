@@ -207,19 +207,40 @@ export function registerOwnerStatsHandlers(composer: Composer<Context>): void {
     if (!user) return replyNotAuthorized(ctx);
 
     const now = new Date();
+    // ОДИН groupBy на всё окно 7 дней вместо 7 sequential round-trip'ов.
+    // Раньше каждое /stats делало 7 query — на 50 одновременных
+    // менеджеров это 350 sequential query/sec (Pass-3 MEDIUM #20).
+    const weekStart = utcDayStart(new Date(now));
+    weekStart.setUTCDate(weekStart.getUTCDate() - 6);
+    const grouped = await db.journalObligation.groupBy({
+      by: ["dateKey", "status"],
+      where: {
+        organizationId: user.organizationId,
+        dateKey: { gte: weekStart },
+      },
+      _count: { _all: true },
+    });
+    // Build map: ISO-day → {done, pending}
+    const byDay = new Map<string, { done: number; pending: number }>();
+    for (const row of grouped) {
+      const key = row.dateKey.toISOString().slice(0, 10);
+      const cur = byDay.get(key) ?? { done: 0, pending: 0 };
+      if (row.status === "done") cur.done += row._count._all;
+      else if (row.status === "pending") cur.pending += row._count._all;
+      byDay.set(key, cur);
+    }
     const days: Array<{ date: Date; done: number; total: number }> = [];
     for (let offset = 6; offset >= 0; offset--) {
       const d = new Date(now);
       d.setUTCDate(d.getUTCDate() - offset);
       const dayStart = utcDayStart(d);
-      const rows = await db.journalObligation.groupBy({
-        by: ["status"],
-        where: { organizationId: user.organizationId, dateKey: dayStart },
-        _count: { _all: true },
+      const key = dayStart.toISOString().slice(0, 10);
+      const stats = byDay.get(key) ?? { done: 0, pending: 0 };
+      days.push({
+        date: dayStart,
+        done: stats.done,
+        total: stats.done + stats.pending,
       });
-      const done = rows.find((r) => r.status === "done")?._count._all ?? 0;
-      const pending = rows.find((r) => r.status === "pending")?._count._all ?? 0;
-      days.push({ date: dayStart, done, total: done + pending });
     }
 
     const dayLabels = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];

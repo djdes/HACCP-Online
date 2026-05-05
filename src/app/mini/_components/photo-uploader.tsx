@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Camera, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { haptic } from "./use-haptic";
+import { compressImageIfWorthwhile } from "../_lib/image-compress";
 
 export type PhotoFile = {
   url: string;
@@ -48,8 +49,16 @@ export function PhotoUploader({
       setUploading(true);
       setError(null);
       try {
+        // Client-side compression перед upload. Повар на iPhone снимает
+        // 3-4MB JPEG — на cellular из подвала кухни это 5-10s upload,
+        // иногда падает по timeout. После сжатия 1600px-side @0.85 файл
+        // ~500KB, sub-second upload. Если compress fail (старый браузер,
+        // PNG/WebP, файл и так маленький) — отправляем исходный.
+        const compressed = await compressImageIfWorthwhile(file);
+        const payload = compressed ?? file;
+
         const form = new FormData();
-        form.append("file", file);
+        form.append("file", payload);
         if (entryId) form.append("entryId", entryId);
 
         const res = await fetch("/api/mini/attachments", {
