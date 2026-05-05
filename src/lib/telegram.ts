@@ -427,6 +427,14 @@ export async function notifyEmployee(
      * сообщений (нарушение температуры, инцидент) snooze не предлагаем.
      */
     addSnoozeButton?: boolean;
+    /**
+     * Если true — добавляем inline-кнопку «🔄 Обновить» с callback_data
+     * `digest:refresh`. Пользователь нажмёт → handler пересчитывает
+     * текущий список open-obligations и edit'ит исходное сообщение.
+     * Полезно для mini-digest: после заполнения журнала повар видит
+     * обновлённый список (одной задачей меньше) не открывая Mini App.
+     */
+    addRefreshButton?: boolean;
   }
 ): Promise<void> {
   const { db } = await import("./db");
@@ -504,18 +512,31 @@ export async function notifyEmployee(
   // структуру { inline_keyboard: [[{text, web_app:{url}}]] }; мы её
   // расширяем второй строкой `notif:snooze:60`.
   const replyMarkup = ((): unknown | undefined => {
-    if (!action && !opts?.addSnoozeButton) return undefined;
+    if (!action && !opts?.addSnoozeButton && !opts?.addRefreshButton) {
+      return undefined;
+    }
     const rows: Array<Array<Record<string, unknown>>> = [];
     if (action) {
       rows.push([
         { text: action.label, web_app: { url: action.miniAppUrl } },
       ]);
     }
-    if (opts?.addSnoozeButton) {
-      rows.push([
-        { text: "🔕 Отложить на 1 час", callback_data: "notif:snooze:60" },
-      ]);
+    // Refresh + Snooze в одной строке, чтобы не плодить высокие
+    // keyboard'ы. Refresh — primary positive action; Snooze — soft.
+    const utilityRow: Array<Record<string, unknown>> = [];
+    if (opts?.addRefreshButton) {
+      utilityRow.push({
+        text: "🔄 Обновить",
+        callback_data: "digest:refresh",
+      });
     }
+    if (opts?.addSnoozeButton) {
+      utilityRow.push({
+        text: "🔕 Отложить на 1 час",
+        callback_data: "notif:snooze:60",
+      });
+    }
+    if (utilityRow.length > 0) rows.push(utilityRow);
     return { inline_keyboard: rows };
   })();
 

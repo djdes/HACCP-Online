@@ -223,8 +223,10 @@ export async function runMiniDigestCron(
             skipOnRerun: true,
             now: requestNow,
           },
-          // Утренний дайджест — информационный, snooze ОК.
+          // Утренний дайджест — информационный, snooze ОК + refresh
+          // для on-demand re-fetch без открытия Mini App.
           addSnoozeButton: true,
+          addRefreshButton: true,
         }
       );
       notifiedStaff += 1;

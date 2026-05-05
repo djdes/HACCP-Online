@@ -320,6 +320,86 @@ export function registerStaffToolsHandlers(composer: Composer<Context>): void {
     });
   });
 
+  // Callback `digest:refresh` — пользователь нажал «🔄 Обновить» на
+  // утреннем mini-digest push'е. Пересчитываем list и edit'им
+  // исходное сообщение. Полезно после заполнения журнала: повар
+  // видит обновлённый список (одной задачей меньше) не открывая
+  // Mini App.
+  composer.callbackQuery("digest:refresh", async (ctx) => {
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:digest-refresh`)) {
+      await ctx.answerCallbackQuery({
+        text: "Слишком много обновлений, подождите минуту",
+      });
+      return;
+    }
+    const user = await resolveLinkedUser(fromId);
+    if (!user) {
+      await ctx.answerCallbackQuery({
+        text: "Чат не привязан к аккаунту",
+        show_alert: true,
+      });
+      return;
+    }
+    const obligations = await listOpenJournalObligationsForUser(user.id);
+    const miniAppBaseUrl = getMiniAppBaseUrlFromEnv();
+    const digest = buildStaffObligationDigest({
+      userId: user.id,
+      openObligations: obligations,
+      miniAppBaseUrl,
+    });
+    if (!digest) {
+      // Все задачи закрыты — заменяем body на success + убираем
+      // refresh/snooze кнопки (нечего обновлять).
+      const successText = personalizeMessage(
+        "✅ <b>{greeting}, {name}!</b>\n\nНа сегодня всё закрыто — отличная смена.",
+        { name: user.name }
+      );
+      try {
+        await ctx.editMessageText(successText, {
+          parse_mode: "HTML",
+          link_preview_options: { is_disabled: true },
+          reply_markup: undefined,
+        });
+      } catch {
+        /* старое сообщение */
+      }
+      await ctx.answerCallbackQuery({ text: "Всё закрыто ✓" });
+      return;
+    }
+    const body = personalizeMessage(digest.body, { name: user.name });
+    const rows: Array<Array<Record<string, unknown>>> = [];
+    if (digest.primaryCta) {
+      rows.push([
+        {
+          text: digest.primaryCta.label,
+          web_app: { url: digest.primaryCta.url },
+        },
+      ]);
+    }
+    rows.push([
+      { text: "🔄 Обновить", callback_data: "digest:refresh" },
+      { text: "🔕 Отложить на 1 час", callback_data: "notif:snooze:60" },
+    ]);
+    try {
+      await ctx.editMessageText(body, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+        reply_markup: { inline_keyboard: rows } as Parameters<
+          typeof ctx.editMessageText
+        >[1] extends { reply_markup?: infer T }
+          ? T
+          : never,
+      });
+    } catch {
+      /* old message */
+    }
+    await ctx.answerCallbackQuery({
+      text: `Открыто: ${obligations.length}`,
+    });
+  });
+
   // Callback `notif:snooze:<minutes>` — пользователь нажал «Отложить»
   // на push'е. Записываем `notificationPrefs.snoozedUntil = now + minutes`,
   // notifyEmployee увидит этот флаг и пропустит будущие отправки.
