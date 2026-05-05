@@ -191,6 +191,8 @@ model Organization {
   buildings                Building[]
   journalTaskClaims        JournalTaskClaim[]
   tasksFlowIntegration     TasksFlowIntegration?
+  journalGuideTemplates    JournalGuideTemplate[]
+  journalPipelineTemplates JournalPipelineTemplate[]
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько
@@ -1625,4 +1627,93 @@ model JournalChecklistCheck {
   @@index([organizationId, createdAt])
   @@index([taskFillTaskId, rowKey])
   @@index([journalEntryId])
+}
+
+/// P1 Pipeline Editor: guide-tree (как «инструкция») для сотрудника при
+/// заполнении формы журнала на dashboard'е. Не связан с TasksFlow
+/// pipeline'ом — это просто рендерится в FillingGuide modal'ке вместо
+/// хардкоднутого текста. Один template на (organizationId, templateCode).
+/// Если шаблона нет — показывается дефолтный гайд из `journal-spec.guide`.
+model JournalGuideTemplate {
+  id             String             @id @default(cuid())
+  organizationId String
+  templateCode   String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  nodes          JournalGuideNode[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([organizationId, templateCode])
+  @@index([organizationId])
+}
+
+/// Узел гайда. Tree через parent/children. `ordering: Float` чтобы
+/// drag-drop работал без reindexing — берём (prev + next) / 2.
+/// `photoUrl` — illustrative картинка («вот так выглядит грязный фильтр»).
+model JournalGuideNode {
+  id         String                @id @default(cuid())
+  templateId String
+  template   JournalGuideTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     JournalGuideNode?     @relation("guide_children", fields: [parentId], references: [id], onDelete: Cascade)
+  children   JournalGuideNode[]    @relation("guide_children")
+  title      String
+  detail     String?               @db.Text
+  ordering   Float
+  photoUrl   String?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  @@index([templateId, parentId, ordering])
+}
+
+/// P1 Pipeline Editor: pipeline-tree, по которому работает worker
+/// внутри TasksFlow / Mini App. Шаги делятся на pinned (привязаны к
+/// колонке журнала через linkedFieldKey, не удаляются) и custom
+/// (добавлены админом, можно удалять). Один template на
+/// (organizationId, templateCode). Если шаблона нет — generic-адаптер
+/// падает на legacy «свободная форма с photo-evidence» поведение.
+model JournalPipelineTemplate {
+  id             String                @id @default(cuid())
+  organizationId String
+  templateCode   String
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  nodes          JournalPipelineNode[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([organizationId, templateCode])
+  @@index([organizationId])
+}
+
+/// Узел pipeline'а. Виды:
+/// - kind="pinned" — системный, привязан к колонке журнала через
+///   linkedFieldKey. Когда worker заполнит — value пойдёт в
+///   JournalDocumentEntry.data[linkedFieldKey]. Удалять нельзя
+///   (только title/detail/hint можно редактировать).
+/// - kind="custom" — добавлен админом. Можно удалять.
+/// `photoMode`: "none" | "optional" | "required" — фото-доказательство.
+/// `requireComment` / `requireSignature` — добавляют поля комментария
+/// и подписи на этом шаге. Required-* блокируют кнопку «Сделал».
+model JournalPipelineNode {
+  id               String                  @id @default(cuid())
+  templateId       String
+  template         JournalPipelineTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  parentId         String?
+  parent           JournalPipelineNode?    @relation("pipeline_children", fields: [parentId], references: [id], onDelete: Cascade)
+  children         JournalPipelineNode[]   @relation("pipeline_children")
+  kind             String                  @default("custom")
+  linkedFieldKey   String?
+  title            String
+  detail           String?                 @db.Text
+  hint             String?                 @db.Text
+  ordering         Float
+  photoMode        String                  @default("none")
+  requireComment   Boolean                 @default(false)
+  requireSignature Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([templateId, parentId, ordering])
+  @@index([templateId, kind])
 }
