@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.3 wave-d — live wizard preview pane** справа от tree-editor'а.
+**Текущий приоритет:** **P1.4 — Generic-adapter integration** (читать pipeline-tree из БД и заполнять колонки журнала через linkedFieldKey).
 
 ---
 
@@ -103,7 +103,14 @@
   - DnD работает только на root-level (parentId=null) — nested moves вынесены в P1.7
   - `<Split>` icon-button на pinned-узлах → POST `/split`. Toast «Узел разделён», новый узел сразу появляется ниже оригинала
   - Hint: «Перетаскивайте узлы за иконку ⋮ чтобы изменить порядок» под списком
-- [ ] **wave-d** — live wizard preview справа
+- [x] **wave-d @ e8f65e76 @ 2026-05-05 11:55 МСК** — live wizard preview pane:
+  - Layout сменился на `lg:grid-cols-[minmax(0,1fr)_420px]` — tree слева, preview справа sticky-top
+  - `<WizardPreview>` воспроизводит layout `<PipelineWizard>` из task-fill-client.tsx: progress-bar шапка, ol со step-карточками
+  - Шаг 1 показан в "current" стиле (indigo border, shadow, кнопка «Сделал» disabled-style); остальные — в lock-стиле (gray)
+  - Каждый шаг показывает title, и ТОЛЬКО для текущего: detail, hint (с emoji 💡), badge'ы для photoMode/requireComment/requireSignature/linkedFieldKey
+  - Empty-state «Нет шагов для превью» если nodes.length=0
+  - На `<lg` 1-колонка (preview под tree)
+- [x] **P1.3 ЗАКРЫТ** — Pipeline editor UI полностью функционален: read + create-from-fields + add-custom + edit + delete-with-confirm + DnD reorder + split-pinned + live-preview
 
 ### [ ] P1.4 — Generic-adapter использует JournalPipelineTemplate
 - `getTaskForm` читает БД, fallback на legacy
@@ -304,6 +311,19 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 11:55 МСК]** `e8f65e76` — **P1.3 Pipeline Editor UI ЗАКРЫТ wave-1**. Tree-редактор полностью функционален на `/settings/journal-pipelines-tree/[code]`:
+  - Заходи под management-ролью, открывай новый журнал → жми «Создать из колонок» → seed создаст pinned-узел на каждое поле журнала
+  - Кнопка «Добавить шаг» → custom-шаг с title/detail/required-фото
+  - Перетаскивай узлы за иконку ⋮ слева — порядок сохраняется автоматически (PATCH /move с float-ordering)
+  - Клик ⚙ → редактирование (title, detail, hint, photoMode 3-state, requireComment, requireSignature)
+  - Pinned-кнопка ⤚ → Split: разделяет узел на «(часть 1)» + «(часть 2)» с тем же linkedFieldKey
+  - Custom-кнопка 🗑 → ConfirmDialog danger
+  - Справа — live preview «как увидит сотрудник в TasksFlow». Меняешь дерево → превью обновляется
+  - 4 commit'а: `ea77008a` (read+seed+add+delete), `59de6148` (edit-dialog), `94b40e83` (DnD+split), `e8f65e76` (preview)
+  - Что заметил: схема + 8 endpoints + UI собрались за 6 итераций (~1 час) благодаря тому что endpoints спроектированы под immediate-render UI (`response.json().tree` возвращается из каждой мутации). API + UI → один контракт, минимум плумминга.
+  - Что предлагаю дальше: **P1.4 Generic-adapter integration** — чтобы pipeline из БД реально доехал до сотрудника в TasksFlow. После этого можно реально протестировать сквозной flow «уборщица заполняет → колонки журнала появляются». Глобально это закрывает P0.1 (которая сейчас PART-1) для всех журналов сразу. Дальше P1.5 (guide editor), P1.6-1.10 (photo-mode, subtasks, audit-log).
+  - Если Owner хочет посмотреть прямо сейчас: открывай `/settings/journal-pipelines` под manager/owner-ролью, увидишь новый бейдж «🌳 Дерево (beta)» рядом с каждым журналом.
 
 - **[2026-05-05 09:35 МСК]** `ac27de78` — **P3 ЗАКРЫТ ПОЛНОСТЬЮ wave-1 (35/35 журналов)**. Tier C wave-1 завершён за iter 23-35: traceability, intensive-cooling, fryer-oil, glass-list, metal-impurity, product-writeoff, register, tracked, scan-journal (N/A), audit-plan, audit-protocol, audit-report, uv-lamp-runtime, staff-training, training-plan. Все 33 активных Tier-журнала + 2 N/A (perishable + scan-journal — без Settings) теперь имеют унифицированный `JournalSettingsModal` за `experimentalUiV2`-toggle. Pattern «inline shim if useV2 / else legacy» доказал свою живучесть на 33 миграциях подряд. Что заметил: некоторые журналы (uv-lamp-runtime, training-plan) имели вынесенные функции `*SettingsDialog`, в них useV2 пробрасывался как доп. prop, а не через inline-shim — оба варианта работают одинаково. Что предлагаю дальше: 1) Owner может включить `experimentalUiV2` в `/settings/experimental` и обходить все 33 журнала — должны быть в едином стиле. 2) wave-2: вторичные диалоги (Add Row, Edit Topic, и т.п.) — их сейчас ~50, не покрыты. 3) или сразу к P1: Pipeline Editor с DB schema + drag-drop UI. 4) или P2 backlog (200-1000 features). Жду указания, куда двигать loop.
 
