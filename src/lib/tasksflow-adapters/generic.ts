@@ -20,6 +20,7 @@
  */
 import { db } from "@/lib/db";
 import { FILLING_GUIDES } from "@/lib/journal-filling-guides";
+import { loadPipelineTree } from "@/lib/journal-pipeline-tree";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -27,7 +28,7 @@ import {
   type JournalAdapter,
   type TaskSchedule,
 } from "./types";
-import type { PipelineStep, TaskFormSchema } from "./task-form";
+import type { PipelineStep, TaskFormField, TaskFormSchema } from "./task-form";
 import { extractEmployeeId, rowKeyForEmployee } from "./row-key";
 
 const COMMENT_FIELD = {
@@ -96,6 +97,164 @@ function buildGenericForm(
   });
   return {
     intro: guide.summary,
+    submitLabel: "Готово — записать в журнал",
+    pipeline: steps,
+    fields: [COMMENT_FIELD],
+  };
+}
+
+/**
+ * Конвертирует одно поле из `JournalTemplate.fields[]` (JSON) в
+ * `TaskFormField`. Поля с `auto: true` (computed flags) не показываем
+ * worker'у — они вычисляются адаптером после submit. Для unknown-types
+ * (включая 'equipment', 'photo', etc.) возвращаем `null` — pinned-узел
+ * остаётся в pipeline без поля (просто confirmation).
+ */
+function templateFieldToTaskFormField(
+  raw: unknown
+): TaskFormField | null {
+  if (!raw || typeof raw !== "object") return null;
+  const f = raw as {
+    key?: unknown;
+    label?: unknown;
+    type?: unknown;
+    required?: unknown;
+    auto?: unknown;
+    options?: unknown;
+    placeholder?: unknown;
+    multiline?: unknown;
+    maxLength?: unknown;
+    min?: unknown;
+    max?: unknown;
+    step?: unknown;
+    unit?: unknown;
+  };
+  if (typeof f.key !== "string" || typeof f.label !== "string") return null;
+  if (f.auto === true) return null;
+  const required = f.required === true;
+  const placeholder =
+    typeof f.placeholder === "string" ? f.placeholder : undefined;
+
+  switch (f.type) {
+    case "text":
+      return {
+        type: "text",
+        key: f.key,
+        label: f.label,
+        required,
+        placeholder,
+        multiline: f.multiline === true,
+        maxLength: typeof f.maxLength === "number" ? f.maxLength : undefined,
+      };
+    case "number":
+      return {
+        type: "number",
+        key: f.key,
+        label: f.label,
+        required,
+        unit: typeof f.unit === "string" ? f.unit : undefined,
+        min: typeof f.min === "number" ? f.min : undefined,
+        max: typeof f.max === "number" ? f.max : undefined,
+        step: typeof f.step === "number" ? f.step : undefined,
+      };
+    case "boolean":
+      return { type: "boolean", key: f.key, label: f.label };
+    case "date":
+      return { type: "date", key: f.key, label: f.label, required };
+    case "select": {
+      const options = Array.isArray(f.options)
+        ? f.options
+            .map((o: unknown) => {
+              if (!o || typeof o !== "object") return null;
+              const opt = o as { value?: unknown; label?: unknown };
+              if (typeof opt.value !== "string" || typeof opt.label !== "string")
+                return null;
+              return { value: opt.value, label: opt.label };
+            })
+            .filter((x): x is { value: string; label: string } => x !== null)
+        : [];
+      if (options.length === 0) return null;
+      return {
+        type: "select",
+        key: f.key,
+        label: f.label,
+        required,
+        options,
+      };
+    }
+    default:
+      // unknown types ('equipment', 'photo', custom) — pinned-узел
+      // станет просто confirmation без поля.
+      return null;
+  }
+}
+
+/**
+ * Собирает `TaskFormSchema` из дерева `JournalPipelineTemplate`. Для
+ * каждого root-узла (depth=0) создаётся `PipelineStep`. Pinned-узлы
+ * получают `field` из `JournalTemplate.fields[linkedFieldKey]`. Custom
+ * остаются confirmation-only.
+ *
+ * Children не разворачиваем линейно — UI пока не поддерживает nested.
+ * Они будут рендериться плоско в порядке tree-flatten (P1.7 сделает
+ * indent в Mini App).
+ */
+function buildFormFromPipelineTree(
+  nodes: { id: string; parentId: string | null; ordering: number; kind: string; linkedFieldKey: string | null; title: string; detail: string | null; hint: string | null; photoMode: string; requireComment: boolean; requireSignature: boolean }[],
+  templateFields: unknown[]
+): TaskFormSchema {
+  const fieldByKey = new Map<string, TaskFormField>();
+  for (const raw of templateFields) {
+    const tf = templateFieldToTaskFormField(raw);
+    if (tf) fieldByKey.set(tf.key, tf);
+  }
+
+  // Flatten в DFS-порядке: root nodes по ordering, потом children
+  const byParent = new Map<string | null, typeof nodes>();
+  for (const n of nodes) {
+    const list = byParent.get(n.parentId) ?? [];
+    list.push(n);
+    byParent.set(n.parentId, list);
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => a.ordering - b.ordering);
+  }
+  const flat: typeof nodes = [];
+  function walk(parentId: string | null) {
+    for (const n of byParent.get(parentId) ?? []) {
+      flat.push(n);
+      walk(n.id);
+    }
+  }
+  walk(null);
+
+  const steps: PipelineStep[] = flat.map((node) => {
+    const field =
+      node.kind === "pinned" && node.linkedFieldKey
+        ? fieldByKey.get(node.linkedFieldKey)
+        : undefined;
+    return {
+      id: node.id,
+      title: node.title,
+      detail: node.detail ?? "",
+      hint: node.hint ?? undefined,
+      field,
+      requirePhoto: node.photoMode === "required",
+    };
+  });
+
+  // Финальный шаг с комментарием — оставляем как catch-all
+  steps.push({
+    id: "completion",
+    title: "Завершение",
+    detail:
+      "Проверь что всё сделано и нажми «Готово — записать в журнал».",
+    requirePhoto: false,
+  });
+
+  return {
+    intro:
+      "Pipeline настроен в /settings/journal-pipelines-tree. Если что-то не так — скажи менеджеру.",
     submitLabel: "Готово — записать в журнал",
     pipeline: steps,
     fields: [COMMENT_FIELD],
@@ -192,24 +351,49 @@ export function buildGenericAdapter(
     },
 
     async getTaskForm(input) {
-      // Достаём org-настройку «Требовать фото на каждом шаге». input
-      // содержит documentId — через него вытаскиваем organizationId
-      // (быстрее чем join из адаптера). Best-effort: если запрос
-      // упадёт, считаем что фото не требуется.
+      // 1. Сначала пробуем pipeline-tree из БД (P1.4): если orga
+      //    настроила pipeline через /settings/journal-pipelines-tree,
+      //    он побеждает любой legacy filling-guide.
+      // 2. Если pipeline-tree пуст — fallback на legacy
+      //    `buildGenericForm` (filling-guides + org-настройка
+      //    requirePhotoOnTaskFillStep).
+      let organizationId: string | null = null;
       let requirePhoto = false;
       try {
         const doc = await db.journalDocument.findUnique({
           where: { id: input.documentId },
           select: {
+            organizationId: true,
             organization: {
               select: { requirePhotoOnTaskFillStep: true },
             },
           },
         });
+        organizationId = doc?.organizationId ?? null;
         requirePhoto = Boolean(doc?.organization?.requirePhotoOnTaskFillStep);
       } catch {
+        organizationId = null;
         requirePhoto = false;
       }
+
+      if (organizationId) {
+        try {
+          const tree = await loadPipelineTree(organizationId, templateCode);
+          if (tree && tree.nodes.length > 0) {
+            const tpl = await db.journalTemplate.findUnique({
+              where: { code: templateCode },
+              select: { fields: true },
+            });
+            const templateFields = Array.isArray(tpl?.fields)
+              ? (tpl?.fields as unknown[])
+              : [];
+            return buildFormFromPipelineTree(tree.nodes, templateFields);
+          }
+        } catch {
+          // fall through to legacy
+        }
+      }
+
       return buildGenericForm(templateCode, { requirePhoto });
     },
 
@@ -239,10 +423,40 @@ export function buildGenericAdapter(
         return raw;
       })();
 
+      // P1.4: если orga настроила pipeline-tree, копируем значения
+      // pinned-узлов (`values[linkedFieldKey]`) в `data[linkedFieldKey]`.
+      // Так колонки журнала реально заполняются заполнителями worker'а.
+      // Best-effort: если что-то упадёт в этой ветке — продолжаем
+      // без linkedFields, чтобы не потерять подтверждение.
+      const linkedFieldData: Record<string, unknown> = {};
+      try {
+        const doc = await db.journalDocument.findUnique({
+          where: { id: documentId },
+          select: { organizationId: true },
+        });
+        if (doc?.organizationId) {
+          const tree = await loadPipelineTree(doc.organizationId, templateCode);
+          if (tree) {
+            for (const node of tree.nodes) {
+              if (node.kind !== "pinned" || !node.linkedFieldKey) continue;
+              const v = (values as Record<string, unknown> | undefined)?.[
+                node.linkedFieldKey
+              ];
+              if (v !== undefined && v !== null && v !== "") {
+                linkedFieldData[node.linkedFieldKey] = v;
+              }
+            }
+          }
+        }
+      } catch {
+        // Игнорируем — comment+pipeline trail всё равно сохраним.
+      }
+
       const data = {
         source: "tasksflow",
         templateCode,
         completedAt: new Date().toISOString(),
+        ...linkedFieldData,
         ...(comment ? { comment } : {}),
         ...(pipelineTrail ? { pipeline: pipelineTrail } : {}),
       };
