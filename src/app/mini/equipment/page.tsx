@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Package, Thermometer } from "lucide-react";
+import { Loader2, Package, Thermometer } from "lucide-react";
 
 type EquipmentItem = {
   id: string;
@@ -35,43 +35,92 @@ export default function MiniEquipmentPage() {
 
   if (state.kind === "loading") {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[#6f7282]">
+      <div
+        className="flex flex-1 items-center justify-center text-[14px]"
+        style={{ color: "var(--mini-text-muted)" }}
+      >
+        <Loader2
+          className="mr-2 size-4 animate-spin"
+          style={{ color: "var(--mini-lime)" }}
+        />
         Загружаем…
       </div>
     );
   }
   if (state.kind === "error") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-        <h1 className="text-lg font-semibold text-[#0b1024]">Ошибка</h1>
-        <p className="text-sm text-[#a13a32]">{state.message}</p>
+      <div
+        className="rounded-2xl px-4 py-4 text-center"
+        style={{
+          background: "var(--mini-crimson-soft)",
+          border: "1px solid rgba(255, 82, 104, 0.24)",
+        }}
+      >
+        <h1
+          className="text-lg font-semibold"
+          style={{ color: "var(--mini-text)" }}
+        >
+          Ошибка
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: "var(--mini-crimson)" }}>
+          {state.message}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
-      <header className="rounded-3xl border border-[#ececf4] bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
+      <header
+        className="rounded-3xl px-5 py-5"
+        style={{
+          background: "var(--mini-card-solid-bg)",
+          border: "1px solid var(--mini-divider)",
+        }}
+      >
+        <p
+          className="mini-eyebrow"
+          style={{ letterSpacing: "0.14em" }}
+        >
           Справочник
         </p>
-        <h1 className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1
+          className="mt-1 text-[22px] font-semibold tracking-[-0.02em]"
+          style={{ color: "var(--mini-text)" }}
+        >
           Оборудование
         </h1>
       </header>
 
       <section className="space-y-2">
         {state.items.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-7 text-center text-[14px] text-[#6f7282]">
+          <div
+            className="rounded-3xl px-4 py-7 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
             Пока нет оборудования.
           </div>
         ) : (
           state.items.map((item: EquipmentItem) => (
             <div
               key={item.id}
-              className="flex items-start gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+              className="flex items-start gap-3 rounded-2xl px-4 py-3"
+              style={{
+                background: "var(--mini-card-solid-bg)",
+                border: "1px solid var(--mini-divider)",
+              }}
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  background: "var(--mini-lime-soft)",
+                  color: "var(--mini-lime)",
+                }}
+              >
                 {item.type?.toLowerCase().includes("темп") ? (
                   <Thermometer className="size-5" />
                 ) : (
@@ -79,10 +128,16 @@ export default function MiniEquipmentPage() {
                 )}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-medium text-[#0b1024]">
+                <p
+                  className="truncate text-[15px] font-medium"
+                  style={{ color: "var(--mini-text)" }}
+                >
                   {item.name}
                 </p>
-                <p className="text-[13px] text-[#6f7282]">
+                <p
+                  className="text-[13px]"
+                  style={{ color: "var(--mini-text-muted)" }}
+                >
                   {item.type || "—"} · {item.areaName}
                 </p>
               </div>
@@ -90,8 +145,6 @@ export default function MiniEquipmentPage() {
           ))
         )}
       </section>
-
-
     </div>
   );
 }
