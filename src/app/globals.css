@@ -160,132 +160,134 @@
  *   • `text-white` / `text-black` — раз уж явно использован.
  * ════════════════════════════════════════════════════════════════════ */
 
-[data-app-theme="dark"] {
-  /* ── Surface (фоны карточек/панелей) ─────────────────────────── */
-  /* Пара #ffffff → #131726 (приподнятая карточка) */
-  & .bg-\[\#ffffff\],
-  & .bg-\[\#fff\],
-  & .bg-white {
-    background-color: #131726;
-  }
-  /* #fafbff (soft-surface), #f3f4fb, #f1f2f8, #f2f2f2, #ececec → ещё темнее */
-  & .bg-\[\#fafbff\],
-  & .bg-\[\#f3f4fb\],
-  & .bg-\[\#f1f2f8\],
-  & .bg-\[\#f2f2f2\],
-  & .bg-\[\#ececec\] {
-    background-color: #0e1224;
-  }
-  /* #f5f6ff (tint-indigo), #eef1ff (tint-indigo-2) — slightly indigo tint */
-  & .bg-\[\#f5f6ff\] {
-    background-color: #1a1f3a;
-  }
-  & .bg-\[\#eef1ff\] {
-    background-color: #1f254a;
-  }
-  /* Состояния — error/warn/success backgrounds (мягкие пастельные) */
-  & .bg-\[\#fff4f2\],
-  & .bg-\[\#fff3f2\],
-  & .bg-\[\#fff2f1\] {
-    background-color: rgba(161, 58, 50, 0.18);
-  }
-  & .bg-\[\#fff8eb\] {
-    background-color: rgba(245, 158, 11, 0.16);
-  }
-  & .bg-\[\#ecfdf5\] {
-    background-color: rgba(19, 107, 42, 0.18);
-  }
+/* Используем prefix `.app-shell[data-app-theme="dark"]` чтобы повысить
+ * специфичность над Tailwind utility (которые в layer utilities, могут
+ * иметь приоритет ниже custom CSS, но в conflict иногда не выигрывают).
+ * `!important` — единственный надёжный способ переопределить arbitrary-value
+ * tailwind-классы вроде .bg-\[\#fafbff\] (которые компилятся как
+ * @layer utilities .bg-\[\#fafbff\] { background-color: #fafbff }).
+ *
+ * Risk minimisation: важно НЕ применять !important к тем местам где
+ * пользовательский явный inline или dark:-класс должен победить. Поэтому
+ * каждый override ограничен hex-значениями которые на 100% «light-mode-only»
+ * surfaces / borders / text colors. */
 
-  /* ── Borders ──────────────────────────────────────────────────── */
-  & .border-\[\#ececf4\],
-  & .border-\[\#eceef5\],
-  & .border-\[\#e8ebf7\] {
-    border-color: #1f2540;
-  }
-  & .border-\[\#dcdfed\],
-  & .border-\[\#dfe1ec\],
-  & .border-\[\#d8dae6\],
-  & .border-\[\#d9dceb\],
-  & .border-\[\#d7dbea\],
-  & .border-\[\#d9dce8\] {
-    border-color: #2a3258;
-  }
-  & .border-\[\#ccc\] {
-    border-color: #2a3258;
-  }
-  & .border-\[\#ffd2cd\],
-  & .border-\[\#ffd7d3\] {
-    border-color: rgba(161, 58, 50, 0.35);
-  }
-  & .border-\[\#ffe9b0\] {
-    border-color: rgba(245, 158, 11, 0.35);
-  }
-  & .border-\[\#c8f0d5\] {
-    border-color: rgba(19, 107, 42, 0.4);
-  }
+/* ── Surface backgrounds ───────────────────────────────────────────── */
+.app-shell[data-app-theme="dark"] .bg-\[\#ffffff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff\],
+.app-shell[data-app-theme="dark"] .bg-white,
+.app-shell[data-app-theme="dark"] .bg-gray-50,
+.app-shell[data-app-theme="dark"] .bg-slate-50,
+.app-shell[data-app-theme="dark"] .bg-neutral-50 {
+  background-color: #131726 !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#fafbff\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f3f4fb\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f8\],
+.app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#ececec\],
+.app-shell[data-app-theme="dark"] .bg-gray-100 {
+  background-color: #0e1224 !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#f5f6ff\] {
+  background-color: #1a1f3a !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#eef1ff\] {
+  background-color: #1f254a !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff3f2\],
+.app-shell[data-app-theme="dark"] .bg-\[\#fff2f1\] {
+  background-color: rgba(161, 58, 50, 0.18) !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#fff8eb\] {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+.app-shell[data-app-theme="dark"] .bg-\[\#ecfdf5\] {
+  background-color: rgba(19, 107, 42, 0.18) !important;
+}
 
-  /* ── Text colors ──────────────────────────────────────────────── */
-  /* #0b1024 (text-primary) → light */
-  & .text-\[\#0b1024\],
-  & .text-\[\#101425\] {
-    color: #e8e9f5;
-  }
-  /* #3c4053 (secondary) */
-  & .text-\[\#3c4053\],
-  & .text-\[\#3a3f55\] {
-    color: #c4c7d8;
-  }
-  /* #6f7282 (muted), #6e7080, #6e7387, #73738a, #7a7c8e */
-  & .text-\[\#6f7282\],
-  & .text-\[\#6e7080\],
-  & .text-\[\#6e7387\],
-  & .text-\[\#73738a\],
-  & .text-\[\#7a7c8e\] {
-    color: #9ea2bb;
-  }
-  /* #9b9fb3 (faint), #8a8ea4 — placeholder */
-  & .text-\[\#9b9fb3\],
-  & .text-\[\#8a8ea4\] {
-    color: #6e7290;
-  }
-  /* Indigo deep text — нужен светлее на dark фоне */
-  & .text-\[\#3848c7\] {
-    color: #8e9eff;
-  }
-  /* Success/warn fg на цветных tint-bg в dark остаётся читаемым */
-  & .text-\[\#136b2a\],
-  & .text-\[\#116b2a\] {
-    color: #5edc8a;
-  }
-  & .text-\[\#a13a32\] {
-    color: #ff8a82;
-  }
-  & .text-\[\#b25f00\],
-  & .text-\[\#a16d32\] {
-    color: #fbbf24;
-  }
-  & .text-\[\#d2453d\],
-  & .text-\[\#ff3b30\] {
-    color: #ff6e66;
-  }
-  & .text-\[\#c7ccea\] {
-    color: #c4c7d8;
-  }
+/* ── Borders ───────────────────────────────────────────────────────── */
+.app-shell[data-app-theme="dark"] .border-\[\#ececf4\],
+.app-shell[data-app-theme="dark"] .border-\[\#eceef5\],
+.app-shell[data-app-theme="dark"] .border-\[\#e8ebf7\] {
+  border-color: #1f2540 !important;
+}
+.app-shell[data-app-theme="dark"] .border-\[\#dcdfed\],
+.app-shell[data-app-theme="dark"] .border-\[\#dfe1ec\],
+.app-shell[data-app-theme="dark"] .border-\[\#d8dae6\],
+.app-shell[data-app-theme="dark"] .border-\[\#d9dceb\],
+.app-shell[data-app-theme="dark"] .border-\[\#d7dbea\],
+.app-shell[data-app-theme="dark"] .border-\[\#d9dce8\] {
+  border-color: #2a3258 !important;
+}
+.app-shell[data-app-theme="dark"] .border-\[\#ccc\] {
+  border-color: #2a3258 !important;
+}
+.app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
+.app-shell[data-app-theme="dark"] .border-\[\#ffd7d3\] {
+  border-color: rgba(161, 58, 50, 0.35) !important;
+}
+.app-shell[data-app-theme="dark"] .border-\[\#ffe9b0\] {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+.app-shell[data-app-theme="dark"] .border-\[\#c8f0d5\] {
+  border-color: rgba(19, 107, 42, 0.4) !important;
+}
 
-  /* ── Card shadow halo: subtle 1px ring ─────────────────────────── */
-  /* #f0f0fa с opacity 0.45 — на dark становится почти невидимым,
-     заменяем на тонкую светлую обводку. */
-  & .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
-  }
+/* ── Text colors ───────────────────────────────────────────────────── */
+.app-shell[data-app-theme="dark"] .text-\[\#0b1024\],
+.app-shell[data-app-theme="dark"] .text-\[\#101425\] {
+  color: #e8e9f5 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#3c4053\],
+.app-shell[data-app-theme="dark"] .text-\[\#3a3f55\] {
+  color: #c4c7d8 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#6f7282\],
+.app-shell[data-app-theme="dark"] .text-\[\#6e7080\],
+.app-shell[data-app-theme="dark"] .text-\[\#6e7387\],
+.app-shell[data-app-theme="dark"] .text-\[\#73738a\],
+.app-shell[data-app-theme="dark"] .text-\[\#7a7c8e\] {
+  color: #9ea2bb !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#9b9fb3\],
+.app-shell[data-app-theme="dark"] .text-\[\#8a8ea4\] {
+  color: #6e7290 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#3848c7\] {
+  color: #8e9eff !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#136b2a\],
+.app-shell[data-app-theme="dark"] .text-\[\#116b2a\] {
+  color: #5edc8a !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#a13a32\] {
+  color: #ff8a82 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#b25f00\],
+.app-shell[data-app-theme="dark"] .text-\[\#a16d32\] {
+  color: #fbbf24 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#d2453d\],
+.app-shell[data-app-theme="dark"] .text-\[\#ff3b30\] {
+  color: #ff6e66 !important;
+}
+.app-shell[data-app-theme="dark"] .text-\[\#c7ccea\] {
+  color: #c4c7d8 !important;
+}
 
-  /* ── Hover surfaces — индиго тинт чуть ярче для контраста ─── */
-  & .hover\:bg-\[\#f5f6ff\]:hover {
-    background-color: #1f254a;
-  }
-  & .hover\:bg-\[\#eef1ff\]:hover {
-    background-color: #252b56;
-  }
+/* ── Card shadow halo ──────────────────────────────────────────────── */
+.app-shell[data-app-theme="dark"] .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ── Hover variants ────────────────────────────────────────────────── */
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#f5f6ff\]:hover {
+  background-color: #1f254a !important;
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#eef1ff\]:hover {
+  background-color: #252b56 !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════
