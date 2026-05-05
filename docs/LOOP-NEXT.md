@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1 ЗАКРЫТ ПОЛНОСТЬЮ — Pipeline Editor 100% feature-complete. Дальше P2 backlog.**
+**Текущий приоритет:** **P2 backlog — следующий пункт по приоритету (A.1 урезан до Command Palette, A.3 уже сделан, далее A.4)**.
 
 ---
 
@@ -281,9 +281,9 @@
 
 - [ ] A.1 — Hotkey `Ctrl+Shift+N` на дашборде → быстрое создание новой записи в самом срочном журнале
 - [ ] A.2 — Подсказка после двух одинаковых ошибок ввода: «Похоже, вы ввели то же что и в предыдущей строке — это нормально?»
-- [ ] A.3 — Quick-jump-bar в шапке: набираешь «гиг» → выбираешь «Журнал гигиены» → ентер. Без мыши.
+- [x] A.3 — Quick-jump-bar (Command Palette ⌘K/Ctrl+K) — DONE pre-loop (`src/components/layout/command-palette.tsx`, J5+ commit). Уже работает: поиск по static routes + dynamic templates через async fetch. Не дополнялся в loop'е.
 - [ ] A.4 — Undo последнего сохранения (10 секунд) для journal entries
-- [ ] A.5 — Ctrl+S сохраняет текущую форму в любом journal-document-client
+- [x] A.5 — Ctrl+S сохраняет текущую форму в DynamicForm — DONE @ b8d56bdd @ 2026-05-05 15:25 МСК (для journal-document-clients нужен отдельный wave-b — у них inline-cells, не общая submit-кнопка)
 
 ### Section B — Mobile / Mini App
 
