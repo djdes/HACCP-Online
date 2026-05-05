@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C14 — staff-training v2**
+**Текущий приоритет:** **P3.C15 — training-plan v2** (последний журнал Tier C)
 
 ---
 
@@ -167,7 +167,7 @@
 - [x] P3.C11 — audit-protocol — DONE wave-1 @ d1475e99 @ 2026-05-05 08:10 МСК
 - [x] P3.C12 — audit-report — DONE wave-1 @ eb319270 @ 2026-05-05 08:25 МСК
 - [x] P3.C13 — uv-lamp-runtime — DONE wave-1 @ 43e70208 @ 2026-05-05 08:50 МСК
-- [ ] P3.C14 — staff-training
+- [x] P3.C14 — staff-training — DONE wave-1 @ 6542cec3 @ 2026-05-05 09:10 МСК
 - [ ] P3.C15 — training-plan
 
 **Migration protocol на каждый журнал** (см. P3.3 в PIPELINE-VISION.md):
