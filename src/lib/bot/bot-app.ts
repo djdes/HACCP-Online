@@ -5,7 +5,11 @@ import { registerStopHandler } from "./handlers/stop";
 import { registerInlineQueryHandler } from "./handlers/inline";
 import { registerShortcutHandlers } from "./handlers/shortcut";
 import { registerEditHandlers } from "./handlers/edit";
-import { registerOwnerStatsHandlers } from "./handlers/owner-stats";
+import {
+  registerOwnerStatsHandlers,
+  registerOwnerExtendedHandlers,
+} from "./handlers/owner-stats";
+import { registerStaffToolsHandlers } from "./handlers/staff-tools";
 import { registerShiftGateHandler } from "./handlers/shift-gate";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import {
@@ -89,6 +93,8 @@ export function getInboundBot(): Bot | null {
   registerStopHandler(composer);
   registerShortcutHandlers(composer);
   registerOwnerStatsHandlers(composer);
+  registerOwnerExtendedHandlers(composer);
+  registerStaffToolsHandlers(composer);
   registerEditHandlers(composer);
   registerInlineQueryHandler(composer);
   cachedBot.use(composer);

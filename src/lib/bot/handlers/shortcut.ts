@@ -75,11 +75,23 @@ export function registerShortcutHandlers(composer: Composer<Context>): void {
     await reply(
       ctx,
       "💬 <b>WeSetup в Telegram</b>\n\n" +
-        "• /start — домашний экран с задачами на смену\n" +
-        "• /journals — журналы СанПиН и ХАССП\n" +
+        "<b>Сотруднику</b>\n" +
+        "• /start — домашний экран\n" +
+        "• /shift — моя смена · открыть/закрыть в один тап\n" +
         "• /tasks — что надо заполнить сегодня\n" +
-        "• /reports — PDF и ZIP для инспектора\n" +
-        "• /stop — отвязать Telegram от аккаунта\n\n" +
+        "• /journals — журналы СанПиН и ХАССП\n" +
+        "• /me — мой профиль\n\n" +
+        "<b>Руководителю</b>\n" +
+        "• /today — сводка за сегодня (X / Y журналов)\n" +
+        "• /missing — что не заполнено (с именами)\n" +
+        "• /staff — кто на смене сегодня\n" +
+        "• /capa — открытые CAPA-тикеты\n" +
+        "• /batches — активные партии\n" +
+        "• /losses — списания за неделю\n" +
+        "• /stats — недельный график выполнения\n" +
+        "• /reports — PDF и ZIP для инспектора\n\n" +
+        "<b>Прочее</b>\n" +
+        "• /stop — отвязать Telegram\n\n" +
         "Поддержка: пишите в @wesetupbot — отвечаем лично.\n" +
         "Сайт: wesetup.ru",
       { miniPath: "/mini", buttonLabel: "Открыть Кабинет" }

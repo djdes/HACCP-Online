@@ -249,3 +249,170 @@ function bar10(pct: number): string {
   const filled = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 10);
   return "█".repeat(filled) + "·".repeat(10 - filled);
 }
+
+/**
+ * Расширение команд для рук-ва: /losses /batches /staff. Регистрируется
+ * тем же composer'ом что и /today/missing/capa/stats.
+ */
+export function registerOwnerExtendedHandlers(composer: Composer<Context>): void {
+  // /losses — последние списания.
+  composer.command("losses", async (ctx) => {
+    const user = await resolveManagementUser(ctx.from?.id);
+    if (!user) return replyNotAuthorized(ctx);
+
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 7);
+    const losses = await db.lossRecord.findMany({
+      where: { organizationId: user.organizationId, date: { gte: since } },
+      orderBy: { date: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        date: true,
+        category: true,
+        productName: true,
+        quantity: true,
+        unit: true,
+        costRub: true,
+      },
+    });
+
+    if (losses.length === 0) {
+      await ctx.reply(
+        "📦 <b>Списаний за 7 дней нет</b>\nЕсли есть — отметьте через кабинет, чтобы они попали в отчёт инспектору.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+
+    const totalCost = losses.reduce((s, l) => s + (l.costRub ?? 0), 0);
+    const lines = [
+      `📦 <b>Последние списания · ${losses.length}</b>`,
+      totalCost > 0 ? `Сумма за неделю: <b>${totalCost.toFixed(0)} ₽</b>` : "",
+      "",
+      ...losses.map((l) => {
+        const cost = l.costRub ? ` · ${l.costRub.toFixed(0)} ₽` : "";
+        return `• ${formatDateRu(l.date)} <b>${esc(l.productName)}</b>\n   ${l.quantity} ${esc(l.unit)} · ${esc(l.category)}${cost}`;
+      }),
+    ].filter(Boolean);
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  // /batches — активные партии.
+  composer.command("batches", async (ctx) => {
+    const user = await resolveManagementUser(ctx.from?.id);
+    if (!user) return replyNotAuthorized(ctx);
+
+    const batches = await db.batch.findMany({
+      where: {
+        organizationId: user.organizationId,
+        status: { in: ["received", "in_use"] },
+      },
+      orderBy: [{ expiryDate: "asc" }, { receivedAt: "desc" }],
+      take: 15,
+      select: {
+        id: true,
+        code: true,
+        productName: true,
+        supplier: true,
+        quantity: true,
+        unit: true,
+        expiryDate: true,
+        status: true,
+      },
+    });
+
+    if (batches.length === 0) {
+      await ctx.reply(
+        "📦 <b>Активных партий нет</b>\nДобавьте через журнал «Приёмка сырья» — карточки партий создаются автоматически.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+
+    const now = new Date();
+    const lines = [
+      `📦 <b>Активные партии · ${batches.length}</b>`,
+      "",
+      ...batches.map((b) => {
+        const expiry = b.expiryDate
+          ? formatDateRu(b.expiryDate) +
+            (b.expiryDate < now ? " ⚠️ просрочено" : "")
+          : "без срока";
+        const supplier = b.supplier?.trim() ? ` · ${esc(b.supplier)}` : "";
+        return `• <code>${esc(b.code)}</code> <b>${esc(b.productName)}</b>${supplier}\n   ${b.quantity} ${esc(b.unit)} · до ${esc(expiry)}`;
+      }),
+    ];
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  // /staff — кто сегодня на смене.
+  composer.command("staff", async (ctx) => {
+    const user = await resolveManagementUser(ctx.from?.id);
+    if (!user) return replyNotAuthorized(ctx);
+
+    const today = utcDayStart(new Date());
+    const shifts = await db.workShift.findMany({
+      where: { organizationId: user.organizationId, date: today },
+      select: {
+        status: true,
+        user: { select: { name: true } },
+        jobPosition: { select: { name: true } },
+      },
+      orderBy: [{ status: "asc" }, { user: { name: "asc" } }],
+    });
+
+    if (shifts.length === 0) {
+      await ctx.reply(
+        "👥 <b>На сегодня смены не назначены</b>\nРаспишите график в кабинете → «График смен» → выберите дату.",
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
+      );
+      return;
+    }
+
+    const grouped: Record<string, string[]> = {};
+    for (const s of shifts) {
+      const status = s.status;
+      const line = `${esc(s.user.name?.trim() || "—")}${
+        s.jobPosition?.name ? ` · ${esc(s.jobPosition.name)}` : ""
+      }`;
+      grouped[status] = grouped[status] ?? [];
+      grouped[status].push(line);
+    }
+    const STATUS_LABELS: Record<string, string> = {
+      working: "🟢 На смене",
+      scheduled: "🟡 По плану (ещё не вышли)",
+      ended: "🔵 Закончили",
+      absent: "🔴 Не вышли",
+      off: "⚪ Выходной",
+      vacation: "⚪ Отпуск",
+      sick: "⚪ Больничный",
+    };
+    const order = ["working", "scheduled", "ended", "absent", "off", "vacation", "sick"];
+    const lines = [`👥 <b>Сегодня · ${shifts.length} смен</b>`, ""];
+    for (const status of order) {
+      const arr = grouped[status];
+      if (!arr || arr.length === 0) continue;
+      lines.push(`<b>${STATUS_LABELS[status] ?? status}</b>`);
+      lines.push(...arr.map((l) => `• ${l}`));
+      lines.push("");
+    }
+    // Также неизвестные статусы (если кто-то прошёл миграцию).
+    for (const [status, arr] of Object.entries(grouped)) {
+      if (order.includes(status)) continue;
+      lines.push(`<b>${esc(status)}</b>`);
+      lines.push(...arr.map((l) => `• ${l}`));
+      lines.push("");
+    }
+    await ctx.reply(lines.join("\n").trim(), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+}
