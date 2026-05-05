@@ -443,11 +443,22 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Любая <table> в dashboard/journals по умолчанию не должна выползать
-   за viewport. Если родительский контейнер не имеет overflow-x, всё
-   равно показываем horizontal scroll на самой таблице через fallback. */
+/* Wide tables на mobile: предков (любого ancestor) делаем
+   horizontally scrollable, чтобы сама таблица сохраняла ширину но не
+   переполняла viewport. `display: block` на table — ломает nested
+   table layouts (climate/equipment имеют 2-уровневые таблицы),
+   поэтому НЕ меняем display table. Вместо этого родители, которые
+   содержат wide table, получают overflow-x: auto. */
 @media (max-width: 767px) {
-  .app-shell main table:not(.ds-no-scroll) {
+  /* Любой div-ancestor wide-table получает overflow + max-width */
+  .app-shell main div:has(table[class*="min-w-\\["]) {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Fallback: если таблицы нет min-w-class но всё равно широкая —
+     даём ей block-display и собственный scroll. */
+  .app-shell main table:not(.ds-no-scroll):not([class*="min-w-\\["]) {
     display: block;
     overflow-x: auto;
     max-width: 100%;
