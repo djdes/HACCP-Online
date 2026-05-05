@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 // NOTE: терминология «задачи / Сегодня» — нейтральная, мини-апп
 // никогда не показывает слово «журнал». Сотрудник просто видит
 // чек-лист задач смены. Под капотом это journal-task-claim.
@@ -99,6 +100,11 @@ export default function MiniTodayPage() {
 
   async function claim(scope: Scope) {
     if (!data) return;
+    // Глобальный mutex — раньше двойной тап на разные scope'ы запускал
+    // 2 POST'а в параллель, и race-condition'а 409 с другим сотрудником
+    // могла дать unexpected результат. Теперь все «Взять» disabled
+    // пока ЛЮБОЙ claim в полёте.
+    if (busy) return;
     setBusy(scope.scopeKey);
     try {
       const res = await fetch("/api/journal-task-claims", {
@@ -115,26 +121,49 @@ export default function MiniTodayPage() {
       if (res.ok) {
         const j = await res.json().catch(() => null);
         if (j?.claim?.id) {
-          // Переходим на универсальную /mini/claim/[id] страницу
           router.push(`/mini/claim/${j.claim.id}`);
           return;
         }
         await load();
+        return;
       }
+      // Surface error: ранее silent fall-through скрывал 409 «уже
+      // взяли», 400 «нужна активная смена», 403 ACL.
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const msg =
+        res.status === 409
+          ? body.error || "Эту задачу уже забрали — обновите страницу"
+          : res.status === 403
+            ? "Нет прав на эту задачу"
+            : body.error || `Не удалось взять (HTTP ${res.status})`;
+      toast.error(msg);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось взять задачу"
+      );
     } finally {
       setBusy(null);
     }
   }
 
   async function complete(claimId: string) {
+    if (busy) return;
     setBusy(claimId);
     try {
-      await fetch(`/api/journal-task-claims/${claimId}`, {
+      const res = await fetch(`/api/journal-task-claims/${claimId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete" }),
       });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(body.error || `Не удалось завершить (HTTP ${res.status})`);
+      }
       await load();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось завершить задачу"
+      );
     } finally {
       setBusy(null);
     }
@@ -274,6 +303,10 @@ export default function MiniTodayPage() {
               key={s.scopeKey}
               scope={s}
               busy={busy === s.scopeKey || busy === s.claimId}
+              // Глобальная блокировка пока в полёте ЛЮБОЙ claim/complete.
+              // Раньше можно было пока «Взять» в одном scope'е жмёт —
+              // тапнуть «Взять» в другом и получить race с backend'ом.
+              disabled={busy !== null && busy !== s.scopeKey && busy !== s.claimId}
               locked={Boolean(
                 data.myActive &&
                   data.myActive.journalCode +
@@ -293,12 +326,16 @@ export default function MiniTodayPage() {
 function ScopeRow({
   scope,
   busy,
+  disabled,
   locked,
   onClaim,
   onComplete,
 }: {
   scope: Scope;
+  /** True когда именно ЭТА scope'а в процессе POST. */
   busy: boolean;
+  /** True когда другая scope'а в процессе POST — блокируем во избежание race. */
+  disabled?: boolean;
   locked: boolean;
   onClaim: () => void;
   onComplete: () => void;
@@ -359,13 +396,14 @@ function ScopeRow({
           <button
             type="button"
             onClick={onClaim}
-            disabled={busy || locked}
+            disabled={busy || locked || disabled}
             title={locked ? "Сначала заверши текущую" : undefined}
             className={[
               "inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium",
               locked
                 ? "border border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]"
                 : "bg-[#5566f6] text-white shadow-[0_8px_20px_-10px_rgba(85,102,246,0.6)]",
+              disabled && !busy ? "opacity-50" : "",
             ].join(" ")}
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
@@ -377,8 +415,11 @@ function ScopeRow({
           <button
             type="button"
             onClick={onComplete}
-            disabled={busy}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#136b2a] px-3 text-[13px] font-medium text-white"
+            disabled={busy || disabled}
+            className={[
+              "inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#136b2a] px-3 text-[13px] font-medium text-white",
+              disabled && !busy ? "opacity-50" : "",
+            ].join(" ")}
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
             Завершить
