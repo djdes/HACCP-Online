@@ -74,6 +74,18 @@ export default async function JournalPipelinesPage() {
     treeStatus.set(tpl.templateCode, tpl._count.nodes);
   }
 
+  const guideTemplates = await db.journalGuideTemplate.findMany({
+    where: { organizationId },
+    select: {
+      templateCode: true,
+      _count: { select: { nodes: true } },
+    },
+  });
+  const guideStatus = new Map<string, number>();
+  for (const tpl of guideTemplates) {
+    guideStatus.set(tpl.templateCode, tpl._count.nodes);
+  }
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
@@ -120,6 +132,7 @@ export default async function JournalPipelinesPage() {
           const hasOverride = Boolean(overrides[j.code]?.steps?.length);
           const hasDefault = Boolean(getDefaultPipeline(j.code));
           const treeNodeCount = treeStatus.get(j.code) ?? 0;
+          const guideNodeCount = guideStatus.get(j.code) ?? 0;
           return (
             <div
               key={j.code}
@@ -163,6 +176,11 @@ export default async function JournalPipelinesPage() {
                         🌳 {treeNodeCount} узлов
                       </span>
                     ) : null}
+                    {guideNodeCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#7a5cff] px-2 py-0.5 font-medium text-white">
+                        📖 {guideNodeCount}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -177,7 +195,13 @@ export default async function JournalPipelinesPage() {
                   href={`/settings/journal-pipelines-tree/${j.code}`}
                   className="rounded-full px-2.5 py-1 text-[#5566f6] hover:bg-[#f5f6ff]"
                 >
-                  🌳 Дерево (beta) →
+                  🌳 Pipeline (beta) →
+                </Link>
+                <Link
+                  href={`/settings/journal-guides-tree/${j.code}`}
+                  className="rounded-full px-2.5 py-1 text-[#7a5cff] hover:bg-[#f5f0ff]"
+                >
+                  📖 Гайд (beta) →
                 </Link>
               </div>
             </div>
