@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.B12 — pest-control v2** (последний в Tier B)
+**Текущий приоритет:** **P3.C1 — traceability v2** (Tier B полностью закрыт; перехожу в Tier C)
 
 ---
 
@@ -151,7 +151,7 @@
 - [x] P3.B9 — complaint — DONE wave-1 @ 2105d105 @ 2026-05-05 04:55 МСК
 - [x] P3.B10 — accident — DONE wave-1 @ f0a83d45 @ 2026-05-05 05:10 МСК
 - [x] P3.B11 — breakdown-history — DONE wave-1 @ bcac17f3 @ 2026-05-05 05:25 МСК
-- [ ] P3.B12 — pest-control
+- [x] P3.B12 — pest-control — DONE wave-1 @ f9625807 @ 2026-05-05 05:40 МСК — **TIER B FULLY DONE**
 
 ### Tier C (13 остальных)
 - [ ] P3.C1 — traceability
@@ -274,6 +274,8 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 05:40 МСК]** `f9625807` — **P3 Tier B DONE wave-1 (12/12 журналов)**. Закрытые: equipment-cleaning, equipment-calibration, equipment-maintenance, disinfectant, ppe-issuance, med-book, sanitation-day, sanitary-day-checklist, complaint, accident, breakdown-history, pest-control. Все имеют унифицированный settings-modal в v2-стиле. Pest-control оказался скрытым через TrackedDocumentClient shell — пришлось пробросить useV2 через 2 уровня. Что заметил: med-book получил бонус-улучшение (видимый список прививок с pills+× вместо blind add). Tier C 13 журналов — следующий, на нём дойдёт до 35/35.
 
 - **[2026-05-05 02:35 МСК]** `742defb2` — **P3 Tier A DONE wave-1 (10/10 журналов)**. Все топ-traffic журналы (cleaning, hygiene, health, cold-equipment, finished-product, perishable N/A, acceptance, climate, cleaning-ventilation, glass-control) имеют settings-modal в Design v2 за `experimentalUiV2` toggle. Открой `/settings/experimental`, включи toggle, обходи журналы — все «Настройки документа» теперь в едином стиле с uppercase-labels, indigo focus, sticky footer, max-h-90vh. Что заметил: pattern «inline shim if useV2 / else legacy» уже устоялся, 8 миграций по нему — работает стабильно. Tier B (12 средних journal'ов) идёт следующим. Что предлагаю дальше: продолжить loop — Tier B потом C, потом возможно дозакрытие per-journal customizations (health printEmptyRows, cleaning toolbar, prixleinable add-row + catalog dialogs).
 
