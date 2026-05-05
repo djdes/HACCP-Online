@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C6 — product-writeoff v2**
+**Текущий приоритет:** **P3.C7 — register v2**
 
 ---
 
@@ -159,7 +159,7 @@
 - [x] P3.C3 — fryer-oil — DONE wave-1 @ c3321b1a @ 2026-05-05 06:25 МСК
 - [x] P3.C4 — glass-list — DONE wave-1 @ 01e6ab78 @ 2026-05-05 06:40 МСК
 - [x] P3.C5 — metal-impurity — DONE wave-1 @ d5638202 @ 2026-05-05 06:55 МСК
-- [ ] P3.C6 — product-writeoff
+- [x] P3.C6 — product-writeoff — DONE wave-1 @ 1350b2a8 @ 2026-05-05 07:10 МСК
 - [ ] P3.C7 — register
 - [ ] P3.C8 — tracked
 - [ ] P3.C9 — scan-journal
