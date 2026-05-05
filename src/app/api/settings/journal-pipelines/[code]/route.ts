@@ -2,15 +2,38 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "@/lib/server-session";
-import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   setPipelineForJournal,
   deletePipelineForJournal,
 } from "@/lib/journal-pipelines";
+import { loadPipelineTree } from "@/lib/journal-pipeline-tree";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/settings/journal-pipelines/[code]
+ * → загружает дерево pipeline'а из новых таблиц (P1.1+).
+ * Возвращает `{ tree: PipelineTree | null }` — null значит шаблон ещё
+ * не заведён, UI покажет «Нажмите “Создать pipeline”».
+ */
+export async function GET(
+  _request: Request,
+  ctx: { params: Promise<{ code: string }> }
+) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  if (!hasFullWorkspaceAccess(auth.session.user)) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
+  const { code } = await ctx.params;
+  const organizationId = getActiveOrgId(auth.session);
+  const tree = await loadPipelineTree(organizationId, code);
+  return NextResponse.json({ tree });
+}
 
 const stepSchema = z.object({
   id: z.string().min(1),
