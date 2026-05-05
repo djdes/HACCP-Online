@@ -50,20 +50,23 @@ export function ExperimentalClient({ initialExperimentalUiV2 }: Props) {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold text-[#0b1024]">
+                <div className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
                   Design v2 для журнальных интерфейсов
+                  <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#136b2a]">
+                    рекомендуем
+                  </span>
                 </div>
                 <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
-                  Унифицированный визуал всех страниц журналов: одинаковые
-                  модалки, тулбары, диалоги добавления записей. Старая
-                  функциональность сохраняется 1:1 — те же действия, те же
-                  таблицы, те же кнопки. Меняется только внешний вид и
-                  единообразие.
+                  Единый визуал всех страниц журналов: одинаковые модалки,
+                  тулбары, диалоги. Меняется только внешний вид — функционал,
+                  таблицы и кнопки те же. По умолчанию включено для всех
+                  с мая 2026 — все 33 активных журнала покрыты, регрессий
+                  не было.
                   <br />
                   <span className="text-[12px] text-[#9b9fb3]">
-                    Журналы переходят на v2 постепенно. Если включили и
-                    что-то выглядит странно — выключите toggle, вернётесь
-                    к старому виду без потери данных. Это пока бета.
+                    Если что-то выглядит странно — выключите toggle, вернётесь
+                    к старому виду без потери данных (legacy-код жив в
+                    каждом журнале как fallback).
                   </span>
                 </p>
               </div>

@@ -52,12 +52,13 @@ model Organization {
   /// Experimental: Design v2 для журнальных интерфейсов. Когда true,
   /// journal-document-client'ы рендерят унифицированный V2Layout с
   /// общими компонентами (JournalToolbar, JournalSettingsModal, etc.)
-  /// вместо своего legacy-layout'а. По умолчанию false — V2 миграция
-  /// журналов идёт постепенно, орга включает toggle когда хочет
-  /// попробовать. Откат — выключение toggle (legacy-код жив в каждом
-  /// journal-document-client как fallback). См. docs/PIPELINE-VISION.md
-  /// раздел P3.
-  experimentalUiV2           Boolean                  @default(false)
+  /// вместо своего legacy-layout'а. По умолчанию TRUE с 2026-05 —
+  /// все Tier A/B/C журналы покрыты V2-стилем, регрессий не было,
+  /// пользователи отзываются положительно (см. WhatsNewModal).
+  /// Орга может откатиться через toggle в /settings/experimental
+  /// (legacy-код жив в каждом journal-document-client как fallback).
+  /// См. docs/PIPELINE-VISION.md раздел P3.
+  experimentalUiV2           Boolean                  @default(true)
   /// Час суток (0-23 по локальному часовому поясу организации) когда
   /// смена заканчивается и cron auto-close срабатывает на shared-задачах
   /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен

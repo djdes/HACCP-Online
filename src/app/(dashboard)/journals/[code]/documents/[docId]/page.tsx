@@ -311,7 +311,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeHygieneEntryData(entry.data),
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -342,7 +342,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeHealthEntryData(entry.data),
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -385,7 +385,7 @@ export default async function JournalDocumentPage({
           id: entry.id,
           data: normalizeEquipmentCleaningRowData(entry.data),
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -426,7 +426,7 @@ export default async function JournalDocumentPage({
         employees={enrichedEmployees}
         initialRows={medRows}
         documentDateKey={toDateKey(document.dateFrom)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -455,7 +455,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeProductWriteoffConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -469,7 +469,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeGlassListConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -496,7 +496,7 @@ export default async function JournalDocumentPage({
           data: normalizeGlassControlEntryData(entry.data),
         }))}
         itemSuggestions={equipment.map((item) => item.name)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -511,7 +511,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeStaffTrainingConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -526,7 +526,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -541,7 +541,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeEquipmentCalibrationConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -557,7 +557,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeTraceabilityDocumentConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -572,7 +572,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeComplaintConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -597,7 +597,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeColdEquipmentEntryData(entry.data),
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -611,7 +611,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -625,7 +625,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -639,7 +639,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -656,7 +656,7 @@ export default async function JournalDocumentPage({
           organizationName: organization?.name || 'ООО "Тест"',
           users: enrichedEmployees,
         })}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -669,7 +669,7 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || 'ООО "Тест"'}
         status={document.status}
         config={normalizeAuditProtocolConfig(document.config)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -682,7 +682,7 @@ export default async function JournalDocumentPage({
         organizationName={organization?.name || 'ООО "Тест"'}
         status={document.status}
         config={normalizeAuditReportConfig(document.config)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -696,7 +696,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         config={normalizeMetalImpurityConfig(document.config)}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -710,7 +710,7 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -724,7 +724,7 @@ export default async function JournalDocumentPage({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -740,7 +740,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         config={document.config}
         users={enrichedEmployees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -757,7 +757,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={normalizeAcceptanceDocumentConfig(document.config, enrichedEmployees)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -772,7 +772,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         users={enrichedEmployees}
         config={normalizePpeIssuanceConfig(document.config, enrichedEmployees)}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -798,7 +798,7 @@ export default async function JournalDocumentPage({
             data: normalizeFryerOilEntryData(entry.data),
           }))}
           routeCode={code}
-          useV2={Boolean(organization?.experimentalUiV2)}
+          useV2={organization?.experimentalUiV2 ?? true}
         />
       );
     }
@@ -825,7 +825,7 @@ export default async function JournalDocumentPage({
             date: toIsoDate(entry.date),
             data: ((entry.data as Record<string, unknown>) || {}) as Record<string, unknown>,
           }))}
-          useV2={Boolean(organization?.experimentalUiV2)}
+          useV2={organization?.experimentalUiV2 ?? true}
         />
       );
     }
@@ -846,7 +846,7 @@ export default async function JournalDocumentPage({
             data: normalizeCleaningVentilationEntryData(entry.data),
           }))}
           routeCode={code}
-          useV2={Boolean(organization?.experimentalUiV2)}
+          useV2={organization?.experimentalUiV2 ?? true}
         />
       );
     }
@@ -867,7 +867,7 @@ export default async function JournalDocumentPage({
             data: normalizeSdcEntryData(entry.data),
           }))}
           routeCode={code}
-          useV2={Boolean(organization?.experimentalUiV2)}
+          useV2={organization?.experimentalUiV2 ?? true}
         />
       );
     }
@@ -928,7 +928,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: ((entry.data as Record<string, unknown>) || {}) as Record<string, unknown>,
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -953,7 +953,7 @@ export default async function JournalDocumentPage({
           date: toDateKey(entry.date),
           data: normalizeClimateEntryData(entry.data),
         }))}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -994,7 +994,7 @@ export default async function JournalDocumentPage({
           data: normalizeCleaningEntryData(entry.data),
         }))}
         hasTasksFlowIntegration={hasTasksFlowIntegration}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -1010,7 +1010,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         initialConfig={normalizeFinishedProductDocumentConfig(document.config)}
         users={employees}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
@@ -1031,7 +1031,7 @@ export default async function JournalDocumentPage({
         initialConfig={normalizeRegisterDocumentConfig(document.config, fields)}
         users={enrichedEmployees}
         equipment={equipment}
-        useV2={Boolean(organization?.experimentalUiV2)}
+        useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }

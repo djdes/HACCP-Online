@@ -75,7 +75,7 @@ type Props = {
    * Если true — рендерим Settings dialog в Design v2 стиле через
    * `<JournalSettingsModal>`. Сама механика и data-flow остаются
    * прежними; меняется только обёртка модалки. Включается через
-   * `Organization.experimentalUiV2`. Default false — legacy.
+   * `Organization.experimentalUiV2`. Default true с 2026-05 — V2.
    * См. docs/PIPELINE-VISION.md раздел P3.
    */
   useV2?: boolean;

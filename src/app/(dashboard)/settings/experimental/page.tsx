@@ -59,7 +59,7 @@ export default async function ExperimentalPage() {
       </div>
 
       <ExperimentalClient
-        initialExperimentalUiV2={org?.experimentalUiV2 ?? false}
+        initialExperimentalUiV2={org?.experimentalUiV2 ?? true}
       />
     </div>
   );

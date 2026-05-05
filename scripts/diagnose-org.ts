@@ -244,10 +244,20 @@ async function main() {
     console.log(`  • TF task-links: ${tfTaskLinks}`);
   }
 
-  // === PIPELINE ===
-  const pipelinesJson = (org.journalPipelinesJson as Record<string, unknown> | null) ?? {};
+  // === PIPELINE-TREE ===
+  // Использует JournalPipelineTemplate (новый формат с pinned/custom-узлами),
+  // НЕ legacy `Organization.journalPipelinesJson` (старые plain
+  // step-instructions, отображаются на /settings/journal-pipelines).
+  const pipelineTrees = await db.journalPipelineTemplate.findMany({
+    where: { organizationId: org.id },
+    select: {
+      templateCode: true,
+      _count: { select: { nodes: true } },
+    },
+  });
+  const pipelineWithNodes = pipelineTrees.filter((t) => t._count.nodes > 0);
   console.log(
-    `\n• PIPELINES: ${Object.keys(pipelinesJson).length} configured`
+    `\n• PIPELINE-TREE: ${pipelineWithNodes.length} journals have pipeline (of ${enabled.length} enabled)`
   );
 
   // === DIAGNOSIS / PROBLEMS ===
@@ -273,7 +283,18 @@ async function main() {
   if (docsNoVerifier.length > 0)
     issues.push(`⚠ ${docsNoVerifier.length} документов без verifierUserId`);
   if (!tf) issues.push("⚠ TasksFlow не подключён");
-  if (Object.keys(pipelinesJson).length < 3) issues.push("⚠ < 3 pipeline'ов настроено");
+  // Pipeline-tree expected for non-exempt enabled journals.
+  // PIPELINE_EXEMPT_JOURNALS imported lazily для избежания circular.
+  const { PIPELINE_EXEMPT_JOURNALS } = await import(
+    "../src/lib/journal-default-pipelines"
+  );
+  const expectedPipelines = enabled.filter(
+    (t) => !PIPELINE_EXEMPT_JOURNALS.has(t.code)
+  ).length;
+  if (pipelineWithNodes.length < expectedPipelines)
+    issues.push(
+      `⚠ pipeline-tree настроен для ${pipelineWithNodes.length}/${expectedPipelines} non-exempt журналов`
+    );
 
   if (issues.length === 0) console.log("✓ All checks pass");
   else issues.forEach((i) => console.log("  " + i));
