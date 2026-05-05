@@ -542,15 +542,15 @@ html, body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  /* CASE 2: <table class="min-w-[1080px]"> — таблица должна
-     сохранить свою ширину и скроллиться через родителя. НЕ убираем
-     min-width на table. Display:block + overflow-x:auto уже есть
-     выше в общем правиле для table. Тут — гарантия что parent
-     родитель таблицы тоже scroll'ится (иначе table может выпрыгнуть). */
-  .app-shell main div:has(> table[class*="min-w-["]) {
-    overflow-x: auto;
+  /* CASE 2: document-wrapper с max-w-[1840px] / max-w-[1280px] —
+     обёртки для wide-table документов (climate, hygiene grid и т.п.).
+     На mobile должны скроллиться по горизонтали и иметь max-width:100%. */
+  .app-shell main .max-w-\[1840px\],
+  .app-shell main .max-w-\[1640px\],
+  .app-shell main .max-w-\[1280px\] {
+    overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
-    max-width: 100%;
+    max-width: 100% !important;
   }
 
   /* ── Большие headings — auto-shrink ────────────────────────── */
