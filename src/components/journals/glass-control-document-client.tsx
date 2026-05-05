@@ -437,6 +437,10 @@ function RowDialog(props: {
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [draft, setDraft] = useState<RowItem>(props.row);
+  // Локальный draft для должности (не часть RowItem — она хранится
+  // в JournalDocument.responsibleTitle, не в row data). Manager может
+  // сменить должность в этом диалоге временно для текущего row'а.
+  const [draftTitle, setDraftTitle] = useState<string>(props.responsibleTitle);
   const options = useMemo(
     () => getGlassControlResponsibleOptions(props.users),
     [props.users]
@@ -445,7 +449,8 @@ function RowDialog(props: {
   useEffect(() => {
     if (!props.open) return;
     setDraft(props.row);
-  }, [props.open, props.row]);
+    setDraftTitle(props.responsibleTitle);
+  }, [props.open, props.row, props.responsibleTitle]);
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -520,7 +525,10 @@ function RowDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={props.responsibleTitle} disabled>
+            <Select
+              value={draftTitle}
+              onValueChange={setDraftTitle}
+            >
               <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
@@ -546,14 +554,23 @@ function RowDialog(props: {
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(props.responsibleTitle
-                  ? getUsersForRoleLabel(props.users, props.responsibleTitle)
-                  : props.users
-                ).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
+                {(() => {
+                  // P0-fix: keepUserId сохраняет уже выбранного сотрудника в
+                  // dropdown даже если его должность не совпадает с filter'ом.
+                  // Без этого после сохранения row'а с employee≠title — dialog
+                  // показывал пустое значение «Сотрудник», и manager думал
+                  // что данные не сохранились.
+                  return (draftTitle
+                    ? getUsersForRoleLabel(props.users, draftTitle, {
+                        keepUserId: draft.employeeId,
+                      })
+                    : props.users
+                  ).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ));
+                })()}
               </SelectContent>
             </Select>
           </div>

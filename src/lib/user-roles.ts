@@ -190,11 +190,31 @@ export function getDistinctRoleLabels(users: UserLike[]): string[] {
   return [...new Set(users.map((u) => getUserPositionLabel(u)))];
 }
 
-export function getUsersForRoleLabel<T extends UserLike>(
+/**
+ * Возвращает пользователей с указанной должностью.
+ *
+ * `opts.keepUserId` — id пользователя, которого ВСЕГДА включаем в
+ * результат, даже если его должность не совпадает с фильтром. Нужно
+ * для row-edit dialog'ов: если строка журнала была сохранена с
+ * employeeId='X' (повар), а в dropdown'е отфильтровано «Управляющий»
+ * — без keepUserId этот повар пропадал из списка, и выбранное значение
+ * визуально становилось пустым. С keepUserId он остаётся видимым
+ * (manager видит свой выбор и может сменить если хочет).
+ */
+export function getUsersForRoleLabel<T extends UserLike & { id: string }>(
   users: T[],
-  positionLabel: string
+  positionLabel: string,
+  opts?: { keepUserId?: string | null }
 ): T[] {
-  return users.filter((u) => getUserPositionLabel(u) === positionLabel);
+  const matched = users.filter(
+    (u) => getUserPositionLabel(u) === positionLabel
+  );
+  const keepId = opts?.keepUserId;
+  if (!keepId) return matched;
+  if (matched.some((u) => u.id === keepId)) return matched;
+  const kept = users.find((u) => u.id === keepId);
+  if (!kept) return matched;
+  return [kept, ...matched];
 }
 
 /**

@@ -413,13 +413,14 @@ function JournalSettingsDialog({
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
-              {(position ? getUsersForRoleLabel(employees, position) : employees).map(
-                (employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </SelectItem>
-                )
-              )}
+              {(position
+                ? getUsersForRoleLabel(employees, position, { keepUserId: userId })
+                : employees
+              ).map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -497,7 +498,7 @@ function JournalSettingsDialog({
               </SelectTrigger>
               <SelectContent>
                 {(position
-                  ? getUsersForRoleLabel(employees, position)
+                  ? getUsersForRoleLabel(employees, position, { keepUserId: userId })
                   : employees
                 ).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
