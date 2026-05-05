@@ -654,6 +654,7 @@ export default async function JournalDocumentPage({
           organizationName: organization?.name || 'ООО "Тест"',
           users: enrichedEmployees,
         })}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

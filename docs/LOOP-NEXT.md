@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C9 — scan-journal v2**
+**Текущий приоритет:** **P3.C10 — audit-plan v2** (scan-journal N/A wave-1: только image-viewer, нет Settings)
 
 ---
 
@@ -162,7 +162,7 @@
 - [x] P3.C6 — product-writeoff — DONE wave-1 @ 1350b2a8 @ 2026-05-05 07:10 МСК
 - [x] P3.C7 — register — DONE wave-1 @ b8a9b9c9 @ 2026-05-05 07:25 МСК
 - [x] P3.C8 — tracked — DONE wave-1 @ 2e1cd3e7 @ 2026-05-05 07:40 МСК
-- [ ] P3.C9 — scan-journal
+- [x] P3.C9 — scan-journal — N/A wave-1 @ 2026-05-05 07:50 МСК (image-viewer без Settings)
 - [ ] P3.C10 — audit-plan
 - [ ] P3.C11 — audit-protocol
 - [ ] P3.C12 — audit-report

@@ -33,6 +33,7 @@ import {
   type AuditPlanSection,
 } from "@/lib/audit-plan-document";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -55,6 +56,8 @@ type Props = {
   status: string;
   users: UserItem[];
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type SettingsState = {
@@ -87,10 +90,137 @@ function DocumentSettingsDialog(props: {
   users: UserItem[];
   initial: SettingsState;
   onSubmit: (value: SettingsState) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await props.onSubmit(state);
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={(v) => {
+          if (v) setState(props.initial);
+          props.onOpenChange(v);
+        }}
+        title="Настройки документа"
+        description="Название журнала, дата, год и должность утверждающего."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={state.title}
+            onChange={(e) => setState({ ...state, title: e.target.value })}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Дата документа
+            </Label>
+            <Input
+              type="date"
+              value={state.documentDate}
+              onChange={(e) => setState({ ...state, documentDate: toIsoDate(e.target.value) })}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Год
+            </Label>
+            <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 10 }).map((_, idx) => {
+                  const year = String(new Date().getFullYear() - 3 + idx);
+                  return (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность «Утверждаю»
+          </Label>
+          <Select
+            value={state.approveRole}
+            onValueChange={(value) => {
+              const user = usersForRole(props.users, value)[0];
+              setState({
+                ...state,
+                approveRole: value,
+                approveEmployeeId: user?.id || "",
+                approveEmployee: user?.name || state.approveEmployee,
+              });
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <PositionSelectItems users={props.users} />
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Сотрудник
+          </Label>
+          <Select value={state.approveEmployeeId || "__empty__"} onValueChange={(value) => {
+            if (value === "__empty__") {
+              setState({ ...state, approveEmployeeId: "", approveEmployee: "" });
+              return;
+            }
+            const user = props.users.find((item) => item.id === value);
+            setState({
+              ...state,
+              approveEmployeeId: value,
+              approveEmployee: user?.name || "",
+              approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
+            });
+          }}>
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">— не выбран —</SelectItem>
+              {usersForRole(props.users, state.approveRole).map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {buildStaffOptionLabel(user)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog
@@ -201,15 +331,7 @@ function DocumentSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSubmit(state);
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
               className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
@@ -536,6 +658,7 @@ export function AuditPlanDocumentClient({
   status,
   users,
   config,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const normalized = normalizeAuditPlanConfig(config, { organizationName, users });
@@ -861,7 +984,7 @@ export function AuditPlanDocumentClient({
         </MobileViewTableWrapper>
       </section>
 
-      <DocumentSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} users={users} initial={settingsState} onSubmit={async (value) => {
+      <DocumentSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} users={users} initial={settingsState} useV2={useV2} onSubmit={async (value) => {
         const nextConfig = normalizeAuditPlanConfig({ ...normalized, year: Number(value.year), documentDate: value.documentDate, approveRole: value.approveRole, approveEmployeeId: value.approveEmployeeId || null, approveEmployee: value.approveEmployee });
         await patchConfig(nextConfig, value.title.trim() || title);
       }} />
