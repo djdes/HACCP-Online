@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.6 wave-b — requireComment + requireSignature wizard rendering** (UI inputs на шагах + gate «Сделал»).
+**Текущий приоритет:** **P1.7 — Subtasks (nested pipeline nodes)** — UI поддержка глубины 3, wizard рендерит indent.
 
 ---
 
@@ -157,7 +157,14 @@
     - `"optional"` → uploader виден, неблокирующий стиль (серая окантовка), label «(по желанию)»
     - `"required"` → uploader виден, indigo-стиль, label «(обязательно)», кнопка «Сделал» заблокирована до загрузки
   - `confirmPipelineStep` тоже использует tri-state guard
-- [ ] **wave-b** — requireComment + requireSignature: state в parent, textarea/input на шагах, gate «Сделал», запись в pipeline-trail
+- [x] **wave-b @ 8681c0ab @ 2026-05-05 13:55 МСК** — requireComment + requireSignature:
+  - State `stepComments`, `stepSignatures` в task-fill-client (Record<index, string>)
+  - `<PipelineWizard>` принимает 4 новые props: stepComments + onCommentChange, stepSignatures + onSignatureChange
+  - На текущем шаге, если `step.requireComment === true` — рендерится textarea с label «Комментарий (обязательно)»
+  - На текущем шаге, если `step.requireSignature === true` — рендерится input с label «Подпись — ваше ФИО (обязательно)»
+  - Кнопка «Сделал» disabled пока требуемые поля пусты, с информативным `title` (toolip объясняет что заполнить)
+  - В `confirmPipelineStep` — guards дополнены, `comment`/`signature` записываются в `PipelineConfirm` → pipeline-trail видит их в audit'e
+- [x] **P1.6 ЗАКРЫТ** — все 3 per-node флага (photoMode/requireComment/requireSignature) от editor до wizard работают end-to-end
 
 ### [ ] P1.7 — Subtasks (nested pipeline nodes)
 - UI поддержка глубины 3
