@@ -823,6 +823,7 @@ export default async function JournalDocumentPage({
             date: toIsoDate(entry.date),
             data: ((entry.data as Record<string, unknown>) || {}) as Record<string, unknown>,
           }))}
+          useV2={Boolean(organization?.experimentalUiV2)}
         />
       );
     }

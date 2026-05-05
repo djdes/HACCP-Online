@@ -62,6 +62,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 type UserItem = {
   id: string;
   name: string;
@@ -89,6 +90,8 @@ type Props = {
   users: UserItem[];
   config: unknown;
   initialEntries: EntryItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type GridRow = {
@@ -361,6 +364,7 @@ function UvRuntimeSettingsDialog(props: {
     responsibleTitle: string;
     responsibleUserId: string;
   }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [lampNumber, setLampNumber] = useState(props.initialConfig.lampNumber);
@@ -385,6 +389,116 @@ function UvRuntimeSettingsDialog(props: {
     props.initialResponsibleTitle,
     props.initialResponsibleUserId,
   ]);
+
+  const handleSave = async () => {
+    setSubmitting(true);
+    try {
+      await props.onSave({
+        config: {
+          ...props.initialConfig,
+          lampNumber: lampNumber.trim() || "1",
+          areaName: areaName.trim() || "Журнал учета работы",
+        },
+        dateFrom,
+        responsibleTitle,
+        responsibleUserId,
+      });
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Учёт работы бактерицидной установки"
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Бактерицидная установка №</Label>
+            <Input
+              value={lampNumber}
+              onChange={(event) => setLampNumber(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Наименование цеха/участка применения</Label>
+            <Input
+              value={areaName}
+              onChange={(event) => setAreaName(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Дата начала</Label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Должность ответственного</Label>
+            <Select value={responsibleTitle} onValueChange={(value) => {
+              const candidates = getUsersForRoleLabel(props.users, value);
+              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
+                setResponsibleUserId(candidates[0]?.id || "");
+              } else if (!responsibleUserId && candidates[0]) {
+                setResponsibleUserId(candidates[0].id);
+              }
+              setResponsibleTitle(value);
+            }}>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                <SelectValue placeholder="— Выберите значение —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="- Выберите значение -">— Выберите значение —</SelectItem>
+                {options.management.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">Руководство</SelectLabel>
+                    {options.management.map((title) => (
+                      <SelectItem key={`mgmt:${title}`} value={title}>{title}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {options.staff.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">Сотрудники</SelectLabel>
+                    {options.staff.map((title) => (
+                      <SelectItem key={`staff:${title}`} value={title}>{title}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Сотрудник</Label>
+            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                <SelectValue placeholder="— Выберите значение —" />
+              </SelectTrigger>
+              <SelectContent>
+                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle) : props.users).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -487,24 +601,7 @@ function UvRuntimeSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              onClick={async () => {
-                setSubmitting(true);
-                try {
-                  await props.onSave({
-                    config: {
-                      ...props.initialConfig,
-                      lampNumber: lampNumber.trim() || "1",
-                      areaName: areaName.trim() || "Журнал учета работы",
-                    },
-                    dateFrom,
-                    responsibleTitle,
-                    responsibleUserId,
-                  });
-                  props.onOpenChange(false);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={handleSave}
               className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
@@ -1415,6 +1512,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         initialResponsibleTitle={props.responsibleTitle || ""}
         initialResponsibleUserId={props.responsibleUserId || fallbackEmployeeId}
         onSave={handleSaveSettings}
+        useV2={props.useV2}
       />
 
       <UvSpecEditDialog
