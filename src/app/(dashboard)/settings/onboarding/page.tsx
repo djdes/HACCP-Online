@@ -36,6 +36,8 @@ import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
 import { OnboardingDocHealthCard } from "@/components/settings/onboarding-doc-health-card";
+import { OnboardingPipelineHealthCard } from "@/components/settings/onboarding-pipeline-health-card";
+import { PIPELINE_EXEMPT_JOURNALS } from "@/lib/journal-default-pipelines";
 
 export const dynamic = "force-dynamic";
 
@@ -85,9 +87,10 @@ export default async function OnboardingPage() {
     managerScopesCount,
     tfIntegration,
     tfLinkedUsersCount,
+    pipelineTreeCount,
     inspectorTokensCount,
     bonusJournalsCount,
-    activeTemplatesCount,
+    activeTemplates,
     journalsWithResponsiblesCount,
     activeDocumentsCount,
   ] = await Promise.all([
@@ -138,13 +141,32 @@ export default async function OnboardingPage() {
     db.tasksFlowUserLink.count({
       where: { integration: { organizationId, enabled: true } },
     }),
+    // Pipeline-tree templates (новый формат — JournalPipelineTemplate
+    // + JournalPipelineNode). Считаем те у которых хотя бы один узел —
+    // пустой template без узлов считаем «не настроенным».
+    db.journalPipelineTemplate
+      .findMany({
+        where: { organizationId },
+        select: {
+          templateCode: true,
+          _count: { select: { nodes: true } },
+        },
+      })
+      .then((rows) => rows.filter((r) => r._count.nodes > 0).length),
     db.inspectorToken.count({
       where: { organizationId, revokedAt: null },
     }),
     db.journalTemplate.count({
       where: { isActive: true, bonusAmountKopecks: { gt: 0 } },
     }),
-    db.journalTemplate.count({ where: { isActive: true } }),
+    // Активные templates с кодами — нужны для двух метрик: общего
+    // enabled-count (за вычетом disabled) и пересечения с
+    // PIPELINE_EXEMPT_JOURNALS (журналы со своим адаптером, у которых
+    // pipeline-tree не нужен, считаются «настроенными by-design»).
+    db.journalTemplate.findMany({
+      where: { isActive: true },
+      select: { code: true },
+    }),
     db.journalTemplate
       .findMany({
         where: { isActive: true },
@@ -176,13 +198,27 @@ export default async function OnboardingPage() {
     }),
   ]);
 
-  const disabled = Array.isArray(org?.disabledJournalCodes)
-    ? (org!.disabledJournalCodes as string[]).length
-    : 0;
-  const enabledTemplatesCount = Math.max(0, activeTemplatesCount - disabled);
-  const pipelinesCount = org?.journalPipelinesJson
-    ? Object.keys(org.journalPipelinesJson as Record<string, unknown>).length
-    : 0;
+  const disabledCodes = new Set<string>(
+    Array.isArray(org?.disabledJournalCodes)
+      ? (org!.disabledJournalCodes as string[])
+      : []
+  );
+  const activeTemplatesCount = activeTemplates.length;
+  const enabledCodes = activeTemplates
+    .map((t) => t.code)
+    .filter((c) => !disabledCodes.has(c));
+  const enabledTemplatesCount = enabledCodes.length;
+  // Сколько из enabled — exempt'ы (свой адаптер): hygiene, climate,
+  // cleaning и пр. — pipeline-tree им не нужен.
+  const exemptEnabledCount = enabledCodes.filter((c) =>
+    PIPELINE_EXEMPT_JOURNALS.has(c)
+  ).length;
+  // Pipeline-tree count: смотрим JournalPipelineTemplate (новый
+  // формат с pinned/custom-узлами в /settings/journal-pipelines-tree),
+  // НЕ legacy `Organization.journalPipelinesJson` (там старые plain
+  // step-instructions). Pipeline-tree — это то, что увидит сотрудник
+  // в TasksFlow при выполнении задачи.
+  const pipelinesCount = pipelineTreeCount;
 
   // === Items ===
 
@@ -573,6 +609,13 @@ export default async function OnboardingPage() {
         "Какие журналы ведёте + кто их заполняет. Pipeline-инструкции — по желанию",
       icon: ClipboardList,
       items: [journalsSetItem, responsiblesItem, pipelinesItem],
+      finalNode: (
+        <OnboardingPipelineHealthCard
+          totalEnabled={enabledTemplatesCount}
+          exemptCount={exemptEnabledCount}
+          configured={pipelineTreeCount}
+        />
+      ),
     },
     {
       id: "documents",
@@ -625,6 +668,19 @@ export default async function OnboardingPage() {
   function phaseStatus(p: Phase): "complete" | "active" | "locked" {
     // Этап считается «complete» если все обязательные items complete.
     // Optional items не блокируют переход.
+    // Дополнительные condition'ы для phases с finalNode'ами:
+    //   • journals: pipeline-tree должен быть заведён для всех
+    //     non-exempt enabled журналов — иначе health-card будет
+    //     висеть и не виден пользователю (phase свёрнута).
+    //   • documents: см. ниже.
+    //   • tasksflow: см. ниже.
+    if (p.id === "journals") {
+      const requiredItems = p.items.filter((i) => !i.optional);
+      const itemsAllDone = requiredItems.every((i) => i.state === "complete");
+      const pipelineTarget = Math.max(0, enabledTemplatesCount - exemptEnabledCount);
+      const pipelineAllDone = pipelineTreeCount >= pipelineTarget;
+      return itemsAllDone && pipelineAllDone ? "complete" : "active";
+    }
     const required = p.items.filter((i) => !i.optional);
     if (required.length === 0 && !p.finalNode) return "complete";
     if (required.length === 0) {
