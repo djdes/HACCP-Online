@@ -18,13 +18,13 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.4 — Generic-adapter integration** (читать pipeline-tree из БД и заполнять колонки журнала через linkedFieldKey).
+**Текущий приоритет:** **P1.5 — Guide editor** (`/settings/journal-guides`) — симметрично pipeline editor'у, но без pinned/linkedFieldKey семантики.
 
 ---
 
 ## P0 — Active bugs
 
-### [x] P0.1 — Pipeline не заполняет колонки журнала — DONE PART-1 @ 81f60ada @ 2026-05-04 23:24 МСК
+### [x] P0.1 — Pipeline не заполняет колонки журнала — DONE FULL @ 67e4b315 @ 2026-05-05 12:15 МСК (PART-1 @ 81f60ada @ 2026-05-04 23:24 МСК)
 - **Что сделано (foundational + glass_control specific):**
   1. PipelineWizard теперь рендерит `step.field` внутри текущего шага (input между detail и кнопкой «Сделал»), value хранится в общем `values`
   2. Кнопка «Сделал» disabled пока required field не заполнено — `fieldSatisfied()` хелпер
@@ -112,10 +112,12 @@
   - На `<lg` 1-колонка (preview под tree)
 - [x] **P1.3 ЗАКРЫТ** — Pipeline editor UI полностью функционален: read + create-from-fields + add-custom + edit + delete-with-confirm + DnD reorder + split-pinned + live-preview
 
-### [ ] P1.4 — Generic-adapter использует JournalPipelineTemplate
-- `getTaskForm` читает БД, fallback на legacy
-- `applyRemoteCompletion` мапит linkedFieldKey → data
-- Acceptance: P0.1 решается этим путём; уборщица заполняет реальные данные
+### [x] P1.4 — Generic-adapter использует JournalPipelineTemplate — DONE @ 67e4b315 @ 2026-05-05 12:15 МСК
+- `getTaskForm` сначала пробует `loadPipelineTree(orgId, templateCode)`. Если tree.nodes.length > 0 — собирает форму из неё через `buildFormFromPipelineTree`. Каждый pinned-узел получает `field` сконвертированный из `JournalTemplate.fields[linkedFieldKey]` через `templateFieldToTaskFormField`.
+- Helper `templateFieldToTaskFormField`: text/number/boolean/date/select поддерживаются. Поля с `auto: true` (computed) пропускаются — они рассчитываются адаптером после submit, worker'у их не показывать. Unknown types ('equipment', 'photo') возвращают null → pinned-узел остаётся confirmation-only без поля.
+- `applyRemoteCompletion` дополнительно загружает pipeline-tree, для каждого pinned-узла копирует `values[linkedFieldKey]` в `data[linkedFieldKey]`. Best-effort: если что упадёт — pipeline-trail и comment всё равно сохраняются.
+- Fallback: если pipeline-tree пуст / не настроен — работает legacy `buildGenericForm` (filling-guides + requirePhoto).
+- Acceptance: создал pipeline-tree для журнала через UI → следующий task-fill использует новую форму → колонки журнала наполняются. **Это закрывает P0.1 для ВСЕХ журналов сразу** (вместо per-journal-адаптеров).
 
 ### [ ] P1.5 — Guide editor (`/settings/journal-guides`)
 - Симметрично pipeline editor'у, но без linkedFieldKey/pinned семантики
@@ -311,6 +313,14 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 12:15 МСК]** `67e4b315` — **P1.4 + P0.1 ЗАКРЫТЫ ПОЛНОСТЬЮ**. Generic-адаптер теперь читает `JournalPipelineTemplate` из БД и заполняет колонки журнала через `linkedFieldKey`. Это значит:
+  - Раньше «уборщица прошла pipeline → журнал пустой» был P0-багом для 33 журналов кроме glass_control (там был per-journal адаптер).
+  - Теперь: Owner заходит в `/settings/journal-pipelines-tree/[code]` → жмёт «Создать из колонок» → seed создаёт pinned-узлы по полям журнала. Сотрудник в TasksFlow заполняет шаги (на pinned-шаге появляется input от его linkedFieldKey) → submit → данные пишутся в `JournalDocumentEntry.data[linkedFieldKey]` → колонки реальные журнала видят значения.
+  - Fallback не сломан: если pipeline-tree не создан — работает legacy путь через `journal-filling-guides`.
+  - Helper `templateFieldToTaskFormField` поддерживает text/number/boolean/date/select. Skipping `auto: true` (computed flags типа `isWithinNorm`) — они рассчитываются адаптером.
+  - Что заметил: вся цепочка «P1.1 schema → P1.2 API → P1.3 UI → P1.4 wiring» собралась за 6 итераций (~3 часа). Это и есть выгода чёткого vertical-slice'а — каждый слой контракт-driven, минимум плумбинга.
+  - Что предлагаю дальше: 1) Owner может прямо сейчас включить pipeline для одного-двух пилотных журналов и попросить сотрудника пройти — увидит как колонки реально наполняются. 2) Параллельно loop делает P1.5–P1.10 (guide editor, photo-mode UI, audit-log integration). 3) Когда pipeline-tree устаканится в проде — можно начать миграцию `journal-filling-guides` в БД (deprecation legacy).
 
 - **[2026-05-05 11:55 МСК]** `e8f65e76` — **P1.3 Pipeline Editor UI ЗАКРЫТ wave-1**. Tree-редактор полностью функционален на `/settings/journal-pipelines-tree/[code]`:
   - Заходи под management-ролью, открывай новый журнал → жми «Создать из колонок» → seed создаст pinned-узел на каждое поле журнала
