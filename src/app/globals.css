@@ -523,15 +523,23 @@ html, body {
   }
 
   /* ── Wide-content блоки (≥600px min-width) → wrap в scroll ──── */
-  /* Прежние правила для <table> уже есть выше. Этот блок ловит
-     CASE: <div class="min-w-[1100px]">. Tailwind genatil min-w
-     (по spec'у это нижняя граница, контейнер РАСТЁТ до этой ширины
-     даже если viewport меньше). На mobile вместо forced-stretch
-     ставим overflow-x scroll на родителе и убираем min-w. */
-  .app-shell main [class*="min-w-\\["] {
+  /* CASE 1: <div class="min-w-[1100px]"> — div forced-stretch viewport.
+     Снимаем min-width и оборачиваем в горизонтальный scroll. */
+  .app-shell main div[class*="min-w-\\["],
+  .app-shell main section[class*="min-w-\\["] {
     min-width: 0 !important;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  /* CASE 2: <table class="min-w-[1080px]"> — таблица должна
+     сохранить свою ширину и скроллиться через родителя. НЕ убираем
+     min-width на table. Display:block + overflow-x:auto уже есть
+     выше в общем правиле для table. Тут — гарантия что parent
+     родитель таблицы тоже scroll'ится (иначе table может выпрыгнуть). */
+  .app-shell main div:has(> table[class*="min-w-\\["]) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
   }
 
   /* ── Большие headings — auto-shrink ────────────────────────── */
