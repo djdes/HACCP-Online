@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -79,6 +80,8 @@ type Props = {
   routeCode?: string;
   users?: PersonItem[];
   employees?: PersonItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 const DEFAULT_TITLE = TRACEABILITY_DOCUMENT_TITLE;
@@ -185,6 +188,7 @@ function SettingsDialog(props: {
   initial: TraceabilitySettingsDraft | null;
   onOpenChange: (open: boolean) => void;
   onSave: (draft: TraceabilitySettingsDraft) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [draft, setDraft] = useState<TraceabilitySettingsDraft | null>(null);
   const [loading, setLoading] = useState(false);
@@ -194,6 +198,68 @@ function SettingsDialog(props: {
     setLoading(true);
     try { await props.onSave(draft); props.onOpenChange(false); } finally { setLoading(false); }
   }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title={props.title}
+        description="Название журнала, дата начала и опциональные блоки."
+        size="md"
+        isSaving={loading}
+        saveDisabled={!draft}
+        onSave={save}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        {draft && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Название документа
+              </Label>
+              <Input
+                value={draft.title}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Дата начала
+              </Label>
+              <Input
+                type="date"
+                value={draft.dateFrom}
+                onChange={(e) => setDraft({ ...draft, dateFrom: normalizeIsoDate(e.target.value) })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Дополнительные поля
+              </div>
+              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+                <span className="text-[14px] text-[#0b1024]">T °C продукта после шоковой заморозки</span>
+                <Switch
+                  checked={draft.showShockTempField}
+                  onCheckedChange={(checked) => setDraft({ ...draft, showShockTempField: checked })}
+                />
+              </label>
+              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+                <span className="text-[14px] text-[#0b1024]">Блок «Отгружено»</span>
+                <Switch
+                  checked={draft.showShipmentBlock}
+                  onCheckedChange={(checked) => setDraft({ ...draft, showShipmentBlock: checked })}
+                />
+              </label>
+            </div>
+          </>
+        )}
+      </JournalSettingsModal>
+    );
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[700px]">
@@ -744,7 +810,7 @@ export function TraceabilityDocumentClient(props: Props) {
         {isClosed && <div className="rounded-[18px] border border-[#e6e9f5] bg-[#fbfbff] px-4 py-3 text-[15px] text-[#6f7282] print:hidden">Журнал закрыт и доступен только для чтения.</div>}
       </div>
 
-      <SettingsDialog open={settingsOpen} title="Настройки документа" initial={headerSettings} onOpenChange={setSettingsOpen} onSave={saveSettings} />
+      <SettingsDialog open={settingsOpen} title="Настройки документа" initial={headerSettings} onOpenChange={setSettingsOpen} onSave={saveSettings} useV2={props.useV2} />
       <ListsDialog open={listsOpen} onOpenChange={setListsOpen} config={config} onSave={saveLists} />
       <RowDialog open={rowOpen} onOpenChange={(open) => { setRowOpen(open); if (!open) setEditingRow(null); }} config={config} employees={employees} initialRow={editingRow} dateFrom={dateFrom} onSave={saveRow} />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={importFile} />
