@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.5 wave-c — заменить hardcoded `journal-filling-guides` на загрузку из БД** в FillingGuide modal'ке.
+**Текущий приоритет:** **P1.6 — Photo-mode per node** (radio в редакторе + соответствующий wizard render). Большая часть уже сделана в P1.3 wave-b — осталось проверить wizard render.
 
 ---
 
@@ -135,7 +135,16 @@
   - Delete через ConfirmDialog danger
   - Hero-блок с BookOpen иконкой и индиго-фиолетовым accent (`#7a5cff`) чтобы визуально отличаться от pipeline (#5566f6)
   - На list-page `/settings/journal-pipelines` добавлен 3-й link «📖 Гайд (beta)» + бейдж со счётчиком guide-узлов (фиолетовый pill)
-- [ ] **wave-c** — заменить hardcoded `journal-filling-guides` в FillingGuide modal'ке на загрузку из БД через `loadGuideTree`
+- [x] **wave-c @ e443d170 @ 2026-05-05 13:15 МСК** — integration:
+  - Helper `loadGuideNodesForUI(orgId, code)` в `journal-guide-tree.ts` — DFS-flatten + best-effort, возвращает плоский список `{ title, detail, photoUrl }[]`
+  - `<JournalGuide>` принимает optional prop `customNodes`. Если передан и непуст — заменяет legacy `guide.steps` секцию (сохраняя materials/mistakes/regulationRef из legacy). Бейдж «⚙ Кастомный гайд организации» в шапке. photoUrl рендерится как ссылка-чип «📷 Открыть фото»
+  - Если `guide` (legacy) не существует, но customNodes есть — guarded fallback'и для materials/completion/mistakes/regulation
+  - `<DynamicForm>` принимает prop `customGuideNodes` и forward'ит в `<JournalGuide>`
+  - Server-pages обновлены чтобы pre-fetch'ить tree:
+    - `/journals/[code]/guide` — standalone page (server) → `loadGuideNodesForUI` → `<JournalGuide customNodes>`
+    - `/journals/[code]/new` (dashboard) → `<DynamicForm customGuideNodes>`
+    - `/mini/journals/[code]/new` (Mini App) → `<DynamicForm customGuideNodes>`
+- [x] **P1.5 ЗАКРЫТ** — Guide editor end-to-end: API + UI + integration. Менеджер настраивает гайд → сотрудник видит его на каждой форме заполнения и на standalone странице.
 
 ### [ ] P1.6 — Photo-mode per node
 - В UI редактора — radio (none/optional/required)
@@ -325,6 +334,15 @@
 
 > Записывать сюда после каждой крупной вехи (P0 closed / P1.x merged / +50 P2 done).
 > Формат: `**[YYYY-MM-DD HH:MM МСК]** <git-sha> — что сделано + что заметил + что предлагаю дальше`.
+
+- **[2026-05-05 13:15 МСК]** `e443d170` — **P1.5 ЗАКРЫТ — Guide editor end-to-end**. Менеджер открывает `/settings/journal-pipelines` → жмёт «📖 Гайд (beta)» рядом с журналом → попадает на `/settings/journal-guides-tree/[code]` → добавляет шаги (title + описание + опционально фото-URL) → DnD reorder → сохраняет.
+  - Сотрудник видит этот кастомный гайд:
+    1. На отдельной странице `/journals/<code>/guide`
+    2. Inline в форме заполнения `/journals/<code>/new` и `/mini/journals/<code>/new` (collapsible)
+  - Кастомный гайд **заменяет** legacy hardcoded `journal-filling-guides[code].steps[]`. Materials, common mistakes и regulationRef из legacy остаются (они структурно отличаются).
+  - В шапке кастомного гайда бейдж «⚙ Кастомный гайд организации», цвет шагов фиолетовый (`#7a5cff`) — отличает от legacy (синий `#5566f6`).
+  - Что заметил: симметрия pipeline (P1.1-1.4) и guide (P1.5) сделала разработку быстрой — guide собрался за 3 итерации (~1 час). Helper `loadGuideNodesForUI` тесно интегрирован с UI prop'ом, минимум плумбинга.
+  - Что предлагаю дальше: P1.6 — photo-mode controls на pipeline узлах. Большая часть уже работает (`<EditNodeDialog>` 3-state selector + `WizardPreview` бейджи), нужно ТОЛЬКО проверить что real PipelineWizard в `task-fill-client.tsx` уважает photoMode из БД-узлов (а не legacy `requirePhoto`).
 
 - **[2026-05-05 12:15 МСК]** `67e4b315` — **P1.4 + P0.1 ЗАКРЫТЫ ПОЛНОСТЬЮ**. Generic-адаптер теперь читает `JournalPipelineTemplate` из БД и заполняет колонки журнала через `linkedFieldKey`. Это значит:
   - Раньше «уборщица прошла pipeline → журнал пустой» был P0-багом для 33 журналов кроме glass_control (там был per-journal адаптер).
