@@ -22,11 +22,23 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "353e17d0";
+export const LATEST_NOTES_BUILD_SHA = "5c4d7f96";
 
 export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    category: "Документы и pipeline'ы готовы к проверке РПН",
+    items: [
+      "Был баг: при «Создать все документы» все 35 docs создавались БЕЗ verifier-сотрудника. Двухступенчатая проверка через TasksFlow ломалась — заведующая никогда не получала «проверь когда заполнят».",
+      "Починил два пути: recreate-documents endpoint + ensureNextPeriodDocument (cron look-ahead). Теперь оба пишут verifierUserId из сохранённых slot-юзеров.",
+      "В /settings/onboarding на этапе 5 «Документы» теперь карточка-health: если есть docs без responsible/verifier — жёлтый warning + кнопка «Применить ответственных» (один клик пробегает каскадом и чинит).",
+      "Этап 5 не считается complete пока есть docs без verifier — пользователь физически не пройдёт к 6-му этапу пока не починит.",
+      "Pipeline-метрика в onboarding раньше читала legacy `journalPipelinesJson` и показывала «4 настроено», хотя в новом формате `JournalPipelineTemplate` уже было 28. Теперь правильно.",
+      "В этап 4 «Журналы» добавлена pipeline-health-card — если в орге есть журналы без pipeline-tree, кнопка «Создать pipeline для всех» одним кликом создаёт pinned-узлы по template-полям.",
+      "Этап 4 не complete пока pipelineTreeCount < (enabled - exempt). 7 exempt-журналов (cleaning, hygiene, climate, cold-equipment, ventilation, general-cleaning, health-check) считаются «настроенными by-design» — у них свой адаптер.",
+    ],
+  },
   {
     category: "Быстрый старт переписан — 6 этапов с timeline",
     items: [
