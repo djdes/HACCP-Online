@@ -9,11 +9,27 @@ import {
 import { getFillingGuide } from "@/lib/journal-filling-guides";
 import { getJournalSpec } from "@/lib/journal-specs";
 
+type CustomGuideNode = {
+  title: string;
+  detail: string | null;
+  photoUrl: string | null;
+};
+
 type Props = {
   journalCode: string;
   /// Если true — рендер сразу раскрытым (для standalone-страницы).
   /// Если false (default) — внутри <details> для inline-collapsible.
   expanded?: boolean;
+  /**
+   * P1.5 wave-c — кастомный гайд из БД (`JournalGuideNode[]` в порядке
+   * tree-flatten). Если передан и непустой — заменяет legacy
+   * `guide.steps` секцию. Остальные секции (materials, mistakes,
+   * regulationRef) остаются из legacy.
+   *
+   * Загружается на server'е через `loadGuideTree(orgId, code)`. В
+   * client-компонентах прокидывается prop'ом из page.tsx.
+   */
+  customNodes?: CustomGuideNode[];
 };
 
 /**
@@ -22,10 +38,15 @@ type Props = {
  *   • inline в DynamicForm (collapsible сверху формы)
  *   • standalone /journals/<code>/guide (всегда открыто)
  */
-export function JournalGuide({ journalCode, expanded = false }: Props) {
+export function JournalGuide({
+  journalCode,
+  expanded = false,
+  customNodes,
+}: Props) {
   const guide = getFillingGuide(journalCode);
   const spec = getJournalSpec(journalCode);
-  if (!guide) {
+  const hasCustomNodes = (customNodes?.length ?? 0) > 0;
+  if (!guide && !hasCustomNodes) {
     // Fallback — хоть что-то показать.
     return (
       <div className="rounded-2xl border border-[#5566f6]/15 bg-[#f5f6ff]/50 p-3 text-[12.5px] leading-snug text-[#3848c7]">
@@ -37,16 +58,22 @@ export function JournalGuide({ journalCode, expanded = false }: Props) {
     );
   }
 
+  const summaryText = guide?.summary ?? spec.shortDescription;
   const body = (
     <div className="space-y-4 p-4 sm:p-5">
       <div>
         <div className="flex items-start gap-2 text-[13px] leading-snug text-[#3c4053]">
           <BookOpenText className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
-          <span>{guide.summary}</span>
+          <span>{summaryText}</span>
         </div>
+        {hasCustomNodes ? (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#f5f0ff] px-2.5 py-0.5 text-[11px] font-medium text-[#7a5cff]">
+            ⚙ Кастомный гайд организации
+          </div>
+        ) : null}
       </div>
 
-      {guide.materials.length > 0 ? (
+      {guide && guide.materials.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3848c7]">
             <Package className="size-3.5" />
@@ -69,39 +96,69 @@ export function JournalGuide({ journalCode, expanded = false }: Props) {
           Шаги — по порядку
         </div>
         <ol className="space-y-2.5">
-          {guide.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#5566f6] text-[11px] font-semibold text-white">
-                {i + 1}
-              </span>
-              <div className="min-w-0">
-                <div className="text-[13px] font-semibold leading-tight text-[#0b1024]">
-                  {step.title}
-                </div>
-                <div className="mt-0.5 text-[12.5px] leading-snug text-[#3c4053]">
-                  {step.detail}
-                </div>
-              </div>
-            </li>
-          ))}
+          {hasCustomNodes
+            ? customNodes!.map((node, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#7a5cff] text-[11px] font-semibold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold leading-tight text-[#0b1024]">
+                      {node.title}
+                    </div>
+                    {node.detail ? (
+                      <div className="mt-0.5 whitespace-pre-line text-[12.5px] leading-snug text-[#3c4053]">
+                        {node.detail}
+                      </div>
+                    ) : null}
+                    {node.photoUrl ? (
+                      <a
+                        href={node.photoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#f5f6ff] px-2.5 py-1 text-[11px] text-[#3848c7] hover:bg-[#eef1ff]"
+                      >
+                        📷 Открыть фото
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))
+            : (guide?.steps ?? []).map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#5566f6] text-[11px] font-semibold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold leading-tight text-[#0b1024]">
+                      {step.title}
+                    </div>
+                    <div className="mt-0.5 text-[12.5px] leading-snug text-[#3c4053]">
+                      {step.detail}
+                    </div>
+                  </div>
+                </li>
+              ))}
         </ol>
       </div>
 
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-        <div className="flex items-start gap-2 text-[12.5px]">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-700" />
-          <div>
-            <div className="font-semibold text-emerald-800">
-              Когда задача считается выполненной
-            </div>
-            <div className="mt-0.5 text-emerald-900/80">
-              {guide.completionCriteria}
+      {guide ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <div className="flex items-start gap-2 text-[12.5px]">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-700" />
+            <div>
+              <div className="font-semibold text-emerald-800">
+                Когда задача считается выполненной
+              </div>
+              <div className="mt-0.5 text-emerald-900/80">
+                {guide.completionCriteria}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
-      {guide.commonMistakes.length > 0 ? (
+      {guide && guide.commonMistakes.length > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
           <div className="flex items-start gap-2 text-[12.5px]">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />
@@ -122,15 +179,17 @@ export function JournalGuide({ journalCode, expanded = false }: Props) {
         </div>
       ) : null}
 
-      <div className="rounded-xl bg-[#fafbff] p-3 text-[11.5px] text-[#6f7282]">
-        <div className="flex items-start gap-1.5">
-          <ScrollText className="mt-0.5 size-3.5 shrink-0" />
-          <div>
-            <div className="font-semibold text-[#3c4053]">Норматив</div>
-            <div className="mt-0.5">{guide.regulationRef}</div>
+      {guide ? (
+        <div className="rounded-xl bg-[#fafbff] p-3 text-[11.5px] text-[#6f7282]">
+          <div className="flex items-start gap-1.5">
+            <ScrollText className="mt-0.5 size-3.5 shrink-0" />
+            <div>
+              <div className="font-semibold text-[#3c4053]">Норматив</div>
+              <div className="mt-0.5">{guide.regulationRef}</div>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 

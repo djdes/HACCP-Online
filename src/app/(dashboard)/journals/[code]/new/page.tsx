@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, NotebookPen } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
 import { FinishedProductPipeline } from "@/components/journals/finished-product-pipeline";
@@ -138,6 +139,9 @@ export default async function NewJournalEntryPage({
         userId: session.user.id,
       })
     : 0;
+  const customGuideNodes =
+    (await loadGuideNodesForUI(getActiveOrgId(session), resolvedCode)) ??
+    undefined;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
@@ -193,6 +197,7 @@ export default async function NewJournalEntryPage({
             equipment={equipment}
             employees={employees}
             products={products}
+            customGuideNodes={customGuideNodes}
             rollingMode={rollingMode}
             dailyCountInitial={dailyCountInitial}
             rollingDailyCap={spec.rolling?.dailyCap ?? 50}

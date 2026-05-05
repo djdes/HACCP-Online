@@ -83,3 +83,54 @@ export async function computeGuideNextOrdering(
   });
   return (last?.ordering ?? 0) + 1024;
 }
+
+/**
+ * Загрузить плоский список узлов гайда для использования в UI
+ * (передаётся в `<JournalGuide customNodes={...}>`).
+ *
+ * Best-effort: если orga ещё не настроила гайд / запрос упадёт —
+ * вернёт `null`, callee должен fallback'нуться на legacy
+ * `journal-filling-guides`.
+ *
+ * Узлы flatten'ятся в DFS-порядке: сначала root по `ordering`, потом
+ * children каждого. Используется в:
+ *   - `/journals/[code]/guide` (standalone page)
+ *   - `/journals/[code]/new` + Mini App new-форма (inline в DynamicForm)
+ */
+export async function loadGuideNodesForUI(
+  organizationId: string,
+  templateCode: string
+): Promise<Array<{
+  title: string;
+  detail: string | null;
+  photoUrl: string | null;
+}> | null> {
+  try {
+    const tree = await loadGuideTree(organizationId, templateCode);
+    if (!tree || tree.nodes.length === 0) return null;
+    const byParent = new Map<string | null, typeof tree.nodes>();
+    for (const n of tree.nodes) {
+      const list = byParent.get(n.parentId) ?? [];
+      list.push(n);
+      byParent.set(n.parentId, list);
+    }
+    for (const list of byParent.values()) {
+      list.sort((a, b) => a.ordering - b.ordering);
+    }
+    const flat: typeof tree.nodes = [];
+    const walk = (parentId: string | null) => {
+      for (const node of byParent.get(parentId) ?? []) {
+        flat.push(node);
+        walk(node.id);
+      }
+    };
+    walk(null);
+    return flat.map((n) => ({
+      title: n.title,
+      detail: n.detail,
+      photoUrl: n.photoUrl,
+    }));
+  } catch {
+    return null;
+  }
+}

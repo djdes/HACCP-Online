@@ -4,6 +4,10 @@ import { ArrowLeft, NotebookPen } from "lucide-react";
 import { db } from "@/lib/db";
 import { JournalGuide } from "@/components/journals/journal-guide";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +24,15 @@ export default async function JournalGuidePage({
     select: { name: true, description: true },
   });
   if (!template) notFound();
+
+  // P1.5 wave-c — загружаем кастомный гайд организации (если есть).
+  // Если orga настроила в /settings/journal-guides-tree — он
+  // переопределяет hardcoded `journal-filling-guides.steps[]`.
+  const session = await getServerSession(authOptions);
+  const customNodes = session
+    ? (await loadGuideNodesForUI(getActiveOrgId(session), resolvedCode)) ??
+      undefined
+    : undefined;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
@@ -62,7 +75,11 @@ export default async function JournalGuidePage({
         </div>
       </section>
 
-      <JournalGuide journalCode={resolvedCode} expanded={true} />
+      <JournalGuide
+        journalCode={resolvedCode}
+        expanded={true}
+        customNodes={customNodes}
+      />
     </div>
   );
 }

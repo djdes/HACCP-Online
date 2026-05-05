@@ -96,6 +96,17 @@ interface DynamicFormProps {
   rollingDailyCap?: number;
   rollingContinueLabel?: string;
   rollingDoneLabel?: string;
+  /**
+   * P1.5 wave-c — кастомный гайд организации (узлы из
+   * `JournalGuideNode[]` в порядке tree-flatten). Загружается в
+   * page.tsx через `loadGuideTree`. Передаётся в `<JournalGuide>`
+   * который заменит ими legacy `guide.steps`.
+   */
+  customGuideNodes?: Array<{
+    title: string;
+    detail: string | null;
+    photoUrl: string | null;
+  }>;
 }
 
 export function DynamicForm({
@@ -107,6 +118,7 @@ export function DynamicForm({
   employees = [],
   products = [],
   journalsBasePath = "/journals",
+  customGuideNodes,
   rollingMode = false,
   dailyCountInitial = 0,
   rollingDailyCap = 50,
@@ -429,7 +441,10 @@ export function DynamicForm({
       {/* Sprint-compliance: гайд для нового сотрудника. Collapsible —
           если знакомый журнал, занимает 1 строчку. Если нет — раскрыл и
           увидел шаги по СанПиН. */}
-      <JournalGuide journalCode={templateCode} />
+      <JournalGuide
+        journalCode={templateCode}
+        customNodes={customGuideNodes}
+      />
 
       {error && (
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">

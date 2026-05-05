@@ -14,6 +14,7 @@ import {
 import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
 import { getJournalSpec } from "@/lib/journal-specs";
 import { countRollingToday } from "@/lib/journal-rolling";
+import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
 
 /**
  * Mini App "new journal entry" screen.
@@ -138,6 +139,8 @@ export default async function MiniNewJournalEntryPage({
         userId: session.user.id,
       })
     : 0;
+  const customGuideNodes =
+    (await loadGuideNodesForUI(orgId, code)) ?? undefined;
 
   return (
     <div className="flex flex-1 flex-col gap-4 pb-8">
@@ -173,6 +176,7 @@ export default async function MiniNewJournalEntryPage({
             equipment={equipment}
             employees={employees}
             products={products}
+            customGuideNodes={customGuideNodes}
             journalsBasePath="/mini/journals"
             rollingMode={rollingMode}
             dailyCountInitial={dailyCountInitial}
