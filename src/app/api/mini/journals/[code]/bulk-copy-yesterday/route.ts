@@ -5,6 +5,7 @@ import { getServerSession } from "@/lib/server-session";
 import { aclActorFromSession, canWriteJournal } from "@/lib/journal-acl";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/audit";
+import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,23 @@ export async function POST(
   const writable = await canWriteJournal(actor, code);
   if (!writable) {
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });
+  }
+
+  // Document-based journals (hygiene, cleaning, cold_equipment, климат и
+  // т.д.) живут в JournalDocument/JournalDocumentEntry — у них нет
+  // концепции «вчерашних JournalEntry-строк». Раньше bulk-copy создавал
+  // phantom-rows в JournalEntry: документ-grid их никогда не показывал,
+  // но obligation-status-syncer считал journal заполненным → ложное
+  // «done» по compliance-критерию. Это falsified compliance status,
+  // что для HACCP-системы недопустимо.
+  if (isDocumentTemplate(code)) {
+    return NextResponse.json(
+      {
+        error:
+          "Этот журнал заполняется таблицей за период. Откройте сегодняшнюю таблицу — там есть «копировать вчерашний день».",
+      },
+      { status: 400 }
+    );
   }
 
   const template = await db.journalTemplate.findUnique({

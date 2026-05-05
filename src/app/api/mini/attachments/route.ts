@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { miniAttachmentRateLimiter } from "@/lib/rate-limit";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import crypto from "crypto";
@@ -24,6 +25,20 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Per-user disk-fill protection: 60 загрузок в день. Без этого один
+  // авторизованный сотрудник мог бы pump'ить 5MB-файлы и забить
+  // public/uploads. Quota щедрая для нормальной работы (повар обычно
+  // 5-15 photo-evidence/смену), но обрезает abuse.
+  if (!miniAttachmentRateLimiter.consume(session.user.id)) {
+    return NextResponse.json(
+      {
+        error:
+          "Превышен дневной лимит загрузок (60). Попробуйте завтра или обратитесь к менеджеру.",
+      },
+      { status: 429, headers: { "Retry-After": "3600" } }
+    );
   }
 
   try {
