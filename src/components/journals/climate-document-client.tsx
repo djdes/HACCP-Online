@@ -1335,7 +1335,7 @@ export function ClimateDocumentClient({
           status === "active" ? () => setRowDialogOpen(true) : undefined
         }
       />
-      <div className="mx-auto max-w-[1840px] px-4 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-[1840px] overflow-x-auto px-4 py-4 sm:px-6 sm:py-8">
         <DocumentBackLink href="/journals/climate_control" documentId={documentId} />
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div>
