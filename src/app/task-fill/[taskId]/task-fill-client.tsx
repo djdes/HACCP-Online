@@ -219,7 +219,11 @@ export function TaskFillClient({
     if (!pipelineSteps || stepIndex !== pipelineConfirms.length) return;
     const step = pipelineSteps[stepIndex];
     // Фото-блок: если шаг требует фото, оно должно быть загружено.
-    if (step.requirePhoto && !stepPhotos[stepIndex]) return;
+    // P1.6: photoMode "required" побеждает legacy requirePhoto.
+    const photoRequired =
+      step.photoMode === "required" ||
+      (step.photoMode === undefined && step.requirePhoto === true);
+    if (photoRequired && !stepPhotos[stepIndex]) return;
     const msSinceFormOpen = Math.max(0, Date.now() - formOpenedAt);
     const photoUrl = stepPhotos[stepIndex];
     const entry: PipelineConfirm = {
@@ -1481,80 +1485,112 @@ function PipelineWizard({
                       {step.field.label}: {formatPipelineValue(step.field, values[step.field.key])}
                     </div>
                   ) : null}
-                  {isCurrent && step.requirePhoto ? (
-                    <div className="mt-3 space-y-2">
-                      {stepPhotos[index] ? (
-                        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
-                          <img
-                            src={stepPhotos[index]}
-                            alt="Фото шага"
-                            className="size-16 rounded-xl object-cover"
-                          />
-                          <div className="flex-1 text-[13px] text-emerald-800">
-                            <div className="font-semibold">Фото загружено</div>
-                            <label className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[12px] text-emerald-700 underline">
-                              Заменить
-                              <input
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                className="hidden"
-                                onChange={(e) =>
-                                  handleFile(
-                                    index,
-                                    e.target.files?.[0] ?? null
-                                  )
-                                }
-                                disabled={disabled || uploadingIdx === index}
-                              />
-                            </label>
+                  {isCurrent && (() => {
+                    // P1.6 — photoMode tri-state. Backwards compat:
+                    // если photoMode не задан, читаем legacy requirePhoto
+                    // как "required"|"none".
+                    const effectivePhotoMode: "none" | "optional" | "required" =
+                      step.photoMode
+                        ? step.photoMode
+                        : step.requirePhoto
+                          ? "required"
+                          : "none";
+                    if (effectivePhotoMode === "none") return null;
+                    const isRequired = effectivePhotoMode === "required";
+                    return (
+                      <div className="mt-3 space-y-2">
+                        {stepPhotos[index] ? (
+                          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+                            <img
+                              src={stepPhotos[index]}
+                              alt="Фото шага"
+                              className="size-16 rounded-xl object-cover"
+                            />
+                            <div className="flex-1 text-[13px] text-emerald-800">
+                              <div className="font-semibold">
+                                Фото загружено
+                              </div>
+                              <label className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[12px] text-emerald-700 underline">
+                                Заменить
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  className="hidden"
+                                  onChange={(e) =>
+                                    handleFile(
+                                      index,
+                                      e.target.files?.[0] ?? null
+                                    )
+                                  }
+                                  disabled={
+                                    disabled || uploadingIdx === index
+                                  }
+                                />
+                              </label>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-[#5566f6]/30 bg-[#f5f6ff] px-4 py-3 text-[14px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6] hover:bg-[#eef1ff]">
-                          {uploadingIdx === index ? (
-                            <Loader2 className="size-5 shrink-0 animate-spin" />
-                          ) : (
-                            <Camera className="size-5 shrink-0" />
-                          )}
-                          <span className="flex-1">
-                            {uploadingIdx === index
-                              ? "Загружаем фото…"
-                              : "Сфотографировать (обязательно)"}
-                          </span>
-                          <ImageIcon className="size-4 opacity-50" />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            onChange={(e) =>
-                              handleFile(index, e.target.files?.[0] ?? null)
-                            }
-                            disabled={disabled || uploadingIdx === index}
-                          />
-                        </label>
-                      )}
-                      {uploadError ? (
-                        <div className="rounded-xl bg-[#fff4f2] px-3 py-2 text-[12px] text-[#a13a32]">
-                          {uploadError}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        ) : (
+                          <label
+                            className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3 text-[14px] font-medium transition-colors ${
+                              isRequired
+                                ? "border-[#5566f6]/30 bg-[#f5f6ff] text-[#3848c7] hover:border-[#5566f6] hover:bg-[#eef1ff]"
+                                : "border-[#dcdfed] bg-[#fafbff] text-[#6f7282] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                            }`}
+                          >
+                            {uploadingIdx === index ? (
+                              <Loader2 className="size-5 shrink-0 animate-spin" />
+                            ) : (
+                              <Camera className="size-5 shrink-0" />
+                            )}
+                            <span className="flex-1">
+                              {uploadingIdx === index
+                                ? "Загружаем фото…"
+                                : isRequired
+                                  ? "Сфотографировать (обязательно)"
+                                  : "Сфотографировать (по желанию)"}
+                            </span>
+                            <ImageIcon className="size-4 opacity-50" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="hidden"
+                              onChange={(e) =>
+                                handleFile(
+                                  index,
+                                  e.target.files?.[0] ?? null
+                                )
+                              }
+                              disabled={disabled || uploadingIdx === index}
+                            />
+                          </label>
+                        )}
+                        {uploadError ? (
+                          <div className="rounded-xl bg-[#fff4f2] px-3 py-2 text-[12px] text-[#a13a32]">
+                            {uploadError}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                   {isCurrent ? (
                     <div className="mt-3">
                       <Button
                         type="button"
                         onClick={() => onConfirm(index)}
-                        disabled={
-                          disabled ||
-                          uploadingIdx === index ||
-                          (step.requirePhoto && !stepPhotos[index]) ||
-                          !fieldSatisfied(step)
-                        }
+                        disabled={(() => {
+                          if (disabled || uploadingIdx === index) return true;
+                          const isPhotoRequired =
+                            (step.photoMode ?? (step.requirePhoto ? "required" : "none")) ===
+                            "required";
+                          if (isPhotoRequired && !stepPhotos[index]) return true;
+                          if (!fieldSatisfied(step)) return true;
+                          return false;
+                        })()}
                         title={
-                          step.requirePhoto && !stepPhotos[index]
+                          (step.photoMode ?? (step.requirePhoto ? "required" : "none")) ===
+                            "required" && !stepPhotos[index]
                             ? "Сначала загрузите фото"
                             : !fieldSatisfied(step)
                               ? `Заполните поле «${step.field?.label ?? ""}»`

@@ -233,13 +233,25 @@ function buildFormFromPipelineTree(
       node.kind === "pinned" && node.linkedFieldKey
         ? fieldByKey.get(node.linkedFieldKey)
         : undefined;
+    const photoMode =
+      node.photoMode === "required"
+        ? ("required" as const)
+        : node.photoMode === "optional"
+          ? ("optional" as const)
+          : ("none" as const);
     return {
       id: node.id,
       title: node.title,
       detail: node.detail ?? "",
       hint: node.hint ?? undefined,
       field,
-      requirePhoto: node.photoMode === "required",
+      // backwards compat: required → uploader gates button (legacy
+      // wizard читает requirePhoto). photoMode даёт более точный
+      // контроль (P1.6).
+      requirePhoto: photoMode === "required",
+      photoMode,
+      requireComment: node.requireComment === true,
+      requireSignature: node.requireSignature === true,
     };
   });
 

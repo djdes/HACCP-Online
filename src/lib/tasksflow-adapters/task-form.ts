@@ -106,8 +106,29 @@ export type PipelineStep = {
    * Включается через org-настройку `requirePhotoOnTaskFillStep`. Без
    * фото кнопка «Сделал» заблокирована. Фото сохраняется в /uploads
    * и URL прикрепляется к pipeline-trail для evidence-аудита.
+   *
+   * Используется для legacy (filling-guides + org-flag).
+   * Pipeline-tree (P1.1+) использует `photoMode` ниже — он богаче
+   * (none/optional/required). Если оба заданы, `photoMode` побеждает.
    */
   requirePhoto?: boolean;
+  /**
+   * P1.6 — per-node photo policy из pipeline-tree.
+   *   - "none"      — фото не показываем
+   *   - "optional"  — uploader виден, но «Сделал» не блокирует
+   *   - "required"  — uploader виден, «Сделал» заблокирована до загрузки
+   */
+  photoMode?: "none" | "optional" | "required";
+  /**
+   * P1.6 — обязательный текстовый комментарий на этом шаге.
+   * Если true — рендерим textarea, «Сделал» заблокирована до non-empty.
+   */
+  requireComment?: boolean;
+  /**
+   * P1.6 — обязательная подпись (ФИО) на шаге.
+   * Если true — рендерим input, «Сделал» заблокирована до non-empty.
+   */
+  requireSignature?: boolean;
 };
 
 export type TaskFormSchema = {
