@@ -4,8 +4,10 @@ import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { recordAuditLog } from "@/lib/audit-log";
 import { ensurePipelineTemplate } from "@/lib/journal-pipeline-tree";
-import { upsertNotification } from "@/lib/notifications";
-import { resolvePipelineFields } from "@/lib/journal-default-pipelines";
+import {
+  PIPELINE_EXEMPT_JOURNALS,
+  resolvePipelineFields,
+} from "@/lib/journal-default-pipelines";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +16,11 @@ type SeedSummary = {
   created: { code: string; name: string; nodeCount: number }[];
   skippedExisting: { code: string; name: string; existingNodeCount: number }[];
   skippedNoFields: { code: string; name: string }[];
+  /// Журналы со своим custom-адаптером (cleaning, hygiene, …) —
+  /// для них pipeline-tree не нужен. Считаем их в total и сообщаем
+  /// в toast одной фразой «N со своим адаптером», но НЕ присылаем
+  /// в notifications как «требует ручной настройки».
+  exempt: { code: string; name: string }[];
 };
 
 /**
@@ -53,9 +60,20 @@ export async function POST(request: Request) {
     created: [],
     skippedExisting: [],
     skippedNoFields: [],
+    exempt: [],
   };
 
   for (const journal of journals) {
+    // Exempt-журналы со своим custom-адаптером (cleaning, hygiene и т.п.)
+    // Pipeline-tree им не нужен — TasksFlow-задачи строятся прямо
+    // в их адаптере. Считаем в exempt, не в skippedNoFields, чтобы
+    // не пугать пользователя «4 требуют ручной настройки» — на
+    // самом деле они УЖЕ настроены, просто не через этот UI.
+    if (PIPELINE_EXEMPT_JOURNALS.has(journal.code)) {
+      summary.exempt.push({ code: journal.code, name: journal.name });
+      continue;
+    }
+
     const rawFields = Array.isArray(journal.fields)
       ? (journal.fields as unknown[])
       : [];
@@ -118,40 +136,60 @@ export async function POST(request: Request) {
       created: summary.created.length,
       skippedExisting: summary.skippedExisting.length,
       skippedNoFields: summary.skippedNoFields.length,
+      exempt: summary.exempt.length,
       skippedCodes: summary.skippedNoFields.map((s) => s.code),
     },
   });
 
-  // Уведомление: показываем что засидели + явный список не-засиженных
-  // (skippedNoFields) — это journals у которых JournalTemplate.fields=[],
-  // pipeline для них надо настраивать руками.
-  if (summary.skippedNoFields.length > 0) {
-    await upsertNotification({
-      organizationId,
-      userId,
-      kind: "pipelines.bulk-seed.skipped",
-      dedupeKey: "pipelines.bulk-seed.skipped",
-      title: `Pipeline создан для ${summary.created.length} журналов, ${summary.skippedNoFields.length} требуют ручной настройки`,
-      linkHref: "/settings/journal-pipelines",
-      linkLabel: "Открыть настройки журналов",
-      items: summary.skippedNoFields.map((j) => ({
-        id: j.code,
-        label: j.name,
-        hint: "У журнала нет описанных колонок — настрой шаги вручную",
-        href: `/settings/journal-pipelines-tree/${j.code}`,
-      })),
+  // Уведомление: ПОЛНАЯ ПЕРЕЗАПИСЬ items (а не merge через upsertNotification),
+  // чтобы при повторном клике старые позиции (которые уже засидели)
+  // не оставались в списке. Один dedupeKey = одна нотификация = items
+  // ровно равны текущему skippedNoFields.
+  const noFieldsItems = summary.skippedNoFields.map((j) => ({
+    id: j.code,
+    label: j.name,
+    hint: "У журнала нет описанных колонок — настрой шаги вручную",
+    href: `/settings/journal-pipelines-tree/${j.code}`,
+  }));
+
+  if (noFieldsItems.length > 0) {
+    const title = `Pipeline создан для ${summary.created.length} журналов, ${summary.skippedNoFields.length} требуют ручной настройки`;
+    await db.notification.upsert({
+      where: {
+        userId_dedupeKey: {
+          userId,
+          dedupeKey: "pipelines.bulk-seed.skipped",
+        },
+      },
+      create: {
+        organizationId,
+        userId,
+        kind: "pipelines.bulk-seed.skipped",
+        dedupeKey: "pipelines.bulk-seed.skipped",
+        title,
+        linkHref: "/settings/journal-pipelines",
+        linkLabel: "Открыть настройки журналов",
+        items: noFieldsItems as unknown as object,
+      },
+      update: {
+        title,
+        linkHref: "/settings/journal-pipelines",
+        linkLabel: "Открыть настройки журналов",
+        items: noFieldsItems as unknown as object,
+        readAt: null,
+        dismissedAt: null,
+      },
     });
-  } else if (summary.created.length > 0) {
-    // Чисто success — без skipped'ов.
-    await upsertNotification({
-      organizationId,
-      userId,
-      kind: "pipelines.bulk-seed.success",
-      dedupeKey: "pipelines.bulk-seed.success",
-      title: `Pipeline создан для ${summary.created.length} журналов`,
-      linkHref: "/settings/journal-pipelines",
-      linkLabel: "Открыть настройки",
-      items: [],
+  } else {
+    // Если нет skippedNoFields — старая нотификация устарела, помечаем
+    // её как dismissed (если есть), чтобы не висела на дашборде.
+    await db.notification.updateMany({
+      where: {
+        userId,
+        dedupeKey: "pipelines.bulk-seed.skipped",
+        dismissedAt: null,
+      },
+      data: { dismissedAt: new Date() },
     });
   }
 

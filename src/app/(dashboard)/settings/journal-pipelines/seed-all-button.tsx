@@ -11,6 +11,7 @@ type SeedSummary = {
   created: { code: string; name: string; nodeCount: number }[];
   skippedExisting: { code: string; name: string; existingNodeCount: number }[];
   skippedNoFields: { code: string; name: string }[];
+  exempt?: { code: string; name: string }[];
 };
 
 /**
@@ -47,24 +48,31 @@ export function SeedAllPipelinesButton({
         return;
       }
       const { created, skippedExisting, skippedNoFields } = data.summary;
+      const exempt = data.summary.exempt ?? [];
       const total =
-        created.length + skippedExisting.length + skippedNoFields.length;
+        created.length +
+        skippedExisting.length +
+        skippedNoFields.length +
+        exempt.length;
 
-      // Полная сводка в одном toast'е — пользователь видит реальную
-      // картину по всем 3 счётчикам, а не одну часть. skippedNoFields
-      // отдельно, потому что для них в notifications приходит deep-link.
+      // Полная сводка в одном toast'е. Exempt — отдельной фразой,
+      // т.к. это не «требует настройки», а «не нужен pipeline-tree».
       const parts: string[] = [];
       if (created.length > 0) parts.push(`создано: ${created.length}`);
       if (skippedExisting.length > 0)
         parts.push(`уже было: ${skippedExisting.length}`);
+      if (exempt.length > 0)
+        parts.push(`со своим адаптером: ${exempt.length}`);
       if (skippedNoFields.length > 0)
-        parts.push(`без колонок: ${skippedNoFields.length}`);
+        parts.push(`нужна ручная настройка: ${skippedNoFields.length}`);
 
       const summary = parts.join(" · ") || "изменений нет";
       const heading = `Журналов: ${total} · ${summary}`;
 
       if (skippedNoFields.length > 0) {
-        toast.warning(heading + ". См. уведомления — там список журналов для ручной настройки.");
+        toast.warning(
+          heading + ". См. уведомления — там список журналов для ручной настройки."
+        );
       } else if (created.length > 0) {
         toast.success(heading);
       } else {

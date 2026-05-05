@@ -303,13 +303,41 @@ export const DEFAULT_PIPELINE_FIELDS: Record<string, DefaultField[]> = {
 };
 
 /**
+ * Журналы у которых есть СВОЙ per-journal TasksFlow-адаптер
+ * (`src/lib/tasksflow-adapters/<code>.ts`). Они строят pipeline сами,
+ * не через generic-адаптер. Поэтому им НЕ нужен pipeline-tree —
+ * bulk-seed-all их пропускает silently (не добавляет в skippedNoFields,
+ * чтобы пользователь не получал ложное уведомление).
+ *
+ * Если поведение поменяется (нужен redundant pipeline-tree поверх
+ * адаптера) — убери код из этого set'а.
+ */
+export const PIPELINE_EXEMPT_JOURNALS = new Set<string>([
+  // Document-based grid journals со своим адаптером, который сам
+  // эмитит pipeline под конкретные роли в смене.
+  "cleaning",
+  "cleaning_ventilation_checklist",
+  "climate_control",
+  "cold_equipment_control",
+  "general_cleaning",
+  // Personnel-grid журналы (employee × day) со своим UI и адаптером.
+  "hygiene",
+  "health_check",
+]);
+
+/**
  * Возвращает поля для journal-кода: либо из `template.fields[]` если
  * непустые, либо из дефолтного регистра, либо null если нечего сидить.
+ *
+ * Журналы из `PIPELINE_EXEMPT_JOURNALS` всегда возвращают `null`
+ * (pipeline-tree им не нужен — у них свой адаптер).
  */
 export function resolvePipelineFields(
   templateCode: string,
   templateFields: unknown[]
 ): DefaultField[] | null {
+  if (PIPELINE_EXEMPT_JOURNALS.has(templateCode)) return null;
+
   const valid = templateFields.filter(
     (f) =>
       f &&
