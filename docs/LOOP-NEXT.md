@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.7 — Subtasks (nested pipeline nodes)** — UI поддержка глубины 3, wizard рендерит indent.
+**Текущий приоритет:** **P1.8 — Split UX polish** (split-pinned кнопка уже работает, можно добавить confirm-modal с описанием что произойдёт + проверить behavior на повторных split'ах).
 
 ---
 
@@ -166,10 +166,12 @@
   - В `confirmPipelineStep` — guards дополнены, `comment`/`signature` записываются в `PipelineConfirm` → pipeline-trail видит их в audit'e
 - [x] **P1.6 ЗАКРЫТ** — все 3 per-node флага (photoMode/requireComment/requireSignature) от editor до wizard работают end-to-end
 
-### [ ] P1.7 — Subtasks (nested pipeline nodes)
-- UI поддержка глубины 3
-- Wizard рендерит indent
-- DB готова (parentId)
+### [x] P1.7 — Subtasks (nested pipeline nodes) — DONE @ 574107e5 @ 2026-05-05 14:15 МСК
+- Editor: кнопка `+` (Plus icon) на каждом узле — открывает AddCustomDialog с `parentId = node.id`. Скрыта на depth ≥ 2 (макс 3 уровня: root → child → grandchild)
+- Adapter: `buildFormFromPipelineTree` теперь walk'ает с param `depth`, каждый PipelineStep получает `depth: number`
+- Wizard: `<li>` рендерит `marginLeft = depth * 24px` для подшагов
+- WizardPreview в editor'е применяет тот же indent (depthOf-расчёт по nodes flat list) — preview показывает как будет выглядеть в проде
+- DnD пока работает только на root-level (parentId=null), nested-DnD вынесено как wave-b если понадобится (можно создавать подшаги через кнопку — это закрывает 90% use-case'ов)
 
 ### [ ] P1.8 — Split pinned node
 - Кнопка «Разделить» на pinned-узле
