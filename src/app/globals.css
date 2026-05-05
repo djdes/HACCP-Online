@@ -451,14 +451,14 @@
    содержат wide table, получают overflow-x: auto. */
 @media (max-width: 767px) {
   /* Любой div-ancestor wide-table получает overflow + max-width */
-  .app-shell main div:has(table[class*="min-w-\\["]) {
+  .app-shell main div:has(table[class*="min-w-["]) {
     overflow-x: auto !important;
     max-width: 100% !important;
     -webkit-overflow-scrolling: touch;
   }
   /* Fallback: если таблицы нет min-w-class но всё равно широкая —
      даём ей block-display и собственный scroll. */
-  .app-shell main table:not(.ds-no-scroll):not([class*="min-w-\\["]) {
+  .app-shell main table:not(.ds-no-scroll):not([class*="min-w-["]) {
     display: block;
     overflow-x: auto;
     max-width: 100%;
@@ -536,8 +536,8 @@ html, body {
   /* ── Wide-content блоки (≥600px min-width) → wrap в scroll ──── */
   /* CASE 1: <div class="min-w-[1100px]"> — div forced-stretch viewport.
      Снимаем min-width и оборачиваем в горизонтальный scroll. */
-  .app-shell main div[class*="min-w-\\["],
-  .app-shell main section[class*="min-w-\\["] {
+  .app-shell main div[class*="min-w-["],
+  .app-shell main section[class*="min-w-["] {
     min-width: 0 !important;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -547,20 +547,20 @@ html, body {
      min-width на table. Display:block + overflow-x:auto уже есть
      выше в общем правиле для table. Тут — гарантия что parent
      родитель таблицы тоже scroll'ится (иначе table может выпрыгнуть). */
-  .app-shell main div:has(> table[class*="min-w-\\["]) {
+  .app-shell main div:has(> table[class*="min-w-["]) {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
   }
 
   /* ── Большие headings — auto-shrink ────────────────────────── */
-  .app-shell main [class*="text-\\[3"][class*="px"]:not([class*="px-"]),
-  .app-shell main [class*="text-\\[4"][class*="px"]:not([class*="px-"]) {
+  .app-shell main [class*="text-[3"][class*="px"]:not([class*="px-"]),
+  .app-shell main [class*="text-[4"][class*="px"]:not([class*="px-"]) {
     font-size: 1.625rem !important;
     line-height: 1.15 !important;
   }
-  .app-shell main h1[class*="text-\\["],
-  .app-shell main h2[class*="text-\\["] {
+  .app-shell main h1[class*="text-["],
+  .app-shell main h2[class*="text-["] {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
