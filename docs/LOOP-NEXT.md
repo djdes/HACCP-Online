@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.5 — Guide editor** (`/settings/journal-guides`) — симметрично pipeline editor'у, но без pinned/linkedFieldKey семантики.
+**Текущий приоритет:** **P1.5 wave-b — Guide editor UI** (страница `/settings/journal-guides-tree/[code]`).
 
 ---
 
@@ -119,11 +119,15 @@
 - Fallback: если pipeline-tree пуст / не настроен — работает legacy `buildGenericForm` (filling-guides + requirePhoto).
 - Acceptance: создал pipeline-tree для журнала через UI → следующий task-fill использует новую форму → колонки журнала наполняются. **Это закрывает P0.1 для ВСЕХ журналов сразу** (вместо per-journal-адаптеров).
 
-### [ ] P1.5 — Guide editor (`/settings/journal-guides`)
-- Симметрично pipeline editor'у, но без linkedFieldKey/pinned семантики
-- Простой rich-text checklist с drag-drop
-- Используется в FillingGuide modal'ке вместо хардкода
-- Acceptance: сотрудник видит кастомный гайд от менеджера в форме заполнения
+### [/] P1.5 — Guide editor (`/settings/journal-guides`) — IN PROGRESS
+- [x] **wave-a @ abaca6d6 @ 2026-05-05 12:30 МСК** — API + helpers:
+  - `src/lib/journal-guide-tree.ts`: `findGuideTemplate`, `ensureGuideTemplate`, `loadGuideTree`, `computeGuideNextOrdering`
+  - 4 endpoint'а: `GET /[code]`, `POST /[code]/nodes`, `PATCH/DELETE /[code]/nodes/[id]`, `PATCH /[code]/nodes/[id]/move`
+  - Без `kind`/`linkedFieldKey`/seed/split — гайды проще: title + detail + photoUrl + tree-структура
+  - Все защищены `requireApiAuth` + `hasFullWorkspaceAccess`, AuditLog на каждую мутацию (`settings.journal-guides.*`)
+  - Acceptance: 401 на unauthenticated POST, prod не сломан, login=200
+- [ ] **wave-b** — UI page `/settings/journal-guides-tree/[code]` (можно reuse паттерн из tree-editor.tsx с упрощениями)
+- [ ] **wave-c** — заменить hardcoded `journal-filling-guides` в FillingGuide modal'ке на загрузку из БД через `loadGuideTree`
 
 ### [ ] P1.6 — Photo-mode per node
 - В UI редактора — radio (none/optional/required)
