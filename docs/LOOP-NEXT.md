@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3.C12 — audit-report v2**
+**Текущий приоритет:** **P3.C13 — uv-lamp-runtime v2**
 
 ---
 
@@ -165,7 +165,7 @@
 - [x] P3.C9 — scan-journal — N/A wave-1 @ 2026-05-05 07:50 МСК (image-viewer без Settings)
 - [x] P3.C10 — audit-plan — DONE wave-1 @ 395f560d @ 2026-05-05 07:55 МСК
 - [x] P3.C11 — audit-protocol — DONE wave-1 @ d1475e99 @ 2026-05-05 08:10 МСК
-- [ ] P3.C12 — audit-report
+- [x] P3.C12 — audit-report — DONE wave-1 @ eb319270 @ 2026-05-05 08:25 МСК
 - [ ] P3.C13 — uv-lamp-runtime
 - [ ] P3.C14 — staff-training
 - [ ] P3.C15 — training-plan
