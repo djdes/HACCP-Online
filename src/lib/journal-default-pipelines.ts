@@ -188,6 +188,118 @@ export const DEFAULT_PIPELINE_FIELDS: Record<string, DefaultField[]> = {
     { key: "auditedObject", label: "Проверяемый объект", type: "text", required: true },
     { key: "auditors", label: "Аудиторы (через запятую)", type: "text", required: true },
   ],
+
+  // src/lib/fryer-oil-document.ts → FryerOilEntryData
+  fryer_oil: [
+    { key: "startDate", label: "Дата начала использования", type: "date", required: true },
+    { key: "fatType", label: "Тип жира", type: "text", required: true },
+    { key: "equipmentType", label: "Оборудование", type: "text", required: true },
+    { key: "productType", label: "Тип продукции", type: "text" },
+    { key: "qualityStart", label: "Качество в начале (1-5)", type: "number", required: true },
+    { key: "qualityEnd", label: "Качество в конце (1-5)", type: "number" },
+    { key: "carryoverKg", label: "Остаток, кг", type: "number" },
+    { key: "disposedKg", label: "Утилизировано, кг", type: "number" },
+    { key: "controllerName", label: "Контролёр", type: "text", required: true },
+  ],
+
+  // src/lib/breakdown-history-document.ts → BreakdownRow
+  breakdown_history: [
+    { key: "startDate", label: "Дата начала", type: "date", required: true },
+    { key: "equipmentName", label: "Оборудование", type: "text", required: true },
+    { key: "breakdownDescription", label: "Описание поломки", type: "text", required: true },
+    { key: "repairPerformed", label: "Что сделали для ремонта", type: "text" },
+    { key: "partsReplaced", label: "Заменённые детали", type: "text" },
+    { key: "endDate", label: "Дата окончания", type: "date" },
+    { key: "downtimeHours", label: "Простой, часов", type: "text" },
+    { key: "responsiblePerson", label: "Ответственный", type: "text", required: true },
+  ],
+
+  // src/lib/intensive-cooling-document.ts → IntensiveCoolingRow
+  intensive_cooling: [
+    { key: "productionDate", label: "Дата приготовления", type: "date", required: true },
+    { key: "dishName", label: "Блюдо", type: "text", required: true },
+    { key: "startTemperature", label: "Температура в начале (°C)", type: "text", required: true },
+    { key: "endTemperature", label: "Температура в конце (°C)", type: "text", required: true },
+    { key: "correctiveAction", label: "Корректирующее действие", type: "text" },
+    { key: "comment", label: "Комментарий", type: "text" },
+    { key: "responsibleTitle", label: "Ответственный", type: "text", required: true },
+  ],
+
+  // src/lib/equipment-cleaning-document.ts → EquipmentCleaningRowData
+  equipment_cleaning: [
+    { key: "washDate", label: "Дата мойки", type: "date", required: true },
+    { key: "washTime", label: "Время", type: "text" },
+    { key: "equipmentName", label: "Оборудование", type: "text", required: true },
+    { key: "detergentName", label: "Моющее средство", type: "text", required: true },
+    { key: "detergentConcentration", label: "Концентрация моющего", type: "text" },
+    { key: "disinfectantName", label: "Дезинфицирующее средство", type: "text" },
+    { key: "disinfectantConcentration", label: "Концентрация дезсредства", type: "text" },
+    { key: "rinseTemperature", label: "Температура ополаскивания (°C)", type: "text" },
+    {
+      key: "rinseResult",
+      label: "Результат контроля",
+      type: "select",
+      options: [
+        { value: "compliant", label: "Соответствует" },
+        { value: "non_compliant", label: "Не соответствует" },
+      ],
+    },
+    { key: "washerName", label: "Кто мыл", type: "text", required: true },
+    { key: "controllerName", label: "Контролёр", type: "text", required: true },
+  ],
+
+  // План обучения — справочный план (не event-based журнал, но всё-таки
+  // pipeline даёт менеджеру что-то configurable). Если орга считает
+  // pipeline для plan'а ненужным — может удалить узлы через UI.
+  training_plan: [
+    { key: "year", label: "Год", type: "text", required: true },
+    { key: "documentDate", label: "Дата документа", type: "date", required: true },
+    { key: "approveRole", label: "Должность утверждающего", type: "text", required: true },
+    { key: "approveEmployee", label: "Утверждающий (ФИО)", type: "text" },
+  ],
+
+  // Входной контроль сырья (отдельный от incoming_control template).
+  // Колонки эквивалентны journal'у incoming_control из seed.ts.
+  incoming_raw_materials_control: [
+    { key: "productName", label: "Наименование продукта", type: "text", required: true },
+    { key: "supplier", label: "Поставщик", type: "text", required: true },
+    { key: "manufactureDate", label: "Дата изготовления", type: "date", required: true },
+    { key: "expiryDate", label: "Срок годности", type: "date", required: true },
+    { key: "quantity", label: "Количество", type: "number", required: true },
+    {
+      key: "unit",
+      label: "Единица измерения",
+      type: "select",
+      required: true,
+      options: [
+        { value: "kg", label: "кг" },
+        { value: "l", label: "л" },
+        { value: "pcs", label: "шт" },
+      ],
+    },
+    { key: "temperatureOnArrival", label: "Температура при приёмке (°C)", type: "number" },
+    {
+      key: "packagingCondition",
+      label: "Состояние упаковки",
+      type: "select",
+      required: true,
+      options: [
+        { value: "intact", label: "Целая" },
+        { value: "damaged", label: "Повреждена" },
+      ],
+    },
+    {
+      key: "decision",
+      label: "Решение",
+      type: "select",
+      required: true,
+      options: [
+        { value: "accepted", label: "Принято" },
+        { value: "rejected", label: "Отклонено" },
+      ],
+    },
+    { key: "notes", label: "Примечание", type: "text" },
+  ],
 };
 
 /**

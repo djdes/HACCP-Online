@@ -47,21 +47,28 @@ export function SeedAllPipelinesButton({
         return;
       }
       const { created, skippedExisting, skippedNoFields } = data.summary;
+      const total =
+        created.length + skippedExisting.length + skippedNoFields.length;
 
-      if (created.length === 0 && skippedExisting.length > 0) {
-        toast.info(
-          `Все ${skippedExisting.length} журналов уже настроены — ничего не изменили.`
-        );
-      } else if (skippedNoFields.length > 0) {
-        toast.success(
-          `Создано: ${created.length} журналов · Пропущено: ${skippedNoFields.length} (см. уведомления)`
-        );
+      // Полная сводка в одном toast'е — пользователь видит реальную
+      // картину по всем 3 счётчикам, а не одну часть. skippedNoFields
+      // отдельно, потому что для них в notifications приходит deep-link.
+      const parts: string[] = [];
+      if (created.length > 0) parts.push(`создано: ${created.length}`);
+      if (skippedExisting.length > 0)
+        parts.push(`уже было: ${skippedExisting.length}`);
+      if (skippedNoFields.length > 0)
+        parts.push(`без колонок: ${skippedNoFields.length}`);
+
+      const summary = parts.join(" · ") || "изменений нет";
+      const heading = `Журналов: ${total} · ${summary}`;
+
+      if (skippedNoFields.length > 0) {
+        toast.warning(heading + ". См. уведомления — там список журналов для ручной настройки.");
+      } else if (created.length > 0) {
+        toast.success(heading);
       } else {
-        toast.success(
-          created.length > 0
-            ? `Pipeline создан для ${created.length} журналов`
-            : "Изменений нет"
-        );
+        toast.info(heading);
       }
       setConfirmOpen(false);
       startTransition(() => router.refresh());
