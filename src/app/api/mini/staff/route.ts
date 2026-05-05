@@ -70,8 +70,11 @@ const createSchema = z.object({
 });
 
 function syntheticEmail(orgId: string) {
-  const salt = crypto.randomBytes(6).toString("hex");
-  return `staff-${salt}@${orgId}.local.haccp`;
+  // randomUUID — 122 bit энтропии, collision-free на любом масштабе
+  // (раньше randomBytes(6) = 48 bit давал ~0.18% birthday-collision
+  // на 1М пользователей; Pass-3 HIGH #2). Plus per-call retry на
+  // P2002 ниже на всякий случай для resilience.
+  return `staff-${crypto.randomUUID()}@${orgId}.local.haccp`;
 }
 
 function deriveRoleFromCategory(categoryKey: string): string {
@@ -124,36 +127,57 @@ export async function POST(request: Request) {
   });
   const useStrictAcl = positionTemplates.length > 0;
 
-  const user = await db.$transaction(async (tx) => {
-    const u = await tx.user.create({
-      data: {
-        email: syntheticEmail(orgId),
-        name: parsed.fullName,
-        phone,
-        passwordHash: "",
-        role: deriveRoleFromCategory(position.categoryKey),
-        positionTitle: position.name,
-        jobPositionId: position.id,
-        organizationId: orgId,
-        isActive: true,
-        journalAccessMigrated: useStrictAcl,
-      },
-      select: { id: true, name: true, jobPositionId: true, isActive: true },
-    });
-    if (useStrictAcl) {
-      await tx.userJournalAccess.createMany({
-        data: positionTemplates.map((t) => ({
-          userId: u.id,
-          templateCode: t.template.code,
-          canRead: true,
-          canWrite: true,
-          canFinalize: false,
-        })),
-        skipDuplicates: true,
+  // Retry-обёртка на случай P2002 unique-collision по email (теоретически
+  // одна на ~10^36 при randomUUID, практически нулевая, но defensive).
+  // 2 попытки достаточно — collision-collision вероятность исчезающая.
+  let user;
+  let attempt = 0;
+  while (true) {
+    attempt += 1;
+    try {
+      user = await db.$transaction(async (tx) => {
+        const u = await tx.user.create({
+          data: {
+            email: syntheticEmail(orgId),
+            name: parsed.fullName,
+            phone,
+            passwordHash: "",
+            role: deriveRoleFromCategory(position.categoryKey),
+            positionTitle: position.name,
+            jobPositionId: position.id,
+            organizationId: orgId,
+            isActive: true,
+            journalAccessMigrated: useStrictAcl,
+          },
+          select: { id: true, name: true, jobPositionId: true, isActive: true },
+        });
+        if (useStrictAcl) {
+          await tx.userJournalAccess.createMany({
+            data: positionTemplates.map((t) => ({
+              userId: u.id,
+              templateCode: t.template.code,
+              canRead: true,
+              canWrite: true,
+              canFinalize: false,
+            })),
+            skipDuplicates: true,
+          });
+        }
+        return u;
       });
+      break;
+    } catch (err) {
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? (err as { code: string }).code
+          : null;
+      if (code === "P2002" && attempt < 3) {
+        // Collision (very unlikely with UUID) — retry с новым email.
+        continue;
+      }
+      throw err;
     }
-    return u;
-  });
+  }
 
   return NextResponse.json({ user });
 }

@@ -9,6 +9,15 @@ import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 
 export const dynamic = "force-dynamic";
 
+class BulkCopyError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
 /**
  * POST /api/mini/journals/[code]/bulk-copy-yesterday
  *
@@ -74,57 +83,74 @@ export async function POST(
   const yesterdayEnd = new Date(yesterday);
   yesterdayEnd.setHours(23, 59, 59, 999);
 
-  // Check if user already has entries today
-  const todayCount = await db.journalEntry.count({
-    where: {
-      templateId: template.id,
-      organizationId: orgId,
-      filledById: userId,
-      createdAt: { gte: today },
-    },
-  });
-
-  if (todayCount > 0) {
-    return NextResponse.json(
-      { error: "Уже есть записи за сегодня. Удалите их перед копированием." },
-      { status: 409 }
+  // Check + read + insert в одной Serializable-транзакции — раньше
+  // count был отдельным query, и двойной тап мог пройти оба count==0
+  // check'а параллельно перед первым create → 2× дубликаты строк.
+  // Pass-3 HIGH #3.
+  let yesterdayEntriesLen = 0;
+  let created: { id: string }[];
+  try {
+    const result = await db.$transaction(
+      async (tx) => {
+        const todayCount = await tx.journalEntry.count({
+          where: {
+            templateId: template.id,
+            organizationId: orgId,
+            filledById: userId,
+            createdAt: { gte: today },
+          },
+        });
+        if (todayCount > 0) {
+          throw new BulkCopyError(
+            409,
+            "Уже есть записи за сегодня. Удалите их перед копированием."
+          );
+        }
+        const yesterdayEntries = await tx.journalEntry.findMany({
+          where: {
+            templateId: template.id,
+            organizationId: orgId,
+            filledById: userId,
+            createdAt: { gte: yesterday, lte: yesterdayEnd },
+          },
+          select: { data: true, areaId: true, equipmentId: true },
+        });
+        if (yesterdayEntries.length === 0) {
+          throw new BulkCopyError(404, "Нет записей за вчера");
+        }
+        yesterdayEntriesLen = yesterdayEntries.length;
+        const inserted = await Promise.all(
+          yesterdayEntries.map((entry) =>
+            tx.journalEntry.create({
+              data: {
+                templateId: template.id,
+                organizationId: orgId,
+                filledById: userId,
+                areaId: entry.areaId,
+                equipmentId: entry.equipmentId,
+                data: entry.data as never,
+                status: "submitted",
+              },
+              select: { id: true },
+            })
+          )
+        );
+        return inserted;
+      },
+      // Serializable защищает от non-repeatable-read: даже если второй
+      // запрос параллельно прошёл count==0, его commit упадёт с
+      // serialization-failure.
+      { isolationLevel: "Serializable" }
     );
+    created = result;
+  } catch (err) {
+    if (err instanceof BulkCopyError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    throw err;
   }
-
-  // Find yesterday's entries
-  const yesterdayEntries = await db.journalEntry.findMany({
-    where: {
-      templateId: template.id,
-      organizationId: orgId,
-      filledById: userId,
-      createdAt: { gte: yesterday, lte: yesterdayEnd },
-    },
-    select: { data: true, areaId: true, equipmentId: true },
-  });
-
-  if (yesterdayEntries.length === 0) {
-    return NextResponse.json(
-      { error: "Нет записей за вчера" },
-      { status: 404 }
-    );
-  }
-
-  // Create copies for today
-  const created = await db.$transaction(
-    yesterdayEntries.map((entry) =>
-      db.journalEntry.create({
-        data: {
-          templateId: template.id,
-          organizationId: orgId,
-          filledById: userId,
-          areaId: entry.areaId,
-          equipmentId: entry.equipmentId,
-          data: entry.data as never,
-          status: "submitted",
-        },
-      })
-    )
-  );
+  // suppress unused — используется внутри tx, обнуление логируется ниже.
+  void yesterdayEntriesLen;
 
   await logAudit({
     organizationId: orgId,
