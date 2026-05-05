@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.9 — Clear-custom button** (кнопка «Удалить все custom-узлы» с typeToConfirm).
+**Текущий приоритет:** **P1.10 — Audit-log integration** (pretty-render `settings.journal-pipelines.*` action'ов в audit viewer'е).
 
 ---
 
@@ -178,10 +178,12 @@
 - UI кнопка `<Split>` icon на pinned-узлах — DONE @ 94b40e83 (P1.3 wave-c)
 - **Confirm-modal перед split** — добавлен в этом коммите. Variant=info, описывает что произойдёт + 3 bullets о пользе («оба пишут в одну колонку», «удобно для разных людей/мест», «можно сколько угодно — номер части растёт»). Без confirm split'ы случайные/не понятные — менеджер видит «появилось два шага» и не понимает откуда
 
-### [ ] P1.9 — Clear-custom button
-- Удаляет всех `kind = "custom"` узлов в шаблоне
-- Сохраняет pinned с дефолтным title/detail
-- Confirm-dialog с typeToConfirm
+### [x] P1.9 — Clear-custom button — DONE @ 9ababd47 @ 2026-05-05 14:50 МСК
+- API endpoint `POST /[code]/clear-custom` — DONE @ a97a8a0b (P1.2 wave-a)
+- UI кнопка «Очистить custom-шаги (N)» в footer-row рядом с DnD-hint'ом, видна ТОЛЬКО если customNodeCount > 0
+- ConfirmDialog variant="danger", `typeToConfirm="ОЧИСТИТЬ"` — пользователь должен ввести фразу буквально
+- Bullets описывают: «когда удобно», «pinned не затрагиваются», «действие необратимо»
+- toast «Удалено custom-узлов: N» с количеством удалённых из API response.removed
 
 ### [ ] P1.10 — Audit-log integration
 - Каждый PATCH/DELETE/POST на pipeline-tree → AuditLog
