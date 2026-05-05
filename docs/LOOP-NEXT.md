@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P3 ЗАКРЫТ — все 35/35 журналов мигрированы (wave-1 Settings v2). Дальше — P1 Pipeline Editor / P2 backlog.**
+**Текущий приоритет:** **P1.2 — API endpoints для pipeline tree** (P1.1 schema задеплоен).
 
 ---
 
@@ -55,11 +55,14 @@
 
 См. секцию P1 в `PIPELINE-VISION.md`. Декомпозированы на меньшие задачи:
 
-### [ ] P1.1 — Schema migration: JournalGuide* + JournalPipeline* models
-- Добавить 4 модели в `prisma/schema.prisma`
-- `npx prisma generate` локально для типов
-- `prisma db push` запустится автоматически в deploy.yml
-- Acceptance: типы доступны через `db.journalPipelineTemplate`, `db.journalPipelineNode`, etc.
+### [x] P1.1 — Schema migration: JournalGuide* + JournalPipeline* models — DONE @ 3d9f0fe6 @ 2026-05-05 09:50 МСК
+- 4 модели добавлены в `prisma/schema.prisma`: `JournalGuideTemplate`, `JournalGuideNode`, `JournalPipelineTemplate`, `JournalPipelineNode`
+- Self-referencing parent/children через named relation (`guide_children`, `pipeline_children`) для tree structure
+- `ordering: Float` + `@@index([templateId, parentId, ordering])` — drag-drop без reindexing
+- `kind: "pinned"|"custom"` + `linkedFieldKey` для pipeline nodes (привязка к колонке журнала)
+- Organization получил `journalGuideTemplates[]` и `journalPipelineTemplates[]` reverse relations
+- `npx prisma generate` clean локально, `prisma db push` отработал в deploy.yml на проде, PM2 stable
+- Acceptance: типы доступны через `db.journalPipelineTemplate.create({...})` и т.д.
 
 ### [ ] P1.2 — API: GET/PATCH/POST/DELETE для pipeline tree
 - Эндпоинты в `src/app/api/settings/journal-pipelines/[code]/...`
