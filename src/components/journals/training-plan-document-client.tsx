@@ -43,6 +43,7 @@ import {
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 type UserItem = { id: string; name: string; role: string };
 
 type Props = {
@@ -52,6 +53,8 @@ type Props = {
   status: string;
   users: UserItem[];
   config: unknown;
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type SettingsState = {
@@ -239,10 +242,133 @@ function DocumentSettingsDialog(props: {
   users: UserItem[];
   initial: SettingsState;
   onSubmit: (value: SettingsState) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
+
+  const handleSave = async () => {
+    setSubmitting(true);
+    try {
+      await props.onSubmit(state);
+      props.onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={(value) => {
+          if (value) setState(props.initial);
+          props.onOpenChange(value);
+        }}
+        title="Настройки документа"
+        description="Параметры плана обучения и аттестации"
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Название документа</Label>
+            <Input
+              value={state.title}
+              onChange={(event) => setState({ ...state, title: event.target.value })}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Дата документа</Label>
+              <div className="relative">
+                <Input
+                  type="date"
+                  value={state.documentDate}
+                  onChange={(event) => setState({ ...state, documentDate: toIsoDate(event.target.value) })}
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 pr-12 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6f7282]" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Год</Label>
+              <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 8 }).map((_, index) => {
+                    const year = String(new Date().getFullYear() - 2 + index);
+                    return (
+                      <SelectItem key={year} value={year}>{year}</SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Должность «Утверждаю»</Label>
+            <Select
+              value={state.approveRole}
+              onValueChange={(value) => {
+                const user = usersForRole(props.users, value)[0];
+                setState({
+                  ...state,
+                  approveRole: value,
+                  approveEmployeeId: user?.id || "",
+                  approveEmployee: user?.name || state.approveEmployee,
+                });
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                <SelectValue placeholder="— Выберите значение —" />
+              </SelectTrigger>
+              <SelectContent>
+                <PositionSelectItems users={props.users} />
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Сотрудник</Label>
+            <Select
+              value={state.approveEmployeeId || "__empty__"}
+              onValueChange={(value) => {
+                if (value === "__empty__") {
+                  setState({ ...state, approveEmployeeId: "", approveEmployee: "" });
+                  return;
+                }
+                const user = props.users.find((item) => item.id === value);
+                setState({
+                  ...state,
+                  approveEmployeeId: value,
+                  approveEmployee: user?.name || "",
+                  approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
+                });
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                <SelectValue placeholder="— Выберите значение —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__empty__">— Выберите значение —</SelectItem>
+                {usersForRole(props.users, state.approveRole).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {buildStaffOptionLabel(user)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </JournalSettingsModal>
+    );
+  }
 
   return (
     <Dialog
@@ -386,6 +512,7 @@ export function TrainingPlanDocumentClient({
   status,
   users,
   config,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [addPositionOpen, setAddPositionOpen] = useState(false);
@@ -776,6 +903,7 @@ export function TrainingPlanDocumentClient({
         onOpenChange={setSettingsOpen}
         users={users}
         initial={settingsState}
+        useV2={useV2}
         onSubmit={async (value) => {
           const nextConfig = normalizeTrainingPlanConfig({
             ...normalized,
