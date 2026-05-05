@@ -533,29 +533,12 @@ html, body {
     max-width: calc(100vw - 1.5rem) !important;
   }
 
-  /* ── Wide-content блоки (≥600px min-width) → wrap в scroll ──── */
-  /* CASE 1: <div class="min-w-[1100px]"> — div forced-stretch viewport.
-     Снимаем min-width и оборачиваем в горизонтальный scroll. */
-  .app-shell main div[class*="min-w-"],
-  .app-shell main section[class*="min-w-"] {
-    min-width: 0 !important;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* CASE 2: any wide-table-containing div — find via :has() и
-     attribute substring без [ символа (Tailwind/PostCSS эскейпит
-     [ в строке к \[ — что НЕ MATCH'ит class="min-w-[..." в HTML).
-     Используем `min-w-` substring без bracket — Tailwind его не трогает. */
-  .app-shell main div:has(table[class*="min-w-"]) {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100% !important;
-  }
-  /* Также обрабатываем стандартные tailwind utilities min-w-screen-XX */
-  .app-shell main div:has(> table.w-full[style*="min-width"]) {
-    overflow-x: auto !important;
-    max-width: 100% !important;
-  }
+  /* ── Wide-content блоки ─────────────────────────────────────────
+     Удалил агрессивные [class*="min-w-"] overrides — они matched
+     стандартные min-w-fit/min-w-0/min-w-screen-md utilities тоже,
+     потенциально ломая layout. Document clients (climate, hygiene,
+     equipment-*) уже используют component-level wrapper
+     '-mx-4 overflow-x-auto' — scroll работает natively. */
 
   /* ── Большие headings — auto-shrink ────────────────────────── */
   /* Heading с большим текстом auto-wrap (если в className встречается
