@@ -491,6 +491,161 @@
   }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * Mobile responsive — расширенный набор фиксов после full audit
+ * (390px iPhone 14 viewport)
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Body не должен иметь horizontal scroll — даже если внутри какой-то
+   широкий блок попытается выпрыгнуть. Обходное решение: clip body
+   horizontally, отдельные блоки сами скроллятся через ds-table-scroll. */
+html, body {
+  overflow-x: clip;
+}
+
+@media (max-width: 767px) {
+  /* ── Modals/Dialogs: cap max-w в любых вариациях ─────────────── */
+  /* Любой Radix Dialog или popover не должен выезжать за viewport.
+     Перебиваем custom max-w-[XXXpx] классы — для mobile 100vw - 24px. */
+  [data-slot="dialog-content"],
+  [role="dialog"][data-state="open"],
+  .DialogContent,
+  [class*="DialogContent"] {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: calc(100vh - 1.5rem) !important;
+    width: calc(100vw - 1.5rem) !important;
+  }
+
+  /* Popover/dropdown — не должен залезать за viewport */
+  [data-slot="popover-content"],
+  [data-radix-popper-content-wrapper] > * {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+
+  /* ── Wide-content блоки (≥600px min-width) → wrap в scroll ──── */
+  /* Прежние правила для <table> уже есть выше. Этот блок ловит
+     CASE: <div class="min-w-[1100px]">. Tailwind genatil min-w
+     (по spec'у это нижняя граница, контейнер РАСТЁТ до этой ширины
+     даже если viewport меньше). На mobile вместо forced-stretch
+     ставим overflow-x scroll на родителе и убираем min-w. */
+  .app-shell main [class*="min-w-\\["] {
+    min-width: 0 !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Большие headings — auto-shrink ────────────────────────── */
+  .app-shell main [class*="text-\\[3"][class*="px"]:not([class*="px-"]),
+  .app-shell main [class*="text-\\[4"][class*="px"]:not([class*="px-"]) {
+    font-size: 1.625rem !important;
+    line-height: 1.15 !important;
+  }
+  .app-shell main h1[class*="text-\\["],
+  .app-shell main h2[class*="text-\\["] {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* ── Padding hero/cards: уменьшаем ────────────────────────── */
+  .app-shell main .rounded-3xl.p-8,
+  .app-shell main .rounded-3xl.p-10,
+  .app-shell main .rounded-3xl.p-7,
+  .app-shell main section.p-8,
+  .app-shell main section.p-10,
+  .app-shell main section[class*="p-8"]:not([class*="px-"]):not([class*="py-"]),
+  .app-shell main section[class*="p-10"]:not([class*="px-"]):not([class*="py-"]) {
+    padding: 1.25rem !important;
+  }
+
+  /* ── grid-cols-3/4/5 → 2 cols (для card-grids), не для toolbars ─ */
+  .app-shell main .grid.grid-cols-4:not(.no-mobile-shrink),
+  .app-shell main .grid.grid-cols-5:not(.no-mobile-shrink) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .app-shell main .grid.grid-cols-3:not(.no-mobile-shrink) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* ── Header: компактный padding и hide длинных breadcrumbs ──── */
+  .app-shell > header,
+  .app-shell header.sticky,
+  .app-shell header[class*="sticky"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  /* Breadcrumb-стрелочки — иногда занимают много места */
+  .app-shell main nav[aria-label="Breadcrumb"] {
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  /* ── Toolbars: всегда wrap ────────────────────────────────── */
+  .app-shell main .flex.gap-3,
+  .app-shell main .flex.gap-4,
+  .app-shell main .flex.gap-5,
+  .app-shell main .flex.gap-6 {
+    flex-wrap: wrap;
+  }
+  /* НО внутри hero (где flex используется как layout) — не wrap'аем,
+     иначе иконка над заголовком прыгает. Hero обычно identifies через
+     gap-4 + items-start: оставляем как есть. */
+
+  /* ── Inputs: 16px font-size чтобы iOS Safari не зумил ───────── */
+  .app-shell input,
+  .app-shell textarea,
+  .app-shell select {
+    font-size: max(16px, 1rem);
+  }
+
+  /* ── Settings list / settings menu — full-width, без cramped ─── */
+  .app-shell main .grid.lg\:grid-cols-2,
+  .app-shell main .grid.md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Toast container — compact на узком viewport ────────────── */
+  [data-sonner-toaster] {
+    max-width: calc(100vw - 16px) !important;
+    width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+  }
+
+  /* ── Tabs (Radix TabsList) wrap on mobile ──────────────────── */
+  .app-shell [role="tablist"] {
+    flex-wrap: wrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-shell [role="tab"] {
+    flex-shrink: 0;
+  }
+
+  /* ── Stat cards: уменьшаем размер цифр ─────────────────────── */
+  .app-shell main .text-\[32px\],
+  .app-shell main .text-\[36px\],
+  .app-shell main .text-\[40px\] {
+    font-size: 1.5rem !important;
+  }
+  .app-shell main .text-\[44px\],
+  .app-shell main .text-\[46px\],
+  .app-shell main .text-\[48px\] {
+    font-size: 1.75rem !important;
+  }
+}
+
+/* Ещё уже — phones 360-389px (small Android) */
+@media (max-width: 389px) {
+  .app-shell main .grid.grid-cols-2:not(.no-mobile-shrink) {
+    grid-template-columns: 1fr !important;
+  }
+  .app-shell main .rounded-3xl.p-8,
+  .app-shell main .rounded-3xl.p-10,
+  .app-shell main .rounded-3xl.p-7 {
+    padding: 1rem !important;
+  }
+}
+
 @keyframes landing-rise {
   from {
     opacity: 0;
