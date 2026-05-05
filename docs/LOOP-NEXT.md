@@ -279,7 +279,7 @@
 
 ### Section A — UX shortcuts
 
-- [ ] A.1 — Hotkey `Ctrl+Shift+N` на дашборде → быстрое создание новой записи в самом срочном журнале
+- [x] A.1 — Hotkey `Ctrl+Shift+N` → срочный журнал — DONE @ 9a52d1dc @ 2026-05-05 15:45 МСК. Endpoint `/api/dashboard/most-urgent-journal` возвращает journalCode из самого старого pending `JournalObligation` для текущего user'а; client component `<UrgentJournalHotkey>` слушает Ctrl/Cmd+Shift+N, navigate'ит в `/journals/[code]/new` или `/journals` если нет pending'ов; toast показывает что произошло
 - [ ] A.2 — Подсказка после двух одинаковых ошибок ввода: «Похоже, вы ввели то же что и в предыдущей строке — это нормально?»
 - [x] A.3 — Quick-jump-bar (Command Palette ⌘K/Ctrl+K) — DONE pre-loop (`src/components/layout/command-palette.tsx`, J5+ commit). Уже работает: поиск по static routes + dynamic templates через async fetch. Не дополнялся в loop'е.
 - [ ] A.4 — Undo последнего сохранения (10 секунд) для journal entries
