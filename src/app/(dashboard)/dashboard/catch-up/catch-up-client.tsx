@@ -272,8 +272,28 @@ export function CatchUpClient() {
       ) : null}
 
       {loading ? (
-        <div className="flex h-[200px] items-center justify-center rounded-2xl border border-[#ececf4] bg-white text-[#6f7282]">
-          <Loader2 className="mr-2 size-4 animate-spin" /> Загружаю сетку…
+        // P2.H.4 — Skeleton вместо спиннера: пользователь видит контур
+        // будущей таблицы (8 строк × 7 колонок), что ощущается заметно
+        // быстрее чем спиннер на пустом фоне.
+        <div className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="border-b border-[#ececf4] px-4 py-3">
+            <div className="h-3 w-32 animate-pulse rounded-full bg-[#eceef5]" />
+          </div>
+          <div className="divide-y divide-[#ececf4]">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="h-3 w-32 animate-pulse rounded-full bg-[#eceef5]" />
+                <div className="flex-1" />
+                {Array.from({ length: 7 }).map((__, j) => (
+                  <div
+                    key={j}
+                    className="h-7 w-7 animate-pulse rounded-lg bg-[#eef1ff]"
+                    style={{ animationDelay: `${(i * 7 + j) * 30}ms` }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       ) : data ? (
         <div className="overflow-x-auto rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">

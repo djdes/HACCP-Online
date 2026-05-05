@@ -188,7 +188,13 @@ function renderDetails(entry: AuditEntry): ReactElement {
             rel="noreferrer"
             className="block size-12 shrink-0 overflow-hidden rounded-xl border border-[#dcdfed]"
           >
-            <img src={photoUrl} alt="Фото" className="size-full object-cover" />
+            <img
+              src={photoUrl}
+              alt="Фото"
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
           </a>
         ) : null}
         <div className="min-w-0 space-y-1">
@@ -227,7 +233,13 @@ function renderDetails(entry: AuditEntry): ReactElement {
             rel="noreferrer"
             className="block size-14 shrink-0 overflow-hidden rounded-xl border border-[#dcdfed]"
           >
-            <img src={photoUrl} alt="Фото" className="size-full object-cover" />
+            <img
+              src={photoUrl}
+              alt="Фото"
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
           </a>
         ) : null}
         <div className="min-w-0 space-y-1">
