@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.3 wave-b — edit-dialog для узлов** (нажатие на ⚙ в дереве должно открывать модалку редактирования).
+**Текущий приоритет:** **P1.3 wave-c — DnD reorder + split-pinned button** через `@dnd-kit/sortable`.
 
 ---
 
@@ -90,7 +90,10 @@
   - Empty-state UI когда `tree === null` или `nodes === []`
   - Hero-блок в Design v2 с Pin-иконкой и breadcrumb «← К списку журналов»
   - На list-page `/settings/journal-pipelines` добавлены ссылки «🌳 Дерево (beta)» и счётчик активных узлов
-- [ ] **wave-b** — edit-dialog по клику на ⚙ (PATCH /nodes/[id])
+- [x] **wave-b @ 59de6148 @ 2026-05-05 11:10 МСК** — edit-dialog `EditNodeDialog`:
+  - Клик по ⚙ открывает модалку. PATCH `/nodes/[id]` с полями: title, detail, hint, photoMode (3-кнопочный selector none/optional/required), requireComment, requireSignature
+  - Pinned-узлы показывают `linkedFieldKey` в info-блоке (нельзя менять)
+  - `useNodeSync` хук подсасывает поля узла в state каждый раз, когда модалка открывается (иначе старое значение остаётся)
 - [ ] **wave-c** — DnD reorder через @dnd-kit/sortable + split-pinned button
 - [ ] **wave-d** — live wizard preview справа
 
