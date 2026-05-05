@@ -35,6 +35,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
+import { OnboardingDocHealthCard } from "@/components/settings/onboarding-doc-health-card";
 
 export const dynamic = "force-dynamic";
 
@@ -159,6 +160,19 @@ export default async function OnboardingPage() {
       .then((rows) => rows.filter((r) => r._count.positionAccess > 0).length),
     db.journalDocument.count({
       where: { organizationId, status: "active" },
+    }),
+  ]);
+
+  // Health-check для активных документов: сколько без ответственного и
+  // без verifier'а — отдельный запрос потому что Promise.all выше уже
+  // развёрнут под красивые counters, а вычислять missingX из всего
+  // findMany() было бы дороже.
+  const [docsMissingResponsible, docsMissingVerifier] = await Promise.all([
+    db.journalDocument.count({
+      where: { organizationId, status: "active", responsibleUserId: null },
+    }),
+    db.journalDocument.count({
+      where: { organizationId, status: "active", verifierUserId: null },
     }),
   ]);
 
@@ -569,11 +583,18 @@ export default async function OnboardingPage() {
       icon: FileSpreadsheet,
       items: [],
       finalNode: (
-        <OnboardingFinishCta
-          prereqsReady={finishReady}
-          missing={finishMissing}
-          activeDocumentsCount={activeDocumentsCount}
-        />
+        <div className="space-y-4">
+          <OnboardingFinishCta
+            prereqsReady={finishReady}
+            missing={finishMissing}
+            activeDocumentsCount={activeDocumentsCount}
+          />
+          <OnboardingDocHealthCard
+            totalActive={activeDocumentsCount}
+            missingVerifier={docsMissingVerifier}
+            missingResponsible={docsMissingResponsible}
+          />
+        </div>
       ),
     },
     {
@@ -610,7 +631,16 @@ export default async function OnboardingPage() {
       // Этап только с finalNode — оцениваем по prereqsReady (для phase 5)
       // или вручную в SendTasksCta (для phase 6).
       if (p.id === "documents") {
-        return finishReady && activeDocumentsCount > 0 ? "complete" : "active";
+        // Этап 5 «complete» только если документы созданы И каждый имеет
+        // ответственного + проверяющего. Иначе — этап остаётся active,
+        // карточка OnboardingDocHealthCard покажет жёлтый warning и
+        // кнопку «Применить ответственных».
+        return finishReady &&
+          activeDocumentsCount > 0 &&
+          docsMissingResponsible === 0 &&
+          docsMissingVerifier === 0
+          ? "complete"
+          : "active";
       }
       if (p.id === "tasksflow") {
         // Дополнительно — реальная отправка не отслеживается; считаем

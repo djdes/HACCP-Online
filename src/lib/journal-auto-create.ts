@@ -291,6 +291,11 @@ export async function ensureNextPeriodDocument(
       autoFill: false,
       config: prefillNext.config as never,
       responsibleUserId: prefillNext.responsibleUserId,
+      // Phase C: verifierUserId — двухступенчатая проверка не работает
+      // без него, заведующая не получает «проверь когда заполнят»
+      // в TasksFlow. (Ранее терялся в next-period auto-create — см.
+      // тот же фикс в recreate-documents/route.ts.)
+      verifierUserId: prefillNext.verifierUserId,
     },
     select: { id: true, dateFrom: true, dateTo: true },
   });

@@ -119,6 +119,14 @@ export async function POST() {
             autoFill: false,
             config: prefill.config as never,
             responsibleUserId: prefill.responsibleUserId,
+            // Phase C: verifierUserId — без него bulk-assign-today
+            // не создаёт verifier-task в TasksFlow, и заведующая не
+            // получает «проверь» при готовности фили-задач. Раньше
+            // это поле было пропущено в этом endpoint'е (а в
+            // journal-auto-create.ts передавалось правильно), → все
+            // документы пересозданные через «Создать все документы»
+            // оставались без verifier'а.
+            verifierUserId: prefill.verifierUserId,
           },
           select: { id: true, dateFrom: true, dateTo: true },
         });
