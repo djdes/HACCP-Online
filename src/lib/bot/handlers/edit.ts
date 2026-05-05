@@ -1,6 +1,7 @@
 import type { Composer, Context } from "grammy";
 import type { InlineKeyboardButton } from "grammy/types";
 import { db } from "@/lib/db";
+import { botCallbackRateLimiter } from "@/lib/rate-limit";
 import {
   getMiniAppBaseUrlFromEnv,
   buildMiniAppUrl,
@@ -320,7 +321,13 @@ export function registerEditHandlers(composer: Composer<Context>): void {
   });
 
   composer.callbackQuery(/^edit:home$/, async (ctx) => {
-    const user = await resolveBotUser(ctx.from?.id);
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:edit-home`)) {
+      await ctx.answerCallbackQuery({ text: "Слишком много кликов" });
+      return;
+    }
+    const user = await resolveBotUser(fromId);
     if (!user) {
       await ctx.answerCallbackQuery({
         text: "Telegram не привязан",
@@ -341,7 +348,13 @@ export function registerEditHandlers(composer: Composer<Context>): void {
   });
 
   composer.callbackQuery(/^edit:page:(\d+)$/, async (ctx) => {
-    const user = await resolveBotUser(ctx.from?.id);
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:edit-page`)) {
+      await ctx.answerCallbackQuery({ text: "Слишком много кликов" });
+      return;
+    }
+    const user = await resolveBotUser(fromId);
     if (!user) {
       await ctx.answerCallbackQuery({ text: "Telegram не привязан" });
       return;
@@ -367,7 +380,13 @@ export function registerEditHandlers(composer: Composer<Context>): void {
   // но даёт DDoS-amplification — каждый callback запускает findUnique по
   // arbitrary code. Pass-3 HIGH #10.
   composer.callbackQuery(/^edit:t:([a-z_]{1,40})$/, async (ctx) => {
-    const user = await resolveBotUser(ctx.from?.id);
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:edit-t`)) {
+      await ctx.answerCallbackQuery({ text: "Слишком много кликов" });
+      return;
+    }
+    const user = await resolveBotUser(fromId);
     if (!user) {
       await ctx.answerCallbackQuery({
         text: "Telegram не привязан",

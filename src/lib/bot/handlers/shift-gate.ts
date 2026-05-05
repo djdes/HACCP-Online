@@ -1,5 +1,6 @@
 import type { Composer, Context } from "grammy";
 import { db } from "@/lib/db";
+import { botCallbackRateLimiter } from "@/lib/rate-limit";
 
 /**
  * Shift gate — перед началом смены сотрудник видит ОДНУ кнопку
@@ -60,6 +61,12 @@ export function registerShiftGateHandler(composer: Composer<Context>): void {
     const fromId = ctx.from?.id;
     if (!fromId) {
       await ctx.answerCallbackQuery({ text: "Ошибка идентификации" });
+      return;
+    }
+    if (!botCallbackRateLimiter.consume(`${fromId}:shift-start`)) {
+      await ctx.answerCallbackQuery({
+        text: "Слишком много кликов, подождите минуту",
+      });
       return;
     }
     const user = await db.user.findFirst({

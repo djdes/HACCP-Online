@@ -119,22 +119,26 @@ export async function POST(
           throw new BulkCopyError(404, "Нет записей за вчера");
         }
         yesterdayEntriesLen = yesterdayEntries.length;
-        const inserted = await Promise.all(
-          yesterdayEntries.map((entry) =>
-            tx.journalEntry.create({
-              data: {
-                templateId: template.id,
-                organizationId: orgId,
-                filledById: userId,
-                areaId: entry.areaId,
-                equipmentId: entry.equipmentId,
-                data: entry.data as never,
-                status: "submitted",
-              },
-              select: { id: true },
-            })
-          )
-        );
+        // Sequential `for await` — Prisma interactive transactions
+        // sequence-only (single connection). Promise.all с tx.create
+        // даёт неопределённое поведение и фантомные serialization
+        // conflicts с самим собой. Pass-4 HIGH H3.
+        const inserted: { id: string }[] = [];
+        for (const entry of yesterdayEntries) {
+          const row = await tx.journalEntry.create({
+            data: {
+              templateId: template.id,
+              organizationId: orgId,
+              filledById: userId,
+              areaId: entry.areaId,
+              equipmentId: entry.equipmentId,
+              data: entry.data as never,
+              status: "submitted",
+            },
+            select: { id: true },
+          });
+          inserted.push(row);
+        }
         return inserted;
       },
       // Serializable защищает от non-repeatable-read: даже если второй

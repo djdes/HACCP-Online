@@ -41,6 +41,7 @@ export const TELEGRAM_COMMANDS = [
   { command: "batches", description: "📦 Активные партии (для рук-ва)" },
   { command: "losses", description: "📦 Списания (для рук-ва)" },
   { command: "stats", description: "📊 Сводка за неделю (для рук-ва)" },
+  { command: "health", description: "🩺 Диагностика бота (для рук-ва)" },
   { command: "reports", description: "📊 Отчёты и PDF" },
   { command: "help", description: "❓ Справка и поддержка" },
   { command: "stop", description: "⛔ Отвязать аккаунт" },

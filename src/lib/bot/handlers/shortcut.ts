@@ -89,6 +89,7 @@ export function registerShortcutHandlers(composer: Composer<Context>): void {
         "• /batches — активные партии\n" +
         "• /losses — списания за неделю\n" +
         "• /stats — недельный график выполнения\n" +
+        "• /health — диагностика бота (build sha, DB, Telegram API)\n" +
         "• /reports — PDF и ZIP для инспектора\n\n" +
         "<b>Прочее</b>\n" +
         "• /stop — отвязать Telegram\n\n" +

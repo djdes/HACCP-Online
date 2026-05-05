@@ -436,4 +436,59 @@ export function registerOwnerExtendedHandlers(composer: Composer<Context>): void
       link_preview_options: { is_disabled: true },
     });
   });
+
+  // /health — diagnostic для admin'а / ROOT'а. Показывает последний
+  // build sha + время + Telegram API latency. Polly-pinch для on-call:
+  // когда пользователи жалуются «бот не отвечает», admin спрашивает
+  // /health в DM и видит все signals в одном сообщении.
+  composer.command("health", async (ctx) => {
+    const user = await resolveManagementUser(ctx.from?.id);
+    if (!user) return replyNotAuthorized(ctx);
+
+    const startMe = Date.now();
+    let getMeStatus = "ok";
+    let getMeLatencyMs = 0;
+    let botUsername = "?";
+    try {
+      const me = await ctx.api.getMe();
+      botUsername = me.username ?? "?";
+      getMeLatencyMs = Date.now() - startMe;
+    } catch (err) {
+      getMeStatus = err instanceof Error ? err.message.slice(0, 80) : "error";
+      getMeLatencyMs = Date.now() - startMe;
+    }
+
+    // Build sha и time запекаются в env при build'е (next.config.ts
+    // → NEXT_PUBLIC_BUILD_ID). На server-side доступны через process.env.
+    const buildId = process.env.NEXT_PUBLIC_BUILD_ID || "unknown";
+    const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || "unknown";
+
+    // Один simple DB-ping чтобы убедиться что Prisma жива.
+    let dbStatus = "ok";
+    let dbLatencyMs = 0;
+    const startDb = Date.now();
+    try {
+      await db.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - startDb;
+    } catch (err) {
+      dbStatus = err instanceof Error ? err.message.slice(0, 80) : "error";
+      dbLatencyMs = Date.now() - startDb;
+    }
+
+    const lines = [
+      "🩺 <b>Health check</b>",
+      "",
+      `<b>Build</b>: <code>${esc(buildId)}</code>`,
+      `<b>Built at</b>: ${esc(buildTime)}`,
+      "",
+      `<b>Bot API</b>: ${getMeStatus === "ok" ? "✅" : "❌"} ${esc(getMeStatus)} (${getMeLatencyMs}ms)`,
+      `<b>Bot username</b>: @${esc(botUsername)}`,
+      "",
+      `<b>DB ping</b>: ${dbStatus === "ok" ? "✅" : "❌"} ${esc(dbStatus)} (${dbLatencyMs}ms)`,
+    ];
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
 }

@@ -34,9 +34,12 @@ export async function compressImageIfWorthwhile(
   if (file.type === "image/png" || file.type === "image/webp") return null;
   if (file.size < MIN_SIZE_BYTES) return null;
 
+  // ObjectURL вместо data-URL — экономия ~37% памяти (data-URL
+  // base64 раздувает blob на 1.37×). На 4MB JPEG это разница между
+  // success и OOM-крашем WebView на iPhone в подвале кухни. Pass-4 M1.
+  const objectUrl = URL.createObjectURL(file);
   try {
-    const dataUrl = await readAsDataURL(file);
-    const img = await loadImage(dataUrl);
+    const img = await loadImage(objectUrl);
     const { width: srcW, height: srcH } = img;
     if (srcW === 0 || srcH === 0) return null;
 
@@ -68,16 +71,10 @@ export async function compressImageIfWorthwhile(
     });
   } catch {
     return null;
+  } finally {
+    // Освобождаем ObjectURL — иначе он живёт до unload и держит blob.
+    URL.revokeObjectURL(objectUrl);
   }
-}
-
-function readAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
-    reader.readAsDataURL(file);
-  });
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
