@@ -9,7 +9,7 @@
     "predev": "prisma generate",
     "dev": "next dev",
     "prebuild": "prisma generate",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test:bot": "tsx scripts/test-bot-wizard.ts",
