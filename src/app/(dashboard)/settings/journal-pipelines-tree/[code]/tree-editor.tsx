@@ -239,6 +239,7 @@ export function TreeEditorClient({
   const [addOpen, setAddOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PipelineNode | null>(null);
+  const [confirmSplit, setConfirmSplit] = useState<PipelineNode | null>(null);
   const [editingNode, setEditingNode] = useState<PipelineNode | null>(null);
 
   const flatNodes = useMemo(
@@ -522,7 +523,7 @@ export function TreeEditorClient({
                       depth={depthOf(node, flatNodes)}
                       onEdit={() => setEditingNode(node)}
                       onDelete={() => setConfirmDelete(node)}
-                      onSplit={() => handleSplit(node)}
+                      onSplit={() => setConfirmSplit(node)}
                       onAddSubtask={() => {
                         setAddParentId(node.id);
                         setAddOpen(true);
@@ -586,6 +587,45 @@ export function TreeEditorClient({
         onConfirm={async () => {
           if (confirmDelete) {
             await handleDelete(confirmDelete);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmSplit !== null}
+        onClose={() => setConfirmSplit(null)}
+        variant="info"
+        title="Разделить шаг на две части?"
+        description={
+          confirmSplit ? (
+            <span>
+              «{confirmSplit.title}» станет «(часть 1)», и появится новый
+              шаг «(часть 2)» с тем же привязанным полем журнала.
+            </span>
+          ) : (
+            ""
+          )
+        }
+        bullets={[
+          {
+            label:
+              "Оба шага запишут значения в одну и ту же колонку журнала — сотрудник заполнит её в два этапа.",
+          },
+          {
+            label:
+              "Удобно когда столбец нужно заполнять разными людьми или в разных местах помещения.",
+          },
+          {
+            label:
+              "Можно делать сколько угодно — каждый split увеличит номер части.",
+            tone: "info",
+          },
+        ]}
+        confirmLabel="Разделить"
+        onConfirm={async () => {
+          if (confirmSplit) {
+            await handleSplit(confirmSplit);
+            setConfirmSplit(null);
           }
         }}
       />
