@@ -81,7 +81,17 @@ export function MyShiftButton() {
     }
   }
 
-  if (!state) return null;
+  if (!state) {
+    // Skeleton-плейсхолдер той же высоты что финальная card —
+    // предотвращаем CLS (cumulative layout shift) на главной.
+    return (
+      <div
+        className="mini-skeleton-bar"
+        style={{ height: 60, borderRadius: 16 }}
+        aria-hidden="true"
+      />
+    );
+  }
 
   const isWorking = state.status === "working";
   const isClosed = state.status === "ended" || state.status === "absent";

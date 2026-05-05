@@ -32,8 +32,20 @@ export function PullToRefresh({
   const [pull, setPull] = useState(0);
   const startY = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Phase в ref'е — нужен в onTouchEnd, чтобы решать, активирован ли
+  // pull. Раньше эффект перевешивал слушатели на каждое изменение
+  // `phase` (deps: [onRefresh, phase, reset]) — листенеры свапались
+  // mid-touch, и в редких race'ах onTouchEnd видел stale phase.
+  const phaseRef = useRef<PullPhase>("idle");
+  // onRefresh в ref'е — чтобы effect не пере-bind'ил листенеры на
+  // каждый новый rendering callback'а с другим reference.
+  const onRefreshRef = useRef(onRefresh);
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   const reset = useCallback(() => {
+    phaseRef.current = "idle";
     setPhase("idle");
     setPull(0);
     startY.current = null;
@@ -44,10 +56,11 @@ export function PullToRefresh({
     if (!node) return;
 
     function onTouchStart(e: TouchEvent) {
-      if (window.scrollY > 4) return; // already scrolled — let normal scroll handle it
+      if (window.scrollY > 4) return;
       const t = e.touches[0];
       if (!t) return;
       startY.current = t.clientY;
+      phaseRef.current = "pulling";
       setPhase("pulling");
     }
 
@@ -57,28 +70,30 @@ export function PullToRefresh({
       if (!t) return;
       const delta = t.clientY - startY.current;
       if (delta <= 0) {
-        // user swiped up — cancel
         reset();
         return;
       }
-      // dampening — позволяет тянуть, но всё медленнее по мере удаления
       const damped = Math.min(MAX_PULL, delta * 0.55);
       setPull(damped);
-      setPhase(damped >= ACTIVATION_THRESHOLD ? "armed" : "pulling");
-      // блокируем нативный bounce только когда уже тянем — иначе мешать
-      // обычному скроллу
+      const next: PullPhase = damped >= ACTIVATION_THRESHOLD ? "armed" : "pulling";
+      phaseRef.current = next;
+      setPhase(next);
       if (delta > 4 && e.cancelable) e.preventDefault();
     }
 
     async function onTouchEnd() {
-      if (phase !== "armed") {
+      // Читаем из ref'ы — гарантия консистентности с последним
+      // onTouchMove, без race'а с stale closure.
+      if (phaseRef.current !== "armed") {
         reset();
         return;
       }
+      phaseRef.current = "refreshing";
       setPhase("refreshing");
       try {
-        await onRefresh();
+        await onRefreshRef.current();
       } finally {
+        phaseRef.current = "idle";
         setPull(0);
         setPhase("idle");
         startY.current = null;
@@ -95,7 +110,8 @@ export function PullToRefresh({
       node.removeEventListener("touchend", onTouchEnd);
       node.removeEventListener("touchcancel", reset);
     };
-  }, [onRefresh, phase, reset]);
+    // ⚠️ deps умышленно [reset] — без `phase` и `onRefresh`. См. JSDoc выше.
+  }, [reset]);
 
   const indicatorOpacity = Math.min(1, pull / ACTIVATION_THRESHOLD);
   const isActive = phase === "armed" || phase === "refreshing";

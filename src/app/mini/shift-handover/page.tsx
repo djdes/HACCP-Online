@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { haptic } from "../_components/use-haptic";
 
 type Shift = {
   id: string;
@@ -13,6 +16,26 @@ type Shift = {
   handoverAt: string | null;
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  scheduled: "По графику",
+  working: "На смене",
+  ended: "Закрыта",
+  off: "Выходной",
+  vacation: "Отпуск",
+  sick: "Больничный",
+  absent: "Не вышли",
+};
+
+const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
+  scheduled: { bg: "var(--mini-ice-soft)", fg: "var(--mini-ice)" },
+  working: { bg: "var(--mini-lime-soft)", fg: "var(--mini-lime)" },
+  ended: { bg: "var(--mini-sage-soft)", fg: "var(--mini-sage)" },
+  off: { bg: "var(--mini-surface-2)", fg: "var(--mini-text-muted)" },
+  vacation: { bg: "var(--mini-surface-2)", fg: "var(--mini-text-muted)" },
+  sick: { bg: "var(--mini-surface-2)", fg: "var(--mini-text-muted)" },
+  absent: { bg: "var(--mini-crimson-soft)", fg: "var(--mini-crimson)" },
+};
+
 export default function MiniShiftHandoverPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +43,10 @@ export default function MiniShiftHandoverPage() {
   const [saving, setSaving] = useState(false);
   const [editShiftId, setEditShiftId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  // Базовое значение notes на момент входа в edit-режим — нужно
+  // чтобы сравнить «есть ли несохранённые правки» при попытке отмены.
+  const [baseNotes, setBaseNotes] = useState("");
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -45,7 +72,6 @@ export default function MiniShiftHandoverPage() {
         body: JSON.stringify({ shiftId, notes }),
       });
       if (!res.ok) throw new Error("Failed");
-      // Refresh
       const refreshed = await fetch("/api/mini/shift-handover", { cache: "no-store" });
       if (refreshed.ok) {
         const data = await refreshed.json();
@@ -53,111 +79,239 @@ export default function MiniShiftHandoverPage() {
       }
       setEditShiftId(null);
       setNotes("");
+      setBaseNotes("");
+      haptic("success");
+      toast.success("Передача сохранена");
     } catch {
-      setError("Не удалось сохранить");
+      haptic("error");
+      toast.error("Не удалось сохранить");
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="text-center text-sm text-slate-500">Загружаем…</div>;
-  if (error)
+  function startEdit(shift: Shift) {
+    haptic("light");
+    setEditShiftId(shift.id);
+    const initial = shift.handoverNotes ?? "";
+    setNotes(initial);
+    setBaseNotes(initial);
+  }
+
+  function attemptCancel() {
+    if (notes.trim() === baseNotes.trim()) {
+      // Нет правок — закрываем без подтверждения.
+      setEditShiftId(null);
+      setNotes("");
+      setBaseNotes("");
+      return;
+    }
+    setConfirmCancelOpen(true);
+  }
+
+  function discardEdit() {
+    setEditShiftId(null);
+    setNotes("");
+    setBaseNotes("");
+    setConfirmCancelOpen(false);
+  }
+
+  if (loading) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div
+        className="flex flex-1 items-center justify-center text-[14px]"
+        style={{ color: "var(--mini-text-muted)" }}
+      >
+        <Loader2
+          className="mr-2 size-4 animate-spin"
+          style={{ color: "var(--mini-lime)" }}
+        />
+        Загружаем смены…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div
+        className="rounded-2xl px-4 py-3 text-[13px]"
+        style={{
+          background: "var(--mini-crimson-soft)",
+          border: "1px solid rgba(255, 82, 104, 0.24)",
+          color: "var(--mini-crimson)",
+        }}
+      >
         {error}
       </div>
     );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
-      <Link href="/mini" className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500">
+      <Link
+        href="/mini"
+        className="inline-flex items-center gap-1 text-[13px] font-medium"
+        style={{ color: "var(--mini-text-muted)" }}
+      >
         <ArrowLeft className="size-4" />
         На главную
       </Link>
 
       <header className="px-1">
-        <h1 className="text-[20px] font-semibold text-slate-900">Передача смен</h1>
-        <p className="mt-0.5 text-[13px] text-slate-500">{new Date().toLocaleDateString("ru-RU")}</p>
+        <h1
+          className="text-[20px] font-semibold"
+          style={{ color: "var(--mini-text)" }}
+        >
+          Передача смен
+        </h1>
+        <p
+          className="mt-0.5 text-[13px]"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
+          {new Date().toLocaleDateString("ru-RU")}
+        </p>
       </header>
 
       {shifts.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[14px] text-slate-500">
+        <div
+          className="rounded-2xl px-4 py-6 text-center text-[14px]"
+          style={{
+            background: "var(--mini-surface-1)",
+            border: "1px dashed var(--mini-divider-strong)",
+            color: "var(--mini-text-muted)",
+          }}
+        >
           На сегодня смен не запланировано.
         </div>
       ) : (
         <section className="space-y-3">
-          {shifts.map((shift) => (
-            <div key={shift.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[15px] font-medium text-slate-900">{shift.user.name}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    shift.status === "scheduled"
-                      ? "bg-blue-100 text-blue-700"
-                      : shift.status === "off"
-                      ? "bg-slate-100 text-slate-500"
-                      : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {shift.status}
-                </span>
-              </div>
-
-              {shift.handoverNotes ? (
-                <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-slate-600">
-                  <span className="font-medium text-slate-500">Передано:</span>{" "}
-                  {shift.handoverNotes}
-                  {shift.handoverAt ? (
-                    <div className="mt-1 text-[11px] text-slate-400">
-                      {new Date(shift.handoverAt).toLocaleString("ru-RU")}
-                    </div>
-                  ) : null}
+          {shifts.map((shift) => {
+            const tone = STATUS_TONE[shift.status] ?? STATUS_TONE.off;
+            return (
+              <div
+                key={shift.id}
+                className="rounded-2xl px-4 py-3"
+                style={{
+                  background: "var(--mini-card-solid-bg)",
+                  border: "1px solid var(--mini-divider)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className="text-[15px] font-medium"
+                    style={{ color: "var(--mini-text)" }}
+                  >
+                    {shift.user.name}
+                  </span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{ background: tone.bg, color: tone.fg }}
+                  >
+                    {STATUS_LABEL[shift.status] ?? shift.status}
+                  </span>
                 </div>
-              ) : null}
 
-              {editShiftId === shift.id ? (
-                <div className="mt-2 space-y-2">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Что нужно знать следующей смене?"
-                    rows={3}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] focus:border-slate-400 focus:outline-none"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => saveHandover(shift.id)}
-                      disabled={saving || !notes.trim()}
-                      className="rounded-xl bg-slate-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50"
+                {shift.handoverNotes ? (
+                  <div
+                    className="mt-2 rounded-lg px-3 py-2 text-[13px]"
+                    style={{
+                      background: "var(--mini-surface-2)",
+                      color: "var(--mini-text)",
+                    }}
+                  >
+                    <span
+                      className="font-medium"
+                      style={{ color: "var(--mini-text-muted)" }}
                     >
-                      {saving ? "Сохраняем…" : "Сохранить"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditShiftId(null);
-                        setNotes("");
-                      }}
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-[13px] font-medium text-slate-600"
-                    >
-                      Отмена
-                    </button>
+                      Передано:
+                    </span>{" "}
+                    {shift.handoverNotes}
+                    {shift.handoverAt ? (
+                      <div
+                        className="mt-1 text-[11px]"
+                        style={{ color: "var(--mini-text-faint)" }}
+                      >
+                        {new Date(shift.handoverAt).toLocaleString("ru-RU")}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setEditShiftId(shift.id);
-                    setNotes(shift.handoverNotes ?? "");
-                  }}
-                  className="mt-2 text-[13px] font-medium text-slate-600 underline underline-offset-2"
-                >
-                  {shift.handoverNotes ? "Редактировать" : "Добавить примечание"}
-                </button>
-              )}
-            </div>
-          ))}
+                ) : null}
+
+                {editShiftId === shift.id ? (
+                  <div className="mt-2 space-y-2">
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Что нужно знать следующей смене?"
+                      rows={3}
+                      className="w-full rounded-xl px-3 py-2 text-[14px] focus:outline-none"
+                      style={{
+                        background: "var(--mini-surface-2)",
+                        border: "1px solid var(--mini-divider-strong)",
+                        color: "var(--mini-text)",
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => saveHandover(shift.id)}
+                        disabled={saving || !notes.trim()}
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium disabled:opacity-50"
+                        style={{
+                          background: "var(--mini-lime)",
+                          color: "var(--mini-primary-contrast)",
+                        }}
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin" />
+                            Сохраняем…
+                          </>
+                        ) : (
+                          "Сохранить"
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={attemptCancel}
+                        className="rounded-xl px-4 py-2 text-[13px] font-medium"
+                        style={{
+                          background: "transparent",
+                          border: "1px solid var(--mini-divider-strong)",
+                          color: "var(--mini-text-muted)",
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(shift)}
+                    className="mt-2 text-[13px] font-medium underline underline-offset-2"
+                    style={{ color: "var(--mini-lime)" }}
+                  >
+                    {shift.handoverNotes
+                      ? "Редактировать"
+                      : "Добавить примечание"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </section>
       )}
+
+      <ConfirmDialog
+        open={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        onConfirm={discardEdit}
+        title="Отменить и потерять изменения?"
+        description="Вы редактировали примечание для следующей смены. Если отменить — введённый текст пропадёт."
+        confirmLabel="Отменить и потерять"
+        cancelLabel="Продолжить редактировать"
+        variant="warn"
+      />
     </div>
   );
 }
