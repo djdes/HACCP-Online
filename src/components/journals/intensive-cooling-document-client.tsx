@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   CalendarDays,
@@ -73,6 +74,8 @@ type Props = {
   status: string;
   config: unknown;
   users: UserItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function hourOptions() {
@@ -450,6 +453,7 @@ function SettingsDialog(props: {
   title: string;
   dateFrom: string;
   onSave: (payload: { title: string; dateFrom: string }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
@@ -469,6 +473,43 @@ function SettingsDialog(props: {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (props.useV2) {
+    return (
+      <JournalSettingsModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title="Настройки документа"
+        description="Название журнала и дата начала."
+        size="md"
+        isSaving={submitting}
+        onSave={handleSave}
+        onCancel={() => props.onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Название документа
+          </Label>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Дата начала
+          </Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -966,6 +1007,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
             toast.error(error instanceof Error ? error.message : "Ошибка");
           })
         }
+        useV2={props.useV2}
       />
 
       <RowDialog

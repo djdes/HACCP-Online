@@ -732,6 +732,7 @@ export default async function JournalDocumentPage({
         status={document.status}
         config={document.config}
         users={enrichedEmployees}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }
