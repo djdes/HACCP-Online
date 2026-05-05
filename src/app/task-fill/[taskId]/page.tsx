@@ -14,6 +14,21 @@ import { TaskVerifyClient } from "./task-verify-client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Last-resort key prettifier для verifier-view, когда ключ не нашёлся ни в
+ * template.fields, ни в DEFAULT_PIPELINE_FIELDS, ни в SYSTEM_LABELS.
+ * camelCase → "camel Case" → "Camel case". Лучше чем сырое
+ * «damagesDetected» в шапке колонки.
+ */
+function prettifyKey(key: string): string {
+  // camelCase → space-separated
+  const spaced = key.replace(/([a-zа-я])([A-ZА-Я])/g, "$1 $2");
+  // snake_case → space
+  const final = spaced.replace(/_/g, " ");
+  // Capitalize first letter
+  return final.charAt(0).toUpperCase() + final.slice(1);
+}
+
 // HMAC-signed token-based URL для конкретного worker'а — не индексировать.
 export const metadata = {
   robots: { index: false, follow: false },
@@ -90,7 +105,11 @@ export default async function TaskFillPage({
   // видит read-only сводку записей + кнопки «Принять / Вернуть на
   // доработку», а не предзаполнение колонок снова.
   if (link.kind === "verifier") {
-    const [doc, template, verifierEmployee, entries] = await Promise.all([
+    const { DEFAULT_PIPELINE_FIELDS } = await import(
+      "@/lib/journal-default-pipelines"
+    );
+
+    const [doc, entries, fillerLinks] = await Promise.all([
       db.journalDocument.findUnique({
         where: { id: link.journalDocumentId },
         select: {
@@ -100,25 +119,11 @@ export default async function TaskFillPage({
           responsibleUserId: true,
           verificationStatus: true,
           verificationRejectReason: true,
-          template: { select: { code: true, name: true, fields: true } },
+          template: {
+            select: { code: true, name: true, fields: true },
+          },
         },
       }),
-      Promise.resolve(null), // placeholder, unused for verifier
-      // Имя verifier'а — для шапки. Лучше брать из rowKey, но
-      // verifier-rowKey формат — `verifier-summary:<docId>`, без user-id.
-      // Используем doc.verifierUserId.
-      (async () => {
-        const id =
-          (await db.journalDocument.findUnique({
-            where: { id: link.journalDocumentId },
-            select: { verifierUserId: true, responsibleUserId: true },
-          }))?.verifierUserId ?? null;
-        if (!id) return null;
-        return db.user.findUnique({
-          where: { id },
-          select: { name: true, positionTitle: true },
-        });
-      })(),
       db.journalDocumentEntry.findMany({
         where: { documentId: link.journalDocumentId },
         orderBy: { date: "desc" },
@@ -132,24 +137,154 @@ export default async function TaskFillPage({
           },
         },
       }),
+      // Все filler-задачи этого документа — нужно посчитать прогресс.
+      db.tasksFlowTaskLink.findMany({
+        where: {
+          journalDocumentId: link.journalDocumentId,
+          kind: "filler",
+        },
+        select: {
+          id: true,
+          remoteStatus: true,
+          rowKey: true,
+        },
+      }),
     ]);
     if (!doc) notFound();
 
-    void template;
+    // Имя verifier'а — для шапки.
+    const verifierEmployee = doc.verifierUserId
+      ? await db.user.findUnique({
+          where: { id: doc.verifierUserId },
+          select: { name: true, positionTitle: true },
+        })
+      : null;
 
-    // Маппинг JSON-полей в человеко-читаемые label'ы:
-    // template.fields[].key -> .label
-    const fieldsArr = Array.isArray(doc.template.fields)
-      ? (doc.template.fields as Array<{ key?: unknown; label?: unknown }>)
-      : [];
+    // Маппинг ключей в человеко-читаемые label'ы:
+    //   1) template.fields[] (если у журнала есть fields в БД)
+    //   2) DEFAULT_PIPELINE_FIELDS (наш реестр для document-based журналов)
+    //   3) Hardcoded fallback для системных полей (employeeId, comment...)
+    //   4) Сам key как last resort.
     const labelByKey = new Map<string, string>();
-    for (const f of fieldsArr) {
-      if (typeof f?.key === "string") {
-        labelByKey.set(
-          f.key,
-          typeof f?.label === "string" && f.label ? f.label : f.key
-        );
+    const optionsByKey = new Map<string, Map<string, string>>();
+
+    function ingestFields(
+      fields: Array<{
+        key?: unknown;
+        label?: unknown;
+        options?: unknown;
+      }>
+    ) {
+      for (const f of fields) {
+        if (typeof f?.key !== "string") continue;
+        const key = f.key;
+        if (typeof f?.label === "string" && f.label && !labelByKey.has(key)) {
+          labelByKey.set(key, f.label);
+        }
+        if (Array.isArray(f.options)) {
+          const optMap = optionsByKey.get(key) ?? new Map<string, string>();
+          for (const opt of f.options) {
+            if (
+              opt &&
+              typeof opt === "object" &&
+              typeof (opt as { value?: unknown }).value === "string" &&
+              typeof (opt as { label?: unknown }).label === "string"
+            ) {
+              const v = (opt as { value: string }).value;
+              const l = (opt as { label: string }).label;
+              if (!optMap.has(v)) optMap.set(v, l);
+            }
+          }
+          if (optMap.size > 0) optionsByKey.set(key, optMap);
+        }
       }
+    }
+
+    // 1) template.fields из БД
+    if (Array.isArray(doc.template.fields)) {
+      ingestFields(
+        doc.template.fields as Array<{ key?: unknown; label?: unknown }>
+      );
+    }
+    // 2) Fallback из реестра дефолтов
+    const defaults = DEFAULT_PIPELINE_FIELDS[doc.template.code];
+    if (Array.isArray(defaults)) {
+      ingestFields(defaults);
+    }
+    // 3) Системные поля (присутствуют почти везде)
+    const SYSTEM_LABELS: Record<string, string> = {
+      comment: "Комментарий",
+      note: "Примечание",
+      notes: "Примечание",
+      responsiblePerson: "Ответственный",
+      responsibleTitle: "Должность ответственного",
+      employeeName: "Сотрудник",
+      employeeId: "ID сотрудника",
+      damagesDetected: "Повреждения обнаружены",
+      itemName: "Наименование",
+      quantity: "Количество",
+      damageInfo: "Информация о повреждениях",
+      checkDate: "Дата проверки",
+      arrivalDate: "Дата приёмки",
+      arrivalTime: "Время приёмки",
+      productName: "Наименование продукта",
+      productionDate: "Дата изготовления",
+      manufacturer: "Изготовитель",
+      supplier: "Поставщик",
+      packaging: "Упаковка",
+      documentNumber: "Номер документа",
+      organolepticResult: "Органолептика",
+      storageCondition: "Условия хранения",
+      expiryDate: "Срок годности",
+      actualSaleDate: "Дата фактической реализации",
+      actualSaleTime: "Время фактической реализации",
+      temperature: "Температура (°C)",
+      isWithinNorm: "В пределах нормы",
+      correctiveAction: "Корректирующее действие",
+    };
+    for (const [k, v] of Object.entries(SYSTEM_LABELS)) {
+      if (!labelByKey.has(k)) labelByKey.set(k, v);
+    }
+    // Common select-options:
+    if (!optionsByKey.has("organolepticResult")) {
+      optionsByKey.set(
+        "organolepticResult",
+        new Map([
+          ["compliant", "Соответствует"],
+          ["non_compliant", "Не соответствует"],
+        ])
+      );
+    }
+    if (!optionsByKey.has("storageCondition")) {
+      optionsByKey.set(
+        "storageCondition",
+        new Map([
+          ["2_6", "+2…+6°C"],
+          ["minus2_2", "-2…+2°C"],
+          ["minus18", "-18°C и ниже"],
+        ])
+      );
+    }
+    if (!optionsByKey.has("damagesDetected")) {
+      optionsByKey.set(
+        "damagesDetected",
+        new Map([
+          ["yes", "Да"],
+          ["no", "Нет"],
+        ])
+      );
+    }
+
+    // Форматирование даты в русский формат «5 мая 2026 г.»
+    const RUS_MONTHS = [
+      "января", "февраля", "марта", "апреля", "мая", "июня",
+      "июля", "августа", "сентября", "октября", "ноября", "декабря",
+    ];
+    function formatRu(d: Date): string {
+      const day = d.getUTCDate();
+      const month = RUS_MONTHS[d.getUTCMonth()];
+      const year = d.getUTCFullYear();
+      return `${day} ${month} ${year} г.`;
     }
 
     const entryViews = entries.map((e) => {
@@ -166,28 +301,39 @@ export default async function TaskFillPage({
         )
           continue;
         if (val === null || val === undefined || val === "") continue;
-        const label = labelByKey.get(key) ?? key;
-        const valStr =
-          typeof val === "boolean"
-            ? val
-              ? "Да"
-              : "Нет"
-            : typeof val === "object"
-              ? JSON.stringify(val)
-              : String(val);
+        const label = labelByKey.get(key) ?? prettifyKey(key);
+
+        // Translate select-values to labels
+        let valStr: string;
+        if (typeof val === "boolean") {
+          valStr = val ? "Да" : "Нет";
+        } else if (typeof val === "object") {
+          valStr = JSON.stringify(val);
+        } else {
+          const strVal = String(val);
+          const optMap = optionsByKey.get(key);
+          valStr = optMap?.get(strVal) ?? strVal;
+        }
+
         if (valStr.length > 0) {
           fields.push({ label, value: valStr });
         }
       }
       return {
         id: e.id,
-        date: e.date.toISOString().slice(0, 10),
+        date: formatRu(e.date),
         employeeName: e.employee?.name ?? "—",
         employeePosition: e.employee?.positionTitle ?? null,
         verificationStatus: e.verificationStatus,
         fields,
       };
     });
+
+    // Прогресс fillers'ов
+    const totalFillers = fillerLinks.length;
+    const completedFillers = fillerLinks.filter(
+      (l) => l.remoteStatus === "completed"
+    ).length;
 
     return (
       <TaskVerifyClient
@@ -201,6 +347,8 @@ export default async function TaskFillPage({
         entries={entryViews}
         verifierName={verifierEmployee?.name ?? "Проверяющий"}
         returnUrl={returnUrl ?? null}
+        totalFillers={totalFillers}
+        completedFillers={completedFillers}
       />
     );
   }

@@ -44,6 +44,13 @@ export type TaskVerifyClientProps = {
   /** Имя verifier'а из TF — для шапки страницы. */
   verifierName: string;
   returnUrl: string | null;
+  /**
+   * Сколько filler-задач связано с этим документом, и сколько уже
+   * выполнено. Нужно показать verifier'у явный прогресс — без этого
+   * непонятно, ждать ли заполнителя или уже можно проверять.
+   */
+  totalFillers: number;
+  completedFillers: number;
 };
 
 export function TaskVerifyClient(props: TaskVerifyClientProps) {
@@ -54,6 +61,12 @@ export function TaskVerifyClient(props: TaskVerifyClientProps) {
   const [rejectReason, setRejectReason] = useState("");
 
   const empty = props.entries.length === 0;
+  // Готов ли документ к проверке: все filler-задачи завершены.
+  const allFillersDone =
+    props.totalFillers > 0 &&
+    props.completedFillers >= props.totalFillers;
+  const someFillersPending =
+    props.totalFillers > 0 && props.completedFillers < props.totalFillers;
 
   async function submitDecision(
     decision: "approved" | "rejected",
@@ -135,6 +148,49 @@ export function TaskVerifyClient(props: TaskVerifyClientProps) {
         </div>
       ) : null}
 
+      {/* Прогресс fillers'ов — главный сигнал «можно проверять или ждать» */}
+      {props.totalFillers > 0 ? (
+        <div
+          className={`rounded-3xl border p-4 sm:p-5 ${
+            allFillersDone
+              ? "border-emerald-200 bg-emerald-50/60"
+              : "border-amber-200 bg-amber-50/60"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex size-10 shrink-0 items-center justify-center rounded-2xl text-[15px] font-semibold ${
+                allFillersDone
+                  ? "bg-emerald-500 text-white"
+                  : "bg-amber-500 text-white"
+              }`}
+            >
+              {props.completedFillers}/{props.totalFillers}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div
+                className={`text-[15px] font-semibold ${
+                  allFillersDone ? "text-emerald-900" : "text-amber-900"
+                }`}
+              >
+                {allFillersDone
+                  ? "Все сотрудники заполнили — можно проверять"
+                  : `Ждём пока сотрудники закончат заполнение`}
+              </div>
+              <p
+                className={`mt-0.5 text-[13px] ${
+                  allFillersDone ? "text-emerald-800/80" : "text-amber-900/80"
+                }`}
+              >
+                {allFillersDone
+                  ? `Готово к решению: принять журнал целиком или вернуть конкретному сотруднику с причиной.`
+                  : `Задач выполнено: ${props.completedFillers} из ${props.totalFillers}. Ниже — то, что уже заполнили. Можно дождаться остальных или проверить сейчас.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {empty ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-8 text-center text-[#6f7282]">
           <div className="text-[15px] font-medium text-[#0b1024]">
@@ -193,8 +249,9 @@ export function TaskVerifyClient(props: TaskVerifyClientProps) {
 
           <div className="sticky bottom-2 z-10 flex flex-col gap-2 rounded-3xl border border-[#ececf4] bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[12px] leading-snug text-[#6f7282]">
-              Прими целиком если всё в порядке. Если нашли ошибку —
-              верни сотруднику с причиной, он исправит.
+              {someFillersPending
+                ? "Сотрудники ещё дозаполняют. Можно подождать или посмотреть что уже есть и решить."
+                : "Прими целиком если всё в порядке. Если нашли ошибку — верни сотруднику с причиной, он исправит."}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
