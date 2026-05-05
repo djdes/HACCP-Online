@@ -10,6 +10,7 @@ import {
 } from "@/lib/cold-equipment-document";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
+  buildClimateConfigFromAreas,
   getDefaultClimateDocumentConfig,
 } from "@/lib/climate-document";
 import {
@@ -259,12 +260,14 @@ export async function POST(request: Request) {
       : [];
 
   const allAreas =
-    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE ||
+    resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? await db.area.findMany({
           where: {
             organizationId: getActiveOrgId(session),
           },
           select: {
+            id: true,
             name: true,
           },
           orderBy: { name: "asc" },
@@ -367,7 +370,7 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-      ? getDefaultClimateDocumentConfig()
+      ? buildClimateConfigFromAreas(allAreas)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? normalizeCleaningDocumentConfig(rawConfig ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas), {
           users: cleaningUsers,

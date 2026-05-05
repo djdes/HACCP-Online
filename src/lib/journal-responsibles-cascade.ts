@@ -8,7 +8,50 @@ import {
   hasDocumentConfigPatcher,
   patchDocumentConfig,
 } from "@/lib/journal-responsibles-doc-patchers";
-import { getDefaultConfigForJournal } from "@/lib/journal-default-configs";
+import {
+  type DefaultConfigOrgData,
+  getDefaultConfigForJournal,
+} from "@/lib/journal-default-configs";
+
+/**
+ * Подтягивает org-данные (areas + equipment + users + products) для
+ * enriched-дефолтов журналов. Используется prefill/cascade чтобы при
+ * создании или backfill'е документа таблица сразу содержала реальные
+ * цеха/оборудование/продукты, а не stub'ы.
+ */
+async function fetchOrgDataForDefaults(
+  organizationId: string
+): Promise<DefaultConfigOrgData> {
+  const [areas, equipment, users, products] = await Promise.all([
+    db.area.findMany({
+      where: { organizationId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    db.equipment.findMany({
+      where: { area: { organizationId } },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        tempMin: true,
+        tempMax: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.user.findMany({
+      where: { organizationId, isActive: true, archivedAt: null },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: "asc" },
+    }),
+    db.product.findMany({
+      where: { organizationId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  return { areas, equipment, users, products };
+}
 
 /**
  * Каскад изменений «ответственных за журнал» в реальные JournalDocument'ы
@@ -195,6 +238,19 @@ export async function cascadeResponsibleToActiveDocuments(input: {
       select: { id: true, config: true },
     });
 
+    // Если есть пустые конфиги — нужны org-данные для enriched дефолта
+    // (см. prefill ниже). Тянем один раз, переиспользуем для всех docs.
+    const hasEmptyConfigs = docs.some((d) => {
+      const cfg =
+        d.config && typeof d.config === "object" && !Array.isArray(d.config)
+          ? (d.config as Record<string, unknown>)
+          : {};
+      return Object.keys(cfg).length === 0;
+    });
+    const cascadeOrgData = hasEmptyConfigs
+      ? await fetchOrgDataForDefaults(organizationId)
+      : undefined;
+
     let documentsUpdated = 0;
     for (const doc of docs) {
       // Если существующий config пустой ({}), подменяем дефолтным от
@@ -207,7 +263,9 @@ export async function cascadeResponsibleToActiveDocuments(input: {
           ? (doc.config as Record<string, unknown>)
           : {};
       const isEmpty = Object.keys(cfgObj).length === 0;
-      const baseCfg = isEmpty ? getDefaultConfigForJournal(journalCode) : cfgObj;
+      const baseCfg = isEmpty
+        ? getDefaultConfigForJournal(journalCode, cascadeOrgData)
+        : cfgObj;
 
       const patched = hasDocumentConfigPatcher(journalCode)
         ? patchDocumentConfig(journalCode, baseCfg, slotUsers, {
@@ -311,10 +369,21 @@ export async function prefillResponsiblesForNewDocument(input: {
   // точки контроля, для general_cleaning — список помещений и т.д.
   // Без этого многие документы создавались с {} → bulk-assign-today
   // потом сообщал «у журнала нет строк для назначения».
+  //
+  // Подтягиваем реальные areas/equipment/products орги, чтобы для
+  // climate появились rooms по цехам, для cold-equipment — все
+  // холодильники, для glass-list — оборудование/продукты, для
+  // equipment-calibration — список оборудования. Без этого при
+  // создании нового документа таблица была пустой и менеджеру
+  // приходилось вручную добавлять каждую строку.
+  const orgData =
+    input.baseConfig && Object.keys(input.baseConfig).length > 0
+      ? undefined
+      : await fetchOrgDataForDefaults(organizationId);
   const baseConfig =
     input.baseConfig && Object.keys(input.baseConfig).length > 0
       ? input.baseConfig
-      : getDefaultConfigForJournal(journalCode);
+      : getDefaultConfigForJournal(journalCode, orgData);
 
   // 1. Читаем сохранённые слоты из Organization JSON.
   const org = await db.organization.findUnique({

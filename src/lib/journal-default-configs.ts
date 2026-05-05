@@ -21,15 +21,27 @@ import { getDefaultAuditReportConfig } from "./audit-report-document";
 import { getBreakdownHistoryDefaultConfig } from "./breakdown-history-document";
 import { getDefaultCleaningDocumentConfig } from "./cleaning-document";
 import { getDefaultCleaningVentilationConfig } from "./cleaning-ventilation-checklist-document";
-import { getDefaultClimateDocumentConfig } from "./climate-document";
-import { getDefaultColdEquipmentDocumentConfig } from "./cold-equipment-document";
+import {
+  buildClimateConfigFromAreas,
+  getDefaultClimateDocumentConfig,
+} from "./climate-document";
+import {
+  buildColdEquipmentConfigFromEquipment,
+  getDefaultColdEquipmentDocumentConfig,
+} from "./cold-equipment-document";
 import { getDisinfectantDefaultConfig } from "./disinfectant-document";
-import { getDefaultEquipmentCalibrationConfig } from "./equipment-calibration-document";
+import {
+  buildEquipmentCalibrationConfigFromEquipment,
+  getDefaultEquipmentCalibrationConfig,
+} from "./equipment-calibration-document";
 import { getDefaultEquipmentCleaningConfig } from "./equipment-cleaning-document";
 import { getDefaultEquipmentMaintenanceConfig } from "./equipment-maintenance-document";
 import { getDefaultFinishedProductDocumentConfig } from "./finished-product-document";
 import { getDefaultGlassControlConfig } from "./glass-control-document";
-import { getDefaultGlassListConfig } from "./glass-list-document";
+import {
+  buildGlassListConfigFromData,
+  getDefaultGlassListConfig,
+} from "./glass-list-document";
 import { getDefaultIntensiveCoolingConfig } from "./intensive-cooling-document";
 import { getDefaultMedBookConfig } from "./med-book-document";
 import { getDefaultMetalImpurityConfig } from "./metal-impurity-document";
@@ -41,14 +53,55 @@ import { getSanitationDayDefaultConfig } from "./sanitation-day-document";
 import { defaultSdcConfig } from "./sanitary-day-checklist-document";
 import { getTrainingPlanDefaultConfig } from "./training-plan-document";
 
-type Provider = () => Record<string, unknown>;
+/**
+ * Org-данные, которые провайдер может опционально использовать для
+ * генерации enriched дефолта (например, climate подтянет rooms из
+ * areas, cold-equipment — equipment по типу холодильник).
+ *
+ * Все поля optional: если caller не передаёт — провайдер делает stub
+ * (один default-row). Если передаёт — провайдер заполняет по реальным
+ * данным.
+ */
+export type DefaultConfigOrgData = {
+  areas?: Array<{ id: string; name: string }>;
+  equipment?: Array<{
+    id: string;
+    name: string;
+    type?: string | null;
+    tempMin?: number | null;
+    tempMax?: number | null;
+  }>;
+  users?: Array<{ id: string; name: string; role: string }>;
+  products?: Array<{ id: string; name: string }>;
+};
+
+type Provider = (orgData?: DefaultConfigOrgData) => Record<string, unknown>;
 
 const PROVIDERS: Record<string, Provider> = {
   // ═══ ТЕМПЕРАТУРА ═══
-  climate_control: () =>
-    getDefaultClimateDocumentConfig() as unknown as Record<string, unknown>,
-  cold_equipment_control: () =>
-    getDefaultColdEquipmentDocumentConfig() as unknown as Record<string, unknown>,
+  climate_control: (orgData) => {
+    if (orgData?.areas && orgData.areas.length > 0) {
+      return buildClimateConfigFromAreas(orgData.areas) as unknown as Record<
+        string,
+        unknown
+      >;
+    }
+    return getDefaultClimateDocumentConfig() as unknown as Record<
+      string,
+      unknown
+    >;
+  },
+  cold_equipment_control: (orgData) => {
+    if (orgData?.equipment && orgData.equipment.length > 0) {
+      return buildColdEquipmentConfigFromEquipment(
+        orgData.equipment
+      ) as unknown as Record<string, unknown>;
+    }
+    return getDefaultColdEquipmentDocumentConfig() as unknown as Record<
+      string,
+      unknown
+    >;
+  },
   intensive_cooling: () =>
     getDefaultIntensiveCoolingConfig([]) as unknown as Record<string, unknown>,
   fryer_oil: () =>
@@ -90,18 +143,46 @@ const PROVIDERS: Record<string, Provider> = {
     getDefaultProductWriteoffConfig() as unknown as Record<string, unknown>,
 
   // ═══ ОБОРУДОВАНИЕ ═══
-  equipment_calibration: () =>
-    getDefaultEquipmentCalibrationConfig(
-      new Date().getUTCFullYear()
-    ) as unknown as Record<string, unknown>,
+  equipment_calibration: (orgData) => {
+    const year = new Date().getUTCFullYear();
+    if (orgData?.equipment && orgData.equipment.length > 0) {
+      const calibrationSource = orgData.equipment.map((e) => ({
+        id: e.id,
+        name: e.name,
+        type: e.type ?? "",
+        tempMin: e.tempMin ?? null,
+        tempMax: e.tempMax ?? null,
+      }));
+      return buildEquipmentCalibrationConfigFromEquipment(calibrationSource, {
+        year,
+      }) as unknown as Record<string, unknown>;
+    }
+    return getDefaultEquipmentCalibrationConfig(year) as unknown as Record<
+      string,
+      unknown
+    >;
+  },
   equipment_maintenance: () =>
     getDefaultEquipmentMaintenanceConfig(
       new Date().getUTCFullYear()
     ) as unknown as Record<string, unknown>,
   breakdown_history: () =>
     getBreakdownHistoryDefaultConfig() as unknown as Record<string, unknown>,
-  glass_items_list: () =>
-    getDefaultGlassListConfig() as unknown as Record<string, unknown>,
+  glass_items_list: (orgData) => {
+    const hasData =
+      (orgData?.equipment && orgData.equipment.length > 0) ||
+      (orgData?.products && orgData.products.length > 0) ||
+      (orgData?.areas && orgData.areas.length > 0);
+    if (hasData) {
+      return buildGlassListConfigFromData({
+        users: orgData?.users ?? [],
+        areas: orgData?.areas ?? [],
+        equipment: orgData?.equipment ?? [],
+        products: orgData?.products ?? [],
+      }) as unknown as Record<string, unknown>;
+    }
+    return getDefaultGlassListConfig() as unknown as Record<string, unknown>;
+  },
   glass_control: () =>
     getDefaultGlassControlConfig() as unknown as Record<string, unknown>,
 
@@ -135,12 +216,13 @@ const PROVIDERS: Record<string, Provider> = {
 };
 
 export function getDefaultConfigForJournal(
-  journalCode: string
+  journalCode: string,
+  orgData?: DefaultConfigOrgData
 ): Record<string, unknown> {
   const provider = PROVIDERS[journalCode];
   if (!provider) return {};
   try {
-    return provider();
+    return provider(orgData);
   } catch (err) {
     // Лёгкая защита от падений в дефолт-генераторах: возвращаем пустой
     // вместо ошибки — лучше создать документ без rows, чем не создать

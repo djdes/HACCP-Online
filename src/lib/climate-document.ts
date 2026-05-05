@@ -122,6 +122,31 @@ export function getDefaultClimateDocumentConfig(): ClimateDocumentConfig {
   };
 }
 
+/**
+ * Пре-заполняет конфиг climate-документа цехами организации.
+ * Если у орги нет ни одного `Area` — fallback на дефолтную одну комнату.
+ *
+ * Каждая комната получает stable id формата `room-area-<slug>` (slug
+ * нормализован из имени) — чтобы повторное создание документа не
+ * создавало дубликаты row-id'ов в task-fill validator'е.
+ */
+export function buildClimateConfigFromAreas(
+  areas: { id: string; name: string }[]
+): ClimateDocumentConfig {
+  if (areas.length === 0) return getDefaultClimateDocumentConfig();
+  return {
+    rooms: areas.map((area, index) =>
+      createClimateRoomConfig({
+        // Используем area.id чтобы id был стабилен между deploy'ями.
+        id: `room-area-${area.id || `idx-${index}`}`,
+        name: area.name,
+      })
+    ),
+    controlTimes: [...DEFAULT_CLIMATE_CONTROL_TIMES],
+    skipWeekends: false,
+  };
+}
+
 export function normalizeClimateDocumentConfig(value: unknown): ClimateDocumentConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return getDefaultClimateDocumentConfig();
