@@ -80,6 +80,52 @@ const ACTION_LABELS: Record<
     label: "Design v2 выключен",
     variant: "secondary",
   },
+  // P1 Pipeline editor — каждая мутация в дереве шагов журнала
+  "settings.journal-pipelines.seed": {
+    label: "Pipeline создан из колонок",
+    variant: "default",
+  },
+  "settings.journal-pipelines.node.create": {
+    label: "Шаг pipeline добавлен",
+    variant: "default",
+  },
+  "settings.journal-pipelines.node.update": {
+    label: "Шаг pipeline обновлён",
+    variant: "secondary",
+  },
+  "settings.journal-pipelines.node.delete": {
+    label: "Шаг pipeline удалён",
+    variant: "destructive",
+  },
+  "settings.journal-pipelines.node.move": {
+    label: "Шаг pipeline перемещён",
+    variant: "secondary",
+  },
+  "settings.journal-pipelines.node.split": {
+    label: "Pinned-шаг разделён",
+    variant: "outline",
+  },
+  "settings.journal-pipelines.clear-custom": {
+    label: "Custom-шаги очищены",
+    variant: "destructive",
+  },
+  // P1 Guide editor — пользовательский гайд «как заполнять» в БД
+  "settings.journal-guides.node.create": {
+    label: "Шаг гайда добавлен",
+    variant: "default",
+  },
+  "settings.journal-guides.node.update": {
+    label: "Шаг гайда обновлён",
+    variant: "secondary",
+  },
+  "settings.journal-guides.node.delete": {
+    label: "Шаг гайда удалён",
+    variant: "destructive",
+  },
+  "settings.journal-guides.node.move": {
+    label: "Шаг гайда перемещён",
+    variant: "secondary",
+  },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -94,6 +140,10 @@ const ENTITY_LABELS: Record<string, string> = {
   TasksFlowIntegration: "Интеграция TasksFlow",
   manager_scope: "Видимость менеджера",
   position: "Должность",
+  JournalPipelineTemplate: "Шаблон pipeline",
+  JournalPipelineNode: "Шаг pipeline",
+  JournalGuideTemplate: "Шаблон гайда",
+  JournalGuideNode: "Шаг гайда",
 };
 
 const JOURNAL_LABEL_BY_CODE: Record<string, string> =
@@ -208,6 +258,70 @@ function renderDetails(entry: AuditEntry): ReactElement {
         <div className="text-[12px] text-[#6f7282]">
           {stepsCount ? `${stepsCount} шаг${stepsCount === 1 ? "" : "ов"}` : ""}
           {dur ? ` · всего ${dur}` : ""}
+        </div>
+      </div>
+    );
+  }
+
+  // P1.10 — Pipeline editor / Guide editor мутации.
+  if (
+    entry.action.startsWith("settings.journal-pipelines.") ||
+    entry.action.startsWith("settings.journal-guides.")
+  ) {
+    const code = (d as { templateCode?: string }).templateCode;
+    const journalLabel =
+      JOURNAL_LABEL_BY_CODE[code ?? ""] ?? code ?? "—";
+    const title = (d as { title?: string }).title;
+    const isPipeline = entry.action.startsWith(
+      "settings.journal-pipelines."
+    );
+
+    let primary = "";
+    if (entry.action === "settings.journal-pipelines.seed") {
+      const count = (d as { createdCount?: number }).createdCount ?? 0;
+      primary = `Создано pinned-узлов: ${count}`;
+    } else if (entry.action === "settings.journal-pipelines.clear-custom") {
+      const removed = (d as { removed?: number }).removed ?? 0;
+      primary = `Удалено custom-узлов: ${removed}`;
+    } else if (entry.action.endsWith(".node.create")) {
+      primary = title ? `«${title}»` : "(новый узел)";
+    } else if (entry.action.endsWith(".node.delete")) {
+      primary = title ? `«${title}»` : "(узел)";
+    } else if (entry.action.endsWith(".node.update")) {
+      // Подсветим какие поля поменялись
+      const changed = Object.keys(d).filter(
+        (k) => k !== "templateCode" && k !== "title"
+      );
+      const titlePart = title ? `«${title}»` : "";
+      const fieldsPart =
+        changed.length > 0 ? ` · поля: ${changed.join(", ")}` : "";
+      primary = `${titlePart}${fieldsPart}`.trim() || "(изменён)";
+    } else if (entry.action.endsWith(".node.move")) {
+      const parent = (d as { parentId?: string | null }).parentId;
+      primary = parent
+        ? "Перемещён внутрь подузла"
+        : "Перемещён на уровень root";
+    } else if (entry.action === "settings.journal-pipelines.node.split") {
+      const partNum = (d as { newPartNumber?: number }).newPartNumber;
+      primary = partNum
+        ? `Разделён → создан «(часть ${partNum})»`
+        : "Разделён";
+    }
+
+    return (
+      <div className="space-y-1">
+        <div className="font-medium text-[#0b1024]">{primary || "—"}</div>
+        <div className="text-[12px] text-[#6f7282]">
+          <span
+            className={`mr-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+              isPipeline
+                ? "bg-[#eef1ff] text-[#3848c7]"
+                : "bg-[#f5f0ff] text-[#7a5cff]"
+            }`}
+          >
+            {isPipeline ? "🌳 Pipeline" : "📖 Guide"}
+          </span>
+          {journalLabel}
         </div>
       </div>
     );
