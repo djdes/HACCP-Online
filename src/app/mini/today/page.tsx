@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 // NOTE: терминология «задачи / Сегодня» — нейтральная, мини-апп
 // никогда не показывает слово «журнал». Сотрудник просто видит
@@ -60,15 +60,23 @@ export default function MiniTodayPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [gate, setGate] = useState<ShiftGate | null>(null);
   const [startingShift, setStartingShift] = useState(false);
+  // mounted-флаг защищает от setState'ов после unmount'а — раньше
+  // быстрое переключение страниц давало "Cannot update unmounted
+  // component" warning + утечка. См. pass-3 review HIGH #6.
+  const mountedRef = useRef(true);
 
   async function loadGate() {
     const res = await fetch("/api/mini/start-shift", { cache: "no-store" });
-    if (res.ok) setGate((await res.json()) as ShiftGate);
+    if (!res.ok) return;
+    const payload = (await res.json()) as ShiftGate;
+    if (mountedRef.current) setGate(payload);
   }
 
   async function load() {
     const res = await fetch("/api/mini/today", { cache: "no-store" });
-    if (res.ok) setData((await res.json()) as Payload);
+    if (!res.ok) return;
+    const payload = (await res.json()) as Payload;
+    if (mountedRef.current) setData(payload);
   }
 
   async function startShift() {
@@ -80,16 +88,20 @@ export default function MiniTodayPage() {
         await load();
       }
     } finally {
-      setStartingShift(false);
+      if (mountedRef.current) setStartingShift(false);
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     (async () => {
       await loadGate();
       // Не загружаем задачи пока gate не пройден — иначе сотрудник
       // мельком увидит список до того как нажал «Начать смену».
     })();
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {

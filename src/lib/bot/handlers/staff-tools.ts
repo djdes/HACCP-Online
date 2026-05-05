@@ -8,6 +8,7 @@ import {
 } from "@/lib/journal-obligation-links";
 import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 import { getUserRoleLabel } from "@/lib/user-roles";
+import { botCallbackRateLimiter } from "@/lib/rate-limit";
 
 /**
  * Команды для линейного сотрудника. В отличие от /today/missing
@@ -72,7 +73,7 @@ function buildShiftKeyboard(args: {
   const rows: InlineKeyboardButton[][] = [];
   if (args.shiftStatus === "working") {
     rows.push([
-      { text: "🛑 Закончить смену", callback_data: "shift:end" },
+      { text: "🛑 Закончить смену", callback_data: "shift-tg:end" },
     ]);
   } else if (args.shiftStatus === "ended" || args.shiftStatus === "absent") {
     // Завершено или пропущено — никаких inline-actions, только web_app.
@@ -84,8 +85,12 @@ function buildShiftKeyboard(args: {
     // Сегодня не на смене по плану — менять статус через бота не даём,
     // чтобы повар случайно не сломал HR-учёт.
   } else {
+    // ВАЖНО: префикс `shift-tg:` (а не `shift:`) — иначе срабатывает
+    // ДВА handler'а одновременно: shift-gate.ts матчит "shift:start"
+    // (status='scheduled') и сразу staff-tools regex /^shift:(start|end)$/
+    // перезаписывает на 'working'. Pass-3 review нашёл это как CRITICAL.
     rows.push([
-      { text: "🟢 Я вышел на смену", callback_data: "shift:start" },
+      { text: "🟢 Я вышел на смену", callback_data: "shift-tg:start" },
     ]);
   }
   if (args.miniAppBaseUrl) {
@@ -234,8 +239,19 @@ export function registerStaffToolsHandlers(composer: Composer<Context>): void {
   // на push'е. Записываем `notificationPrefs.snoozedUntil = now + minutes`,
   // notifyEmployee увидит этот флаг и пропустит будущие отправки.
   composer.callbackQuery(/^notif:snooze:(\d+)$/, async (ctx) => {
-    const minutes = Math.min(24 * 60, Math.max(1, Number(ctx.match[1])));
-    const user = await resolveLinkedUser(ctx.from?.id);
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:notif:snooze`)) {
+      await ctx.answerCallbackQuery({
+        text: "Слишком много кликов, подождите минуту",
+        show_alert: false,
+      });
+      return;
+    }
+    const rawMinutes = Number(ctx.match[1]);
+    if (!Number.isFinite(rawMinutes)) return;
+    const minutes = Math.min(24 * 60, Math.max(1, rawMinutes));
+    const user = await resolveLinkedUser(fromId);
     if (!user) {
       await ctx.answerCallbackQuery({
         text: "Чат не привязан к аккаунту",
@@ -277,9 +293,22 @@ export function registerStaffToolsHandlers(composer: Composer<Context>): void {
   });
 
   // Callback-handler для inline-кнопок start/end из /shift.
-  composer.callbackQuery(/^shift:(start|end)$/, async (ctx) => {
+  // Регекспируем именно `shift-tg:` — НЕ `shift:`, потому что
+  // shift-gate.ts держит «shift:start» под собой (onboarding —
+  // отметка «начал смену», status='scheduled'). Подробнее см. JSDoc
+  // выше у buildShiftKeyboard.
+  composer.callbackQuery(/^shift-tg:(start|end)$/, async (ctx) => {
+    const fromId = ctx.from?.id;
+    if (!fromId) return;
+    if (!botCallbackRateLimiter.consume(`${fromId}:shift-tg`)) {
+      await ctx.answerCallbackQuery({
+        text: "Слишком много кликов, подождите минуту",
+        show_alert: false,
+      });
+      return;
+    }
     const action = ctx.match[1] as "start" | "end";
-    const user = await resolveLinkedUser(ctx.from?.id);
+    const user = await resolveLinkedUser(fromId);
     if (!user) {
       await ctx.answerCallbackQuery({
         text: "Чат не привязан к аккаунту",

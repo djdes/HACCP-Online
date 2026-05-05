@@ -109,12 +109,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // HTML-escape user-controlled fields. notifyEmployee пускает их в
-    // sendMessage с parse_mode: "HTML".
+    // HTML-escape для message — он идёт в sendMessage с parse_mode: HTML.
+    // НО actionLabel НЕ escape'им: Telegram inline-button.text — это
+    // plain-text по контракту Bot API, и `&lt;` будет показан буквально
+    // как «&lt;» вместо «<». Pass-3 review нашёл это как CRITICAL.
+    // Length limit (max 64) уже даёт ограничение через zod-schema.
     const safeMessage = escapeTelegramHtml(message);
     const action =
       actionLabel && actionUrl
-        ? { label: escapeTelegramHtml(actionLabel), miniAppUrl: actionUrl }
+        ? { label: actionLabel, miniAppUrl: actionUrl }
         : undefined;
 
     await notifyEmployee(userId, safeMessage, action);

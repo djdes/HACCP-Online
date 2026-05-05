@@ -346,7 +346,13 @@ export function registerEditHandlers(composer: Composer<Context>): void {
       await ctx.answerCallbackQuery({ text: "Telegram не привязан" });
       return;
     }
-    const page = parseInt(ctx.match?.[1] ?? "0", 10) || 0;
+    // Bound page между 0 и 100 — защита от amplification-DDoS:
+    // edit:page:9999999999 → page=9999999999 → бесплатный full
+    // findMany + ACL resolve. Pass-3 HIGH #9.
+    const rawPage = parseInt(ctx.match?.[1] ?? "0", 10);
+    const page = Number.isFinite(rawPage)
+      ? Math.max(0, Math.min(100, rawPage))
+      : 0;
     const view = await buildTemplateListView(user, page);
     if (!view) {
       await ctx.answerCallbackQuery({ text: "Нет данных" });
@@ -356,7 +362,11 @@ export function registerEditHandlers(composer: Composer<Context>): void {
     await ctx.answerCallbackQuery();
   });
 
-  composer.callbackQuery(/^edit:t:(.+)$/, async (ctx) => {
+  // Tight regex: journal codes — snake_case ≤ 40 chars (см. ACTIVE_JOURNAL_CATALOG).
+  // `(.+)` принимал бы любые байты, что не SQL-injection (Prisma параметризует),
+  // но даёт DDoS-amplification — каждый callback запускает findUnique по
+  // arbitrary code. Pass-3 HIGH #10.
+  composer.callbackQuery(/^edit:t:([a-z_]{1,40})$/, async (ctx) => {
     const user = await resolveBotUser(ctx.from?.id);
     if (!user) {
       await ctx.answerCallbackQuery({

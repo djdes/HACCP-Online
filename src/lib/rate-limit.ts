@@ -118,6 +118,18 @@ export const miniAttachmentRateLimiter = createRateLimiter({
 });
 
 /**
+ * Защита от флуда bot-callback'ов. Кто-то жмёт «следующая страница»
+ * 100 раз/сек или autoclicker'ом флудит «Отложить» — каждый callback
+ * запускает DB-resolve. 30 callback/min на пару (chatId, prefix) —
+ * щедро для нормального UX (нужно чтобы заведующая могла быстро
+ * пролистать список 30 шаблонов), но обрезает abuse.
+ */
+export const botCallbackRateLimiter = createRateLimiter({
+  tokensPerInterval: 30,
+  intervalMs: 60_000,
+});
+
+/**
  * Bulk-assign-today фан-аут: тяжёлая операция, синхронно дёргает TF
  * API десятки раз. 3 запуска / 5 минут на org достаточно для штатного
  * использования; защита от случайного двойного клика и от CSRF-loop'а.

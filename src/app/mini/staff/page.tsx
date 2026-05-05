@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Loader2, UserPlus } from "lucide-react";
 
@@ -37,11 +37,29 @@ export default function MiniStaffPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [notifyStatus, setNotifyStatus] = useState<Record<string, string>>({});
+  // Per-employee timer-id'ы для clearTimeout. Раньше setTimeout не очищался
+  // при unmount → setState на dead component + утечка. Pass-3 review #8.
+  const notifyTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
 
   useEffect(() => {
     if (status !== "authenticated") return;
     loadData();
   }, [status]);
+
+  useEffect(() => {
+    // Clear все pending-timer'ы при unmount компонента.
+    // Снимок ref'a в effect — линтер требует чтобы cleanup не читал
+    // ref.current напрямую (значение может измениться к моменту cleanup).
+    const timers = notifyTimersRef.current;
+    return () => {
+      for (const t of timers.values()) {
+        clearTimeout(t);
+      }
+      timers.clear();
+    };
+  }, []);
 
   async function loadData() {
     try {
@@ -359,13 +377,20 @@ export default function MiniStaffPage() {
                         } catch {
                           setNotifyStatus((s) => ({ ...s, [emp.id]: "error" }));
                         }
-                        setTimeout(() => {
+                        // Очищаем предыдущий timer этого сотрудника
+                        // (повторный клик до 3с на ту же кнопку) и
+                        // запускаем новый.
+                        const existing = notifyTimersRef.current.get(emp.id);
+                        if (existing) clearTimeout(existing);
+                        const timerId = setTimeout(() => {
+                          notifyTimersRef.current.delete(emp.id);
                           setNotifyStatus((s) => {
                             const next = { ...s };
                             delete next[emp.id];
                             return next;
                           });
                         }, 3000);
+                        notifyTimersRef.current.set(emp.id, timerId);
                       }}
                       disabled={notifyStatus[emp.id] === "sending"}
                       className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium disabled:opacity-50"
