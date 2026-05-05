@@ -53,16 +53,28 @@ const COMMENT_FIELD = {
  */
 function buildGenericForm(
   templateCode: string,
-  options: { requirePhoto: boolean }
+  options: { requirePhoto: boolean; templateFields: unknown[] }
 ): TaskFormSchema {
+  // P0.1 closure: даже без pipeline-tree (когда orga ещё не открыла
+  // editor), форма должна писать колонки журнала. Конвертируем поля
+  // `JournalTemplate.fields[]` в TaskFormField и кладём их в `fields`.
+  // Фолбэк-форма тогда показывает: pipeline steps (из filling-guides) +
+  // form-секция со всеми колонками журнала + комментарий.
+  const journalFields: TaskFormField[] = [];
+  for (const raw of options.templateFields) {
+    const tf = templateFieldToTaskFormField(raw);
+    if (tf) journalFields.push(tf);
+  }
+
   const guide = FILLING_GUIDES[templateCode];
   if (!guide || !guide.steps || guide.steps.length === 0) {
     return {
       intro:
-        "Подтвердите выполнение задачи. Можно оставить комментарий — он " +
-        "сохранится в журнал WeSetup как запись.",
+        journalFields.length > 0
+          ? "Заполните колонки журнала и нажмите «Готово»."
+          : "Подтвердите выполнение задачи. Можно оставить комментарий — он сохранится в журнал WeSetup как запись.",
       submitLabel: "Готово",
-      fields: [COMMENT_FIELD],
+      fields: [...journalFields, COMMENT_FIELD],
     };
   }
   // Material-step prepended only if there are materials — это
@@ -99,7 +111,7 @@ function buildGenericForm(
     intro: guide.summary,
     submitLabel: "Готово — записать в журнал",
     pipeline: steps,
-    fields: [COMMENT_FIELD],
+    fields: [...journalFields, COMMENT_FIELD],
   };
 }
 
@@ -391,17 +403,27 @@ export function buildGenericAdapter(
         requirePhoto = false;
       }
 
+      // Загружаем JournalTemplate.fields один раз — они нужны и для
+      // pipeline-tree формы (присоединить field к pinned-узлу), и для
+      // legacy fallback (положить ВСЕ поля как fields[] чтобы worker
+      // мог заполнить колонки журнала).
+      let templateFields: unknown[] = [];
+      try {
+        const tpl = await db.journalTemplate.findUnique({
+          where: { code: templateCode },
+          select: { fields: true },
+        });
+        templateFields = Array.isArray(tpl?.fields)
+          ? (tpl?.fields as unknown[])
+          : [];
+      } catch {
+        templateFields = [];
+      }
+
       if (organizationId) {
         try {
           const tree = await loadPipelineTree(organizationId, templateCode);
           if (tree && tree.nodes.length > 0) {
-            const tpl = await db.journalTemplate.findUnique({
-              where: { code: templateCode },
-              select: { fields: true },
-            });
-            const templateFields = Array.isArray(tpl?.fields)
-              ? (tpl?.fields as unknown[])
-              : [];
             return buildFormFromPipelineTree(tree.nodes, templateFields);
           }
         } catch {
@@ -409,7 +431,7 @@ export function buildGenericAdapter(
         }
       }
 
-      return buildGenericForm(templateCode, { requirePhoto });
+      return buildGenericForm(templateCode, { requirePhoto, templateFields });
     },
 
     async applyRemoteCompletion({ documentId, rowKey, completed, todayKey, values }) {
@@ -438,33 +460,30 @@ export function buildGenericAdapter(
         return raw;
       })();
 
-      // P1.4: если orga настроила pipeline-tree, копируем значения
-      // pinned-узлов (`values[linkedFieldKey]`) в `data[linkedFieldKey]`.
-      // Так колонки журнала реально заполняются заполнителями worker'а.
-      // Best-effort: если что-то упадёт в этой ветке — продолжаем
-      // без linkedFields, чтобы не потерять подтверждение.
+      // P0.1 closure: walk все поля JournalTemplate.fields и копируем
+      // values[fieldKey] → data[fieldKey]. Это даёт реальное заполнение
+      // колонок журнала в обоих режимах (pipeline-tree и legacy
+      // fallback). Если orga настроила pipeline-tree с pinned-нодами,
+      // pinned-узлы тоже пишут в эти же ключи — двойной overlap не
+      // мешает (значение перезаписывается).
       const linkedFieldData: Record<string, unknown> = {};
       try {
-        const doc = await db.journalDocument.findUnique({
-          where: { id: documentId },
-          select: { organizationId: true },
+        const tpl = await db.journalTemplate.findUnique({
+          where: { code: templateCode },
+          select: { fields: true },
         });
-        if (doc?.organizationId) {
-          const tree = await loadPipelineTree(doc.organizationId, templateCode);
-          if (tree) {
-            for (const node of tree.nodes) {
-              if (node.kind !== "pinned" || !node.linkedFieldKey) continue;
-              const v = (values as Record<string, unknown> | undefined)?.[
-                node.linkedFieldKey
-              ];
-              if (v !== undefined && v !== null && v !== "") {
-                linkedFieldData[node.linkedFieldKey] = v;
-              }
-            }
+        const fields = Array.isArray(tpl?.fields)
+          ? (tpl?.fields as Array<{ key?: unknown; auto?: unknown }>)
+          : [];
+        for (const f of fields) {
+          if (typeof f?.key !== "string" || f.auto === true) continue;
+          const v = (values as Record<string, unknown> | undefined)?.[f.key];
+          if (v !== undefined && v !== null && v !== "") {
+            linkedFieldData[f.key] = v;
           }
         }
       } catch {
-        // Игнорируем — comment+pipeline trail всё равно сохраним.
+        // best-effort — comment+pipeline trail всё равно сохраним.
       }
 
       const data = {
