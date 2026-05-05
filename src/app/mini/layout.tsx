@@ -108,7 +108,20 @@ export default async function MiniLayout({
           >
             <MiniThemeBootstrap />
             <MiniTopBar />
-            <main className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4 pb-28 pt-4">
+            {/* Safe-area-inset для iPhone notch и home-indicator. На
+                iPhone X+ Telegram WebApp в expand-режиме растягивается
+                на всю высоту, и без учёта env(safe-area-inset-*) контент
+                клипается под notch'ем сверху и под home-indicator-полосой
+                снизу. pb-28 (нижний nav) дополняем `safe-area-inset-bottom`,
+                pt-4 — `safe-area-inset-top` где notch заходит в шапку. */}
+            <main
+              className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4"
+              style={{
+                paddingTop: "max(1rem, env(safe-area-inset-top))",
+                paddingBottom:
+                  "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))",
+              }}
+            >
               {children}
             </main>
             <OfflineIndicator />

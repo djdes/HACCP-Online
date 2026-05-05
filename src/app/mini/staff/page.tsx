@@ -64,13 +64,34 @@ export default function MiniStaffPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (formLoading) return; // mutex: защита от двойного submit'а
     setFormError(null);
     setFormLoading(true);
     const fd = new FormData(e.currentTarget);
+    const rawPhone = String(fd.get("phone") ?? "").trim();
+    // Нормализация телефона перед отправкой:
+    //  - принимаем +7…, 7…, 8…, и просто 10-значный (российский номер
+    //    без префикса). Сервер ожидает точную форму — подгоняем тут,
+    //    чтобы пользователь не получал cryptic 400 при «8 985…».
+    //  - удаляем все нецифровые символы, ведущий +.
+    const digits = rawPhone.replace(/[^\d]/g, "");
+    let normalized = digits;
+    if (normalized.length === 11 && (normalized.startsWith("7") || normalized.startsWith("8"))) {
+      normalized = "7" + normalized.slice(1);
+    } else if (normalized.length === 10) {
+      normalized = "7" + normalized;
+    }
+    if (normalized.length !== 11 || !normalized.startsWith("7")) {
+      setFormError(
+        "Телефон должен быть российский (11 цифр, начинается с 7 или 8)"
+      );
+      setFormLoading(false);
+      return;
+    }
     const body = {
       jobPositionId: fd.get("position") as string,
-      fullName: fd.get("name") as string,
-      phone: fd.get("phone") as string,
+      fullName: String(fd.get("name") ?? "").trim(),
+      phone: "+" + normalized,
     };
     try {
       const resp = await fetch("/api/mini/staff", {
