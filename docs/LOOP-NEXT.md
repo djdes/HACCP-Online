@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.3 wave-c — DnD reorder + split-pinned button** через `@dnd-kit/sortable`.
+**Текущий приоритет:** **P1.3 wave-d — live wizard preview pane** справа от tree-editor'а.
 
 ---
 
@@ -94,7 +94,15 @@
   - Клик по ⚙ открывает модалку. PATCH `/nodes/[id]` с полями: title, detail, hint, photoMode (3-кнопочный selector none/optional/required), requireComment, requireSignature
   - Pinned-узлы показывают `linkedFieldKey` в info-блоке (нельзя менять)
   - `useNodeSync` хук подсасывает поля узла в state каждый раз, когда модалка открывается (иначе старое значение остаётся)
-- [ ] **wave-c** — DnD reorder через @dnd-kit/sortable + split-pinned button
+- [x] **wave-c @ 94b40e83 @ 2026-05-05 11:30 МСК** — DnD reorder + split-pinned:
+  - Установлены `@dnd-kit/core@^6.3.1`, `@dnd-kit/sortable@^10.0.0`, `@dnd-kit/utilities@^3.2.2`
+  - `DndContext` + `SortableContext` + `verticalListSortingStrategy` обернули tree-list
+  - Каждая строка вынесена в `<SortableNodeRow>`. Drag-handle (GripVertical) на левом краю — `useSortable` listeners на этом button'е, остальная строка кликабельна для edit
+  - `handleDragEnd` вычисляет новый `ordering` по формуле `(prev + next) / 2` (для float-ordering без reindexing). Edge cases: первая позиция = `next/2`, последняя = `prev + 1024`
+  - Optimistic UI — local state меняется сразу, потом PATCH `/move`. Rollback через `refresh()` если 4xx/5xx
+  - DnD работает только на root-level (parentId=null) — nested moves вынесены в P1.7
+  - `<Split>` icon-button на pinned-узлах → POST `/split`. Toast «Узел разделён», новый узел сразу появляется ниже оригинала
+  - Hint: «Перетаскивайте узлы за иконку ⋮ чтобы изменить порядок» под списком
 - [ ] **wave-d** — live wizard preview справа
 
 ### [ ] P1.4 — Generic-adapter использует JournalPipelineTemplate
