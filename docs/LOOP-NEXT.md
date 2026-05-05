@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.8 — Split UX polish** (split-pinned кнопка уже работает, можно добавить confirm-modal с описанием что произойдёт + проверить behavior на повторных split'ах).
+**Текущий приоритет:** **P1.9 — Clear-custom button** (кнопка «Удалить все custom-узлы» с typeToConfirm).
 
 ---
 
@@ -173,11 +173,10 @@
 - WizardPreview в editor'е применяет тот же indent (depthOf-расчёт по nodes flat list) — preview показывает как будет выглядеть в проде
 - DnD пока работает только на root-level (parentId=null), nested-DnD вынесено как wave-b если понадобится (можно создавать подшаги через кнопку — это закрывает 90% use-case'ов)
 
-### [ ] P1.8 — Split pinned node
-- Кнопка «Разделить» на pinned-узле
-- Создаёт два pinned со ссылкой на тот же linkedFieldKey
-- Title первого = «<title> (часть 1)», второго = «(часть 2)»
-- Можно потом редактировать названия
+### [x] P1.8 — Split pinned node — DONE @ 879e51da @ 2026-05-05 14:30 МСК
+- API endpoint `POST /[code]/nodes/[id]/split` — DONE @ 43360d86 (P1.2 wave-b)
+- UI кнопка `<Split>` icon на pinned-узлах — DONE @ 94b40e83 (P1.3 wave-c)
+- **Confirm-modal перед split** — добавлен в этом коммите. Variant=info, описывает что произойдёт + 3 bullets о пользе («оба пишут в одну колонку», «удобно для разных людей/мест», «можно сколько угодно — номер части растёт»). Без confirm split'ы случайные/не понятные — менеджер видит «появилось два шага» и не понимает откуда
 
 ### [ ] P1.9 — Clear-custom button
 - Удаляет всех `kind = "custom"` узлов в шаблоне
