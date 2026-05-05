@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,8 @@ type Props = {
   status: string;
   initialConfig: ProductWriteoffConfig;
   users: UserItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 type RowDialogState = {
@@ -93,6 +96,7 @@ export function ProductWriteoffDocumentClient({
   status,
   initialConfig,
   users,
+  useV2 = false,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -451,36 +455,96 @@ export function ProductWriteoffDocumentClient({
         </div>
       </div>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
-          <DialogHeader className="border-b px-8 py-6">
-            <DialogTitle className="text-[24px] font-medium text-black">Настройки документа</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 px-8 py-6">
+      {useV2 ? (
+        <JournalSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          title="Настройки документа"
+          description="Название журнала, № акта, дата и комментарий."
+          size="md"
+          isSaving={saving}
+          onSave={async () => {
+            await saveSettings();
+          }}
+          onCancel={() => setSettingsOpen(false)}
+        >
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Название документа
+            </Label>
+            <Input
+              value={config.documentName}
+              onChange={(event) => updateConfig({ documentName: event.target.value })}
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Название документа</Label>
-              <Input value={config.documentName} onChange={(event) => updateConfig({ documentName: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                № акта
+              </Label>
+              <Input
+                value={config.actNumber}
+                onChange={(event) => updateConfig({ actNumber: event.target.value })}
+                placeholder="Например: 1"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              />
             </div>
             <div className="space-y-2">
-              <Label>№ акта</Label>
-              <Input value={config.actNumber} onChange={(event) => updateConfig({ actNumber: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            </div>
-            <div className="space-y-2">
-              <Label>Дата документа</Label>
-              <Input type="date" value={config.documentDate} onChange={(event) => updateConfig({ documentDate: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            </div>
-            <div className="space-y-2">
-              <Label>Комментарий</Label>
-              <Textarea value={config.comment} onChange={(event) => updateConfig({ comment: event.target.value })} className="min-h-[160px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]" />
-            </div>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => saveSettings().catch(() => undefined)} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
-                {saving ? "Сохранение..." : "Сохранить"}
-              </Button>
+              <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Дата документа
+              </Label>
+              <Input
+                type="date"
+                value={config.documentDate}
+                onChange={(event) => updateConfig({ documentDate: event.target.value })}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              />
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-2">
+            <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Комментарий
+            </Label>
+            <Textarea
+              value={config.comment}
+              onChange={(event) => updateConfig({ comment: event.target.value })}
+              className="min-h-[100px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[14px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+        </JournalSettingsModal>
+      ) : (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
+            <DialogHeader className="border-b px-8 py-6">
+              <DialogTitle className="text-[24px] font-medium text-black">Настройки документа</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 px-8 py-6">
+              <div className="space-y-2">
+                <Label>Название документа</Label>
+                <Input value={config.documentName} onChange={(event) => updateConfig({ documentName: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>№ акта</Label>
+                <Input value={config.actNumber} onChange={(event) => updateConfig({ actNumber: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>Дата документа</Label>
+                <Input type="date" value={config.documentDate} onChange={(event) => updateConfig({ documentDate: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>Комментарий</Label>
+                <Textarea value={config.comment} onChange={(event) => updateConfig({ comment: event.target.value })} className="min-h-[160px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]" />
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" onClick={() => saveSettings().catch(() => undefined)} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
+                  {saving ? "Сохранение..." : "Сохранить"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Dialog open={rowDialog.open} onOpenChange={(open) => {
         if (open) return;
