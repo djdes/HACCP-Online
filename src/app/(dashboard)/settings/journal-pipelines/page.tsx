@@ -62,6 +62,18 @@ export default async function JournalPipelinesPage() {
     { steps: { id: string }[] }
   >;
 
+  const treeTemplates = await db.journalPipelineTemplate.findMany({
+    where: { organizationId },
+    select: {
+      templateCode: true,
+      _count: { select: { nodes: true } },
+    },
+  });
+  const treeStatus = new Map<string, number>();
+  for (const tpl of treeTemplates) {
+    treeStatus.set(tpl.templateCode, tpl._count.nodes);
+  }
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
@@ -107,10 +119,10 @@ export default async function JournalPipelinesPage() {
         {ALL_JOURNALS.map((j) => {
           const hasOverride = Boolean(overrides[j.code]?.steps?.length);
           const hasDefault = Boolean(getDefaultPipeline(j.code));
+          const treeNodeCount = treeStatus.get(j.code) ?? 0;
           return (
-            <Link
+            <div
               key={j.code}
-              href={`/settings/journal-pipelines/${j.code}`}
               className="group rounded-2xl border border-[#ececf4] bg-white p-4 transition-colors hover:border-[#5566f6]/40 hover:bg-[#fafbff]"
             >
               <div className="flex items-start gap-3">
@@ -132,10 +144,10 @@ export default async function JournalPipelinesPage() {
                   <div className="mt-0.5 font-mono text-[10px] text-[#9b9fb3]">
                     {j.code}
                   </div>
-                  <div className="mt-1.5 text-[11px]">
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
                     {hasOverride ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 font-medium text-[#3848c7]">
-                        ✓ Настроен
+                        ✓ Legacy
                       </span>
                     ) : hasDefault ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#fafbff] px-2 py-0.5 text-[#6f7282]">
@@ -146,10 +158,29 @@ export default async function JournalPipelinesPage() {
                         Без pipeline
                       </span>
                     )}
+                    {treeNodeCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#5566f6] px-2 py-0.5 font-medium text-white">
+                        🌳 {treeNodeCount} узлов
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
-            </Link>
+              <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#ececf4] pt-3 text-[12px]">
+                <Link
+                  href={`/settings/journal-pipelines/${j.code}`}
+                  className="rounded-full px-2.5 py-1 text-[#3848c7] hover:bg-[#eef1ff]"
+                >
+                  Legacy редактор →
+                </Link>
+                <Link
+                  href={`/settings/journal-pipelines-tree/${j.code}`}
+                  className="rounded-full px-2.5 py-1 text-[#5566f6] hover:bg-[#f5f6ff]"
+                >
+                  🌳 Дерево (beta) →
+                </Link>
+              </div>
+            </div>
           );
         })}
       </div>
