@@ -1025,6 +1025,7 @@ export default async function JournalDocumentPage({
         initialConfig={normalizeRegisterDocumentConfig(document.config, fields)}
         users={enrichedEmployees}
         equipment={equipment}
+        useV2={Boolean(organization?.experimentalUiV2)}
       />
     );
   }

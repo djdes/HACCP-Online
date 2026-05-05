@@ -47,6 +47,7 @@ import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JOURNAL_DIALOG_BODY_CLASS,
@@ -82,6 +83,8 @@ type Props = {
   initialConfig: RegisterDocumentConfig;
   users: EmployeeItem[];
   equipment: EquipmentItem[];
+  /** Design v2 toggle. */
+  useV2?: boolean;
 };
 
 function formatDate(date: string) {
@@ -314,6 +317,7 @@ function SettingsDialog({
   users,
   config,
   onSave,
+  useV2 = false,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -321,6 +325,7 @@ function SettingsDialog({
   users: EmployeeItem[];
   config: RegisterDocumentConfig;
   onSave: (params: { title: string; config: RegisterDocumentConfig }) => Promise<void>;
+  useV2?: boolean;
 }) {
   const [documentTitle, setDocumentTitle] = useState(title);
   const [userId, setUserId] = useState(config.defaultResponsibleUserId || "");
@@ -351,6 +356,73 @@ function SettingsDialog({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (useV2) {
+    return (
+      <JournalSettingsModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Настройки журнала"
+        description="Название и ответственный сотрудник по умолчанию."
+        size="md"
+        isSaving={isSubmitting}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+      >
+        <div className="space-y-2">
+          <Label
+            htmlFor="register-title-v2"
+            className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+          >
+            Название журнала
+          </Label>
+          <Input
+            id="register-title-v2"
+            value={documentTitle}
+            onChange={(event) => setDocumentTitle(event.target.value)}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Ответственный по умолчанию
+          </Label>
+          <Select
+            value={userId}
+            onValueChange={(nextValue) => {
+              setUserId(nextValue);
+              const user = users.find((item) => item.id === nextValue);
+              if (user && !responsibleTitle) {
+                setResponsibleTitle(getHygienePositionLabel(user.role));
+              }
+            }}
+          >
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectValue placeholder="— Выберите —" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Должность ответственного
+          </Label>
+          <Input
+            value={responsibleTitle}
+            onChange={(event) => setResponsibleTitle(event.target.value)}
+            placeholder="Например: Управляющий"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+        </div>
+      </JournalSettingsModal>
+    );
   }
 
   return (
@@ -439,6 +511,7 @@ export function RegisterDocumentClient({
   initialConfig,
   users,
   equipment,
+  useV2 = false,
 }: Props) {
   // organizationName используется в JournalDocumentHeader ниже.
   const router = useRouter();
@@ -759,6 +832,7 @@ export function RegisterDocumentClient({
         users={users}
         config={config}
         onSave={handleSaveSettings}
+        useV2={useV2}
       />
 
       <RowDialog
