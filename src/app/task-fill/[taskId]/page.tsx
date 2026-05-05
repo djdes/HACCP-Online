@@ -9,6 +9,7 @@ import {
   utcDayStart,
 } from "@/lib/journal-close-events";
 import { TaskFillClient } from "./task-fill-client";
+import { TaskVerifyClient } from "./task-verify-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,6 +81,126 @@ export default async function TaskFillPage({
             : "Токен повреждён или не подходит к этой задаче."
         }
         returnUrl={returnUrl}
+      />
+    );
+  }
+
+  // Если это verifier-task (kind === "verifier") — рендерим
+  // отдельный verify-flow вместо обычной формы заполнения. Verifier
+  // видит read-only сводку записей + кнопки «Принять / Вернуть на
+  // доработку», а не предзаполнение колонок снова.
+  if (link.kind === "verifier") {
+    const [doc, template, verifierEmployee, entries] = await Promise.all([
+      db.journalDocument.findUnique({
+        where: { id: link.journalDocumentId },
+        select: {
+          id: true,
+          title: true,
+          verifierUserId: true,
+          responsibleUserId: true,
+          verificationStatus: true,
+          verificationRejectReason: true,
+          template: { select: { code: true, name: true, fields: true } },
+        },
+      }),
+      Promise.resolve(null), // placeholder, unused for verifier
+      // Имя verifier'а — для шапки. Лучше брать из rowKey, но
+      // verifier-rowKey формат — `verifier-summary:<docId>`, без user-id.
+      // Используем doc.verifierUserId.
+      (async () => {
+        const id =
+          (await db.journalDocument.findUnique({
+            where: { id: link.journalDocumentId },
+            select: { verifierUserId: true, responsibleUserId: true },
+          }))?.verifierUserId ?? null;
+        if (!id) return null;
+        return db.user.findUnique({
+          where: { id },
+          select: { name: true, positionTitle: true },
+        });
+      })(),
+      db.journalDocumentEntry.findMany({
+        where: { documentId: link.journalDocumentId },
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          data: true,
+          verificationStatus: true,
+          employee: {
+            select: { name: true, positionTitle: true },
+          },
+        },
+      }),
+    ]);
+    if (!doc) notFound();
+
+    void template;
+
+    // Маппинг JSON-полей в человеко-читаемые label'ы:
+    // template.fields[].key -> .label
+    const fieldsArr = Array.isArray(doc.template.fields)
+      ? (doc.template.fields as Array<{ key?: unknown; label?: unknown }>)
+      : [];
+    const labelByKey = new Map<string, string>();
+    for (const f of fieldsArr) {
+      if (typeof f?.key === "string") {
+        labelByKey.set(
+          f.key,
+          typeof f?.label === "string" && f.label ? f.label : f.key
+        );
+      }
+    }
+
+    const entryViews = entries.map((e) => {
+      const data = (e.data ?? {}) as Record<string, unknown>;
+      const fields: Array<{ label: string; value: string }> = [];
+      for (const [key, val] of Object.entries(data)) {
+        // Skip internal/meta keys
+        if (
+          key === "source" ||
+          key === "templateCode" ||
+          key === "completedAt" ||
+          key === "pipeline" ||
+          key.startsWith("_")
+        )
+          continue;
+        if (val === null || val === undefined || val === "") continue;
+        const label = labelByKey.get(key) ?? key;
+        const valStr =
+          typeof val === "boolean"
+            ? val
+              ? "Да"
+              : "Нет"
+            : typeof val === "object"
+              ? JSON.stringify(val)
+              : String(val);
+        if (valStr.length > 0) {
+          fields.push({ label, value: valStr });
+        }
+      }
+      return {
+        id: e.id,
+        date: e.date.toISOString().slice(0, 10),
+        employeeName: e.employee?.name ?? "—",
+        employeePosition: e.employee?.positionTitle ?? null,
+        verificationStatus: e.verificationStatus,
+        fields,
+      };
+    });
+
+    return (
+      <TaskVerifyClient
+        taskId={taskId}
+        token={token}
+        journalLabel={doc.template.name}
+        documentTitle={doc.title}
+        documentClosed={false}
+        documentVerificationStatus={doc.verificationStatus}
+        previousRejectReason={doc.verificationRejectReason}
+        entries={entryViews}
+        verifierName={verifierEmployee?.name ?? "Проверяющий"}
+        returnUrl={returnUrl ?? null}
       />
     );
   }
