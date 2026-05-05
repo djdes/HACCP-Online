@@ -18,7 +18,7 @@
 
 > При запуске loop — берётся топ из P0. Если P0 пуст → P1. Если P1 пуст → P2.
 
-**Текущий приоритет:** **P1.2.b — seed + split endpoints** (требуют чтения JournalSpec.fields). Затем P1.3 — UI.
+**Текущий приоритет:** **P1.3 — Pipeline editor UI** (drag-drop tree редактор `/settings/journal-pipelines/[code]`).
 
 ---
 
@@ -64,7 +64,7 @@
 - `npx prisma generate` clean локально, `prisma db push` отработал в deploy.yml на проде, PM2 stable
 - Acceptance: типы доступны через `db.journalPipelineTemplate.create({...})` и т.д.
 
-### [x] P1.2 — API: GET/PATCH/POST/DELETE для pipeline tree — DONE wave-a @ a97a8a0b @ 2026-05-05 10:05 МСК
+### [x] P1.2 — API: GET/PATCH/POST/DELETE для pipeline tree — DONE wave-a @ a97a8a0b @ 2026-05-05 10:05 МСК + wave-b @ 43360d86 @ 2026-05-05 10:25 МСК (8/8 endpoints)
 - 6 endpoints из 8 закрыты:
   - `GET /api/settings/journal-pipelines/[code]` — load tree (добавлен в legacy-route.ts)
   - `POST /[code]/nodes` — создать custom-узел
@@ -75,8 +75,10 @@
 - Все защищены `requireApiAuth` + `hasFullWorkspaceAccess` (401/403)
 - Каждая мутация пишет AuditLog (`settings.journal-pipelines.*`)
 - Helper-модуль `src/lib/journal-pipeline-tree.ts` — `findPipelineTemplate`, `ensurePipelineTemplate`, `loadPipelineTree`, `computeNextOrdering`
-- **Wave-b (вынесено):** `POST /[code]/seed` (initial seed pinned из JournalSpec.fields) и `POST /[code]/nodes/[id]/split` (split pinned на два) — требуют доступа к journal-spec, делаем отдельным коммитом
-- Acceptance: 401 на unauthenticated curl ко всем 6 endpoint'ам, prod не сломан, login=200
+- **Wave-b @ 43360d86:** добавлены последние 2 endpoint'а:
+  - `POST /[code]/seed` — создаёт pinned-узлы по `JournalTemplate.fields[]`. Идемпотентно: если pinned уже есть → 409.
+  - `POST /[code]/nodes/[id]/split` — разделяет pinned на два с тем же `linkedFieldKey`. Title оригинала становится «(часть 1)», новый — «(часть 2)». Поддерживает повторный split (увеличивает номер). $transaction для atomicity.
+- Acceptance: 401 на unauthenticated POST ко всем 8 endpoint'ам, GET/DELETE на seed → 405, prod не сломан, login=200
 
 ### [ ] P1.3 — Pipeline editor UI с drag-drop
 - Страница `src/app/(dashboard)/settings/journal-pipelines/[code]/page.tsx`
@@ -313,6 +315,7 @@
 - [2026-05-05] `b4f678b6`: shared-toolbar approach (StaffJournalToolbar используется hygiene + health) → одна правка покрывает 2 журнала. Лучший ROI на коммит. ОДНАКО health имеет custom onSettingsClick override со своей собственной settingsOpen-модалкой (для printEmptyRows) — она НЕ покрылась, нужен отдельный wave-1.b. Принцип: shared component миграция покрывает только common-path; per-journal customizations требуют отдельных миграций.
 - [2026-05-05] `2e1cd3e7`: nested document-clients (TrackedDocumentClient → PestControlDocumentClientImpl) — useV2 нужно пробрасывать через ВСЕ уровни, иначе wrapper вызывает Impl без флага и v2 не активируется. Решение: outer Props получает useV2, передаёт его в spread `{...props}`, Impl деструктурит `useV2 = false` явно.
 - [2026-05-05] `43e70208`: для journals с вынесенным `*SettingsDialog`-компонентом (uv-lamp-runtime, training-plan) — добавлять `useV2?: boolean` в его собственные props и ветвиться внутри него (`if (props.useV2) return <JournalSettingsModal>`). Это ровно так же чисто, как inline-shim в основном клиенте, плюс позволяет переиспользовать `handleSave`. Pattern: если Settings уже извлечён в функцию — useV2 живёт в её props, иначе — inline в основном клиенте.
+- [2026-05-05] `43360d86`: после деплоя НОВЫЕ API-route файлы могут несколько секунд возвращать 404/500 пока Next.js dev-warm-up или ISR-cache не отработают. Smoke-тесты сразу после `DEPLOY MATCH` могут показать ложный fail. Workaround: повторный curl через 10-15с — статусы стабилизируются. Не паниковать и не откатывать на первой попытке.
 
 ---
 
