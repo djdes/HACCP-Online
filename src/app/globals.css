@@ -363,56 +363,66 @@
  * light themes выглядят молочно на dark фоне. В dark-режиме гасим
  * gradient до плоского цвета (overrides --tw-gradient-from/to). */
 
-/* From light surface hex → dark equivalents */
-.app-shell[data-app-theme="dark"] .from-\[\#fff4f2\],
-.app-shell[data-app-theme="dark"] .from-\[\#fff8eb\] {
-  --tw-gradient-from: rgba(161, 58, 50, 0.16) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+/* В Tailwind v4 gradient cached в --tw-gradient-stops (full string).
+ * Override on individual --tw-gradient-from не помогает — stops уже
+ * содержит резолвенный from-цвет. Решение: переопределяем
+ * background-image напрямую. В dark theme гасим light gradients до
+ * плоского цвета — выглядит чище чем странный mix dark+light. */
+
+/* Light from + light to → solid soft surface dark */
+.app-shell[data-app-theme="dark"] .from-\[\#fff4f2\].to-\[\#fafbff\],
+.app-shell[data-app-theme="dark"] .from-\[\#fff8eb\].to-\[\#fafbff\],
+.app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\].to-\[\#fafbff\],
+.app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\].to-\[\#ffffff\],
+.app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\].to-\[\#fff\],
+.app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\].to-white,
+.app-shell[data-app-theme="dark"] .from-amber-50.to-white,
+.app-shell[data-app-theme="dark"] .from-rose-50.to-white,
+.app-shell[data-app-theme="dark"] .from-amber-50,
+.app-shell[data-app-theme="dark"] .from-rose-50 {
+  background-image: none !important;
+}
+.app-shell[data-app-theme="dark"] .from-\[\#fff4f2\].to-\[\#fafbff\] {
+  background-color: rgba(161, 58, 50, 0.12) !important;
+}
+.app-shell[data-app-theme="dark"] .from-\[\#fff8eb\].to-\[\#fafbff\] {
+  background-color: rgba(245, 158, 11, 0.12) !important;
 }
 .app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\] {
-  --tw-gradient-from: #1a1f3a !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+  background-color: #1a1f3a !important;
 }
-.app-shell[data-app-theme="dark"] .from-\[\#fafbff\] {
-  --tw-gradient-from: #0e1224 !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
-}
-.app-shell[data-app-theme="dark"] .from-\[\#fde68a\] {
-  --tw-gradient-from: rgba(245, 158, 11, 0.2) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
-}
-
-/* TO target — same set */
-.app-shell[data-app-theme="dark"] .to-\[\#fff4f2\],
-.app-shell[data-app-theme="dark"] .to-\[\#fff8eb\] {
-  --tw-gradient-to: rgba(161, 58, 50, 0.16) !important;
-}
-.app-shell[data-app-theme="dark"] .to-\[\#f5f6ff\] {
-  --tw-gradient-to: #1a1f3a !important;
-}
-.app-shell[data-app-theme="dark"] .to-\[\#fafbff\] {
-  --tw-gradient-to: #0e1224 !important;
-}
-.app-shell[data-app-theme="dark"] .to-\[\#ffffff\],
-.app-shell[data-app-theme="dark"] .to-\[\#fff\],
-.app-shell[data-app-theme="dark"] .to-white {
-  --tw-gradient-to: #131726 !important;
-}
-
-/* Tailwind's named light scales used in compliance-audit page */
 .app-shell[data-app-theme="dark"] .from-amber-50 {
-  --tw-gradient-from: rgba(245, 158, 11, 0.16) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+  background-color: rgba(245, 158, 11, 0.12) !important;
 }
 .app-shell[data-app-theme="dark"] .from-rose-50 {
-  --tw-gradient-from: rgba(244, 63, 94, 0.16) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+  background-color: rgba(244, 63, 94, 0.12) !important;
 }
 .app-shell[data-app-theme="dark"] .border-amber-300 {
   border-color: rgba(245, 158, 11, 0.45) !important;
 }
 .app-shell[data-app-theme="dark"] .border-rose-300 {
   border-color: rgba(244, 63, 94, 0.45) !important;
+}
+
+/* Catch-all: любой класс bg-gradient-to-* с from-[#ff*] (всегда light)
+ * — гасим gradient до tinted dark. Это safety-net для gradient-комбинаций
+ * которые я мог пропустить выше. */
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#ff"]:not([class*="from-[#fde"]) {
+  background-image: none !important;
+  background-color: #131726 !important;
+}
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#fa"] {
+  background-image: none !important;
+  background-color: #0e1224 !important;
+}
+.app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#f5"]:not([class*="from-[#5"]) {
+  background-image: none !important;
+  background-color: #1a1f3a !important;
+}
+
+/* #f7f8ff — saving-row highlight в hygiene/health grids */
+.app-shell[data-app-theme="dark"] .bg-\[\#f7f8ff\] {
+  background-color: #1a1f3a !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════
