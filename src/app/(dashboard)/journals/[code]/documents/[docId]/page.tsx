@@ -790,6 +790,7 @@ export default async function JournalDocumentPage({
             data: normalizeFryerOilEntryData(entry.data),
           }))}
           routeCode={code}
+          useV2={Boolean(organization?.experimentalUiV2)}
         />
       );
     }
