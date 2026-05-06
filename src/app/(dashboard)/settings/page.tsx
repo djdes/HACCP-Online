@@ -542,6 +542,8 @@ const GROUP_JOURNALS = new Set([
   "/settings/journal-responsibles",
   "/settings/journal-pipelines",
   "/settings/journal-flow",
+  "/settings/journal-task-mode",
+  "/settings/journal-checklists",
   "/settings/journal-periods",
   "/settings/journal-bonuses",
   "/settings/journal-difficulty",
@@ -550,6 +552,7 @@ const GROUP_JOURNALS = new Set([
   "/settings/auto-journals",
   "/settings/journal-access",
   "/settings/journals-by-position",
+  "/settings/onboarding-template",
   "/settings/areas",
   "/settings/products",
 ]);
