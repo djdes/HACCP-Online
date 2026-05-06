@@ -27,6 +27,7 @@ import {
   setCleaningMatrixValue,
   toggleCleaningMatrixValue,
   type CleaningDocumentConfig,
+  type CleaningMatrixValue,
   type CleaningResponsible,
   type CleaningResponsibleKind,
   type CleaningRoomItem,
@@ -138,6 +139,24 @@ export function CleaningDocumentClient(props: Props) {
   const [config, setConfig] = useState(normalized);
   const [saving, setSaving] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
+  // Multi-select cells (rowId::dateKey) для bulk-edit. Когда `cellSelectMode`
+  // ON, клик по ячейке вместо cycle-через-значения добавляет/убирает её
+  // из selection. Bulk-toolbar появляется когда selection.size > 0.
+  const [cellSelectMode, setCellSelectMode] = useState(false);
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  const cellKey = (rowId: string, dateKey: string) => `${rowId}::${dateKey}`;
+  function toggleCellSelection(rowId: string, dateKey: string) {
+    const k = cellKey(rowId, dateKey);
+    setSelectedCells((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }
+  function clearCellSelection() {
+    setSelectedCells(new Set());
+  }
   const [roomDialog, setRoomDialog] = useState<RoomFormState | null>(null);
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -406,9 +425,57 @@ export function CleaningDocumentClient(props: Props) {
     // В rooms-mode ячейки read-only — заполняются TasksFlow webhook'ом
     // когда уборщик закрывает свою задачу. Прямой клик игнорируем.
     if (isRoomsMode) return;
+    // Если включён режим выделения — клик добавляет/убирает ячейку
+    // из selection (а не циклит значение).
+    if (cellSelectMode) {
+      toggleCellSelection(row.id, dateKey);
+      return;
+    }
     const currentValue = config.matrix[row.id]?.[dateKey] || "";
     const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
     await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
+  }
+
+  /**
+   * Bulk-set значения для всех selectedCells (rowId::dateKey). Один
+   * patchDocument вместо N — быстрее и атомарно. После успеха выделение
+   * сбрасывается.
+   */
+  async function bulkSetSelectedCells(value: CleaningMatrixValue) {
+    if (props.status !== "active" || isRoomsMode) return;
+    if (selectedCells.size === 0) return;
+    let nextConfig = config;
+    for (const k of selectedCells) {
+      const [rowId, dateKey] = k.split("::");
+      if (!rowId || !dateKey) continue;
+      // responsible-rows используют свой code как значение, не T/G/«/».
+      // Bulk-edit предназначен для room-rows; для responsible пропустим.
+      const isRoom = config.rooms.some((r) => r.id === rowId);
+      if (!isRoom) continue;
+      nextConfig = setCleaningMatrixValue({
+        config: nextConfig,
+        rowId,
+        dateKey,
+        value,
+      });
+    }
+    try {
+      await patchDocument(nextConfig);
+      const labelMap: Record<CleaningMatrixValue, string> = {
+        "": "очищены",
+        T: "помечены «Текущая»",
+        G: "помечены «Генеральная»",
+        "/": "помечены «Не проводилась»",
+      };
+      toast.success(
+        `Ячеек обновлено: ${selectedCells.size} (${labelMap[value] ?? "обновлены"})`,
+      );
+      clearCellSelection();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось обновить ячейки",
+      );
+    }
   }
 
   async function deleteSelectedRows() {
@@ -607,6 +674,80 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
+        {/* Bulk-edit toolbar — мультивыделение ячеек + bulk-set значения.
+            Показывается ТОЛЬКО когда документ active И не rooms-mode
+            (в rooms-mode ячейки заполняются из TasksFlow webhook'а). */}
+        {!printMode && props.status === "active" && !isRoomsMode ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ececf4] bg-white px-3 py-2 text-[13px]">
+            <button
+              type="button"
+              onClick={() => {
+                if (cellSelectMode) {
+                  setCellSelectMode(false);
+                  clearCellSelection();
+                } else {
+                  setCellSelectMode(true);
+                }
+              }}
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
+            >
+              {cellSelectMode ? "Выделение ячеек: ВКЛ" : "Выделить ячейки"}
+            </button>
+            {cellSelectMode ? (
+              <>
+                <span className="text-[12px] text-[#6f7282]">
+                  Выделено: <span className="font-semibold tabular-nums text-[#0b1024]">{selectedCells.size}</span>
+                </span>
+                <span className="hidden text-[#dcdfed] sm:inline">·</span>
+                <button
+                  type="button"
+                  disabled={selectedCells.size === 0}
+                  onClick={() => bulkSetSelectedCells("T" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
+                >
+                  T · Текущая
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedCells.size === 0}
+                  onClick={() => bulkSetSelectedCells("G" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
+                >
+                  G · Генеральная
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedCells.size === 0}
+                  onClick={() => bulkSetSelectedCells("/" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1] disabled:opacity-40"
+                >
+                  / · Не проводилась
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedCells.size === 0}
+                  onClick={() => bulkSetSelectedCells("" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff] disabled:opacity-40"
+                >
+                  Очистить
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedCells.size === 0}
+                  onClick={clearCellSelection}
+                  className="inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-[12px] text-[#6f7282] hover:text-[#0b1024] disabled:opacity-40"
+                >
+                  Сбросить выделение
+                </button>
+              </>
+            ) : (
+              <span className="text-[12px] text-[#6f7282]">
+                Включи режим, чтобы пометить несколько ячеек разом (например «генеральная не проводилась» за неделю).
+              </span>
+            )}
+          </div>
+        ) : null}
+
         {/* Mobile Cards view — hidden on sm+ and print. Each row (room or
             responsible) is an accordion with per-day tap-to-cycle cells. */}
         {!printMode && mobileView === "cards" ? (
@@ -644,7 +785,7 @@ export function CleaningDocumentClient(props: Props) {
                           const cellVal = cellValue(row, dateKey);
                           const weekend = isWeekend(dateKey);
                           return (
-                            <button key={dateKey} type="button" onClick={() => { updateCell(row, dateKey).catch(() => {}); }} disabled={props.status !== "active" || isRoomsMode} className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 ${cellVal ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]" : weekend ? "border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]" : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"}`}>
+                            <button key={dateKey} type="button" onClick={() => { updateCell(row, dateKey).catch(() => {}); }} disabled={props.status !== "active" || isRoomsMode} className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 ${selectedCells.has(cellKey(row.id, dateKey)) ? "ring-2 ring-[#5566f6] border-[#5566f6] bg-[#eef1ff] text-[#5566f6]" : cellVal ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]" : weekend ? "border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]" : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"}`}>
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
                               <span className="text-[11px] leading-none">{cellVal || "—"}</span>
                             </button>
@@ -684,7 +825,18 @@ export function CleaningDocumentClient(props: Props) {
                 <td className="border border-black p-2 text-center">{!printMode ? <Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /> : null}</td>
                 <td className="border border-black p-3 align-middle"><div className="flex items-center justify-between gap-3"><button type="button" className="text-left hover:text-[#5863f8]" disabled={printMode || props.status !== "active"} onClick={() => row.kind === "room" ? setRoomDialog(buildRoomState(row.room)) : setResponsibleDialog(buildResponsibleState(row.kind, row.responsible))}>{title}</button>{!printMode && props.status === "active" ? <Pencil className="size-4 text-[#7a7f93]" /> : null}</div></td>
                 <td className="border border-black p-3">{secondColumn}</td>
-                {dayKeys.map((dateKey) => <td key={dateKey} className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" && !isRoomsMode ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"}`} onClick={() => updateCell(row, dateKey)}>{cellValue(row, dateKey)}</td>)}
+                {dayKeys.map((dateKey) => {
+                  const isSelected = selectedCells.has(cellKey(row.id, dateKey));
+                  return (
+                    <td
+                      key={dateKey}
+                      className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" && !isRoomsMode ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"} ${isSelected ? "outline outline-2 outline-offset-[-2px] outline-[#5566f6] bg-[#eef1ff]" : ""}`}
+                      onClick={() => updateCell(row, dateKey)}
+                    >
+                      {cellValue(row, dateKey)}
+                    </td>
+                  );
+                })}
               </tr>;
             })}
           </tbody></table>
