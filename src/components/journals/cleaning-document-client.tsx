@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   applyCleaningAutoFillToConfig,
+  applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TITLE,
   CLEANING_PAGE_TITLE,
   createCleaningResponsibleRow,
@@ -538,6 +539,26 @@ export function CleaningDocumentClient(props: Props) {
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
   const [saveAsTemplateBusy, setSaveAsTemplateBusy] = useState(false);
 
+  // «Заполнить по плану» — применяет weekday-маски всех помещений к
+  // матрице. По умолчанию fill-empty (только пустые), но если зажат
+  // shift / есть отметки → confirm-dialog с overwrite.
+  const [scheduleApplyOpen, setScheduleApplyOpen] = useState(false);
+  const [scheduleApplyMode, setScheduleApplyMode] = useState<"fill-empty" | "overwrite">("fill-empty");
+  async function applySchedulePlan(mode: "fill-empty" | "overwrite") {
+    const next = applyRoomScheduleToMatrix(config, dayKeys, mode);
+    await patchDocument(next);
+    const planned = next.rooms.reduce((acc, room) => {
+      const row = next.matrix[room.id] ?? {};
+      return acc + Object.keys(row).length;
+    }, 0);
+    toast.success(
+      mode === "overwrite"
+        ? `План применён заново: ${planned} ячеек`
+        : `План применён к пустым ячейкам: ${planned} запланировано всего`,
+    );
+    setScheduleApplyOpen(false);
+  }
+
   // Pipeline-mode setters — патчат config и persist'ят сразу.
   // perRoom = у каждой комнаты свой scope (текущее поведение)
   // global  = один общий список для всех комнат
@@ -995,10 +1016,16 @@ export function CleaningDocumentClient(props: Props) {
       currentDays: roomDialog.currentDays,
       generalDays: roomDialog.generalDays,
     });
-    const nextConfig = normalizeCleaningDocumentConfig({
+    let nextConfig = normalizeCleaningDocumentConfig({
       ...config,
       rooms: roomDialog.id ? config.rooms.map((item) => item.id === roomDialog.id ? room : item) : [...config.rooms, room],
     }, { users: props.users });
+    // Auto-apply weekday-плана к матрице — заполняем ПУСТЫЕ ячейки по
+    // currentDays/generalDays. Уже отмеченные ячейки не трогаем (вдруг
+    // менеджер вручную исправил «не проводилась»).
+    if (props.status === "active" && !isRoomsMode) {
+      nextConfig = applyRoomScheduleToMatrix(nextConfig, dayKeys, "fill-empty");
+    }
     setRoomDialog(null);
     await patchDocument(nextConfig);
     // Sync строк из currentScope/generalScope в JournalChecklistItem'ы
@@ -1152,6 +1179,22 @@ export function CleaningDocumentClient(props: Props) {
                 таблицей при scroll'е по дате. Только для room-mode active. */}
             {props.status === "active" && !isRoomsMode ? (
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <button
+                  type="button"
+                  onClick={() => applySchedulePlan("fill-empty")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#5566f6] bg-[#5566f6] px-3 py-1.5 font-medium text-white shadow-[0_6px_16px_-8px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+                  title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
+                >
+                  Заполнить по плану
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setScheduleApplyMode("overwrite"); setScheduleApplyOpen(true); }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  title="Перезаписать все ячейки матрицы по weekday-плану помещений (включая уже отмеченные — пользовательские отметки будут потеряны)"
+                >
+                  План заново
+                </button>
                 <button
                   type="button"
                   onClick={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
@@ -1839,6 +1882,13 @@ export function CleaningDocumentClient(props: Props) {
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]"><DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
       )}
       <ConfirmDialog open={deleteOpen} title="Удалить выбранные строки?" submitLabel="Удалить" onOpenChange={setDeleteOpen} onSubmit={deleteSelectedRows} />
+      <ConfirmDialog
+        open={scheduleApplyOpen}
+        title="Применить план заново ко всей матрице?"
+        submitLabel="Перезаписать"
+        onOpenChange={setScheduleApplyOpen}
+        onSubmit={async () => { await applySchedulePlan(scheduleApplyMode); }}
+      />
       <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[520px]">
           <DialogHeader className="border-b px-6 py-5">

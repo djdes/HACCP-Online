@@ -1368,6 +1368,63 @@ export function setCleaningMatrixValue(params: {
   return syncCompatibilityFields(next);
 }
 
+/**
+ * Заполняет матрицу по weekday-маскам помещений (currentDays/generalDays).
+ * Для каждой пары (room, dateKey):
+ *   • если generalDays включает день недели → ставим "G"
+ *   • иначе если currentDays включает → ставим "T"
+ *   • иначе оставляем как есть
+ *
+ * `mode` управляет тем, что делать с уже заполненными ячейками:
+ *   • "fill-empty"  — трогаем только пустые ячейки (default).
+ *                     Пользовательские отметки сохраняются — план только
+ *                     дозаполняет «нетронутое».
+ *   • "overwrite"   — перезаписываем всё, включая существующие "/"/"T"/"G".
+ *                     Используется для «применить план заново» button.
+ *
+ * Используется:
+ *   1. При создании нового JournalDocument для cleaning — чтобы матрица
+ *      сразу была размечена по плану из шаблона по умолчанию.
+ *   2. При сохранении настроек помещения — auto-apply на пустые ячейки.
+ *   3. По кнопке «Заполнить по плану» — overwrite-режим.
+ *
+ * Sun-first JS dayOfWeek (Date.getUTCDay) → Mon-first index через
+ * `+6 % 7` (см. weekday-mask.ts/jsDayOfWeekToMondayIndex).
+ */
+export function applyRoomScheduleToMatrix(
+  config: CleaningDocumentConfig,
+  dateKeys: string[],
+  mode: "fill-empty" | "overwrite" = "fill-empty",
+): CleaningDocumentConfig {
+  const next = cloneConfig(config);
+  for (const room of next.rooms) {
+    const currentMask = typeof room.currentDays === "number" ? room.currentDays : 127;
+    const generalMask = typeof room.generalDays === "number" ? room.generalDays : 0;
+    if (currentMask === 0 && generalMask === 0) continue;
+    const row = next.matrix[room.id] ? { ...next.matrix[room.id] } : {};
+    for (const dateKey of dateKeys) {
+      const date = new Date(`${dateKey}T00:00:00Z`);
+      const jsDow = date.getUTCDay();
+      const mondayIdx = (jsDow + 6) % 7;
+      const bit = 1 << mondayIdx;
+      // Generalная имеет приоритет над текущей: если день в обоих
+      // масках — пишем G, иначе T.
+      let plan: CleaningMatrixValue = "";
+      if ((generalMask & bit) !== 0) plan = "G";
+      else if ((currentMask & bit) !== 0) plan = "T";
+      if (!plan) continue;
+      const existing = row[dateKey];
+      if (mode === "fill-empty" && existing) continue;
+      row[dateKey] = plan;
+    }
+    if (Object.keys(row).length > 0) {
+      next.matrix[room.id] = row;
+    }
+  }
+  next.marks = next.matrix;
+  return syncCompatibilityFields(next);
+}
+
 export function deleteCleaningRows(config: CleaningDocumentConfig, rowIds: string[]) {
   const rowIdSet = new Set(rowIds);
   const next = cloneConfig(config);

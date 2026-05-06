@@ -20,6 +20,34 @@ import {
 } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
+import {
+  applyRoomScheduleToMatrix,
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+  normalizeCleaningDocumentConfig,
+  type CleaningDocumentConfig,
+} from "@/lib/cleaning-document";
+import { buildDateKeys } from "@/lib/hygiene-document";
+
+/**
+ * Cleaning-specific post-process: применяет weekday-маски помещений
+ * (CleaningRoomItem.currentDays/generalDays) к matrix нового документа,
+ * чтобы матрица была размечена «по плану» с самого создания.
+ *
+ * Возвращает config как-есть для других журналов (no-op).
+ */
+function preplanCleaningConfig(
+  templateCode: string,
+  config: unknown,
+  dateFrom: Date,
+  dateTo: Date,
+): unknown {
+  if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return config;
+  if (!config || typeof config !== "object") return config;
+  const dateKeys = buildDateKeys(dateFrom, dateTo);
+  // Нормализуем чтобы гарантировать структуру (rooms[], matrix etc.).
+  const normalized = normalizeCleaningDocumentConfig(config) as CleaningDocumentConfig;
+  return applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty");
+}
 
 export type CreateReport = {
   code: string;
@@ -96,6 +124,12 @@ export async function ensureActiveDocument(
     journalCode: args.templateCode,
     baseConfig: {},
   });
+  const planCfg = preplanCleaningConfig(
+    args.templateCode,
+    prefill.config,
+    period.dateFrom,
+    period.dateTo,
+  );
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -105,7 +139,7 @@ export async function ensureActiveDocument(
       dateTo: period.dateTo,
       status: "active",
       autoFill: false,
-      config: prefill.config as never,
+      config: planCfg as never,
       responsibleUserId: prefill.responsibleUserId,
       verifierUserId: prefill.verifierUserId,
     },
@@ -280,6 +314,12 @@ export async function ensureNextPeriodDocument(
     journalCode: args.templateCode,
     baseConfig: {},
   });
+  const planCfgNext = preplanCleaningConfig(
+    args.templateCode,
+    prefillNext.config,
+    nextPeriod.dateFrom,
+    nextPeriod.dateTo,
+  );
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -289,7 +329,7 @@ export async function ensureNextPeriodDocument(
       dateTo: nextPeriod.dateTo,
       status: "active",
       autoFill: false,
-      config: prefillNext.config as never,
+      config: planCfgNext as never,
       responsibleUserId: prefillNext.responsibleUserId,
       // Phase C: verifierUserId — двухступенчатая проверка не работает
       // без него, заведующая не получает «проверь когда заполнят»

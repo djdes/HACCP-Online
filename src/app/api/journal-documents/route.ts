@@ -14,11 +14,13 @@ import {
   getDefaultClimateDocumentConfig,
 } from "@/lib/climate-document";
 import {
+  applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   defaultCleaningDocumentConfig,
   getDefaultCleaningResponsibleIds,
   normalizeCleaningDocumentConfig,
 } from "@/lib/cleaning-document";
+import { buildDateKeys } from "@/lib/hygiene-document";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   buildFinishedProductConfigFromUsers,
@@ -498,10 +500,18 @@ export async function POST(request: Request) {
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? normalizeCleaningDocumentConfig(rawConfig ?? initialConfig, {
-          users: cleaningUsers,
-          areas: cleaningAreas,
-        })
+      ? // Cleaning: нормализуем + сразу применяем weekday-маски помещений
+        // к матрице (fill-empty), чтобы новый документ с самого начала
+        // был размечен по плану. Уборщица видит «что должна сделать
+        // сегодня», а не пустую матрицу.
+        applyRoomScheduleToMatrix(
+          normalizeCleaningDocumentConfig(rawConfig ?? initialConfig, {
+            users: cleaningUsers,
+            areas: cleaningAreas,
+          }),
+          buildDateKeys(dateFrom, dateTo),
+          "fill-empty",
+        )
       : resolvedTemplateCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
       ? normalizeCleaningVentilationConfig(rawConfig ?? initialConfig, allUsers)
       : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE

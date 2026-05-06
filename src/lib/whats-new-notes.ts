@@ -22,11 +22,20 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "cleaning-pipeline-v2";
+export const LATEST_NOTES_BUILD_SHA = "cleaning-plan-fill-v3";
 
 export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    category: "Журнал уборки — авто-заполнение по плану + ответственные из настроек",
+    items: [
+      "Матрица журнала уборки теперь автоматически размечается по weekday-маскам помещений (Текущая Пн-Пт + Генеральная Сб → в матрице сразу T на буднях и G на субботах). Уборщица видит план с самого начала, остаётся только подтверждать выполнение.",
+      "Auto-fill срабатывает при сохранении настроек помещения (только пустые ячейки — пользовательские отметки сохраняются), при создании нового документа (manual + cron auto-create) и по новой кнопке «Заполнить по плану» в sticky-toolbar.",
+      "Кнопка «План заново» (рядом, серая) — перезаписывает матрицу полностью, включая уже отмеченные ячейки. Полезно если поменяли расписание и хотите начать с чистого листа.",
+      "Глобальные ответственные (/settings/journal-responsibles) теперь подтягиваются и при ручном создании документа из UI. Раньше manual-create игнорировал глобальный конфиг, и manager.responsibleUserId/verifierUserId оставались null до cascade-обновления.",
+    ],
+  },
   {
     category: "Журнал уборки — Excel-выделение + 3 режима подзадач + sticky-fix",
     items: [
