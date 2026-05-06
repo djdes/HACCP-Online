@@ -1369,6 +1369,27 @@ export function setCleaningMatrixValue(params: {
 }
 
 /**
+ * Удаляет period-specific поля из cleaning config'а: matrix и marks.
+ * Используется когда копируем config предыдущего документа в новый —
+ * структуру (rooms, ответственные, schedule, weekday-маски) переносим,
+ * а отметки уборщицы по конкретным датам — нет, это новый период.
+ *
+ * Возвращает копию config'а без matrix/marks; остальные поля как есть.
+ */
+export function stripPeriodSpecificCleaningFields(
+  rawConfig: unknown,
+): Record<string, unknown> | null {
+  if (!rawConfig || typeof rawConfig !== "object" || Array.isArray(rawConfig)) {
+    return null;
+  }
+  const record = rawConfig as Record<string, unknown>;
+  const { matrix: _m, marks: _mk, ...rest } = record;
+  void _m;
+  void _mk;
+  return rest;
+}
+
+/**
  * Заполняет матрицу по weekday-маскам помещений (currentDays/generalDays).
  * Для каждой пары (room, dateKey):
  *   • если generalDays включает день недели → ставим "G"

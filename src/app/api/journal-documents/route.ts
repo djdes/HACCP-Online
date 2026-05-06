@@ -19,6 +19,7 @@ import {
   defaultCleaningDocumentConfig,
   getDefaultCleaningResponsibleIds,
   normalizeCleaningDocumentConfig,
+  stripPeriodSpecificCleaningFields,
 } from "@/lib/cleaning-document";
 import { buildDateKeys } from "@/lib/hygiene-document";
 import {
@@ -329,6 +330,24 @@ export async function POST(request: Request) {
           })
       : null;
 
+  // Самый последний предыдущий JournalDocument для cleaning в этой орге.
+  // Используется чтобы новый журнал создавался «как прошлый» — теми же
+  // rooms, ответственными, weekday-масками. matrix/marks (период-специфика)
+  // отрезаем — в новом периоде свои даты, отметки уборщицы не переносятся.
+  const cleaningPrevDocConfig =
+    resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+      ? await db.journalDocument
+          .findFirst({
+            where: {
+              organizationId: getActiveOrgId(session),
+              template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
+            },
+            orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
+            select: { config: true },
+          })
+          .then((row) => stripPeriodSpecificCleaningFields(row?.config))
+      : null;
+
   const equipmentCalibrationSource =
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? await db.equipment.findMany({
@@ -393,8 +412,15 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? buildClimateConfigFromAreas(allAreas)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? normalizeCleaningDocumentConfig(
-          rawConfig ?? cleaningOrgDefault ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas),
+      ? // Priority: body.config > previous doc (как прошлый журнал) >
+        // org-level template > built-in blueprints. previousDoc выше
+        // template'а потому что менеджер обычно хочет «как только что
+        // делали», а saved template — это редкий freeze-point.
+        normalizeCleaningDocumentConfig(
+          rawConfig
+            ?? cleaningPrevDocConfig
+            ?? cleaningOrgDefault
+            ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas),
           {
             users: cleaningUsers,
             areas: cleaningAreas,

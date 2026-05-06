@@ -24,9 +24,37 @@ import {
   applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   normalizeCleaningDocumentConfig,
+  stripPeriodSpecificCleaningFields,
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import { buildDateKeys } from "@/lib/hygiene-document";
+
+/**
+ * Возвращает config самого свежего предыдущего JournalDocument
+ * (org + template), очищенный от period-specific полей. Для cleaning
+ * это matrix/marks; для других журналов пока — null (можем расширить).
+ *
+ * Используется чтобы новый период cleaning создавался «как прошлый»:
+ * те же rooms, ответственные, weekday-маски. Без этого cron каждый
+ * месяц генерил пустой документ из DEFAULT_ROOM_BLUEPRINTS, и менеджеру
+ * приходилось заново настраивать комнаты.
+ */
+async function fetchPreviousDocConfigForReuse(
+  db: PrismaClient,
+  organizationId: string,
+  templateCode: string,
+): Promise<Record<string, unknown> | null> {
+  if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return null;
+  const prev = await db.journalDocument.findFirst({
+    where: {
+      organizationId,
+      template: { code: templateCode },
+    },
+    orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
+    select: { config: true },
+  });
+  return stripPeriodSpecificCleaningFields(prev?.config);
+}
 
 /**
  * Cleaning-specific post-process: применяет weekday-маски помещений
@@ -117,12 +145,22 @@ export async function ensureActiveDocument(
   });
   const overrides = parseJournalPeriodsJson(orgRow?.journalPeriods ?? null);
   const period = resolveJournalPeriod(args.templateCode, now, overrides);
+  // «Как прошлый журнал» — для cleaning подтягиваем config предыдущего
+  // документа (rooms, ответственные, weekday-маски), отрезая matrix/marks
+  // (период-специфика). Так новый месяц cleaning стартует не с пустоты,
+  // а с настроек прошлого месяца. Для других журналов prevConfig=null,
+  // prefillResponsibles берёт getDefaultConfigForJournal.
+  const prevConfig = await fetchPreviousDocConfigForReuse(
+    db,
+    args.organizationId,
+    args.templateCode,
+  );
   // Подтягиваем сохранённых в /settings/journal-responsibles
   // ответственных в config + responsibleUserId.
   const prefill = await prefillResponsiblesForNewDocument({
     organizationId: args.organizationId,
     journalCode: args.templateCode,
-    baseConfig: {},
+    baseConfig: prevConfig ?? {},
   });
   const planCfg = preplanCleaningConfig(
     args.templateCode,
@@ -309,10 +347,15 @@ export async function ensureNextPeriodDocument(
     };
   }
 
+  const prevConfigNext = await fetchPreviousDocConfigForReuse(
+    db,
+    args.organizationId,
+    args.templateCode,
+  );
   const prefillNext = await prefillResponsiblesForNewDocument({
     organizationId: args.organizationId,
     journalCode: args.templateCode,
-    baseConfig: {},
+    baseConfig: prevConfigNext ?? {},
   });
   const planCfgNext = preplanCleaningConfig(
     args.templateCode,
