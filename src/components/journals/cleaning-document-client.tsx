@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LayoutGrid, Pencil, Plus, Printer, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
@@ -83,14 +83,104 @@ type Props = {
   useV2?: boolean;
 };
 type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
-type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string; generalScope: string };
+type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string[]; generalScope: string[] };
 type ResponsibleFormState = { id: string | null; kind: CleaningResponsibleKind; title: string; userId: string };
 type RowDescriptor =
   | { id: string; kind: "room"; room: CleaningRoomItem }
   | { id: string; kind: "cleaning"; responsible: CleaningResponsible }
   | { id: string; kind: "control"; responsible: CleaningResponsible };
 
-const parseScope = (value: string) => value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+// Pipeline-style редактор списка подзадач (как в pipeline-tree).
+// Каждая строка — отдельный input с кнопкой удаления, плюс «+ Добавить шаг»
+// в подвале. Хранится как string[]; пустые строки фильтруются на submit.
+function ScopeListEditor(props: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  addLabel?: string;
+  emptyHint?: string;
+}) {
+  const { value, onChange } = props;
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  function update(index: number, next: string) {
+    const copy = [...value];
+    copy[index] = next;
+    onChange(copy);
+  }
+  function remove(index: number) {
+    onChange(value.filter((_, i) => i !== index));
+  }
+  function add() {
+    const next = [...value, ""];
+    onChange(next);
+    // Focus новый input после mount.
+    setTimeout(() => {
+      const el = inputRefs.current[next.length - 1];
+      el?.focus();
+    }, 0);
+  }
+  return (
+    <div className="space-y-2">
+      {value.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[13px] text-[#6f7282]">
+          {props.emptyHint ?? "Шагов пока нет — добавьте первый шаг ниже."}
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {value.map((item, index) => (
+            <li
+              key={index}
+              className="group flex items-center gap-2 rounded-2xl border border-[#ececf4] bg-white px-3 py-2 transition-colors focus-within:border-[#5566f6] focus-within:ring-4 focus-within:ring-[#5566f6]/15"
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f5f6ff] text-[12px] font-semibold text-[#3848c7] tabular-nums">
+                {index + 1}
+              </span>
+              <Input
+                ref={(el) => {
+                  inputRefs.current[index] = el;
+                }}
+                value={item}
+                onChange={(event) => update(index, event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    add();
+                  }
+                  if (event.key === "Backspace" && item === "" && value.length > 1) {
+                    event.preventDefault();
+                    remove(index);
+                    setTimeout(() => {
+                      const prev = inputRefs.current[Math.max(0, index - 1)];
+                      prev?.focus();
+                    }, 0);
+                  }
+                }}
+                placeholder={props.placeholder}
+                className="h-9 flex-1 rounded-xl border-0 bg-transparent px-2 text-[14px] shadow-none focus-visible:ring-0"
+              />
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-xl text-[#9b9fb3] transition-colors hover:bg-[#fff4f2] hover:text-[#a13a32]"
+                aria-label="Удалить шаг"
+              >
+                <X className="size-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={add}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6] hover:bg-[#f5f6ff]"
+      >
+        <Plus className="size-4" />
+        {props.addLabel ?? "Добавить шаг"}
+      </button>
+    </div>
+  );
+}
 const primaryUserId = (users: UserItem[], roleLabel: string) => getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
 const userNameById = (users: UserItem[], userId: string) => users.find((user) => user.id === userId)?.name || "";
 const buildSettingsState = (config: CleaningDocumentConfig): SettingsState => ({
@@ -104,8 +194,8 @@ const buildRoomState = (room?: CleaningRoomItem): RoomFormState => ({
   id: room?.id || null,
   name: room?.name || "",
   detergent: room?.detergent || "",
-  currentScope: room?.currentScope.join("\n") || "",
-  generalScope: room?.generalScope.join("\n") || "",
+  currentScope: room?.currentScope ? [...room.currentScope] : [],
+  generalScope: room?.generalScope ? [...room.generalScope] : [],
 });
 const buildResponsibleState = (kind: CleaningResponsibleKind, responsible?: CleaningResponsible): ResponsibleFormState => ({
   id: responsible?.id || null,
@@ -145,30 +235,23 @@ export function CleaningDocumentClient(props: Props) {
   // выделяет диапазон (как в Excel).
   const [cellSelectMode, setCellSelectMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
-  // Drag-state: mode = "add" / "remove" / null. Стартует на mousedown по
-  // ячейке и держится до глобального mouseup. Автоматически выбирает
-  // mode по первой ячейке (если она в selection — drag будет remove'ить,
-  // иначе add'ить — пользователю интуитивно).
-  const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
+  // Drag-state хранится в ref (а не useState), чтобы read из mouseenter
+  // handler'а был синхронным. setState async и handler читал бы stale
+  // значение между ячейками, drag «терял» промежуточные.
+  const dragModeRef = useRef<"add" | "remove" | null>(null);
+  // Дополнительный counter — для re-render UI «выделено N» в realtime
+  // (selectedCells changes уже триггерят re-render, dragModeRef нет).
+  const [, setDragTick] = useState(0);
   const cellKey = (rowId: string, dateKey: string) => `${rowId}::${dateKey}`;
-  function toggleCellSelection(rowId: string, dateKey: string) {
-    const k = cellKey(rowId, dateKey);
-    setSelectedCells((prev) => {
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
-    });
-  }
   function clearCellSelection() {
     setSelectedCells(new Set());
   }
-  // Mouse-up listener — снимает drag-state при отпускании кнопки в любом
-  // месте страницы (даже за пределами grid'а).
+  // Mouse-up listener — снимает drag-state. Глобальный (на window),
+  // чтобы работало даже если кнопка отпущена за пределами grid'а
+  // (после того как пользователь утащил курсор за viewport).
   useEffect(() => {
-    if (!dragMode) return;
     function handleUp() {
-      setDragMode(null);
+      dragModeRef.current = null;
     }
     window.addEventListener("mouseup", handleUp);
     window.addEventListener("touchend", handleUp);
@@ -176,26 +259,31 @@ export function CleaningDocumentClient(props: Props) {
       window.removeEventListener("mouseup", handleUp);
       window.removeEventListener("touchend", handleUp);
     };
-  }, [dragMode]);
-  // Helpers для drag — вызываются из onMouseDown/onMouseEnter ячейки.
+  }, []);
+  // Drag-helpers. ref-based для синхронного read'а в mouseenter.
   function startDragOnCell(rowId: string, dateKey: string) {
     if (!cellSelectMode) return;
     const k = cellKey(rowId, dateKey);
-    const willBeAdd = !selectedCells.has(k);
-    setDragMode(willBeAdd ? "add" : "remove");
     setSelectedCells((prev) => {
+      const willBeAdd = !prev.has(k);
+      dragModeRef.current = willBeAdd ? "add" : "remove";
       const next = new Set(prev);
       if (willBeAdd) next.add(k);
       else next.delete(k);
       return next;
     });
+    setDragTick((n) => n + 1);
   }
   function continueDragOnCell(rowId: string, dateKey: string) {
-    if (!cellSelectMode || !dragMode) return;
+    if (!cellSelectMode) return;
+    const mode = dragModeRef.current;
+    if (!mode) return;
     const k = cellKey(rowId, dateKey);
     setSelectedCells((prev) => {
+      if (mode === "add" && prev.has(k)) return prev;
+      if (mode === "remove" && !prev.has(k)) return prev;
       const next = new Set(prev);
-      if (dragMode === "add") next.add(k);
+      if (mode === "add") next.add(k);
       else next.delete(k);
       return next;
     });
@@ -468,12 +556,9 @@ export function CleaningDocumentClient(props: Props) {
     // В rooms-mode ячейки read-only — заполняются TasksFlow webhook'ом
     // когда уборщик закрывает свою задачу. Прямой клик игнорируем.
     if (isRoomsMode) return;
-    // Если включён режим выделения — клик добавляет/убирает ячейку
-    // из selection (а не циклит значение).
-    if (cellSelectMode) {
-      toggleCellSelection(row.id, dateKey);
-      return;
-    }
+    // В режиме выделения клик игнорируется — drag-handlers (mousedown +
+    // mouseenter) добавляют/убирают ячейки в selection.
+    if (cellSelectMode) return;
     const currentValue = config.matrix[row.id]?.[dateKey] || "";
     const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
     await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
@@ -582,8 +667,8 @@ export function CleaningDocumentClient(props: Props) {
 
   async function submitRoom() {
     if (!roomDialog) return;
-    const currentScopeArr = parseScope(roomDialog.currentScope);
-    const generalScopeArr = parseScope(roomDialog.generalScope);
+    const currentScopeArr = roomDialog.currentScope.map((s) => s.trim()).filter(Boolean);
+    const generalScopeArr = roomDialog.generalScope.map((s) => s.trim()).filter(Boolean);
     const room = createCleaningRoomRow({ id: roomDialog.id || undefined, name: roomDialog.name, detergent: roomDialog.detergent, currentScope: currentScopeArr, generalScope: generalScopeArr });
     const nextConfig = normalizeCleaningDocumentConfig({
       ...config,
@@ -709,19 +794,107 @@ export function CleaningDocumentClient(props: Props) {
         </section>
 
         {!printMode ? (
-          <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center justify-between gap-4 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-            <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button className="h-11 rounded-2xl bg-[#5863f8] px-7 text-[15px] text-white hover:bg-[#4756f6]"><Plus className="size-6" />Добавить<ChevronDown className="size-5" /></Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
-                  <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setRoomDialog(buildRoomState())}><Plus className="mr-3 size-5 text-[#5863f8]" />Добавить помещение</DropdownMenuItem>
-                  <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за уборку</DropdownMenuItem>
-                  <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за контроль</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {selection.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd6d3] bg-[#fff6f5] px-4 text-[15px] text-[#ff4d3d]" onClick={() => setDeleteOpen(true)}><Trash2 className="size-5" />Удалить</Button> : null}
+          <div className="sticky top-0 z-30 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><Button className="h-11 rounded-2xl bg-[#5863f8] px-7 text-[15px] text-white hover:bg-[#4756f6]"><Plus className="size-6" />Добавить<ChevronDown className="size-5" /></Button></DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
+                    <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setRoomDialog(buildRoomState())}><Plus className="mr-3 size-5 text-[#5863f8]" />Добавить помещение</DropdownMenuItem>
+                    <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за уборку</DropdownMenuItem>
+                    <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за контроль</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {selection.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd6d3] bg-[#fff6f5] px-4 text-[15px] text-[#ff4d3d]" onClick={() => setDeleteOpen(true)}><Trash2 className="size-5" />Удалить</Button> : null}
+              </div>
+              {selection.length > 0 ? <div className="text-[18px] text-[#5863f8]">Выбрано: {selection.length}</div> : null}
             </div>
-            {selection.length > 0 ? <div className="text-[18px] text-[#5863f8]">Выбрано: {selection.length}</div> : null}
+            {/* Bulk-cell toolbar (выходные / выделение / bulk-set) — sticky
+                ВМЕСТЕ с add-toolbar выше, чтобы быть всегда видимым над
+                таблицей при scroll'е по дате. Только для room-mode active. */}
+            {props.status === "active" && !isRoomsMode ? (
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <button
+                  type="button"
+                  onClick={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1]"
+                  title="Поставить «/» (не проводилась) на все выходные и праздники периода"
+                >
+                  Отметить выходные «/»
+                </button>
+                <button
+                  type="button"
+                  onClick={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff]"
+                  title="Очистить ячейки выходных и праздников периода"
+                >
+                  Очистить выходные
+                </button>
+                <span className="hidden text-[#dcdfed] sm:inline">·</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cellSelectMode) {
+                      setCellSelectMode(false);
+                      clearCellSelection();
+                    } else {
+                      setCellSelectMode(true);
+                    }
+                  }}
+                  className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
+                  title="ВКЛ: тяните мышью / пальцем по ячейкам, чтобы выделить диапазон"
+                >
+                  {cellSelectMode ? "Выделение: ВКЛ" : "Выделить мышкой"}
+                </button>
+                {cellSelectMode ? (
+                  <>
+                    <span className="text-[12px] text-[#6f7282]">
+                      Выделено: <span className="font-semibold tabular-nums text-[#0b1024]">{selectedCells.size}</span>
+                    </span>
+                    <button
+                      type="button"
+                      disabled={selectedCells.size === 0}
+                      onClick={() => bulkSetSelectedCells("T" as CleaningMatrixValue)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
+                    >
+                      T · Текущая
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedCells.size === 0}
+                      onClick={() => bulkSetSelectedCells("G" as CleaningMatrixValue)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
+                    >
+                      G · Генеральная
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedCells.size === 0}
+                      onClick={() => bulkSetSelectedCells("/" as CleaningMatrixValue)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1] disabled:opacity-40"
+                    >
+                      / · Не проводилась
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedCells.size === 0}
+                      onClick={() => bulkSetSelectedCells("" as CleaningMatrixValue)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff] disabled:opacity-40"
+                    >
+                      Очистить
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedCells.size === 0}
+                      onClick={clearCellSelection}
+                      className="inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-[12px] text-[#6f7282] hover:text-[#0b1024] disabled:opacity-40"
+                    >
+                      Сбросить
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -759,96 +932,6 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        {/* Bulk-edit toolbar — мультивыделение ячеек + bulk-set значения.
-            Показывается ТОЛЬКО когда документ active И не rooms-mode
-            (в rooms-mode ячейки заполняются из TasksFlow webhook'а). */}
-        {!printMode && props.status === "active" && !isRoomsMode ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ececf4] bg-white px-3 py-2 text-[13px]">
-            <button
-              type="button"
-              onClick={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1]"
-              title="Поставить «/» (не проводилась) на все выходные и праздники периода"
-            >
-              Отметить выходные «/»
-            </button>
-            <button
-              type="button"
-              onClick={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff]"
-              title="Очистить ячейки выходных и праздников периода"
-            >
-              Очистить выходные
-            </button>
-            <span className="hidden text-[#dcdfed] sm:inline">·</span>
-            <button
-              type="button"
-              onClick={() => {
-                if (cellSelectMode) {
-                  setCellSelectMode(false);
-                  clearCellSelection();
-                } else {
-                  setCellSelectMode(true);
-                }
-              }}
-              className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
-            >
-              {cellSelectMode ? "Выделение: ВКЛ" : "Выделить ячейки"}
-            </button>
-            {cellSelectMode ? (
-              <>
-                <span className="text-[12px] text-[#6f7282]">
-                  Выделено: <span className="font-semibold tabular-nums text-[#0b1024]">{selectedCells.size}</span>
-                </span>
-                <span className="hidden text-[#dcdfed] sm:inline">·</span>
-                <button
-                  type="button"
-                  disabled={selectedCells.size === 0}
-                  onClick={() => bulkSetSelectedCells("T" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
-                >
-                  T · Текущая
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedCells.size === 0}
-                  onClick={() => bulkSetSelectedCells("G" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
-                >
-                  G · Генеральная
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedCells.size === 0}
-                  onClick={() => bulkSetSelectedCells("/" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1] disabled:opacity-40"
-                >
-                  / · Не проводилась
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedCells.size === 0}
-                  onClick={() => bulkSetSelectedCells("" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff] disabled:opacity-40"
-                >
-                  Очистить
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedCells.size === 0}
-                  onClick={clearCellSelection}
-                  className="inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-[12px] text-[#6f7282] hover:text-[#0b1024] disabled:opacity-40"
-                >
-                  Сбросить выделение
-                </button>
-              </>
-            ) : (
-              <span className="text-[12px] text-[#6f7282]">
-                Включи режим, чтобы пометить несколько ячеек разом (например «генеральная не проводилась» за неделю).
-              </span>
-            )}
-          </div>
-        ) : null}
 
         {/* Mobile Cards view — hidden on sm+ and print. Each row (room or
             responsible) is an accordion with per-day tap-to-cycle cells. */}
@@ -909,7 +992,7 @@ export function CleaningDocumentClient(props: Props) {
                                 if (cellSelectMode) startDragOnCell(row.id, dateKey);
                               }}
                               onTouchMove={(e) => {
-                                if (!cellSelectMode || !dragMode) return;
+                                if (!cellSelectMode || !dragModeRef.current) return;
                                 const touch = e.touches[0];
                                 if (!touch) return;
                                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -1044,23 +1127,35 @@ export function CleaningDocumentClient(props: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px] font-medium text-[#3c4053]">Предмет текущей уборки</Label>
-                  <Textarea
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[13px] font-medium text-[#3c4053]">Текущая уборка — пошаговый чек-лист</Label>
+                    <span className="text-[11px] text-[#6f7282]">{roomDialog.currentScope.filter((s) => s.trim()).length} шаг.</span>
+                  </div>
+                  <p className="text-[12px] leading-[1.55] text-[#6f7282]">
+                    Каждый шаг станет подзадачей в TasksFlow, которую сотрудник отмечает галочкой при заполнении журнала.
+                  </p>
+                  <ScopeListEditor
                     value={roomDialog.currentScope}
-                    onChange={(event) => setRoomDialog((current) => current ? { ...current, currentScope: event.target.value } : current)}
-                    placeholder="Предмет текущей уборки"
-                    className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-                    rows={3}
+                    onChange={(next) => setRoomDialog((current) => current ? { ...current, currentScope: next } : current)}
+                    placeholder="Например: Протереть рабочие поверхности"
+                    addLabel="Добавить шаг текущей уборки"
+                    emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px] font-medium text-[#3c4053]">Предмет генеральной уборки</Label>
-                  <Textarea
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[13px] font-medium text-[#3c4053]">Генеральная уборка — пошаговый чек-лист</Label>
+                    <span className="text-[11px] text-[#6f7282]">{roomDialog.generalScope.filter((s) => s.trim()).length} шаг.</span>
+                  </div>
+                  <p className="text-[12px] leading-[1.55] text-[#6f7282]">
+                    Подробный список того, что нужно вымыть/продезинфицировать в день генеральной уборки.
+                  </p>
+                  <ScopeListEditor
                     value={roomDialog.generalScope}
-                    onChange={(event) => setRoomDialog((current) => current ? { ...current, generalScope: event.target.value } : current)}
-                    placeholder="Предмет генеральной уборки"
-                    className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-                    rows={3}
+                    onChange={(next) => setRoomDialog((current) => current ? { ...current, generalScope: next } : current)}
+                    placeholder="Например: Демонтировать съёмные части и промыть в горячей воде"
+                    addLabel="Добавить шаг генеральной уборки"
+                    emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."
                   />
                 </div>
               </div>
