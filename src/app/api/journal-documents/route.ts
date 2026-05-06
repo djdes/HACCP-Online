@@ -412,15 +412,54 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? buildClimateConfigFromAreas(allAreas)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? // Priority: body.config > previous doc (как прошлый журнал) >
-        // org-level template > built-in blueprints. previousDoc выше
-        // template'а потому что менеджер обычно хочет «как только что
-        // делали», а saved template — это редкий freeze-point.
+      ? // «Как прошлый журнал»: если есть предыдущий документ —
+        // используем его rooms/schedule/планы как структурную основу,
+        // НО даём body перебить responsibles/title/settings (это явный
+        // выбор менеджера в диалоге создания).
+        //
+        // Раньше cleaning-documents-client всегда отправлял body.config
+        // построенный из defaultCleaningDocumentConfig (с пустыми
+        // blueprint-rooms), и server.rawConfig полностью перекрывал
+        // prev-doc fallback. Из-за этого новый документ создавался с
+        // дефолтными комнатами (currentDays=127, generalDays=0) и
+        // applyRoomScheduleToMatrix размечал все ячейки T.
+        //
+        // Теперь даже когда rawConfig пришёл — prev doc'а rooms +
+        // structural fields имеют приоритет; перезаписываем только
+        // явные body-fields (responsibles + title + settings + autoFill).
         normalizeCleaningDocumentConfig(
-          rawConfig
-            ?? cleaningPrevDocConfig
-            ?? cleaningOrgDefault
-            ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas),
+          (() => {
+            if (!cleaningPrevDocConfig) {
+              return (
+                rawConfig
+                ?? cleaningOrgDefault
+                ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas)
+              );
+            }
+            if (!rawConfig) return cleaningPrevDocConfig;
+            const body = rawConfig;
+            const merged: Record<string, unknown> = { ...cleaningPrevDocConfig };
+            // Body-fields, которые перебивают prev (явный выбор менеджера):
+            if (Array.isArray(body.cleaningResponsibles)) {
+              merged.cleaningResponsibles = body.cleaningResponsibles;
+            }
+            if (Array.isArray(body.controlResponsibles)) {
+              merged.controlResponsibles = body.controlResponsibles;
+            }
+            if (typeof body.title === "string" && body.title) {
+              merged.title = body.title;
+            }
+            if (typeof body.documentTitle === "string" && body.documentTitle) {
+              merged.documentTitle = body.documentTitle;
+            }
+            if (body.autoFill && typeof body.autoFill === "object") {
+              merged.autoFill = body.autoFill;
+            }
+            if (body.settings && typeof body.settings === "object") {
+              merged.settings = body.settings;
+            }
+            return merged;
+          })(),
           {
             users: cleaningUsers,
             areas: cleaningAreas,
