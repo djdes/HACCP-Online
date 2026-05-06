@@ -22,7 +22,7 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "SKIP_VERIFY";
+export const LATEST_NOTES_BUILD_SHA = "b5f63102";
 
 export type { WhatsNewNote };
 
