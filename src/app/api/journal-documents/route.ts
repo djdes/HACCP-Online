@@ -89,6 +89,7 @@ import {
   normalizeJournalDocumentStaffState,
 } from "@/lib/journal-staff-binding";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
+import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -532,16 +533,47 @@ export async function POST(request: Request) {
     allUsers
   );
 
+  // Prefill from /settings/journal-responsibles (Organization
+  // .journalResponsibleUsersJson). Это закрывает gap'ы:
+  //   • Если пользователь НЕ передал responsibleUserId/Title в body —
+  //     подставляем из глобальных настроек ответственных журнала.
+  //   • Phase C verifier (verifierUserId) — у нас раньше всегда был
+  //     null при manual create. Теперь читается из глобальных слотов.
+  //   • Per-journal config patcher (cleaningResponsibles[],
+  //     approveEmployeeId и т.д.) — патчит config теми же глобальными
+  //     юзерами, чтобы документ был полностью pre-filled.
+  // Body values имеют приоритет: если manager явно выбрал юзера в
+  // диалоге создания — его выбор сохраняется.
+  const prefilled = await prefillResponsiblesForNewDocument({
+    organizationId: getActiveOrgId(session),
+    journalCode: resolvedTemplateCode,
+    baseConfig:
+      (normalizedDocumentState.config as Record<string, unknown> | undefined) ??
+      undefined,
+  });
+
+  const finalResponsibleUserId =
+    normalizedDocumentState.responsibleUserId || prefilled.responsibleUserId;
+  const finalResponsibleTitle = normalizedDocumentState.responsibleTitle ?? null;
+  // Если в body нет config, но patcher из cascade его обогатил
+  // (например, для cleaning заполнил cleaningResponsibles[]) —
+  // используем patched config. Иначе оставляем то, что было.
+  const finalConfig =
+    !rawConfig && prefilled.config
+      ? prefilled.config
+      : (normalizedDocumentState.config as Record<string, unknown> | undefined);
+
   const doc = await db.journalDocument.create({
     data: {
       templateId: template.id,
       organizationId: getActiveOrgId(session),
       title: title || template.name,
-      config: normalizedDocumentState.config as Prisma.InputJsonValue | undefined,
+      config: finalConfig as Prisma.InputJsonValue | undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
-      responsibleUserId: normalizedDocumentState.responsibleUserId,
-      responsibleTitle: normalizedDocumentState.responsibleTitle,
+      responsibleUserId: finalResponsibleUserId,
+      responsibleTitle: finalResponsibleTitle,
+      verifierUserId: prefilled.verifierUserId,
       createdById: session.user.id,
     },
   });
