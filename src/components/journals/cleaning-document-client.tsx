@@ -430,13 +430,42 @@ export function CleaningDocumentClient(props: Props) {
 
   async function submitRoom() {
     if (!roomDialog) return;
-    const room = createCleaningRoomRow({ id: roomDialog.id || undefined, name: roomDialog.name, detergent: roomDialog.detergent, currentScope: parseScope(roomDialog.currentScope), generalScope: parseScope(roomDialog.generalScope) });
+    const currentScopeArr = parseScope(roomDialog.currentScope);
+    const generalScopeArr = parseScope(roomDialog.generalScope);
+    const room = createCleaningRoomRow({ id: roomDialog.id || undefined, name: roomDialog.name, detergent: roomDialog.detergent, currentScope: currentScopeArr, generalScope: generalScopeArr });
     const nextConfig = normalizeCleaningDocumentConfig({
       ...config,
       rooms: roomDialog.id ? config.rooms.map((item) => item.id === roomDialog.id ? room : item) : [...config.rooms, room],
     }, { users: props.users });
     setRoomDialog(null);
     await patchDocument(nextConfig);
+    // Sync строк из currentScope/generalScope в JournalChecklistItem'ы
+    // — каждая строка станет подзадачей в TasksFlow task-fill flow.
+    // Делается best-effort: ошибка sync не блокирует основное
+    // сохранение config (комната уже сохранена выше).
+    try {
+      const response = await fetch(
+        `/api/journals/cleaning/documents/${props.documentId}/room-scopes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roomId: room.id,
+            currentScope: currentScopeArr,
+            generalScope: generalScopeArr,
+          }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        console.warn(
+          "[cleaning] room-scopes sync failed",
+          data?.error ?? response.status,
+        );
+      }
+    } catch (err) {
+      console.warn("[cleaning] room-scopes sync exception", err);
+    }
   }
 
   async function submitResponsible() {

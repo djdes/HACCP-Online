@@ -1585,6 +1585,15 @@ model JournalChecklistItem {
   /// День месяца (1-31) для frequency=monthly. Если месяц короче,
   /// клиппим (день 31 в феврале → последний день февраля).
   monthDay       Int?
+  /// Категория для cleaning-журнала. Авто-синхронизируется из
+  /// `CleaningRoomItem.currentScope[]` / `generalScope[]` при сохранении
+  /// помещения в /journals/cleaning/documents/[id] room-edit dialog.
+  ///   • NULL       — обычный чек-лист (managed через /settings/journal-checklists)
+  ///   • "current"  — пункт текущей уборки (auto-managed)
+  ///   • "general"  — пункт генеральной уборки (auto-managed)
+  /// На таких items HARM-edit запрещён через UI чек-листов (back-channel
+  /// синхронизация перезаписывает).
+  category       String?
   archivedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
