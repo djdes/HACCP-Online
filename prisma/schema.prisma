@@ -1727,3 +1727,37 @@ model JournalPipelineNode {
   @@index([templateId, parentId, ordering])
   @@index([templateId, kind])
 }
+
+/// Производственный календарь РФ — официальные выходные, праздники и
+/// сокращённые рабочие дни. Парсится из публичных источников (hh.ru,
+/// consultant.ru) либо вручную через scripts/seed-production-calendar.ts.
+///
+/// Используется ВСЕМИ журналами с date-cells (cleaning, climate, hygiene
+/// и др.):
+///   • визуальная подсветка ячеек (красный пастель / жёлтый пастель);
+///   • bulk-actions «Отметить выходные» — admin одной кнопкой ставит
+///     значение в выходные сразу за весь период;
+///   • compliance-логика — задачи в TasksFlow не назначаются на праздники.
+///
+/// Глобальная таблица (без organizationId): календарь РФ единый.
+model ProductionCalendarDay {
+  /// Дата в ISO-формате `YYYY-MM-DD` — primary key, никаких дубликатов.
+  date       String   @id
+  /// Год для query-фильтрации без парсинга string.
+  year       Int
+  /// Тип дня:
+  ///   • "workday"   — обычный рабочий
+  ///   • "weekend"   — Сб/Вс
+  ///   • "holiday"   — праздник (1 января, 9 мая и т.п.) → красный пастель
+  ///   • "short"     — сокращённый рабочий (предпраздничный) → жёлтый пастель
+  kind       String
+  /// Опциональное название праздника («Новый год», «День Победы»).
+  /// Показывается в tooltip на ячейке.
+  name       String?
+  /// Источник: "hh.ru", "consultant.ru", "manual", "seed".
+  source     String   @default("seed")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([year, kind])
+}

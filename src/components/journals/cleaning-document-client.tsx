@@ -33,6 +33,7 @@ import {
   type CleaningRoomItem,
 } from "@/lib/cleaning-document";
 import { buildDateKeys, isWeekend, toDateKey } from "@/lib/hygiene-document";
+import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
@@ -140,10 +141,15 @@ export function CleaningDocumentClient(props: Props) {
   const [saving, setSaving] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
   // Multi-select cells (rowId::dateKey) для bulk-edit. Когда `cellSelectMode`
-  // ON, клик по ячейке вместо cycle-через-значения добавляет/убирает её
-  // из selection. Bulk-toolbar появляется когда selection.size > 0.
+  // ON: клик по ячейке добавляет/убирает её из selection, mousedown+drag
+  // выделяет диапазон (как в Excel).
   const [cellSelectMode, setCellSelectMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  // Drag-state: mode = "add" / "remove" / null. Стартует на mousedown по
+  // ячейке и держится до глобального mouseup. Автоматически выбирает
+  // mode по первой ячейке (если она в selection — drag будет remove'ить,
+  // иначе add'ить — пользователю интуитивно).
+  const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
   const cellKey = (rowId: string, dateKey: string) => `${rowId}::${dateKey}`;
   function toggleCellSelection(rowId: string, dateKey: string) {
     const k = cellKey(rowId, dateKey);
@@ -156,6 +162,43 @@ export function CleaningDocumentClient(props: Props) {
   }
   function clearCellSelection() {
     setSelectedCells(new Set());
+  }
+  // Mouse-up listener — снимает drag-state при отпускании кнопки в любом
+  // месте страницы (даже за пределами grid'а).
+  useEffect(() => {
+    if (!dragMode) return;
+    function handleUp() {
+      setDragMode(null);
+    }
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchend", handleUp);
+    return () => {
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [dragMode]);
+  // Helpers для drag — вызываются из onMouseDown/onMouseEnter ячейки.
+  function startDragOnCell(rowId: string, dateKey: string) {
+    if (!cellSelectMode) return;
+    const k = cellKey(rowId, dateKey);
+    const willBeAdd = !selectedCells.has(k);
+    setDragMode(willBeAdd ? "add" : "remove");
+    setSelectedCells((prev) => {
+      const next = new Set(prev);
+      if (willBeAdd) next.add(k);
+      else next.delete(k);
+      return next;
+    });
+  }
+  function continueDragOnCell(rowId: string, dateKey: string) {
+    if (!cellSelectMode || !dragMode) return;
+    const k = cellKey(rowId, dateKey);
+    setSelectedCells((prev) => {
+      const next = new Set(prev);
+      if (dragMode === "add") next.add(k);
+      else next.delete(k);
+      return next;
+    });
   }
   const [roomDialog, setRoomDialog] = useState<RoomFormState | null>(null);
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
@@ -437,6 +480,48 @@ export function CleaningDocumentClient(props: Props) {
   }
 
   /**
+   * Bulk-set значения для ВСЕХ выходных и праздников периода (для всех
+   * room-rows). Не требует выделения. Использует production calendar.
+   */
+  async function bulkSetHolidaysAndWeekends(value: CleaningMatrixValue) {
+    if (props.status !== "active" || isRoomsMode) return;
+    const rooms = config.rooms;
+    if (rooms.length === 0) return;
+    const offDays = dayKeys.filter((dk) => {
+      const k = getCalendarDayKind(dk).kind;
+      return k === "weekend" || k === "holiday";
+    });
+    if (offDays.length === 0) {
+      toast.info("В периоде нет выходных или праздников");
+      return;
+    }
+    let nextConfig = config;
+    let cellsUpdated = 0;
+    for (const room of rooms) {
+      for (const dateKey of offDays) {
+        nextConfig = setCleaningMatrixValue({
+          config: nextConfig,
+          rowId: room.id,
+          dateKey,
+          value,
+        });
+        cellsUpdated += 1;
+      }
+    }
+    try {
+      await patchDocument(nextConfig);
+      const action = value === "/" ? "помечены «Не проводилась»" : value === "" ? "очищены" : "обновлены";
+      toast.success(
+        `Выходных и праздников: ${offDays.length} дн. × ${rooms.length} помещ. = ${cellsUpdated} ячеек ${action}`,
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось обновить ячейки",
+      );
+    }
+  }
+
+  /**
    * Bulk-set значения для всех selectedCells (rowId::dateKey). Один
    * patchDocument вместо N — быстрее и атомарно. После успеха выделение
    * сбрасывается.
@@ -681,6 +766,23 @@ export function CleaningDocumentClient(props: Props) {
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ececf4] bg-white px-3 py-2 text-[13px]">
             <button
               type="button"
+              onClick={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1]"
+              title="Поставить «/» (не проводилась) на все выходные и праздники периода"
+            >
+              Отметить выходные «/»
+            </button>
+            <button
+              type="button"
+              onClick={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff]"
+              title="Очистить ячейки выходных и праздников периода"
+            >
+              Очистить выходные
+            </button>
+            <span className="hidden text-[#dcdfed] sm:inline">·</span>
+            <button
+              type="button"
               onClick={() => {
                 if (cellSelectMode) {
                   setCellSelectMode(false);
@@ -691,7 +793,7 @@ export function CleaningDocumentClient(props: Props) {
               }}
               className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
             >
-              {cellSelectMode ? "Выделение ячеек: ВКЛ" : "Выделить ячейки"}
+              {cellSelectMode ? "Выделение: ВКЛ" : "Выделить ячейки"}
             </button>
             {cellSelectMode ? (
               <>
@@ -783,9 +885,44 @@ export function CleaningDocumentClient(props: Props) {
                       <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-1.5">
                         {dayKeys.map((dateKey) => {
                           const cellVal = cellValue(row, dateKey);
-                          const weekend = isWeekend(dateKey);
+                          const dayKind = getCalendarDayKind(dateKey);
+                          const isOff = dayKind.kind === "holiday" || dayKind.kind === "weekend";
+                          const isShort = dayKind.kind === "short";
+                          const isSelected = selectedCells.has(cellKey(row.id, dateKey));
+                          // Mobile-card cell — приоритет: selected > filled > off-day color > short > workday.
+                          const cellCls = isSelected
+                            ? "ring-2 ring-[#5566f6] border-[#5566f6] bg-[#eef1ff] text-[#5566f6]"
+                            : cellVal
+                              ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]"
+                              : isOff
+                                ? "border-[#ffd7d3] bg-[#fff4f2] text-[#a13a32]"
+                                : isShort
+                                  ? "border-[#ffe9b0] bg-[#fff8eb] text-[#b25f00]"
+                                  : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]";
                           return (
-                            <button key={dateKey} type="button" onClick={() => { updateCell(row, dateKey).catch(() => {}); }} disabled={props.status !== "active" || isRoomsMode} className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 ${selectedCells.has(cellKey(row.id, dateKey)) ? "ring-2 ring-[#5566f6] border-[#5566f6] bg-[#eef1ff] text-[#5566f6]" : cellVal ? "border-[#5566f6] bg-[#f5f6ff] text-[#5566f6]" : weekend ? "border-[#ececf4] bg-[#fafbff] text-[#9b9fb3]" : "border-[#ececf4] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"}`}>
+                            <button
+                              key={dateKey}
+                              type="button"
+                              title={dayKind.name ?? undefined}
+                              onClick={() => { updateCell(row, dateKey).catch(() => {}); }}
+                              onTouchStart={() => {
+                                if (cellSelectMode) startDragOnCell(row.id, dateKey);
+                              }}
+                              onTouchMove={(e) => {
+                                if (!cellSelectMode || !dragMode) return;
+                                const touch = e.touches[0];
+                                if (!touch) return;
+                                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                                const cellEl = target?.closest?.("[data-cell-key]");
+                                const k = cellEl?.getAttribute("data-cell-key");
+                                if (!k) return;
+                                const [r, d] = k.split("::");
+                                if (r && d) continueDragOnCell(r, d);
+                              }}
+                              data-cell-key={cellKey(row.id, dateKey)}
+                              disabled={props.status !== "active" || isRoomsMode}
+                              className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 select-none ${cellCls}`}
+                            >
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
                               <span className="text-[11px] leading-none">{cellVal || "—"}</span>
                             </button>
@@ -827,11 +964,42 @@ export function CleaningDocumentClient(props: Props) {
                 <td className="border border-black p-3">{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
+                  const dayKind = getCalendarDayKind(dateKey);
+                  // Pastel-окраска по производственному календарю:
+                  //   • holiday/weekend → красный пастель (#fff4f2)
+                  //   • short          → жёлтый пастель (#fff8eb)
+                  //   • workday        → белый
+                  // Selected outline overlays поверх любого фона.
+                  const dayBg =
+                    dayKind.kind === "holiday" || dayKind.kind === "weekend"
+                      ? "bg-[#fff4f2]"
+                      : dayKind.kind === "short"
+                        ? "bg-[#fff8eb]"
+                        : "bg-white";
+                  const interactive = !printMode && props.status === "active" && !isRoomsMode;
                   return (
                     <td
                       key={dateKey}
-                      className={`border border-black p-2 text-center text-[18px] ${!printMode && props.status === "active" && !isRoomsMode ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${isWeekend(dateKey) ? "bg-[#fafbff]" : "bg-white"} ${isSelected ? "outline outline-2 outline-offset-[-2px] outline-[#5566f6] bg-[#eef1ff]" : ""}`}
-                      onClick={() => updateCell(row, dateKey)}
+                      data-cell-key={cellKey(row.id, dateKey)}
+                      title={dayKind.name ?? undefined}
+                      className={`border border-black p-2 text-center text-[18px] select-none ${interactive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""} ${dayBg} ${isSelected ? "outline outline-2 outline-offset-[-2px] outline-[#5566f6] !bg-[#eef1ff]" : ""}`}
+                      onClick={() => {
+                        // Если только что был drag — onClick после mouseup
+                        // тоже срабатывает. Защищаемся: если в режиме
+                        // selection и drag завершился, click игнорируем.
+                        if (cellSelectMode) return;
+                        updateCell(row, dateKey);
+                      }}
+                      onMouseDown={(e) => {
+                        if (!cellSelectMode) return;
+                        e.preventDefault();
+                        startDragOnCell(row.id, dateKey);
+                      }}
+                      onMouseEnter={() => continueDragOnCell(row.id, dateKey)}
+                      onTouchStart={() => {
+                        if (!cellSelectMode) return;
+                        startDragOnCell(row.id, dateKey);
+                      }}
                     >
                       {cellValue(row, dateKey)}
                     </td>
