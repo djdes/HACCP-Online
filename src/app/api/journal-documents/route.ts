@@ -308,6 +308,24 @@ export async function POST(request: Request) {
       ? getDefaultCleaningResponsibleIds(cleaningUsers)
       : null;
 
+  // Org-level шаблон по умолчанию для cleaning. Когда менеджер
+  // нажимает «Сохранить как шаблон» — config записывается в
+  // Organization.defaultCleaningDocumentConfig. Здесь вытаскиваем,
+  // чтобы новые JournalDocument создавались с теми же rooms/scopes/days.
+  const cleaningOrgDefault =
+    resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+      ? await db.organization
+          .findUnique({
+            where: { id: getActiveOrgId(session) },
+            select: { defaultCleaningDocumentConfig: true },
+          })
+          .then((row) => {
+            const raw = row?.defaultCleaningDocumentConfig;
+            if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+            return raw as Record<string, unknown>;
+          })
+      : null;
+
   const equipmentCalibrationSource =
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? await db.equipment.findMany({
@@ -372,10 +390,13 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? buildClimateConfigFromAreas(allAreas)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? normalizeCleaningDocumentConfig(rawConfig ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas), {
-          users: cleaningUsers,
-          areas: cleaningAreas,
-        })
+      ? normalizeCleaningDocumentConfig(
+          rawConfig ?? cleaningOrgDefault ?? defaultCleaningDocumentConfig(cleaningUsers, cleaningAreas),
+          {
+            users: cleaningUsers,
+            areas: cleaningAreas,
+          },
+        )
       : resolvedTemplateCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
       ? normalizeCleaningVentilationConfig(
           rawConfig ?? getDefaultCleaningVentilationConfig(allUsers),

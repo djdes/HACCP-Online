@@ -56,6 +56,13 @@ export type CleaningRoomItem = {
   detergent: string;
   currentScope: string[];
   generalScope: string[];
+  /// Bitmask дней недели когда проводится ТЕКУЩАЯ уборка.
+  /// bit 0 = Пн, ... bit 6 = Вс. См. src/lib/weekday-mask.ts.
+  /// По умолчанию 127 (ежедневно).
+  currentDays?: number;
+  /// Bitmask дней недели когда проводится ГЕНЕРАЛЬНАЯ уборка.
+  /// По умолчанию 0 (не запланировано — задаётся вручную в матрице).
+  generalDays?: number;
 };
 
 export type CleaningMatrixValue = string;
@@ -319,6 +326,11 @@ function cloneMatrix(value: CleaningMatrixMap): CleaningMatrixMap {
 function normalizeRoomLike(value: unknown, fallback: CleaningRoomItem): CleaningRoomItem {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { ...fallback };
   const record = value as Record<string, unknown>;
+  // Weekday-mask: 0..127 integer; fallback на defaults (текущая=ежедневно, генеральная=не запланировано).
+  const normalizeDayMask = (raw: unknown, fb: number) => {
+    if (typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw <= 127) return raw;
+    return fb;
+  };
   return {
     id: normalizeText(record.id, fallback.id),
     areaId: normalizeText(record.areaId) || fallback.areaId,
@@ -330,6 +342,8 @@ function normalizeRoomLike(value: unknown, fallback: CleaningRoomItem): Cleaning
     generalScope: normalizeStringArray(record.generalScope).length
       ? normalizeStringArray(record.generalScope)
       : [...fallback.generalScope],
+    currentDays: normalizeDayMask(record.currentDays, fallback.currentDays ?? 127),
+    generalDays: normalizeDayMask(record.generalDays, fallback.generalDays ?? 0),
   };
 }
 
@@ -342,6 +356,8 @@ function buildDefaultRooms(areas?: AreaLike[]): CleaningRoomItem[] {
       detergent: blueprint.detergent,
       currentScope: [...blueprint.currentScope],
       generalScope: [...blueprint.generalScope],
+      currentDays: 127, // ежедневно
+      generalDays: 0,   // не запланировано (задаётся вручную в матрице)
     }));
   }
 
@@ -354,6 +370,8 @@ function buildDefaultRooms(areas?: AreaLike[]): CleaningRoomItem[] {
       detergent: blueprint.detergent,
       currentScope: [...blueprint.currentScope],
       generalScope: [...blueprint.generalScope],
+      currentDays: 127,
+      generalDays: 0,
     };
   });
 }
@@ -1271,6 +1289,8 @@ export function createCleaningRoom(overrides: Partial<CleaningRoomItem> = {}): C
     detergent: normalizeText(overrides.detergent),
     currentScope: overrides.currentScope ? [...overrides.currentScope] : [],
     generalScope: overrides.generalScope ? [...overrides.generalScope] : [],
+    currentDays: typeof overrides.currentDays === "number" ? overrides.currentDays : 127,
+    generalDays: typeof overrides.generalDays === "number" ? overrides.generalDays : 0,
   };
 }
 
