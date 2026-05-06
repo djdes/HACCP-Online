@@ -334,19 +334,20 @@ export async function POST(request: Request) {
   // Используется чтобы новый журнал создавался «как прошлый» — теми же
   // rooms, ответственными, weekday-масками. matrix/marks (период-специфика)
   // отрезаем — в новом периоде свои даты, отметки уборщицы не переносятся.
-  const cleaningPrevDocConfig =
+  const cleaningPrevDocRaw =
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? await db.journalDocument
-          .findFirst({
-            where: {
-              organizationId: getActiveOrgId(session),
-              template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
-            },
-            orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
-            select: { config: true },
-          })
-          .then((row) => stripPeriodSpecificCleaningFields(row?.config))
+      ? await db.journalDocument.findFirst({
+          where: {
+            organizationId: getActiveOrgId(session),
+            template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
+          },
+          orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
+          select: { id: true, dateFrom: true, config: true },
+        })
       : null;
+  const cleaningPrevDocConfig = stripPeriodSpecificCleaningFields(
+    cleaningPrevDocRaw?.config,
+  );
 
   const equipmentCalibrationSource =
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
@@ -377,6 +378,30 @@ export async function POST(request: Request) {
     config && typeof config === "object" && !Array.isArray(config)
       ? (config as Record<string, unknown>)
       : undefined;
+
+  if (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+    const prevRoomsCount =
+      cleaningPrevDocConfig &&
+      Array.isArray((cleaningPrevDocConfig as Record<string, unknown>).rooms)
+        ? ((cleaningPrevDocConfig as Record<string, unknown>).rooms as unknown[]).length
+        : 0;
+    const bodyRoomsCount =
+      rawConfig && Array.isArray(rawConfig.rooms)
+        ? (rawConfig.rooms as unknown[]).length
+        : 0;
+    console.log(
+      "[journal-documents.create.cleaning] prev-doc lookup",
+      JSON.stringify({
+        orgId: getActiveOrgId(session),
+        prevDocId: cleaningPrevDocRaw?.id ?? null,
+        prevDocDateFrom: cleaningPrevDocRaw?.dateFrom ?? null,
+        prevDocHasConfig: Boolean(cleaningPrevDocRaw?.config),
+        prevRoomsCount,
+        bodyConfigPresent: Boolean(rawConfig),
+        bodyRoomsCount,
+      }),
+    );
+  }
 
   const calibrationYear = Number(String(dateFrom).slice(0, 4)) || new Date().getUTCFullYear();
   const calibrationOwner = pickPrimaryManager(allUsers);
@@ -438,7 +463,15 @@ export async function POST(request: Request) {
             }
             if (!rawConfig) return cleaningPrevDocConfig;
             const body = rawConfig;
-            const merged: Record<string, unknown> = { ...cleaningPrevDocConfig };
+            // СТРОИМ merged ВСЕГДА с prev'ом как базой, но БЕЗ matrix/marks
+            // — даже если IDs совпадают с body, отметки прошлого периода
+            // не переносятся в новый. applyRoomScheduleToMatrix ниже
+            // заполнит matrix по weekday-плану перенесённых rooms.
+            const merged: Record<string, unknown> = {
+              ...cleaningPrevDocConfig,
+              matrix: {},
+              marks: {},
+            };
             // Body-fields, которые перебивают prev (явный выбор менеджера):
             if (Array.isArray(body.cleaningResponsibles)) {
               merged.cleaningResponsibles = body.cleaningResponsibles;
