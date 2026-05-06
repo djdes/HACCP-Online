@@ -99,8 +99,8 @@ const settingsCards = [
     bgClass: "bg-[#fff8eb]",
   },
   {
-    title: "Видимость по должностям",
-    description: "Кого видит каждая должность — драйвит TasksFlow и бот",
+    title: "Кто видит коллег",
+    description: "Видимость сотрудников по должностям — драйвит TasksFlow и бот",
     href: "/settings/position-staff-visibility",
     icon: Users,
     iconClass: "text-[#0ea5e9]",
@@ -124,9 +124,9 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Режим распределения задач",
+    title: "Кто забирает задачу",
     description:
-      "Как сотрудники получают задачи: гонка / свободно / только админ",
+      "Гонка / свободно / только админ — стиль работы команды над одной задачей",
     href: "/settings/journal-flow",
     icon: Shuffle,
     iconClass: "text-[#7a5cff]",
@@ -208,9 +208,9 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Режимы раздачи задач",
+    title: "Раздача и проверка задач",
     description:
-      "Уборку — по помещениям, гигиену — по сотрудникам, бракераж — одной сводкой. Гибкая настройка под вашу кухню",
+      "Per-журнал: как создаются TasksFlow-задачи (по помещениям/сотрудникам/смене) и нужна ли двойная проверка завед. Здесь — «Без проверки» для журналов где сотрудник заполнил → готово",
     href: "/settings/journal-task-mode",
     icon: Settings2,
     iconClass: "text-[#3848c7]",
@@ -244,7 +244,7 @@ const settingsCards = [
     bgClass: "bg-[#fff8eb]",
   },
   {
-    title: "Распределение задач",
+    title: "Дашборд нагрузки",
     description:
       "Кто сколько журналов ведёт в месяц — таблица с подсветкой перекоса между поварами на одинаковой зарплате",
     href: "/settings/workload-balance",
@@ -253,7 +253,7 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Видимость чужих задач",
+    title: "Admin-флаг в TasksFlow",
     description:
       "Кто из руководства видит ВСЕ задачи в TasksFlow (admin-режим). По умолчанию — никто; включай только для одной должности (обычно «Админ»)",
     href: "/settings/task-visibility",
@@ -262,7 +262,7 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Иерархия журналов по должностям",
+    title: "Матрица «должность × журнал»",
     description: "Тот же выбор, но в виде матрицы должность × журнал — для power-юзеров",
     href: "/settings/journals-by-position",
     icon: Network,
