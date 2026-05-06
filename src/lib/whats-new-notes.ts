@@ -22,11 +22,21 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "3911d7ee";
+export const LATEST_NOTES_BUILD_SHA = "SKIP_VERIFY";
 
 export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    category: "Журнал «Без проверки» — задача → сразу done без подтверждения завед.",
+    items: [
+      "Открой /settings/journal-task-mode → выбери журнал → колонка «Проверка» → «Без проверки».",
+      "Эффект: сотрудник нажимает «Готово» в TasksFlow, задача мгновенно закрывается, заполнение пишется в журнал, бонус начисляется. Заведующая supervisor-task НЕ получает.",
+      "Используется для журналов где двойная проверка не нужна (UV-лампа, плановые осмотры низкого риска, рутинные регистрации). Все логи (audit, journal entries, photo-evidence) сохраняются как обычно.",
+      "Был баг: при выставленном «Без проверки» задача всё равно создавалась с verifier-link и застревала в submitted-state. Зафиксил — теперь TasksFlow не ставит verifierWorkerId на filler.",
+      "Обратный путь: тот же dropdown, выбираешь «Сводная проверка журнала» — возвращается двухступенчатая верификация.",
+    ],
+  },
   {
     category: "Mini App — большая чистка после двух code-review проходов",
     items: [

@@ -1012,11 +1012,18 @@ export async function POST(request: Request) {
       // Если verifier == worker (одинокий случай — заведующая в смене
       // и сама отв. за заполнение и проверку) — не ставим, task
       // закрывается обычным /complete.
-      const verifierWesetupId =
-        row.verifierUserId ??
-        doc.verifierUserId ??
-        doc.responsibleUserId ??
-        null;
+      //
+      // Если у журнала verification: "none" — verifierWorkerId не
+      // ставим вообще: filler нажимает «Готово» → TasksFlow сразу
+      // closes task (isCompleted=true), без submission state. Audit
+      // log пишется как обычно.
+      const skipVerification = taskMode.verification === "none";
+      const verifierWesetupId = skipVerification
+        ? null
+        : (row.verifierUserId ??
+          doc.verifierUserId ??
+          doc.responsibleUserId ??
+          null);
       let verifierTfId: number | null = null;
       if (verifierWesetupId) {
         const candidate = tfUserIdByWesetup.get(verifierWesetupId);
