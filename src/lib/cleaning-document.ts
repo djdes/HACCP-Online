@@ -1,4 +1,5 @@
 import { buildDateKeys, coerceUtcDate, formatMonthLabel, isWeekend, toDateKey } from "@/lib/hygiene-document";
+import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import {
   getUserRoleLabel,
   pickPrimaryManager,
@@ -1464,10 +1465,15 @@ export function applyRoomScheduleToMatrix(
   mode: "fill-empty" | "overwrite" = "fill-empty",
 ): CleaningDocumentConfig {
   const next = cloneConfig(config);
+  // В overwrite-режиме («План заново») — выходные/праздники по умолчанию
+  // помечаем «/» (не проводилась). Менеджер всё равно подтверждает overwrite
+  // в confirm-dialog'е, так что неожиданности нет; зато новый период сразу
+  // соответствует РФ-производственному календарю и не нужно отдельно
+  // нажимать «Отметить выходные «/»». В fill-empty режиме (auto-apply) НЕ
+  // делаем — пользовательские отметки сохраняются.
   for (const room of next.rooms) {
     const currentMask = typeof room.currentDays === "number" ? room.currentDays : 127;
     const generalMask = typeof room.generalDays === "number" ? room.generalDays : 0;
-    if (currentMask === 0 && generalMask === 0) continue;
     const row = next.matrix[room.id] ? { ...next.matrix[room.id] } : {};
     for (const dateKey of dateKeys) {
       const date = new Date(`${dateKey}T00:00:00Z`);
@@ -1475,17 +1481,37 @@ export function applyRoomScheduleToMatrix(
       const mondayIdx = (jsDow + 6) % 7;
       const bit = 1 << mondayIdx;
       // Generalная имеет приоритет над текущей: если день в обоих
-      // масках — пишем G, иначе T.
+      // масках — пишем G, иначе T. Если день — выходной/праздник
+      // и mode=overwrite — пишем «/». Иначе пусто.
       let plan: CleaningMatrixValue = "";
-      if ((generalMask & bit) !== 0) plan = "G";
-      else if ((currentMask & bit) !== 0) plan = "T";
-      if (!plan) continue;
+      const dayKind = getCalendarDayKind(dateKey).kind;
+      const isNonWorkingDay = dayKind === "weekend" || dayKind === "holiday";
+      // План: general > current > /-на-выходных (только overwrite). Если
+      // менеджер явно поставил Sat в generalMask — Sat остаётся G, потому
+      // что это его осознанный выбор. Если Sat НЕ в маске — выходной по
+      // календарю → «/».
+      if ((generalMask & bit) !== 0) {
+        plan = "G";
+      } else if ((currentMask & bit) !== 0) {
+        plan = "T";
+      } else if (mode === "overwrite" && isNonWorkingDay) {
+        plan = "/" as CleaningMatrixValue;
+      }
+      if (!plan) {
+        // Overwrite + нет плана + рабочий день → стираем (если что было).
+        if (mode === "overwrite") {
+          delete row[dateKey];
+        }
+        continue;
+      }
       const existing = row[dateKey];
       if (mode === "fill-empty" && existing) continue;
       row[dateKey] = plan;
     }
     if (Object.keys(row).length > 0) {
       next.matrix[room.id] = row;
+    } else {
+      delete next.matrix[room.id];
     }
   }
   next.marks = next.matrix;
