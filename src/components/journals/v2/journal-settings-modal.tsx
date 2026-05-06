@@ -79,7 +79,12 @@ export function JournalSettingsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border-0 p-0 ${sizeClass}`}
+        // ВАЖНО: shadcn DialogContent по умолчанию использует `display: grid`
+        // — в нём `flex-1` на body не работает и body растёт по контенту,
+        // прорывая `max-h-[90vh]` (контент клипается, не скроллится).
+        // Принудительно делаем flex column, чтобы header/footer shrink-0
+        // и body flex-1 overflow-y-auto работали как задумано.
+        className={`flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-[28px] border-0 p-0 gap-0 ${sizeClass}`}
       >
         <DialogHeader className="shrink-0 border-b border-[#ececf4] bg-white px-6 py-5 sm:px-8 sm:py-6">
           <div className="flex items-start justify-between gap-4">

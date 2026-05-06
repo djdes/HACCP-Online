@@ -1437,6 +1437,51 @@ export function copyMatrixByWeekday(
 }
 
 /**
+ * Ставит «/» (не проводилась) на все выходные и праздники РФ-календаря
+ * для каждой комнаты. Используется когда копируем matrix из прошлого
+ * периода в новый — прошлые отметки на выходных не релевантны для
+ * нового, заменяем единообразно.
+ *
+ * Не трогает рабочие дни и не трогает строки responsibles (только rooms,
+ * у responsibles свои code-метки типа «С1»). Чтобы не оверрайдить уже
+ * запланированный G на subbота (когда менеджер явно поставил generalMask
+ * на субботу) — ставим «/» только если ячейка пустая ИЛИ копия из прошлого
+ * периода. Если в новом config'е room.generalDays включает Sat — мы
+ * оставим то значение, что copyMatrixByWeekday скопировал.
+ */
+export function applyWeekendHolidayMark(
+  matrix: CleaningMatrixMap,
+  dateKeys: string[],
+  config: CleaningDocumentConfig,
+): CleaningMatrixMap {
+  const next: CleaningMatrixMap = {};
+  for (const [rowId, row] of Object.entries(matrix)) {
+    next[rowId] = { ...row };
+  }
+  for (const room of config.rooms) {
+    const generalMask = typeof room.generalDays === "number" ? room.generalDays : 0;
+    const currentMask = typeof room.currentDays === "number" ? room.currentDays : 0;
+    const row = next[room.id] ? { ...next[room.id] } : {};
+    for (const dateKey of dateKeys) {
+      const dayKind = getCalendarDayKind(dateKey).kind;
+      if (dayKind !== "weekend" && dayKind !== "holiday") continue;
+      const date = new Date(`${dateKey}T00:00:00Z`);
+      const mondayIdx = (date.getUTCDay() + 6) % 7;
+      const bit = 1 << mondayIdx;
+      // Если менеджер ЯВНО запланировал уборку на этот день недели
+      // (current/general bit set) — не трогаем; иначе «/».
+      const isPlanned = (generalMask & bit) !== 0 || (currentMask & bit) !== 0;
+      if (isPlanned) continue;
+      row[dateKey] = "/" as CleaningMatrixValue;
+    }
+    if (Object.keys(row).length > 0) {
+      next[room.id] = row;
+    }
+  }
+  return next;
+}
+
+/**
  * Заполняет матрицу по weekday-маскам помещений (currentDays/generalDays).
  * Для каждой пары (room, dateKey):
  *   • если generalDays включает день недели → ставим "G"

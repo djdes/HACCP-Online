@@ -15,6 +15,7 @@ import {
 } from "@/lib/climate-document";
 import {
   applyRoomScheduleToMatrix,
+  applyWeekendHolidayMark,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   copyMatrixByWeekday,
   defaultCleaningDocumentConfig,
@@ -617,7 +618,15 @@ export async function POST(request: Request) {
           if (cleaningPrevDocConfig) {
             const prevMatrix =
               (cleaningPrevDocConfig as { matrix?: CleaningMatrixMap }).matrix;
-            const remapped = copyMatrixByWeekday(prevMatrix, newDateKeys);
+            let remapped = copyMatrixByWeekday(prevMatrix, newDateKeys);
+            // Поверх копии — оверрайдим выходные и праздники РФ-календаря
+            // на «/». Прошлый период мог иметь T на Sat (если уборщица
+            // там работала или менеджер случайно отметил), но в новом
+            // периоде дни недели сместились + могут быть праздники, и
+            // поведение по умолчанию должно быть «не убиралась». Pattern
+            // T-на-будни / G-по-средам сохраняется через copy, а
+            // weekends/holidays зануляем «/» как в кнопке «План заново».
+            remapped = applyWeekendHolidayMark(remapped, newDateKeys, normalized);
             return {
               ...normalized,
               matrix: remapped,
@@ -676,16 +685,21 @@ export async function POST(request: Request) {
       undefined,
   });
 
+  // Slots из /settings/journal-responsibles — приоритет над body.
+  // Раньше body.responsibleUserId побеждал prefilled, и настройки
+  // ответственных каждый раз переопределялись авто-выбором первого
+  // подходящего юзера в диалоге создания. Теперь settings-slot'ы
+  // имеют приоритет; если их нет — fallback на body.
   const finalResponsibleUserId =
-    normalizedDocumentState.responsibleUserId || prefilled.responsibleUserId;
+    prefilled.responsibleUserId || normalizedDocumentState.responsibleUserId;
   const finalResponsibleTitle = normalizedDocumentState.responsibleTitle ?? null;
-  // Если в body нет config, но patcher из cascade его обогатил
-  // (например, для cleaning заполнил cleaningResponsibles[]) —
-  // используем patched config. Иначе оставляем то, что было.
+  // ВСЕГДА используем prefilled.config — patcher уже сделал merge:
+  // body fields сохранил, slot-user'ов из настроек проставил поверх.
+  // Раньше при наличии rawConfig мы оставляли normalizedDocumentState.config
+  // (PRE-патчер), и слот-пользователи терялись.
   const finalConfig =
-    !rawConfig && prefilled.config
-      ? prefilled.config
-      : (normalizedDocumentState.config as Record<string, unknown> | undefined);
+    prefilled.config ??
+    (normalizedDocumentState.config as Record<string, unknown> | undefined);
 
   const doc = await db.journalDocument.create({
     data: {
