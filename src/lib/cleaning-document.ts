@@ -168,6 +168,22 @@ export type CleaningDocumentConfig = {
   /// одну сводную задачу в конце дня. Используется как fallback если
   /// для конкретной комнаты нет записи в verifierByRoomId.
   controlUserId?: string | null;
+  /// Режим pipeline'а (подзадач в TasksFlow):
+  ///   "perRoom" (default) — у каждого помещения свой список шагов
+  ///                          (currentScope/generalScope в CleaningRoomItem).
+  ///                          Используется когда уборка разная по цехам.
+  ///   "global"            — один общий список для ВСЕХ помещений
+  ///                          (`globalSubtasks` ниже). Используется когда
+  ///                          протокол одинаковый для каждой комнаты.
+  ///   "legacy"            — без подзадач, сотрудник просто отмечает
+  ///                          «выполнено» в TasksFlow без чек-листа.
+  cleaningSubtaskMode?: "perRoom" | "global" | "legacy";
+  /// Общий список подзадач (для cleaningSubtaskMode === "global").
+  /// Если режим другой — поле игнорируется. По умолчанию пустое.
+  globalSubtasks?: {
+    current: string[];
+    general: string[];
+  };
 };
 
 type UserLike = {
@@ -191,73 +207,38 @@ type LegacyResponsibleDefaults = {
   responsibleControlUserId?: string | null;
 };
 
+// DEFAULT_ROOM_BLUEPRINTS — стартовые помещения для нового журнала уборки.
+// currentScope/generalScope ПУСТЫЕ — менеджер заполняет вручную через
+// диалог редактирования помещения (или подгружает из шаблона по умолчанию).
+// Раньше тут были hard-coded шаги «Пол / Стеллажи / Полки», но это путало
+// пользователей с другим типом производства (пекарня, бар, мясокомбинат)
+// и не отражало их реальные процедуры — теперь стартуем с чистого листа.
+// Если орга сохранила свой шаблон через «Сохранить как шаблон» — он
+// подменит этот fallback (см. journal-documents/route.ts).
 const DEFAULT_ROOM_BLUEPRINTS = [
   {
     name: "гостевая зона",
-    detergent: "Ph Multiclean -1%",
-    currentScope: ["Пол", "Стеллажи", "Полки", "Двери"],
-    generalScope: ["Пол", "Стеллажи", "Полки", "Двери", "Стоки"],
+    detergent: "",
+    currentScope: [] as string[],
+    generalScope: [] as string[],
   },
   {
     name: "помещение мойки",
-    detergent: "Ph Multiclean -1%, Ph средство дезинфицирующее - 0,5%",
-    currentScope: [
-      "Производственные столы",
-      "Пол",
-      "Моечные ванны",
-      "Стеллажи",
-      "Производственный инвентарь",
-    ],
-    generalScope: [
-      "Производственные столы",
-      "Пол",
-      "Моечные ванны",
-      "Стеллажи",
-      "Производственный инвентарь",
-      "Стены",
-    ],
+    detergent: "",
+    currentScope: [] as string[],
+    generalScope: [] as string[],
   },
   {
     name: "горячий цех/кухня",
-    detergent: "Ph Multiclean -1%, Ph средство дезинфицирующее - 0,5%",
-    currentScope: [
-      "Производственные столы",
-      "Пол",
-      "Моечные ванны",
-      "Производственный инвентарь",
-      "Полки",
-      "Измельчители (мясорубки, блендеры и т.д.)",
-    ],
-    generalScope: [
-      "Производственные столы",
-      "Пол",
-      "Моечные ванны",
-      "Производственный инвентарь",
-      "Полки",
-      "Измельчители (мясорубки, блендеры и т.д.)",
-      "Стены",
-      "Вентиляционные зонты",
-      "Холодильная камера 2",
-    ],
+    detergent: "",
+    currentScope: [] as string[],
+    generalScope: [] as string[],
   },
   {
     name: "Бар",
-    detergent: "Ph средство дезинфицирующее - 0,5%",
-    currentScope: [
-      "Производственные столы",
-      "Пол",
-      "Стеллажи",
-      "Холодильная камера 2",
-      "Производственный инвентарь",
-    ],
-    generalScope: [
-      "Производственные столы",
-      "Пол",
-      "Стеллажи",
-      "Холодильная камера 2",
-      "Производственный инвентарь",
-      "Стены",
-    ],
+    detergent: "",
+    currentScope: [] as string[],
+    generalScope: [] as string[],
   },
 ] as const;
 
@@ -1093,6 +1074,26 @@ export function normalizeCleaningDocumentConfig(
     typeof record.controlUserId === "string" && record.controlUserId.length > 0
       ? record.controlUserId
       : null;
+
+  // Pipeline (subtask) mode — perRoom by default для backwards-compat.
+  // legacy = без подзадач, global = один общий список, perRoom = по помещению.
+  const subtaskModeRaw = record.cleaningSubtaskMode;
+  next.cleaningSubtaskMode =
+    subtaskModeRaw === "legacy" || subtaskModeRaw === "global" || subtaskModeRaw === "perRoom"
+      ? subtaskModeRaw
+      : "perRoom";
+  // Global subtasks — используются только в "global" mode, но всегда
+  // нормализуем чтобы переключение режимов не теряло данные.
+  const globalRaw = record.globalSubtasks;
+  if (globalRaw && typeof globalRaw === "object" && !Array.isArray(globalRaw)) {
+    const g = globalRaw as Record<string, unknown>;
+    next.globalSubtasks = {
+      current: normalizeStringArray(g.current),
+      general: normalizeStringArray(g.general),
+    };
+  } else {
+    next.globalSubtasks = { current: [], general: [] };
+  }
 
   return syncCompatibilityFields(next);
 }

@@ -437,12 +437,29 @@ export function CleaningDocumentClient(props: Props) {
   // выделяет диапазон (как в Excel).
   const [cellSelectMode, setCellSelectMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
-  // Drag-state хранится в ref (а не useState), чтобы read из mouseenter
+  // Drag-state хранится в refs (а не useState), чтобы read из mouseenter
   // handler'а был синхронным. setState async и handler читал бы stale
   // значение между ячейками, drag «терял» промежуточные.
+  //
+  // Excel-style rectangle drag-select:
+  //   • mousedown на ячейке A → anchor = A, base = текущая selectedCells,
+  //     mode = "remove" если A уже в base, иначе "add"
+  //   • mousemove на ячейку B → applyRect(A, B): selectedCells = base ± cells_in_rect(A,B)
+  //   • mouseup → очищает anchor; selectedCells уже финальный
+  type CellPos = { rowId: string; dateKey: string };
+  const dragAnchorRef = useRef<CellPos | null>(null);
+  const dragBaseRef = useRef<Set<string>>(new Set());
   const dragModeRef = useRef<"add" | "remove" | null>(null);
+  // Refs с актуальным порядком rows / dayKeys — нужны applyRectToSelection,
+  // который вызывается из mouseenter handler'ов и должен читать самую
+  // свежую раскладку (rows может пересчитаться при патче config).
+  // Сами `rows` и `dayKeys` объявлены ниже как useMemo; sync через useEffect.
+  const rowIdToIndexRef = useRef<Map<string, number>>(new Map());
+  const dateKeyToIndexRef = useRef<Map<string, number>>(new Map());
+  const rowsOrderRef = useRef<RowDescriptor[]>([]);
+  const dateOrderRef = useRef<string[]>([]);
   // Дополнительный counter — для re-render UI «выделено N» в realtime
-  // (selectedCells changes уже триггерят re-render, dragModeRef нет).
+  // (selectedCells changes уже триггерят re-render, dragAnchorRef нет).
   const [, setDragTick] = useState(0);
   const cellKey = (rowId: string, dateKey: string) => `${rowId}::${dateKey}`;
   function clearCellSelection() {
@@ -453,7 +470,10 @@ export function CleaningDocumentClient(props: Props) {
   // (после того как пользователь утащил курсор за viewport).
   useEffect(() => {
     function handleUp() {
+      dragAnchorRef.current = null;
+      dragBaseRef.current = new Set();
       dragModeRef.current = null;
+      setDragTick((n) => n + 1);
     }
     window.addEventListener("mouseup", handleUp);
     window.addEventListener("touchend", handleUp);
@@ -463,32 +483,50 @@ export function CleaningDocumentClient(props: Props) {
     };
   }, []);
   // Drag-helpers. ref-based для синхронного read'а в mouseenter.
+  // Применяет «прямоугольник от anchor до end» к selectedCells.
+  // base — снимок selection в момент mousedown; mode — добавляем или убираем.
+  function applyRectToSelection(anchor: CellPos, end: CellPos) {
+    const aRow = rowIdToIndexRef.current.get(anchor.rowId);
+    const eRow = rowIdToIndexRef.current.get(end.rowId);
+    const aDate = dateKeyToIndexRef.current.get(anchor.dateKey);
+    const eDate = dateKeyToIndexRef.current.get(end.dateKey);
+    if (aRow == null || eRow == null || aDate == null || eDate == null) return;
+    const r0 = Math.min(aRow, eRow);
+    const r1 = Math.max(aRow, eRow);
+    const d0 = Math.min(aDate, eDate);
+    const d1 = Math.max(aDate, eDate);
+    const base = dragBaseRef.current;
+    const mode = dragModeRef.current ?? "add";
+    const next = new Set(base);
+    const rowsArr = rowsOrderRef.current;
+    const dateArr = dateOrderRef.current;
+    for (let i = r0; i <= r1; i += 1) {
+      for (let j = d0; j <= d1; j += 1) {
+        const row = rowsArr[i];
+        const day = dateArr[j];
+        if (!row || !day) continue;
+        const k = cellKey(row.id, day);
+        if (mode === "add") next.add(k);
+        else next.delete(k);
+      }
+    }
+    setSelectedCells(next);
+  }
   function startDragOnCell(rowId: string, dateKey: string) {
     if (!cellSelectMode) return;
+    const anchor: CellPos = { rowId, dateKey };
     const k = cellKey(rowId, dateKey);
-    setSelectedCells((prev) => {
-      const willBeAdd = !prev.has(k);
-      dragModeRef.current = willBeAdd ? "add" : "remove";
-      const next = new Set(prev);
-      if (willBeAdd) next.add(k);
-      else next.delete(k);
-      return next;
-    });
+    dragAnchorRef.current = anchor;
+    dragBaseRef.current = new Set(selectedCells);
+    dragModeRef.current = selectedCells.has(k) ? "remove" : "add";
+    applyRectToSelection(anchor, anchor);
     setDragTick((n) => n + 1);
   }
   function continueDragOnCell(rowId: string, dateKey: string) {
     if (!cellSelectMode) return;
-    const mode = dragModeRef.current;
-    if (!mode) return;
-    const k = cellKey(rowId, dateKey);
-    setSelectedCells((prev) => {
-      if (mode === "add" && prev.has(k)) return prev;
-      if (mode === "remove" && !prev.has(k)) return prev;
-      const next = new Set(prev);
-      if (mode === "add") next.add(k);
-      else next.delete(k);
-      return next;
-    });
+    const anchor = dragAnchorRef.current;
+    if (!anchor || !dragModeRef.current) return;
+    applyRectToSelection(anchor, { rowId, dateKey });
   }
   const [roomDialog, setRoomDialog] = useState<RoomFormState | null>(null);
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
@@ -499,6 +537,30 @@ export function CleaningDocumentClient(props: Props) {
   // текущего config'а в Organization.defaultCleaningDocumentConfig.
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
   const [saveAsTemplateBusy, setSaveAsTemplateBusy] = useState(false);
+
+  // Pipeline-mode setters — патчат config и persist'ят сразу.
+  // perRoom = у каждой комнаты свой scope (текущее поведение)
+  // global  = один общий список для всех комнат
+  // legacy  = без подзадач, чек-лист отключён
+  async function setCleaningSubtaskMode(mode: "perRoom" | "global" | "legacy") {
+    const next = normalizeCleaningDocumentConfig(
+      { ...config, cleaningSubtaskMode: mode },
+      { users: props.users },
+    );
+    await patchDocument(next);
+  }
+  async function setGlobalSubtasks(value: { current?: string[]; general?: string[] }) {
+    const prev = config.globalSubtasks ?? { current: [], general: [] };
+    const merged = {
+      current: value.current ?? prev.current,
+      general: value.general ?? prev.general,
+    };
+    const next = normalizeCleaningDocumentConfig(
+      { ...config, globalSubtasks: merged },
+      { users: props.users },
+    );
+    await patchDocument(next);
+  }
   async function handleSaveAsTemplate() {
     setSaveAsTemplateBusy(true);
     try {
@@ -590,6 +652,33 @@ export function CleaningDocumentClient(props: Props) {
       ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
     ];
   }, [config, isRoomsMode, buildingsRoomMap]);
+
+  // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
+  // может прочитать stale rows при быстром переключении.
+  useEffect(() => {
+    rowsOrderRef.current = rows;
+    const m = new Map<string, number>();
+    rows.forEach((r, i) => m.set(r.id, i));
+    rowIdToIndexRef.current = m;
+  }, [rows]);
+  useEffect(() => {
+    dateOrderRef.current = dayKeys;
+    const m = new Map<string, number>();
+    dayKeys.forEach((d, i) => m.set(d, i));
+    dateKeyToIndexRef.current = m;
+  }, [dayKeys]);
+
+  /** Выделить ВСЕ ячейки (rows × dates). Используется для bulk-«Применить». */
+  function selectAllCells() {
+    const next = new Set<string>();
+    for (const row of rows) {
+      for (const day of dayKeys) {
+        next.add(cellKey(row.id, day));
+      }
+    }
+    setSelectedCells(next);
+    setCellSelectMode(true);
+  }
 
   /** Значение ячейки. В rooms-mode — инициалы cleaner-а из
    *  JournalDocumentEntry с kind=cleaning_room. В pairs-mode — старая
@@ -1039,7 +1128,11 @@ export function CleaningDocumentClient(props: Props) {
         </section>
 
         {!printMode ? (
-          <div className="sticky top-0 z-30 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+          // Sticky под dashboard-хедером (он `sticky top-0 z-30 h-14`).
+          // top-14 чтобы не перекрывать хедер; z-20 чтобы хедер всегда был выше
+          // (без этого dropdown-trigger перекрывался невидимыми элементами хедера
+          // и клик «Добавить» не регистрировался).
+          <div className="sticky top-14 z-20 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
@@ -1087,9 +1180,17 @@ export function CleaningDocumentClient(props: Props) {
                     }
                   }}
                   className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
-                  title="ВКЛ: тяните мышью / пальцем по ячейкам, чтобы выделить диапазон"
+                  title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
                 >
                   {cellSelectMode ? "Выделение: ВКЛ" : "Выделить мышкой"}
+                </button>
+                <button
+                  type="button"
+                  onClick={selectAllCells}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  title="Выделить все ячейки матрицы"
+                >
+                  Выделить всё
                 </button>
                 {cellSelectMode ? (
                   <>
@@ -1371,6 +1472,15 @@ export function CleaningDocumentClient(props: Props) {
                     rows={3}
                   />
                 </div>
+                {(config.cleaningSubtaskMode ?? "perRoom") !== "perRoom" ? (
+                  <div className="rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] px-4 py-3 text-[12px] leading-[1.55] text-[#7a5500]">
+                    <strong>Чек-лист этого помещения отключён.</strong> В настройках журнала выбран
+                    {(config.cleaningSubtaskMode ?? "perRoom") === "global" ? " «Общий список»" : " режим «без чек-листа»"}.
+                    Шаги ниже сохранятся, но в TasksFlow сотрудник увидит
+                    {(config.cleaningSubtaskMode ?? "perRoom") === "global" ? " общий список из настроек журнала." : " задачу без подзадач."}
+                    Чтобы у каждой комнаты был свой чек-лист — переключите на «По помещениям» в настройках журнала.
+                  </div>
+                ) : null}
                 <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div>
@@ -1630,6 +1740,99 @@ export function CleaningDocumentClient(props: Props) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Pipeline mode — определяет, как сотрудник видит подзадачи в TasksFlow.
+              Раньше всегда был perRoom (у каждой комнаты свой scope). Теперь
+              менеджер может выбрать один общий список или отключить вовсе. */}
+          <div className="space-y-3 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4">
+            <div>
+              <Label className="text-[13px] font-semibold text-[#0b1024]">
+                Подзадачи в TasksFlow (pipeline)
+              </Label>
+              <p className="mt-1 text-[12px] leading-[1.55] text-[#6f7282]">
+                Как сотрудник видит чек-лист в задаче на уборку:
+              </p>
+            </div>
+            <div className="grid gap-2">
+              {([
+                {
+                  value: "perRoom" as const,
+                  title: "По помещениям (рекомендуется)",
+                  desc: "У каждой комнаты свой список шагов. Удобно когда уборка в кухне отличается от уборки в баре.",
+                },
+                {
+                  value: "global" as const,
+                  title: "Общий список",
+                  desc: "Один список шагов, одинаковый для всех помещений. Удобно когда протокол простой и единый.",
+                },
+                {
+                  value: "legacy" as const,
+                  title: "Без чек-листа (legacy)",
+                  desc: "Сотрудник просто отмечает «сделано», без разбивки на шаги. Подзадач в TasksFlow не будет.",
+                },
+              ]).map((opt) => {
+                const isActive = (config.cleaningSubtaskMode ?? "perRoom") === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setCleaningSubtaskMode(opt.value)}
+                    disabled={saving}
+                    className={`text-left rounded-2xl border px-4 py-3 transition-colors disabled:opacity-60 ${
+                      isActive
+                        ? "border-[#5566f6] bg-white shadow-[0_0_0_4px_rgba(85,102,246,0.12)]"
+                        : "border-[#ececf4] bg-white hover:border-[#5566f6]/40"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-1 flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                          isActive ? "border-[#5566f6] bg-[#5566f6]" : "border-[#dcdfed] bg-white"
+                        }`}
+                      >
+                        {isActive ? <div className="size-1.5 rounded-full bg-white" /> : null}
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-semibold text-[#0b1024]">{opt.title}</div>
+                        <p className="mt-0.5 text-[12px] leading-[1.5] text-[#6f7282]">{opt.desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {(config.cleaningSubtaskMode ?? "perRoom") === "global" ? (
+              <div className="space-y-3 rounded-2xl border border-[#dcdfed] bg-white p-3">
+                <div>
+                  <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                    Общий список — текущая уборка
+                  </Label>
+                  <p className="mt-1 text-[12px] leading-[1.5] text-[#6f7282]">
+                    Эти шаги увидит каждый сотрудник при уборке любого помещения (текущая).
+                  </p>
+                </div>
+                <ScopeListEditor
+                  value={config.globalSubtasks?.current ?? []}
+                  onChange={(next) => { void setGlobalSubtasks({ current: next }); }}
+                  placeholder="Например: Протереть рабочие поверхности"
+                  addLabel="Добавить шаг текущей"
+                  emptyHint="Шагов пока нет — добавьте первый шаг ниже."
+                />
+                <div className="border-t border-[#ececf4] pt-3">
+                  <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                    Общий список — генеральная уборка
+                  </Label>
+                </div>
+                <ScopeListEditor
+                  value={config.globalSubtasks?.general ?? []}
+                  onChange={(next) => { void setGlobalSubtasks({ general: next }); }}
+                  placeholder="Например: Демонтировать съёмные части и промыть в горячей воде"
+                  addLabel="Добавить шаг генеральной"
+                  emptyHint="Шагов пока нет — добавьте первый шаг ниже."
+                />
+              </div>
+            ) : null}
           </div>
         </JournalSettingsModal>
       ) : (
