@@ -16,10 +16,12 @@ import {
 import {
   applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  copyMatrixByWeekday,
   defaultCleaningDocumentConfig,
   getDefaultCleaningResponsibleIds,
   normalizeCleaningDocumentConfig,
   stripPeriodSpecificCleaningFields,
+  type CleaningMatrixMap,
 } from "@/lib/cleaning-document";
 import { buildDateKeys } from "@/lib/hygiene-document";
 import {
@@ -463,15 +465,12 @@ export async function POST(request: Request) {
             }
             if (!rawConfig) return cleaningPrevDocConfig;
             const body = rawConfig;
-            // СТРОИМ merged ВСЕГДА с prev'ом как базой, но БЕЗ matrix/marks
-            // — даже если IDs совпадают с body, отметки прошлого периода
-            // не переносятся в новый. applyRoomScheduleToMatrix ниже
-            // заполнит matrix по weekday-плану перенесённых rooms.
-            const merged: Record<string, unknown> = {
-              ...cleaningPrevDocConfig,
-              matrix: {},
-              marks: {},
-            };
+            // BASE = prev. Matrix/marks ОСТАЁМ — будем remap'ить по
+            // day-of-week в новый период через copyMatrixByWeekday
+            // (см. ниже applyRoomScheduleToMatrix call). Это сохраняет
+            // pattern уборки прошлого периода («каждая среда = G,
+            // выходные = /»), а не теряет его.
+            const merged: Record<string, unknown> = { ...cleaningPrevDocConfig };
             // Body-fields, которые перебивают prev (явный выбор менеджера):
             if (Array.isArray(body.cleaningResponsibles)) {
               merged.cleaningResponsibles = body.cleaningResponsibles;
@@ -598,18 +597,35 @@ export async function POST(request: Request) {
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? // Cleaning: нормализуем + сразу применяем weekday-маски помещений
-        // к матрице (fill-empty), чтобы новый документ с самого начала
-        // был размечен по плану. Уборщица видит «что должна сделать
-        // сегодня», а не пустую матрицу.
-        applyRoomScheduleToMatrix(
-          normalizeCleaningDocumentConfig(rawConfig ?? initialConfig, {
+      ? // Cleaning: используем уже-merged initialConfig (содержит prev doc
+        // как базу + body responsibles/title), НЕ rawConfig напрямую.
+        // Раньше тут было `rawConfig ?? initialConfig` и rawConfig из
+        // body всегда побеждал → merge logic выше игнорировался полностью.
+        //
+        // Шаги:
+        //   1. Нормализуем merged config.
+        //   2. Если был prev doc — копируем его matrix в новый period
+        //      по day-of-week pattern'у (среда → среда, выходные → выходные).
+        //      Это сохраняет фактический ритм уборки прошлого месяца.
+        //   3. Если prev'а не было — fill-empty по weekday-маскам комнат.
+        (() => {
+          const normalized = normalizeCleaningDocumentConfig(initialConfig, {
             users: cleaningUsers,
             areas: cleaningAreas,
-          }),
-          buildDateKeys(dateFrom, dateTo),
-          "fill-empty",
-        )
+          });
+          const newDateKeys = buildDateKeys(dateFrom, dateTo);
+          if (cleaningPrevDocConfig) {
+            const prevMatrix =
+              (cleaningPrevDocConfig as { matrix?: CleaningMatrixMap }).matrix;
+            const remapped = copyMatrixByWeekday(prevMatrix, newDateKeys);
+            return {
+              ...normalized,
+              matrix: remapped,
+              marks: remapped,
+            };
+          }
+          return applyRoomScheduleToMatrix(normalized, newDateKeys, "fill-empty");
+        })()
       : resolvedTemplateCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
       ? normalizeCleaningVentilationConfig(rawConfig ?? initialConfig, allUsers)
       : resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE

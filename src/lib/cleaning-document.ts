@@ -1369,12 +1369,13 @@ export function setCleaningMatrixValue(params: {
 }
 
 /**
- * Удаляет period-specific поля из cleaning config'а: matrix и marks.
- * Используется когда копируем config предыдущего документа в новый —
- * структуру (rooms, ответственные, schedule, weekday-маски) переносим,
- * а отметки уборщицы по конкретным датам — нет, это новый период.
+ * Возвращает копию cleaning config'а без изменений (matrix/marks оставляем).
+ * Используется при копировании предыдущего документа — нам нужны и
+ * структура (rooms, ответственные, weekday-маски), и matrix (отметки
+ * уборщицы из прошлого периода), чтобы потом применить шаблон по
+ * dow-pattern'у к новому периоду через `copyMatrixByWeekday`.
  *
- * Возвращает копию config'а без matrix/marks; остальные поля как есть.
+ * Возвращает Record<string, unknown> или null если config невалиден.
  */
 export function stripPeriodSpecificCleaningFields(
   rawConfig: unknown,
@@ -1382,11 +1383,56 @@ export function stripPeriodSpecificCleaningFields(
   if (!rawConfig || typeof rawConfig !== "object" || Array.isArray(rawConfig)) {
     return null;
   }
-  const record = rawConfig as Record<string, unknown>;
-  const { matrix: _m, marks: _mk, ...rest } = record;
-  void _m;
-  void _mk;
-  return rest;
+  return { ...(rawConfig as Record<string, unknown>) };
+}
+
+/**
+ * Копирует matrix предыдущего периода в новый, маппинг через day-of-week.
+ *
+ * Алгоритм:
+ *   1. Сканируем prevMatrix: для каждой ячейки (rowId, prevDateKey) считаем
+ *      mondayIdx (Пн=0..Вс=6) и записываем value в map[rowId][mondayIdx].
+ *      Если для одного dow в prev было несколько ячеек — побеждает
+ *      последняя (most recent).
+ *   2. Для каждого rowId и newDateKey считаем mondayIdx и пишем
+ *      value из map.
+ *
+ * Эффект: если в прошлом месяце уборщица каждую среду делала G — в
+ * новом месяце все среды получат G автоматически. Менеджер не
+ * перенастраивает матрицу — план уборки фактически наследуется.
+ */
+export function copyMatrixByWeekday(
+  prevMatrix: CleaningMatrixMap | undefined,
+  newDateKeys: string[],
+): CleaningMatrixMap {
+  if (!prevMatrix || typeof prevMatrix !== "object") return {};
+  const dowMap: Record<string, Record<number, CleaningMatrixValue>> = {};
+  for (const [rowId, row] of Object.entries(prevMatrix)) {
+    if (!row || typeof row !== "object") continue;
+    dowMap[rowId] = dowMap[rowId] ?? {};
+    for (const [dateKey, value] of Object.entries(row)) {
+      if (typeof value !== "string" || !value) continue;
+      const date = new Date(`${dateKey}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) continue;
+      const mondayIdx = (date.getUTCDay() + 6) % 7;
+      dowMap[rowId][mondayIdx] = value as CleaningMatrixValue;
+    }
+  }
+  const result: CleaningMatrixMap = {};
+  for (const [rowId, byDow] of Object.entries(dowMap)) {
+    const newRow: Record<string, CleaningMatrixValue> = {};
+    for (const dateKey of newDateKeys) {
+      const date = new Date(`${dateKey}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) continue;
+      const mondayIdx = (date.getUTCDay() + 6) % 7;
+      const value = byDow[mondayIdx];
+      if (value) newRow[dateKey] = value;
+    }
+    if (Object.keys(newRow).length > 0) {
+      result[rowId] = newRow;
+    }
+  }
+  return result;
 }
 
 /**
