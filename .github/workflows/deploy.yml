@@ -231,16 +231,63 @@ jobs:
             # на /root/organizations/[id], /mini и пр. Удаляем lock'и
             # перед каждой попыткой.
             rm -f .next/lock 2>/dev/null || true
-            # Сохраняем ПОЛНЫЙ build log на проде для post-mortem.
-            # tail -50 в Actions output даёт первые ошибки compile,
-            # tail -200 в .build.log — полный контекст для SSH-debug.
-            npm run build > .build.log 2>&1 || BUILD_FAIL=$?
-            echo "[build] $(wc -l < .build.log) lines logged → .build.log"
-            tail -50 .build.log
-            if [ -n "$BUILD_FAIL" ]; then
-              echo "[fail] build exited non-zero ($BUILD_FAIL) — см. .build.log на проде"
-              exit "$BUILD_FAIL"
+            # Запускаем build через `setsid` + nohup — он становится
+            # process group leader, не наследует SSH-PTY и переживёт
+            # любой SSH-SIGHUP/network-blip от GitHub-runner'а.
+            #
+            # Раньше build тупо зависал на «Creating an optimized
+            # production build ...» — webpack вёл себя как зомби, не
+            # выдавал output, не падал, не завершался. .build.log
+            # оставался 611 байт. Похоже что запущенные webpack
+            # workers ловили SIGHUP от parent SSH'а или просто блок'или
+            # write() в pipe который кто-то не читал. setsid + полное
+            # отвязывание от parent FDs устраняет.
+            rm -f .build.log .build.done .build.failed 2>/dev/null || true
+            setsid bash -c '
+              npm run build > .build.log 2>&1
+              echo "$?" > .build.exit
+              if [ -s .build.exit ] && [ "$(cat .build.exit)" = "0" ]; then
+                touch .build.done
+              else
+                touch .build.failed
+              fi
+            ' </dev/null >/dev/null 2>&1 &
+            BUILD_PID=$!
+            disown $BUILD_PID 2>/dev/null || true
+            echo "[build] started PID=$BUILD_PID, polling for completion..."
+
+            # Poll-loop — ждём появления .build.done или .build.failed.
+            # Каждые 15с проверяем + печатаем прогресс. Timeout 18m =
+            # 72 итерации (build реально занимает ~3 мин, всё что
+            # больше = значит зависло).
+            for i in $(seq 1 72); do
+              sleep 15
+              if [ -f .build.done ]; then
+                echo "[build] завершился успешно после $((i*15)) сек"
+                break
+              fi
+              if [ -f .build.failed ]; then
+                echo "[build] FAILED после $((i*15)) сек — exit=$(cat .build.exit 2>/dev/null)"
+                tail -50 .build.log
+                exit 1
+              fi
+              # Прогресс: размер log + последние строки
+              if [ -f .build.log ]; then
+                LINES=$(wc -l < .build.log)
+                echo "[build] poll #$i ($((i*15))s elapsed): $LINES log lines"
+                # Каждые 4 итерации показываем хвост
+                if [ $((i % 4)) -eq 0 ]; then
+                  tail -3 .build.log | sed 's/^/  /'
+                fi
+              fi
+            done
+            if [ ! -f .build.done ] && [ ! -f .build.failed ]; then
+              echo "[build] TIMEOUT после 18 мин — kill build PID=$BUILD_PID"
+              kill -9 $BUILD_PID 2>/dev/null || true
+              tail -50 .build.log
+              exit 1
             fi
+            tail -20 .build.log
 
             echo "=== Restoring OLD .next/static chunks (R40 fix) ==="
             # cp -n = no-clobber: новые chunks от свежего build'а имеют
