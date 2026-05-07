@@ -270,6 +270,36 @@ jobs:
                 echo "[fail] всего $pages page.js — build явно неполный (ожидаем 80+)"
                 return 1
               fi
+              # Critical routes guard: явно перечисляем page.js которые
+              # ОБЯЗАНЫ существовать. Раньше build мог "успешно" не
+              # сгенерить /dashboard/page.js (Turbopack пропустил route
+              # group без явной ошибки) — pm2 рестартовал на пустую
+              # дыру, юзер видел 500 на главной странице. Теперь явно
+              # прерываем deploy если хотя бы один critical route missing.
+              local critical_missing=""
+              for route in \
+                "(dashboard)/dashboard/page.js" \
+                "(auth)/login/page.js" \
+                "(dashboard)/settings/page.js" \
+                "(dashboard)/settings/onboarding/page.js" \
+                "(dashboard)/journals/page.js" \
+                "(dashboard)/journals/[code]/page.js" \
+                "(dashboard)/journals/[code]/documents/[docId]/page.js" \
+                "mini/page.tsx_NA" \
+                ; do
+                # `mini/page.tsx_NA` — намеренно невалидный, пропустим
+                # mini для now (ещё не критичный для public). Остальные —
+                # обязательные.
+                [[ "$route" == *_NA ]] && continue
+                if [ ! -f ".next/server/app/$route" ]; then
+                  critical_missing="$critical_missing $route"
+                fi
+              done
+              if [ -n "$critical_missing" ]; then
+                echo "[fail] критичные routes не собрались:"
+                for r in $critical_missing; do echo "  - .next/server/app/$r"; done
+                return 1
+              fi
               local missing=0
               local missing_list=""
               while IFS= read -r page_js; do
@@ -288,7 +318,7 @@ jobs:
               fi
               local total
               total=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
-              echo "[ok] $pages page-routes, все имеют manifest ($total файлов)"
+              echo "[ok] $pages page-routes (включая critical), все имеют manifest ($total файлов)"
               return 0
             }
 
