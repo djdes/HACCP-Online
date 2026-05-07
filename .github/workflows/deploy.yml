@@ -224,7 +224,16 @@ jobs:
             # на /root/organizations/[id], /mini и пр. Удаляем lock'и
             # перед каждой попыткой.
             rm -f .next/lock 2>/dev/null || true
-            npm run build 2>&1 | tail -10
+            # Сохраняем ПОЛНЫЙ build log на проде для post-mortem.
+            # tail -50 в Actions output даёт первые ошибки compile,
+            # tail -200 в .build.log — полный контекст для SSH-debug.
+            npm run build > .build.log 2>&1 || BUILD_FAIL=$?
+            echo "[build] $(wc -l < .build.log) lines logged → .build.log"
+            tail -50 .build.log
+            if [ -n "$BUILD_FAIL" ]; then
+              echo "[fail] build exited non-zero ($BUILD_FAIL) — см. .build.log на проде"
+              exit "$BUILD_FAIL"
+            fi
 
             echo "=== Restoring OLD .next/static chunks (R40 fix) ==="
             # cp -n = no-clobber: новые chunks от свежего build'а имеют
@@ -333,7 +342,13 @@ jobs:
               # Полный rm -rf — заодно убирает stale .next/lock который
               # мог остаться от первого build'а, упавшего на OOM.
               rm -rf .next
-              npm run build 2>&1 | tail -10
+              npm run build > .build-rebuild.log 2>&1 || REBUILD_FAIL=$?
+              echo "[rebuild] $(wc -l < .build-rebuild.log) lines logged → .build-rebuild.log"
+              tail -50 .build-rebuild.log
+              if [ -n "$REBUILD_FAIL" ]; then
+                echo "[fail] rebuild exited non-zero ($REBUILD_FAIL)"
+                exit "$REBUILD_FAIL"
+              fi
               if ! verify_manifests; then
                 echo "[fail] manifests still bad after rebuild — aborting deploy"
                 exit 1
