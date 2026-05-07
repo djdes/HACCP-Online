@@ -154,6 +154,7 @@ export async function QuickStartCard({
       status: orgName && orgInn && orgAddress ? "done" : orgName ? "partial" : "empty",
       href: "/settings/organization",
       cta: "Заполнить реквизиты",
+      category: "company",
     },
     {
       id: "positions",
@@ -164,6 +165,7 @@ export async function QuickStartCard({
       meta: `${positionsCount} ${pluralize(positionsCount, "должность", "должности", "должностей")}`,
       href: "/settings/users",
       cta: "Добавить должности",
+      category: "team",
     },
     {
       id: "users",
@@ -174,6 +176,7 @@ export async function QuickStartCard({
       meta: `${activeUsersCount} ${pluralize(activeUsersCount, "сотрудник", "сотрудника", "сотрудников")}`,
       href: "/settings/users",
       cta: "Пригласить команду",
+      category: "team",
     },
     {
       id: "areas",
@@ -184,6 +187,7 @@ export async function QuickStartCard({
       meta: `${areasCount} ${pluralize(areasCount, "цех", "цеха", "цехов")}`,
       href: "/settings/buildings",
       cta: "Описать помещения",
+      category: "structure",
     },
     {
       id: "equipment",
@@ -194,6 +198,7 @@ export async function QuickStartCard({
       meta: `${equipmentCount} ${pluralize(equipmentCount, "единица", "единицы", "единиц")}`,
       href: "/settings/equipment",
       cta: "Завести холодильники",
+      category: "structure",
     },
     {
       id: "products",
@@ -204,6 +209,7 @@ export async function QuickStartCard({
       meta: `${productsCount} ${pluralize(productsCount, "позиция", "позиции", "позиций")}`,
       href: "/settings/products",
       cta: "Загрузить каталог",
+      category: "structure",
     },
     {
       id: "journals",
@@ -214,6 +220,7 @@ export async function QuickStartCard({
       meta: `${enabledJournalCount} вкл.`,
       href: "/settings/journals",
       cta: "Выбрать журналы",
+      category: "journals",
     },
     {
       id: "responsibles",
@@ -229,6 +236,7 @@ export async function QuickStartCard({
       meta: `${responsiblesAssignedCount} ${pluralize(responsiblesAssignedCount, "журнал", "журнала", "журналов")} настроено`,
       href: "/settings/journal-responsibles",
       cta: "Назначить ответственных",
+      category: "journals",
     },
     {
       id: "pipelines",
@@ -239,6 +247,7 @@ export async function QuickStartCard({
       meta: `${pipelineNodesCount} ${pluralize(pipelineNodesCount, "узел", "узла", "узлов")}`,
       href: "/settings/journal-pipelines",
       cta: "Настроить шаги",
+      category: "journals",
     },
     {
       id: "checklists",
@@ -249,6 +258,7 @@ export async function QuickStartCard({
       meta: `${checklistItemsCount} ${pluralize(checklistItemsCount, "пункт", "пункта", "пунктов")}`,
       href: "/settings/journal-checklists",
       cta: "Добавить чек-листы",
+      category: "journals",
     },
     {
       id: "documents",
@@ -259,6 +269,7 @@ export async function QuickStartCard({
       meta: `${activeDocumentsCount} ${pluralize(activeDocumentsCount, "документ", "документа", "документов")}`,
       href: "/journals",
       cta: "Создать документы",
+      category: "documents",
     },
     {
       id: "tasksflow",
@@ -272,6 +283,7 @@ export async function QuickStartCard({
           : "empty",
       href: "/settings/integrations/tasksflow",
       cta: "Подключить TasksFlow",
+      category: "integrations",
     },
     {
       id: "telegram",
@@ -287,6 +299,7 @@ export async function QuickStartCard({
       meta: `${usersWithTelegramCount} из ${activeUsersCount} подключено`,
       href: "/settings/users",
       cta: "Разослать инвайты",
+      category: "integrations",
     },
     {
       id: "auto-journals",
@@ -297,6 +310,7 @@ export async function QuickStartCard({
       meta: `${autoJournalsCount} ${pluralize(autoJournalsCount, "журнал", "журнала", "журналов")} в авто-режиме`,
       href: "/settings/auto-journals",
       cta: "Включить автостарт",
+      category: "documents",
     },
     {
       id: "compliance",
@@ -306,6 +320,7 @@ export async function QuickStartCard({
       status: "info",
       href: "/settings/compliance",
       cta: "Открыть настройки",
+      category: "advanced",
     },
     {
       id: "schedule",
@@ -315,6 +330,7 @@ export async function QuickStartCard({
       status: "info",
       href: "/settings/journal-periods",
       cta: "Открыть календарь",
+      category: "advanced",
     },
   ];
 
