@@ -33,7 +33,6 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
-import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { db } from "@/lib/db";
 import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
 import { OnboardingDocHealthCard } from "@/components/settings/onboarding-doc-health-card";
@@ -808,14 +807,6 @@ export default async function OnboardingPage() {
           );
         })}
       </ol>
-
-      {/* Чек-лист всех настроек — детальный список 16 пунктов,
-          сгруппированных по категориям (Компания / Структура / Команда /
-          Журналы / Документы / Интеграции / Дополнительно). Pipeline
-          выше — это journey по этапам; чек-лист ниже — все конкретные
-          настройки одним списком, удобно когда уже понимаешь продукт
-          и хочешь быстро допроверить что не забыл. */}
-      <QuickStartCard organizationId={organizationId} mode="full" />
 
       {/* Зрелость — optional features. Не блокируют ничего, показываются
           сразу для тех, кто хочет полный обзор возможностей. */}
