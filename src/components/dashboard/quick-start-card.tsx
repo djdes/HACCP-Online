@@ -1,5 +1,9 @@
 import { db } from "@/lib/db";
-import { QuickStartCardClient, type QuickStartItem } from "./quick-start-card-client";
+import {
+  QuickStartCardCompact,
+  QuickStartCardFull,
+  type QuickStartItem,
+} from "./quick-start-card-client";
 
 /**
  * Server-side компонент: считает прогресс настройки организации и
@@ -11,7 +15,21 @@ import { QuickStartCardClient, type QuickStartItem } from "./quick-start-card-cl
  * second-tier (приятно иметь, но не блокирует). Каждая блок-карточка
  * ведёт на свою настроечную страницу.
  */
-export async function QuickStartCard({ organizationId }: { organizationId: string }) {
+/**
+ * Server-side компонент. Считает прогресс настройки и рендерит:
+ *   • mode="compact" (default, на /dashboard) — компактная карточка
+ *     с прогрессом и одной большой кнопкой «Открыть быстрый старт»
+ *     → /settings/onboarding. Auto-hide когда всё done.
+ *   • mode="full" (на /settings/onboarding) — полная grid из 16
+ *     карточек с описанием каждого шага. Не скрывается.
+ */
+export async function QuickStartCard({
+  organizationId,
+  mode = "compact",
+}: {
+  organizationId: string;
+  mode?: "compact" | "full";
+}) {
   const [
     org,
     positionsCount,
@@ -304,8 +322,11 @@ export async function QuickStartCard({ organizationId }: { organizationId: strin
   const blocking = items.filter((i) => i.status === "empty" && isBlocking(i.id)).length;
   const totalRequired = items.filter((i) => i.status !== "info").length;
 
-  // Если ВСЁ done и нет blocking — карточка не нужна.
+  // Если ВСЁ done и нет blocking — карточка на dashboard не нужна
+  // (compact mode auto-hide). На settings/onboarding (full mode)
+  // оставляем — пользователь специально перешёл сюда.
   if (
+    mode === "compact" &&
     completed >= totalRequired &&
     blocking === 0 &&
     items.every((i) => i.status === "done" || i.status === "info")
@@ -313,8 +334,17 @@ export async function QuickStartCard({ organizationId }: { organizationId: strin
     return null;
   }
 
+  if (mode === "full") {
+    return (
+      <QuickStartCardFull
+        items={items}
+        completed={completed}
+        total={totalRequired}
+      />
+    );
+  }
   return (
-    <QuickStartCardClient
+    <QuickStartCardCompact
       items={items}
       completed={completed}
       total={totalRequired}

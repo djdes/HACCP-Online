@@ -33,6 +33,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
+import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { db } from "@/lib/db";
 import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
 import { OnboardingDocHealthCard } from "@/components/settings/onboarding-doc-health-card";
@@ -717,6 +718,11 @@ export default async function OnboardingPage() {
 
   return (
     <div className="space-y-6">
+      {/* Полный список 16 шагов настройки — как только что
+          зарегистрированный менеджер видит куда жать. Перенесён сюда
+          с /dashboard (там оставлена компактная карточка-CTA). */}
+      <QuickStartCard organizationId={organizationId} mode="full" />
+
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />

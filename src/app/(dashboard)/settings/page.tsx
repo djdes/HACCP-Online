@@ -438,6 +438,46 @@ export default async function SettingsPage() {
         </div>
       </section>
 
+      {/* БОЛЬШАЯ кнопка «Быстрый старт» — прямо под hero. Open
+          /settings/onboarding где живёт полный список 16 шагов. Не
+          теряется среди настроечных групп — сразу видна. */}
+      <Link
+        href="/settings/onboarding"
+        className="group relative block overflow-hidden rounded-3xl border border-[#5566f6]/30 bg-gradient-to-br from-[#5566f6] via-[#4a5bf0] to-[#3848c7] p-6 text-white shadow-[0_20px_60px_-25px_rgba(85,102,246,0.65)] transition-all hover:shadow-[0_24px_72px_-25px_rgba(85,102,246,0.85)] sm:p-8"
+      >
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-20 -top-20 size-[300px] rounded-full bg-white opacity-10 blur-[100px]" />
+          <div className="absolute -bottom-24 -left-20 size-[280px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
+        </div>
+        <div className="relative z-10 flex items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur">
+              <Sparkles className="size-7" />
+            </span>
+            <div>
+              <h2 className="text-[clamp(1.375rem,1.5vw+1rem,1.75rem)] font-semibold tracking-[-0.02em]">
+                Быстрый старт
+              </h2>
+              <p className="mt-1.5 max-w-[640px] text-[14px] leading-relaxed text-white/80 sm:text-[15px]">
+                Все шаги настройки по pipeline — компания, команда,
+                журналы, интеграции. Жми любой блок чтобы открыть
+                страницу с подсказкой что делать.
+              </p>
+            </div>
+          </div>
+          <div className="hidden shrink-0 sm:block">
+            <span className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-[14px] font-semibold text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)] transition-transform group-hover:translate-x-0.5">
+              Открыть
+              <ArrowRight className="size-4" />
+            </span>
+          </div>
+        </div>
+        <div className="relative z-10 mt-4 inline-flex items-center gap-2 text-[13px] font-medium text-white sm:hidden">
+          Открыть
+          <ArrowRight className="size-4" />
+        </div>
+      </Link>
+
       <PageGuide
         storageKey="settings-hub"
         title="С чего начать новой команде"
