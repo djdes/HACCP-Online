@@ -146,17 +146,18 @@ export function EquipmentDialog({ areas, equipment }: EquipmentDialogProps) {
                   Сначала нужно создать цех
                 </h3>
                 <p className="mt-1 text-[13px] leading-relaxed text-[#7a4900]/80">
-                  Оборудование привязывается к конкретному цеху или зоне (горячий цех, склад,
-                  бар). Без цехов нельзя создать оборудование. Откройте раздел «Здания и
-                  помещения» и заведите хотя бы один цех — потом возвращайтесь сюда.
+                  Оборудование привязывается к конкретному <strong>цеху</strong> (горячий цех,
+                  склад, бар). Откройте раздел «Цеха и зоны» и заведите хотя бы один цех —
+                  потом возвращайтесь сюда. Раздел «Здания и помещения» — это другое
+                  (помещения для журнала уборки), его сейчас не нужно.
                 </p>
               </div>
             </div>
             <Link
-              href="/settings/buildings"
+              href="/settings/areas"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#5566f6] px-4 py-2.5 text-[14px] font-medium text-white shadow-[0_8px_24px_-10px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
             >
-              Открыть «Здания и помещения»
+              Открыть «Цеха и зоны»
               <ArrowRight className="size-4" />
             </Link>
           </div>
