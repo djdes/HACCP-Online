@@ -49,6 +49,7 @@ import { StaleCapaNag } from "@/components/dashboard/stale-capa-nag";
 import { SuperUserDevTools } from "@/components/dashboard/super-user-dev-tools";
 import { isSuperUser } from "@/lib/super-user";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
+import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
@@ -383,6 +384,13 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Quick Start — большая карточка прогресса настройки для новых
+          организаций. Auto-hide когда всё настроено. Свёртывается
+          вручную (localStorage). Только для management ролей. */}
+      {hasFullWorkspaceAccess(session.user) ? (
+        <QuickStartCard organizationId={getActiveOrgId(session)} />
+      ) : null}
 
       {/* Action-first: what the user needs to do TODAY.
           Карточка получает мягкий gradient-фон в зависимости от

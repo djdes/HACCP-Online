@@ -5,6 +5,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { getFillMode } from "@/lib/journal-routing";
 import { JournalsSettingsClient } from "./journals-settings-client";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -78,10 +79,25 @@ export default async function JournalsSettingsPage() {
   }));
 
   return (
-    <JournalsSettingsClient
-      items={items}
-      positions={positions}
-      users={users}
-    />
+    <div className="space-y-4">
+      <PageGuide
+        title="Как настроить активные журналы"
+        storageKey="settings-journals-v1"
+        bullets={[
+          { title: "Включите только нужные", body: "Из 35 журналов оставьте те, что обязательны для вашего профиля (общепит, мясокомбинат, бар). Остальные скройте, чтобы не загромождать дашборд." },
+          { title: "Назначьте должность", body: "У каждого включённого журнала укажите, какая должность отвечает — повар, заведующая, кладовщик. Сотрудники с этой должностью увидят журнал." },
+          { title: "Поставьте бонус (опционально)", body: "Сумма в копейках за заполнение журнала. Если не нужна мотивация — оставьте 0." },
+        ]}
+        qa={[
+          { q: "Что значит «обязательный по СанПиН/ХАССП»?", a: "Это нормативные журналы — Роспотребнадзор может потребовать. Не выключайте их без оснований." },
+          { q: "Как добавить новую должность?", a: "Перейдите в раздел «Сотрудники» в настройках и нажмите «+ Добавить должность»." },
+        ]}
+      />
+      <JournalsSettingsClient
+        items={items}
+        positions={positions}
+        users={users}
+      />
+    </div>
   );
 }

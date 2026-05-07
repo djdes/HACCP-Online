@@ -5,6 +5,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { AutoJournalsClient } from "./auto-journals-client";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,19 @@ export default async function AutoJournalsPage() {
         </div>
       </div>
 
+      <PageGuide
+        title="Как настроить авто-создание"
+        storageKey="settings-auto-journals-v1"
+        bullets={[
+          { title: "Отметьте журналы", body: "Поставьте галочку на тех, что должны создаваться автоматически каждый месяц/период (СанПиН, ХАССП, ежедневные)." },
+          { title: "Cron делает остальное", body: "Каждое утро проверяется: есть ли активный документ. Если нет — создаётся на весь текущий период." },
+          { title: "Меньше ручной работы", body: "1-го числа месяца не нужно создавать 35 документов — система сама. Менеджер только следит за заполнением." },
+        ]}
+        qa={[
+          { q: "А если я создал документ вручную раньше?", a: "Cron не дублирует — найдёт существующий active doc и пропустит. Создаёт только когда documentов нет." },
+          { q: "Когда создаются документы со следующего периода?", a: "За 7 дней до окончания текущего — чтобы был запас." },
+        ]}
+      />
       <AutoJournalsClient items={items} />
     </div>
   );
