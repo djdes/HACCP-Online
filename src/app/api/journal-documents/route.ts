@@ -382,29 +382,6 @@ export async function POST(request: Request) {
       ? (config as Record<string, unknown>)
       : undefined;
 
-  if (resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
-    const prevRoomsCount =
-      cleaningPrevDocConfig &&
-      Array.isArray((cleaningPrevDocConfig as Record<string, unknown>).rooms)
-        ? ((cleaningPrevDocConfig as Record<string, unknown>).rooms as unknown[]).length
-        : 0;
-    const bodyRoomsCount =
-      rawConfig && Array.isArray(rawConfig.rooms)
-        ? (rawConfig.rooms as unknown[]).length
-        : 0;
-    console.log(
-      "[journal-documents.create.cleaning] prev-doc lookup",
-      JSON.stringify({
-        orgId: getActiveOrgId(session),
-        prevDocId: cleaningPrevDocRaw?.id ?? null,
-        prevDocDateFrom: cleaningPrevDocRaw?.dateFrom ?? null,
-        prevDocHasConfig: Boolean(cleaningPrevDocRaw?.config),
-        prevRoomsCount,
-        bodyConfigPresent: Boolean(rawConfig),
-        bodyRoomsCount,
-      }),
-    );
-  }
 
   const calibrationYear = Number(String(dateFrom).slice(0, 4)) || new Date().getUTCFullYear();
   const calibrationOwner = pickPrimaryManager(allUsers);
