@@ -181,12 +181,12 @@ export async function QuickStartCard({
     {
       id: "areas",
       icon: "Building2",
-      label: "Цеха и зоны (для оборудования)",
-      description: "Горячий цех, холодный цех, склад. Используются для привязки оборудования (холодильники, печи) и в журналах климата.",
+      label: "Цеха и помещения",
+      description: "Горячий цех, холодный цех, склад, бар. Используются и для привязки оборудования, и в журналах уборки. Создаём здесь — система сама подтянет в оба контекста.",
       status: areasCount >= 1 ? "done" : "empty",
       meta: `${areasCount} ${pluralize(areasCount, "цех", "цеха", "цехов")}`,
-      href: "/settings/areas",
-      cta: "Создать цеха",
+      href: "/settings/buildings",
+      cta: "Создать помещения",
       category: "structure",
     },
     {

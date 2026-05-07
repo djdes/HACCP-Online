@@ -68,5 +68,31 @@ export async function POST(request: Request) {
       sortOrder: body.sortOrder ?? 0,
     },
   });
+
+  // Auto-mirror в Area: schema разделяет Building/Room и Area
+  // (legacy split — Area для оборудования + climate-журналов,
+  // Building/Room — для journal-уборки). Юзер не должен ходить
+  // в две страницы; теперь когда он создаёт «горячий цех» в
+  // Buildings — мы автоматически создаём Area с тем же именем.
+  // Equipment-диалог сразу видит цех в dropdown'е, climate-журнал
+  // тоже подтягивает.
+  // Idempotent: skip если уже есть Area с таким именем.
+  const existingArea = await db.area.findFirst({
+    where: { organizationId: orgId, name: body.name },
+    select: { id: true },
+  });
+  if (!existingArea) {
+    await db.area.create({
+      data: {
+        organizationId: orgId,
+        name: body.name,
+        description: `Авто-создан из Помещения «${body.name}» (Building/Room ${created.id})`,
+      },
+    }).catch(() => {
+      // Best-effort — если что-то пошло не так с Area, Room уже создан.
+      // Юзер всегда может зайти в /settings/areas и создать вручную.
+    });
+  }
+
   return NextResponse.json({ room: created });
 }
