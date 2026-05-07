@@ -454,6 +454,8 @@ jobs:
               npx tsx prisma/seed-production-calendar.ts 2>&1 | tail -5
               echo "=== Mirroring Rooms → Areas (idempotent backfill) ==="
               npx tsx prisma/seed-mirror-rooms-to-areas.ts 2>&1 | tail -5
+              echo "=== Cleanup default-positions (one-shot for orgs that got 18 defaults from old seed) ==="
+              npx tsx prisma/seed-cleanup-default-positions.ts 2>&1 | tail -5
             else
               echo ".env not found, skip seed"
             fi
