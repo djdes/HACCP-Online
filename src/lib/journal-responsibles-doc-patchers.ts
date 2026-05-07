@@ -214,36 +214,55 @@ const PATCHERS: Record<string, Patcher> = {
     ).map((r) => ({ ...r }));
 
     if (supervisor) {
+      const supervisorName = ctx.getName(supervisor);
+      const supervisorTitle = ctx.getPositionTitle(supervisor) || "Уборщик";
       if (cleaningResponsibles.length === 0) {
         cleaningResponsibles.push({
           id: `cleaning-resp-${randomUUID()}`,
           kind: "cleaning",
-          title: ctx.getPositionTitle(supervisor) || "Уборщик",
+          title: supervisorTitle,
           userId: supervisor,
-          name: ctx.getName(supervisor),
+          userName: supervisorName,
+          name: supervisorName,
+          code: "C1",
         });
       } else {
         cleaningResponsibles[0] = {
           ...cleaningResponsibles[0],
           userId: supervisor,
-          name: ctx.getName(supervisor),
+          // ВАЖНО: userName — это поле, которое реально отображается в
+          // <Cleaning…RowCard/> и printable таблице. Раньше patcher
+          // писал только `name` → userName оставался от прошлого юзера
+          // (или из defaultCleaningResponsibleIds — поэтому пользователь
+          // видел случайного "Кузнецов" вместо реальной уборщицы Петровой).
+          userName: supervisorName,
+          name: supervisorName,
+          // Title тоже обновляем — иначе при смене юзера осталась бы
+          // старая должность ("Повар" даже когда юзер — "Уборщица").
+          title: supervisorTitle,
         };
       }
     }
     if (controller) {
+      const controllerName = ctx.getName(controller);
+      const controllerTitle = ctx.getPositionTitle(controller) || "Контролёр";
       if (controlResponsibles.length === 0) {
         controlResponsibles.push({
           id: `control-resp-${randomUUID()}`,
           kind: "control",
-          title: ctx.getPositionTitle(controller) || "Контролёр",
+          title: controllerTitle,
           userId: controller,
-          name: ctx.getName(controller),
+          userName: controllerName,
+          name: controllerName,
+          code: "C1",
         });
       } else {
         controlResponsibles[0] = {
           ...controlResponsibles[0],
           userId: controller,
-          name: ctx.getName(controller),
+          userName: controllerName,
+          name: controllerName,
+          title: controllerTitle,
         };
       }
     }

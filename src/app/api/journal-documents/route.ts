@@ -692,7 +692,26 @@ export async function POST(request: Request) {
   // имеют приоритет; если их нет — fallback на body.
   const finalResponsibleUserId =
     prefilled.responsibleUserId || normalizedDocumentState.responsibleUserId;
-  const finalResponsibleTitle = normalizedDocumentState.responsibleTitle ?? null;
+  // Если responsibleUserId пришёл из prefilled (из настроек journal-
+  // responsibles), берём ТИТУЛ из job position юзера, а не из
+  // fallback-логики (которая для cleaning возвращала «Управляющий»,
+  // для других тоже невпопад). Body title уважается только если
+  // пользователь явно его передал и prefilled не выставил юзера.
+  let finalResponsibleTitle = normalizedDocumentState.responsibleTitle ?? null;
+  if (
+    prefilled.responsibleUserId &&
+    finalResponsibleUserId === prefilled.responsibleUserId
+  ) {
+    const primaryUserPos = await db.user.findUnique({
+      where: { id: prefilled.responsibleUserId },
+      select: { jobPosition: { select: { name: true } }, positionTitle: true },
+    });
+    const positionName =
+      primaryUserPos?.jobPosition?.name || primaryUserPos?.positionTitle || null;
+    if (positionName) {
+      finalResponsibleTitle = positionName;
+    }
+  }
   // ВСЕГДА используем prefilled.config — patcher уже сделал merge:
   // body fields сохранил, slot-user'ов из настроек проставил поверх.
   // Раньше при наличии rawConfig мы оставляли normalizedDocumentState.config

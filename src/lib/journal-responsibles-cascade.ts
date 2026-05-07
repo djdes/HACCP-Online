@@ -140,10 +140,17 @@ export async function cascadeResponsibleToActiveDocuments(input: {
           return keywords.some((kw) => positionName.includes(kw));
         })
       : candidates;
-    const pick = matched.find((u) => !usedUserIds.has(u.id));
+    let pick = matched.find((u) => !usedUserIds.has(u.id));
+    // Для verifier-слота разрешаем повторное использование (часто
+    // контролёр и верификатор — один человек).
+    if (!pick && slot.kind === "verifier" && matched.length > 0) {
+      pick = matched[0];
+    }
     if (pick) {
       slotUsers[slot.id] = pick.id;
-      usedUserIds.add(pick.id);
+      if (slot.kind !== "verifier") {
+        usedUserIds.add(pick.id);
+      }
     } else if (slot.primary || slot.id === primarySlotId) {
       const fallback = candidates.find((u) => !usedUserIds.has(u.id));
       if (fallback) {
@@ -421,10 +428,21 @@ export async function prefillResponsiblesForNewDocument(input: {
           return slot.positionKeywords!.some((kw) => n.includes(kw));
         })
       : candidates;
-    const pick = matched.find((u) => !usedIds.has(u.id));
+    let pick = matched.find((u) => !usedIds.has(u.id));
+    // Для verifier-слота разрешаем повторное использование: контролёр и
+    // верификатор часто один и тот же человек (заведующая = контролёр
+    // уборки = верификатор гигиенического и т.д.). Без этого fallback'а
+    // _verifier оставался null и двухступенчатая проверка не работала.
+    if (!pick && slot.kind === "verifier" && matched.length > 0) {
+      pick = matched[0];
+    }
     if (pick) {
       slots[slot.id] = pick.id;
-      usedIds.add(pick.id);
+      // Не добавляем в usedIds для verifier — это позволяет другим
+      // verifier-слотам других журналов матчить того же юзера.
+      if (slot.kind !== "verifier") {
+        usedIds.add(pick.id);
+      }
     }
   }
 
