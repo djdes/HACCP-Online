@@ -13,7 +13,6 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 import pg from "pg";
-import { DEFAULT_JOB_POSITIONS } from "../src/lib/default-job-positions";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -56,33 +55,14 @@ async function main() {
 
   let totalPositions = 0;
   let totalLinked = 0;
-  let totalDefaults = 0;
 
   for (const org of orgs) {
-    // ВАЖНО: канонический каталог seed-им ТОЛЬКО для пустых org (где
-    // ещё ни одной jobPosition нет). Раньше upsert проходил каждой
-    // org на каждом deploy и наполнял уже-настроенные кафе мусорными
-    // должностями (см. инцидент c «Кухня» 2026-04-28: ROOT создал
-    // 5 custom-должностей, следующий deploy подсыпал ещё 16
-    // канонических — пользователь увидел дубли в /settings/users).
-    const existingCount = await prisma.jobPosition.count({
-      where: { organizationId: org.id },
-    });
-    if (existingCount === 0) {
-      let defaultsSortOrder = 0;
-      for (const { categoryKey, name } of DEFAULT_JOB_POSITIONS) {
-        await prisma.jobPosition.create({
-          data: {
-            organizationId: org.id,
-            categoryKey,
-            name,
-            sortOrder: defaultsSortOrder,
-          },
-        });
-        defaultsSortOrder += 1;
-        totalDefaults += 1;
-      }
-    }
+    // Раньше тут seed'или 18 канонических должностей в пустые org'и.
+    // Удалено: пользователи при регистрации хотят сами решать какие
+    // должности у них есть (повар / уборщик / товаровед — каждое
+    // заведение своё). Дефолт-список путал, особенно для нетипичных
+    // профилей (бар, пекарня). См. /api/auth/register/confirm —
+    // регистрация явно НЕ seed'ит позиции, и здесь тоже не seed'им.
 
     const users = await prisma.user.findMany({
       where: { organizationId: org.id, jobPositionId: null },
@@ -142,7 +122,7 @@ async function main() {
   }
 
   console.log(
-    `[seed-job-positions] defaults_upserted=${totalDefaults} user-derived_upserted=${totalPositions} linked_users=${totalLinked} orgs=${orgs.length}`
+    `[seed-job-positions] user-derived_upserted=${totalPositions} linked_users=${totalLinked} orgs=${orgs.length}`
   );
 }
 
