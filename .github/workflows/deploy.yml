@@ -134,8 +134,14 @@ jobs:
           # NEXT_PUBLIC_BUILD_ID — без этого healthz возвращал sha
           # *предыдущего* деплоя).
           envs: GITHUB_SHA
-          timeout: 600s
-          command_timeout: 10m
+          timeout: 1200s
+          # Bumped from 10m → 25m. Build (~3 min) + npm ci (~1 min) +
+          # prisma generate + db push + 6 seed scripts (test-bot-wizard
+          # сам по себе бывает 1-2 min) + pm2 restart + prewarm — стабильно
+          # вылетало за 10 min. Симптом: pm2-uptime показывал старый
+          # процесс, .next/server/app частично собран (только cache + lock,
+          # без BUILD_ID) — это classic SIGKILL посреди build'а.
+          command_timeout: 25m
           script: |
             set -eo pipefail
             cd ${{ env.APP_DIR }}
