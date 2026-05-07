@@ -288,17 +288,14 @@ export async function QuickStartCard({
     {
       id: "telegram",
       icon: "Send",
-      label: "Telegram-бот для сотрудников",
-      description: "Каждый сотрудник связывает Telegram — туда приходят push'и о новых задачах.",
-      status:
-        usersWithTelegramCount >= Math.max(1, Math.floor(activeUsersCount / 2))
-          ? "done"
-          : usersWithTelegramCount > 0
-            ? "partial"
-            : "empty",
-      meta: `${usersWithTelegramCount} из ${activeUsersCount} подключено`,
+      label: "Telegram-бот (опционально)",
+      description: "Если хотите, чтобы сотрудники получали push'и в Telegram. Можно работать и без него — задачи всё равно видны на сайте и в Mini App.",
+      status: "info",
+      meta: usersWithTelegramCount > 0
+        ? `${usersWithTelegramCount} из ${activeUsersCount} уже подключили`
+        : undefined,
       href: "/settings/users",
-      cta: "Разослать инвайты",
+      cta: "Подключить, если нужно",
       category: "integrations",
     },
     {
