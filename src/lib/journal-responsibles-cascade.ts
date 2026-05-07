@@ -486,6 +486,21 @@ export async function prefillResponsiblesForNewDocument(input: {
       getPositionTitle: (id) => (id ? userPosMap.get(id) ?? "" : ""),
     });
     if (patched) config = patched;
+    if (journalCode === "cleaning") {
+      const cr0 = (config as Record<string, unknown>).cleaningResponsibles;
+      const cont0 = (config as Record<string, unknown>).controlResponsibles;
+      console.log(
+        "[prefill.cleaning.patched] slots + result",
+        JSON.stringify({
+          slots,
+          userNameMapKeys: Array.from(userNameMap.keys()),
+          userNameMapVals: Array.from(userNameMap.values()),
+          userPosMapVals: Array.from(userPosMap.values()),
+          cleaningResp0: Array.isArray(cr0) ? cr0[0] : null,
+          controlResp0: Array.isArray(cont0) ? cont0[0] : null,
+        }),
+      );
+    }
   }
 
   return {
