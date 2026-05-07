@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Building2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,6 +130,37 @@ export function EquipmentDialog({ areas, equipment }: EquipmentDialogProps) {
         <DialogHeader>
           <DialogTitle>{isEdit ? "Редактировать оборудование" : "Добавить оборудование"}</DialogTitle>
         </DialogHeader>
+        {/* Зависимость: Цех / участок — обязательное поле, и select
+            берёт значения из props.areas. Если у орги нет ни одного
+            цеха, форма НЕ заполнима. Раньше юзер видел пустой select
+            «Выберите цех» без вариантов и не понимал что делать. Теперь
+            явно показываем empty-state с CTA на /settings/buildings. */}
+        {!isEdit && areas.length === 0 ? (
+          <div className="space-y-3 rounded-2xl border border-[#ffe1c1] bg-[#fff8eb] p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ffd28a] text-[#7a4900]">
+                <Building2 className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[14px] font-semibold text-[#7a4900]">
+                  Сначала нужно создать цех
+                </h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#7a4900]/80">
+                  Оборудование привязывается к конкретному цеху или зоне (горячий цех, склад,
+                  бар). Без цехов нельзя создать оборудование. Откройте раздел «Здания и
+                  помещения» и заведите хотя бы один цех — потом возвращайтесь сюда.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/settings/buildings"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#5566f6] px-4 py-2.5 text-[14px] font-medium text-white shadow-[0_8px_24px_-10px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
+            >
+              Открыть «Здания и помещения»
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        ) : null}
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -235,7 +267,15 @@ export function EquipmentDialog({ areas, equipment }: EquipmentDialogProps) {
             >
               Отмена
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || (!isEdit && areas.length === 0)}
+              title={
+                !isEdit && areas.length === 0
+                  ? "Сначала создайте хотя бы один цех в разделе «Здания и помещения»"
+                  : undefined
+              }
+            >
               {isSubmitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
             </Button>
           </div>

@@ -5,6 +5,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OrganizationInfoForm } from "@/components/settings/organization-info-form";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,20 @@ export default async function OrganizationInfoPage() {
           </div>
         </div>
       </section>
+
+      <PageGuide
+        title="Что заполнить в реквизитах"
+        storageKey="settings-organization-v1"
+        bullets={[
+          { title: "Название и ИНН — обязательно", body: "Они идут в шапку каждого printable-журнала и в договоры с поставщиками. Без ИНН Роспотребнадзор не примет PDF." },
+          { title: "Адрес и телефон", body: "Место регистрации компании (для печатных форм) + контакт для инспекторов." },
+          { title: "Тип организации", body: "Влияет на пресеты журналов: ресторану предлагается одно, пекарне — другое. Можно поменять позже." },
+        ]}
+        qa={[
+          { q: "Можно без ИНН?", a: "Технически да — кнопка «Сохранить» сработает. Но печатные журналы и договоры будут без ИНН в шапке. Не рекомендуется." },
+          { q: "Что такое brandColor?", a: "Цвет акцента вашего бренда (логотип, кнопки в Mini App). Хочется сделать white-label — задайте hex-код вашего корпоративного цвета." },
+        ]}
+      />
 
       <OrganizationInfoForm
         initial={{

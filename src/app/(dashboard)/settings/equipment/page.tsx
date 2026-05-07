@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { CopyIdButton } from "@/components/settings/copy-id-button";
 import { EquipmentDialog } from "@/components/settings/equipment-dialog";
 import { DeleteButton } from "@/components/settings/delete-button";
+import { PageGuide } from "@/components/ui/page-guide";
 import { isManagementRole } from "@/lib/user-roles";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
@@ -82,7 +83,20 @@ export default async function EquipmentSettingsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <PageGuide
+        title="Как настроить оборудование"
+        storageKey="settings-equipment-v1"
+        bullets={[
+          { title: "Сначала создайте цех", body: "Оборудование привязывается к помещению. Если цехов нет — откройте «Здания и помещения» (соседний раздел) и заведите хотя бы один." },
+          { title: "Заполните min/max температуру", body: "Например, холодильник: 2°C - 6°C. Эти значения попадут в журнал температурного режима как нормативный диапазон. Сотрудник увидит «выход за пределы» сразу." },
+          { title: "Tuya Device ID — опционально", body: "Если стоит WiFi-датчик температуры (HACCP/Aubess) — введите Device ID, и WeSetup сам будет писать показания в журнал каждый час." },
+        ]}
+        qa={[
+          { q: "Что если у меня нет холодильников?", a: "Можно ничего не заводить — журнал температуры будет пустой. Но для большинства общепита нужен минимум 1 холодильник." },
+          { q: "Tuya Device ID — где взять?", a: "В приложении Tuya / Smart Life: устройство → шестерёнка → Информация об устройстве → Виртуальный ID. Подробнее в /settings/integrations." },
+        ]}
+      />
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

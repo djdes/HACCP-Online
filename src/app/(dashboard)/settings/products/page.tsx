@@ -13,6 +13,7 @@ import { ProductImportDialog } from "@/components/settings/product-import-dialog
 import { isManagementRole } from "@/lib/user-roles";
 import { ProductDialog } from "@/components/settings/product-dialog";
 import { DeleteProductButton } from "@/components/settings/delete-product-button";
+import { PageGuide } from "@/components/ui/page-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,16 @@ export default async function ProductsSettingsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <PageGuide
+        title="Когда нужен каталог продуктов"
+        storageKey="settings-products-v1"
+        bullets={[
+          { title: "Для журналов брака и входного контроля", body: "Те журналы где надо указать конкретное наименование продукта (молоко, мясо, овощи) — берут варианты из этого каталога." },
+          { title: "Опционально для большинства орг", body: "Если ведёте только уборку и температуру — каталог не нужен. Добавляйте по мере того как заведёте журналы которым он понадобится." },
+          { title: "Загрузить из 1С/Excel", body: "Кнопка «Импорт» вверху — XLSX-файл с колонками «Название», «Ед. изм.», «Срок годности (дней)». Дубликаты не создаются." },
+        ]}
+      />
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
