@@ -121,27 +121,24 @@ jobs:
           source: deploy.tar
           target: ${{ env.APP_DIR }}
 
-      - name: Run deploy commands
+      # Deploy разбит на ТРИ SSH-шага: setup / build / seed+restart.
+      # Раньше всё было одним ssh-action'ом и при медленном/нестабильном
+      # GitHub-runner→prod SSH-туннеле билд (~3 мин) или test-bot-wizard
+      # (~2 мин) ловил SIGHUP/timeout посередине. Симптом: .next/server/app
+      # частично собран без `(dashboard)/dashboard/page.js`, pm2 не
+      # рестартится, прод крутит старый код. Каждый шаг получает свежую
+      # SSH-сессию + свой timeout-budget.
+
+      - name: Deploy step 1/3 — setup (extract + npm ci + prisma)
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           password: ${{ secrets.DEPLOY_SSH_PASS }}
           port: ${{ secrets.DEPLOY_SSH_PORT }}
-          # Пробрасываем github.sha как env-переменную внутрь SSH-сессии,
-          # чтобы скрипт мог записать .build-sha ДО `npm run build`
-          # (next.config.ts читает его в getBuildId и запекает в
-          # NEXT_PUBLIC_BUILD_ID — без этого healthz возвращал sha
-          # *предыдущего* деплоя).
           envs: GITHUB_SHA
-          timeout: 1200s
-          # Bumped from 10m → 25m. Build (~3 min) + npm ci (~1 min) +
-          # prisma generate + db push + 6 seed scripts (test-bot-wizard
-          # сам по себе бывает 1-2 min) + pm2 restart + prewarm — стабильно
-          # вылетало за 10 min. Симптом: pm2-uptime показывал старый
-          # процесс, .next/server/app частично собран (только cache + lock,
-          # без BUILD_ID) — это classic SIGKILL посреди build'а.
-          command_timeout: 25m
+          timeout: 600s
+          command_timeout: 10m
           script: |
             set -eo pipefail
             cd ${{ env.APP_DIR }}
@@ -198,18 +195,28 @@ jobs:
             echo "=== Generating Prisma client ==="
             npx prisma generate 2>&1 | tail -5
 
-            echo "=== Writing .build-sha до build (next.config.ts читает его в getBuildId() и запекает NEXT_PUBLIC_BUILD_ID в bundle) ==="
-            # Раньше .build-sha писали ПОСЛЕ build'а — и каждый деплой
-            # запекал в JS bundle SHA *прошлого* деплоя (off-by-one):
-            # next build читал .build-sha с диска до того, как новый sha
-            # туда записывался → /api/healthz возвращал старый sha
-            # притом что код был свежий. Решение: писать BEFORE build.
-            #
-            # Безопасно ли это? Да: если build потом упадёт, set -eo
-            # pipefail или verify_manifests прервут деплой ДО pm2
-            # restart'а. Старый PM2-процесс останется жить со своим
-            # запечённым SHA. Disk-state не утекает в runtime пока
-            # next build не завершится успехом.
+            echo "=== Writing .build-sha до build (для NEXT_PUBLIC_BUILD_ID) ==="
+            echo "$GITHUB_SHA" > .build-sha
+            echo "[setup] step 1 OK — следующий шаг билдит Next.js"
+
+      - name: Deploy step 2/3 — build + verify
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          envs: GITHUB_SHA
+          timeout: 1200s
+          # Билд = ~3 мин, fallback rebuild +3 мин, verify ~5 сек.
+          # 20 мин запас — если билд реально упирается, увидим в логе.
+          command_timeout: 20m
+          script: |
+            set -eo pipefail
+            cd ${{ env.APP_DIR }}
+            export GITHUB_SHA="${{ github.sha }}"
+
+            echo "=== Запись .build-sha (на случай если step 1 не записал) ==="
             echo "$GITHUB_SHA" > .build-sha
 
             echo "=== Building Next.js on prod ==="
@@ -354,6 +361,24 @@ jobs:
                 exit 1
               fi
             fi
+            echo "[build] step 2 OK — следующий шаг применяет миграции и рестартит pm2"
+
+      - name: Deploy step 3/3 — db push + seeds + pm2 restart + prewarm
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
+          envs: GITHUB_SHA
+          timeout: 600s
+          # Seeds (~2 мин) + test-bot-wizard (~2 мин) + pm2 restart +
+          # prewarm (~1 мин) — итого ~5-6 мин, 15 мин запас.
+          command_timeout: 15m
+          script: |
+            set -eo pipefail
+            cd ${{ env.APP_DIR }}
+            export GITHUB_SHA="${{ github.sha }}"
 
             echo "=== Pushing schema to DB ==="
             # prisma db push зависит от `dotenv/config` в prisma.config.ts.
