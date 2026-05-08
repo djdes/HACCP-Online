@@ -66,7 +66,8 @@
 | `incoming_raw_materials_control` | Входной контроль (расширенный для производств) | [incoming_raw_materials_control.md](incoming_raw_materials_control.md) |
 | `intensive_cooling` | Интенсивное охлаждение горячих блюд | [intensive_cooling.md](intensive_cooling.md) |
 | `metal_impurity` | Металлопримеси (мукопросеиватель) | [metal_impurity.md](metal_impurity.md) |
-| `glass_items_list` + `glass_control` | Стекло и хрупкий пластик | [glass_control.md](glass_control.md) |
+| `glass_items_list` | Реестр стекла/пластика (справочник) | [glass_items_list.md](glass_items_list.md) |
+| `glass_control` | Еженедельная проверка стекла/пластика | [glass_control.md](glass_control.md) |
 | `traceability_test` | Прослеживаемость (auto-aggregate) | [traceability_test.md](traceability_test.md) |
 
 ### Журналы происшествий и контроля
