@@ -355,8 +355,9 @@ export const cleaningAdapter: JournalAdapter = {
         (config.matrix?.[roomIdRaw]?.[dateKeyRaw] as string | undefined) ?? "";
       const cleanType: "current" | "general" =
         cellValue === "G" ? "general" : "current";
-      return buildRoomCleaningForm({
+      return await buildRoomCleaningFormFromDb({
         config,
+        organizationId: doc.organizationId,
         roomId: roomIdRaw,
         cleanType,
         dateKey: dateKeyRaw,
@@ -371,8 +372,9 @@ export const cleaningAdapter: JournalAdapter = {
         (config.matrix?.[roomIdRaw]?.[todayKey] as string | undefined) ?? "";
       const cleanType: "current" | "general" =
         cellValue === "G" ? "general" : "current";
-      return buildRoomCleaningForm({
+      return await buildRoomCleaningFormFromDb({
         config,
+        organizationId: doc.organizationId,
         roomId: roomIdRaw,
         cleanType,
         dateKey: todayKey,
@@ -391,37 +393,77 @@ export const cleaningAdapter: JournalAdapter = {
   },
 };
 
-function buildRoomCleaningForm(args: {
+/**
+ * Cleaning unification 2026-05-08: данные о scope/detergent теперь
+ * хранятся на Room (DB), не в config.rooms. Этот хелпер сначала
+ * ищет Room в БД, fallback на config.rooms[] для legacy-доков.
+ */
+async function buildRoomCleaningFormFromDb(args: {
   config: CleaningDocumentConfig;
+  organizationId: string;
   roomId: string;
   cleanType: "current" | "general";
   dateKey: string;
-}): {
+}): Promise<{
   intro?: string;
   fields: never[];
-  pipeline: Array<{
-    id: string;
-    title: string;
-    detail: string;
-  }>;
+  pipeline: Array<{ id: string; title: string; detail: string }>;
   submitLabel?: string;
-} | null {
-  const room = args.config.rooms?.find((r) => r.id === args.roomId);
-  const roomName = room?.name ?? "(помещение удалено)";
-  const detergent = room?.detergent;
+} | null> {
+  // Source 1: Room (DB) — основной.
+  const dbRoom = await db.room.findFirst({
+    where: { id: args.roomId, building: { organizationId: args.organizationId } },
+    select: {
+      name: true,
+      detergent: true,
+      currentScope: true,
+      generalScope: true,
+    },
+  });
+  // Source 2: config.rooms[i] — legacy fallback (pairs-mode docs).
+  const configRoom = args.config.rooms?.find((r) => r.id === args.roomId);
 
-  // Найдём scope — приоритет per-room, fallback на reference table.
-  let scopeSteps: string[] = [];
-  if (room) {
-    if (args.cleanType === "general") {
-      scopeSteps = (room.generalScope ?? []).filter(Boolean);
-      if (scopeSteps.length === 0) {
-        // Если генерального scope нет — используем currentScope с пометкой.
-        scopeSteps = (room.currentScope ?? []).filter(Boolean);
+  const roomName = dbRoom?.name ?? configRoom?.name ?? "(помещение удалено)";
+  const detergent = dbRoom?.detergent || configRoom?.detergent || "";
+
+  function pickScope(): string[] {
+    const fromDb = (
+      args.cleanType === "general" ? dbRoom?.generalScope : dbRoom?.currentScope
+    ) as unknown;
+    const dbArr = Array.isArray(fromDb)
+      ? (fromDb as string[]).filter(
+          (s) => typeof s === "string" && s.trim().length > 0,
+        )
+      : [];
+    if (dbArr.length > 0) return dbArr;
+    // Fallback на config.rooms[i].
+    if (configRoom) {
+      const cfgArr =
+        args.cleanType === "general"
+          ? configRoom.generalScope
+          : configRoom.currentScope;
+      const cleaned = (cfgArr ?? []).filter(Boolean);
+      if (cleaned.length > 0) return cleaned;
+      // Если нужен general, но в config-room только current — берём current.
+      if (args.cleanType === "general") {
+        const c = (configRoom.currentScope ?? []).filter(Boolean);
+        if (c.length > 0) return c;
       }
-    } else {
-      scopeSteps = (room.currentScope ?? []).filter(Boolean);
     }
+    return [];
+  }
+
+  let scopeSteps = pickScope();
+
+  // Если в Room generalScope пустой — подмешиваем currentScope (sane default).
+  if (
+    scopeSteps.length === 0 &&
+    args.cleanType === "general" &&
+    Array.isArray(dbRoom?.currentScope)
+  ) {
+    scopeSteps = (dbRoom.currentScope as string[]).filter(
+      (s) => typeof s === "string" && s.trim().length > 0,
+    );
   }
 
   // Fallback: пробежимся по reference-table если scope пустой.

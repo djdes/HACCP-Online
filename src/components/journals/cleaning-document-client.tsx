@@ -100,7 +100,18 @@ type Props = {
   buildings?: Array<{
     id: string;
     name: string;
-    rooms: Array<{ id: string; name: string; kind: string }>;
+    rooms: Array<{
+      id: string;
+      name: string;
+      kind: string;
+      // Cleaning unification: эти поля теперь живут на Room (DB).
+      // Если page.tsx не передал — fallback на дефолты внутри клиента.
+      detergent?: string;
+      currentScope?: string[];
+      generalScope?: string[];
+      currentDays?: number;
+      generalDays?: number;
+    }>;
   }>;
   /**
    * Если true — рендерим Settings dialog в Design v2 стиле через
@@ -639,6 +650,30 @@ export function CleaningDocumentClient(props: Props) {
     );
     return m;
   }, [props.buildings]);
+
+  // Cleaning unification: подгружаем полные Room-объекты (scope/days/
+  // detergent) для rooms-mode. Эти данные с 2026-05-08 живут на Room в
+  // БД и являются source of truth — config.rooms[] остаётся только для
+  // pairs-mode legacy.
+  const dbRoomById = useMemo(() => {
+    const m = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        kind: string;
+        detergent?: string;
+        currentScope?: string[];
+        generalScope?: string[];
+        currentDays?: number;
+        generalDays?: number;
+      }
+    >();
+    (props.buildings ?? []).forEach((b) =>
+      b.rooms.forEach((r) => m.set(r.id, r)),
+    );
+    return m;
+  }, [props.buildings]);
   const userInitialsById = useMemo(() => {
     const m = new Map<string, string>();
     props.users.forEach((u) => {
@@ -654,27 +689,29 @@ export function CleaningDocumentClient(props: Props) {
 
   const rows = useMemo<RowDescriptor[]>(() => {
     if (isRoomsMode) {
-      // Rooms-mode: row = одно помещение из selectedRoomIds. Если в
-      // config.rooms уже есть запись с этим же id (с настроенными
-      // scope/days) — используем её, чтобы редактирование scope и
-      // расписания weekday-маски работало одинаково с pairs-режимом.
-      const configRoomById = new Map(config.rooms.map((r) => [r.id, r]));
+      // Rooms-mode: row = одно помещение из selectedRoomIds. Cleaning
+      // unification 2026-05-08 — детали (name, detergent, scope, days)
+      // приходят из Room (DB) через props.buildings[].rooms[]. Это
+      // единственный источник правды; config.rooms[] больше не
+      // используется в rooms-mode.
       return (config.selectedRoomIds ?? []).map((roomId) => {
-        const fromConfig = configRoomById.get(roomId);
-        const room: CleaningRoomItem = fromConfig
-          ? {
-              ...fromConfig,
-              // имя всегда тянем из buildings — single source of truth
-              name: buildingsRoomMap.get(roomId) ?? fromConfig.name,
-            }
-          : {
-              id: roomId,
-              areaId: null,
-              name: buildingsRoomMap.get(roomId) ?? "Помещение",
-              detergent: "",
-              currentScope: [],
-              generalScope: [],
-            };
+        const dbRoom = dbRoomById.get(roomId);
+        const room: CleaningRoomItem = {
+          id: roomId,
+          areaId: null,
+          name: dbRoom?.name ?? "Помещение",
+          detergent: dbRoom?.detergent ?? "",
+          currentScope: Array.isArray(dbRoom?.currentScope)
+            ? (dbRoom.currentScope as string[])
+            : [],
+          generalScope: Array.isArray(dbRoom?.generalScope)
+            ? (dbRoom.generalScope as string[])
+            : [],
+          currentDays:
+            typeof dbRoom?.currentDays === "number" ? dbRoom.currentDays : 127,
+          generalDays:
+            typeof dbRoom?.generalDays === "number" ? dbRoom.generalDays : 0,
+        };
         return { id: roomId, kind: "room" as const, room };
       });
     }
@@ -683,7 +720,7 @@ export function CleaningDocumentClient(props: Props) {
       ...config.cleaningResponsibles.map((responsible) => ({ id: responsible.id, kind: "cleaning" as const, responsible })),
       ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
     ];
-  }, [config, isRoomsMode, buildingsRoomMap]);
+  }, [config, isRoomsMode, dbRoomById]);
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
   // может прочитать stale rows при быстром переключении.
@@ -1069,6 +1106,36 @@ export function CleaningDocumentClient(props: Props) {
       nextConfig = applyRoomScheduleToMatrix(nextConfig, dayKeys, "fill-empty");
     }
     setRoomDialog(null);
+
+    // Cleaning unification 2026-05-08 — write-through на Room.
+    // В rooms-mode (когда room из selectedRoomIds = из /settings/buildings)
+    // мы дополнительно патчим Room в БД, чтобы scope/days/detergent стали
+    // глобальными для этой комнаты. config.rooms[] всё ещё пишется для
+    // обратной совместимости с pairs-mode и legacy-кода, но для rooms-mode
+    // источник правды теперь Room.
+    if (
+      isRoomsMode &&
+      roomDialog.id &&
+      (config.selectedRoomIds ?? []).includes(roomDialog.id)
+    ) {
+      try {
+        await fetch(`/api/settings/rooms/${roomDialog.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            detergent: roomDialog.detergent ?? "",
+            currentScope: currentScopeArr,
+            generalScope: generalScopeArr,
+            currentDays: roomDialog.currentDays,
+            generalDays: roomDialog.generalDays,
+          }),
+        });
+      } catch (err) {
+        // Не критично для save — config уже сохранится patchDocument'ом.
+        console.error("[cleaning] room write-through failed", err);
+      }
+    }
+
     await patchDocument(nextConfig);
     // Sync строк из currentScope/generalScope в JournalChecklistItem'ы
     // — каждая строка станет подзадачей в TasksFlow task-fill flow.

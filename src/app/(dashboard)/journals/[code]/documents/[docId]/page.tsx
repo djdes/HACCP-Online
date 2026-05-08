@@ -965,7 +965,20 @@ export default async function JournalDocumentPage({
       include: {
         rooms: {
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-          select: { id: true, name: true, kind: true },
+          select: {
+            id: true,
+            name: true,
+            kind: true,
+            // Cleaning unification: scope/days/detergent теперь живут на Room
+            // (см. docs/superpowers/specs/2026-05-08-cleaning-unification.md).
+            // Передаём в client чтобы rows builder использовал их в rooms-mode
+            // вместо config.rooms[i].
+            detergent: true,
+            currentScope: true,
+            generalScope: true,
+            currentDays: true,
+            generalDays: true,
+          },
         },
       },
     });
@@ -984,7 +997,24 @@ export default async function JournalDocumentPage({
         buildings={buildings.map((b) => ({
           id: b.id,
           name: b.name,
-          rooms: b.rooms.map((r) => ({ id: r.id, name: r.name, kind: r.kind })),
+          rooms: b.rooms.map((r) => ({
+            id: r.id,
+            name: r.name,
+            kind: r.kind,
+            detergent: r.detergent ?? "",
+            currentScope: Array.isArray(r.currentScope)
+              ? (r.currentScope as string[]).filter(
+                  (s) => typeof s === "string",
+                )
+              : [],
+            generalScope: Array.isArray(r.generalScope)
+              ? (r.generalScope as string[]).filter(
+                  (s) => typeof s === "string",
+                )
+              : [],
+            currentDays: r.currentDays,
+            generalDays: r.generalDays,
+          })),
         }))}
         config={normalizeCleaningDocumentConfig(document.config)}
         initialEntries={document.entries.map((entry) => ({

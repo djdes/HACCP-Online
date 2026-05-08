@@ -13,6 +13,13 @@ const UpdateSchema = z.object({
     .enum(["guest", "kitchen", "wash", "bar", "storage", "other"])
     .optional(),
   sortOrder: z.number().int().optional(),
+  // Cleaning unification: scope/days/detergent теперь хранятся на Room.
+  // См. docs/superpowers/specs/2026-05-08-cleaning-unification.md
+  detergent: z.string().max(500).optional().nullable(),
+  currentScope: z.array(z.string().max(300)).max(50).optional(),
+  generalScope: z.array(z.string().max(300)).max(50).optional(),
+  currentDays: z.number().int().min(0).max(127).optional(),
+  generalDays: z.number().int().min(0).max(127).optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -50,12 +57,32 @@ export async function PATCH(request: Request, ctx: Ctx) {
     throw err;
   }
 
+  const cleanScope = (arr: string[] | undefined) =>
+    arr === undefined
+      ? undefined
+      : arr.map((s) => s.trim()).filter((s) => s.length > 0).slice(0, 50);
+
   const updated = await db.room.update({
     where: { id },
     data: {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.kind !== undefined ? { kind: body.kind } : {}),
       ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
+      ...(body.detergent !== undefined
+        ? { detergent: body.detergent ?? "" }
+        : {}),
+      ...(body.currentScope !== undefined
+        ? { currentScope: cleanScope(body.currentScope) ?? [] }
+        : {}),
+      ...(body.generalScope !== undefined
+        ? { generalScope: cleanScope(body.generalScope) ?? [] }
+        : {}),
+      ...(body.currentDays !== undefined
+        ? { currentDays: body.currentDays }
+        : {}),
+      ...(body.generalDays !== undefined
+        ? { generalDays: body.generalDays }
+        : {}),
     },
   });
   return NextResponse.json({ room: updated });
