@@ -344,7 +344,7 @@ export default async function OnboardingPage() {
 
   const telegramItem: SetupItem = {
     title: "Telegram-приглашения",
-    description: "Без TG сотрудник не получит задачу из TasksFlow",
+    description: "Опционально. Если хотите чтобы задачи приходили в Telegram. Без него сотрудники видят задачи на сайте и в Mini App.",
     href: "/settings/users",
     icon: Bell,
     state:
@@ -355,11 +355,8 @@ export default async function OnboardingPage() {
           : usersWithTg > 0
             ? "partial"
             : "empty",
-    metric: `${usersWithTg}/${activeUsersCount}`,
-    issue:
-      activeUsersCount > 0 && usersWithTg < activeUsersCount
-        ? `${activeUsersCount - usersWithTg} без TG — задачи не дойдут`
-        : undefined,
+    metric: usersWithTg > 0 ? `${usersWithTg}/${activeUsersCount}` : undefined,
+    optional: true,
   };
 
   const journalsSetItem: SetupItem = {
@@ -597,7 +594,7 @@ export default async function OnboardingPage() {
       number: 3,
       title: "Команда",
       subtitle:
-        "Сотрудники + Telegram (обязательно для TasksFlow). Permission-пресеты и иерархия — по желанию",
+        "Сотрудники — обязательно. Telegram, permission-пресеты, иерархия — по желанию.",
       icon: Users,
       items: [usersItem, telegramItem, presetsItem, hierarchyItem],
     },
