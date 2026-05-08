@@ -30,6 +30,7 @@ import {
 } from "@/lib/journal-staff-binding";
 import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
+import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
 import { isManagementRole } from "@/lib/user-roles";
 import { hasJournalAccess } from "@/lib/journal-acl";
 
@@ -300,6 +301,35 @@ export async function PATCH(
       organizationId: getActiveOrgId(session),
     }).catch((err) => {
       console.error("[tasksflow-sync] patch hook failed", err);
+    });
+  }
+
+  // Live cell-edit sync для cleaning: если поменялась ячейка
+  // СЕГОДНЯШНЕГО дня в matrix — upsert/delete override-задачу в TasksFlow
+  // мгновенно, не дожидаясь следующего bulk-assign. T → G в ячейке
+  // → у уборщицы в TF меняется (или появляется) задача «🧹 Генеральная
+  // уборка · цех X». Fire-and-forget — TF outage не блокирует save.
+  if (
+    template?.code === "cleaning" &&
+    body.config !== undefined &&
+    typeof body.config === "object" &&
+    body.config !== null
+  ) {
+    const prevMatrix =
+      ((doc.config as { matrix?: Record<string, Record<string, string>> })
+        ?.matrix ?? {}) as Record<string, Record<string, string>>;
+    const nextMatrix =
+      ((body.config as { matrix?: Record<string, Record<string, string>> })
+        .matrix ?? {}) as Record<string, Record<string, string>>;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    void syncTodayMatrixChanges({
+      documentId: id,
+      organizationId: getActiveOrgId(session),
+      prevMatrix,
+      nextMatrix,
+      todayKey,
+    }).catch((err) => {
+      console.error("[cleaning-cell-override] hook failed", err);
     });
   }
 
