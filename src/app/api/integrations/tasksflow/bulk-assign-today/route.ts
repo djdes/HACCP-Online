@@ -506,7 +506,30 @@ export async function POST(request: Request) {
 
   const adapters = await listAdapters();
   const adapterByCode = new Map(adapters.map((a) => [a.meta.templateCode, a]));
-  const client = tasksflowClientFor(integration);
+  let client: ReturnType<typeof tasksflowClientFor>;
+  try {
+    client = tasksflowClientFor(integration);
+  } catch (err: unknown) {
+    // decryptSecret() кидает «Unsupported state or unable to authenticate data»
+    // если NEXTAUTH_SECRET изменился после того как ключ был сохранён в БД.
+    // Возвращаем понятный 400 вместо 500 чтобы UI смог показать кнопку
+    // «Переподключить» вместо генерики «Не удалось получить превью».
+    const message =
+      err instanceof Error ? err.message : "Не удалось расшифровать API-ключ";
+    const isCryptoIssue =
+      err instanceof Error &&
+      /authenticate data|Malformed encrypted|Unsupported state/i.test(message);
+    return NextResponse.json(
+      {
+        error: isCryptoIssue
+          ? "API-ключ TasksFlow повреждён или зашифрован старым секретом. Переподключите интеграцию: Настройки → Интеграции → TasksFlow → введите ключ заново."
+          : message,
+        code: isCryptoIssue ? "tasksflow_apikey_decrypt_failed" : "tasksflow_client_error",
+        action: { href: "/settings/integrations/tasksflow", label: "Переподключить TasksFlow" },
+      },
+      { status: 400 },
+    );
+  }
   // Раньше: baseUrl = origin запроса. Когда nginx проксирует с upstream
   // localhost:3002 без сохранения Host, в task.journalLink улетал
   // "https://localhost:3002" — таски в TasksFlow становились некликабельны
