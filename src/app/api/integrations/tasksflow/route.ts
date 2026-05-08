@@ -323,6 +323,42 @@ async function connectIntegration(request: Request) {
     data: { lastSyncAt: new Date() },
   });
 
+  // Bridge sync: рассказываем TasksFlow какой URL+ключ использовать
+  // когда ему нужно позвонить ОБРАТНО в WeSetup (task-form,
+  // catalog, complete-with-values). Без этого вызова на стороне TF
+  // в /admin/integration горит «Связь не работает: Invalid key» —
+  // TF хранит старый wesetupApiKey, который наш getMatchingTasksFlow
+  // Integrations не распознаёт. Передаём тот же plaintext-ключ
+  // что юзер только что ввёл — WeSetup-side он индексируется
+  // через apiKeyPrefix + bcrypt-сравнение в `getMatching…`.
+  // Fire-and-forget: TF outage не блокирует save (на стороне TF
+  // bridge можно donastroить вручную через PUT /api/companies/me).
+  const envBase = (process.env.NEXTAUTH_URL ?? "").trim();
+  const requestOrigin = (() => {
+    try {
+      return new URL(request.url).origin;
+    } catch {
+      return "";
+    }
+  })();
+  const wesetupBaseUrl =
+    envBase && !envBase.includes("localhost") ? envBase : requestOrigin;
+  const orgRecord = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { name: true },
+  });
+  if (wesetupBaseUrl) {
+    void client
+      .setWesetupBridge({
+        name: orgRecord?.name ?? "WeSetup",
+        wesetupBaseUrl,
+        wesetupApiKey: payload.apiKey,
+      })
+      .catch((err) => {
+        console.error("[tf-integrations] setWesetupBridge failed", err);
+      });
+  }
+
   return NextResponse.json({
     integration,
     probedUserCount: probeUsers.length,
