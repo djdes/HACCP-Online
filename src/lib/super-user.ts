@@ -16,6 +16,7 @@
 
 const SUPER_USER_EMAILS = new Set([
   "admin@gavan-copy.test",
+  "freegeminiapi03@gmail.com",
 ]);
 
 type SessionLike = {

@@ -249,9 +249,10 @@ export async function POST(request: Request) {
   const bypassTimeFilter = bypassTimeFilterRequested && superUser;
 
   // Rate-limit: 3 fan-out'а / 5 мин / org. Защита от случайного
-  // двойного клика и CSRF-loop'а. Super-user с bypassTimeFilter
-  // обходит rate-limit — нужен для итеративного тестирования.
-  if (!bypassTimeFilter && !bulkAssignRateLimiter.consume(`bulk-assign:${organizationId}`)) {
+  // двойного клика и CSRF-loop'а. Super-user (см. src/lib/super-user.ts)
+  // ВСЕГДА обходит rate-limit — это dev/owner-аккаунт для итеративного
+  // тестирования fan-out'а без 5-минутных пауз.
+  if (!superUser && !bulkAssignRateLimiter.consume(`bulk-assign:${organizationId}`)) {
     const ms = bulkAssignRateLimiter.remainingMs(
       `bulk-assign:${organizationId}`
     );
