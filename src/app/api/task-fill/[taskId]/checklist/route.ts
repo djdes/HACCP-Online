@@ -57,6 +57,19 @@ export async function GET(
   }
   const organizationId = link.integration.organizationId;
 
+  // Cleaning: scope-шаги уже доставляются через TaskFormSchema.pipeline
+  // (см. cleaningAdapter.getTaskForm — buildRoomCleaningFormFromDb
+  // возвращает pipeline по Room.currentScope/generalScope в зависимости
+  // от matrix-значения T/G сегодня). Чтобы не показывать одни и те же
+  // шаги дважды (TaskFillChecklist сверху + pipeline-wizard снизу),
+  // отдаём пустой checklist для cleaning. Pipeline — единственный
+  // источник UX. Юзер: «Зачем чек-лист и где pipeline» — после этой
+  // правки виден только wizard. См. spec
+  // docs/superpowers/specs/2026-05-08-cleaning-unification.md
+  if (link.journalCode === "cleaning") {
+    return NextResponse.json({ items: [] });
+  }
+
   // Парсим roomId из rowKey. Поддерживаемые форматы:
   //   • room::<roomId>::cleaner::<uid>   (cleaning rooms-mode)
   //   • cell-override::<roomId>::<date>  (cleaning override-cell)

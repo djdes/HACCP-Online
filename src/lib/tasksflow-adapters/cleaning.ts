@@ -144,6 +144,18 @@ export const cleaningAdapter: JournalAdapter = {
     const config = normalizeCleaningDocumentConfig(
       doc.config
     ) as CleaningDocumentConfig;
+
+    // Rooms-mode: задачи управляются через bulk-assign-today
+    // (per-room rowKey) + syncCleaningCellOverride (per-cell override).
+    // syncDocument здесь — pairs-mode legacy. В rooms-mode pairs обычно
+    // пустой → нижеследующий цикл «delete tasks not in seen» снёс бы
+    // ВСЕ существующие задачи (room::… + cell-override::… + verifier-summary).
+    // Юзер видел «после клика по матрице все 3 задачи пропали» — это и
+    // была эта каскадная очистка. В rooms-mode ничего не делаем.
+    if (config.cleaningMode === "rooms") {
+      return EMPTY_SYNC_REPORT;
+    }
+
     const pairs = config.responsiblePairs ?? [];
 
     const userLinks = await db.tasksFlowUserLink.findMany({
