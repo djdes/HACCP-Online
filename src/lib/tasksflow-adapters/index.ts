@@ -52,7 +52,15 @@ import { complaintRegisterAdapter } from "./complaint-register";
 import { buildGenericAdapter } from "./generic";
 import type { JournalAdapter } from "./types";
 
-const SPECIFIC_ADAPTERS: JournalAdapter[] = [
+/**
+ * In-memory registry of specific adapters. Exposed для контрактных
+ * тестов (см. src/domain/journal/adapter-contract.test.ts) — позволяет
+ * проверить контракт без обращения к БД.
+ *
+ * Generic adapters (для journals без specific) тестируются отдельно
+ * через buildGenericAdapter.
+ */
+export const SPECIFIC_ADAPTERS: JournalAdapter[] = [
   cleaningAdapter,
   hygieneAdapter,
   healthCheckAdapter,

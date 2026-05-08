@@ -271,4 +271,62 @@ export const equipmentMaintenanceAdapter: JournalAdapter = {
     });
     return true;
   },
+
+  /**
+   * Closing audit gap (_AUDIT.md P1 #1): без getTaskForm сотрудник в TF
+   * видел «Форма не требует заполнения». ППР — сложная процедура с
+   * чёткими шагами; нужен wizard.
+   */
+  async getTaskForm({ documentId, rowKey }) {
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      include: { template: { select: { code: true } } },
+    });
+    if (!doc || doc.template.code !== TEMPLATE_CODE) return null;
+
+    const config = normalizeEquipmentMaintenanceConfig(
+      doc.config,
+    ) as EquipmentMaintenanceConfig;
+    const row = config.rows.find((r) => r.id === rowKey);
+    const equipmentName =
+      (row as { title?: string; equipmentName?: string } | undefined)?.title ??
+      (row as { title?: string; equipmentName?: string } | undefined)?.equipmentName ??
+      "оборудование";
+    const isComplex =
+      (row as { maintenanceType?: string; type?: string } | undefined)
+        ?.maintenanceType === "B" ||
+      (row as { maintenanceType?: string; type?: string } | undefined)?.type === "B";
+
+    const stepsA = [
+      "Отключи оборудование от сети",
+      "Очисти внешние поверхности",
+      "Проверь крепления и соединения",
+      "Сделай фото после обслуживания",
+    ];
+    const stepsB = [
+      "Отключи оборудование от сети",
+      "Разбери до уровня узлов",
+      "Очисти внутренние полости и фильтры",
+      "Проверь / замени уплотнители",
+      "Смажь подвижные части",
+      "Собери и проверь работу",
+      "Сделай фото после обслуживания",
+    ];
+    const steps = isComplex ? stepsB : stepsA;
+
+    return {
+      intro: `Профилактическое обслуживание · ${equipmentName}\nТип ${isComplex ? "B (сложное)" : "A (простое)"}. После каждого шага — «Сделал».`,
+      fields: [],
+      pipeline: steps.map((title, idx) => ({
+        id: `step-${idx + 1}`,
+        title,
+        detail: `Шаг ${idx + 1} из ${steps.length}.`,
+        photoMode:
+          idx === steps.length - 1
+            ? ("required" as const)
+            : ("optional" as const),
+      })),
+      submitLabel: "ППР завершён",
+    };
+  },
 };

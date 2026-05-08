@@ -262,4 +262,50 @@ export const sanitationDayAdapter: JournalAdapter = {
     });
     return true;
   },
+
+  /**
+   * Closing audit gap (см. _AUDIT.md P1 #1): без getTaskForm сотрудник
+   * в TF Mini App видел «Форма не требует заполнения». Sanitation day —
+   * большой ХАССП-журнал, нужен полноценный wizard.
+   *
+   * Pipeline: чек-лист стандартных шагов санитарного дня для конкретного
+   * помещения (label из row.title). photoMode: required — это monthly
+   * генеральная очистка, fixate evidence обязательно.
+   */
+  async getTaskForm({ documentId, rowKey }) {
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      include: { template: { select: { code: true } } },
+    });
+    if (!doc || doc.template.code !== TEMPLATE_CODE) return null;
+
+    const config = normalizeSanitationDayConfig(
+      doc.config,
+    ) as SanitationDayConfig;
+    const row = config.rows.find((r) => r.id === rowKey);
+    const roomName = row?.roomName ?? "помещение";
+
+    const steps = [
+      "Очистка пола (мойка, дезинфекция)",
+      "Очистка стен и плинтусов",
+      "Очистка потолка от пыли и паутины",
+      "Дезинфекция оборудования",
+      "Чистка вентиляционных решёток",
+      "Ревизия мебели (стеллажи, столы)",
+      "Замена / проверка ловушек грызунов",
+      "Финальная проверка и подпись",
+    ];
+
+    return {
+      intro: `Санитарный день · ${roomName}\nПолная глубокая уборка с дезинфекцией. Каждый шаг — фотофиксация результата.`,
+      fields: [],
+      pipeline: steps.map((title, idx) => ({
+        id: `step-${idx + 1}`,
+        title,
+        detail: `Шаг ${idx + 1} из ${steps.length}. После выполнения — фото и «Сделал».`,
+        photoMode: "required" as const,
+      })),
+      submitLabel: "Завершить санитарный день",
+    };
+  },
 };
