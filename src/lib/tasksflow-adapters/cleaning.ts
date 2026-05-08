@@ -330,7 +330,231 @@ export const cleaningAdapter: JournalAdapter = {
     });
     return true;
   },
+
+  async getTaskForm({ documentId, rowKey }) {
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      include: { template: true },
+    });
+    if (!doc || doc.template.code !== CLEANING_DOCUMENT_TEMPLATE_CODE) {
+      return null;
+    }
+    const config = normalizeCleaningDocumentConfig(
+      doc.config,
+    ) as CleaningDocumentConfig;
+
+    const todayKey = toDateKey(new Date());
+
+    // Override-cell rowKey: cell-override::{roomId}::{dateKey}
+    const overrideMatch = /^cell-override::([^:]+)::(\d{4}-\d{2}-\d{2})$/.exec(
+      rowKey,
+    );
+    if (overrideMatch) {
+      const [, roomIdRaw, dateKeyRaw] = overrideMatch;
+      const cellValue =
+        (config.matrix?.[roomIdRaw]?.[dateKeyRaw] as string | undefined) ?? "";
+      const cleanType: "current" | "general" =
+        cellValue === "G" ? "general" : "current";
+      return buildRoomCleaningForm({
+        config,
+        roomId: roomIdRaw,
+        cleanType,
+        dateKey: dateKeyRaw,
+      });
+    }
+
+    // Rooms-mode rowKey: room::{roomId}::cleaner::{cleanerId}
+    const roomsMatch = /^room::([^:]+)::cleaner::(.+)$/.exec(rowKey);
+    if (roomsMatch) {
+      const [, roomIdRaw] = roomsMatch;
+      const cellValue =
+        (config.matrix?.[roomIdRaw]?.[todayKey] as string | undefined) ?? "";
+      const cleanType: "current" | "general" =
+        cellValue === "G" ? "general" : "current";
+      return buildRoomCleaningForm({
+        config,
+        roomId: roomIdRaw,
+        cleanType,
+        dateKey: todayKey,
+      });
+    }
+
+    // Pairs-mode (legacy): rowKey = pair.id. Один task на всю смену
+    // покрывает все помещения. Pipeline = чек-лист по каждой комнате
+    // что нужно сделать сегодня (T или G по матрице).
+    const pair = config.responsiblePairs?.find((p) => p.id === rowKey);
+    if (pair) {
+      return buildPairsCleaningForm({ config, todayKey });
+    }
+
+    return null;
+  },
 };
+
+function buildRoomCleaningForm(args: {
+  config: CleaningDocumentConfig;
+  roomId: string;
+  cleanType: "current" | "general";
+  dateKey: string;
+}): {
+  intro?: string;
+  fields: never[];
+  pipeline: Array<{
+    id: string;
+    title: string;
+    detail: string;
+  }>;
+  submitLabel?: string;
+} | null {
+  const room = args.config.rooms?.find((r) => r.id === args.roomId);
+  const roomName = room?.name ?? "(помещение удалено)";
+  const detergent = room?.detergent;
+
+  // Найдём scope — приоритет per-room, fallback на reference table.
+  let scopeSteps: string[] = [];
+  if (room) {
+    if (args.cleanType === "general") {
+      scopeSteps = (room.generalScope ?? []).filter(Boolean);
+      if (scopeSteps.length === 0) {
+        // Если генерального scope нет — используем currentScope с пометкой.
+        scopeSteps = (room.currentScope ?? []).filter(Boolean);
+      }
+    } else {
+      scopeSteps = (room.currentScope ?? []).filter(Boolean);
+    }
+  }
+
+  // Fallback: пробежимся по reference-table если scope пустой.
+  if (scopeSteps.length === 0) {
+    const refRow = args.config.referenceTable?.find(
+      (r) => r.roomId === args.roomId,
+    );
+    if (refRow) {
+      scopeSteps =
+        args.cleanType === "general"
+          ? (refRow.generalScope ?? [])
+          : (refRow.currentScope ?? []);
+    }
+  }
+
+  const cleanLabel =
+    args.cleanType === "general" ? "Генеральная уборка" : "Текущая уборка";
+  const intro = [
+    `${cleanLabel} · ${roomName}`,
+    detergent ? `Средство: ${detergent}` : null,
+    args.cleanType === "general"
+      ? "Полная санобработка: все поверхности, оборудование, дезсредства."
+      : "Ежедневная уборка: рабочие поверхности, пол, основное оборудование.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  // Если шагов нет — pipeline=[1 confirmation step] чтобы worker всё-таки
+  // увидел инструкцию + кнопку «Сделал».
+  if (scopeSteps.length === 0) {
+    return {
+      intro,
+      fields: [],
+      pipeline: [
+        {
+          id: "confirm",
+          title: cleanLabel,
+          detail: detergent
+            ? `Сделай ${cleanLabel.toLowerCase()} в помещении «${roomName}» с использованием «${detergent}». Подтверди по факту.`
+            : `Сделай ${cleanLabel.toLowerCase()} в помещении «${roomName}». Подтверди по факту.`,
+        },
+      ],
+      submitLabel: "Готово",
+    };
+  }
+
+  return {
+    intro,
+    fields: [],
+    pipeline: scopeSteps.map((step, idx) => ({
+      id: `step-${idx + 1}`,
+      title: step,
+      detail: `Шаг ${idx + 1} из ${scopeSteps.length}. После выполнения нажми «Сделал».`,
+    })),
+    submitLabel: "Готово",
+  };
+}
+
+function buildPairsCleaningForm(args: {
+  config: CleaningDocumentConfig;
+  todayKey: string;
+}): {
+  intro?: string;
+  fields: never[];
+  pipeline: Array<{
+    id: string;
+    title: string;
+    detail: string;
+  }>;
+  submitLabel?: string;
+} | null {
+  const rooms = args.config.rooms ?? [];
+  if (rooms.length === 0) {
+    return {
+      intro: "Уборка по плану журнала. Подтверди по факту.",
+      fields: [],
+      pipeline: [
+        {
+          id: "confirm",
+          title: "Уборка",
+          detail: "Сделай уборку согласно журналу.",
+        },
+      ],
+      submitLabel: "Готово",
+    };
+  }
+
+  // Собираем pipeline по тем комнатам, у которых сегодня запланирована
+  // уборка (T или G в матрице на сегодня).
+  const todayRooms = rooms.filter((room) => {
+    const cell = args.config.matrix?.[room.id]?.[args.todayKey];
+    return cell === "T" || cell === "G";
+  });
+
+  if (todayRooms.length === 0) {
+    return {
+      intro:
+        "Сегодня по плану нет помещений для обязательной уборки. Если нужна — пройди по списку и подтверди.",
+      fields: [],
+      pipeline: rooms.slice(0, 6).map((room, idx) => ({
+        id: `room-${idx + 1}`,
+        title: `Уборка · ${room.name}`,
+        detail: room.detergent
+          ? `Средство: ${room.detergent}.`
+          : "Уборка по плану.",
+      })),
+      submitLabel: "Готово",
+    };
+  }
+
+  const pipeline = todayRooms.map((room, idx) => {
+    const cell = args.config.matrix?.[room.id]?.[args.todayKey];
+    const kind = cell === "G" ? "🧹 Генеральная" : "🧽 Текущая";
+    return {
+      id: `room-${idx + 1}-${room.id}`,
+      title: `${kind} · ${room.name}`,
+      detail: room.detergent
+        ? `Средство: ${room.detergent}. Сделай ${
+            cell === "G" ? "генеральную" : "текущую"
+          } уборку и подтверди.`
+        : `Сделай ${
+            cell === "G" ? "генеральную" : "текущую"
+          } уборку и подтверди.`,
+    };
+  });
+
+  return {
+    intro: `Сегодня по плану уборка в ${pipeline.length} помещ.`,
+    fields: [],
+    pipeline,
+    submitLabel: "Готово",
+  };
+}
 
 /* =========================================================
  * Rooms-mode helpers
