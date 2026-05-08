@@ -305,11 +305,19 @@ const journalTemplates = [
       { key: "noRash", label: "Нет сыпи / гнойничковых поражений", type: "boolean", required: true },
       { key: "medBookValid", label: "Мед. книжка действующая", type: "boolean", required: true },
       { key: "medBookExpiry", label: "Срок действия мед. книжки", type: "date", required: false },
+      // Методичка ХАССП §2.7 (стр. 17): полная шкала допуска к работе.
+      // 5 значений: зд / отстранен / отп / в / б/л. У нас расширено до 6 —
+      // добавлен 'admitted_with_restrictions' для случая, когда сотрудник
+      // допущен с ограничениями (например, в отдельный участок).
       { key: "admittedToWork", label: "Допуск к работе", type: "select", required: true, options: [
-        { value: "admitted", label: "Допущен" },
+        { value: "admitted", label: "Здоров — допущен (зд)" },
+        { value: "admitted_with_restrictions", label: "Допущен с ограничениями" },
         { value: "suspended", label: "Отстранён" },
+        { value: "vacation", label: "Отпуск (отп)" },
+        { value: "weekend", label: "Выходной (в)" },
+        { value: "sick_leave", label: "Больничный (б/л)" },
       ]},
-      { key: "suspensionReason", label: "Причина отстранения", type: "text", required: false, showIf: { field: "admittedToWork", equals: "suspended" } },
+      { key: "suspensionReason", label: "Причина отстранения / ограничения", type: "text", required: false, showIf: { field: "admittedToWork", equals: "suspended" } },
     ],
   },
   {
@@ -485,6 +493,15 @@ const journalTemplates = [
         { value: "out_of_order", label: "Не эксплуатировать" },
       ]},
       { key: "defectsFound", label: "Выявленные дефекты", type: "text", required: false, showIf: { field: "result", equals: "needs_repair" } },
+      // Методичка ХАССП §2.2 (стр. 25, журнал-график ТО): отдельная
+      // колонка «вид ремонта» + «дата кап. ремонта». Добавлено для полного
+      // соответствия методичке.
+      { key: "repairType", label: "Вид ремонта (если был)", type: "select", required: false, options: [
+        { value: "current", label: "Текущий ремонт" },
+        { value: "medium", label: "Средний ремонт" },
+        { value: "capital", label: "Капитальный ремонт" },
+      ], showIf: { field: "maintenanceType", equals: "repair" } },
+      { key: "capitalRepairDate", label: "Дата капитального ремонта", type: "date", required: false, showIf: { field: "repairType", equals: "capital" } },
       { key: "nextMaintenanceDate", label: "Следующее обслуживание", type: "date", required: false },
     ],
   },
@@ -517,6 +534,9 @@ const journalTemplates = [
         { value: "passed", label: "Пройдена" },
         { value: "failed", label: "Не пройдена — повторный инструктаж" },
       ]},
+      // Методичка ХАССП §2.6 (стр. 17, журнал обучения сотрудников):
+      // колонка «Оценка по результатам тестирования». 5-балльная шкала.
+      { key: "testScore", label: "Оценка по тестированию (1-5)", type: "number", required: false, step: 1 },
       { key: "nextTrainingDate", label: "Дата следующего инструктажа", type: "date", required: false },
     ],
   },
