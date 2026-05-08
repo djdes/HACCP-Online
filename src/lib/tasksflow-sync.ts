@@ -136,23 +136,61 @@ export async function pullCompletionsForOrganization(params: {
   let reopened = 0;
   let errors = 0;
 
+  // Pull ОДИН раз listTasks() и собираем map, чтобы не делать N
+  // get-task'ов (TF rate-limit'ит после ~30 RPS — при 100+ task-link'ах
+  // мы упирались в 429). Если listTasks упал — fallback на старый
+  // per-link getTask (минимум что-то синканёт).
+  let tasksById: Map<number, TasksFlowTask> | null = null;
+  try {
+    const allTasks = await client.listTasks();
+    tasksById = new Map(allTasks.map((t) => [t.id, t]));
+  } catch (err) {
+    if (err instanceof TasksFlowError && err.status === 429) {
+      console.warn(
+        "[tasksflow-sync] listTasks 429 — falling back to per-link",
+      );
+    } else {
+      console.error("[tasksflow-sync] listTasks failed", err);
+    }
+  }
+
   for (const link of taskLinks) {
     const adapter = getAdapter(link.journalCode);
     if (!adapter) continue;
 
-    let task: TasksFlowTask;
-    try {
-      task = await client.getTask(link.tasksflowTaskId);
-    } catch (err) {
-      if (err instanceof TasksFlowError && err.status === 404) {
+    let task: TasksFlowTask | undefined;
+    if (tasksById) {
+      task = tasksById.get(link.tasksflowTaskId);
+      if (!task) {
+        // Задача не найдена в listTasks — её удалили в TF.
         await db.tasksFlowTaskLink
           .delete({ where: { id: link.id } })
           .catch(() => null);
         continue;
       }
-      errors += 1;
-      continue;
+    } else {
+      try {
+        task = await client.getTask(link.tasksflowTaskId);
+      } catch (err) {
+        if (err instanceof TasksFlowError && err.status === 404) {
+          await db.tasksFlowTaskLink
+            .delete({ where: { id: link.id } })
+            .catch(() => null);
+          continue;
+        }
+        if (err instanceof TasksFlowError && err.status === 429) {
+          // Прекращаем pull чтобы не добивать TF — что синкнули
+          // успеем, остальное соберём в следующий cron.
+          console.warn(
+            "[tasksflow-sync] hit 429 on getTask, stopping pull early",
+          );
+          break;
+        }
+        errors += 1;
+        continue;
+      }
     }
+    if (!task) continue;
 
     const wasCompleted = link.remoteStatus === "completed";
     if (task.isCompleted && !wasCompleted) {
