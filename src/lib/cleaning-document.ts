@@ -594,6 +594,12 @@ function buildBaseConfig(users?: UserLike[], areas?: AreaLike[]): CleaningDocume
       fillUntilToday: true,
       defaultRoomMark: "T",
     },
+    // Cleaning unification 2026-05-08, Stage 8: новые документы по
+    // умолчанию в rooms-mode (1 задача на помещение). Старые pairs-mode
+    // документы продолжают работать через explicit cleaningMode='pairs'
+    // в config (нормализация сохраняет их как есть). См. spec
+    // docs/superpowers/specs/2026-05-08-cleaning-unification.md
+    cleaningMode: "rooms",
     responsiblePairs,
     rooms,
     legend: [...CLEANING_LEGEND],
@@ -1048,8 +1054,21 @@ export function normalizeCleaningDocumentConfig(
 
   // Rooms-mode (Этап 2). Опциональные поля — без значения старые
   // документы продолжают работать через responsiblePairs.
+  // Cleaning unification 2026-05-08, Stage 8: умное определение режима.
+  //   • Если в записи явно указан cleaningMode — уважаем (включая "pairs")
+  //   • Иначе если в записи уже есть pairs или legacy-rooms — это старый
+  //     документ pairs-mode, оставляем "pairs" чтобы не сломать
+  //   • Иначе (полностью пустой config) — новый rooms-mode по дефолту
   const modeRaw = record.cleaningMode;
-  next.cleaningMode = modeRaw === "rooms" ? "rooms" : "pairs";
+  if (modeRaw === "pairs" || modeRaw === "rooms") {
+    next.cleaningMode = modeRaw;
+  } else {
+    const hasLegacyData =
+      (Array.isArray(record.responsiblePairs) &&
+        record.responsiblePairs.length > 0) ||
+      (Array.isArray(record.rooms) && record.rooms.length > 0);
+    next.cleaningMode = hasLegacyData ? "pairs" : "rooms";
+  }
   next.selectedRoomIds = Array.isArray(record.selectedRoomIds)
     ? record.selectedRoomIds.filter((x): x is string => typeof x === "string" && x.length > 0)
     : [];

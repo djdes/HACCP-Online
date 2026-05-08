@@ -1,0 +1,281 @@
+"use client";
+
+/**
+ * Shared dialog для редактирования полной cleaning-конфигурации помещения:
+ * name, kind, detergent, currentScope, generalScope, currentDays,
+ * generalDays. Используется и в /settings/buildings (stage 3) и в журнале
+ * уборки (stage 4 — там пока inline в cleaning-document-client.tsx;
+ * можно мигрировать позже).
+ *
+ * Cleaning unification 2026-05-08, см.
+ * docs/superpowers/specs/2026-05-08-cleaning-unification.md
+ *
+ * Сохранение делает PATCH /api/settings/rooms/[id]; этот же endpoint
+ * автоматически синкает JournalChecklistItem (stage 6 hook).
+ */
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ScopeListEditor,
+  WeekdayMaskPicker,
+} from "@/components/cleaning/scope-and-schedule-editors";
+
+const KIND_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "guest", label: "Гостевая зона" },
+  { value: "kitchen", label: "Кухня / горячий цех" },
+  { value: "wash", label: "Мойка" },
+  { value: "bar", label: "Бар" },
+  { value: "storage", label: "Склад" },
+  { value: "other", label: "Другое" },
+];
+
+export type RoomEditorInitial = {
+  id: string;
+  name: string;
+  kind: string;
+  detergent: string;
+  currentScope: string[];
+  generalScope: string[];
+  currentDays: number;
+  generalDays: number;
+};
+
+type Props = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initial: RoomEditorInitial | null;
+  onSaved?: () => void;
+};
+
+export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [kind, setKind] = useState(initial?.kind ?? "other");
+  const [detergent, setDetergent] = useState(initial?.detergent ?? "");
+  const [currentScope, setCurrentScope] = useState<string[]>(
+    initial?.currentScope ?? [],
+  );
+  const [generalScope, setGeneralScope] = useState<string[]>(
+    initial?.generalScope ?? [],
+  );
+  const [currentDays, setCurrentDays] = useState<number>(
+    initial?.currentDays ?? 127,
+  );
+  const [generalDays, setGeneralDays] = useState<number>(
+    initial?.generalDays ?? 0,
+  );
+  const [saving, setSaving] = useState(false);
+
+  // Reset form on initial change (when dialog re-opens for другое помещение)
+  // Используем useEffect чтобы не тащить новый useId.
+  useStateReset(initial?.id, () => {
+    setName(initial?.name ?? "");
+    setKind(initial?.kind ?? "other");
+    setDetergent(initial?.detergent ?? "");
+    setCurrentScope(initial?.currentScope ?? []);
+    setGeneralScope(initial?.generalScope ?? []);
+    setCurrentDays(initial?.currentDays ?? 127);
+    setGeneralDays(initial?.generalDays ?? 0);
+  });
+
+  async function save() {
+    if (!initial) return;
+    if (!name.trim()) {
+      toast.error("Название не может быть пустым");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/settings/rooms/${initial.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          kind,
+          detergent: detergent.trim(),
+          currentScope: currentScope
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+          generalScope: generalScope
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+          currentDays,
+          generalDays,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      toast.success("Помещение сохранено");
+      onOpenChange(false);
+      onSaved?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+        <DialogHeader className="border-b px-6 py-5">
+          <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            Редактирование помещения
+          </DialogTitle>
+        </DialogHeader>
+        {initial ? (
+          <>
+            <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">
+                  Название помещения
+                </Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Например: Горячий цех"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Тип</Label>
+                <select
+                  value={kind}
+                  onChange={(e) => setKind(e.target.value)}
+                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                >
+                  {KIND_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">
+                  Моющие и дезинфицирующие средства
+                </Label>
+                <Textarea
+                  value={detergent}
+                  onChange={(e) => setDetergent(e.target.value)}
+                  placeholder="Например: Хлоргексидин 0,05% + Sanit"
+                  className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+                  rows={3}
+                />
+              </div>
+
+              <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-[13px] font-semibold text-[#0b1024]">
+                      Текущая уборка
+                    </Label>
+                    <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                      Пошаговый чек-лист — каждый шаг станет подзадачей в TasksFlow.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
+                    {currentScope.filter((s) => s.trim()).length} шаг.
+                  </span>
+                </div>
+                <ScopeListEditor
+                  value={currentScope}
+                  onChange={setCurrentScope}
+                  placeholder="Например: Протереть рабочие поверхности"
+                  addLabel="Добавить шаг текущей уборки"
+                  emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
+                />
+                <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
+                  <Label className="text-[12px] font-medium text-[#3c4053]">
+                    Дни проведения текущей уборки
+                  </Label>
+                  <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                    На сером фоне в матрице будут подсвечены дни, когда уборка должна проводиться.
+                  </p>
+                  <WeekdayMaskPicker value={currentDays} onChange={setCurrentDays} />
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-[13px] font-semibold text-[#0b1024]">
+                      Генеральная уборка
+                    </Label>
+                    <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                      Подробный список — что моется/дезинфицируется в день генеральной.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
+                    {generalScope.filter((s) => s.trim()).length} шаг.
+                  </span>
+                </div>
+                <ScopeListEditor
+                  value={generalScope}
+                  onChange={setGeneralScope}
+                  placeholder="Например: Демонтировать съёмные части и промыть"
+                  addLabel="Добавить шаг генеральной уборки"
+                  emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."
+                />
+                <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
+                  <Label className="text-[12px] font-medium text-[#3c4053]">
+                    Дни проведения генеральной уборки
+                  </Label>
+                  <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                    Обычно — раз в неделю. Например, только Сб или только Пн.
+                  </p>
+                  <WeekdayMaskPicker value={generalDays} onChange={setGeneralDays} />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+                onClick={() => onOpenChange(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="button"
+                disabled={saving}
+                className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+                onClick={save}
+              >
+                {saving ? "Сохранение…" : "Сохранить"}
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Tiny helper — re-init local state when key changes.
+import { useEffect, useRef } from "react";
+function useStateReset(key: string | undefined, reset: () => void) {
+  const last = useRef(key);
+  useEffect(() => {
+    if (last.current !== key) {
+      last.current = key;
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+}

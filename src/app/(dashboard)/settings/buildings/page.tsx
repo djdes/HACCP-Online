@@ -18,7 +18,19 @@ export default async function BuildingsPage() {
     include: {
       rooms: {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { id: true, name: true, kind: true, sortOrder: true },
+        select: {
+          id: true,
+          name: true,
+          kind: true,
+          sortOrder: true,
+          // Cleaning unification 2026-05-08: Room теперь хранит scope/days/
+          // detergent — RoomEditorDialog в buildings-client использует.
+          detergent: true,
+          currentScope: true,
+          generalScope: true,
+          currentDays: true,
+          generalDays: true,
+        },
       },
     },
   });

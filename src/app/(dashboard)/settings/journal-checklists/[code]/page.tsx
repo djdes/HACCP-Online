@@ -128,6 +128,28 @@ export default async function JournalChecklistEditorPage({
         </div>
       </section>
 
+      {code === "cleaning" ? (
+        <div className="rounded-3xl border border-[#ffe9b0] bg-[#fff8eb] p-5 text-[13px] text-[#7a5500]">
+          <div className="text-[14px] font-semibold mb-1 text-[#0b1024]">
+            Чек-лист уборки настраивается в «Зданиях и помещениях»
+          </div>
+          <p className="mt-1.5">
+            Cleaning unification 2026-05-08: с этой даты scope «Текущая» и
+            «Генеральная» уборка хранятся на самом помещении (Room). Открой{" "}
+            <Link
+              href="/settings/buildings"
+              className="font-medium text-[#3848c7] underline underline-offset-2"
+            >
+              /settings/buildings
+            </Link>
+            , нажми «Настроить» у нужного помещения — там полный редактор
+            scope/days/средства/чек-листа. Отдельные пункты ниже —
+            backwards-compat с прошлой моделью; новые items создавай через
+            редактор Room.
+          </p>
+        </div>
+      ) : null}
+
       <ChecklistEditor
         journalCode={code}
         rooms={rooms}

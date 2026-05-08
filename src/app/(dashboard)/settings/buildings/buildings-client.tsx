@@ -2,11 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Plus, Trash2, X } from "lucide-react";
+import { Building2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import {
+  RoomEditorDialog,
+  type RoomEditorInitial,
+} from "@/components/cleaning/room-editor-dialog";
 
-type Room = { id: string; name: string; kind: string; sortOrder: number };
+// Cleaning unification 2026-05-08: Room теперь хранит scope/days/detergent.
+// RoomEditorDialog позволяет редактировать всё это в /settings/buildings.
+type Room = {
+  id: string;
+  name: string;
+  kind: string;
+  sortOrder: number;
+  detergent?: string | null;
+  currentScope?: unknown;
+  generalScope?: unknown;
+  currentDays?: number;
+  generalDays?: number;
+};
 type Building = {
   id: string;
   name: string;
@@ -30,9 +46,27 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAddr, setNewAddr] = useState("");
+  const [editorRoom, setEditorRoom] = useState<RoomEditorInitial | null>(null);
 
   function refresh() {
     startTransition(() => router.refresh());
+  }
+
+  function openEditor(room: Room) {
+    setEditorRoom({
+      id: room.id,
+      name: room.name,
+      kind: room.kind,
+      detergent: room.detergent ?? "",
+      currentScope: Array.isArray(room.currentScope)
+        ? (room.currentScope as string[]).filter((s) => typeof s === "string")
+        : [],
+      generalScope: Array.isArray(room.generalScope)
+        ? (room.generalScope as string[]).filter((s) => typeof s === "string")
+        : [],
+      currentDays: typeof room.currentDays === "number" ? room.currentDays : 127,
+      generalDays: typeof room.generalDays === "number" ? room.generalDays : 0,
+    });
   }
 
   async function addBuilding() {
@@ -87,8 +121,23 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
       ) : null}
 
       {initial.map((b) => (
-        <BuildingCard key={b.id} building={b} onRefresh={refresh} onDelete={() => deleteBuilding(b.id, b.name)} />
+        <BuildingCard
+          key={b.id}
+          building={b}
+          onRefresh={refresh}
+          onDelete={() => deleteBuilding(b.id, b.name)}
+          onEditRoom={openEditor}
+        />
       ))}
+
+      <RoomEditorDialog
+        open={editorRoom !== null}
+        onOpenChange={(o) => {
+          if (!o) setEditorRoom(null);
+        }}
+        initial={editorRoom}
+        onSaved={refresh}
+      />
 
       {adding ? (
         <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
@@ -142,10 +191,12 @@ function BuildingCard({
   building,
   onRefresh,
   onDelete,
+  onEditRoom,
 }: {
   building: Building;
   onRefresh: () => void;
   onDelete: () => void;
+  onEditRoom: (room: Room) => void;
 }) {
   const [addingRoom, setAddingRoom] = useState(false);
   const [roomName, setRoomName] = useState("");
@@ -222,27 +273,61 @@ function BuildingCard({
             уборки.
           </div>
         ) : null}
-        {building.rooms.map((room) => (
-          <div
-            key={room.id}
-            className="flex items-center justify-between rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[13.5px]"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-[#0b1024]">{room.name}</span>
-              <span className="rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
-                {KIND_LABELS[room.kind] ?? room.kind}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => deleteRoom(room.id, room.name)}
-              aria-label="Удалить помещение"
-              className="rounded-full p-1 text-[#9b9fb3] hover:bg-white hover:text-[#d2453d]"
+        {building.rooms.map((room) => {
+          const currentLen = Array.isArray(room.currentScope)
+            ? (room.currentScope as unknown[]).length
+            : 0;
+          const generalLen = Array.isArray(room.generalScope)
+            ? (room.generalScope as unknown[]).length
+            : 0;
+          const hasCleaningCfg =
+            currentLen + generalLen > 0 ||
+            (room.detergent && room.detergent.length > 0);
+          return (
+            <div
+              key={room.id}
+              className="flex items-center justify-between gap-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[13.5px]"
             >
-              <X className="size-3.5" />
-            </button>
-          </div>
-        ))}
+              <div className="flex min-w-0 items-center gap-2 flex-wrap">
+                <span className="font-medium text-[#0b1024]">{room.name}</span>
+                <span className="rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
+                  {KIND_LABELS[room.kind] ?? room.kind}
+                </span>
+                {hasCleaningCfg ? (
+                  <span
+                    className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] text-[#136b2a]"
+                    title={`Текущая: ${currentLen} шаг(ов), Генеральная: ${generalLen}`}
+                  >
+                    🧽 Уборка настроена ({currentLen}/{generalLen})
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] text-[#a16d32]">
+                    Уборка не настроена
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onEditRoom(room)}
+                  aria-label="Настроить уборку"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[12px] font-medium text-[#3848c7] transition-colors hover:bg-white"
+                >
+                  <Pencil className="size-3.5" />
+                  Настроить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteRoom(room.id, room.name)}
+                  aria-label="Удалить помещение"
+                  className="rounded-full p-1 text-[#9b9fb3] hover:bg-white hover:text-[#d2453d]"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {addingRoom ? (
