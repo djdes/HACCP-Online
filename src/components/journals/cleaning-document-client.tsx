@@ -526,18 +526,18 @@ export function CleaningDocumentClient(props: Props) {
     // (Room DB), независимо от режима. Если selectedRoomIds задан — берём
     // их; если пусто — все Room орги.
     //
-    // 2026-05-08 (поздний вечер): владелец вернул ответственных в матрицу
-    // (методичка ХАССП: журнал должен иметь подписи ответственных как
-    // строки, чтобы каждый день был «закреплён» за конкретным сотрудником).
-    // Префикс «К» для контролёра вместо «С1» — фикс из прошлой попытки,
-    // controlResponsibleList уже его проставляет.
+    // 2026-05-08 (поздний вечер): rows возвращает ТОЛЬКО помещения. Строки
+    // «Ответственный за уборку» и «Ответственный за контроль» рендерятся
+    // как 2 отдельных <tr>/<div> ПОСЛЕ rows.map(...) в JSX, по образцу
+    // haccp-online.ru: одна группированная строка с multi-line списком
+    // «С1 - Имя / С2 - Имя» в первой колонке вместо N отдельных строк.
     const allBuildingRoomIds = Array.from(dbRoomById.keys());
     const selectedIds = config.selectedRoomIds ?? [];
     const roomIds =
       selectedIds.length > 0
         ? selectedIds.filter((id) => dbRoomById.has(id))
         : allBuildingRoomIds;
-    const roomRows: RowDescriptor[] = roomIds.map((roomId) => {
+    return roomIds.map((roomId) => {
       const dbRoom = dbRoomById.get(roomId)!;
       const room: CleaningRoomItem = {
         id: roomId,
@@ -557,23 +557,34 @@ export function CleaningDocumentClient(props: Props) {
       };
       return { id: roomId, kind: "room" as const, room };
     });
-    const cleaningRows: RowDescriptor[] = cleaningResponsibleList.map((resp) => ({
-      id: resp.id,
-      kind: "cleaning" as const,
-      responsible: resp,
-    }));
-    const controlRows: RowDescriptor[] = controlResponsibleList.map((resp) => ({
-      id: resp.id,
-      kind: "control" as const,
-      responsible: resp,
-    }));
-    return [...roomRows, ...cleaningRows, ...controlRows];
-  }, [
-    config.selectedRoomIds,
-    dbRoomById,
-    cleaningResponsibleList,
-    controlResponsibleList,
-  ]);
+  }, [config.selectedRoomIds, dbRoomById]);
+
+  // Подпись «Ответственный за уборку» под матрицей: код того, кто
+  // сегодня реально работал. Берём из room cells текущей даты — там
+  // уже стоит код уборщика (С1/С2/...) после completion. Если в день
+  // уборки несколько уборщиков работали в разных комнатах — показываем
+  // все коды через запятую.
+  function cleaningCodeForDay(dateKey: string): string {
+    const codes = new Set<string>();
+    for (const row of rows) {
+      const v = cellValue(row, dateKey);
+      if (v && /^С\d+$/.test(v)) codes.add(v);
+    }
+    return Array.from(codes).sort().join(",");
+  }
+
+  // Подпись «Ответственный за контроль»: код первого контролёра в дни,
+  // когда хотя бы одна комната была реально убрана. Контролёр подписывает
+  // каждый день уборки. Если контролёров несколько — показываем все коды.
+  function controlCodeForDay(dateKey: string): string {
+    if (controlResponsibleList.length === 0) return "";
+    const hasAnyCompletion = rows.some((row) => {
+      const v = cellValue(row, dateKey);
+      return Boolean(v && /^С\d+$/.test(v));
+    });
+    if (!hasAnyCompletion) return "";
+    return controlResponsibleList.map((c) => c.code).join(",");
+  }
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
   // может прочитать stale rows при быстром переключении.
@@ -1382,6 +1393,66 @@ export function CleaningDocumentClient(props: Props) {
                 </div>
               );
             })}
+            {/* Mobile: 2 группированные карточки ответственных, симметрично
+                desktop-таблице. Серый фон визуально отделяет от помещений. */}
+            {cleaningResponsibleList.length > 0 ? (
+              <div className="rounded-2xl border border-[#ececf4] bg-[#f6f6f6] p-3">
+                <button
+                  type="button"
+                  disabled={props.status !== "active"}
+                  onClick={() =>
+                    setResponsibleDialog(
+                      buildResponsibleState(
+                        "cleaning",
+                        cleaningResponsibleList[0],
+                      ),
+                    )
+                  }
+                  className="text-left text-[14px] font-medium text-[#0b1024] disabled:cursor-default"
+                >
+                  Ответственный за уборку
+                </button>
+                <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
+                  {cleaningResponsibleList.map((resp) => (
+                    <div key={resp.id}>
+                      <span className="font-semibold text-[#3848c7]">
+                        {resp.code}
+                      </span>{" "}
+                      — {resp.userName || "—"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {controlResponsibleList.length > 0 ? (
+              <div className="rounded-2xl border border-[#ececf4] bg-[#f6f6f6] p-3">
+                <button
+                  type="button"
+                  disabled={props.status !== "active"}
+                  onClick={() =>
+                    setResponsibleDialog(
+                      buildResponsibleState(
+                        "control",
+                        controlResponsibleList[0],
+                      ),
+                    )
+                  }
+                  className="text-left text-[14px] font-medium text-[#0b1024] disabled:cursor-default"
+                >
+                  Ответственный за контроль
+                </button>
+                <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
+                  {controlResponsibleList.map((resp) => (
+                    <div key={resp.id}>
+                      <span className="font-semibold text-[#7a5cff]">
+                        {resp.code}
+                      </span>{" "}
+                      — {resp.userName || "—"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -1479,6 +1550,107 @@ export function CleaningDocumentClient(props: Props) {
                 })}
               </tr>;
             })}
+            {/* Группированные строки ответственных по образцу haccp-online.
+                Одна строка для всех уборщиков (С1-Имя1 / С2-Имя2 в первой
+                колонке), одна для контролёров. Серый фон выделяет их от
+                помещений. В ячейках per-day — кто работал/проверял в этот
+                день (выводим коды С1/С2/К1 из реальных completions). */}
+            {cleaningResponsibleList.length > 0 ? (
+              <tr key="cleaning-group" className="bg-[#f6f6f6]">
+                <td className="border border-black p-2 text-center" />
+                <td className="border border-black p-3 align-middle">
+                  <button
+                    type="button"
+                    disabled={printMode || props.status !== "active"}
+                    onClick={() =>
+                      setResponsibleDialog(
+                        buildResponsibleState(
+                          "cleaning",
+                          cleaningResponsibleList[0],
+                        ),
+                      )
+                    }
+                    className="text-left hover:text-[#5863f8] disabled:cursor-default"
+                  >
+                    Ответственный за уборку
+                  </button>
+                </td>
+                <td className="border border-black p-3 text-[15px] leading-[1.5]">
+                  {cleaningResponsibleList.map((resp) => (
+                    <div key={resp.id}>
+                      {resp.code} - {resp.userName || "—"}
+                    </div>
+                  ))}
+                </td>
+                {dayKeys.map((dateKey) => {
+                  const dayKind = getCalendarDayKind(dateKey);
+                  const dayBg =
+                    dayKind.kind === "holiday" || dayKind.kind === "weekend"
+                      ? "bg-[#fff4f2]"
+                      : dayKind.kind === "short"
+                        ? "bg-[#fff8eb]"
+                        : "";
+                  const code = cleaningCodeForDay(dateKey);
+                  return (
+                    <td
+                      key={dateKey}
+                      title={dayKind.name ?? undefined}
+                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg}`}
+                    >
+                      {code}
+                    </td>
+                  );
+                })}
+              </tr>
+            ) : null}
+            {controlResponsibleList.length > 0 ? (
+              <tr key="control-group" className="bg-[#f6f6f6]">
+                <td className="border border-black p-2 text-center" />
+                <td className="border border-black p-3 align-middle">
+                  <button
+                    type="button"
+                    disabled={printMode || props.status !== "active"}
+                    onClick={() =>
+                      setResponsibleDialog(
+                        buildResponsibleState(
+                          "control",
+                          controlResponsibleList[0],
+                        ),
+                      )
+                    }
+                    className="text-left hover:text-[#5863f8] disabled:cursor-default"
+                  >
+                    Ответственный за контроль
+                  </button>
+                </td>
+                <td className="border border-black p-3 text-[15px] leading-[1.5]">
+                  {controlResponsibleList.map((resp) => (
+                    <div key={resp.id}>
+                      {resp.code} - {resp.userName || "—"}
+                    </div>
+                  ))}
+                </td>
+                {dayKeys.map((dateKey) => {
+                  const dayKind = getCalendarDayKind(dateKey);
+                  const dayBg =
+                    dayKind.kind === "holiday" || dayKind.kind === "weekend"
+                      ? "bg-[#fff4f2]"
+                      : dayKind.kind === "short"
+                        ? "bg-[#fff8eb]"
+                        : "";
+                  const code = controlCodeForDay(dateKey);
+                  return (
+                    <td
+                      key={dateKey}
+                      title={dayKind.name ?? undefined}
+                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg}`}
+                    >
+                      {code}
+                    </td>
+                  );
+                })}
+              </tr>
+            ) : null}
           </tbody></table>
           <div className="space-y-2 text-[18px] italic">{Array.from(new Set(config.legend)).map((item) => <div key={item}>{item}</div>)}</div>
           <table className="w-full border-collapse text-[16px]"><thead><tr><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Текущая уборка</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id}><td className="border border-black p-3">{room.name}</td><td className="border border-black p-3">{room.currentScope.join(", ")}</td><td className="border border-black p-3">{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
