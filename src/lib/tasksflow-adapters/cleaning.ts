@@ -593,7 +593,8 @@ function buildPairsCleaningForm(args: {
 
   const pipeline = todayRooms.map((room, idx) => {
     const cell = args.config.matrix?.[room.id]?.[args.todayKey];
-    const kind = cell === "G" ? "🧹 Генеральная" : "🧽 Текущая";
+    // Plain text без emoji — TF Mini App font не всегда рендерит emoji.
+    const kind = cell === "G" ? "Генеральная" : "Текущая";
     return {
       id: `room-${idx + 1}-${room.id}`,
       title: `${kind} · ${room.name}`,

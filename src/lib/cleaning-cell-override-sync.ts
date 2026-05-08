@@ -10,8 +10,8 @@
  *   с другими rowKey-паттернами (room::, control::, pair-id).
  *
  * Поведение по value:
- *   "G" → upsert override task «🧹 Генеральная уборка · {room}»
- *   "T" → upsert override task «🧽 Текущая уборка · {room}»
+ *   "G" → upsert override task «Генеральная уборка · {room}»
+ *   "T" → upsert override task «Текущая уборка · {room}»
  *   "/" или "" → delete override task если есть
  *
  * НЕ затрагивает другие TF-задачи (recurring per-pair или per-room).
@@ -44,8 +44,10 @@ function buildRowKey(roomId: string, dateKey: string): string {
 }
 
 function buildTitle(value: string, roomName: string): string {
-  if (value === "G") return `🧹 Генеральная уборка · ${roomName}`;
-  if (value === "T") return `🧽 Текущая уборка · ${roomName}`;
+  // Plain text без emoji — TF Mini App font не всегда рендерит emoji
+  // (юзер видел «?» вместо 🧹). Тип уборки понятен из текста.
+  if (value === "G") return `Генеральная уборка · ${roomName}`;
+  if (value === "T") return `Текущая уборка · ${roomName}`;
   return `Уборка · ${roomName}`;
 }
 
