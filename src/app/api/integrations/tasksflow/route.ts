@@ -189,6 +189,29 @@ async function connectIntegration(request: Request) {
   const apiKeyEncrypted = encryptSecret(payload.apiKey);
   const apiKeyPrefix = payload.apiKey.slice(0, 12);
 
+  // Self-test: сразу делаем round-trip decrypt'ом чтобы убедиться, что
+  // секрет процесса (NEXTAUTH_SECRET / INTEGRATION_KEY_SECRET) даёт
+  // расшифровку обратно. Если по какой-то причине enc≠dec — отказываем
+  // юзеру СРАЗУ а не «упс, через 5 минут на дашборде покажу ошибку».
+  // Раньше юзер мог сохранить ключ, и потом узнать что cron'ы не могут
+  // его расшифровать (если процесс перезапущен с другим .env).
+  try {
+    const { decryptSecret } = await import("@/lib/integration-crypto");
+    const roundTrip = decryptSecret(apiKeyEncrypted);
+    if (roundTrip !== payload.apiKey) {
+      throw new Error("encrypt/decrypt round-trip mismatch");
+    }
+  } catch (err) {
+    console.error("[tf-integrations] save self-test failed", err);
+    return NextResponse.json(
+      {
+        error:
+          "Не удалось сохранить ключ — round-trip шифрования сломан. Обратитесь к администратору сервера: проверьте INTEGRATION_KEY_SECRET / NEXTAUTH_SECRET в env.",
+      },
+      { status: 500 },
+    );
+  }
+
   const existing = await db.tasksFlowIntegration.findUnique({
     where: { organizationId: orgId },
     select: { webhookSecret: true },
