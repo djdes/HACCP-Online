@@ -100,6 +100,31 @@ const EXTENDED_ONLY_JOURNALS = [
     code: "pest_control",
     name: "Журнал учета дезинфекции, дезинсекции и дератизации",
   },
+  // === HACCP methodology compliance (audit 2026-05-08) ===
+  // Эти 5 шаблонов закрывают разделы §8.3, §8.4, §8.10 + §2.3 + §2.9
+  // методички gosuslugi.pnzreg.ru/upload/FRGU/c8d/hassp_1_.pdf, которые
+  // ранее не были покрыты ни одним нашим журналом. См.
+  // docs/audit/2026-05-08-haccp-methodology-mapping.md.
+  {
+    code: "foreign_objects_briefing",
+    name: "Журнал инструктажа по предотвращению попадания посторонних предметов",
+  },
+  {
+    code: "haccp_contracts",
+    name: "Реестр договоров ХАССП (дератизация, стирка, вывоз отходов и др.)",
+  },
+  {
+    code: "finished_product_safety",
+    name: "Документы безопасности готовой продукции",
+  },
+  {
+    code: "sanitary_visual_control",
+    name: "Журнал визуального контроля санитарного состояния",
+  },
+  {
+    code: "capa_log",
+    name: "Программа предотвращения причинения вреда (CAPA)",
+  },
 ] as const satisfies readonly JournalCatalogItem[];
 
 export const BASIC_TARIFF_JOURNALS = BASIC_JOURNALS;
