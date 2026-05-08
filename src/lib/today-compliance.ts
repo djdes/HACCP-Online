@@ -701,24 +701,54 @@ export async function getTemplatesFilledToday(
     if (ok) filled.add(templateId);
   }
 
-  // TasksFlow override: if the org has TF tasks bound to today's active
-  // documents, the journal's readiness is the AND of those tasks being
-  // completed today. This is the user's mental model — "I see in TF
-  // that everything is done, so journal must be ready". Without this,
-  // entry-counting heuristics can lag behind (roster changes, partial
-  // fan-out, deep-inspect mismatches) and leave a journal "not done"
-  // even after every assigned worker tapped «Готово».
+  // TasksFlow strict rule: если в орге включена TF-интеграция — журнал
+  // считается заполненным сегодня ТОЛЬКО когда все TF-задачи на сегодня
+  // отправлены И закрыты. Любая ручная запись в /journals без TF-цикла
+  // НЕ делает журнал «зелёным» — пользователь явно попросил такое
+  // поведение, чтобы дашборд отражал реальный путь «отправили → сделали»
+  // (см. UX rules в CLAUDE.md: «pipeline-шаги вместо свободного
+  // заполнения»). Если интеграция выключена — fallback на старые
+  // entry-count эвристики выше.
+  const orgHasTfIntegration = await db.tasksFlowIntegration.count({
+    where: { organizationId, enabled: true },
+  });
   const tfReadiness = await getTasksFlowReadinessByTemplate(
     organizationId,
     todayStart,
     activeDocuments.map((d) => ({ id: d.id, templateId: d.templateId }))
   );
-  for (const [templateId, readiness] of tfReadiness.entries()) {
-    if (readiness.totalCount === 0) continue;
-    if (readiness.allDoneToday) {
-      filled.add(templateId);
-    } else {
-      filled.delete(templateId);
+  if (orgHasTfIntegration > 0) {
+    // Применяем правило ко ВСЕМ daily-журналам с активным документом
+    // на сегодня. Aperiodic не трогаем (они filled by default через
+    // ветку выше). Если на журнал TF-задач нет совсем — стрипаем.
+    // Если есть — verdict = readiness.allDoneToday.
+    const dailyTemplateIdsWithActiveDoc = new Set<string>();
+    for (const doc of activeDocuments) {
+      const code = doc.template.code;
+      if (DAILY_JOURNAL_CODES.has(code) || CONFIG_DAILY_CODES.has(code)) {
+        dailyTemplateIdsWithActiveDoc.add(doc.templateId);
+      }
+    }
+    for (const templateId of dailyTemplateIdsWithActiveDoc) {
+      const readiness = tfReadiness.get(templateId);
+      if (!readiness || readiness.totalCount === 0) {
+        // Нет TF-задач на сегодня → не считается заполненным.
+        filled.delete(templateId);
+      } else if (readiness.allDoneToday) {
+        filled.add(templateId);
+      } else {
+        filled.delete(templateId);
+      }
+    }
+  } else {
+    // Legacy: старый override — TF используется только если задачи есть.
+    for (const [templateId, readiness] of tfReadiness.entries()) {
+      if (readiness.totalCount === 0) continue;
+      if (readiness.allDoneToday) {
+        filled.add(templateId);
+      } else {
+        filled.delete(templateId);
+      }
     }
   }
 
@@ -872,19 +902,37 @@ export async function getTemplateTodaySummary(
     };
   }
 
-  // TasksFlow override: if there are TF tasks bound to today's active
-  // documents, the journal's readiness is purely "all those tasks
-  // completed today". Same rationale as in getTemplatesFilledToday —
-  // entry-counting can lag behind reality. We expose the TF counts via
-  // the existing todayCount/expectedCount fields so the banner reads
-  // "N из M задач выполнено за сегодня" naturally.
+  // TasksFlow strict rule: если в орге включена TF-интеграция — для
+  // daily-журнала с активным документом «filled» ТОЛЬКО когда все
+  // TF-задачи отправлены и закрыты. Если задач нет совсем — журнал
+  // явно не заполнен сегодня (юзер просил такое поведение, см.
+  // комментарий в getTemplatesFilledToday).
   if (activeDocuments.length > 0) {
+    const orgHasTfIntegration = await db.tasksFlowIntegration.count({
+      where: { organizationId, enabled: true },
+    });
     const tfReadiness = await getTasksFlowReadinessByTemplate(
       organizationId,
       todayStart,
       activeDocuments.map((d) => ({ id: d.id, templateId }))
     );
     const tf = tfReadiness.get(templateId);
+    const isDaily =
+      typeof templateCode === "string" &&
+      (DAILY_JOURNAL_CODES.has(templateCode) ||
+        CONFIG_DAILY_CODES.has(templateCode));
+    if (orgHasTfIntegration > 0 && isDaily) {
+      // Strict TF mode: задачи обязательно нужны.
+      return {
+        filled: tf?.allDoneToday === true,
+        aperiodic: false,
+        todayCount: tf?.doneTodayCount ?? 0,
+        expectedCount: tf?.totalCount ?? 0,
+        noActiveDocument: false,
+        activeDocumentId,
+      };
+    }
+    // Legacy: TF override применяется только если задачи существуют.
     if (tf && tf.totalCount > 0) {
       return {
         filled: tf.allDoneToday,
