@@ -1,0 +1,20 @@
+# Pre-existing test failures, разрешены для legacy-кода. CI считает
+# fail только если новый тест провалился ИЛИ если кол-во fail превысило
+# baseline. См. spec docs/superpowers/specs/01-architecture.md.
+#
+# Когда чините — удаляйте строку из файла и проверяйте `npm run test:ci`
+# что общее число fail уменьшилось.
+
+runMiniDigestCron syncs each organization once and sends only staff digests with exact obligation CTA
+buildTelegramLinkedStartReply mentions the next action for staff
+buildTelegramLinkedStartReply returns completed-today copy for staff without next action
+buildTelegramLinkedStartReply includes a manager summary
+buildTelegramLinkedStartReply falls back when mini app is unavailable
+buildTelegramUnlinkedStartReply keeps start guidance short
+TELEGRAM_COMMANDS registers the Mini App and unlink commands
+syncDailyJournalObligationsForUser creates obligations only for allowed daily journals
+syncDailyJournalObligationsForUser sends incoming_control to the entry form even when template metadata says document
+syncDailyJournalObligationsForUser clears stale sync rows that are no longer eligible
+syncDailyJournalObligationsForUser preserves the original completedAt when a done obligation stays done
+syncDailyJournalObligationsForOrganization syncs each active staff user
+syncTasksflowUsers creates a missing remote user and links it

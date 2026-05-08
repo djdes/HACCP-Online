@@ -57,6 +57,16 @@ jobs:
       - name: Generate Prisma client for CI build
         run: npx prisma generate
 
+      # CI gate: type-check + tests (baseline-aware). Любая НОВАЯ регрессия
+      # в тестах блокирует deploy. Легаси fails из tests/.legacy-failures.txt
+      # разрешены — это рабочие точки для постепенного устранения.
+      # См. docs/superpowers/specs/01-architecture.md.
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Tests (baseline gate)
+        run: npm run test:gate
+
       - name: Write build-time only (sha записывается на проде до build)
         run: |
           # КРИТИЧНО: .build-sha НЕ пишем тут. Если запишем — он попадёт
