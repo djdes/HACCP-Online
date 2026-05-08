@@ -7,6 +7,7 @@ import {
   ListChecks,
   Plug,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Wand2,
   X,
@@ -55,6 +56,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Интеграции: Plug,
   Журналы: ListChecks,
   "Раньше — тоже полезное": ListChecks,
+  "Соответствие методичке ХАССП — 5 новых журналов + выровненные колонки": ShieldCheck,
 };
 
 function iconForCategory(name: string): LucideIcon {
