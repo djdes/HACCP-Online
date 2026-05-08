@@ -242,6 +242,24 @@ model Room {
   name       String
   kind       String   @default("other")
   sortOrder  Int      @default(0)
+  /// Cleaning unification (2026-05-08): Room — единственный источник
+  /// правды о уборке. Эти поля раньше дублировались в
+  /// JournalDocument.config.rooms[i] (CleaningRoomItem) для каждого
+  /// cleaning-документа, что приводило к рассинхрону: правишь в
+  /// журнале — настройки буфера не обновляются и наоборот. Теперь:
+  ///   • detergent       — что использовать для уборки
+  ///   • currentScope    — Json string[] шагов «Текущая уборка»
+  ///   • generalScope    — Json string[] шагов «Генеральная уборка»
+  ///   • currentDays     — bitmask (bit 0=Пн ... 6=Вс) дни Текущей
+  ///   • generalDays     — bitmask дни Генеральной
+  /// JSON для scope (а не String[]) — гибче, позже можно расширить
+  /// до { label, hint, requirePhoto } без миграции.
+  /// См. docs/superpowers/specs/2026-05-08-cleaning-unification.md
+  detergent     String?  @default("")
+  currentScope  Json     @default("[]")
+  generalScope  Json     @default("[]")
+  currentDays   Int      @default(127)
+  generalDays   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

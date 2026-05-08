@@ -458,6 +458,8 @@ jobs:
               npx tsx prisma/seed-cleanup-default-positions.ts 2>&1 | tail -5
               echo "=== Disable broken TF integrations (idempotent — disable rows whose key can't decrypt) ==="
               npx tsx scripts/disable-broken-tf-integrations.ts 2>&1 | tail -10
+              echo "=== Cleaning unification: backfill scope/days from JournalDocument.config.rooms[] → Room ==="
+              npx tsx prisma/seed-cleaning-unification.ts 2>&1 | tail -10
             else
               echo ".env not found, skip seed"
             fi
