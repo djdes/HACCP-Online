@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LayoutGrid, Pencil, Plus, Printer, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import {
+  RoomEditorDialog,
+  type RoomEditorInitial,
+} from "@/components/cleaning/room-editor-dialog";
 import { toast } from "sonner";
 import {
   ScopeListEditor,
@@ -117,7 +121,8 @@ type Props = {
   useV2?: boolean;
 };
 type SettingsState = { title: string; cleaningRole: string; cleaningUserId: string; controlRole: string; controlUserId: string };
-type RoomFormState = { id: string | null; name: string; detergent: string; currentScope: string[]; generalScope: string[]; currentDays: number; generalDays: number };
+// RoomFormState — legacy type, заменён на RoomEditorInitial из
+// @/components/cleaning/room-editor-dialog. См. cleaning-unification spec.
 type ResponsibleFormState = { id: string | null; kind: CleaningResponsibleKind; title: string; userId: string };
 type RowDescriptor =
   | { id: string; kind: "room"; room: CleaningRoomItem }
@@ -138,16 +143,8 @@ const buildSettingsState = (config: CleaningDocumentConfig): SettingsState => ({
   controlRole: config.controlResponsibles[0]?.title || "",
   controlUserId: config.controlResponsibles[0]?.userId || "",
 });
-const buildRoomState = (room?: CleaningRoomItem): RoomFormState => ({
-  id: room?.id || null,
-  name: room?.name || "",
-  detergent: room?.detergent || "",
-  currentScope: room?.currentScope ? [...room.currentScope] : [],
-  generalScope: room?.generalScope ? [...room.generalScope] : [],
-  // Defaults: текущая ежедневно, генеральная не запланирована.
-  currentDays: typeof room?.currentDays === "number" ? room.currentDays : 127,
-  generalDays: typeof room?.generalDays === "number" ? room.generalDays : 0,
-});
+// buildRoomState — legacy helper, заменён на openRoomEditorFromRow в
+// компоненте, который использует RoomEditorDialog/RoomEditorInitial.
 const buildResponsibleState = (kind: CleaningResponsibleKind, responsible?: CleaningResponsible): ResponsibleFormState => ({
   id: responsible?.id || null,
   kind,
@@ -277,7 +274,44 @@ export function CleaningDocumentClient(props: Props) {
     if (!anchor || !dragModeRef.current) return;
     applyRectToSelection(anchor, { rowId, dateKey });
   }
-  const [roomDialog, setRoomDialog] = useState<RoomFormState | null>(null);
+  // Cleaning unification 2026-05-08+: один и тот же RoomEditorDialog
+  // что используется в /settings/buildings. Сохраняет в Room (DB)
+  // через PATCH /api/settings/rooms/[id]. router.refresh() подтягивает
+  // обновлённый props.buildings и rows-builder перерисовывает.
+  const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
+
+  function openRoomEditorFromRow(roomId: string) {
+    const dbRoom = dbRoomById.get(roomId);
+    if (!dbRoom) {
+      toast.error("Помещение не найдено в /settings/buildings");
+      return;
+    }
+    setRoomEditor({
+      id: roomId,
+      name: dbRoom.name,
+      kind: dbRoom.kind ?? "other",
+      detergent: dbRoom.detergent ?? "",
+      currentScope: Array.isArray(dbRoom.currentScope)
+        ? (dbRoom.currentScope as string[])
+        : [],
+      generalScope: Array.isArray(dbRoom.generalScope)
+        ? (dbRoom.generalScope as string[])
+        : [],
+      currentDays:
+        typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,
+      generalDays:
+        typeof dbRoom.generalDays === "number" ? dbRoom.generalDays : 0,
+      currentScheduleType: dbRoom.currentScheduleType ?? "weekly",
+      generalScheduleType: dbRoom.generalScheduleType ?? "weekly",
+      currentMonthDays: Array.isArray(dbRoom.currentMonthDays)
+        ? dbRoom.currentMonthDays
+        : [],
+      generalMonthDays: Array.isArray(dbRoom.generalMonthDays)
+        ? dbRoom.generalMonthDays
+        : [],
+      requirePhoto: dbRoom.requirePhoto === true,
+    });
+  }
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsState, setSettingsState] = useState(buildSettingsState(normalized));
@@ -947,111 +981,6 @@ export function CleaningDocumentClient(props: Props) {
     }
   }
 
-  async function submitRoom() {
-    if (!roomDialog) return;
-    const currentScopeArr = roomDialog.currentScope.map((s) => s.trim()).filter(Boolean);
-    const generalScopeArr = roomDialog.generalScope.map((s) => s.trim()).filter(Boolean);
-    const room = createCleaningRoomRow({
-      id: roomDialog.id || undefined,
-      name: roomDialog.name,
-      detergent: roomDialog.detergent,
-      currentScope: currentScopeArr,
-      generalScope: generalScopeArr,
-      currentDays: roomDialog.currentDays,
-      generalDays: roomDialog.generalDays,
-    });
-    // Если редактируем существующую (id+exists в config.rooms) — replace.
-    // Если id указан, но в config.rooms нет (rooms-mode: room из buildings,
-    // ещё не сохранён локально) — append, чтобы scope/days сохранились.
-    // Если id нет — append (новая комната в pairs-mode через «Добавить»).
-    const existingIdx = roomDialog.id
-      ? config.rooms.findIndex((item) => item.id === roomDialog.id)
-      : -1;
-    const nextRooms =
-      existingIdx >= 0
-        ? config.rooms.map((item, idx) => (idx === existingIdx ? room : item))
-        : [...config.rooms, room];
-    let nextConfig = normalizeCleaningDocumentConfig(
-      {
-        ...config,
-        rooms: nextRooms,
-      },
-      { users: props.users },
-    );
-    // Auto-apply weekday-плана к матрице — заполняем ПУСТЫЕ ячейки по
-    // currentDays/generalDays. Уже отмеченные ячейки не трогаем (вдруг
-    // менеджер вручную исправил «не проводилась»). Работает в обоих
-    // режимах: pairs-mode (config.rooms — основа) и rooms-mode
-    // (config.rooms содержит entries для selectedRoomIds после первого
-    // редактирования через диалог).
-    if (props.status === "active") {
-      nextConfig = applyRoomScheduleToMatrix(
-        nextConfig,
-        dayKeys,
-        "fill-empty",
-        dbScheduleMap,
-      );
-    }
-    setRoomDialog(null);
-
-    // Cleaning unification 2026-05-08 — write-through на Room.
-    // В rooms-mode (когда room из selectedRoomIds = из /settings/buildings)
-    // мы дополнительно патчим Room в БД, чтобы scope/days/detergent стали
-    // глобальными для этой комнаты. config.rooms[] всё ещё пишется для
-    // обратной совместимости с pairs-mode и legacy-кода, но для rooms-mode
-    // источник правды теперь Room.
-    if (
-      isRoomsMode &&
-      roomDialog.id &&
-      (config.selectedRoomIds ?? []).includes(roomDialog.id)
-    ) {
-      try {
-        await fetch(`/api/settings/rooms/${roomDialog.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            detergent: roomDialog.detergent ?? "",
-            currentScope: currentScopeArr,
-            generalScope: generalScopeArr,
-            currentDays: roomDialog.currentDays,
-            generalDays: roomDialog.generalDays,
-          }),
-        });
-      } catch (err) {
-        // Не критично для save — config уже сохранится patchDocument'ом.
-        console.error("[cleaning] room write-through failed", err);
-      }
-    }
-
-    await patchDocument(nextConfig);
-    // Sync строк из currentScope/generalScope в JournalChecklistItem'ы
-    // — каждая строка станет подзадачей в TasksFlow task-fill flow.
-    // Делается best-effort: ошибка sync не блокирует основное
-    // сохранение config (комната уже сохранена выше).
-    try {
-      const response = await fetch(
-        `/api/journals/cleaning/documents/${props.documentId}/room-scopes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            roomId: room.id,
-            currentScope: currentScopeArr,
-            generalScope: generalScopeArr,
-          }),
-        },
-      );
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        console.warn(
-          "[cleaning] room-scopes sync failed",
-          data?.error ?? response.status,
-        );
-      }
-    } catch (err) {
-      console.warn("[cleaning] room-scopes sync exception", err);
-    }
-  }
 
   async function submitResponsible() {
     if (!responsibleDialog) return;
@@ -1174,7 +1103,17 @@ export function CleaningDocumentClient(props: Props) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild><Button className="h-11 rounded-2xl bg-[#5863f8] px-7 text-[15px] text-white hover:bg-[#4756f6]"><Plus className="size-6" />Добавить<ChevronDown className="size-5" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
-                    <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setRoomDialog(buildRoomState())}><Plus className="mr-3 size-5 text-[#5863f8]" />Добавить помещение</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl text-[18px]"
+                      onSelect={() => {
+                        toast.info(
+                          "Добавление помещений — в /settings/buildings. Они автоматически появятся в журнале.",
+                        );
+                      }}
+                    >
+                      <Plus className="mr-3 size-5 text-[#5863f8]" />
+                      Помещения в /settings/buildings
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за уборку</DropdownMenuItem>
                     <DropdownMenuItem className="h-11 rounded-2xl text-[18px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-5 text-[#5863f8]" />Добавить отв. за контроль</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1306,16 +1245,12 @@ export function CleaningDocumentClient(props: Props) {
             cleaningMode={config.cleaningMode ?? "pairs"}
             selectedRoomIds={config.selectedRoomIds ?? []}
             selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
-            controlUserId={config.controlUserId ?? null}
-            verifierByRoomId={config.verifierByRoomId ?? {}}
             onSave={async (patch) => {
               await patchDocument({
                 ...config,
                 cleaningMode: patch.cleaningMode,
                 selectedRoomIds: patch.selectedRoomIds,
                 selectedCleanerUserIds: patch.selectedCleanerUserIds,
-                controlUserId: patch.controlUserId,
-                verifierByRoomId: patch.verifierByRoomId,
               });
             }}
           />
@@ -1443,7 +1378,44 @@ export function CleaningDocumentClient(props: Props) {
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
               return <tr key={row.id}>
                 <td className="border border-black p-2 text-center">{!printMode ? <Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /> : null}</td>
-                <td className="border border-black p-3 align-middle"><div className="flex items-center justify-between gap-3"><button type="button" className="text-left hover:text-[#5863f8]" disabled={printMode || props.status !== "active"} onClick={() => row.kind === "room" ? setRoomDialog(buildRoomState(row.room)) : setResponsibleDialog(buildResponsibleState(row.kind, row.responsible))}>{title}</button>{!printMode && props.status === "active" ? <Pencil className="size-4 text-[#7a7f93]" /> : null}</div></td>
+                <td className="border border-black p-3 align-middle">
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      className="text-left hover:text-[#5863f8]"
+                      disabled={printMode || props.status !== "active"}
+                      onClick={() => {
+                        if (row.kind === "room") {
+                          openRoomEditorFromRow(row.id);
+                        } else {
+                          setResponsibleDialog(
+                            buildResponsibleState(row.kind, row.responsible),
+                          );
+                        }
+                      }}
+                    >
+                      {title}
+                    </button>
+                    {!printMode && props.status === "active" ? (
+                      <button
+                        type="button"
+                        aria-label="Редактировать"
+                        className="rounded-lg p-1 text-[#7a7f93] transition-colors hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+                        onClick={() => {
+                          if (row.kind === "room") {
+                            openRoomEditorFromRow(row.id);
+                          } else {
+                            setResponsibleDialog(
+                              buildResponsibleState(row.kind, row.responsible),
+                            );
+                          }
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="border border-black p-3">{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
@@ -1497,126 +1469,15 @@ export function CleaningDocumentClient(props: Props) {
         </div>
       </div>
 
-      <Dialog open={!!roomDialog} onOpenChange={(open) => !open && setRoomDialog(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
-              {roomDialog?.id ? "Редактирование помещения" : "Добавление нового помещения"}
-            </DialogTitle>
-          </DialogHeader>
-          {roomDialog ? (
-            <>
-              <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-                <div className="space-y-2">
-                  <Label className="text-[13px] font-medium text-[#3c4053]">Название помещения</Label>
-                  <Input
-                    value={roomDialog.name}
-                    onChange={(event) => setRoomDialog((current) => current ? { ...current, name: event.target.value } : current)}
-                    placeholder="Введите название помещения"
-                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[13px] font-medium text-[#3c4053]">Моющие и дезинфицирующие средства</Label>
-                  <Textarea
-                    value={roomDialog.detergent}
-                    onChange={(event) => setRoomDialog((current) => current ? { ...current, detergent: event.target.value } : current)}
-                    placeholder="Моющие и дезинфицирующие средства"
-                    className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-                    rows={3}
-                  />
-                </div>
-                {(config.cleaningSubtaskMode ?? "perRoom") !== "perRoom" ? (
-                  <div className="rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] px-4 py-3 text-[12px] leading-[1.55] text-[#7a5500]">
-                    <strong>Чек-лист этого помещения отключён.</strong> В настройках журнала выбран
-                    {(config.cleaningSubtaskMode ?? "perRoom") === "global" ? " «Общий список»" : " режим «без чек-листа»"}.
-                    Шаги ниже сохранятся, но в TasksFlow сотрудник увидит
-                    {(config.cleaningSubtaskMode ?? "perRoom") === "global" ? " общий список из настроек журнала." : " задачу без подзадач."}
-                    Чтобы у каждой комнаты был свой чек-лист — переключите на «По помещениям» в настройках журнала.
-                  </div>
-                ) : null}
-                <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <Label className="text-[13px] font-semibold text-[#0b1024]">Текущая уборка</Label>
-                      <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
-                        Пошаговый чек-лист — каждый шаг станет подзадачей в TasksFlow.
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
-                      {roomDialog.currentScope.filter((s) => s.trim()).length} шаг.
-                    </span>
-                  </div>
-                  <ScopeListEditor
-                    value={roomDialog.currentScope}
-                    onChange={(next) => setRoomDialog((current) => current ? { ...current, currentScope: next } : current)}
-                    placeholder="Например: Протереть рабочие поверхности"
-                    addLabel="Добавить шаг текущей уборки"
-                    emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
-                  />
-                  <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
-                    <Label className="text-[12px] font-medium text-[#3c4053]">Дни проведения текущей уборки</Label>
-                    <p className="text-[11px] leading-[1.45] text-[#6f7282]">
-                      На сером фоне в матрице будут подсвечены дни, когда уборка должна проводиться.
-                    </p>
-                    <WeekdayMaskPicker
-                      value={roomDialog.currentDays}
-                      onChange={(next) => setRoomDialog((current) => current ? { ...current, currentDays: next } : current)}
-                    />
-                  </div>
-                </div>
-                <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <Label className="text-[13px] font-semibold text-[#0b1024]">Генеральная уборка</Label>
-                      <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
-                        Подробный список — что моется/дезинфицируется в день генеральной.
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
-                      {roomDialog.generalScope.filter((s) => s.trim()).length} шаг.
-                    </span>
-                  </div>
-                  <ScopeListEditor
-                    value={roomDialog.generalScope}
-                    onChange={(next) => setRoomDialog((current) => current ? { ...current, generalScope: next } : current)}
-                    placeholder="Например: Демонтировать съёмные части и промыть в горячей воде"
-                    addLabel="Добавить шаг генеральной уборки"
-                    emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."
-                  />
-                  <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
-                    <Label className="text-[12px] font-medium text-[#3c4053]">Дни проведения генеральной уборки</Label>
-                    <p className="text-[11px] leading-[1.45] text-[#6f7282]">
-                      Обычно — раз в неделю. Например, только Сб или только Пн.
-                    </p>
-                    <WeekdayMaskPicker
-                      value={roomDialog.generalDays}
-                      onChange={(next) => setRoomDialog((current) => current ? { ...current, generalDays: next } : current)}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
-                  onClick={() => setRoomDialog(null)}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-                  onClick={submitRoom}
-                >
-                  Сохранить
-                </Button>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <RoomEditorDialog
+        open={roomEditor !== null}
+        onOpenChange={(open) => {
+          if (!open) setRoomEditor(null);
+        }}
+        initial={roomEditor}
+        onSaved={() => router.refresh()}
+      />
+
       <Dialog open={!!responsibleDialog} onOpenChange={(open) => !open && setResponsibleDialog(null)}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
@@ -1971,15 +1832,10 @@ type RoomsModeCardProps = {
   cleaningMode: "pairs" | "rooms";
   selectedRoomIds: string[];
   selectedCleanerUserIds: string[];
-  controlUserId: string | null;
-  /** Per-room overrides контролёра. Map roomId → userId. */
-  verifierByRoomId: Record<string, string>;
   onSave: (patch: {
     cleaningMode: "pairs" | "rooms";
     selectedRoomIds: string[];
     selectedCleanerUserIds: string[];
-    controlUserId: string | null;
-    verifierByRoomId: Record<string, string>;
   }) => Promise<void>;
 };
 
@@ -1988,13 +1844,6 @@ function RoomsModeCard(props: RoomsModeCardProps) {
   const [rooms, setRooms] = useState<string[]>(props.selectedRoomIds);
   const [cleaners, setCleaners] = useState<string[]>(
     props.selectedCleanerUserIds
-  );
-  const [control, setControl] = useState<string | null>(props.controlUserId);
-  const [verifierByRoomId, setVerifierByRoomId] = useState<
-    Record<string, string>
-  >(props.verifierByRoomId ?? {});
-  const [showPerRoomVerifiers, setShowPerRoomVerifiers] = useState(
-    Object.keys(props.verifierByRoomId ?? {}).length > 0,
   );
   const [busy, setBusy] = useState(false);
 
@@ -2008,14 +1857,6 @@ function RoomsModeCard(props: RoomsModeCardProps) {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
-  function setRoomVerifier(roomId: string, userId: string | "") {
-    setVerifierByRoomId((prev) => {
-      const next = { ...prev };
-      if (userId) next[roomId] = userId;
-      else delete next[roomId];
-      return next;
-    });
-  }
 
   async function save() {
     setBusy(true);
@@ -2024,22 +1865,13 @@ function RoomsModeCard(props: RoomsModeCardProps) {
         cleaningMode: mode,
         selectedRoomIds: rooms,
         selectedCleanerUserIds: cleaners,
-        controlUserId: control,
-        verifierByRoomId,
       });
     } finally {
       setBusy(false);
     }
   }
 
-  // Все комнаты org для UI per-room verifier (не только selected).
-  const allRooms = props.buildings.flatMap((b) =>
-    b.rooms.map((r) => ({ ...r, buildingName: b.name })),
-  );
-  const selectedRoomList = allRooms.filter((r) => rooms.includes(r.id));
-
   // Кандидаты на role «cleaner»: позиция «Уборщик» + cook-роль.
-  // Кандидаты на role «control»: management roles.
   const cleanerCandidates = props.users.filter((u) =>
     /уборщик|cleaner/i.test(`${u.name} ${u.role}`)
   );
@@ -2150,80 +1982,18 @@ function RoomsModeCard(props: RoomsModeCardProps) {
             </div>
           </div>
 
-          {/* Контролёр (общий) */}
-          <div>
-            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-              Ответственный за контроль (общий)
-            </div>
-            <select
-              value={control ?? ""}
-              disabled={props.disabled}
-              onChange={(e) => setControl(e.target.value || null)}
-              className="h-11 w-full max-w-md rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          {/* Контролёр / ответственные настраиваются в одном месте — не дублируем. */}
+          <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[13px] leading-[1.55] text-[#3c4053]">
+            <span className="font-medium text-[#0b1024]">Кто проверяет?</span>{" "}
+            Контролёр и ответственные за этот журнал настраиваются на странице{" "}
+            <a
+              href="/settings/journal-responsibles/cleaning"
+              className="font-medium text-[#5566f6] hover:text-[#4a5bf0]"
             >
-              <option value="">— выберите —</option>
-              {props.users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-[11.5px] text-[#9b9fb3]">
-              Применяется к комнатам у которых не задан per-room контролёр.
-            </p>
+              /settings/journal-responsibles
+            </a>
+            . Здесь — только включить race-режим и выбрать комнаты + уборщиков.
           </div>
-
-          {/* Per-room контролёры (override) */}
-          {selectedRoomList.length > 0 ? (
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                  Контролёры по комнатам (по желанию)
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPerRoomVerifiers((s) => !s)}
-                  className="text-[12px] font-medium text-[#5566f6] hover:text-[#4a5bf0]"
-                >
-                  {showPerRoomVerifiers ? "Скрыть" : "Настроить"}
-                </button>
-              </div>
-              {showPerRoomVerifiers ? (
-                <div className="space-y-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
-                  <p className="mb-1 text-[11.5px] text-[#6f7282]">
-                    Если разные комнаты должен проверять разный сотрудник —
-                    выбери здесь. Пусто = используется общий контролёр выше.
-                  </p>
-                  {selectedRoomList.map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-2.5"
-                    >
-                      <span className="min-w-[140px] text-[12.5px] font-medium text-[#0b1024]">
-                        {r.name}
-                        <span className="ml-1.5 text-[11px] font-normal text-[#9b9fb3]">
-                          ({r.buildingName})
-                        </span>
-                      </span>
-                      <select
-                        value={verifierByRoomId[r.id] ?? ""}
-                        disabled={props.disabled}
-                        onChange={(e) => setRoomVerifier(r.id, e.target.value)}
-                        className="h-9 flex-1 min-w-[160px] rounded-lg border border-[#dcdfed] bg-white px-2 text-[12.5px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-2 focus:ring-[#5566f6]/15"
-                      >
-                        <option value="">— общий контролёр —</option>
-                        {props.users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       ) : (
         <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[13px] text-[#6f7282]">
