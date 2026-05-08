@@ -201,6 +201,7 @@ export const authOptions: NextAuthOptions = {
           typeof token.actingAsOrganizationId === "string"
             ? token.actingAsOrganizationId
             : null;
+        session.user.orgPresetOverrides = null;
 
         // Live-refresh organizationName + permissionPreset из БД. JWT
         // кэширует на момент login и больше не обновляется, поэтому
@@ -217,11 +218,19 @@ export const authOptions: NextAuthOptions = {
           if (activeOrgId) {
             const fresh = await db.organization.findUnique({
               where: { id: activeOrgId },
-              select: { name: true },
+              select: { name: true, presetCapabilitiesJson: true },
             });
             if (fresh?.name) {
               session.user.organizationName = fresh.name;
             }
+            session.user.orgPresetOverrides =
+              fresh?.presetCapabilitiesJson &&
+              typeof fresh.presetCapabilitiesJson === "object" &&
+              !Array.isArray(fresh.presetCapabilitiesJson)
+                ? (fresh.presetCapabilitiesJson as Record<string, string[]>)
+                : null;
+          } else {
+            session.user.orgPresetOverrides = null;
           }
           if (session.user.id) {
             const freshUser = await db.user.findUnique({

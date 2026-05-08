@@ -143,11 +143,38 @@ export function isValidPreset(value: string): value is PermissionPreset {
 }
 
 export function hasCapability(
-  user: { permissionPreset?: string | null; role?: string | null; isRoot?: boolean | null },
-  capability: Capability
+  user: {
+    permissionPreset?: string | null;
+    role?: string | null;
+    isRoot?: boolean | null;
+    /**
+     * Org-level overrides матрицы preset → capabilities. Заполняется из
+     * `Organization.presetCapabilitiesJson` в session-callback'е. Если
+     * для preset есть override — он используется ПОЛНОСТЬЮ (не merge).
+     * Для `admin` пресета override игнорируется — admin всегда имеет
+     * полный набор (защита от случайной самоблокировки).
+     */
+    orgPresetOverrides?: Record<string, string[]> | null;
+  },
+  capability: Capability,
 ): boolean {
   const preset = effectivePreset(user);
+  if (preset !== "admin" && user.orgPresetOverrides) {
+    const override = user.orgPresetOverrides[preset];
+    if (Array.isArray(override)) {
+      return override.includes(capability);
+    }
+  }
   return PRESET_CAPABILITIES[preset].includes(capability);
+}
+
+/**
+ * Default capabilities для пресета без org-override'а. Используется UI
+ * /settings/role-presets чтобы показать «дефолтное состояние» рядом с
+ * текущим override'ом и позволить откатить к нему.
+ */
+export function getDefaultCapabilities(preset: PermissionPreset): Capability[] {
+  return [...PRESET_CAPABILITIES[preset]];
 }
 
 /**

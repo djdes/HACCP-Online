@@ -48,6 +48,7 @@ export async function getServerSession(
         typeof token.permissionPreset === "string"
           ? token.permissionPreset
           : null,
+      orgPresetOverrides: null,
       name: typeof token.name === "string" ? token.name : null,
       email: typeof token.email === "string" ? token.email : null,
       image: null,

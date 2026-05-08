@@ -132,6 +132,14 @@ model Organization {
   /// задачи назначаются админом точечно (force-assign).
   /// Управляется в /settings/role-presets или /settings/journal-flow.
   taskFlowMode             String                     @default("race")
+  /// Org-level overrides матрицы пресетов ролей (/settings/role-presets).
+  /// Структура: `Partial<Record<PermissionPreset, Capability[]>>`. Если
+  /// для пресета override отсутствует — применяются hardcoded defaults
+  /// из `src/lib/permission-presets.ts`. `admin` пресет НЕ редактируется
+  /// (всегда полный набор) — менять его в JSON бессмысленно, hasCapability
+  /// игнорирует override на admin'е. По умолчанию `null` — все компании
+  /// стартуют с дефолтов и при желании кастомизируют под свою команду.
+  presetCapabilitiesJson   Json?
   /// Если `true`, «Отправить всем в TasksFlow» учитывает график смен
   /// (WorkShift) и пропускает журналы, ответственные которых не на
   /// смене сегодня. По умолчанию `false` — большинство org'ов не

@@ -22,6 +22,14 @@ declare module "next-auth" {
        * null → fallback на role.
        */
       permissionPreset: string | null;
+      /**
+       * Org-level overrides для матрицы пресет → capabilities.
+       * Если для preset нет ключа — применяются дефолты из
+       * `src/lib/permission-presets.ts`. Формат:
+       *   `{ "head_chef": ["staff.view", "tasks.verify", "mini.tasks"], ... }`
+       * Перезагружается из БД на каждый getServerSession().
+       */
+      orgPresetOverrides: Record<string, string[]> | null;
     } & DefaultSession["user"];
   }
 }
