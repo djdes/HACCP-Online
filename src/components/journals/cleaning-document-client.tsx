@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LayoutGrid, Pencil, Plus, Printer, RefreshCw, Rows3, Trash2, UserPlus, X } from "lucide-react";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { toast } from "sonner";
 import {
   ScopeListEditor,
@@ -445,39 +446,83 @@ export function CleaningDocumentClient(props: Props) {
   }, [props.users]);
 
   const rows = useMemo<RowDescriptor[]>(() => {
-    if (isRoomsMode) {
-      // Rooms-mode: row = одно помещение из selectedRoomIds. Cleaning
-      // unification 2026-05-08 — детали (name, detergent, scope, days)
-      // приходят из Room (DB) через props.buildings[].rooms[]. Это
-      // единственный источник правды; config.rooms[] больше не
-      // используется в rooms-mode.
-      return (config.selectedRoomIds ?? []).map((roomId) => {
-        const dbRoom = dbRoomById.get(roomId);
-        const room: CleaningRoomItem = {
-          id: roomId,
-          areaId: null,
-          name: dbRoom?.name ?? "Помещение",
-          detergent: dbRoom?.detergent ?? "",
-          currentScope: Array.isArray(dbRoom?.currentScope)
-            ? (dbRoom.currentScope as string[])
-            : [],
-          generalScope: Array.isArray(dbRoom?.generalScope)
-            ? (dbRoom.generalScope as string[])
-            : [],
-          currentDays:
-            typeof dbRoom?.currentDays === "number" ? dbRoom.currentDays : 127,
-          generalDays:
-            typeof dbRoom?.generalDays === "number" ? dbRoom.generalDays : 0,
-        };
-        return { id: roomId, kind: "room" as const, room };
-      });
-    }
-    return [
-      ...config.rooms.map((room) => ({ id: room.id, kind: "room" as const, room })),
-      ...config.cleaningResponsibles.map((responsible) => ({ id: responsible.id, kind: "cleaning" as const, responsible })),
-      ...config.controlResponsibles.map((responsible) => ({ id: responsible.id, kind: "control" as const, responsible })),
-    ];
-  }, [config, isRoomsMode, dbRoomById]);
+    // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
+    // (Room DB), независимо от режима. Если selectedRoomIds задан — берём
+    // их; если пусто — все Room орги. config.rooms[] больше нигде не
+    // используется как источник rows. Это закрывает требование:
+    // «никакие помещения не должны быть, кроме тех которые в настройках
+    // помещений».
+    const allBuildingRoomIds = Array.from(dbRoomById.keys());
+    const selectedIds = config.selectedRoomIds ?? [];
+    const roomIds =
+      selectedIds.length > 0
+        ? selectedIds.filter((id) => dbRoomById.has(id))
+        : allBuildingRoomIds;
+    const roomRows = roomIds.map((roomId) => {
+      const dbRoom = dbRoomById.get(roomId)!;
+      const room: CleaningRoomItem = {
+        id: roomId,
+        areaId: null,
+        name: dbRoom.name,
+        detergent: dbRoom.detergent ?? "",
+        currentScope: Array.isArray(dbRoom.currentScope)
+          ? (dbRoom.currentScope as string[])
+          : [],
+        generalScope: Array.isArray(dbRoom.generalScope)
+          ? (dbRoom.generalScope as string[])
+          : [],
+        currentDays:
+          typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,
+        generalDays:
+          typeof dbRoom.generalDays === "number" ? dbRoom.generalDays : 0,
+      };
+      return { id: roomId, kind: "room" as const, room };
+    });
+
+    // Responsibles рендерятся ВСЕГДА (исправление бага #1: race-mode
+    // больше не «съедает» строки С1/С2). В race-mode (selectedRoomIds +
+    // selectedCleanerUserIds + roomsRaceMode=true) уборщики берутся из
+    // selectedCleanerUserIds; в pairs-mode — из config.cleaningResponsibles.
+    // Контролёр — controlUserId override → controlResponsibles fallback.
+    const cleaningResponsibleRows = (() => {
+      if (
+        isRoomsMode &&
+        Array.isArray(config.selectedCleanerUserIds) &&
+        config.selectedCleanerUserIds.length > 0
+      ) {
+        return config.selectedCleanerUserIds.map((userId, idx) => {
+          const user = props.users.find((u) => u.id === userId);
+          return {
+            id: `selected-cleaner-${userId}`,
+            kind: "cleaning" as const,
+            responsible: {
+              id: `selected-cleaner-${userId}`,
+              kind: "cleaning" as const,
+              code: `С${idx + 1}`,
+              title: "Уборщик",
+              userId,
+              userName: user?.name ?? "—",
+            } satisfies CleaningResponsible,
+          };
+        });
+      }
+      return config.cleaningResponsibles.map((responsible) => ({
+        id: responsible.id,
+        kind: "cleaning" as const,
+        responsible,
+      }));
+    })();
+
+    const controlResponsibleRows = config.controlResponsibles.map(
+      (responsible) => ({
+        id: responsible.id,
+        kind: "control" as const,
+        responsible,
+      }),
+    );
+
+    return [...roomRows, ...cleaningResponsibleRows, ...controlResponsibleRows];
+  }, [config, isRoomsMode, dbRoomById, props.users]);
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
   // может прочитать stale rows при быстром переключении.
@@ -506,15 +551,47 @@ export function CleaningDocumentClient(props: Props) {
     setCellSelectMode(true);
   }
 
-  /** Значение ячейки. Для rooms-mode комнат: сначала ищем completion
-   *  в JournalDocumentEntry (cleaner закрыл TF-задачу → инициалы),
-   *  если нет completion — fallback на planned matrix value (T/G/«/»),
-   *  чтобы админ мог планировать в матрице как и раньше. В pairs-mode
-   *  и для responsible-rows работает только matrix. */
-  function cellValue(row: RowDescriptor, dateKey: string): string {
-    if (!isRoomsMode || row.kind !== "room") {
-      return config.matrix[row.id]?.[dateKey] || "";
+  // Map userId → код уборщика (С1/С2/...). Используется в room-cells
+  // вместо инициалов: компактнее и согласуется с подписью в строке
+  // «С1 — Иван Иванов».
+  const cleanerCodeById = useMemo(() => {
+    const m = new Map<string, string>();
+    if (
+      isRoomsMode &&
+      Array.isArray(config.selectedCleanerUserIds) &&
+      config.selectedCleanerUserIds.length > 0
+    ) {
+      config.selectedCleanerUserIds.forEach((userId, idx) => {
+        m.set(userId, `С${idx + 1}`);
+      });
+    } else {
+      config.cleaningResponsibles.forEach((r, idx) => {
+        if (r.userId) m.set(r.userId, r.code || `С${idx + 1}`);
+      });
     }
+    return m;
+  }, [
+    config.selectedCleanerUserIds,
+    config.cleaningResponsibles,
+    isRoomsMode,
+  ]);
+
+  /**
+   * Значение ячейки.
+   *
+   * • room: completion из JournalDocumentEntry → код уборщика (С1/С2);
+   *   нет completion → planned matrix (T/G/«/»).
+   * • responsible-row (cleaning/control): ВСЕГДА пусто. По решению
+   *   юзера 2026-05-08 — responsible-строки служат подписью «С1 — Иван
+   *   Иванов», ячейки per-day отключены чтобы менеджер не путался.
+   *   Кто реально убирался показывается КОДОМ в room-rows.
+   */
+  function cellValue(row: RowDescriptor, dateKey: string): string {
+    if (row.kind !== "room") {
+      // Responsibles — пустые ячейки (информация только в первой колонке).
+      return "";
+    }
+    // Room: ищем completion → код уборщика.
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;
       if (
@@ -523,10 +600,13 @@ export function CleaningDocumentClient(props: Props) {
         d?.dateKey === dateKey
       ) {
         const cleanerId = String(d.cleanerUserId ?? "");
+        const code = cleanerCodeById.get(cleanerId);
+        if (code) return code;
+        // Fallback на инициалы если cleaner не в codeById (legacy).
         return userInitialsById.get(cleanerId) ?? "";
       }
     }
-    // Нет completion — показываем planned значение из matrix.
+    // Нет completion — planned значение из matrix (T/G/«/»).
     return config.matrix[row.id]?.[dateKey] || "";
   }
 
@@ -543,6 +623,48 @@ export function CleaningDocumentClient(props: Props) {
   // Guarded by `hasTasksFlowIntegration` so orgs without integration
   // pay zero cost.
   const [tasksFlowSyncing, setTasksFlowSyncing] = useState(false);
+  const [cleanupCompletedRunning, setCleanupCompletedRunning] = useState(false);
+
+  async function cleanupCompletedTasks() {
+    if (!props.hasTasksFlowIntegration || cleanupCompletedRunning) return;
+    const ok = await confirmAsync({
+      title: "Удалить выполненные TF-задачи?",
+      description:
+        "Из TasksFlow будут удалены ВСЕ задачи которые помечены как выполненные у этой компании. Журналы (matrix, audit-log, фото) — остаются. Это нужно когда лента TF разрослась и хочется чистоты.",
+      variant: "warn",
+      confirmLabel: "Очистить",
+      bullets: [
+        { label: "Удаляются ТОЛЬКО completed-задачи (active не трогаем)" },
+        { label: "Только нашей компании в TF (companyId-фильтр)" },
+        { label: "Compliance-данные остаются: matrix-ячейки, JournalDocumentEntry, AuditLog" },
+      ],
+    });
+    if (!ok) return;
+    setCleanupCompletedRunning(true);
+    try {
+      const r = await fetch(
+        "/api/integrations/tasksflow/cleanup-completed",
+        { method: "POST" },
+      );
+      const data = (await r.json().catch(() => ({}))) as {
+        deletedTfTasks?: number;
+        alreadyGone?: number;
+        message?: string;
+        error?: string;
+      };
+      if (!r.ok) {
+        toast.error(data.error ?? "Не удалось очистить выполненные");
+        return;
+      }
+      toast.success(data.message ?? "Готово");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Сеть упала");
+    } finally {
+      setCleanupCompletedRunning(false);
+    }
+  }
+
   async function syncFromTasksFlow(opts?: { silent?: boolean }) {
     if (!props.hasTasksFlowIntegration || tasksFlowSyncing) return;
     setTasksFlowSyncing(true);
@@ -702,13 +824,16 @@ export function CleaningDocumentClient(props: Props) {
     // В режиме выделения клик игнорируется — drag-handlers (mousedown +
     // mouseenter) добавляют/убирают ячейки в selection.
     if (cellSelectMode) return;
-    // В rooms-mode респонсибл-строк нет, но если каким-то образом сюда
-    // зашла не-room — игнорируем (responsible-rows не существуют в
-    // rooms-mode rows).
-    if (isRoomsMode && row.kind !== "room") return;
+    // Responsible-rows (С1/С2) — не редактируемые ячейки. Клик не делает
+    // ничего. Информация в первой колонке («С1 — Иван Иванов»), коды
+    // вписываются в room-cells автоматически когда уборщик закроет
+    // соответствующую TF-задачу.
+    if (row.kind !== "room") return;
     const currentValue = config.matrix[row.id]?.[dateKey] || "";
-    const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
-    await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
+    const nextValue = toggleCleaningMatrixValue(currentValue);
+    await patchDocument(
+      setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }),
+    );
   }
 
   /**
@@ -954,19 +1079,32 @@ export function CleaningDocumentClient(props: Props) {
             <DocumentBackLink href="/journals/cleaning" documentId={props.documentId} />
             <div className="flex flex-wrap items-center justify-end gap-3">
               {props.hasTasksFlowIntegration ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={tasksFlowSyncing}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                  onClick={() => syncFromTasksFlow()}
-                  title="Подтянуть отметки выполнения из TasksFlow"
-                >
-                  <RefreshCw
-                    className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
-                  />
-                  {tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow"}
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={tasksFlowSyncing}
+                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                    onClick={() => syncFromTasksFlow()}
+                    title="Подтянуть отметки выполнения из TasksFlow"
+                  >
+                    <RefreshCw
+                      className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
+                    />
+                    {tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={cleanupCompletedRunning}
+                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3c4053] shadow-none hover:bg-[#fff4f2] hover:text-[#a13a32]"
+                    onClick={cleanupCompletedTasks}
+                    title="Удалить выполненные задачи из TasksFlow (compliance-история сохранится в журнале)"
+                  >
+                    <Trash2 className="size-4" />
+                    {cleanupCompletedRunning ? "Чищу…" : "Очистить TF архив"}
+                  </Button>
+                </>
               ) : null}
               <Button
                 type="button"
