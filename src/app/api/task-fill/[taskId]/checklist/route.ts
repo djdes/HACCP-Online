@@ -59,13 +59,52 @@ export async function GET(
 
   // Парсим roomId из rowKey. Поддерживаемые форматы:
   //   • room::<roomId>::cleaner::<uid>   (cleaning rooms-mode)
+  //   • cell-override::<roomId>::<date>  (cleaning override-cell)
   //   • employee-<uid>                    (per-employee — roomId=null)
   //   • прочее                            (roomId=null)
   // Если в rowKey есть roomId, фильтруем чек-лист по нему +
   // по общим (roomId=null) пунктам.
   let rowRoomId: string | null = null;
+  let cellDateKey: string | null = null;
   const roomMatch = /^room::([^:]+)::cleaner::/.exec(link.rowKey);
   if (roomMatch) rowRoomId = roomMatch[1];
+  const overrideMatch = /^cell-override::([^:]+)::(\d{4}-\d{2}-\d{2})$/.exec(
+    link.rowKey,
+  );
+  if (overrideMatch) {
+    rowRoomId = overrideMatch[1];
+    cellDateKey = overrideMatch[2];
+  }
+
+  // Для cleaning: определяем тип уборки сегодня (T или G) и фильтруем
+  // checklist-items по category. Раньше показывали и currentScope, и
+  // generalScope одновременно — сотрудник видел ВСЕ пункты сразу,
+  // непонятно что делать. Теперь:
+  //   • матрица сегодня = "G" → только category="general"
+  //   • матрица сегодня = "T" → только category="current"
+  //   • матрица пустая или прочее → category in ["current", null]
+  //     (default — текущая уборка + legacy items без категории)
+  let cleaningCategoryFilter: ("current" | "general")[] | null = null;
+  if (link.journalCode === "cleaning" && rowRoomId) {
+    const cleaningDoc = await db.journalDocument.findUnique({
+      where: { id: link.journalDocumentId },
+      select: { config: true },
+    });
+    const matrix =
+      ((cleaningDoc?.config as { matrix?: Record<string, Record<string, string>> })
+        ?.matrix ?? {}) as Record<string, Record<string, string>>;
+    const todayKey =
+      cellDateKey ?? new Date().toISOString().slice(0, 10);
+    const cellValue = matrix[rowRoomId]?.[todayKey] ?? "";
+    if (cellValue === "G") {
+      cleaningCategoryFilter = ["general"];
+    } else if (cellValue === "T") {
+      cleaningCategoryFilter = ["current"];
+    } else {
+      // По умолчанию — current (ежедневная). Generalka не нагружает.
+      cleaningCategoryFilter = ["current"];
+    }
+  }
 
   const [allItems, latestChecks] = await Promise.all([
     db.journalChecklistItem.findMany({
@@ -77,6 +116,21 @@ export async function GET(
         OR: rowRoomId
           ? [{ roomId: null }, { roomId: rowRoomId }]
           : [{ roomId: null }],
+        // Для cleaning: только items соответствующей категории
+        // (current/general) + legacy items без category. Prisma
+        // не позволяет null в `in`, поэтому используем AND/OR.
+        ...(cleaningCategoryFilter
+          ? {
+              AND: [
+                {
+                  OR: [
+                    { category: { in: cleaningCategoryFilter } },
+                    { category: null },
+                  ],
+                },
+              ],
+            }
+          : {}),
       },
       orderBy: [{ roomId: "asc" }, { sortOrder: "asc" }],
     }),

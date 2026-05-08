@@ -1516,7 +1516,25 @@ export function applyRoomScheduleToMatrix(
   // соответствует РФ-производственному календарю и не нужно отдельно
   // нажимать «Отметить выходные «/»». В fill-empty режиме (auto-apply) НЕ
   // делаем — пользовательские отметки сохраняются.
-  for (const room of next.rooms) {
+
+  // Список room-id'ов для применения плана. В pairs-mode = config.rooms[].
+  // В rooms-mode также включаем selectedRoomIds которые ещё не имеют
+  // config.rooms-entry — они работают с дефолтным расписанием
+  // (currentDays=127, generalDays=0 → T каждый день, никогда G).
+  // Без этого rooms-mode матрица оставалась бы пустой пока менеджер не
+  // откроет каждое помещение и не сохранит scope.
+  const configRoomById = new Map(next.rooms.map((r) => [r.id, r]));
+  type SchedulableRoom = { id: string; currentDays?: number; generalDays?: number };
+  const schedulable: SchedulableRoom[] = [...next.rooms];
+  if (next.cleaningMode === "rooms" && Array.isArray(next.selectedRoomIds)) {
+    for (const id of next.selectedRoomIds) {
+      if (!configRoomById.has(id)) {
+        schedulable.push({ id }); // дефолтные маски
+      }
+    }
+  }
+
+  for (const room of schedulable) {
     const currentMask = typeof room.currentDays === "number" ? room.currentDays : 127;
     const generalMask = typeof room.generalDays === "number" ? room.generalDays : 0;
     const row = next.matrix[room.id] ? { ...next.matrix[room.id] } : {};

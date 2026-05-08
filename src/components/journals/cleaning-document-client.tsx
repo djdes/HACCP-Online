@@ -654,17 +654,28 @@ export function CleaningDocumentClient(props: Props) {
 
   const rows = useMemo<RowDescriptor[]>(() => {
     if (isRoomsMode) {
-      // Rooms-mode: row = одно помещение из selectedRoomIds.
+      // Rooms-mode: row = одно помещение из selectedRoomIds. Если в
+      // config.rooms уже есть запись с этим же id (с настроенными
+      // scope/days) — используем её, чтобы редактирование scope и
+      // расписания weekday-маски работало одинаково с pairs-режимом.
+      const configRoomById = new Map(config.rooms.map((r) => [r.id, r]));
       return (config.selectedRoomIds ?? []).map((roomId) => {
-        const stub: CleaningRoomItem = {
-          id: roomId,
-          areaId: null,
-          name: buildingsRoomMap.get(roomId) ?? "Помещение",
-          detergent: "",
-          currentScope: [],
-          generalScope: [],
-        };
-        return { id: roomId, kind: "room" as const, room: stub };
+        const fromConfig = configRoomById.get(roomId);
+        const room: CleaningRoomItem = fromConfig
+          ? {
+              ...fromConfig,
+              // имя всегда тянем из buildings — single source of truth
+              name: buildingsRoomMap.get(roomId) ?? fromConfig.name,
+            }
+          : {
+              id: roomId,
+              areaId: null,
+              name: buildingsRoomMap.get(roomId) ?? "Помещение",
+              detergent: "",
+              currentScope: [],
+              generalScope: [],
+            };
+        return { id: roomId, kind: "room" as const, room };
       });
     }
     return [
@@ -1030,14 +1041,31 @@ export function CleaningDocumentClient(props: Props) {
       currentDays: roomDialog.currentDays,
       generalDays: roomDialog.generalDays,
     });
-    let nextConfig = normalizeCleaningDocumentConfig({
-      ...config,
-      rooms: roomDialog.id ? config.rooms.map((item) => item.id === roomDialog.id ? room : item) : [...config.rooms, room],
-    }, { users: props.users });
+    // Если редактируем существующую (id+exists в config.rooms) — replace.
+    // Если id указан, но в config.rooms нет (rooms-mode: room из buildings,
+    // ещё не сохранён локально) — append, чтобы scope/days сохранились.
+    // Если id нет — append (новая комната в pairs-mode через «Добавить»).
+    const existingIdx = roomDialog.id
+      ? config.rooms.findIndex((item) => item.id === roomDialog.id)
+      : -1;
+    const nextRooms =
+      existingIdx >= 0
+        ? config.rooms.map((item, idx) => (idx === existingIdx ? room : item))
+        : [...config.rooms, room];
+    let nextConfig = normalizeCleaningDocumentConfig(
+      {
+        ...config,
+        rooms: nextRooms,
+      },
+      { users: props.users },
+    );
     // Auto-apply weekday-плана к матрице — заполняем ПУСТЫЕ ячейки по
     // currentDays/generalDays. Уже отмеченные ячейки не трогаем (вдруг
-    // менеджер вручную исправил «не проводилась»).
-    if (props.status === "active" && !isRoomsMode) {
+    // менеджер вручную исправил «не проводилась»). Работает в обоих
+    // режимах: pairs-mode (config.rooms — основа) и rooms-mode
+    // (config.rooms содержит entries для selectedRoomIds после первого
+    // редактирования через диалог).
+    if (props.status === "active") {
       nextConfig = applyRoomScheduleToMatrix(nextConfig, dayKeys, "fill-empty");
     }
     setRoomDialog(null);
