@@ -482,17 +482,20 @@ export function CleaningDocumentClient(props: Props) {
   const rows = useMemo<RowDescriptor[]>(() => {
     // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
     // (Room DB), независимо от режима. Если selectedRoomIds задан — берём
-    // их; если пусто — все Room орги. config.rooms[] больше нигде не
-    // используется как источник rows. Это закрывает требование:
-    // «никакие помещения не должны быть, кроме тех которые в настройках
-    // помещений».
+    // их; если пусто — все Room орги.
+    //
+    // 2026-05-08 (вечер): по фидбеку — в матрицу попадают ТОЛЬКО помещения.
+    // Ответственные (уборщики С1/С2 + контролёр) больше не пустые строки в
+    // таблице — они вынесены в легенду под матрицей (см. responsibleLegend
+    // ниже + рендер `<section>` после `<table>`). Это убирает 3 ghost-строки,
+    // которые в реальной методичке СанПиН не существуют.
     const allBuildingRoomIds = Array.from(dbRoomById.keys());
     const selectedIds = config.selectedRoomIds ?? [];
     const roomIds =
       selectedIds.length > 0
         ? selectedIds.filter((id) => dbRoomById.has(id))
         : allBuildingRoomIds;
-    const roomRows = roomIds.map((roomId) => {
+    return roomIds.map((roomId) => {
       const dbRoom = dbRoomById.get(roomId)!;
       const room: CleaningRoomItem = {
         id: roomId,
@@ -512,51 +515,38 @@ export function CleaningDocumentClient(props: Props) {
       };
       return { id: roomId, kind: "room" as const, room };
     });
+  }, [config.selectedRoomIds, dbRoomById]);
 
-    // Responsibles рендерятся ВСЕГДА (исправление бага #1: race-mode
-    // больше не «съедает» строки С1/С2). В race-mode (selectedRoomIds +
-    // selectedCleanerUserIds + roomsRaceMode=true) уборщики берутся из
-    // selectedCleanerUserIds; в pairs-mode — из config.cleaningResponsibles.
-    // Контролёр — controlUserId override → controlResponsibles fallback.
-    const cleaningResponsibleRows = (() => {
-      if (
-        isRoomsMode &&
-        Array.isArray(config.selectedCleanerUserIds) &&
-        config.selectedCleanerUserIds.length > 0
-      ) {
-        return config.selectedCleanerUserIds.map((userId, idx) => {
-          const user = props.users.find((u) => u.id === userId);
-          return {
-            id: `selected-cleaner-${userId}`,
-            kind: "cleaning" as const,
-            responsible: {
-              id: `selected-cleaner-${userId}`,
-              kind: "cleaning" as const,
-              code: `С${idx + 1}`,
-              title: "Уборщик",
-              userId,
-              userName: user?.name ?? "—",
-            } satisfies CleaningResponsible,
-          };
-        });
-      }
-      return config.cleaningResponsibles.map((responsible) => ({
-        id: responsible.id,
-        kind: "cleaning" as const,
-        responsible,
-      }));
-    })();
+  // Подписи ответственных под матрицей. В race-mode уборщики берутся из
+  // selectedCleanerUserIds; в pairs-mode — из config.cleaningResponsibles.
+  // Контролёр — всегда из config.controlResponsibles, без префикса «С».
+  const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
+    if (
+      isRoomsMode &&
+      Array.isArray(config.selectedCleanerUserIds) &&
+      config.selectedCleanerUserIds.length > 0
+    ) {
+      return config.selectedCleanerUserIds.map((userId, idx) => {
+        const user = props.users.find((u) => u.id === userId);
+        return {
+          id: `selected-cleaner-${userId}`,
+          kind: "cleaning" as const,
+          code: `С${idx + 1}`,
+          title: "Уборщик",
+          userId,
+          userName: user?.name ?? "—",
+        } satisfies CleaningResponsible;
+      });
+    }
+    return config.cleaningResponsibles;
+  }, [
+    isRoomsMode,
+    config.selectedCleanerUserIds,
+    config.cleaningResponsibles,
+    props.users,
+  ]);
 
-    const controlResponsibleRows = config.controlResponsibles.map(
-      (responsible) => ({
-        id: responsible.id,
-        kind: "control" as const,
-        responsible,
-      }),
-    );
-
-    return [...roomRows, ...cleaningResponsibleRows, ...controlResponsibleRows];
-  }, [config, isRoomsMode, dbRoomById, props.users]);
+  const controlResponsibleList = config.controlResponsibles;
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
   // может прочитать stale rows при быстром переключении.
@@ -1365,6 +1355,63 @@ export function CleaningDocumentClient(props: Props) {
                 </div>
               );
             })}
+            {/* Mobile-cards: легенда ответственных под списком помещений. */}
+            {cleaningResponsibleList.length > 0 ||
+            controlResponsibleList.length > 0 ? (
+              <div className="mt-1 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                  Ответственные
+                </div>
+                <div className="flex flex-col gap-2">
+                  {cleaningResponsibleList.map((resp) => (
+                    <button
+                      key={resp.id}
+                      type="button"
+                      disabled={props.status !== "active"}
+                      onClick={() =>
+                        setResponsibleDialog(
+                          buildResponsibleState("cleaning", resp),
+                        )
+                      }
+                      className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-left text-[13px] disabled:cursor-default"
+                    >
+                      <span className="rounded-md bg-[#eef1ff] px-2 py-0.5 text-[12px] font-semibold text-[#3848c7]">
+                        {resp.code}
+                      </span>
+                      <span className="flex-1 text-[#0b1024]">
+                        {resp.userName || "—"}
+                      </span>
+                      {props.status === "active" ? (
+                        <Pencil className="size-3.5 shrink-0 text-[#9b9fb3]" />
+                      ) : null}
+                    </button>
+                  ))}
+                  {controlResponsibleList.map((resp) => (
+                    <button
+                      key={resp.id}
+                      type="button"
+                      disabled={props.status !== "active"}
+                      onClick={() =>
+                        setResponsibleDialog(
+                          buildResponsibleState("control", resp),
+                        )
+                      }
+                      className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-left text-[13px] disabled:cursor-default"
+                    >
+                      <span className="rounded-md bg-[#f3eeff] px-2 py-0.5 text-[12px] font-semibold text-[#7a5cff]">
+                        Контролёр
+                      </span>
+                      <span className="flex-1 text-[#0b1024]">
+                        {resp.userName || "—"}
+                      </span>
+                      {props.status === "active" ? (
+                        <Pencil className="size-3.5 shrink-0 text-[#9b9fb3]" />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -1463,6 +1510,88 @@ export function CleaningDocumentClient(props: Props) {
               </tr>;
             })}
           </tbody></table>
+
+          {/* Подписи ответственных — компактная легенда под матрицей.
+              По методичке СанПиН ответственные — это подпись/легенда, а
+              не строки в таблице. Уборщики получают код С1/С2/...,
+              контролёр — БЕЗ кода (он не уборщик), только подпись. */}
+          {cleaningResponsibleList.length > 0 ||
+          controlResponsibleList.length > 0 ? (
+            <section className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 print:border-black print:bg-white">
+              <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282] print:text-black">
+                Ответственные
+              </div>
+              <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                {cleaningResponsibleList.length > 0 ? (
+                  <div>
+                    <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3848c7] print:text-black">
+                      Уборщики
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {cleaningResponsibleList.map((resp) => (
+                        <button
+                          key={resp.id}
+                          type="button"
+                          disabled={printMode || props.status !== "active"}
+                          onClick={() =>
+                            setResponsibleDialog(
+                              buildResponsibleState("cleaning", resp),
+                            )
+                          }
+                          className="group inline-flex items-center gap-2 self-start rounded-xl px-2 py-1 text-left text-[14px] transition-colors hover:bg-white print:hover:bg-transparent disabled:cursor-default"
+                        >
+                          <span className="rounded-md bg-[#eef1ff] px-2 py-0.5 text-[12px] font-semibold text-[#3848c7] print:bg-transparent print:text-black">
+                            {resp.code}
+                          </span>
+                          <span className="text-[#0b1024]">
+                            {resp.userName || "—"}
+                          </span>
+                          {!printMode && props.status === "active" ? (
+                            <Pencil className="size-3.5 shrink-0 text-[#9b9fb3] opacity-0 transition-opacity group-hover:opacity-100" />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {controlResponsibleList.length > 0 ? (
+                  <div>
+                    <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a5cff] print:text-black">
+                      Контролёр
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {controlResponsibleList.map((resp) => (
+                        <button
+                          key={resp.id}
+                          type="button"
+                          disabled={printMode || props.status !== "active"}
+                          onClick={() =>
+                            setResponsibleDialog(
+                              buildResponsibleState("control", resp),
+                            )
+                          }
+                          className="group inline-flex items-center gap-2 self-start rounded-xl px-2 py-1 text-left text-[14px] transition-colors hover:bg-white print:hover:bg-transparent disabled:cursor-default"
+                        >
+                          <span className="text-[#0b1024]">
+                            {resp.userName || "—"}
+                          </span>
+                          {resp.title ? (
+                            <span className="text-[12px] text-[#6f7282]">
+                              · {resp.title}
+                            </span>
+                          ) : null}
+                          {!printMode && props.status === "active" ? (
+                            <Pencil className="size-3.5 shrink-0 text-[#9b9fb3] opacity-0 transition-opacity group-hover:opacity-100" />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
           <div className="space-y-2 text-[18px] italic">{Array.from(new Set(config.legend)).map((item) => <div key={item}>{item}</div>)}</div>
           <table className="w-full border-collapse text-[16px]"><thead><tr><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Текущая уборка</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id}><td className="border border-black p-3">{room.name}</td><td className="border border-black p-3">{room.currentScope.join(", ")}</td><td className="border border-black p-3">{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
         </div></div>
