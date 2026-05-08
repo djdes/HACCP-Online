@@ -133,16 +133,35 @@ Per-document данные журнала остаются в `JournalDocument.co
 
 ## Implementation Stages
 
-| Stage | Scope | Risk |
-|-------|-------|------|
-| 1 | Schema: добавить колонки в Room (`detergent`, `currentScope`, `generalScope`, `currentDays`, `generalDays`); backfill seed; добавить в deploy.yml | LOW (additive only) |
-| 2 | Shared `<RoomEditor>` component; перенести form-state из cleaning-document-client | MED |
-| 3 | `/settings/buildings` — использовать RoomEditor вместо текущего минимального диалога | MED |
-| 4 | Cleaning journal: rows builder → читает Room.scope; pencil → открывает RoomEditor; submitRoom → PUT /api/settings/rooms | MED |
-| 5 | TF integration: `cleaning.getTaskForm`, `syncCleaningCellOverride`, `applyRoomScheduleToMatrix` — читают Room | MED |
-| 6 | Sync hook: при save Room → обновить JournalChecklistItem'ы (category=current/general) | MED |
-| 7 | Hide cleaning from `/settings/journal-pipelines` и `/settings/journal-checklists` (или показывать readonly с указателем «настройка в /settings/buildings») | LOW |
-| 8 | Deprecate config.rooms[] для новых документов (pairs-mode легаси, новые документы — rooms-mode по умолчанию) | LOW |
+| Stage | Scope | Status | Commit |
+|-------|-------|--------|--------|
+| 1 | Schema: Room +detergent/scope/days; backfill seed; deploy.yml | ✅ DONE | 3c96b309 |
+| 2 | Shared `<RoomEditor>` (extracted ScopeListEditor + WeekdayMaskPicker) | ⏳ DEFERRED | — |
+| 3 | `/settings/buildings` использует RoomEditor | ⏳ DEFERRED (depends on 2) | — |
+| 4 | Cleaning journal: rows из Room; submitRoom write-through на Room | ✅ DONE | 93455d02 |
+| 5 | TF integration: getTaskForm читает Room (fallback config) | ✅ DONE | 93455d02 |
+| 6 | Auto-sync Room.scope → JournalChecklistItem on PATCH /api/settings/rooms | ✅ DONE | next commit |
+| 7 | Hide cleaning from `/settings/journal-pipelines`+`/journal-checklists` | ⏳ DEFERRED | — |
+| 8 | Deprecate config.rooms[] (rooms-mode default, pairs-mode legacy) | ⏳ DEFERRED | — |
+
+### Why 2/3/7/8 deferred
+
+- **Stage 2/3**: ScopeListEditor + WeekdayMaskPicker сейчас inline в
+  cleaning-document-client.tsx (2000+ lines). Чистое extracting в
+  отдельный модуль = ~30 минут аккуратной работы; стоит делать когда
+  пользователь конкретно жалуется на /settings/buildings UX. Сейчас
+  редактирование scope/days работает через журнал-pencil (stage 4),
+  данные пишутся в Room (stage 4 write-through), и /settings/buildings
+  показывает только name+kind. Не идеально, но не блокер.
+- **Stage 7**: hiding cleaning из journal-pipelines + journal-checklists
+  — UX-косметика. Текущее поведение: эти страницы СЕЙЧАС не работают
+  для cleaning (показывают пустые редакторы), но молча. Можно показать
+  редирект-плашку «настройка через /settings/buildings» в одну строчку
+  кода, но не критично.
+- **Stage 8**: deprecate config.rooms[] для новых документов —
+  компромисс между чистотой и риском поломать существующие pairs-mode
+  документы. Текущие документы продолжают работать одинаково; новые
+  идут с cleaningMode='rooms' (уже default? проверить).
 
 ## Backwards compatibility
 

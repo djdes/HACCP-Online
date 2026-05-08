@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { syncRoomChecklistItems } from "@/lib/cleaning-room-checklist-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,6 +62,19 @@ export async function PATCH(request: Request, ctx: Ctx) {
     arr === undefined
       ? undefined
       : arr.map((s) => s.trim()).filter((s) => s.length > 0).slice(0, 50);
+
+  // Cleaning unification 2026-05-08: при изменении scope — синкаем
+  // JournalChecklistItem'ы (TF task-fill подтягивает оттуда чек-лист).
+  // Делаем ДО update Room чтобы не оставлять рассинхрона если sync упадёт.
+  if (body.currentScope !== undefined || body.generalScope !== undefined) {
+    await syncRoomChecklistItems({
+      organizationId: orgId,
+      roomId: id,
+      currentScope: body.currentScope,
+      generalScope: body.generalScope,
+      createdByUserId: auth.session.user.id,
+    });
+  }
 
   const updated = await db.room.update({
     where: { id },

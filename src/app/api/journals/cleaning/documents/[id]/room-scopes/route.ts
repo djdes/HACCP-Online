@@ -81,54 +81,19 @@ export async function POST(
   const current = cleanLines(body.currentScope);
   const general = cleanLines(body.generalScope);
 
-  // Атомарно: archive existing auto-managed items + insert новых.
-  await db.$transaction(async (tx) => {
-    // Soft-archive existing auto-managed items для этой комнаты.
-    // Hard delete мог бы быть удобнее, но JournalChecklistCheck FK
-    // cascade удалил бы исторические галочки — теряем audit-trail.
-    await tx.journalChecklistItem.updateMany({
-      where: {
-        organizationId,
-        journalCode: "cleaning",
-        roomId: body.roomId,
-        category: { in: ["current", "general"] },
-        archivedAt: null,
-      },
-      data: { archivedAt: new Date() },
-    });
-
-    // Вставляем новые current.
-    if (current.length > 0) {
-      await tx.journalChecklistItem.createMany({
-        data: current.map((label, index) => ({
-          organizationId,
-          journalCode: "cleaning",
-          roomId: body.roomId,
-          label,
-          sortOrder: index * 10,
-          required: false,
-          frequency: "daily",
-          category: "current",
-          createdByUserId: auth.session.user.id,
-        })),
-      });
-    }
-    // И general.
-    if (general.length > 0) {
-      await tx.journalChecklistItem.createMany({
-        data: general.map((label, index) => ({
-          organizationId,
-          journalCode: "cleaning",
-          roomId: body.roomId,
-          label,
-          sortOrder: 1000 + index * 10, // generalcleaning ниже current'a в списке
-          required: false,
-          frequency: "daily",
-          category: "general",
-          createdByUserId: auth.session.user.id,
-        })),
-      });
-    }
+  // Cleaning unification 2026-05-08: используем общий helper.
+  // Этот endpoint теперь — backwards-compat shim для старых клиентов;
+  // новый канонический путь — PATCH /api/settings/rooms/[id] с
+  // currentScope/generalScope (через RoomEditor).
+  const { syncRoomChecklistItems } = await import(
+    "@/lib/cleaning-room-checklist-sync"
+  );
+  await syncRoomChecklistItems({
+    organizationId,
+    roomId: body.roomId,
+    currentScope: current,
+    generalScope: general,
+    createdByUserId: auth.session.user.id,
   });
 
   await recordAuditLog({
