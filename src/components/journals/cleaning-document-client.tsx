@@ -479,47 +479,9 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [props.users]);
 
-  const rows = useMemo<RowDescriptor[]>(() => {
-    // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
-    // (Room DB), независимо от режима. Если selectedRoomIds задан — берём
-    // их; если пусто — все Room орги.
-    //
-    // 2026-05-08 (вечер): по фидбеку — в матрицу попадают ТОЛЬКО помещения.
-    // Ответственные (уборщики С1/С2 + контролёр) больше не пустые строки в
-    // таблице — они вынесены в легенду под матрицей (см. responsibleLegend
-    // ниже + рендер `<section>` после `<table>`). Это убирает 3 ghost-строки,
-    // которые в реальной методичке СанПиН не существуют.
-    const allBuildingRoomIds = Array.from(dbRoomById.keys());
-    const selectedIds = config.selectedRoomIds ?? [];
-    const roomIds =
-      selectedIds.length > 0
-        ? selectedIds.filter((id) => dbRoomById.has(id))
-        : allBuildingRoomIds;
-    return roomIds.map((roomId) => {
-      const dbRoom = dbRoomById.get(roomId)!;
-      const room: CleaningRoomItem = {
-        id: roomId,
-        areaId: null,
-        name: dbRoom.name,
-        detergent: dbRoom.detergent ?? "",
-        currentScope: Array.isArray(dbRoom.currentScope)
-          ? (dbRoom.currentScope as string[])
-          : [],
-        generalScope: Array.isArray(dbRoom.generalScope)
-          ? (dbRoom.generalScope as string[])
-          : [],
-        currentDays:
-          typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,
-        generalDays:
-          typeof dbRoom.generalDays === "number" ? dbRoom.generalDays : 0,
-      };
-      return { id: roomId, kind: "room" as const, room };
-    });
-  }, [config.selectedRoomIds, dbRoomById]);
-
-  // Подписи ответственных под матрицей. В race-mode уборщики берутся из
-  // selectedCleanerUserIds; в pairs-mode — из config.cleaningResponsibles.
-  // Контролёр — всегда из config.controlResponsibles, без префикса «С».
+  // Подписи ответственных. Уборщики получают код «С1/С2/...», контролёр —
+  // префикс «К» (контролёр), а не «С» — он не уборщик. Старая логика
+  // ставила «С1» контролёру, что выглядело как ещё один уборщик и путало.
   const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
     if (
       isRoomsMode &&
@@ -546,7 +508,72 @@ export function CleaningDocumentClient(props: Props) {
     props.users,
   ]);
 
-  const controlResponsibleList = config.controlResponsibles;
+  // Контролёр(ы): для каждой записи присваиваем индивидуальный «К1/К2/...»,
+  // но НЕ перезаписываем существующий `code` — он мог быть выставлен
+  // вручную владельцем. Если код пуст — генерим. Это решает баг, когда
+  // у контролёра в матрице был «С1», как у первого уборщика.
+  const controlResponsibleList = useMemo<CleaningResponsible[]>(
+    () =>
+      config.controlResponsibles.map((resp, idx) => ({
+        ...resp,
+        code: resp.code && resp.code.trim().length > 0 ? resp.code : `К${idx + 1}`,
+      })),
+    [config.controlResponsibles],
+  );
+
+  const rows = useMemo<RowDescriptor[]>(() => {
+    // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
+    // (Room DB), независимо от режима. Если selectedRoomIds задан — берём
+    // их; если пусто — все Room орги.
+    //
+    // 2026-05-08 (поздний вечер): владелец вернул ответственных в матрицу
+    // (методичка ХАССП: журнал должен иметь подписи ответственных как
+    // строки, чтобы каждый день был «закреплён» за конкретным сотрудником).
+    // Префикс «К» для контролёра вместо «С1» — фикс из прошлой попытки,
+    // controlResponsibleList уже его проставляет.
+    const allBuildingRoomIds = Array.from(dbRoomById.keys());
+    const selectedIds = config.selectedRoomIds ?? [];
+    const roomIds =
+      selectedIds.length > 0
+        ? selectedIds.filter((id) => dbRoomById.has(id))
+        : allBuildingRoomIds;
+    const roomRows: RowDescriptor[] = roomIds.map((roomId) => {
+      const dbRoom = dbRoomById.get(roomId)!;
+      const room: CleaningRoomItem = {
+        id: roomId,
+        areaId: null,
+        name: dbRoom.name,
+        detergent: dbRoom.detergent ?? "",
+        currentScope: Array.isArray(dbRoom.currentScope)
+          ? (dbRoom.currentScope as string[])
+          : [],
+        generalScope: Array.isArray(dbRoom.generalScope)
+          ? (dbRoom.generalScope as string[])
+          : [],
+        currentDays:
+          typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,
+        generalDays:
+          typeof dbRoom.generalDays === "number" ? dbRoom.generalDays : 0,
+      };
+      return { id: roomId, kind: "room" as const, room };
+    });
+    const cleaningRows: RowDescriptor[] = cleaningResponsibleList.map((resp) => ({
+      id: resp.id,
+      kind: "cleaning" as const,
+      responsible: resp,
+    }));
+    const controlRows: RowDescriptor[] = controlResponsibleList.map((resp) => ({
+      id: resp.id,
+      kind: "control" as const,
+      responsible: resp,
+    }));
+    return [...roomRows, ...cleaningRows, ...controlRows];
+  }, [
+    config.selectedRoomIds,
+    dbRoomById,
+    cleaningResponsibleList,
+    controlResponsibleList,
+  ]);
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
   // может прочитать stale rows при быстром переключении.
@@ -1355,63 +1382,6 @@ export function CleaningDocumentClient(props: Props) {
                 </div>
               );
             })}
-            {/* Mobile-cards: легенда ответственных под списком помещений. */}
-            {cleaningResponsibleList.length > 0 ||
-            controlResponsibleList.length > 0 ? (
-              <div className="mt-1 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                  Ответственные
-                </div>
-                <div className="flex flex-col gap-2">
-                  {cleaningResponsibleList.map((resp) => (
-                    <button
-                      key={resp.id}
-                      type="button"
-                      disabled={props.status !== "active"}
-                      onClick={() =>
-                        setResponsibleDialog(
-                          buildResponsibleState("cleaning", resp),
-                        )
-                      }
-                      className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-left text-[13px] disabled:cursor-default"
-                    >
-                      <span className="rounded-md bg-[#eef1ff] px-2 py-0.5 text-[12px] font-semibold text-[#3848c7]">
-                        {resp.code}
-                      </span>
-                      <span className="flex-1 text-[#0b1024]">
-                        {resp.userName || "—"}
-                      </span>
-                      {props.status === "active" ? (
-                        <Pencil className="size-3.5 shrink-0 text-[#9b9fb3]" />
-                      ) : null}
-                    </button>
-                  ))}
-                  {controlResponsibleList.map((resp) => (
-                    <button
-                      key={resp.id}
-                      type="button"
-                      disabled={props.status !== "active"}
-                      onClick={() =>
-                        setResponsibleDialog(
-                          buildResponsibleState("control", resp),
-                        )
-                      }
-                      className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-left text-[13px] disabled:cursor-default"
-                    >
-                      <span className="rounded-md bg-[#f3eeff] px-2 py-0.5 text-[12px] font-semibold text-[#7a5cff]">
-                        Контролёр
-                      </span>
-                      <span className="flex-1 text-[#0b1024]">
-                        {resp.userName || "—"}
-                      </span>
-                      {props.status === "active" ? (
-                        <Pencil className="size-3.5 shrink-0 text-[#9b9fb3]" />
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -1510,88 +1480,6 @@ export function CleaningDocumentClient(props: Props) {
               </tr>;
             })}
           </tbody></table>
-
-          {/* Подписи ответственных — компактная легенда под матрицей.
-              По методичке СанПиН ответственные — это подпись/легенда, а
-              не строки в таблице. Уборщики получают код С1/С2/...,
-              контролёр — БЕЗ кода (он не уборщик), только подпись. */}
-          {cleaningResponsibleList.length > 0 ||
-          controlResponsibleList.length > 0 ? (
-            <section className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 print:border-black print:bg-white">
-              <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282] print:text-black">
-                Ответственные
-              </div>
-              <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                {cleaningResponsibleList.length > 0 ? (
-                  <div>
-                    <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3848c7] print:text-black">
-                      Уборщики
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {cleaningResponsibleList.map((resp) => (
-                        <button
-                          key={resp.id}
-                          type="button"
-                          disabled={printMode || props.status !== "active"}
-                          onClick={() =>
-                            setResponsibleDialog(
-                              buildResponsibleState("cleaning", resp),
-                            )
-                          }
-                          className="group inline-flex items-center gap-2 self-start rounded-xl px-2 py-1 text-left text-[14px] transition-colors hover:bg-white print:hover:bg-transparent disabled:cursor-default"
-                        >
-                          <span className="rounded-md bg-[#eef1ff] px-2 py-0.5 text-[12px] font-semibold text-[#3848c7] print:bg-transparent print:text-black">
-                            {resp.code}
-                          </span>
-                          <span className="text-[#0b1024]">
-                            {resp.userName || "—"}
-                          </span>
-                          {!printMode && props.status === "active" ? (
-                            <Pencil className="size-3.5 shrink-0 text-[#9b9fb3] opacity-0 transition-opacity group-hover:opacity-100" />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {controlResponsibleList.length > 0 ? (
-                  <div>
-                    <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a5cff] print:text-black">
-                      Контролёр
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {controlResponsibleList.map((resp) => (
-                        <button
-                          key={resp.id}
-                          type="button"
-                          disabled={printMode || props.status !== "active"}
-                          onClick={() =>
-                            setResponsibleDialog(
-                              buildResponsibleState("control", resp),
-                            )
-                          }
-                          className="group inline-flex items-center gap-2 self-start rounded-xl px-2 py-1 text-left text-[14px] transition-colors hover:bg-white print:hover:bg-transparent disabled:cursor-default"
-                        >
-                          <span className="text-[#0b1024]">
-                            {resp.userName || "—"}
-                          </span>
-                          {resp.title ? (
-                            <span className="text-[12px] text-[#6f7282]">
-                              · {resp.title}
-                            </span>
-                          ) : null}
-                          {!printMode && props.status === "active" ? (
-                            <Pencil className="size-3.5 shrink-0 text-[#9b9fb3] opacity-0 transition-opacity group-hover:opacity-100" />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-
           <div className="space-y-2 text-[18px] italic">{Array.from(new Set(config.legend)).map((item) => <div key={item}>{item}</div>)}</div>
           <table className="w-full border-collapse text-[16px]"><thead><tr><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Текущая уборка</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id}><td className="border border-black p-3">{room.name}</td><td className="border border-black p-3">{room.currentScope.join(", ")}</td><td className="border border-black p-3">{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
         </div></div>
