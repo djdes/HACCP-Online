@@ -21,6 +21,22 @@ const UpdateSchema = z.object({
   generalScope: z.array(z.string().max(300)).max(50).optional(),
   currentDays: z.number().int().min(0).max(127).optional(),
   generalDays: z.number().int().min(0).max(127).optional(),
+  // 2026-05-08+ schedule-type per scope + monthly day list.
+  currentScheduleType: z.enum(["weekly", "monthly"]).optional(),
+  generalScheduleType: z.enum(["weekly", "monthly"]).optional(),
+  currentMonthDays: z
+    .array(
+      z.union([z.string().regex(/^([1-9]|[12][0-9]|3[01]|last)$/), z.literal("last")]),
+    )
+    .max(31)
+    .optional(),
+  generalMonthDays: z
+    .array(
+      z.union([z.string().regex(/^([1-9]|[12][0-9]|3[01]|last)$/), z.literal("last")]),
+    )
+    .max(31)
+    .optional(),
+  requirePhoto: z.boolean().optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -96,6 +112,21 @@ export async function PATCH(request: Request, ctx: Ctx) {
         : {}),
       ...(body.generalDays !== undefined
         ? { generalDays: body.generalDays }
+        : {}),
+      ...(body.currentScheduleType !== undefined
+        ? { currentScheduleType: body.currentScheduleType }
+        : {}),
+      ...(body.generalScheduleType !== undefined
+        ? { generalScheduleType: body.generalScheduleType }
+        : {}),
+      ...(body.currentMonthDays !== undefined
+        ? { currentMonthDays: [...new Set(body.currentMonthDays)] }
+        : {}),
+      ...(body.generalMonthDays !== undefined
+        ? { generalMonthDays: [...new Set(body.generalMonthDays)] }
+        : {}),
+      ...(body.requirePhoto !== undefined
+        ? { requirePhoto: body.requirePhoto }
         : {}),
     },
   });

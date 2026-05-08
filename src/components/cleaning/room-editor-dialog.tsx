@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ScopeListEditor,
   WeekdayMaskPicker,
+  MonthDaysPicker,
 } from "@/components/cleaning/scope-and-schedule-editors";
 
 const KIND_OPTIONS: Array<{ value: string; label: string }> = [
@@ -48,6 +49,12 @@ export type RoomEditorInitial = {
   generalScope: string[];
   currentDays: number;
   generalDays: number;
+  // 2026-05-08+ rich schedule + photo
+  currentScheduleType?: "weekly" | "monthly";
+  generalScheduleType?: "weekly" | "monthly";
+  currentMonthDays?: string[];
+  generalMonthDays?: string[];
+  requirePhoto?: boolean;
 };
 
 type Props = {
@@ -73,6 +80,21 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
   const [generalDays, setGeneralDays] = useState<number>(
     initial?.generalDays ?? 0,
   );
+  const [currentScheduleType, setCurrentScheduleType] = useState<
+    "weekly" | "monthly"
+  >(initial?.currentScheduleType ?? "weekly");
+  const [generalScheduleType, setGeneralScheduleType] = useState<
+    "weekly" | "monthly"
+  >(initial?.generalScheduleType ?? "weekly");
+  const [currentMonthDays, setCurrentMonthDays] = useState<string[]>(
+    initial?.currentMonthDays ?? [],
+  );
+  const [generalMonthDays, setGeneralMonthDays] = useState<string[]>(
+    initial?.generalMonthDays ?? [],
+  );
+  const [requirePhoto, setRequirePhoto] = useState<boolean>(
+    initial?.requirePhoto ?? false,
+  );
   const [saving, setSaving] = useState(false);
 
   // Reset form on initial change (when dialog re-opens for другое помещение)
@@ -85,6 +107,11 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
     setGeneralScope(initial?.generalScope ?? []);
     setCurrentDays(initial?.currentDays ?? 127);
     setGeneralDays(initial?.generalDays ?? 0);
+    setCurrentScheduleType(initial?.currentScheduleType ?? "weekly");
+    setGeneralScheduleType(initial?.generalScheduleType ?? "weekly");
+    setCurrentMonthDays(initial?.currentMonthDays ?? []);
+    setGeneralMonthDays(initial?.generalMonthDays ?? []);
+    setRequirePhoto(initial?.requirePhoto ?? false);
   });
 
   async function save() {
@@ -110,6 +137,11 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
             .filter((s) => s.length > 0),
           currentDays,
           generalDays,
+          currentScheduleType,
+          generalScheduleType,
+          currentMonthDays,
+          generalMonthDays,
+          requirePhoto,
         }),
       });
       if (!res.ok) {
@@ -177,6 +209,25 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                 />
               </div>
 
+              <label className="flex items-start gap-3 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 cursor-pointer transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]">
+                <input
+                  type="checkbox"
+                  checked={requirePhoto}
+                  onChange={(e) => setRequirePhoto(e.target.checked)}
+                  className="mt-0.5 size-4 cursor-pointer accent-[#5566f6]"
+                />
+                <div className="flex-1">
+                  <div className="text-[14px] font-semibold text-[#0b1024]">
+                    📸 Требовать фото на каждом шаге
+                  </div>
+                  <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                    Когда включено, уборщица не сможет нажать «Сделал» в TasksFlow
+                    без загрузки фотографии. Это превращает заполнение из «галочки»
+                    в реальный evidence-trail для проверок РПН.
+                  </p>
+                </div>
+              </label>
+
               <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -198,14 +249,58 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                   addLabel="Добавить шаг текущей уборки"
                   emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
                 />
-                <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
-                  <Label className="text-[12px] font-medium text-[#3c4053]">
-                    Дни проведения текущей уборки
-                  </Label>
-                  <p className="text-[11px] leading-[1.45] text-[#6f7282]">
-                    На сером фоне в матрице будут подсвечены дни, когда уборка должна проводиться.
-                  </p>
-                  <WeekdayMaskPicker value={currentDays} onChange={setCurrentDays} />
+                <div className="space-y-2 border-t border-[#ececf4] pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[12px] font-medium text-[#3c4053]">
+                      Когда проводить
+                    </Label>
+                    <div className="inline-flex rounded-xl border border-[#dcdfed] bg-white p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentScheduleType("weekly")}
+                        className={`rounded-lg px-3 py-1 text-[11px] font-medium transition-colors ${
+                          currentScheduleType === "weekly"
+                            ? "bg-[#5566f6] text-white"
+                            : "text-[#3c4053] hover:bg-[#f5f6ff]"
+                        }`}
+                      >
+                        Каждую неделю
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentScheduleType("monthly")}
+                        className={`rounded-lg px-3 py-1 text-[11px] font-medium transition-colors ${
+                          currentScheduleType === "monthly"
+                            ? "bg-[#5566f6] text-white"
+                            : "text-[#3c4053] hover:bg-[#f5f6ff]"
+                        }`}
+                      >
+                        По датам месяца
+                      </button>
+                    </div>
+                  </div>
+                  {currentScheduleType === "weekly" ? (
+                    <>
+                      <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                        Уборка повторяется каждую неделю в выбранные дни.
+                      </p>
+                      <WeekdayMaskPicker
+                        value={currentDays}
+                        onChange={setCurrentDays}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                        Выберите конкретные числа месяца. Подходит для нерегулярного
+                        графика — например «1 и 15» или «последний день месяца».
+                      </p>
+                      <MonthDaysPicker
+                        value={currentMonthDays}
+                        onChange={setCurrentMonthDays}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -230,14 +325,58 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                   addLabel="Добавить шаг генеральной уборки"
                   emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."
                 />
-                <div className="space-y-1.5 border-t border-[#ececf4] pt-3">
-                  <Label className="text-[12px] font-medium text-[#3c4053]">
-                    Дни проведения генеральной уборки
-                  </Label>
-                  <p className="text-[11px] leading-[1.45] text-[#6f7282]">
-                    Обычно — раз в неделю. Например, только Сб или только Пн.
-                  </p>
-                  <WeekdayMaskPicker value={generalDays} onChange={setGeneralDays} />
+                <div className="space-y-2 border-t border-[#ececf4] pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[12px] font-medium text-[#3c4053]">
+                      Когда проводить
+                    </Label>
+                    <div className="inline-flex rounded-xl border border-[#dcdfed] bg-white p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setGeneralScheduleType("weekly")}
+                        className={`rounded-lg px-3 py-1 text-[11px] font-medium transition-colors ${
+                          generalScheduleType === "weekly"
+                            ? "bg-[#5566f6] text-white"
+                            : "text-[#3c4053] hover:bg-[#f5f6ff]"
+                        }`}
+                      >
+                        Каждую неделю
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGeneralScheduleType("monthly")}
+                        className={`rounded-lg px-3 py-1 text-[11px] font-medium transition-colors ${
+                          generalScheduleType === "monthly"
+                            ? "bg-[#5566f6] text-white"
+                            : "text-[#3c4053] hover:bg-[#f5f6ff]"
+                        }`}
+                      >
+                        По датам месяца
+                      </button>
+                    </div>
+                  </div>
+                  {generalScheduleType === "weekly" ? (
+                    <>
+                      <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                        Обычно — раз в неделю. Например, только Сб или только Пн.
+                      </p>
+                      <WeekdayMaskPicker
+                        value={generalDays}
+                        onChange={setGeneralDays}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[11px] leading-[1.45] text-[#6f7282]">
+                        Удобно для генералки «раз в месяц последнего числа» или
+                        конкретных дат — выбери число и/или «Последний день месяца».
+                      </p>
+                      <MonthDaysPicker
+                        value={generalMonthDays}
+                        onChange={setGeneralMonthDays}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             </div>

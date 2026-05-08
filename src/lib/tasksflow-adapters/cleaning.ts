@@ -430,6 +430,7 @@ async function buildRoomCleaningFormFromDb(args: {
       detergent: true,
       currentScope: true,
       generalScope: true,
+      requirePhoto: true,
     },
   });
   // Source 2: config.rooms[i] — legacy fallback (pairs-mode docs).
@@ -506,6 +507,7 @@ async function buildRoomCleaningFormFromDb(args: {
   // Если шагов нет — pipeline=[1 confirmation step] чтобы worker всё-таки
   // увидел инструкцию + кнопку «Сделал».
   if (scopeSteps.length === 0) {
+    const requirePhoto = dbRoom?.requirePhoto === true;
     return {
       intro,
       fields: [],
@@ -516,12 +518,14 @@ async function buildRoomCleaningFormFromDb(args: {
           detail: detergent
             ? `Сделай ${cleanLabel.toLowerCase()} в помещении «${roomName}» с использованием «${detergent}». Подтверди по факту.`
             : `Сделай ${cleanLabel.toLowerCase()} в помещении «${roomName}». Подтверди по факту.`,
+          ...(requirePhoto ? { photoMode: "required" as const } : {}),
         },
       ],
       submitLabel: "Готово",
     };
   }
 
+  const requirePhoto = dbRoom?.requirePhoto === true;
   return {
     intro,
     fields: [],
@@ -529,6 +533,7 @@ async function buildRoomCleaningFormFromDb(args: {
       id: `step-${idx + 1}`,
       title: step,
       detail: `Шаг ${idx + 1} из ${scopeSteps.length}. После выполнения нажми «Сделал».`,
+      ...(requirePhoto ? { photoMode: "required" as const } : {}),
     })),
     submitLabel: "Готово",
   };

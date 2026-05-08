@@ -260,6 +260,23 @@ model Room {
   generalScope  Json     @default("[]")
   currentDays   Int      @default(127)
   generalDays   Int      @default(0)
+  /// 2026-05-08+: тип расписания per-scope. "weekly" — currentDays/
+  /// generalDays bitmask повторяется каждую неделю. "monthly" —
+  /// currentMonthDays/generalMonthDays массив конкретных дней месяца
+  /// (включая special-токен "last" = последний день месяца). Это даёт
+  /// гибкость для генеральной уборки «раз в месяц последнего числа»
+  /// или «1 и 15». Дефолт "weekly" для совместимости.
+  currentScheduleType String @default("weekly")
+  generalScheduleType String @default("weekly")
+  /// Json string[]: ["1", "15", "last"] и т.п. Применяется когда
+  /// currentScheduleType / generalScheduleType == "monthly".
+  currentMonthDays    Json   @default("[]")
+  generalMonthDays    Json   @default("[]")
+  /// 2026-05-08+: если true, в pipeline-шагах TasksFlow на каждом
+  /// шаге включается photoMode='required'. Уборщица не может нажать
+  /// «Сделал» без загрузки фото. Per-Room — все scope-шаги этой
+  /// комнаты обязательно требуют фото.
+  requirePhoto  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

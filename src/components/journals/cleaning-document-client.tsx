@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   applyCleaningAutoFillToConfig,
   applyRoomScheduleToMatrix,
+  type RoomScheduleFromDb,
   CLEANING_DOCUMENT_TITLE,
   CLEANING_PAGE_TITLE,
   createCleaningResponsibleRow,
@@ -98,6 +99,11 @@ type Props = {
       generalScope?: string[];
       currentDays?: number;
       generalDays?: number;
+      currentScheduleType?: "weekly" | "monthly";
+      generalScheduleType?: "weekly" | "monthly";
+      currentMonthDays?: string[];
+      generalMonthDays?: string[];
+      requirePhoto?: boolean;
     }>;
   }>;
   /**
@@ -286,7 +292,7 @@ export function CleaningDocumentClient(props: Props) {
   const [scheduleApplyOpen, setScheduleApplyOpen] = useState(false);
   const [scheduleApplyMode, setScheduleApplyMode] = useState<"fill-empty" | "overwrite">("fill-empty");
   async function applySchedulePlan(mode: "fill-empty" | "overwrite") {
-    const next = applyRoomScheduleToMatrix(config, dayKeys, mode);
+    const next = applyRoomScheduleToMatrix(config, dayKeys, mode, dbScheduleMap);
     await patchDocument(next);
     const planned = next.rooms.reduce((acc, room) => {
       const row = next.matrix[room.id] ?? {};
@@ -382,9 +388,8 @@ export function CleaningDocumentClient(props: Props) {
   }, [props.buildings]);
 
   // Cleaning unification: подгружаем полные Room-объекты (scope/days/
-  // detergent) для rooms-mode. Эти данные с 2026-05-08 живут на Room в
-  // БД и являются source of truth — config.rooms[] остаётся только для
-  // pairs-mode legacy.
+  // detergent + scheduleType/monthDays/requirePhoto) для rooms-mode.
+  // Source of truth с 2026-05-08 — Room в БД, не config.rooms[].
   const dbRoomById = useMemo(() => {
     const m = new Map<
       string,
@@ -397,6 +402,11 @@ export function CleaningDocumentClient(props: Props) {
         generalScope?: string[];
         currentDays?: number;
         generalDays?: number;
+        currentScheduleType?: "weekly" | "monthly";
+        generalScheduleType?: "weekly" | "monthly";
+        currentMonthDays?: string[];
+        generalMonthDays?: string[];
+        requirePhoto?: boolean;
       }
     >();
     (props.buildings ?? []).forEach((b) =>
@@ -404,6 +414,23 @@ export function CleaningDocumentClient(props: Props) {
     );
     return m;
   }, [props.buildings]);
+
+  // Map с полным расписанием для applyRoomScheduleToMatrix.
+  const dbScheduleMap = useMemo(() => {
+    const m = new Map<string, RoomScheduleFromDb>();
+    dbRoomById.forEach((r, id) => {
+      m.set(id, {
+        id,
+        currentDays: r.currentDays,
+        generalDays: r.generalDays,
+        currentScheduleType: r.currentScheduleType,
+        generalScheduleType: r.generalScheduleType,
+        currentMonthDays: r.currentMonthDays,
+        generalMonthDays: r.generalMonthDays,
+      });
+    });
+    return m;
+  }, [dbRoomById]);
   const userInitialsById = useMemo(() => {
     const m = new Map<string, string>();
     props.users.forEach((u) => {
@@ -833,7 +860,12 @@ export function CleaningDocumentClient(props: Props) {
     // (config.rooms содержит entries для selectedRoomIds после первого
     // редактирования через диалог).
     if (props.status === "active") {
-      nextConfig = applyRoomScheduleToMatrix(nextConfig, dayKeys, "fill-empty");
+      nextConfig = applyRoomScheduleToMatrix(
+        nextConfig,
+        dayKeys,
+        "fill-empty",
+        dbScheduleMap,
+      );
     }
     setRoomDialog(null);
 

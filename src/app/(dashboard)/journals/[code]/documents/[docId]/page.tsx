@@ -971,13 +971,16 @@ export default async function JournalDocumentPage({
             kind: true,
             // Cleaning unification: scope/days/detergent теперь живут на Room
             // (см. docs/superpowers/specs/2026-05-08-cleaning-unification.md).
-            // Передаём в client чтобы rows builder использовал их в rooms-mode
-            // вместо config.rooms[i].
             detergent: true,
             currentScope: true,
             generalScope: true,
             currentDays: true,
             generalDays: true,
+            currentScheduleType: true,
+            generalScheduleType: true,
+            currentMonthDays: true,
+            generalMonthDays: true,
+            requirePhoto: true,
           },
         },
       },
@@ -1014,6 +1017,21 @@ export default async function JournalDocumentPage({
               : [],
             currentDays: r.currentDays,
             generalDays: r.generalDays,
+            currentScheduleType:
+              r.currentScheduleType === "monthly" ? "monthly" : "weekly",
+            generalScheduleType:
+              r.generalScheduleType === "monthly" ? "monthly" : "weekly",
+            currentMonthDays: Array.isArray(r.currentMonthDays)
+              ? (r.currentMonthDays as string[]).filter(
+                  (s) => typeof s === "string",
+                )
+              : [],
+            generalMonthDays: Array.isArray(r.generalMonthDays)
+              ? (r.generalMonthDays as string[]).filter(
+                  (s) => typeof s === "string",
+                )
+              : [],
+            requirePhoto: r.requirePhoto === true,
           })),
         }))}
         config={normalizeCleaningDocumentConfig(document.config)}

@@ -1523,10 +1523,25 @@ export function applyWeekendHolidayMark(
  * Sun-first JS dayOfWeek (Date.getUTCDay) → Mon-first index через
  * `+6 % 7` (см. weekday-mask.ts/jsDayOfWeekToMondayIndex).
  */
+export type RoomScheduleFromDb = {
+  id: string;
+  currentDays?: number;
+  generalDays?: number;
+  currentScheduleType?: "weekly" | "monthly";
+  generalScheduleType?: "weekly" | "monthly";
+  /** Список дней месяца ["1", "15", "last"] когда применяется monthly. */
+  currentMonthDays?: string[];
+  generalMonthDays?: string[];
+};
+
 export function applyRoomScheduleToMatrix(
   config: CleaningDocumentConfig,
   dateKeys: string[],
   mode: "fill-empty" | "overwrite" = "fill-empty",
+  /** Cleaning unification 2026-05-08: расписание в rooms-mode хранится
+   *  в Room (DB), не в config.rooms. Если caller передаёт map dbRooms —
+   *  они приоритетны для определения plan'a (scheduleType + monthDays). */
+  dbRooms?: Map<string, RoomScheduleFromDb>,
 ): CleaningDocumentConfig {
   const next = cloneConfig(config);
   // В overwrite-режиме («План заново») — выходные/праздники по умолчанию
@@ -1554,27 +1569,69 @@ export function applyRoomScheduleToMatrix(
   }
 
   for (const room of schedulable) {
-    const currentMask = typeof room.currentDays === "number" ? room.currentDays : 127;
-    const generalMask = typeof room.generalDays === "number" ? room.generalDays : 0;
+    // Cleaning unification: предпочитаем Room (DB) если caller её передал.
+    const dbRoom = dbRooms?.get(room.id);
+    const currentMask = typeof (dbRoom?.currentDays ?? room.currentDays) === "number"
+      ? (dbRoom?.currentDays ?? room.currentDays ?? 127)
+      : 127;
+    const generalMask = typeof (dbRoom?.generalDays ?? room.generalDays) === "number"
+      ? (dbRoom?.generalDays ?? room.generalDays ?? 0)
+      : 0;
+    const currentScheduleType = dbRoom?.currentScheduleType ?? "weekly";
+    const generalScheduleType = dbRoom?.generalScheduleType ?? "weekly";
+    const currentMonthDaysSet = new Set(dbRoom?.currentMonthDays ?? []);
+    const generalMonthDaysSet = new Set(dbRoom?.generalMonthDays ?? []);
     const row = next.matrix[room.id] ? { ...next.matrix[room.id] } : {};
     for (const dateKey of dateKeys) {
       const date = new Date(`${dateKey}T00:00:00Z`);
       const jsDow = date.getUTCDay();
       const mondayIdx = (jsDow + 6) % 7;
       const bit = 1 << mondayIdx;
+      const dayOfMonth = date.getUTCDate();
+      // Last day of month detection — точно если у даты UTC это последний
+      // календарный день.
+      const lastDayOfThisMonth = new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+      ).getUTCDate();
+      const isLastDay = dayOfMonth === lastDayOfThisMonth;
+
+      function matchesSchedule(
+        scheduleType: "weekly" | "monthly",
+        weeklyMask: number,
+        monthDaysSet: Set<string>,
+      ): boolean {
+        if (scheduleType === "monthly") {
+          if (monthDaysSet.has(String(dayOfMonth))) return true;
+          if (isLastDay && monthDaysSet.has("last")) return true;
+          return false;
+        }
+        // weekly
+        return (weeklyMask & bit) !== 0;
+      }
+
       // Generalная имеет приоритет над текущей: если день в обоих
       // масках — пишем G, иначе T. Если день — выходной/праздник
       // и mode=overwrite — пишем «/». Иначе пусто.
       let plan: CleaningMatrixValue = "";
       const dayKind = getCalendarDayKind(dateKey).kind;
       const isNonWorkingDay = dayKind === "weekend" || dayKind === "holiday";
+      const generalMatch = matchesSchedule(
+        generalScheduleType,
+        generalMask,
+        generalMonthDaysSet,
+      );
+      const currentMatch = matchesSchedule(
+        currentScheduleType,
+        currentMask,
+        currentMonthDaysSet,
+      );
       // План: general > current > /-на-выходных (только overwrite). Если
       // менеджер явно поставил Sat в generalMask — Sat остаётся G, потому
       // что это его осознанный выбор. Если Sat НЕ в маске — выходной по
       // календарю → «/».
-      if ((generalMask & bit) !== 0) {
+      if (generalMatch) {
         plan = "G";
-      } else if ((currentMask & bit) !== 0) {
+      } else if (currentMatch) {
         plan = "T";
       } else if (mode === "overwrite" && isNonWorkingDay) {
         plan = "/" as CleaningMatrixValue;

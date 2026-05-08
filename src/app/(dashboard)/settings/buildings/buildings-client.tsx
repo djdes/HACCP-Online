@@ -22,6 +22,11 @@ type Room = {
   generalScope?: unknown;
   currentDays?: number;
   generalDays?: number;
+  currentScheduleType?: string;
+  generalScheduleType?: string;
+  currentMonthDays?: unknown;
+  generalMonthDays?: unknown;
+  requirePhoto?: boolean;
 };
 type Building = {
   id: string;
@@ -66,6 +71,21 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
         : [],
       currentDays: typeof room.currentDays === "number" ? room.currentDays : 127,
       generalDays: typeof room.generalDays === "number" ? room.generalDays : 0,
+      currentScheduleType:
+        room.currentScheduleType === "monthly" ? "monthly" : "weekly",
+      generalScheduleType:
+        room.generalScheduleType === "monthly" ? "monthly" : "weekly",
+      currentMonthDays: Array.isArray(room.currentMonthDays)
+        ? (room.currentMonthDays as string[]).filter(
+            (s) => typeof s === "string",
+          )
+        : [],
+      generalMonthDays: Array.isArray(room.generalMonthDays)
+        ? (room.generalMonthDays as string[]).filter(
+            (s) => typeof s === "string",
+          )
+        : [],
+      requirePhoto: room.requirePhoto === true,
     });
   }
 

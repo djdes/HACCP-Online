@@ -243,6 +243,78 @@ export function ScopeListEditor(props: {
   );
 }
 
+/**
+ * Picker для monthly-расписания: грид 1-31 + спец-чип «Последний день месяца».
+ * Хранится как string[] (числа стрингифицированы для гомогенности с "last").
+ *
+ * Cleaning unification stage 2026-05-08+: позволяет настроить уборку
+ * например «1, 15, last» (раз-другой в месяц + последний день).
+ */
+export function MonthDaysPicker(props: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const set = new Set(props.value);
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
+  function toggle(day: string) {
+    const next = new Set(set);
+    if (next.has(day)) next.delete(day);
+    else next.add(day);
+    props.onChange([...next].sort((a, b) => {
+      if (a === "last") return 1;
+      if (b === "last") return -1;
+      return Number(a) - Number(b);
+    }));
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-7 gap-1.5">
+        {days.map((day) => {
+          const isOn = set.has(day);
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => toggle(day)}
+              className={`flex h-9 items-center justify-center rounded-xl border text-[12px] font-medium tabular-nums transition-colors ${
+                isOn
+                  ? "border-[#5566f6] bg-[#5566f6] text-white shadow-[0_4px_12px_-6px_rgba(85,102,246,0.55)]"
+                  : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              }`}
+              aria-pressed={isOn}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => toggle("last")}
+        aria-pressed={set.has("last")}
+        className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-colors ${
+          set.has("last")
+            ? "border-[#a16d32] bg-[#fff8eb] text-[#a16d32]"
+            : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#a16d32]/40 hover:bg-[#fff8eb]/40"
+        }`}
+      >
+        ⭐ Последний день месяца
+      </button>
+      {props.value.length > 0 ? (
+        <div className="text-[11px] text-[#6f7282]">
+          Выбрано: {props.value.length} {props.value.length === 1 ? "день" : "дня/дней"} в каждом месяце
+        </div>
+      ) : (
+        <div className="text-[11px] text-[#a13a32]">
+          Не выбрано ни одного дня — расписание не сработает.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WeekdayMaskPicker(props: {
   value: number;
   onChange: (next: number) => void;
