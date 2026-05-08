@@ -21,6 +21,7 @@ import {
   PartyPopper,
   Plug,
   Rocket,
+  ChevronDown,
   ScrollText,
   Send,
   ShieldCheck,
@@ -879,9 +880,10 @@ function PhaseCard({
             connector: "bg-[#dcdfed]",
           };
 
-  // Пройденные этапы свёрнуты, активные и заблокированные раскрыты,
-  // чтобы пользователь видел что ждёт впереди.
-  const expanded = status !== "complete";
+  // Завершённые этапы свёрнуты по умолчанию, но раскрываются кликом
+  // (нативный <details>). Активные и заблокированные раскрыты сразу.
+  const defaultOpen = status !== "complete";
+  const hasContent = phase.items.length > 0 || phase.finalNode;
 
   return (
     <li className="relative">
@@ -905,8 +907,15 @@ function PhaseCard({
         </div>
 
         {/* Body */}
-        <div className={`flex-1 rounded-3xl border p-5 ${tone.card}`}>
-          <div className="flex items-start gap-4">
+        <details
+          open={defaultOpen}
+          className={`group flex-1 rounded-3xl border p-5 ${tone.card}`}
+        >
+          <summary
+            className={`flex items-start gap-4 list-none [&::-webkit-details-marker]:hidden ${
+              hasContent ? "cursor-pointer" : "cursor-default"
+            }`}
+          >
             <span
               className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${tone.iconBg} ${tone.iconClr}`}
             >
@@ -939,14 +948,21 @@ function PhaseCard({
                     {requiredDone}/{required.length}
                   </span>
                 ) : null}
+                {hasContent ? (
+                  <ChevronDown
+                    className={`ml-auto size-4 transition-transform group-open:rotate-180 ${
+                      status === "complete" ? "text-[#136b2a]" : "text-[#9b9fb3]"
+                    }`}
+                  />
+                ) : null}
               </div>
               <p className="mt-1.5 text-[13px] leading-relaxed text-[#6f7282]">
                 {phase.subtitle}
               </p>
             </div>
-          </div>
+          </summary>
 
-          {expanded && phase.items.length > 0 ? (
+          {phase.items.length > 0 ? (
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {phase.items.map((item) => (
                 <SetupCard key={item.title} item={item} />
@@ -954,10 +970,10 @@ function PhaseCard({
             </div>
           ) : null}
 
-          {expanded && phase.finalNode ? (
+          {phase.finalNode ? (
             <div className="mt-5">{phase.finalNode}</div>
           ) : null}
-        </div>
+        </details>
       </div>
     </li>
   );
