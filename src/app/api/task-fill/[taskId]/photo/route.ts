@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import crypto from "crypto";
 import { db } from "@/lib/db";
@@ -108,6 +108,11 @@ export async function POST(
   const uploadDir = join(process.cwd(), "public", "uploads");
   const filepath = join(uploadDir, filename);
   try {
+    // mkdir recursive — на свежем deploy папки `public/uploads` может не
+    // быть (next build её не создаёт сам). Раньше юзер видел «Не
+    // удалось сохранить файл» с ENOENT в логах. recursive: true идемпотентно
+    // и быстро (<1ms если уже существует).
+    await mkdir(uploadDir, { recursive: true });
     await writeFile(filepath, buffer);
   } catch (err) {
     console.error("[task-fill/photo] write failed", err);
