@@ -182,6 +182,7 @@ export type UserCandidate = {
   group: CandidateGroup;
   reason?: string;
   tier: number; // 0..3
+  alreadyInOtherSlot?: boolean;
 };
 
 type UserPickerProps = {
@@ -463,6 +464,14 @@ function UserPickerGroup({
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
+              {c.alreadyInOtherSlot ? (
+                <span
+                  title="Этот сотрудник уже назначен в другом слоте этого журнала"
+                  className="rounded-full bg-[#eef1ff] px-1.5 py-0.5 text-[10px] font-medium text-[#3848c7]"
+                >
+                  уже в др. слоте
+                </span>
+              ) : null}
               {c.monthlyLoad > 0 ? (
                 <span
                   title="Текущая месячная нагрузка по всем журналам"
@@ -861,6 +870,7 @@ export function JournalResponsiblesClient({
         group,
         reason,
         tier: userTier(u),
+        alreadyInOtherSlot: usedIds.has(u.id),
       };
     }
 
@@ -869,7 +879,6 @@ export function JournalResponsiblesClient({
     const notRecommended: UserCandidate[] = [];
 
     for (const u of users) {
-      if (usedIds.has(u.id)) continue;
 
       const t = userTier(u);
       const kw = matchesKeywords(u);
