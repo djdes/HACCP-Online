@@ -37,6 +37,20 @@ export type CleaningActivityEntry = {
 
 export type CleaningEntryData = {
   activities: CleaningActivityEntry[];
+  /**
+   * Поля для room-completion entries, которые пишет
+   * `tasksflow-adapters/cleaning.ts` когда уборщица закрывает race-задачу.
+   * Используются клиентом в `cellValue` чтобы отобразить код уборщика
+   * (С1/С2/...) в ячейке matrix вместо planned-значения T/G.
+   *
+   * Старые legacy-entries (записи активностей) этих полей не имеют —
+   * `kind` undefined → клиент их игнорирует и читает planned matrix.
+   */
+  kind?: "cleaning_room";
+  roomId?: string;
+  dateKey?: string;
+  cleanerUserId?: string;
+  completedAt?: string;
 };
 
 export type CleaningResponsibleKind = "cleaning" | "control";
@@ -1171,7 +1185,21 @@ export function normalizeCleaningEntryData(value: unknown): CleaningEntryData {
         }))
     : [];
 
-  return { activities };
+  const result: CleaningEntryData = { activities };
+
+  // Сохраняем поля room-completion, чтобы клиент мог отрисовать
+  // С1/С2 в ячейке matrix. См. CleaningEntryData выше.
+  if (record.kind === "cleaning_room") {
+    result.kind = "cleaning_room";
+    if (typeof record.roomId === "string") result.roomId = record.roomId;
+    if (typeof record.dateKey === "string") result.dateKey = record.dateKey;
+    if (typeof record.cleanerUserId === "string")
+      result.cleanerUserId = record.cleanerUserId;
+    if (typeof record.completedAt === "string")
+      result.completedAt = record.completedAt;
+  }
+
+  return result;
 }
 
 export function getDefaultCleaningResponsibleIds(users: Array<{ id: string; role: string }>) {
