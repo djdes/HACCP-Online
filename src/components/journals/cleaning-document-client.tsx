@@ -701,9 +701,11 @@ export function CleaningDocumentClient(props: Props) {
     setCellSelectMode(true);
   }
 
-  /** Значение ячейки. В rooms-mode — инициалы cleaner-а из
-   *  JournalDocumentEntry с kind=cleaning_room. В pairs-mode — старая
-   *  config.matrix логика. */
+  /** Значение ячейки. Для rooms-mode комнат: сначала ищем completion
+   *  в JournalDocumentEntry (cleaner закрыл TF-задачу → инициалы),
+   *  если нет completion — fallback на planned matrix value (T/G/«/»),
+   *  чтобы админ мог планировать в матрице как и раньше. В pairs-mode
+   *  и для responsible-rows работает только matrix. */
   function cellValue(row: RowDescriptor, dateKey: string): string {
     if (!isRoomsMode || row.kind !== "room") {
       return config.matrix[row.id]?.[dateKey] || "";
@@ -719,7 +721,8 @@ export function CleaningDocumentClient(props: Props) {
         return userInitialsById.get(cleanerId) ?? "";
       }
     }
-    return "";
+    // Нет completion — показываем planned значение из matrix.
+    return config.matrix[row.id]?.[dateKey] || "";
   }
 
   useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
@@ -891,12 +894,13 @@ export function CleaningDocumentClient(props: Props) {
 
   async function updateCell(row: RowDescriptor, dateKey: string) {
     if (props.status !== "active") return;
-    // В rooms-mode ячейки read-only — заполняются TasksFlow webhook'ом
-    // когда уборщик закрывает свою задачу. Прямой клик игнорируем.
-    if (isRoomsMode) return;
     // В режиме выделения клик игнорируется — drag-handlers (mousedown +
     // mouseenter) добавляют/убирают ячейки в selection.
     if (cellSelectMode) return;
+    // В rooms-mode респонсибл-строк нет, но если каким-то образом сюда
+    // зашла не-room — игнорируем (responsible-rows не существуют в
+    // rooms-mode rows).
+    if (isRoomsMode && row.kind !== "room") return;
     const currentValue = config.matrix[row.id]?.[dateKey] || "";
     const nextValue = row.kind === "room" ? toggleCleaningMatrixValue(currentValue) : currentValue ? "" : row.responsible.code;
     await patchDocument(setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }));
@@ -907,9 +911,13 @@ export function CleaningDocumentClient(props: Props) {
    * room-rows). Не требует выделения. Использует production calendar.
    */
   async function bulkSetHolidaysAndWeekends(value: CleaningMatrixValue) {
-    if (props.status !== "active" || isRoomsMode) return;
-    const rooms = config.rooms;
-    if (rooms.length === 0) return;
+    if (props.status !== "active") return;
+    // Источник списка room id'ов: pairs-mode → config.rooms,
+    // rooms-mode → selectedRoomIds + buildings name lookup.
+    const roomIds = isRoomsMode
+      ? (config.selectedRoomIds ?? [])
+      : config.rooms.map((r) => r.id);
+    if (roomIds.length === 0) return;
     const offDays = dayKeys.filter((dk) => {
       const k = getCalendarDayKind(dk).kind;
       return k === "weekend" || k === "holiday";
@@ -920,11 +928,11 @@ export function CleaningDocumentClient(props: Props) {
     }
     let nextConfig = config;
     let cellsUpdated = 0;
-    for (const room of rooms) {
+    for (const roomId of roomIds) {
       for (const dateKey of offDays) {
         nextConfig = setCleaningMatrixValue({
           config: nextConfig,
-          rowId: room.id,
+          rowId: roomId,
           dateKey,
           value,
         });
@@ -935,7 +943,7 @@ export function CleaningDocumentClient(props: Props) {
       await patchDocument(nextConfig);
       const action = value === "/" ? "помечены «Не проводилась»" : value === "" ? "очищены" : "обновлены";
       toast.success(
-        `Выходных и праздников: ${offDays.length} дн. × ${rooms.length} помещ. = ${cellsUpdated} ячеек ${action}`,
+        `Выходных и праздников: ${offDays.length} дн. × ${roomIds.length} помещ. = ${cellsUpdated} ячеек ${action}`,
       );
     } catch (err) {
       toast.error(
@@ -950,16 +958,22 @@ export function CleaningDocumentClient(props: Props) {
    * сбрасывается.
    */
   async function bulkSetSelectedCells(value: CleaningMatrixValue) {
-    if (props.status !== "active" || isRoomsMode) return;
+    if (props.status !== "active") return;
     if (selectedCells.size === 0) return;
+    // Допустимые room-id для bulk: pairs-mode → config.rooms,
+    // rooms-mode → selectedRoomIds.
+    const allowedRoomIds = new Set(
+      isRoomsMode
+        ? (config.selectedRoomIds ?? [])
+        : config.rooms.map((r) => r.id),
+    );
     let nextConfig = config;
     for (const k of selectedCells) {
       const [rowId, dateKey] = k.split("::");
       if (!rowId || !dateKey) continue;
       // responsible-rows используют свой code как значение, не T/G/«/».
       // Bulk-edit предназначен для room-rows; для responsible пропустим.
-      const isRoom = config.rooms.some((r) => r.id === rowId);
-      if (!isRoom) continue;
+      if (!allowedRoomIds.has(rowId)) continue;
       nextConfig = setCleaningMatrixValue({
         config: nextConfig,
         rowId,
@@ -1176,8 +1190,10 @@ export function CleaningDocumentClient(props: Props) {
             </div>
             {/* Bulk-cell toolbar (выходные / выделение / bulk-set) — sticky
                 ВМЕСТЕ с add-toolbar выше, чтобы быть всегда видимым над
-                таблицей при scroll'е по дате. Только для room-mode active. */}
-            {props.status === "active" && !isRoomsMode ? (
+                таблицей при scroll'е по дате. Доступен и в pairs-mode, и
+                в rooms-mode (админ может планировать матрицу заранее —
+                completion-инициалы из TF webhook'а перекроют план поверху). */}
+            {props.status === "active" ? (
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
                 <button
                   type="button"
@@ -1392,7 +1408,7 @@ export function CleaningDocumentClient(props: Props) {
                                 if (r && d) continueDragOnCell(r, d);
                               }}
                               data-cell-key={cellKey(row.id, dateKey)}
-                              disabled={props.status !== "active" || isRoomsMode}
+                              disabled={props.status !== "active"}
                               className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 select-none ${cellCls}`}
                             >
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
@@ -1448,7 +1464,7 @@ export function CleaningDocumentClient(props: Props) {
                       : dayKind.kind === "short"
                         ? "bg-[#fff8eb]"
                         : "bg-white";
-                  const interactive = !printMode && props.status === "active" && !isRoomsMode;
+                  const interactive = !printMode && props.status === "active";
                   return (
                     <td
                       key={dateKey}
