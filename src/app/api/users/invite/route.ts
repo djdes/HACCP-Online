@@ -16,6 +16,7 @@ import {
   USER_ROLE_VALUES,
 } from "@/lib/user-roles";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 
 const inviteUserSchema = z.object({
   name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
@@ -134,6 +135,21 @@ export async function POST(request: Request) {
       organizationName: session.user.organizationName,
       inviteUrl,
     }).catch((err) => console.error("sendInviteTokenEmail failed", err));
+
+    // Auto-link с TasksFlow по номеру (П-8 спека 2026-05-09).
+    // Если phone указан И в TF есть юзер с таким же phone → INSERT
+    // TasksFlowUserLink. Если в TF нет — TF user будет создан.
+    // Best-effort: ошибки сети/disabled integration не валят invite.
+    if (data.phone) {
+      tryAutolinkTasksflowByPhone({
+        organizationId,
+        weSetupUserId: user.id,
+        phone: data.phone,
+        name: user.name,
+      }).catch((err) =>
+        console.error("[invite] tryAutolinkTasksflowByPhone failed", err),
+      );
+    }
 
     return NextResponse.json(
       {
