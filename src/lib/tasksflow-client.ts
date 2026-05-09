@@ -311,6 +311,22 @@ class TasksFlowClient {
    * Wesetup при рендере объединённого audit-report'а merge'ит эти события
    * с собственным AuditLog'ом по timestamp'у.
    */
+  /**
+   * Hot-fix endpoint: обнулить отрицательные bonus_balance в текущей
+   * компании (артефакты pre-ef3e8ec sibling-claim bug'а).
+   */
+  resetNegativeBalances(): Promise<{
+    reset: number;
+    users: Array<{
+      id: number;
+      phone: string;
+      name: string | null;
+      wasBalance: number;
+    }>;
+  }> {
+    return this.request("POST", "/api/admin/reset-negative-balances", {});
+  }
+
   getAudit(opts?: {
     /** Unix sec нижняя граница (default: TF берёт now-30d). */
     since?: number;
