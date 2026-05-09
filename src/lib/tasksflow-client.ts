@@ -60,6 +60,15 @@ export type CreateTaskInput = {
    * Если verifier == workerId — не передаём (no self-verify).
    */
   verifierWorkerId?: number | null;
+  /**
+   * Stringified JSON {kind,baseUrl,integrationId,documentId,rowKey,...}.
+   * TF использует как маркер «journal task» — TaskFormFiller open'ится
+   * (с pipeline и WeSetup-formfiller'ом) вместо обычного TaskViewDialog.
+   * Шейп описан в TasksFlow shared/journal-link.ts. Передаётся в
+   * createTask (когда это override-задача с известным rowKey) или
+   * updateTask second-step (когда rowKey надо проставить позже).
+   */
+  journalLink?: string | null;
 };
 
 export type CreateUserInput = {

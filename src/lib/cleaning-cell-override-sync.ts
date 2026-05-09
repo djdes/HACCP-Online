@@ -126,6 +126,13 @@ function findRoomName(
   return "(удалённое помещение)";
 }
 
+function findRequirePhoto(
+  rooms: Array<{ id: string; requirePhoto: boolean }>,
+  roomId: string,
+): boolean {
+  return rooms.find((r) => r.id === roomId)?.requirePhoto === true;
+}
+
 export async function syncCleaningCellOverride(
   args: SyncArgs,
 ): Promise<void> {
@@ -202,9 +209,10 @@ export async function syncCleaningCellOverride(
   // если их нет в config.rooms.
   const buildingRooms = await db.room.findMany({
     where: { building: { organizationId: args.organizationId } },
-    select: { id: true, name: true },
+    select: { id: true, name: true, requirePhoto: true },
   });
   const roomName = findRoomName(config, buildingRooms, args.roomId);
+  const requirePhoto = findRequirePhoto(buildingRooms, args.roomId);
 
   const cleanerWesetupId = pickCleanerWesetupId(config, args.roomId);
   if (!cleanerWesetupId) return;
@@ -272,15 +280,39 @@ export async function syncCleaningCellOverride(
 
   // Create override-задачу — links не было ни в одной форме (видимо
   // комната не в bulk-assign списке, или manager поменял до фан-аута).
+  //
+  // 2026-05-09: ВАЖНО — category должна начинаться с 'WeSetup · ' и
+  // journalLink JSON-payload должен быть проставлен. Без этого
+  // isJournalTask() в TF возвращает false → TF открывает обычный
+  // TaskViewDialog (с «Завершить задачу» кнопкой) вместо
+  // TaskFormFiller (с pipeline-чек-листом из scope steps). Manager
+  // жалуется: 'override task без pipeline'.
+  const baseUrl = (process.env.NEXTAUTH_URL ?? "").trim() || "https://wesetup.ru";
+  const journalLink = JSON.stringify({
+    kind: "wesetup-cleaning",
+    baseUrl: baseUrl.replace(/\/+$/, ""),
+    integrationId: integration.id,
+    documentId: args.documentId,
+    rowKey: overrideRowKey,
+    label: title,
+    isFreeText: false,
+    bonusAmountKopecks: 0,
+    taskScope: "personal",
+    siblingVisibility: false,
+  });
   try {
+    // journalLink передаётся прямо в createTask (TF insertTaskSchema
+    // его принимает). Раньше был second-step updateTask с `as never` —
+    // фрагильно и лишний RTT.
     const created = await client.createTask({
       title,
       description,
       workerId: cleanerTfId,
       verifierWorkerId: verifierTfId,
       isRecurring: false,
-      requiresPhoto: false,
-      category: "Уборка",
+      requiresPhoto: requirePhoto,
+      category: "WeSetup · Уборка",
+      journalLink,
     });
     await db.tasksFlowTaskLink.create({
       data: {
