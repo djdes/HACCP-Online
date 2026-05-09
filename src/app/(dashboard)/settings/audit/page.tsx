@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { requireRole } from "@/lib/auth-helpers";
 import { AuditLogViewer } from "@/components/settings/audit-log-viewer";
+import { TasksflowAuditFeed } from "@/components/settings/tasksflow-audit-feed";
 
 export default async function AuditPage() {
   await requireRole(["owner"]);
@@ -12,7 +13,9 @@ export default async function AuditPage() {
         <div>
           <h1 className="text-2xl font-bold">Журнал действий</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Все действия пользователей в системе
+            События Wesetup и TasksFlow в одном месте. Раздельно по
+            системам — П-17 единой архитектуры (TF аудит хранится в TF,
+            подтягивается в момент рендера).
           </p>
         </div>
         <Link
@@ -25,6 +28,7 @@ export default async function AuditPage() {
         </Link>
       </div>
       <AuditLogViewer />
+      <TasksflowAuditFeed />
     </div>
   );
 }
