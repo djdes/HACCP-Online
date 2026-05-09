@@ -199,6 +199,45 @@ export async function POST(request: Request) {
     console.error("[tasksflow-complete] sync to claim failed", err);
   }
 
+  // Race-siblings cleanup (П-2 спека 2026-05-09): когда worker закрыл
+  // race-задачу на комнату, sibling-задачи у других уборщиков должны
+  // исчезнуть. Только для cleaning журнала + isCompleted=true. Для
+  // других журналов / re-open события не делаем.
+  if (
+    payload.isCompleted &&
+    link.journalCode === "cleaning" &&
+    link.rowKey.startsWith("room::")
+  ) {
+    try {
+      const { markSiblingsAsClaimedByOther } = await import(
+        "@/lib/cleaning-siblings-cleanup"
+      );
+      // Phase-1: имя worker'а не приходит в payload. Передаём пустую
+      // строку — markSiblingsAsClaimedByOther подставит "другой уборщик".
+      // claimedByWorkerId: 0 как unknown (валидация в функции это разрешает).
+      // Phase-2.1: добавим запрос в TF GET /api/tasks/<id> для получения
+      // completedByWorkerId и его имени, чтобы у sibling'а был корректный
+      // statusText "Сделал: Иван П.".
+      const result = await markSiblingsAsClaimedByOther({
+        organizationId: integration.organizationId,
+        integrationId: integration.id,
+        journalDocumentId: link.journalDocumentId,
+        closedRowKey: link.rowKey,
+        excludeTaskId: payload.taskId,
+        claimedByName: "",
+        claimedByWorkerId: 0,
+      });
+      if (result.marked > 0) {
+        console.log(
+          `[siblings-cleanup] task=${payload.taskId} room-key=${link.rowKey} marked=${result.marked} skipped=${result.skipped}`,
+        );
+      }
+    } catch (err) {
+      // Не валим основную обработку — siblings cleanup best-effort.
+      console.error("[siblings-cleanup] failed", err);
+    }
+  }
+
   // Записываем audit AFTER успешной apply — иначе при ошибке adapter'а
   // следующий retry сразу dedupнется и журнал останется без записи.
   await db.auditLog.create({
