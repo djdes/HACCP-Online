@@ -504,13 +504,44 @@ export function CleaningDocumentClient(props: Props) {
   //   «Ответственный за уборку: С1 - Борисов, С2 - Иванов»
   //   «Ответственный за контроль: С1 - Иванов»
   // и путался, что Иванов тут и тут.
+  //
+  // Источники controller-id (все объединяем):
+  //   1. controlResponsibles[] — старый legacy-array per-document
+  //   2. controlUserId — single document-wide controller
+  //   3. verifierByRoomId — per-room override-ы
+  //   4. responsiblePairs[].controlUserId — pairs-mode
+  // Менеджер мог сохранить Иванова в любом из этих полей; для UI
+  // достаточно любого совпадения, чтобы исключить его из С1/С2.
   const controlUserIdSet = useMemo(() => {
     const s = new Set<string>();
     for (const r of controlResponsibleList) {
       if (r.userId) s.add(r.userId);
     }
+    if (config.controlUserId) s.add(config.controlUserId);
+    if (config.verifierByRoomId) {
+      for (const uid of Object.values(config.verifierByRoomId)) {
+        if (uid) s.add(uid);
+      }
+    }
+    if (Array.isArray(config.responsiblePairs)) {
+      for (const pair of config.responsiblePairs) {
+        if (pair?.controlUserId) s.add(pair.controlUserId);
+      }
+    }
+    // props.responsibleUserId — document-level «Ответственный за контроль»,
+    // приходит сверху страницы (top dropdown). Маппится в БД на
+    // JournalDocument.responsibleUserId. patchDocument синкает его с
+    // controlResponsibles[0], но если данные старые / десинк — берём
+    // явно из props как safety net.
+    if (props.responsibleUserId) s.add(props.responsibleUserId);
     return s;
-  }, [controlResponsibleList]);
+  }, [
+    controlResponsibleList,
+    config.controlUserId,
+    config.verifierByRoomId,
+    config.responsiblePairs,
+    props.responsibleUserId,
+  ]);
 
   // Подписи ответственных. Уборщики получают код «С1/С2/...», контролёр —
   // префикс «К» (см. controlResponsibleList выше). Контролёры из списка
