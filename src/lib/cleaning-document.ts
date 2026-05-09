@@ -262,17 +262,30 @@ export const CLEANING_SCOPE_OPTIONS = Array.from(
 );
 
 export const CLEANING_LEGEND = [
-  "/ - Уборка не проводилась",
-  "T - Текущая",
-  "G - Генеральная; при генеральной уборке выполняется уборка поверхностей, указанных в текущей уборке, а также промываются стены за оборудованием, вентиляционные зонты при наличии и т.д.",
+  "/ — Уборка не проводилась",
+  "Т — Текущая",
+  "Г — Генеральная; при генеральной уборке выполняется уборка поверхностей, указанных в текущей уборке, а также промываются стены за оборудованием, вентиляционные зонты при наличии и т.д.",
 ] as const;
 
 export const CLEANING_MARK_OPTIONS = [
   { value: "" as CleaningMatrixValue, code: "", label: "Пусто" },
-  { value: "T" as CleaningMatrixValue, code: "T", label: "Текущая" },
-  { value: "G" as CleaningMatrixValue, code: "G", label: "Генеральная" },
+  { value: "T" as CleaningMatrixValue, code: "Т", label: "Текущая" },
+  { value: "G" as CleaningMatrixValue, code: "Г", label: "Генеральная" },
   { value: "/" as CleaningMatrixValue, code: "/", label: "Не проводилась" },
 ] as const;
+
+/**
+ * Перевод стораджевого Latin-кода ('T'/'G') в кириллический символ для UI.
+ * Сторадж остаётся Latin для совместимости со всем существующим кодом
+ * (TasksFlow override-sync, planRoomMonth, autoFill defaults и т.д.).
+ * Дисплей в Cyrillic чтобы Г/К в одной таблице с С1/С2 (Cyrillic) выглядели
+ * однородно — менеджер видел только русские буквы.
+ */
+export function displayMatrixValue(value: string): string {
+  if (value === "T") return "Т";
+  if (value === "G") return "Г";
+  return value;
+}
 
 export const ACTIVITY_LABELS: Record<CleaningActivityType, string> = {
   disinfection: "Дезинфекция",

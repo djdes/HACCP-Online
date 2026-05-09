@@ -22,6 +22,7 @@ import {
 } from "@/lib/cold-equipment-document";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  displayMatrixValue,
   getCleaningDocumentTitle,
   getCleaningFilePrefix,
   normalizeCleaningDocumentConfig,
@@ -1432,7 +1433,7 @@ function drawCleaningPdf(doc: jsPDF, params: {
             styles: { halign: "center" as const, valign: "middle" as const },
           },
           ...dateKeys.map((dateKey) =>
-            centerCell(config.matrix[room.id]?.[dateKey] || "")
+            centerCell(displayMatrixValue(config.matrix[room.id]?.[dateKey] || ""))
           ),
         ]),
         ...config.cleaningResponsibles.map((responsible) => [
@@ -1445,7 +1446,7 @@ function drawCleaningPdf(doc: jsPDF, params: {
             styles: { halign: "center" as const, valign: "middle" as const },
           },
           ...dateKeys.map((dateKey) =>
-            centerCell(config.matrix[responsible.id]?.[dateKey] || "")
+            centerCell(displayMatrixValue(config.matrix[responsible.id]?.[dateKey] || ""))
           ),
         ]),
         ...config.controlResponsibles.map((responsible) => [
@@ -1458,7 +1459,7 @@ function drawCleaningPdf(doc: jsPDF, params: {
             styles: { halign: "center" as const, valign: "middle" as const },
           },
           ...dateKeys.map((dateKey) =>
-            centerCell(config.matrix[responsible.id]?.[dateKey] || "")
+            centerCell(displayMatrixValue(config.matrix[responsible.id]?.[dateKey] || ""))
           ),
         ]),
       ];
@@ -1480,7 +1481,7 @@ function drawCleaningPdf(doc: jsPDF, params: {
         styles: { halign: "center" as const, valign: "middle" as const },
       },
       ...dateKeys.map((dateKey) =>
-        centerCell(roomsModeCellValue(roomId, dateKey))
+        centerCell(displayMatrixValue(roomsModeCellValue(roomId, dateKey)))
       ),
     ]);
 
@@ -1586,7 +1587,7 @@ function drawCleaningPdf(doc: jsPDF, params: {
   doc.text("Условные обозначения:", 16, legendY);
   const afterLegendY = renderWrappedTextBlock(
     doc,
-    config.legend.length > 0 ? config.legend : ["/ - Уборка не проводилась", "T - Текущая", "G - Генеральная"],
+    config.legend.length > 0 ? config.legend : ["/ — Уборка не проводилась", "Т — Текущая", "Г — Генеральная"],
     16,
     legendY + 5,
     pageWidth - 32,

@@ -33,6 +33,7 @@ import {
   createCleaningRoomRow,
   deleteCleaningResponsibleRow,
   deleteCleaningRoomRow,
+  displayMatrixValue,
   getCleaningPeriodLabel,
   normalizeCleaningDocumentConfig,
   setCleaningMatrixValue,
@@ -483,47 +484,69 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [props.users]);
 
+  // Контролёр(ы): для каждой записи всегда присваиваем «К1/К2/...».
+  // Раньше fallback'или на сохранённый `code` — но в старых документах
+  // контролёр имел сохранённый код «С1», что в UI выглядело как первый
+  // уборщик и путало менеджера. Теперь жёстко принудительно «К» —
+  // user-typing-storage isolation: storage может содержать что угодно
+  // legacy, в UI всегда чисто.
+  const controlResponsibleList = useMemo<CleaningResponsible[]>(
+    () =>
+      config.controlResponsibles.map((resp, idx) => ({
+        ...resp,
+        code: `К${idx + 1}`,
+      })),
+    [config.controlResponsibles],
+  );
+
+  // Множество userId контролёров — для дедупликации. Если человек уже
+  // контролёр — не показываем его как уборщика С2. Раньше менеджер видел:
+  //   «Ответственный за уборку: С1 - Борисов, С2 - Иванов»
+  //   «Ответственный за контроль: С1 - Иванов»
+  // и путался, что Иванов тут и тут.
+  const controlUserIdSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of controlResponsibleList) {
+      if (r.userId) s.add(r.userId);
+    }
+    return s;
+  }, [controlResponsibleList]);
+
   // Подписи ответственных. Уборщики получают код «С1/С2/...», контролёр —
-  // префикс «К» (контролёр), а не «С» — он не уборщик. Старая логика
-  // ставила «С1» контролёру, что выглядело как ещё один уборщик и путало.
+  // префикс «К» (см. controlResponsibleList выше). Контролёры из списка
+  // уборщиков фильтруются — один человек не может быть одновременно
+  // уборщиком и контролёром в одном документе (это бы означало само-
+  // верификацию, что недопустимо для compliance).
   const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
     if (
       isRoomsMode &&
       Array.isArray(config.selectedCleanerUserIds) &&
       config.selectedCleanerUserIds.length > 0
     ) {
-      return config.selectedCleanerUserIds.map((userId, idx) => {
-        const user = props.users.find((u) => u.id === userId);
-        return {
-          id: `selected-cleaner-${userId}`,
-          kind: "cleaning" as const,
-          code: `С${idx + 1}`,
-          title: "Уборщик",
-          userId,
-          userName: user?.name ?? "—",
-        } satisfies CleaningResponsible;
-      });
+      return config.selectedCleanerUserIds
+        .filter((userId) => !controlUserIdSet.has(userId))
+        .map((userId, idx) => {
+          const user = props.users.find((u) => u.id === userId);
+          return {
+            id: `selected-cleaner-${userId}`,
+            kind: "cleaning" as const,
+            code: `С${idx + 1}`,
+            title: "Уборщик",
+            userId,
+            userName: user?.name ?? "—",
+          } satisfies CleaningResponsible;
+        });
     }
-    return config.cleaningResponsibles;
+    return config.cleaningResponsibles
+      .filter((r) => !r.userId || !controlUserIdSet.has(r.userId))
+      .map((r, idx) => ({ ...r, code: `С${idx + 1}` }));
   }, [
     isRoomsMode,
     config.selectedCleanerUserIds,
     config.cleaningResponsibles,
+    controlUserIdSet,
     props.users,
   ]);
-
-  // Контролёр(ы): для каждой записи присваиваем индивидуальный «К1/К2/...»,
-  // но НЕ перезаписываем существующий `code` — он мог быть выставлен
-  // вручную владельцем. Если код пуст — генерим. Это решает баг, когда
-  // у контролёра в матрице был «С1», как у первого уборщика.
-  const controlResponsibleList = useMemo<CleaningResponsible[]>(
-    () =>
-      config.controlResponsibles.map((resp, idx) => ({
-        ...resp,
-        code: resp.code && resp.code.trim().length > 0 ? resp.code : `К${idx + 1}`,
-      })),
-    [config.controlResponsibles],
-  );
 
   const rows = useMemo<RowDescriptor[]>(() => {
     // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
@@ -1279,7 +1302,7 @@ export function CleaningDocumentClient(props: Props) {
                       onClick={() => bulkSetSelectedCells("T" as CleaningMatrixValue)}
                       className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
                     >
-                      T · Текущая
+                      Т · Текущая
                     </button>
                     <button
                       type="button"
@@ -1287,7 +1310,7 @@ export function CleaningDocumentClient(props: Props) {
                       onClick={() => bulkSetSelectedCells("G" as CleaningMatrixValue)}
                       className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:bg-[#f5f6ff] disabled:opacity-40"
                     >
-                      G · Генеральная
+                      Г · Генеральная
                     </button>
                     <button
                       type="button"
@@ -1610,7 +1633,7 @@ export function CleaningDocumentClient(props: Props) {
                         startDragOnCell(row.id, dateKey);
                       }}
                     >
-                      {cellValue(row, dateKey)}
+                      {displayMatrixValue(cellValue(row, dateKey))}
                     </td>
                   );
                 })}
@@ -1750,7 +1773,7 @@ export function CleaningDocumentClient(props: Props) {
               </tr>
             ) : null}
           </tbody></table>
-          <div className="space-y-2 text-[18px] italic">{Array.from(new Set(config.legend)).map((item) => <div key={item}>{item}</div>)}</div>
+          <div className="space-y-2 text-[18px] italic">{Array.from(new Set(config.legend.map((item) => item.replace(/^T(\s)/, "Т$1").replace(/^G(\s)/, "Г$1").replace(/ - /, " — ")))).map((item) => <div key={item}>{item}</div>)}</div>
           <table className="w-full border-collapse text-[16px]"><thead><tr><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Текущая уборка</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id}><td className="border border-black p-3">{room.name}</td><td className="border border-black p-3">{room.currentScope.join(", ")}</td><td className="border border-black p-3">{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
         </div></div>
         </div>
