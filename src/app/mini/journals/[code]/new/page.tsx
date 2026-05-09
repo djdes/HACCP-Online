@@ -11,6 +11,7 @@ import {
   aclActorFromSession,
   canWriteJournal,
 } from "@/lib/journal-acl";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
 import { getJournalSpec } from "@/lib/journal-specs";
 import { countRollingToday } from "@/lib/journal-rolling";
@@ -157,6 +158,29 @@ export default async function MiniNewJournalEntryPage({
         </h1>
         <p className="mt-0.5 text-[13px] leading-5 text-slate-500">{template.name}</p>
       </header>
+
+      {/* Phase 2.6 spec'а 2026-05-09 (П-3, П-5): worker-flow в Mini App
+          deprecated — заполнение журналов идёт через TasksFlow. Для
+          worker'ов (не management) показываем nudge на TasksFlow.
+          Manager'ы продолжают видеть форму без banner'а — у них
+          может быть нужда заполнить вручную (отсутствие TF integration,
+          edge case, корректировка). */}
+      {!hasFullWorkspaceAccess({
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      }) ? (
+        <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13px] leading-5 text-[#3c4053]">
+          <div className="font-medium text-[#0b1024]">
+            Заполнить журнал лучше через TasksFlow
+          </div>
+          <p className="mt-1 text-[#6f7282]">
+            TasksFlow — основная среда для исполнителей. Там у вас будут
+            задачи на день с фото-доказательствами и проверкой
+            заведующей. Эта форма в Mini App осталась как fallback
+            (для редких случаев когда TasksFlow недоступен).
+          </p>
+        </div>
+      ) : null}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.28)] sm:p-5">
         {code === "finished_product" ? (
           <FinishedProductPipeline
