@@ -31,6 +31,7 @@ import {
   type JournalSyncReport,
   type TaskSchedule,
 } from "./types";
+import type { TaskFormField } from "./task-form";
 
 const CATEGORY = "WeSetup · Уборка";
 
@@ -418,7 +419,7 @@ async function buildRoomCleaningFormFromDb(args: {
   dateKey: string;
 }): Promise<{
   intro?: string;
-  fields: never[];
+  fields: TaskFormField[];
   pipeline: Array<{ id: string; title: string; detail: string }>;
   submitLabel?: string;
 } | null> {
@@ -504,13 +505,22 @@ async function buildRoomCleaningFormFromDb(args: {
     .filter(Boolean)
     .join("\n");
 
-  // Если шагов нет — pipeline=[1 confirmation step] чтобы worker всё-таки
-  // увидел инструкцию + кнопку «Сделал».
+  const requirePhoto = dbRoom?.requirePhoto === true;
+
+  // 2026-05-09 fix: TF TaskFormFiller рендерит ТОЛЬКО schema.fields[];
+  // pipeline-формат был для legacy wesetup-side /task-fill page'а
+  // (с redirect'ом, который убрали в TF a0cb75b). Теперь scope steps
+  // отдаём как boolean-чекбоксы в fields[] — worker в TF видит чек-лист
+  // уборки, а не «WeSetup пока не передал структуру формы» fallback.
   if (scopeSteps.length === 0) {
-    const requirePhoto = dbRoom?.requirePhoto === true;
+    const confirmField: TaskFormField = {
+      type: "boolean",
+      key: "confirmed",
+      label: cleanLabel,
+    };
     return {
       intro,
-      fields: [],
+      fields: [confirmField],
       pipeline: [
         {
           id: "confirm",
@@ -525,10 +535,15 @@ async function buildRoomCleaningFormFromDb(args: {
     };
   }
 
-  const requirePhoto = dbRoom?.requirePhoto === true;
+  const stepFields: TaskFormField[] = scopeSteps.map((step, idx) => ({
+    type: "boolean",
+    key: `step_${idx}`,
+    label: `${idx + 1}. ${step}`,
+  }));
+
   return {
     intro,
-    fields: [],
+    fields: stepFields,
     pipeline: scopeSteps.map((step, idx) => ({
       id: `step-${idx + 1}`,
       title: step,
@@ -544,7 +559,7 @@ function buildPairsCleaningForm(args: {
   todayKey: string;
 }): {
   intro?: string;
-  fields: never[];
+  fields: TaskFormField[];
   pipeline: Array<{
     id: string;
     title: string;
@@ -556,7 +571,13 @@ function buildPairsCleaningForm(args: {
   if (rooms.length === 0) {
     return {
       intro: "Уборка по плану журнала. Подтверди по факту.",
-      fields: [],
+      fields: [
+        {
+          type: "boolean",
+          key: "confirmed",
+          label: "Уборка выполнена",
+        },
+      ],
       pipeline: [
         {
           id: "confirm",
@@ -579,7 +600,11 @@ function buildPairsCleaningForm(args: {
     return {
       intro:
         "Сегодня по плану нет помещений для обязательной уборки. Если нужна — пройди по списку и подтверди.",
-      fields: [],
+      fields: rooms.slice(0, 6).map((room, idx) => ({
+        type: "boolean" as const,
+        key: `room_${idx}_${room.id}`,
+        label: `Уборка · ${room.name}${room.detergent ? ` (средство: ${room.detergent})` : ""}`,
+      })),
       pipeline: rooms.slice(0, 6).map((room, idx) => ({
         id: `room-${idx + 1}`,
         title: `Уборка · ${room.name}`,
@@ -608,9 +633,19 @@ function buildPairsCleaningForm(args: {
     };
   });
 
+  const stepFields: TaskFormField[] = todayRooms.map((room, idx) => {
+    const cell = args.config.matrix?.[room.id]?.[args.todayKey];
+    const kind = cell === "G" ? "Генеральная" : "Текущая";
+    return {
+      type: "boolean",
+      key: `room_${idx}_${room.id}`,
+      label: `${kind} · ${room.name}${room.detergent ? ` (средство: ${room.detergent})` : ""}`,
+    };
+  });
+
   return {
     intro: `Сегодня по плану уборка в ${pipeline.length} помещ.`,
-    fields: [],
+    fields: stepFields,
     pipeline,
     submitLabel: "Готово",
   };
