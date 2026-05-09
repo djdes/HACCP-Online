@@ -559,12 +559,18 @@ export function CleaningDocumentClient(props: Props) {
     });
   }, [config.selectedRoomIds, dbRoomById]);
 
-  // Подпись «Ответственный за уборку» под матрицей: код того, кто
-  // сегодня реально работал. Берём из room cells текущей даты — там
-  // уже стоит код уборщика (С1/С2/...) после completion. Если в день
-  // уборки несколько уборщиков работали в разных комнатах — показываем
-  // все коды через запятую.
+  // Псевдо-rowId для manual signature ответственного. matrix хранит их
+  // как обычные строки — patchDocument сам их сохраняет/читает.
+  const CLEANING_SIGNATURE_ROW_ID = "__cleaning_signature__";
+  const CONTROL_SIGNATURE_ROW_ID = "__control_signature__";
+
+  // Подпись «Ответственный за уборку» в день D.
+  //   1. Если есть manual override (matrix[CLEANING_SIGNATURE_ROW_ID][D]) —
+  //      возвращаем его (даже если пустая строка — явная очистка владельца).
+  //   2. Иначе computed: коды С1/С2 из room cells (кто реально убирал).
   function cleaningCodeForDay(dateKey: string): string {
+    const manual = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
+    if (manual !== undefined) return manual;
     const codes = new Set<string>();
     for (const row of rows) {
       const v = cellValue(row, dateKey);
@@ -573,10 +579,13 @@ export function CleaningDocumentClient(props: Props) {
     return Array.from(codes).sort().join(",");
   }
 
-  // Подпись «Ответственный за контроль»: код первого контролёра в дни,
-  // когда хотя бы одна комната была реально убрана. Контролёр подписывает
-  // каждый день уборки. Если контролёров несколько — показываем все коды.
+  // Подпись «Ответственный за контроль» в день D.
+  //   1. Manual override matrix[CONTROL_SIGNATURE_ROW_ID][D] выигрывает.
+  //   2. Иначе: коды контролёров (К1/К2) в дни где была хоть одна реальная
+  //      completion в комнатах. Без completions — пусто (нечего проверять).
   function controlCodeForDay(dateKey: string): string {
+    const manual = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
+    if (manual !== undefined) return manual;
     if (controlResponsibleList.length === 0) return "";
     const hasAnyCompletion = rows.some((row) => {
       const v = cellValue(row, dateKey);
@@ -584,6 +593,41 @@ export function CleaningDocumentClient(props: Props) {
     });
     if (!hasAnyCompletion) return "";
     return controlResponsibleList.map((c) => c.code).join(",");
+  }
+
+  // Циклим manual signature по клику. Порядок:
+  //   empty → С1 → С2 → ... → СN → empty
+  // Хранится в matrix[pseudo_row][dateKey] через стандартный patchDocument.
+  async function cycleSignature(
+    rowId: string,
+    dateKey: string,
+    codes: string[],
+  ) {
+    if (printMode || props.status !== "active" || saving) return;
+    if (codes.length === 0) return;
+    const currentRaw = config.matrix[rowId]?.[dateKey];
+    // Если current совпадает с одним из кодов — берём следующий, иначе старт с первого.
+    let next: string;
+    if (!currentRaw) {
+      next = codes[0];
+    } else {
+      const idx = codes.indexOf(currentRaw);
+      next = idx < 0 || idx === codes.length - 1 ? "" : codes[idx + 1];
+    }
+    const nextRowMap = { ...(config.matrix[rowId] ?? {}) };
+    if (next === "") {
+      // Stored "" значит «явно очищено» — но если manual override = empty, в
+      // ячейке всё равно вернётся пустота из cleaningCodeForDay/controlCodeForDay
+      // (они уважают undefined != "", но "" → empty всё равно).
+      // Чтобы вернуть к auto-computed после полного цикла, удаляем ключ.
+      delete nextRowMap[dateKey];
+    } else {
+      nextRowMap[dateKey] = next;
+    }
+    await patchDocument({
+      ...config,
+      matrix: { ...config.matrix, [rowId]: nextRowMap },
+    });
   }
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
@@ -1591,11 +1635,27 @@ export function CleaningDocumentClient(props: Props) {
                         ? "bg-[#fff8eb]"
                         : "";
                   const code = cleaningCodeForDay(dateKey);
+                  const interactive = !printMode && props.status === "active";
+                  const cleaningCodes = cleaningResponsibleList.map((r) => r.code);
                   return (
                     <td
                       key={dateKey}
-                      title={dayKind.name ?? undefined}
-                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg}`}
+                      title={
+                        interactive
+                          ? `${dayKind.name ? dayKind.name + " · " : ""}Тап циклит: пусто → ${cleaningCodes.join(" → ")} → пусто`
+                          : (dayKind.name ?? undefined)
+                      }
+                      onClick={
+                        interactive
+                          ? () =>
+                              cycleSignature(
+                                CLEANING_SIGNATURE_ROW_ID,
+                                dateKey,
+                                cleaningCodes,
+                              )
+                          : undefined
+                      }
+                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg} ${interactive ? "cursor-pointer hover:bg-[#eef1ff]" : ""}`}
                     >
                       {code}
                     </td>
@@ -1639,11 +1699,27 @@ export function CleaningDocumentClient(props: Props) {
                         ? "bg-[#fff8eb]"
                         : "";
                   const code = controlCodeForDay(dateKey);
+                  const interactive = !printMode && props.status === "active";
+                  const controlCodes = controlResponsibleList.map((r) => r.code);
                   return (
                     <td
                       key={dateKey}
-                      title={dayKind.name ?? undefined}
-                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg}`}
+                      title={
+                        interactive
+                          ? `${dayKind.name ? dayKind.name + " · " : ""}Тап циклит: пусто → ${controlCodes.join(" → ")} → пусто`
+                          : (dayKind.name ?? undefined)
+                      }
+                      onClick={
+                        interactive
+                          ? () =>
+                              cycleSignature(
+                                CONTROL_SIGNATURE_ROW_ID,
+                                dateKey,
+                                controlCodes,
+                              )
+                          : undefined
+                      }
+                      className={`border border-black p-2 text-center text-[15px] select-none ${dayBg} ${interactive ? "cursor-pointer hover:bg-[#eef1ff]" : ""}`}
                     >
                       {code}
                     </td>
