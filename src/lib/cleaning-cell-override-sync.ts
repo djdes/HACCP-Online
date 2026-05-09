@@ -134,14 +134,21 @@ export async function syncCleaningCellOverride(
   });
   if (!integration || !integration.enabled) return;
 
-  const rowKey = buildRowKey(args.roomId, args.dateKey);
-  const existing = await db.tasksFlowTaskLink.findUnique({
+  const overrideRowKey = buildRowKey(args.roomId, args.dateKey);
+  const racePrefix = `room::${args.roomId}::cleaner::`;
+
+  // Находим ВСЕ TF-задачи на эту комнату+документ — и override, и race-mode
+  // bulk-assign (rowKey 'room::<id>::cleaner::*'). Раньше искали только
+  // override → bulk-assigned race-task'и оставались жить когда menager
+  // ставил «/» в matrix, и уборщица видела «зомби»-задачу на комнату.
+  const relatedLinks = await db.tasksFlowTaskLink.findMany({
     where: {
-      integrationId_journalDocumentId_rowKey: {
-        integrationId: integration.id,
-        journalDocumentId: args.documentId,
-        rowKey,
-      },
+      integrationId: integration.id,
+      journalDocumentId: args.documentId,
+      OR: [
+        { rowKey: overrideRowKey },
+        { rowKey: { startsWith: racePrefix } },
+      ],
     },
   });
 
@@ -157,23 +164,26 @@ export async function syncCleaningCellOverride(
   }
 
   if (!wantTask) {
-    if (!existing) return;
-    // Cell вернулась в "/" или "" → удаляем override.
-    try {
-      await client.deleteTask(existing.tasksflowTaskId);
-    } catch (err) {
-      const status = err instanceof TasksFlowError ? err.status : 0;
-      if (status !== 404) {
-        console.error(
-          "[cleaning-cell-override] delete failed",
-          err,
-        );
-        return;
+    if (relatedLinks.length === 0) return;
+    // Cell вернулась в "/" или "" → удаляем все связанные TF-задачи
+    // (override + race-mode siblings) на эту комнату+день.
+    for (const link of relatedLinks) {
+      try {
+        await client.deleteTask(link.tasksflowTaskId);
+      } catch (err) {
+        const status = err instanceof TasksFlowError ? err.status : 0;
+        if (status !== 404 && status !== 410) {
+          console.error(
+            `[cleaning-cell-override] delete task=${link.tasksflowTaskId} failed`,
+            err,
+          );
+          continue;
+        }
       }
+      await db.tasksFlowTaskLink
+        .delete({ where: { id: link.id } })
+        .catch(() => {});
     }
-    await db.tasksFlowTaskLink
-      .delete({ where: { id: existing.id } })
-      .catch(() => {});
     return;
   }
 
@@ -234,24 +244,34 @@ export async function syncCleaningCellOverride(
     dateKey: args.dateKey,
   });
 
-  if (existing) {
-    // Update title/description (например T ↔ G).
-    try {
-      await client.updateTask(existing.tasksflowTaskId, {
-        title,
-        description,
-      });
-      await db.tasksFlowTaskLink.update({
-        where: { id: existing.id },
-        data: { lastDirection: "push", remoteStatus: "active" },
-      });
-    } catch (err) {
-      console.error("[cleaning-cell-override] update failed", err);
+  if (relatedLinks.length > 0) {
+    // У нас уже есть связанные TF-задачи (override и/или race-mode).
+    // Обновляем title во всех — T↔G меняется одновременно у всех
+    // потенциальных уборщиков. Description обновляем только у override
+    // (у race-задач description от bulk-assign template'а).
+    for (const link of relatedLinks) {
+      try {
+        if (link.rowKey === overrideRowKey) {
+          await client.updateTask(link.tasksflowTaskId, { title, description });
+        } else {
+          await client.updateTask(link.tasksflowTaskId, { title });
+        }
+        await db.tasksFlowTaskLink.update({
+          where: { id: link.id },
+          data: { lastDirection: "push", remoteStatus: "active" },
+        });
+      } catch (err) {
+        console.error(
+          `[cleaning-cell-override] update task=${link.tasksflowTaskId} failed`,
+          err,
+        );
+      }
     }
     return;
   }
 
-  // Create
+  // Create override-задачу — links не было ни в одной форме (видимо
+  // комната не в bulk-assign списке, или manager поменял до фан-аута).
   try {
     const created = await client.createTask({
       title,
@@ -267,7 +287,7 @@ export async function syncCleaningCellOverride(
         integrationId: integration.id,
         journalCode: "cleaning",
         journalDocumentId: args.documentId,
-        rowKey,
+        rowKey: overrideRowKey,
         tasksflowTaskId: created.id,
         remoteStatus: created.isCompleted ? "completed" : "active",
         lastDirection: "push",
