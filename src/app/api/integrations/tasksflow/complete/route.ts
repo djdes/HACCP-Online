@@ -201,40 +201,43 @@ export async function POST(request: Request) {
 
   // Race-siblings cleanup (П-2 спека 2026-05-09): когда worker закрыл
   // race-задачу на комнату, sibling-задачи у других уборщиков должны
-  // исчезнуть. Только для cleaning журнала + isCompleted=true. Для
-  // других журналов / re-open события не делаем.
+  // исчезнуть. Только для cleaning журнала + isCompleted=true.
+  //
+  // ВАЖНО: НЕ оборачиваем в try/catch. Если markSiblings падает —
+  // webhook возвращает 500, TF делает retry, AuditLog.create на
+  // строке 243 не выполняется → top-level dedup при retry не
+  // короткозамкнётся, весь flow перезапустится. Идемпотентность
+  // обеспечена deterministic key (siblings::<excludeId>::<sibId>)
+  // в markSiblingsAsClaimedByOther + upsert в adapter.applyRemoteCompletion.
   if (
     payload.isCompleted &&
     link.journalCode === "cleaning" &&
     link.rowKey.startsWith("room::")
   ) {
-    try {
-      const { markSiblingsAsClaimedByOther } = await import(
-        "@/lib/cleaning-siblings-cleanup"
+    const { markSiblingsAsClaimedByOther } = await import(
+      "@/lib/cleaning-siblings-cleanup"
+    );
+    // Phase-1: имя worker'а не приходит в payload. Передаём пустую
+    // строку — markSiblingsAsClaimedByOther подставит "другой уборщик".
+    // claimedByWorkerId: 0 как unknown (валидация в функции это разрешает).
+    // Phase-2.1: добавим запрос в TF GET /api/tasks/<id> для получения
+    // completedByWorkerId и его имени, чтобы у sibling'а был корректный
+    // statusText "Сделал: Иван П.".
+    const siblingsResult = await markSiblingsAsClaimedByOther({
+      organizationId: integration.organizationId,
+      integrationId: integration.id,
+      journalDocumentId: link.journalDocumentId,
+      closedRowKey: link.rowKey,
+      excludeTaskId: payload.taskId,
+      claimedByName: "",
+      claimedByWorkerId: 0,
+    });
+    // Логируем при любом ненулевом результате (и marked, и skipped):
+    // skipped > 0 = TF/webhook делает retry, полезно для диагностики.
+    if (siblingsResult.marked > 0 || siblingsResult.skipped > 0) {
+      console.log(
+        `[siblings-cleanup] task=${payload.taskId} room-key=${link.rowKey} marked=${siblingsResult.marked} skipped=${siblingsResult.skipped}`,
       );
-      // Phase-1: имя worker'а не приходит в payload. Передаём пустую
-      // строку — markSiblingsAsClaimedByOther подставит "другой уборщик".
-      // claimedByWorkerId: 0 как unknown (валидация в функции это разрешает).
-      // Phase-2.1: добавим запрос в TF GET /api/tasks/<id> для получения
-      // completedByWorkerId и его имени, чтобы у sibling'а был корректный
-      // statusText "Сделал: Иван П.".
-      const result = await markSiblingsAsClaimedByOther({
-        organizationId: integration.organizationId,
-        integrationId: integration.id,
-        journalDocumentId: link.journalDocumentId,
-        closedRowKey: link.rowKey,
-        excludeTaskId: payload.taskId,
-        claimedByName: "",
-        claimedByWorkerId: 0,
-      });
-      if (result.marked > 0) {
-        console.log(
-          `[siblings-cleanup] task=${payload.taskId} room-key=${link.rowKey} marked=${result.marked} skipped=${result.skipped}`,
-        );
-      }
-    } catch (err) {
-      // Не валим основную обработку — siblings cleanup best-effort.
-      console.error("[siblings-cleanup] failed", err);
     }
   }
 
