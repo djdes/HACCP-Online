@@ -208,6 +208,7 @@ model Organization {
   buildings                Building[]
   journalTaskClaims        JournalTaskClaim[]
   tasksFlowIntegration     TasksFlowIntegration?
+  tasksFlowOutbox          TasksFlowOutbox[]
   journalGuideTemplates    JournalGuideTemplate[]
   journalPipelineTemplates JournalPipelineTemplate[]
 }
@@ -1521,6 +1522,7 @@ model TasksFlowIntegration {
   updatedAt          DateTime            @updatedAt
   links              TasksFlowUserLink[]
   taskLinks          TasksFlowTaskLink[]
+  outbox             TasksFlowOutbox[]
 
   @@index([organizationId])
 }
@@ -1586,6 +1588,49 @@ model TasksFlowTaskLink {
 
   @@unique([integrationId, journalDocumentId, rowKey])
   @@index([tasksflowTaskId])
+}
+
+enum TasksFlowOutboxStatus {
+  pending
+  delivered
+  failed
+}
+
+/// Очередь outbound-команд от Wesetup в TasksFlow API. Реализует
+/// П-15 (graceful degradation): команда сначала пишется в эту таблицу,
+/// потом cron проигрывает её через TF REST API. Если TF недоступен —
+/// команда остаётся в pending, повторяется с exponential backoff.
+/// Idempotency-Key (П-19) защищает от дубликатов при retry.
+///
+/// Используется для:
+///   • markClaimedByOther (race-siblings cleanup, П-2): payload={taskId,claimedByName,claimedByWorkerId}
+///   • deleteTask (cleanup старых задач, П-16): payload={taskId}
+///   • completeTask (manager закрыл ячейку в Wesetup, П-10): payload={taskId}
+///   • verifyTask (manager подписал в Wesetup, П-14): payload={taskId}
+model TasksFlowOutbox {
+  id              String                @id @default(cuid())
+  integrationId   String
+  integration     TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// UUID-v4 для дедупа при retry. TasksFlow со временем должен принимать
+  /// header Idempotency-Key (Фаза 2.8). Сейчас он только для нашей записи.
+  idempotencyKey  String                @unique
+  /// "markClaimedByOther" | "deleteTask" | "completeTask" | "verifyTask"
+  action          String
+  /// JSON: { taskId: number, ...action-specific fields }
+  payload         Json
+  status          TasksFlowOutboxStatus @default(pending)
+  attempts        Int                   @default(0)
+  lastAttemptAt   DateTime?
+  lastError       String?
+  deliveredAt     DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([status, createdAt])
+  @@index([integrationId, status])
+  @@index([organizationId, status, createdAt])
 }
 
 /// Per-organization чеклист пунктов для журнала. Админ создаёт пункты
