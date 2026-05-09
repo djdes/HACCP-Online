@@ -420,48 +420,10 @@ export async function POST(request: Request) {
               },
             });
 
-            // Параллельно создаём JournalEntry в capa_log — для compliance
-            // отчёта по методичке ХАССП (§2.9). capaTicket — внутренний
-            // workflow с SLA, capa_log — методическая запись в журнал.
-            // Дублируется намеренно: CAPA log читается аудитом отдельно.
-            const capaLogTemplate = await db.journalTemplate.findUnique({
-              where: { code: "capa_log" },
-              select: { id: true, isActive: true },
-            });
-            if (capaLogTemplate?.isActive) {
-              await db.journalEntry.create({
-                data: {
-                  templateId: capaLogTemplate.id,
-                  organizationId: organizationId,
-                  filledById: session.user.id,
-                  status: "submitted",
-                  data: {
-                    detectionDate: new Date().toISOString().slice(0, 10),
-                    detectionLocation: template.name,
-                    nonconformity: trigger.suffix,
-                    severity:
-                      trigger.priority === "critical"
-                        ? "high"
-                        : trigger.priority === "high"
-                          ? "medium"
-                          : "low",
-                    correctiveAction:
-                      "Авто-создано по deviation. Заполните корр. действие после расследования.",
-                    responsibleExecution: session.user.id,
-                    plannedExecutionDate: new Date(
-                      Date.now() +
-                        (trigger.priority === "critical" ? 4 : 24) * 60 * 60 * 1000,
-                    )
-                      .toISOString()
-                      .slice(0, 10),
-                    responsibleControl: session.user.id,
-                    sourceJournalCode: templateCode,
-                  } as Prisma.InputJsonValue,
-                },
-              }).catch((err) => {
-                console.error("Auto capa_log entry error:", err);
-              });
-            }
+            // 2026-05-09: убрали блок auto-create JournalEntry в шаблоне
+            // capa_log — он сам template был удалён по запросу владельца.
+            // Внутренний capaTicket выше всё ещё работает для tracking'а
+            // deviations, журнальная зеркальная запись больше не нужна.
           }
         } catch (err) {
           console.error("Auto-CAPA creation error:", err);
