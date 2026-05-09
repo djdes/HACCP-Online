@@ -280,6 +280,10 @@ export function CleaningDocumentClient(props: Props) {
   // обновлённый props.buildings и rows-builder перерисовывает.
   const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
 
+  // Полная конфигурация race-режима теперь живёт в диалоге, а не на странице.
+  // По дефолту в журнале — только тонкая полоска с переключателем.
+  const [raceConfigOpen, setRaceConfigOpen] = useState(false);
+
   function openRoomEditorFromRow(roomId: string) {
     const dbRoom = dbRoomById.get(roomId);
     if (!dbRoom) {
@@ -1310,21 +1314,20 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         {!printMode && props.buildings && props.buildings.length > 0 ? (
-          <RoomsModeCard
-            buildings={props.buildings}
-            users={props.users}
+          <CleaningRaceModeStrip
+            enabled={(config.cleaningMode ?? "pairs") === "rooms"}
+            roomCount={(config.selectedRoomIds ?? []).length}
+            cleanerCount={(config.selectedCleanerUserIds ?? []).length}
             disabled={props.status !== "active" || saving}
-            cleaningMode={config.cleaningMode ?? "pairs"}
-            selectedRoomIds={config.selectedRoomIds ?? []}
-            selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
-            onSave={async (patch) => {
+            onToggle={async (enabled) => {
               await patchDocument({
                 ...config,
-                cleaningMode: patch.cleaningMode,
-                selectedRoomIds: patch.selectedRoomIds,
-                selectedCleanerUserIds: patch.selectedCleanerUserIds,
+                cleaningMode: enabled ? "rooms" : "pairs",
+                selectedRoomIds: config.selectedRoomIds ?? [],
+                selectedCleanerUserIds: config.selectedCleanerUserIds ?? [],
               });
             }}
+            onConfigure={() => setRaceConfigOpen(true)}
           />
         ) : null}
 
@@ -1743,6 +1746,39 @@ export function CleaningDocumentClient(props: Props) {
         onSaved={() => router.refresh()}
       />
 
+      {/* Полная конфигурация race-режима — в диалоге. На странице видна
+          только тонкая полоска с переключателем + сводкой. */}
+      {props.buildings && props.buildings.length > 0 ? (
+        <Dialog open={raceConfigOpen} onOpenChange={setRaceConfigOpen}>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[760px]">
+            <DialogHeader className="border-b px-6 py-5">
+              <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+                Настроить race-режим
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto px-2 py-2 sm:px-4 sm:py-4">
+              <RoomsModeCard
+                buildings={props.buildings}
+                users={props.users}
+                disabled={props.status !== "active" || saving}
+                cleaningMode={config.cleaningMode ?? "pairs"}
+                selectedRoomIds={config.selectedRoomIds ?? []}
+                selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
+                onSave={async (patch) => {
+                  await patchDocument({
+                    ...config,
+                    cleaningMode: patch.cleaningMode,
+                    selectedRoomIds: patch.selectedRoomIds,
+                    selectedCleanerUserIds: patch.selectedCleanerUserIds,
+                  });
+                  setRaceConfigOpen(false);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
       <Dialog open={!!responsibleDialog} onOpenChange={(open) => !open && setResponsibleDialog(null)}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
@@ -2086,6 +2122,57 @@ export function CleaningDocumentClient(props: Props) {
  * Сейчас (Этап 2a/b) сохраняем только конфиг. Race-логика подключится
  * в Этапе 2c вместе с расширением cleaning adapter.
  */
+
+/**
+ * Компактная полоска вместо большой `RoomsModeCard` на странице журнала.
+ * Один переключатель + сводка («4 помещения · 2 уборщика») + кнопка
+ * «Настроить» открывает диалог с полным редактором. Сделано по запросу
+ * владельца: «сократи как можно больше этого, чтобы просто можно было
+ * включить и всё».
+ */
+function CleaningRaceModeStrip(props: {
+  enabled: boolean;
+  roomCount: number;
+  cleanerCount: number;
+  disabled: boolean;
+  onToggle: (enabled: boolean) => Promise<void>;
+  onConfigure: () => void;
+}) {
+  return (
+    <section className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[#ececf4] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <label className="flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0b1024]">
+        <input
+          type="checkbox"
+          checked={props.enabled}
+          disabled={props.disabled}
+          onChange={(e) => {
+            void props.onToggle(e.target.checked);
+          }}
+          className="size-4 cursor-pointer accent-[#5566f6]"
+        />
+        Race-режим (отдельная задача на помещение)
+      </label>
+      {props.enabled ? (
+        <span className="text-[13px] text-[#6f7282]">
+          Помещений: <span className="font-semibold tabular-nums text-[#0b1024]">{props.roomCount}</span>
+          {" · "}
+          Уборщиков: <span className="font-semibold tabular-nums text-[#0b1024]">{props.cleanerCount}</span>
+        </span>
+      ) : (
+        <span className="text-[13px] text-[#9b9fb3]">Выключен — обычный режим «1 пара уборщик-контролёр в день»</span>
+      )}
+      <button
+        type="button"
+        onClick={props.onConfigure}
+        disabled={props.disabled}
+        className="ml-auto inline-flex h-8 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Настроить
+      </button>
+    </section>
+  );
+}
+
 type RoomsModeCardProps = {
   buildings: Array<{
     id: string;
