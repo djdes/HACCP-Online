@@ -305,6 +305,43 @@ class TasksFlowClient {
   }): Promise<unknown> {
     return this.request("PUT", "/api/companies/me", args);
   }
+
+  /**
+   * Phase 2.10 (П-17 спека 2026-05-09): получить audit-events из TasksFlow.
+   * Wesetup при рендере объединённого audit-report'а merge'ит эти события
+   * с собственным AuditLog'ом по timestamp'у.
+   */
+  getAudit(opts?: {
+    /** Unix sec нижняя граница (default: TF берёт now-30d). */
+    since?: number;
+    /** Конкретные tasks (если знаем что искать). */
+    taskIds?: number[];
+    /** Default 500, max 5000. */
+    limit?: number;
+  }): Promise<{
+    events: Array<{
+      id: number;
+      companyId: number | null;
+      actorWorkerId: number | null;
+      taskId: number | null;
+      action: string;
+      payload: unknown;
+      createdAt: number;
+    }>;
+    count: number;
+  }> {
+    const params = new URLSearchParams();
+    if (opts?.since !== undefined) params.set("since", String(opts.since));
+    if (opts?.taskIds && opts.taskIds.length > 0) {
+      params.set("taskIds", opts.taskIds.join(","));
+    }
+    if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return this.request(
+      "GET",
+      `/api/audit${qs ? `?${qs}` : ""}`,
+    );
+  }
 }
 
 /** Build a client from a stored integration row (decrypts the API key). */
