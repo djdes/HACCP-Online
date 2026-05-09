@@ -1323,6 +1323,7 @@ export function CleaningDocumentClient(props: Props) {
         {!printMode && props.buildings && props.buildings.length > 0 ? (
           <CleaningRaceModeStrip
             enabled={(config.cleaningMode ?? "pairs") === "rooms"}
+            raceMode={config.roomsRaceMode === true}
             roomCount={(config.selectedRoomIds ?? []).length}
             cleanerCount={(config.selectedCleanerUserIds ?? []).length}
             disabled={props.status !== "active" || saving}
@@ -1330,8 +1331,19 @@ export function CleaningDocumentClient(props: Props) {
               await patchDocument({
                 ...config,
                 cleaningMode: enabled ? "rooms" : "pairs",
+                // Когда включаем — сразу ставим roomsRaceMode=true. Без этого
+                // адаптер падает в round-robin (cleaners[i % M] — половина
+                // одному, половина другому) и пользователь думает что race
+                // не работает. По умолчанию владелец хочет именно race.
+                roomsRaceMode: enabled ? true : false,
                 selectedRoomIds: config.selectedRoomIds ?? [],
                 selectedCleanerUserIds: config.selectedCleanerUserIds ?? [],
+              });
+            }}
+            onSwitchRace={async (race) => {
+              await patchDocument({
+                ...config,
+                roomsRaceMode: race,
               });
             }}
             onConfigure={() => setRaceConfigOpen(true)}
@@ -2139,43 +2151,84 @@ export function CleaningDocumentClient(props: Props) {
  */
 function CleaningRaceModeStrip(props: {
   enabled: boolean;
+  raceMode: boolean;
   roomCount: number;
   cleanerCount: number;
   disabled: boolean;
   onToggle: (enabled: boolean) => Promise<void>;
+  onSwitchRace: (race: boolean) => Promise<void>;
   onConfigure: () => void;
 }) {
   return (
-    <section className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[#ececf4] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-      <label className="flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0b1024]">
-        <input
-          type="checkbox"
-          checked={props.enabled}
+    <section className="rounded-2xl border border-[#ececf4] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label className="flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0b1024]">
+          <input
+            type="checkbox"
+            checked={props.enabled}
+            disabled={props.disabled}
+            onChange={(e) => {
+              void props.onToggle(e.target.checked);
+            }}
+            className="size-4 cursor-pointer accent-[#5566f6]"
+          />
+          Раздавать задачи по помещениям
+        </label>
+        {props.enabled ? (
+          <span className="text-[13px] text-[#6f7282]">
+            Помещений: <span className="font-semibold tabular-nums text-[#0b1024]">{props.roomCount}</span>
+            {" · "}
+            Уборщиков: <span className="font-semibold tabular-nums text-[#0b1024]">{props.cleanerCount}</span>
+          </span>
+        ) : (
+          <span className="text-[13px] text-[#9b9fb3]">Выключено — обычный режим «1 пара уборщик-контролёр в день»</span>
+        )}
+        <button
+          type="button"
+          onClick={props.onConfigure}
           disabled={props.disabled}
-          onChange={(e) => {
-            void props.onToggle(e.target.checked);
-          }}
-          className="size-4 cursor-pointer accent-[#5566f6]"
-        />
-        Race-режим (отдельная задача на помещение)
-      </label>
-      {props.enabled ? (
-        <span className="text-[13px] text-[#6f7282]">
-          Помещений: <span className="font-semibold tabular-nums text-[#0b1024]">{props.roomCount}</span>
-          {" · "}
-          Уборщиков: <span className="font-semibold tabular-nums text-[#0b1024]">{props.cleanerCount}</span>
-        </span>
-      ) : (
-        <span className="text-[13px] text-[#9b9fb3]">Выключен — обычный режим «1 пара уборщик-контролёр в день»</span>
-      )}
-      <button
-        type="button"
-        onClick={props.onConfigure}
-        disabled={props.disabled}
-        className="ml-auto inline-flex h-8 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Настроить
-      </button>
+          className="ml-auto inline-flex h-8 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Настроить
+        </button>
+      </div>
+      {props.enabled && props.cleanerCount > 1 ? (
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-[#ececf4] pt-2.5 text-[13px]">
+          <span className="text-[#6f7282]">Распределение между уборщиками:</span>
+          <div className="inline-flex rounded-xl border border-[#dcdfed] bg-[#fafbff] p-0.5">
+            <button
+              type="button"
+              disabled={props.disabled}
+              onClick={() => {
+                if (!props.raceMode) void props.onSwitchRace(true);
+              }}
+              className={`inline-flex h-7 items-center rounded-lg px-3 text-[12.5px] font-medium transition-colors ${
+                props.raceMode
+                  ? "bg-white text-[#0b1024] shadow-[0_0_0_1px_#dcdfed]"
+                  : "text-[#6f7282] hover:text-[#0b1024]"
+              }`}
+              title="На каждое помещение задача отправляется ВСЕМ уборщикам. Кто первый — тот и закрепил за собой."
+            >
+              Гонка (кто первый)
+            </button>
+            <button
+              type="button"
+              disabled={props.disabled}
+              onClick={() => {
+                if (props.raceMode) void props.onSwitchRace(false);
+              }}
+              className={`inline-flex h-7 items-center rounded-lg px-3 text-[12.5px] font-medium transition-colors ${
+                !props.raceMode
+                  ? "bg-white text-[#0b1024] shadow-[0_0_0_1px_#dcdfed]"
+                  : "text-[#6f7282] hover:text-[#0b1024]"
+              }`}
+              title="Помещения делятся между уборщиками поровну. Уборщик 1 делает комнаты 0,2,4..., уборщик 2 — 1,3,5..."
+            >
+              Поделить поровну
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
