@@ -689,19 +689,28 @@ export function CleaningDocumentClient(props: Props) {
   /**
    * Значение ячейки.
    *
-   * • room: completion из JournalDocumentEntry → код уборщика (С1/С2);
-   *   нет completion → planned matrix (T/G/«/»).
-   * • responsible-row (cleaning/control): ВСЕГДА пусто. По решению
-   *   юзера 2026-05-08 — responsible-строки служат подписью «С1 — Иван
-   *   Иванов», ячейки per-day отключены чтобы менеджер не путался.
-   *   Кто реально убирался показывается КОДОМ в room-rows.
+   * Приоритет (2026-05-09 фикс «по середине не убирается»):
+   *   1. Manual matrix override (T/G/«/») — побеждает всегда. Так клик
+   *      менеджера сразу виден: cycled empty→T→G→«/»→empty без сюрпризов.
+   *      Раньше completion-код блокировал визуальные правки и менеджер
+   *      думал что клик не работает.
+   *   2. Completion из JournalDocumentEntry (kind="cleaning_room") — код
+   *      уборщика С1/С2/... Виден когда matrix пустой и уборщик закрыл
+   *      TF-задачу. Менеджер не теряет compliance-данные: чтобы вернуться
+   *      к completion-display, надо до-цикл матрицы до empty.
+   *   3. Иначе пусто.
+   *
+   * Responsible-rows (cleaning/control) рендерятся отдельно ниже rows.map
+   * с собственными cleaningCodeForDay/controlCodeForDay; здесь возвращаем
+   * пусто для безопасности (никогда не вызывается с non-room в новой
+   * структуре, но guard на случай регрессии).
    */
   function cellValue(row: RowDescriptor, dateKey: string): string {
-    if (row.kind !== "room") {
-      // Responsibles — пустые ячейки (информация только в первой колонке).
-      return "";
-    }
-    // Room: ищем completion → код уборщика.
+    if (row.kind !== "room") return "";
+    // 1. Manual matrix override — побеждает completion.
+    const matrixVal = config.matrix[row.id]?.[dateKey];
+    if (matrixVal) return matrixVal;
+    // 2. Completion из DB — fallback когда matrix пустой.
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;
       if (
@@ -712,12 +721,10 @@ export function CleaningDocumentClient(props: Props) {
         const cleanerId = String(d.cleanerUserId ?? "");
         const code = cleanerCodeById.get(cleanerId);
         if (code) return code;
-        // Fallback на инициалы если cleaner не в codeById (legacy).
         return userInitialsById.get(cleanerId) ?? "";
       }
     }
-    // Нет completion — planned значение из matrix (T/G/«/»).
-    return config.matrix[row.id]?.[dateKey] || "";
+    return "";
   }
 
   useEffect(() => { setConfig(normalized); setSettingsState(buildSettingsState(normalized)); }, [normalized]);
