@@ -117,7 +117,8 @@ class TasksFlowClient {
   private async request<T>(
     method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
-    body?: unknown
+    body?: unknown,
+    opts?: { idempotencyKey?: string }
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const ctrl = new AbortController();
@@ -128,6 +129,14 @@ class TasksFlowClient {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          // П-19 spec'а 2026-05-09: Idempotency-Key на каждой мутирующей
+          // команде. TasksFlow со временем должен принимать его (Phase 2.1+).
+          // Сейчас header игнорируется TF'ом, но мы шлём proactively —
+          // когда TF поддержит, retries станут безопасными без изменений
+          // в Wesetup.
+          ...(opts?.idempotencyKey
+            ? { "Idempotency-Key": opts.idempotencyKey }
+            : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: ctrl.signal,
@@ -203,8 +212,11 @@ class TasksFlowClient {
     return this.request<TasksFlowTask>("GET", `/api/tasks/${id}`);
   }
 
-  createTask(input: CreateTaskInput): Promise<TasksFlowTask> {
-    return this.request<TasksFlowTask>("POST", "/api/tasks", input);
+  createTask(
+    input: CreateTaskInput,
+    opts?: { idempotencyKey?: string },
+  ): Promise<TasksFlowTask> {
+    return this.request<TasksFlowTask>("POST", "/api/tasks", input, opts);
   }
 
   /**
@@ -224,28 +236,37 @@ class TasksFlowClient {
 
   updateTask(
     id: number,
-    patch: Partial<CreateTaskInput>
+    patch: Partial<CreateTaskInput>,
+    opts?: { idempotencyKey?: string },
   ): Promise<TasksFlowTask> {
-    return this.request<TasksFlowTask>("PUT", `/api/tasks/${id}`, patch);
+    return this.request<TasksFlowTask>("PUT", `/api/tasks/${id}`, patch, opts);
   }
 
-  deleteTask(id: number): Promise<void> {
-    return this.request<void>("DELETE", `/api/tasks/${id}`);
+  deleteTask(id: number, opts?: { idempotencyKey?: string }): Promise<void> {
+    return this.request<void>("DELETE", `/api/tasks/${id}`, undefined, opts);
   }
 
-  completeTask(id: number): Promise<TasksFlowTask> {
+  completeTask(
+    id: number,
+    opts?: { idempotencyKey?: string },
+  ): Promise<TasksFlowTask> {
     return this.request<TasksFlowTask>(
       "POST",
       `/api/tasks/${id}/complete`,
-      {}
+      {},
+      opts,
     );
   }
 
-  uncompleteTask(id: number): Promise<TasksFlowTask> {
+  uncompleteTask(
+    id: number,
+    opts?: { idempotencyKey?: string },
+  ): Promise<TasksFlowTask> {
     return this.request<TasksFlowTask>(
       "POST",
       `/api/tasks/${id}/uncomplete`,
-      {}
+      {},
+      opts,
     );
   }
 

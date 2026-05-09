@@ -112,13 +112,18 @@ export async function GET(request: Request) {
         //   deleteTask:         прямой delete
         //   completeTask:       client.completeTask
         //   verifyTask:         Phase 2.1+ (mark-verified в TF API)
+        // П-19 spec'а 2026-05-09: передаём `row.idempotencyKey` в TF API
+        // как Idempotency-Key header. TF сейчас игнорирует, но когда
+        // (Phase 2.5+) поддержит — retries станут безопасными без правок
+        // здесь. Header отправляется для всех мутирующих запросов.
+        const idempotency = { idempotencyKey: row.idempotencyKey };
         switch (row.action) {
           case "markClaimedByOther":
           case "deleteTask":
-            await client.deleteTask(taskId);
+            await client.deleteTask(taskId, idempotency);
             break;
           case "completeTask":
-            await client.completeTask(taskId);
+            await client.completeTask(taskId, idempotency);
             break;
           default: {
             // N3 fix: Unknown action — permanent producer/consumer mismatch.
