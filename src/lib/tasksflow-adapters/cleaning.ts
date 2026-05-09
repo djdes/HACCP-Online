@@ -93,6 +93,14 @@ export const cleaningAdapter: JournalAdapter = {
     });
     const userNameById = new Map(orgUsers.map((u) => [u.id, u.name]));
 
+    // 2026-05-09: bulk-assign-today фильтрует rows по matrix today.
+    // Если в ячейке `<roomId>::<today>` стоит «/» (не убираться) или
+    // пусто — задача на сегодня не нужна, row пропускаем. Это часть
+    // realtime sync «matrix → TF» (П-10): matrix — source of truth для
+    // содержимого журнала. См. также cleaning-cell-override-sync.ts —
+    // он удаляет/обновляет уже-существующие задачи при изменении matrix.
+    const todayKey = toDateKey(new Date());
+
     return docs.map((doc) => {
       const config = normalizeCleaningDocumentConfig(
         doc.config
@@ -106,15 +114,24 @@ export const cleaningAdapter: JournalAdapter = {
         },
         rows:
           config.cleaningMode === "rooms"
-            ? buildRoomsModeRows(config, roomNameById, userNameById)
-            : (config.responsiblePairs ?? []).map<AdapterRow>((pair) => ({
-                rowKey: pair.id,
-                label: pair.cleaningUserName || pair.cleaningTitle,
-                sublabel: pair.controlUserName
-                  ? `Контроль: ${pair.controlUserName}`
-                  : pair.controlTitle,
-                responsibleUserId: pair.cleaningUserId,
-              })),
+            ? buildRoomsModeRows(config, roomNameById, userNameById, todayKey)
+            : (config.responsiblePairs ?? [])
+                .filter((pair) => {
+                  // pairs-mode: pair.id rowKey не привязан к комнате,
+                  // matrix-фильтрация работает только если есть запись
+                  // matrix[pair.id][todayKey]. Если её нет — оставляем
+                  // (legacy behaviour). Если "/" — skip.
+                  const cell = config.matrix?.[pair.id]?.[todayKey];
+                  return cell !== "/";
+                })
+                .map<AdapterRow>((pair) => ({
+                  rowKey: pair.id,
+                  label: pair.cleaningUserName || pair.cleaningTitle,
+                  sublabel: pair.controlUserName
+                    ? `Контроль: ${pair.controlUserName}`
+                    : pair.controlTitle,
+                  responsibleUserId: pair.cleaningUserId,
+                })),
       };
       (adapterDoc as AdapterDocument & {
         _skipWeekends?: boolean;
@@ -658,11 +675,23 @@ function buildPairsCleaningForm(args: {
 function buildRoomsModeRows(
   config: CleaningDocumentConfig,
   roomNameById: Map<string, string>,
-  userNameById: Map<string, string>
+  userNameById: Map<string, string>,
+  todayKey: string,
 ): AdapterRow[] {
-  const rooms = config.selectedRoomIds ?? [];
+  const allRooms = config.selectedRoomIds ?? [];
   const cleaners = config.selectedCleanerUserIds ?? [];
-  if (rooms.length === 0 || cleaners.length === 0) return [];
+  if (allRooms.length === 0 || cleaners.length === 0) return [];
+
+  // 2026-05-09: matrix-фильтр (П-10 source of truth). Если в ячейке
+  // `<roomId>::<todayKey>` стоит «/» (не убираться сегодня) — комнату
+  // пропускаем, задача в TF не создаётся. Empty cell (никогда не
+  // редактировалась) пускаем — поведение по умолчанию = "уборка нужна",
+  // matrix=auto-fill распишет в "T" при создании документа.
+  const rooms = allRooms.filter((roomId) => {
+    const cell = config.matrix?.[roomId]?.[todayKey];
+    return cell !== "/";
+  });
+  if (rooms.length === 0) return [];
 
   // 2026-05-04: ДВА режима через config.roomsRaceMode.
   //
