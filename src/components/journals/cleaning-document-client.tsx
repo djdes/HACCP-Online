@@ -624,11 +624,22 @@ export function CleaningDocumentClient(props: Props) {
 
   // Подпись «Ответственный за уборку» в день D.
   //   1. Если есть manual override (matrix[CLEANING_SIGNATURE_ROW_ID][D]) —
-  //      возвращаем его (даже если пустая строка — явная очистка владельца).
+  //      возвращаем его. НО если код устарел (С2 из 2-уборщикового
+  //      прошлого, а сейчас только С1) — игнорируем.
   //   2. Иначе computed: коды С1/С2 из room cells (кто реально убирал).
   function cleaningCodeForDay(dateKey: string): string {
     const manual = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
-    if (manual !== undefined) return manual;
+    if (manual !== undefined) {
+      // Пустая строка = явная очистка владельца — пропускаем дальше.
+      // Иначе проверяем валидность кода.
+      if (manual === "") return "";
+      const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
+      const validParts = parts.filter(
+        (p) => !/^С\d+$/.test(p) || validCleaningCodes.has(p),
+      );
+      if (validParts.length > 0) return validParts.join(",");
+      // Все коды устарели — fallthrough to computed.
+    }
     const codes = new Set<string>();
     for (const row of rows) {
       const v = cellValue(row, dateKey);
@@ -716,29 +727,29 @@ export function CleaningDocumentClient(props: Props) {
   }
 
   // Map userId → код уборщика (С1/С2/...). Используется в room-cells
-  // вместо инициалов: компактнее и согласуется с подписью в строке
-  // «С1 — Иван Иванов».
+  // (cellValue.completion-fallback) и должен быть согласован с
+  // cleaningResponsibleList — иначе ghost-уборщик (например, бывший
+  // или контролёр) генерирует код С2 в клетке, хотя в списке
+  // уборщиков его нет.
+  //
+  // Раньше cleanerCodeById брал данные напрямую из selectedCleanerUserIds,
+  // включая отфильтрованных. Теперь источник = cleaningResponsibleList
+  // (уже отдедуплицирован: контролёры исключены).
   const cleanerCodeById = useMemo(() => {
     const m = new Map<string, string>();
-    if (
-      isRoomsMode &&
-      Array.isArray(config.selectedCleanerUserIds) &&
-      config.selectedCleanerUserIds.length > 0
-    ) {
-      config.selectedCleanerUserIds.forEach((userId, idx) => {
-        m.set(userId, `С${idx + 1}`);
-      });
-    } else {
-      config.cleaningResponsibles.forEach((r, idx) => {
-        if (r.userId) m.set(r.userId, r.code || `С${idx + 1}`);
-      });
-    }
+    cleaningResponsibleList.forEach((r) => {
+      if (r.userId) m.set(r.userId, r.code);
+    });
     return m;
-  }, [
-    config.selectedCleanerUserIds,
-    config.cleaningResponsibles,
-    isRoomsMode,
-  ]);
+  }, [cleaningResponsibleList]);
+
+  // Множество допустимых кодов уборщиков ("С1", "С2", ...). Используется
+  // как safety-net: если в matrix лежит легаси-значение "С2" (записанное
+  // когда было 2 уборщика, а сейчас остался 1), мы его НЕ отображаем —
+  // менеджер увидит пустую клетку, а не invalid С2.
+  const validCleaningCodes = useMemo(() => {
+    return new Set(cleaningResponsibleList.map((r) => r.code));
+  }, [cleaningResponsibleList]);
 
   /**
    * Значение ячейки.
@@ -761,10 +772,21 @@ export function CleaningDocumentClient(props: Props) {
    */
   function cellValue(row: RowDescriptor, dateKey: string): string {
     if (row.kind !== "room") return "";
-    // 1. Manual matrix override — побеждает completion.
+    // 1. Manual matrix override — побеждает completion. НО если значение
+    //    выглядит как код уборщика «С*» (не T/G/«/»/empty), валидируем
+    //    против validCleaningCodes — легаси «С2» из старого 2-уборщикового
+    //    setup'а не должен светиться когда в текущей конфигурации только С1.
     const matrixVal = config.matrix[row.id]?.[dateKey];
-    if (matrixVal) return matrixVal;
-    // 2. Completion из DB — fallback когда matrix пустой.
+    if (matrixVal) {
+      if (/^С\d+$/.test(matrixVal) && !validCleaningCodes.has(matrixVal)) {
+        // Stale «С2»/«С3»/... — игнорируем, идём в completion-fallback.
+      } else {
+        return matrixVal;
+      }
+    }
+    // 2. Completion из DB — fallback когда matrix пустой ИЛИ содержит
+    //    stale-код. cleanerCodeById уже отфильтрован — ghost-уборщик
+    //    (например, контролёр) сюда не попадёт.
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;
       if (
@@ -775,7 +797,9 @@ export function CleaningDocumentClient(props: Props) {
         const cleanerId = String(d.cleanerUserId ?? "");
         const code = cleanerCodeById.get(cleanerId);
         if (code) return code;
-        return userInitialsById.get(cleanerId) ?? "";
+        // userId в completion есть, но он не в списке уборщиков
+        // (контролёр / бывший сотрудник) — не показываем «фантом».
+        return "";
       }
     }
     return "";
