@@ -2,6 +2,130 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
+## Архитектурные принципы Wesetup ↔ TasksFlow (П-1—П-19, обязательны для каждой правки)
+
+Утверждены 2026-05-09 в brainstorming-сессии с владельцем проекта.
+Полная спецификация: [`docs/superpowers/specs/2026-05-09-wesetup-tasksflow-integration-design.md`](./docs/superpowers/specs/2026-05-09-wesetup-tasksflow-integration-design.md).
+
+**ВАЖНО:** перед любой правкой касающейся интеграции с TasksFlow (адаптеры
+`src/lib/tasksflow-adapters/*`, эндпоинты `src/app/api/integrations/tasksflow/*`,
+`TasksFlowTaskLink`, `TasksFlowUserLink`, `TasksFlowOutbox`, claim/verify-flow,
+race-mode, siblings cleanup) **ОБЯЗАТЕЛЬНО** перечитать соответствующий
+принцип ниже и spec — иначе риск поломать архитектуру.
+
+### Границы систем (system boundary)
+
+- **П-1.** TasksFlow — независимый standalone-сервис. Wesetup — клиент его API.
+  Wesetup не владеет TasksFlow и не диктует ему логику. TF может обслуживать
+  других клиентов.
+- **П-3.** Wesetup существует в двух местах с **одинаковым** функционалом:
+  сайт `wesetup.ru` (десктоп) и Mini App в Telegram через `@wesetupbot`
+  (`/mini/*`). Mini App — мобильное зеркало сайта. Если фича есть на сайте —
+  должна быть в Mini App. Никаких дубликатов worker-flow (заполнение журналов
+  в Mini App запрещено — это делается в TF).
+- **П-11.** Единая дизайн-система в обоих проектах. Источник —
+  [`.claude/skills/design-system`](.claude/skills/design-system/) Wesetup'а.
+  Палитра `#5566f6` индиго, `rounded-2xl`/`rounded-3xl`, hover transitions
+  150-200ms. TF копирует токены при правке UI.
+- **П-12.** Связь только через TF REST API. **Никаких** cross-imports между
+  репозиториями. **Никаких** прямых SQL/ORM запросов в чужую БД. Wesetup
+  имеет `src/lib/tasksflow-client.ts` и пользуется только им.
+- **П-18.** Multi-org isolation: Wesetup `Organization` ↔ TF `company`
+  связаны 1:1 через `TasksFlowIntegration.tasksflowCompanyId`. При любом
+  запросе в TF Wesetup автоматически фильтрует `companyId=<current>`.
+
+### Идентификация и доступ (identity & access)
+
+- **П-4.** Права в Wesetup — централизованные (`permissionPreset` в
+  `User`). Админ организации настраивает в `/settings/permissions`. Эти права
+  применяются одинаково на сайте и в Mini App (П-3).
+- **П-5.** TasksFlow имеет свои отдельные права. Wesetup в них не лезет —
+  это разные домены.
+- **П-6.** Один человек = два аккаунта (Wesetup + TF), связанных через
+  `TasksFlowUserLink (wesetupUserId, tasksflowUserId)`.
+- **П-7.** Вход в TasksFlow — только по номеру телефона (SMS-код или
+  Telegram). Без пароля. Wesetup поддерживает аналогичный вход через
+  Telegram (по номеру) + email/password как fallback.
+- **П-8.** Связка аккаунтов — авто по номеру телефона. При создании
+  сотрудника в Wesetup ОБЯЗАТЕЛЬНО номер. Wesetup делает `GET /api/users?phone=...`
+  в TF, находит → `INSERT TasksFlowUserLink`. Не находит → предлагает
+  «Отправить приглашение в TF». Старые аккаунты без номера могут быть
+  «подружены» позже — управляющая добавляет номер, авто-lookup срабатывает.
+  Ручная привязка (`/settings/integrations/tasksflow`) остаётся как fallback.
+
+### Sync и ownership
+
+- **П-9.** Sync TF → Wesetup — гибрид:
+  - Webhook (быстрый, 1-2 сек): TF отправляет POST на
+    `/api/integrations/tasksflow/event` при изменении статуса.
+  - Polling (страховочный, раз в 10 мин): cron в Wesetup ходит в TF и
+    догоняет потерянные события.
+  - Дедупликация: `tasksflow_event_log` по `eventId`.
+- **П-10.** Источник правды:
+  - **TF** владеет статусами задач (open/in_progress/done/verified/claimed_by_other).
+  - **Wesetup** владеет содержимым журналов (T/G/«/», коды С1/С2, фото).
+  - При расхождении: TF wins для статуса задач, Wesetup wins для журналов.
+- **П-13.** Создание задач — гибрид:
+  1. Cron в Wesetup в 00:01 каждой ночи создаёт задачи на сегодня.
+  2. Управляющая может вручную нажать «Отправить задачи» в Wesetup
+     (manual override).
+  3. Уникальный ключ `(documentId, rowKey, dateKey)`. Повторная отправка
+     возвращает существующий `tasksflowTaskId` (idempotent).
+  4. ВСЁ создание идёт через TF API — никаких прямых записей в TF БД.
+- **П-15.** Failure mode — graceful degradation:
+  - **Outbox pattern**: каждая команда Wesetup→TF записывается в
+    `TasksFlowOutbox` перед отправкой. Cron каждые 30 сек проигрывает
+    pending записи. Если TF недоступен — копится в очереди.
+  - **Idempotency-Key** на каждой команде. Повторный вызов = no-op.
+  - **Polling fallback** (П-9) догоняет потерянные webhook'и при падении Wesetup.
+  - Никаких блокировок UI — обе системы работают независимо.
+- **П-19.** Idempotency-Key (UUID-v7) на каждой команде Wesetup→TF. Header
+  `Idempotency-Key: <uuid>` обязателен. TF принимает повторные вызовы и
+  возвращает результат прошлого. Привязка ключа — к `(documentId, rowKey, action)`.
+
+### Domain logic
+
+- **П-2.** Race-siblings cleanup — **auto-claim** (помечаем «сделано
+  другим»), не delete. Когда worker-1 закрывает task в TF, Wesetup ловит
+  webhook и через TF API маркирует sibling-задачи (тот же `documentId`+
+  `rowKey`-prefix `room::<roomId>::cleaner::*`, другие `workerId`) как
+  `claimed_by_other` с указанием кто. Если в TF нет статуса
+  `claimed_by_other` — fallback на `DELETE /tasks/<id>` (auto-delete).
+  Реализация в `src/lib/cleaning-siblings-cleanup.ts`.
+- **П-14.** Verify-flow — гибрид:
+  - Заведующая может подтвердить и в TF, и в Wesetup.
+  - Дедуп через `verifiedAt`: первое подтверждение фиксируется, второе
+    становится no-op (не error).
+  - При подтверждении в Wesetup: пишем `verifiedAt` + outbox
+    `PUT /tasks/<id> { status: "verified" }` в TF.
+  - При подтверждении в TF: webhook → Wesetup пишет `verifiedAt`.
+- **П-16.** Cleanup старых задач — Wesetup управляет: cron в 03:00
+  ежедневно удаляет в TF задачи `remoteStatus IN ('done','verified',
+  'claimed_by_other') AND completedAt < NOW() - INTERVAL '30 days'`.
+  Compliance-данные (`JournalDocumentEntry`) остаются навсегда.
+  Управляющая может вручную через кнопку «Очистить TF архив».
+
+### Audit
+
+- **П-17.** Audit log — раздельный. TF пишет свой (claim/complete/verify
+  на задачах). Wesetup пишет свой (`AuditLog`: journal-fill, manager-actions).
+  Объединённый отчёт: Wesetup при рендере подтягивает TF events через
+  `GET /api/audit?taskIds=...&since=...` и объединяет хронологически.
+  Никаких физически объединённых таблиц.
+
+### Что делать при правке
+
+1. **Прочитай spec целиком** перед любой нетривиальной правкой:
+   [`docs/superpowers/specs/2026-05-09-wesetup-tasksflow-integration-design.md`](./docs/superpowers/specs/2026-05-09-wesetup-tasksflow-integration-design.md).
+2. **Проверь что правка соответствует принципам.** Если правка нарушает
+   принцип — STOP, обсуди с владельцем (может быть нужно обновить spec).
+3. **Никогда не делай:**
+   - Прямых SQL-запросов в TF БД из Wesetup (нарушает П-12).
+   - Дублирования логики задач в Wesetup (нарушает П-10).
+   - Дублирования worker-flow в Mini App (нарушает П-3).
+   - Хардкода паролей или токенов TF (П-7 — phone-only).
+   - Создания задач в TF минуя outbox (нарушает П-15, П-19).
+
 ## Принципы UX (важно — для каждой фичи)
 
 1. **Максимально просто. Чем меньше действий — тем лучше.**
