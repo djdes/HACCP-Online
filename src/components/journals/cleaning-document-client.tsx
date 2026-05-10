@@ -484,88 +484,49 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [props.users]);
 
-  // Множество userId контролёров — для дедупликации. Если человек уже
-  // контролёр — не показываем его как уборщика С2. Источники controller-id:
-  //   1. controlResponsibles[] (legacy array)
-  //   2. config.controlUserId (single document-wide)
-  //   3. config.verifierByRoomId (per-room overrides)
-  //   4. config.responsiblePairs[].controlUserId (pairs-mode)
-  //   5. props.responsibleUserId (document-level top dropdown)
-  // Считается ДО controlResponsibleList — иначе circular dep (control list
-  // зависит от cleanerCount = post-dedupe cleaning list, а тот от
-  // controlUserIdSet). Здесь нам нужны ТОЛЬКО userId-ы, не коды.
-  const controlUserIdSet = useMemo(() => {
-    const s = new Set<string>();
-    for (const r of config.controlResponsibles) {
-      if (r.userId) s.add(r.userId);
-    }
-    if (config.controlUserId) s.add(config.controlUserId);
-    if (config.verifierByRoomId) {
-      for (const uid of Object.values(config.verifierByRoomId)) {
-        if (uid) s.add(uid);
-      }
-    }
-    if (Array.isArray(config.responsiblePairs)) {
-      for (const pair of config.responsiblePairs) {
-        if (pair?.controlUserId) s.add(pair.controlUserId);
-      }
-    }
-    if (props.responsibleUserId) s.add(props.responsibleUserId);
-    return s;
-  }, [
-    config.controlResponsibles,
-    config.controlUserId,
-    config.verifierByRoomId,
-    config.responsiblePairs,
-    props.responsibleUserId,
-  ]);
-
-  // Уборщики (после дедупа контролёров) — С1, С2, ..., СN.
-  // Один человек = одна роль на документе (compliance-требование:
-  // самоверификация запрещена).
+  // Уборщики — С1, С2, ..., СN. Без дедупа с контролёрами: один человек
+  // МОЖЕТ быть и в «Ответственный за уборку», и в «Ответственный за
+  // контроль» одновременно (раньше дедупили — пользователь жаловался,
+  // что «Ярослав в контроле, но не в уборке» — теперь разрешено).
   const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
     if (
       isRoomsMode &&
       Array.isArray(config.selectedCleanerUserIds) &&
       config.selectedCleanerUserIds.length > 0
     ) {
-      return config.selectedCleanerUserIds
-        .filter((userId) => !controlUserIdSet.has(userId))
-        .map((userId, idx) => {
-          const user = props.users.find((u) => u.id === userId);
-          return {
-            id: `selected-cleaner-${userId}`,
-            kind: "cleaning" as const,
-            code: `С${idx + 1}`,
-            title: "Уборщик",
-            userId,
-            userName: user?.name ?? "—",
-          } satisfies CleaningResponsible;
-        });
+      return config.selectedCleanerUserIds.map((userId, idx) => {
+        const user = props.users.find((u) => u.id === userId);
+        return {
+          id: `selected-cleaner-${userId}`,
+          kind: "cleaning" as const,
+          code: `С${idx + 1}`,
+          title: "Уборщик",
+          userId,
+          userName: user?.name ?? "—",
+        } satisfies CleaningResponsible;
+      });
     }
-    return config.cleaningResponsibles
-      .filter((r) => !r.userId || !controlUserIdSet.has(r.userId))
-      .map((r, idx) => ({ ...r, code: `С${idx + 1}` }));
+    return config.cleaningResponsibles.map((r, idx) => ({
+      ...r,
+      code: `С${idx + 1}`,
+    }));
   }, [
     isRoomsMode,
     config.selectedCleanerUserIds,
     config.cleaningResponsibles,
-    controlUserIdSet,
     props.users,
   ]);
 
-  // Контролёры — С{N+1}, С{N+2}, ...
-  // N = cleaningResponsibleList.length (POST-дедуп, по спеке F.2).
-  // Раньше считали raw selectedCleanerUserIds.length → если cleaner был
-  // ещё и контролёром, нумерация рассинхронизировалась (cleaner=С1,
-  // controller=С3 вместо С2).
+  // Контролёры — С1, С2, ... СM (independent numbering от cleaning-list).
+  // Каждая строка («Ответственный за уборку» и «Ответственный за контроль»)
+  // имеет собственное С-нумерование от С1 — они логически независимые
+  // списки, объединённая нумерация запутывала менеджера.
   const controlResponsibleList = useMemo<CleaningResponsible[]>(() => {
-    const cleanerCount = cleaningResponsibleList.length;
     return config.controlResponsibles.map((resp, idx) => ({
       ...resp,
-      code: `С${cleanerCount + idx + 1}`,
+      code: `С${idx + 1}`,
     }));
-  }, [config.controlResponsibles, cleaningResponsibleList]);
+  }, [config.controlResponsibles]);
 
   const rows = useMemo<RowDescriptor[]>(() => {
     // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
@@ -620,12 +581,13 @@ export function CleaningDocumentClient(props: Props) {
   function cleaningCodeForDay(dateKey: string): string {
     const manual = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
     if (manual !== undefined) {
-      // Пустая строка = явная очистка владельца — пропускаем дальше.
-      // Иначе проверяем валидность кода.
-      if (manual === "") return "";
+      // Пустая строка ИЛИ sentinel «—» = явная очистка владельца —
+      // пропускаем дальше (signature row не должна светить sentinel,
+      // но safety-net на случай миграции).
+      if (manual === "" || manual === "—") return "";
       const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
       const validParts = parts.filter(
-        (p) => !/^С\d+$/.test(p) || validCleaningCodes.has(p),
+        (p) => p !== "—" && (!/^С\d+$/.test(p) || validCleaningCodes.has(p)),
       );
       if (validParts.length > 0) return validParts.join(",");
       // Все коды устарели — fallthrough to computed.
@@ -648,14 +610,14 @@ export function CleaningDocumentClient(props: Props) {
   function controlCodeForDay(dateKey: string): string {
     const manual = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
     if (manual !== undefined) {
-      // Пустая строка = явная очистка владельца — пропускаем дальше.
-      if (manual === "") return "";
+      // Пустая строка ИЛИ sentinel «—» = явная очистка владельца.
+      if (manual === "" || manual === "—") return "";
       // Stale-codes filter (по спеке F.3): если manual содержит С-код,
       // которого нет в текущем validControlCodes — отбрасываем. Поддержка
       // multi-controller через split по запятой.
       const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
       const validParts = parts.filter(
-        (p) => !/^С\d+$/.test(p) || validControlCodes.has(p),
+        (p) => p !== "—" && (!/^С\d+$/.test(p) || validControlCodes.has(p)),
       );
       if (validParts.length > 0) return validParts.join(",");
       // Все коды устарели — fallthrough to computed.
@@ -672,8 +634,13 @@ export function CleaningDocumentClient(props: Props) {
   }
 
   // Циклим manual signature по клику. Порядок:
-  //   empty → С1 → С2 → ... → СN → empty
-  // Хранится в matrix[pseudo_row][dateKey] через стандартный patchDocument.
+  //   computed/empty → С1 → С2 → ... → СN → «—» (sentinel: visual empty,
+  //   но override computed) → computed/empty (delete from storage)
+  //
+  // Sentinel «—» нужен по той же причине что и в room-cells: если
+  // computed-fallback (cleaningCodeForDay из completions) показывает код,
+  // менеджер не может «очистить» клетку — она всегда возвращалась к
+  // computed. Sentinel явно подавляет fallback.
   async function cycleSignature(
     rowId: string,
     dateKey: string,
@@ -681,21 +648,41 @@ export function CleaningDocumentClient(props: Props) {
   ) {
     if (printMode || props.status !== "active" || saving) return;
     if (codes.length === 0) return;
-    const currentRaw = config.matrix[rowId]?.[dateKey];
-    // Если current совпадает с одним из кодов — берём следующий, иначе старт с первого.
+    // Source-of-truth: видимое значение (matrix override ИЛИ computed).
+    // Раньше читали только matrix → клик на computed-derived "С1" вёл к
+    // matrix=С1 (визуально без изменений). Теперь cycle стартует от того
+    // что менеджер видит.
+    const visualCode =
+      rowId === CLEANING_SIGNATURE_ROW_ID
+        ? cleaningCodeForDay(dateKey)
+        : controlCodeForDay(dateKey);
+    const matrixVal = config.matrix[rowId]?.[dateKey];
+    // Sentinel в matrix → текущее визуальное "" (empty), next = codes[0].
+    // visualCode может быть "С1" или "С1,С2" (multi). Простое правило:
+    // если visualCode === codes[i] (single match) — берём codes[i+1].
+    // Иначе если visualCode пустое или multi/unknown → start с codes[0].
+    // sentinel → start с codes[0].
     let next: string;
-    if (!currentRaw) {
+    if (matrixVal === "—") {
+      next = codes[0];
+    } else if (!visualCode) {
       next = codes[0];
     } else {
-      const idx = codes.indexOf(currentRaw);
-      next = idx < 0 || idx === codes.length - 1 ? "" : codes[idx + 1];
+      const idx = codes.indexOf(visualCode);
+      if (idx < 0) {
+        // visualCode не один из codes (multi-code, stale, или unknown)
+        next = codes[0];
+      } else if (idx === codes.length - 1) {
+        // Последний код → sentinel (visual empty, override computed)
+        next = "—";
+      } else {
+        next = codes[idx + 1];
+      }
     }
     const nextRowMap = { ...(config.matrix[rowId] ?? {}) };
-    if (next === "") {
-      // Stored "" значит «явно очищено» — но если manual override = empty, в
-      // ячейке всё равно вернётся пустота из cleaningCodeForDay/controlCodeForDay
-      // (они уважают undefined != "", но "" → empty всё равно).
-      // Чтобы вернуть к auto-computed после полного цикла, удаляем ключ.
+    if (next === "—") {
+      nextRowMap[dateKey] = "—";
+    } else if (next === "") {
       delete nextRowMap[dateKey];
     } else {
       nextRowMap[dateKey] = next;
@@ -785,20 +772,22 @@ export function CleaningDocumentClient(props: Props) {
    */
   function cellValue(row: RowDescriptor, dateKey: string): string {
     if (row.kind !== "room") return "";
-    // 1. Manual matrix override — только Т/Г/«/» валидно для room-cell.
-    //    Любые С-коды (легаси из 2-уборщикового setup'а или ошибочно
-    //    записанные через старый cellValue completion-fallback) — игнор.
-    //    Room-cells показывают ТИП уборки (Т/Г) или «не проводилась» (/),
-    //    а не подпись (С1/С2 живут только в строке «Ответственный за уборку»).
+    // 1. Manual matrix override — Т/Г/«/» или sentinel «—» (явная пустота).
+    //    Любые С-коды (легаси из 2-уборщикового setup'а) — игнор.
     const matrixVal = config.matrix[row.id]?.[dateKey];
+    if (matrixVal === "—") {
+      // Sentinel: менеджер явно очистил клетку, completion-fallback
+      // подавляется. Возвращаем сам sentinel — JSX через
+      // displayMatrixValue превратит его в "" (визуальная пустота),
+      // а updateCell использует sentinel для корректного цикла.
+      return matrixVal;
+    }
     if (matrixVal && (matrixVal === "T" || matrixVal === "G" || matrixVal === "/")) {
       return matrixVal;
     }
     // 2. Completion из DB — cleaner закрыл TF-задачу. Возвращаем тип
     //    уборки на этот день: Г если день в generalDays bitmask room'а,
-    //    иначе Т. Ранее возвращали С1/С2 — пользователь жаловался что
-    //    в room-cells светится С1, хотя коды должны быть только в строке
-    //    «Ответственный за уборку».
+    //    иначе Т.
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;
       if (
@@ -1046,8 +1035,16 @@ export function CleaningDocumentClient(props: Props) {
     // вписываются в room-cells автоматически когда уборщик закроет
     // соответствующую TF-задачу.
     if (row.kind !== "room") return;
-    const currentValue = config.matrix[row.id]?.[dateKey] || "";
-    const nextValue = toggleCleaningMatrixValue(currentValue);
+    // Cycle source-of-truth: видимое значение (matrix override ИЛИ
+    // completion-derived). Раньше читали только matrix → клик на клетке
+    // с completion "T" не двигал цикл (matrix=undefined → toggle("")="T",
+    // matrix=T, визуально без изменений). Теперь cycle стартует от того
+    // что менеджер реально видит.
+    //
+    // sentinel "—" возвращается cellValue как-есть (display конвертит в "");
+    // toggleCleaningMatrixValue("—") = "T" (delete sentinel, начать заново).
+    const visualValue = cellValue(row, dateKey);
+    const nextValue = toggleCleaningMatrixValue(visualValue);
     await patchDocument(
       setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }),
     );
@@ -1170,10 +1167,35 @@ export function CleaningDocumentClient(props: Props) {
     const responsible = createCleaningResponsibleRow({ kind: responsibleDialog.kind, title: responsibleDialog.title, userId: responsibleDialog.userId, userName: userNameById(props.users, responsibleDialog.userId) });
     const key = responsibleDialog.kind === "cleaning" ? "cleaningResponsibles" : "controlResponsibles";
     const currentItems = config[key];
-    const nextConfig = normalizeCleaningDocumentConfig({
-      ...config,
-      [key]: responsibleDialog.id ? currentItems.map((item) => item.id === responsibleDialog.id ? { ...responsible, id: responsibleDialog.id } : item) : [...currentItems, responsible],
-    }, { users: props.users });
+    const updatedItems = responsibleDialog.id
+      ? currentItems.map((item) =>
+          item.id === responsibleDialog.id
+            ? { ...responsible, id: responsibleDialog.id }
+            : item,
+        )
+      : [...currentItems, responsible];
+    const draft: CleaningDocumentConfig = { ...config, [key]: updatedItems };
+    // В rooms-mode (race-режим) источник cleaning row — selectedCleanerUserIds,
+    // а не cleaningResponsibles array. Без синка добавление через диалог
+    // «Добавить отв. за уборку» не отображалось — bug сообщён юзером.
+    // Контролёры всегда из controlResponsibles, поэтому для kind="control"
+    // дополнительный sync не нужен.
+    if (
+      responsibleDialog.kind === "cleaning" &&
+      (config.cleaningMode ?? "pairs") === "rooms" &&
+      responsibleDialog.userId
+    ) {
+      const currentSelected = config.selectedCleanerUserIds ?? [];
+      if (!currentSelected.includes(responsibleDialog.userId)) {
+        draft.selectedCleanerUserIds = [
+          ...currentSelected,
+          responsibleDialog.userId,
+        ];
+      }
+    }
+    const nextConfig = normalizeCleaningDocumentConfig(draft, {
+      users: props.users,
+    });
     setResponsibleDialog(null);
     await patchDocument(nextConfig);
   }

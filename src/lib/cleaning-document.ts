@@ -280,10 +280,18 @@ export const CLEANING_MARK_OPTIONS = [
  * (TasksFlow override-sync, planRoomMonth, autoFill defaults и т.д.).
  * Дисплей в Cyrillic чтобы Г/К в одной таблице с С1/С2 (Cyrillic) выглядели
  * однородно — менеджер видел только русские буквы.
+ *
+ * Sentinel "—" (em dash) — явно очищенная менеджером ячейка. Хранится
+ * в matrix чтобы перебить completion-fallback (без него после G→/→delete
+ * клетка возвращалась к "Т" от completion, и менеджер не мог достичь
+ * визуальной пустоты). В UI отображается как пустая строка.
  */
+export const CLEANING_EMPTY_SENTINEL = "—";
+
 export function displayMatrixValue(value: string): string {
   if (value === "T") return "Т";
   if (value === "G") return "Г";
+  if (value === CLEANING_EMPTY_SENTINEL) return "";
   return value;
 }
 
@@ -1414,7 +1422,9 @@ export function toggleCleaningMatrixValue(currentValue: CleaningMatrixValue): Cl
   if (currentValue === "") return "T";
   if (currentValue === "T") return "G";
   if (currentValue === "G") return "/";
-  return "";
+  if (currentValue === "/") return CLEANING_EMPTY_SENTINEL;
+  if (currentValue === CLEANING_EMPTY_SENTINEL) return "T";
+  return "T";
 }
 
 export function setCleaningMatrixValue(params: {
