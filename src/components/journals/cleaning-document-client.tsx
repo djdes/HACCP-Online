@@ -372,11 +372,41 @@ export function CleaningDocumentClient(props: Props) {
       currentMonthDays: snapshot.currentMonthDays,
       generalMonthDays: snapshot.generalMonthDays,
     });
-    // Только сегодня и будущее — past matrix не перезаписываем (там
-    // могут быть completion'ы или вручную проставленные «/»).
+    // Только будущее (СТРОГО завтра+) — сегодня не трогаем, иначе
+    // existing completed TF-tasks могут потеряться (matrix меняется
+    // → syncTodayMatrixChanges удаляет TF tasks → completion-history
+    // отвязывается от TF). Plus исключаем дни, у которых уже есть
+    // completion — на них уборщик уже отметился, перезапись плана
+    // на этих днях ломает compliance-trail.
     const today = new Date().toISOString().slice(0, 10);
-    const futureDayKeys = dayKeys.filter((k) => k >= today);
-    if (futureDayKeys.length === 0) return;
+    const completedDayKeysForRoom = new Set<string>();
+    for (const e of props.initialEntries) {
+      const d = e.data as Record<string, unknown> | null;
+      if (
+        d?.kind === "cleaning_room" &&
+        d?.roomId === snapshot.id &&
+        typeof d?.dateKey === "string"
+      ) {
+        completedDayKeysForRoom.add(d.dateKey);
+      }
+    }
+    const futureDayKeys = dayKeys.filter(
+      (k) => k > today && !completedDayKeysForRoom.has(k),
+    );
+    if (futureDayKeys.length === 0) {
+      // Ничего не пересчитываем (today + completion-дни исключены).
+      // Однако параллельно — обновим requiresPhoto на сегодняшних TF-tasks
+      // (без destructive matrix-сброса).
+      await fetch("/api/integrations/tasksflow/sync-room-photo-policy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: props.documentId,
+          roomId: snapshot.id,
+        }),
+      }).catch(() => {});
+      return;
+    }
     const next = applyRoomScheduleToMatrix(
       config,
       futureDayKeys,
@@ -384,8 +414,19 @@ export function CleaningDocumentClient(props: Props) {
       overrideMap,
     );
     await patchDocument(next);
+    // После patch: подтолкнём requiresPhoto-апдейт на существующих TF-tasks
+    // этого помещения. patchDocument уже вызвал syncTodayMatrixChanges,
+    // но он только title/description обновляет, не requiresPhoto.
+    await fetch("/api/integrations/tasksflow/sync-room-photo-policy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        documentId: props.documentId,
+        roomId: snapshot.id,
+      }),
+    }).catch(() => {});
     toast.success(
-      "Расписание помещения применено к матрице — TasksFlow обновится автоматически",
+      "Расписание помещения применено — будущие задачи обновлены",
     );
   }
 

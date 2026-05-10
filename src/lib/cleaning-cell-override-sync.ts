@@ -167,8 +167,19 @@ export async function syncCleaningCellOverride(
   if (!wantTask) {
     if (relatedLinks.length === 0) return;
     // Cell вернулась в "/" или "" → удаляем все связанные TF-задачи
-    // (override + race-mode siblings) на эту комнату+день.
+    // (override + race-mode siblings) на эту комнату+день. НО ТОЛЬКО
+    // не-завершённые. Completed/verified-задачи защищаем — это
+    // compliance-данные, удаление при изменении плана = потеря trail
+    // (юзер жаловался: «после правки помещения задачи пересоздались
+    // без надписи что одна сделана»).
     for (const link of relatedLinks) {
+      if (
+        link.remoteStatus === "completed" ||
+        link.remoteStatus === "verified"
+      ) {
+        // Skip — задача уже выполнена, оставляем в TF и в TaskLink.
+        continue;
+      }
       try {
         await client.deleteTask(link.tasksflowTaskId);
       } catch (err) {
