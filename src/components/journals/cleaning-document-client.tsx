@@ -484,49 +484,19 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [props.users]);
 
-  // Контролёр(ы): код «С(N+1)» где N — число уборщиков (cleaner-list).
-  // Пользователь явно попросил единый префикс «С» для всех подписей
-  // (С1=уборщик, С2=контролёр). К-префикс был отброшен. Нумерация
-  // continuous: cleaning-list занимает С1..СN, control-list — С(N+1)..
-  // Это совпадает с поведением haccp-online.ru reference.
-  const controlResponsibleList = useMemo<CleaningResponsible[]>(() => {
-    // count актуальных уборщиков считаем ниже после cleaningResponsibleList,
-    // но useMemo cleanResp.list зависит от controlUserIdSet, а тот от
-    // controlResponsibleList → cyclic. Решаем: считаем «грубо» на основе
-    // selectedCleanerUserIds или config.cleaningResponsibles, без учёта
-    // дедупа. На практике контролёр всегда отдельный пользователь, дедуп
-    // редко вычитает > 0 — нумерация останется стабильной.
-    const cleanerCount =
-      isRoomsMode && Array.isArray(config.selectedCleanerUserIds)
-        ? config.selectedCleanerUserIds.length
-        : config.cleaningResponsibles.length;
-    return config.controlResponsibles.map((resp, idx) => ({
-      ...resp,
-      code: `С${cleanerCount + idx + 1}`,
-    }));
-  }, [
-    config.controlResponsibles,
-    config.cleaningResponsibles,
-    config.selectedCleanerUserIds,
-    isRoomsMode,
-  ]);
-
   // Множество userId контролёров — для дедупликации. Если человек уже
-  // контролёр — не показываем его как уборщика С2. Раньше менеджер видел:
-  //   «Ответственный за уборку: С1 - Борисов, С2 - Иванов»
-  //   «Ответственный за контроль: С1 - Иванов»
-  // и путался, что Иванов тут и тут.
-  //
-  // Источники controller-id (все объединяем):
-  //   1. controlResponsibles[] — старый legacy-array per-document
-  //   2. controlUserId — single document-wide controller
-  //   3. verifierByRoomId — per-room override-ы
-  //   4. responsiblePairs[].controlUserId — pairs-mode
-  // Менеджер мог сохранить Иванова в любом из этих полей; для UI
-  // достаточно любого совпадения, чтобы исключить его из С1/С2.
+  // контролёр — не показываем его как уборщика С2. Источники controller-id:
+  //   1. controlResponsibles[] (legacy array)
+  //   2. config.controlUserId (single document-wide)
+  //   3. config.verifierByRoomId (per-room overrides)
+  //   4. config.responsiblePairs[].controlUserId (pairs-mode)
+  //   5. props.responsibleUserId (document-level top dropdown)
+  // Считается ДО controlResponsibleList — иначе circular dep (control list
+  // зависит от cleanerCount = post-dedupe cleaning list, а тот от
+  // controlUserIdSet). Здесь нам нужны ТОЛЬКО userId-ы, не коды.
   const controlUserIdSet = useMemo(() => {
     const s = new Set<string>();
-    for (const r of controlResponsibleList) {
+    for (const r of config.controlResponsibles) {
       if (r.userId) s.add(r.userId);
     }
     if (config.controlUserId) s.add(config.controlUserId);
@@ -540,26 +510,19 @@ export function CleaningDocumentClient(props: Props) {
         if (pair?.controlUserId) s.add(pair.controlUserId);
       }
     }
-    // props.responsibleUserId — document-level «Ответственный за контроль»,
-    // приходит сверху страницы (top dropdown). Маппится в БД на
-    // JournalDocument.responsibleUserId. patchDocument синкает его с
-    // controlResponsibles[0], но если данные старые / десинк — берём
-    // явно из props как safety net.
     if (props.responsibleUserId) s.add(props.responsibleUserId);
     return s;
   }, [
-    controlResponsibleList,
+    config.controlResponsibles,
     config.controlUserId,
     config.verifierByRoomId,
     config.responsiblePairs,
     props.responsibleUserId,
   ]);
 
-  // Подписи ответственных. Уборщики получают код «С1/С2/...», контролёр —
-  // префикс «К» (см. controlResponsibleList выше). Контролёры из списка
-  // уборщиков фильтруются — один человек не может быть одновременно
-  // уборщиком и контролёром в одном документе (это бы означало само-
-  // верификацию, что недопустимо для compliance).
+  // Уборщики (после дедупа контролёров) — С1, С2, ..., СN.
+  // Один человек = одна роль на документе (compliance-требование:
+  // самоверификация запрещена).
   const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
     if (
       isRoomsMode &&
@@ -590,6 +553,19 @@ export function CleaningDocumentClient(props: Props) {
     controlUserIdSet,
     props.users,
   ]);
+
+  // Контролёры — С{N+1}, С{N+2}, ...
+  // N = cleaningResponsibleList.length (POST-дедуп, по спеке F.2).
+  // Раньше считали raw selectedCleanerUserIds.length → если cleaner был
+  // ещё и контролёром, нумерация рассинхронизировалась (cleaner=С1,
+  // controller=С3 вместо С2).
+  const controlResponsibleList = useMemo<CleaningResponsible[]>(() => {
+    const cleanerCount = cleaningResponsibleList.length;
+    return config.controlResponsibles.map((resp, idx) => ({
+      ...resp,
+      code: `С${cleanerCount + idx + 1}`,
+    }));
+  }, [config.controlResponsibles, cleaningResponsibleList]);
 
   const rows = useMemo<RowDescriptor[]>(() => {
     // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
@@ -671,11 +647,22 @@ export function CleaningDocumentClient(props: Props) {
   //      completion в комнатах. Без completions — пусто (нечего проверять).
   function controlCodeForDay(dateKey: string): string {
     const manual = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
-    if (manual !== undefined) return manual;
+    if (manual !== undefined) {
+      // Пустая строка = явная очистка владельца — пропускаем дальше.
+      if (manual === "") return "";
+      // Stale-codes filter (по спеке F.3): если manual содержит С-код,
+      // которого нет в текущем validControlCodes — отбрасываем. Поддержка
+      // multi-controller через split по запятой.
+      const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
+      const validParts = parts.filter(
+        (p) => !/^С\d+$/.test(p) || validControlCodes.has(p),
+      );
+      if (validParts.length > 0) return validParts.join(",");
+      // Все коды устарели — fallthrough to computed.
+    }
     if (controlResponsibleList.length === 0) return "";
-    // Раньше hasAnyCompletion проверял по cellValue (искал /^С\d+$/),
-    // но cellValue для room-rows больше не возвращает С-коды. Идём
-    // напрямую по entries.
+    // Computed: если хоть одна completion в этот день — считаем что
+    // контролёр(ы) проверили. Без completions — нечего проверять, пусто.
     const hasAnyCompletion = props.initialEntries.some((e) => {
       const d = e.data as Record<string, unknown> | null;
       return d?.kind === "cleaning_room" && d?.dateKey === dateKey;
@@ -770,6 +757,12 @@ export function CleaningDocumentClient(props: Props) {
   const validCleaningCodes = useMemo(() => {
     return new Set(cleaningResponsibleList.map((r) => r.code));
   }, [cleaningResponsibleList]);
+
+  // Аналогично — допустимые коды контролёров ("С{N+1}", ...). Применяется
+  // в controlCodeForDay чтобы не светились stale-коды легаси-контролёров.
+  const validControlCodes = useMemo(() => {
+    return new Set(controlResponsibleList.map((r) => r.code));
+  }, [controlResponsibleList]);
 
   /**
    * Значение ячейки.
