@@ -580,11 +580,15 @@ async function buildRoomCleaningFormFromDb(args: {
     };
   }
 
-  const stepFields: TaskFormField[] = scopeSteps.map((step, idx) => ({
-    type: "boolean",
-    key: `step_${idx}`,
-    label: `${idx + 1}. ${step.label}`,
-  }));
+  const stepFields: TaskFormField[] = scopeSteps.map((step, idx) => {
+    const stepRequiresPhoto = effectiveStepRequirePhoto(step, requirePhoto);
+    return {
+      type: "boolean" as const,
+      key: `step_${idx}`,
+      label: `${idx + 1}. ${step.label}`,
+      ...(stepRequiresPhoto ? { requirePhoto: true } : {}),
+    };
+  });
 
   return {
     intro,

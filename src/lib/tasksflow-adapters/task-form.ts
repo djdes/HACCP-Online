@@ -60,6 +60,14 @@ export type TaskFormField =
       label: string;
       /** Default checked state when the form first renders. */
       defaultValue?: boolean;
+      /**
+       * Per-step photo requirement. Когда true — TF рендерит inline-кнопку
+       * «Фото» рядом с чекбоксом и блокирует submit пока для этого шага
+       * не загружено хотя бы одно фото. Используется в cleaning-журнале:
+       * у каждого scope-шага помещения может быть свой
+       * effectiveRequirePhoto (room-master OR per-step override).
+       */
+      requirePhoto?: boolean;
     }
   | {
       type: "select";

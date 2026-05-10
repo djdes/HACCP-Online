@@ -50,11 +50,12 @@ export type RoomEditorInitial = {
   kind: string;
   detergent: string;
   /**
-   * Принимает либо legacy `string[]`, либо новый `ScopeStep[]` с per-step
-   * requirePhoto. Внутри normalize'ится через parseScopeSteps.
+   * Принимает legacy string'и, новые ScopeStep-объекты или их смесь
+   * (legacy-документ, в котором часть шагов уже мигрировала). Внутри
+   * normalize'ится через parseScopeSteps.
    */
-  currentScope: string[] | ScopeStep[];
-  generalScope: string[] | ScopeStep[];
+  currentScope: Array<string | ScopeStep>;
+  generalScope: Array<string | ScopeStep>;
   currentDays: number;
   generalDays: number;
   // 2026-05-08+ rich schedule + photo

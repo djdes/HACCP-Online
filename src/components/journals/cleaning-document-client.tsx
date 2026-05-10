@@ -296,11 +296,13 @@ export function CleaningDocumentClient(props: Props) {
       name: dbRoom.name,
       kind: dbRoom.kind ?? "other",
       detergent: dbRoom.detergent ?? "",
+      // Передаём scope как-есть (string[] | ScopeStep[]) —
+      // RoomEditorDialog.parseScopeSteps нормализует.
       currentScope: Array.isArray(dbRoom.currentScope)
-        ? (dbRoom.currentScope as string[])
+        ? (dbRoom.currentScope as Array<string | { label: string; requirePhoto?: boolean }>)
         : [],
       generalScope: Array.isArray(dbRoom.generalScope)
-        ? (dbRoom.generalScope as string[])
+        ? (dbRoom.generalScope as Array<string | { label: string; requirePhoto?: boolean }>)
         : [],
       currentDays:
         typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,

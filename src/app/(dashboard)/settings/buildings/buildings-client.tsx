@@ -63,11 +63,24 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
       name: room.name,
       kind: room.kind,
       detergent: room.detergent ?? "",
+      // Передаём scope как-есть — RoomEditorDialog.parseScopeSteps
+      // нормализует и legacy string[] и новый ScopeStep[] (с per-step
+      // requirePhoto). Раньше фильтровали по typeof === "string" → новые
+      // объект-шаги дропались, и юзер видел пустой pipeline после
+      // первого save (баг сообщён 2026-05-10).
       currentScope: Array.isArray(room.currentScope)
-        ? (room.currentScope as string[]).filter((s) => typeof s === "string")
+        ? (room.currentScope as Array<string | { label: string; requirePhoto?: boolean }>).filter(
+            (s) =>
+              typeof s === "string" ||
+              (s && typeof s === "object" && typeof (s as { label?: unknown }).label === "string"),
+          )
         : [],
       generalScope: Array.isArray(room.generalScope)
-        ? (room.generalScope as string[]).filter((s) => typeof s === "string")
+        ? (room.generalScope as Array<string | { label: string; requirePhoto?: boolean }>).filter(
+            (s) =>
+              typeof s === "string" ||
+              (s && typeof s === "object" && typeof (s as { label?: unknown }).label === "string"),
+          )
         : [],
       currentDays: typeof room.currentDays === "number" ? room.currentDays : 127,
       generalDays: typeof room.generalDays === "number" ? room.generalDays : 0,
