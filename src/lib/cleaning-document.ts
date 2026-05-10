@@ -1750,7 +1750,13 @@ export function applyRoomScheduleToMatrix(
         continue;
       }
       const existing = row[dateKey];
-      if (mode === "fill-empty" && existing) continue;
+      // Sentinel «—» (от bulk-clear) трактуется как empty: fill-empty
+      // должен писать план поверх sentinel. Иначе после «Очистить всё»
+      // → «Заполнить по плану» прошлые клетки оставались пустыми
+      // (юзер: «клетки до сегодня не заполняются»).
+      const isEmptyOrSentinel =
+        !existing || existing === "" || existing === CLEANING_EMPTY_SENTINEL;
+      if (mode === "fill-empty" && !isEmptyOrSentinel) continue;
       row[dateKey] = plan;
     }
     if (Object.keys(row).length > 0) {
