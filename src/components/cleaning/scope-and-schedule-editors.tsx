@@ -30,8 +30,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, X } from "lucide-react";
+import { Camera, CameraOff, GripVertical, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import type { ScopeStep } from "@/lib/cleaning-document";
 import {
   WEEKDAY_LABELS_RU,
   WEEKDAY_MASK_ALL,
@@ -44,7 +45,17 @@ import {
   toggleWeekdayBit,
 } from "@/lib/weekday-mask";
 
-type ScopeListItem = { uid: string; text: string };
+type ScopeListItem = {
+  uid: string;
+  text: string;
+  /**
+   * Per-step photo override:
+   *   true  — обязательное фото для этого шага
+   *   false — фото не требуется (даже если room.requirePhoto=true)
+   *   undefined — наследует room.requirePhoto
+   */
+  requirePhoto?: boolean;
+};
 
 const SCOPE_UID_PREFIX = "scope-uid-";
 let SCOPE_UID_COUNTER = 0;
@@ -63,6 +74,14 @@ function SortableScopeRow(props: {
   onEnter: () => void;
   onBackspaceEmpty: () => void;
   placeholder?: string;
+  /**
+   * Когда задан — рядом с шагом отрисовывается camera-toggle.
+   * effectiveRequirePhoto показывает текущее реальное состояние
+   * (учитывая fallback на room-master). onCyclePhoto вызывается при
+   * клике для переключения per-step override (3-state cycle).
+   */
+  effectiveRequirePhoto?: boolean;
+  onCyclePhoto?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.item.uid });
@@ -113,6 +132,37 @@ function SortableScopeRow(props: {
         placeholder={props.placeholder}
         className="h-9 flex-1 rounded-xl border-0 bg-transparent px-2 text-[14px] shadow-none focus-visible:ring-0"
       />
+      {props.onCyclePhoto ? (
+        <button
+          type="button"
+          onClick={props.onCyclePhoto}
+          aria-label="Требовать фото для этого шага"
+          title={
+            props.item.requirePhoto === true
+              ? "Фото обязательно (override)"
+              : props.item.requirePhoto === false
+                ? "Фото не требуется (override)"
+                : props.effectiveRequirePhoto
+                  ? "Наследует «Требовать фото» помещения (сейчас включено)"
+                  : "Наследует «Требовать фото» помещения (сейчас выключено)"
+          }
+          className={`flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            props.item.requirePhoto === true
+              ? "bg-[#5566f6] text-white"
+              : props.item.requirePhoto === false
+                ? "bg-[#fff4f2] text-[#a13a32]"
+                : props.effectiveRequirePhoto
+                  ? "bg-[#eef1ff] text-[#3848c7]"
+                  : "text-[#9b9fb3] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+          }`}
+        >
+          {props.item.requirePhoto === false ? (
+            <CameraOff className="size-4" />
+          ) : (
+            <Camera className="size-4" />
+          )}
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={props.onRemove}
@@ -125,25 +175,75 @@ function SortableScopeRow(props: {
   );
 }
 
-export function ScopeListEditor(props: {
-  value: string[];
-  onChange: (next: string[]) => void;
-  placeholder?: string;
-  addLabel?: string;
-  emptyHint?: string;
-}) {
+/**
+ * Объединённый props-API. Можно передавать legacy-формат (string[])
+ * без поддержки per-step photo, либо новый формат (ScopeStep[]) с
+ * onChange отдающим структурированные шаги. Когда задан roomRequirePhoto —
+ * каждая строка получает camera-toggle (3-state: true/false/inherit).
+ */
+type ScopeListEditorProps =
+  | {
+      mode?: "legacy";
+      value: string[];
+      onChange: (next: string[]) => void;
+      placeholder?: string;
+      addLabel?: string;
+      emptyHint?: string;
+      roomRequirePhoto?: undefined;
+    }
+  | {
+      mode: "with-photo";
+      value: ScopeStep[];
+      onChange: (next: ScopeStep[]) => void;
+      placeholder?: string;
+      addLabel?: string;
+      emptyHint?: string;
+      /** Master-toggle помещения; используется для fallback в effective-state. */
+      roomRequirePhoto: boolean;
+    };
+
+export function ScopeListEditor(props: ScopeListEditorProps) {
+  const isWithPhoto = props.mode === "with-photo";
   const [items, setItems] = useState<ScopeListItem[]>(() =>
-    props.value.map((text) => ({ uid: nextScopeUid(), text })),
+    isWithPhoto
+      ? (props.value as ScopeStep[]).map((step) => ({
+          uid: nextScopeUid(),
+          text: step.label,
+          requirePhoto: step.requirePhoto,
+        }))
+      : (props.value as string[]).map((text) => ({
+          uid: nextScopeUid(),
+          text,
+        })),
   );
   useEffect(() => {
     setItems((prev) => {
+      if (isWithPhoto) {
+        const incoming = props.value as ScopeStep[];
+        if (
+          prev.length === incoming.length &&
+          prev.every(
+            (it, i) =>
+              it.text === incoming[i].label &&
+              it.requirePhoto === incoming[i].requirePhoto,
+          )
+        ) {
+          return prev;
+        }
+        return incoming.map((step, i) => ({
+          uid: prev[i]?.uid ?? nextScopeUid(),
+          text: step.label,
+          requirePhoto: step.requirePhoto,
+        }));
+      }
+      const incoming = props.value as string[];
       if (
-        prev.length === props.value.length &&
-        prev.every((it, i) => it.text === props.value[i])
+        prev.length === incoming.length &&
+        prev.every((it, i) => it.text === incoming[i])
       ) {
         return prev;
       }
-      return props.value.map((text, i) => ({
+      return incoming.map((text, i) => ({
         uid: prev[i]?.uid ?? nextScopeUid(),
         text,
       }));
@@ -159,7 +259,17 @@ export function ScopeListEditor(props: {
 
   function pushChange(next: ScopeListItem[]) {
     setItems(next);
-    props.onChange(next.map((it) => it.text));
+    if (isWithPhoto) {
+      const out: ScopeStep[] = next.map((it) => {
+        const step: ScopeStep = { label: it.text };
+        if (typeof it.requirePhoto === "boolean")
+          step.requirePhoto = it.requirePhoto;
+        return step;
+      });
+      (props.onChange as (n: ScopeStep[]) => void)(out);
+    } else {
+      (props.onChange as (n: string[]) => void)(next.map((it) => it.text));
+    }
   }
   function update(uid: string, text: string) {
     pushChange(items.map((it) => (it.uid === uid ? { ...it, text } : it)));
@@ -174,6 +284,21 @@ export function ScopeListEditor(props: {
     setTimeout(() => {
       inputRefs.current.get(newItem.uid)?.focus();
     }, 0);
+  }
+  // 3-state cycle: undefined → true → false → undefined
+  // Это даёт менеджеру явные «Inherit / Force-Yes / Force-No».
+  function cyclePhoto(uid: string) {
+    pushChange(
+      items.map((it) => {
+        if (it.uid !== uid) return it;
+        if (it.requirePhoto === undefined) return { ...it, requirePhoto: true };
+        if (it.requirePhoto === true) return { ...it, requirePhoto: false };
+        // false → undefined (inherit)
+        const { requirePhoto: _drop, ...rest } = it;
+        void _drop;
+        return rest;
+      }),
+    );
   }
   function focusPrev(uid: string) {
     const idx = items.findIndex((it) => it.uid === uid);
@@ -225,6 +350,16 @@ export function ScopeListEditor(props: {
                     remove(it.uid);
                   }}
                   placeholder={props.placeholder}
+                  effectiveRequirePhoto={
+                    isWithPhoto
+                      ? typeof it.requirePhoto === "boolean"
+                        ? it.requirePhoto
+                        : (props.roomRequirePhoto ?? false)
+                      : undefined
+                  }
+                  onCyclePhoto={
+                    isWithPhoto ? () => cyclePhoto(it.uid) : undefined
+                  }
                 />
               ))}
             </ul>

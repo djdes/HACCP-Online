@@ -1061,7 +1061,7 @@ export async function POST(request: Request) {
         created = await client.createTask({
           title,
           workerId: tfUserId,
-          requiresPhoto: false,
+          requiresPhoto: row.requiresPhoto === true,
           isRecurring: true,
           weekDays: schedule.weekDays,
           monthDay: schedule.monthDay ?? null,

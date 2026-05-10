@@ -16,7 +16,10 @@ import { db } from "@/lib/db";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   type CleaningDocumentConfig,
+  effectiveStepRequirePhoto,
   normalizeCleaningDocumentConfig,
+  parseScopeSteps,
+  type ScopeStep,
 } from "@/lib/cleaning-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import {
@@ -80,12 +83,35 @@ export const cleaningAdapter: JournalAdapter = {
       orderBy: { dateFrom: "desc" },
     });
 
-    // Подгружаем комнаты org один раз — нужны для label в rooms-mode.
+    // Подгружаем комнаты org один раз — нужны для label в rooms-mode +
+    // requirePhoto-вычисления. Эффективное room-level requirePhoto =
+    // Room.requirePhoto OR любой scope-step имеет explicit requirePhoto=true.
+    // Это передаётся в TF как task.requiresPhoto, чтобы worker не мог
+    // нажать «Сделал» без фото.
     const allRooms = await db.room.findMany({
       where: { building: { organizationId } },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        requirePhoto: true,
+        currentScope: true,
+        generalScope: true,
+      },
     });
     const roomNameById = new Map(allRooms.map((r) => [r.id, r.name]));
+    const roomRequirePhotoById = new Map(
+      allRooms.map((r) => {
+        const roomMaster = r.requirePhoto === true;
+        const anyStepForcesPhoto =
+          parseScopeSteps(r.currentScope).some(
+            (s) => s.requirePhoto === true,
+          ) ||
+          parseScopeSteps(r.generalScope).some(
+            (s) => s.requirePhoto === true,
+          );
+        return [r.id, roomMaster || anyStepForcesPhoto];
+      }),
+    );
     // И юзеров — для подписи cleaner-а в label.
     const orgUsers = await db.user.findMany({
       where: { organizationId, archivedAt: null },
@@ -114,7 +140,7 @@ export const cleaningAdapter: JournalAdapter = {
         },
         rows:
           config.cleaningMode === "rooms"
-            ? buildRoomsModeRows(config, roomNameById, userNameById, todayKey)
+            ? buildRoomsModeRows(config, roomNameById, userNameById, todayKey, roomRequirePhotoById)
             : (config.responsiblePairs ?? [])
                 .filter((pair) => {
                   // pairs-mode: pair.id rowKey не привязан к комнате,
@@ -437,7 +463,12 @@ async function buildRoomCleaningFormFromDb(args: {
 }): Promise<{
   intro?: string;
   fields: TaskFormField[];
-  pipeline: Array<{ id: string; title: string; detail: string }>;
+  pipeline: Array<{
+    id: string;
+    title: string;
+    detail: string;
+    photoMode?: "required" | "optional";
+  }>;
   submitLabel?: string;
 } | null> {
   // Source 1: Room (DB) — основной.
@@ -457,44 +488,40 @@ async function buildRoomCleaningFormFromDb(args: {
   const roomName = dbRoom?.name ?? configRoom?.name ?? "(помещение удалено)";
   const detergent = dbRoom?.detergent || configRoom?.detergent || "";
 
-  function pickScope(): string[] {
-    const fromDb = (
-      args.cleanType === "general" ? dbRoom?.generalScope : dbRoom?.currentScope
-    ) as unknown;
-    const dbArr = Array.isArray(fromDb)
-      ? (fromDb as string[]).filter(
-          (s) => typeof s === "string" && s.trim().length > 0,
-        )
-      : [];
-    if (dbArr.length > 0) return dbArr;
-    // Fallback на config.rooms[i].
+  // Возвращает scope как ScopeStep[] — каждый шаг имеет label + опциональный
+  // per-step requirePhoto override. Effective requirePhoto в pipeline ниже
+  // считается через effectiveStepRequirePhoto(step, room.requirePhoto).
+  function pickScopeSteps(): ScopeStep[] {
+    const fromDb =
+      args.cleanType === "general" ? dbRoom?.generalScope : dbRoom?.currentScope;
+    const dbSteps = parseScopeSteps(fromDb);
+    if (dbSteps.length > 0) return dbSteps;
+    // Fallback на config.rooms[i] (legacy pairs-mode).
     if (configRoom) {
       const cfgArr =
         args.cleanType === "general"
           ? configRoom.generalScope
           : configRoom.currentScope;
-      const cleaned = (cfgArr ?? []).filter(Boolean);
-      if (cleaned.length > 0) return cleaned;
+      const cfgSteps = parseScopeSteps(cfgArr);
+      if (cfgSteps.length > 0) return cfgSteps;
       // Если нужен general, но в config-room только current — берём current.
       if (args.cleanType === "general") {
-        const c = (configRoom.currentScope ?? []).filter(Boolean);
-        if (c.length > 0) return c;
+        const cur = parseScopeSteps(configRoom.currentScope);
+        if (cur.length > 0) return cur;
       }
     }
     return [];
   }
 
-  let scopeSteps = pickScope();
+  let scopeSteps = pickScopeSteps();
 
   // Если в Room generalScope пустой — подмешиваем currentScope (sane default).
   if (
     scopeSteps.length === 0 &&
     args.cleanType === "general" &&
-    Array.isArray(dbRoom?.currentScope)
+    dbRoom?.currentScope !== undefined
   ) {
-    scopeSteps = (dbRoom.currentScope as string[]).filter(
-      (s) => typeof s === "string" && s.trim().length > 0,
-    );
+    scopeSteps = parseScopeSteps(dbRoom.currentScope);
   }
 
   // Fallback: пробежимся по reference-table если scope пустой.
@@ -503,10 +530,11 @@ async function buildRoomCleaningFormFromDb(args: {
       (r) => r.roomId === args.roomId,
     );
     if (refRow) {
-      scopeSteps =
+      const arr =
         args.cleanType === "general"
-          ? (refRow.generalScope ?? [])
-          : (refRow.currentScope ?? []);
+          ? refRow.generalScope
+          : refRow.currentScope;
+      scopeSteps = parseScopeSteps(arr);
     }
   }
 
@@ -555,18 +583,21 @@ async function buildRoomCleaningFormFromDb(args: {
   const stepFields: TaskFormField[] = scopeSteps.map((step, idx) => ({
     type: "boolean",
     key: `step_${idx}`,
-    label: `${idx + 1}. ${step}`,
+    label: `${idx + 1}. ${step.label}`,
   }));
 
   return {
     intro,
     fields: stepFields,
-    pipeline: scopeSteps.map((step, idx) => ({
-      id: `step-${idx + 1}`,
-      title: step,
-      detail: `Шаг ${idx + 1} из ${scopeSteps.length}. После выполнения нажми «Сделал».`,
-      ...(requirePhoto ? { photoMode: "required" as const } : {}),
-    })),
+    pipeline: scopeSteps.map((step, idx) => {
+      const stepRequiresPhoto = effectiveStepRequirePhoto(step, requirePhoto);
+      return {
+        id: `step-${idx + 1}`,
+        title: step.label,
+        detail: `Шаг ${idx + 1} из ${scopeSteps.length}. После выполнения нажми «Сделал».`,
+        ...(stepRequiresPhoto ? { photoMode: "required" as const } : {}),
+      };
+    }),
     submitLabel: "Готово",
   };
 }
@@ -677,6 +708,7 @@ function buildRoomsModeRows(
   roomNameById: Map<string, string>,
   userNameById: Map<string, string>,
   todayKey: string,
+  roomRequirePhotoById: Map<string, boolean>,
 ): AdapterRow[] {
   const allRooms = config.selectedRoomIds ?? [];
   const cleaners = config.selectedCleanerUserIds ?? [];
@@ -722,6 +754,7 @@ function buildRoomsModeRows(
     const rows: AdapterRow[] = [];
     for (const roomId of rooms) {
       const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";
+      const requiresPhoto = roomRequirePhotoById.get(roomId) === true;
       for (const cleanerId of cleaners) {
         const cleanerName =
           userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
@@ -731,6 +764,7 @@ function buildRoomsModeRows(
           sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
           responsibleUserId: cleanerId,
           verifierUserId: verifierForRoom(roomId),
+          requiresPhoto,
         });
       }
     }
@@ -747,6 +781,7 @@ function buildRoomsModeRows(
       sublabel: `Уборщик: ${cleanerName}`,
       responsibleUserId: cleanerId,
       verifierUserId: verifierForRoom(roomId),
+      requiresPhoto: roomRequirePhotoById.get(roomId) === true,
     };
   });
 }

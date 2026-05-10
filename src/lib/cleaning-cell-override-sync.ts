@@ -25,6 +25,7 @@ import {
 } from "@/lib/tasksflow-client";
 import {
   normalizeCleaningDocumentConfig,
+  parseScopeSteps,
   type CleaningDocumentConfig,
   type CleaningRoomItem,
 } from "@/lib/cleaning-document";
@@ -126,13 +127,6 @@ function findRoomName(
   return "(удалённое помещение)";
 }
 
-function findRequirePhoto(
-  rooms: Array<{ id: string; requirePhoto: boolean }>,
-  roomId: string,
-): boolean {
-  return rooms.find((r) => r.id === roomId)?.requirePhoto === true;
-}
-
 export async function syncCleaningCellOverride(
   args: SyncArgs,
 ): Promise<void> {
@@ -209,10 +203,22 @@ export async function syncCleaningCellOverride(
   // если их нет в config.rooms.
   const buildingRooms = await db.room.findMany({
     where: { building: { organizationId: args.organizationId } },
-    select: { id: true, name: true, requirePhoto: true },
+    select: {
+      id: true,
+      name: true,
+      requirePhoto: true,
+      currentScope: true,
+      generalScope: true,
+    },
   });
   const roomName = findRoomName(config, buildingRooms, args.roomId);
-  const requirePhoto = findRequirePhoto(buildingRooms, args.roomId);
+  // Effective requirePhoto = Room.requirePhoto OR любой scope-step
+  // имеет explicit per-step requirePhoto=true.
+  const dbRoom = buildingRooms.find((r) => r.id === args.roomId);
+  const requirePhoto =
+    dbRoom?.requirePhoto === true ||
+    parseScopeSteps(dbRoom?.currentScope).some((s) => s.requirePhoto === true) ||
+    parseScopeSteps(dbRoom?.generalScope).some((s) => s.requirePhoto === true);
 
   const cleanerWesetupId = pickCleanerWesetupId(config, args.roomId);
   if (!cleanerWesetupId) return;

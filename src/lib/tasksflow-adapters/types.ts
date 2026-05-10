@@ -46,6 +46,15 @@ export type AdapterRow = {
    * заведующая). null/undefined = fallback на document-wide.
    */
   verifierUserId?: string | null;
+  /**
+   * Если true — TasksFlow задача создаётся с requiresPhoto=true,
+   * worker не сможет нажать «Сделал» без фото. Cleaning адаптер
+   * выставляет это, если Room.requirePhoto или хоть один scope-step
+   * имеет per-step requirePhoto override.
+   *
+   * Без явного флага = false (сохраняем back-compat для других журналов).
+   */
+  requiresPhoto?: boolean;
 };
 
 /** A journal document grouping rows. */

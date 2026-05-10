@@ -83,6 +83,61 @@ export type CleaningRoomItem = {
 export type CleaningMatrixValue = string;
 export type CleaningMatrixMap = Record<string, Record<string, CleaningMatrixValue>>;
 
+/**
+ * Структура одного шага pipeline'а (currentScope/generalScope item).
+ *
+ * Обратная совместимость: legacy-формат — `string` (только label, без
+ * флага фото). Новый формат — `{ label, requirePhoto? }`. parseScopeStep
+ * нормализует оба варианта в единый объект.
+ *
+ * Effective-requirePhoto в TF-pipeline:
+ *   step.requirePhoto === true  → photoMode='required' независимо от room
+ *   step.requirePhoto === false → photoMode='optional' независимо от room
+ *   step.requirePhoto === undefined → fallback на room.requirePhoto
+ *
+ * Это даёт менеджеру 3-stage UX:
+ *   1) master-toggle на помещение (default для всех шагов)
+ *   2) явный override per-step (camera-button рядом с шагом)
+ *   3) untouched шаги наследуют master
+ */
+export type ScopeStep = {
+  label: string;
+  requirePhoto?: boolean;
+};
+
+export function parseScopeStep(raw: unknown): ScopeStep | null {
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? { label: trimmed } : null;
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    if (label.length === 0) return null;
+    const out: ScopeStep = { label };
+    if (typeof r.requirePhoto === "boolean") out.requirePhoto = r.requirePhoto;
+    return out;
+  }
+  return null;
+}
+
+export function parseScopeSteps(raw: unknown): ScopeStep[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(parseScopeStep).filter((s): s is ScopeStep => s !== null);
+}
+
+/**
+ * Возвращает effective requirePhoto для шага: explicit step.requirePhoto
+ * (если задан) либо fallback на room.requirePhoto.
+ */
+export function effectiveStepRequirePhoto(
+  step: ScopeStep,
+  roomRequirePhoto: boolean,
+): boolean {
+  if (typeof step.requirePhoto === "boolean") return step.requirePhoto;
+  return roomRequirePhoto;
+}
+
 export type CleaningResponsiblePair = {
   id: string;
   cleaningTitle: string;

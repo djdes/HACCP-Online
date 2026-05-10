@@ -30,6 +30,10 @@ import {
   WeekdayMaskPicker,
   MonthDaysPicker,
 } from "@/components/cleaning/scope-and-schedule-editors";
+import {
+  parseScopeSteps,
+  type ScopeStep,
+} from "@/lib/cleaning-document";
 
 const KIND_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "guest", label: "Гостевая зона" },
@@ -45,8 +49,12 @@ export type RoomEditorInitial = {
   name: string;
   kind: string;
   detergent: string;
-  currentScope: string[];
-  generalScope: string[];
+  /**
+   * Принимает либо legacy `string[]`, либо новый `ScopeStep[]` с per-step
+   * requirePhoto. Внутри normalize'ится через parseScopeSteps.
+   */
+  currentScope: string[] | ScopeStep[];
+  generalScope: string[] | ScopeStep[];
   currentDays: number;
   generalDays: number;
   // 2026-05-08+ rich schedule + photo
@@ -66,8 +74,8 @@ export type RoomEditorSavedSnapshot = {
   id: string;
   name: string;
   detergent: string;
-  currentScope: string[];
-  generalScope: string[];
+  currentScope: ScopeStep[];
+  generalScope: ScopeStep[];
   currentDays: number;
   generalDays: number;
   currentScheduleType: "weekly" | "monthly";
@@ -88,11 +96,11 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
   const [name, setName] = useState(initial?.name ?? "");
   const [kind, setKind] = useState(initial?.kind ?? "other");
   const [detergent, setDetergent] = useState(initial?.detergent ?? "");
-  const [currentScope, setCurrentScope] = useState<string[]>(
-    initial?.currentScope ?? [],
+  const [currentScope, setCurrentScope] = useState<ScopeStep[]>(
+    parseScopeSteps(initial?.currentScope ?? []),
   );
-  const [generalScope, setGeneralScope] = useState<string[]>(
-    initial?.generalScope ?? [],
+  const [generalScope, setGeneralScope] = useState<ScopeStep[]>(
+    parseScopeSteps(initial?.generalScope ?? []),
   );
   const [currentDays, setCurrentDays] = useState<number>(
     initial?.currentDays ?? 127,
@@ -123,8 +131,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
     setName(initial?.name ?? "");
     setKind(initial?.kind ?? "other");
     setDetergent(initial?.detergent ?? "");
-    setCurrentScope(initial?.currentScope ?? []);
-    setGeneralScope(initial?.generalScope ?? []);
+    setCurrentScope(parseScopeSteps(initial?.currentScope ?? []));
+    setGeneralScope(parseScopeSteps(initial?.generalScope ?? []));
     setCurrentDays(initial?.currentDays ?? 127);
     setGeneralDays(initial?.generalDays ?? 0);
     setCurrentScheduleType(initial?.currentScheduleType ?? "weekly");
@@ -142,6 +150,16 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
     }
     setSaving(true);
     try {
+      const sanitizeSteps = (steps: ScopeStep[]): ScopeStep[] =>
+        steps
+          .map((s) => {
+            const trimmed = s.label.trim();
+            const out: ScopeStep = { label: trimmed };
+            if (typeof s.requirePhoto === "boolean")
+              out.requirePhoto = s.requirePhoto;
+            return out;
+          })
+          .filter((s) => s.label.length > 0);
       const res = await fetch(`/api/settings/rooms/${initial.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -149,12 +167,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
           name: name.trim(),
           kind,
           detergent: detergent.trim(),
-          currentScope: currentScope
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0),
-          generalScope: generalScope
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0),
+          currentScope: sanitizeSteps(currentScope),
+          generalScope: sanitizeSteps(generalScope),
           currentDays,
           generalDays,
           currentScheduleType,
@@ -174,8 +188,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
         id: initial.id,
         name: name.trim(),
         detergent: detergent.trim(),
-        currentScope: currentScope.map((s) => s.trim()).filter((s) => s.length > 0),
-        generalScope: generalScope.map((s) => s.trim()).filter((s) => s.length > 0),
+        currentScope: sanitizeSteps(currentScope),
+        generalScope: sanitizeSteps(generalScope),
         currentDays,
         generalDays,
         currentScheduleType,
@@ -272,12 +286,14 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                     </p>
                   </div>
                   <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
-                    {currentScope.filter((s) => s.trim()).length} шаг.
+                    {currentScope.filter((s) => s.label.trim()).length} шаг.
                   </span>
                 </div>
                 <ScopeListEditor
+                  mode="with-photo"
                   value={currentScope}
                   onChange={setCurrentScope}
+                  roomRequirePhoto={requirePhoto}
                   placeholder="Например: Протереть рабочие поверхности"
                   addLabel="Добавить шаг текущей уборки"
                   emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
@@ -348,12 +364,14 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                     </p>
                   </div>
                   <span className="rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
-                    {generalScope.filter((s) => s.trim()).length} шаг.
+                    {generalScope.filter((s) => s.label.trim()).length} шаг.
                   </span>
                 </div>
                 <ScopeListEditor
+                  mode="with-photo"
                   value={generalScope}
                   onChange={setGeneralScope}
+                  roomRequirePhoto={requirePhoto}
                   placeholder="Например: Демонтировать съёмные части и промыть"
                   addLabel="Добавить шаг генеральной уборки"
                   emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."

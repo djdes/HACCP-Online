@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { syncRoomChecklistItems } from "@/lib/cleaning-room-checklist-sync";
+import { parseScopeSteps, type ScopeStep } from "@/lib/cleaning-document";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +18,34 @@ const UpdateSchema = z.object({
   // Cleaning unification: scope/days/detergent теперь хранятся на Room.
   // См. docs/superpowers/specs/2026-05-08-cleaning-unification.md
   detergent: z.string().max(500).optional().nullable(),
-  currentScope: z.array(z.string().max(300)).max(50).optional(),
-  generalScope: z.array(z.string().max(300)).max(50).optional(),
+  // Scope-шаги принимаются в двух форматах:
+  //  - legacy: string[]
+  //  - new:    Array<{ label: string; requirePhoto?: boolean }>
+  // parseScopeSteps в БД нормализует оба к { label, requirePhoto? }.
+  currentScope: z
+    .array(
+      z.union([
+        z.string().max(300),
+        z.object({
+          label: z.string().max(300),
+          requirePhoto: z.boolean().optional(),
+        }),
+      ]),
+    )
+    .max(50)
+    .optional(),
+  generalScope: z
+    .array(
+      z.union([
+        z.string().max(300),
+        z.object({
+          label: z.string().max(300),
+          requirePhoto: z.boolean().optional(),
+        }),
+      ]),
+    )
+    .max(50)
+    .optional(),
   currentDays: z.number().int().min(0).max(127).optional(),
   generalDays: z.number().int().min(0).max(127).optional(),
   // 2026-05-08+ schedule-type per scope + monthly day list.
@@ -74,20 +101,32 @@ export async function PATCH(request: Request, ctx: Ctx) {
     throw err;
   }
 
-  const cleanScope = (arr: string[] | undefined) =>
-    arr === undefined
-      ? undefined
-      : arr.map((s) => s.trim()).filter((s) => s.length > 0).slice(0, 50);
+  // Нормализуем scope в единый формат ScopeStep[] (с валидацией label
+  // и опциональным requirePhoto). Принятый input может быть смешанный:
+  // часть string-ов (legacy), часть объектов — parseScopeSteps это
+  // унифицирует.
+  const cleanScopeSteps = (
+    arr: Array<string | { label: string; requirePhoto?: boolean }> | undefined,
+  ): ScopeStep[] | undefined =>
+    arr === undefined ? undefined : parseScopeSteps(arr).slice(0, 50);
+
+  // Для checklist-sync нужны только labels (ChecklistItem не хранит
+  // requirePhoto — это атрибут pipeline, не самого пункта).
+  const labelsOnly = (steps: ScopeStep[] | undefined): string[] | undefined =>
+    steps === undefined ? undefined : steps.map((s) => s.label);
+
+  const nextCurrentScope = cleanScopeSteps(body.currentScope);
+  const nextGeneralScope = cleanScopeSteps(body.generalScope);
 
   // Cleaning unification 2026-05-08: при изменении scope — синкаем
   // JournalChecklistItem'ы (TF task-fill подтягивает оттуда чек-лист).
   // Делаем ДО update Room чтобы не оставлять рассинхрона если sync упадёт.
-  if (body.currentScope !== undefined || body.generalScope !== undefined) {
+  if (nextCurrentScope !== undefined || nextGeneralScope !== undefined) {
     await syncRoomChecklistItems({
       organizationId: orgId,
       roomId: id,
-      currentScope: body.currentScope,
-      generalScope: body.generalScope,
+      currentScope: labelsOnly(nextCurrentScope),
+      generalScope: labelsOnly(nextGeneralScope),
       createdByUserId: auth.session.user.id,
     });
   }
@@ -101,11 +140,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
       ...(body.detergent !== undefined
         ? { detergent: body.detergent ?? "" }
         : {}),
-      ...(body.currentScope !== undefined
-        ? { currentScope: cleanScope(body.currentScope) ?? [] }
+      ...(nextCurrentScope !== undefined
+        ? { currentScope: nextCurrentScope }
         : {}),
-      ...(body.generalScope !== undefined
-        ? { generalScope: cleanScope(body.generalScope) ?? [] }
+      ...(nextGeneralScope !== undefined
+        ? { generalScope: nextGeneralScope }
         : {}),
       ...(body.currentDays !== undefined
         ? { currentDays: body.currentDays }
