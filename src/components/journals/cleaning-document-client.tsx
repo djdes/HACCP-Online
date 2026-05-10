@@ -638,7 +638,9 @@ export function CleaningDocumentClient(props: Props) {
   //   1. Если есть manual override (matrix[CLEANING_SIGNATURE_ROW_ID][D]) —
   //      возвращаем его. НО если код устарел (С2 из 2-уборщикового
   //      прошлого, а сейчас только С1) — игнорируем.
-  //   2. Иначе computed: коды С1/С2 из room cells (кто реально убирал).
+  //   2. Иначе computed: коды С1/С2 из completion-entries напрямую
+  //      (раньше через cellValue, но cellValue для room-rows больше не
+  //      возвращает С-коды — только Т/Г/«/», см. cellValue выше).
   function cleaningCodeForDay(dateKey: string): string {
     const manual = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
     if (manual !== undefined) {
@@ -653,9 +655,12 @@ export function CleaningDocumentClient(props: Props) {
       // Все коды устарели — fallthrough to computed.
     }
     const codes = new Set<string>();
-    for (const row of rows) {
-      const v = cellValue(row, dateKey);
-      if (v && /^С\d+$/.test(v)) codes.add(v);
+    for (const e of props.initialEntries) {
+      const d = e.data as Record<string, unknown> | null;
+      if (d?.kind !== "cleaning_room" || d?.dateKey !== dateKey) continue;
+      const cleanerId = String(d.cleanerUserId ?? "");
+      const code = cleanerCodeById.get(cleanerId);
+      if (code) codes.add(code);
     }
     return Array.from(codes).sort().join(",");
   }
@@ -668,9 +673,12 @@ export function CleaningDocumentClient(props: Props) {
     const manual = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
     if (manual !== undefined) return manual;
     if (controlResponsibleList.length === 0) return "";
-    const hasAnyCompletion = rows.some((row) => {
-      const v = cellValue(row, dateKey);
-      return Boolean(v && /^С\d+$/.test(v));
+    // Раньше hasAnyCompletion проверял по cellValue (искал /^С\d+$/),
+    // но cellValue для room-rows больше не возвращает С-коды. Идём
+    // напрямую по entries.
+    const hasAnyCompletion = props.initialEntries.some((e) => {
+      const d = e.data as Record<string, unknown> | null;
+      return d?.kind === "cleaning_room" && d?.dateKey === dateKey;
     });
     if (!hasAnyCompletion) return "";
     return controlResponsibleList.map((c) => c.code).join(",");
@@ -784,21 +792,20 @@ export function CleaningDocumentClient(props: Props) {
    */
   function cellValue(row: RowDescriptor, dateKey: string): string {
     if (row.kind !== "room") return "";
-    // 1. Manual matrix override — побеждает completion. НО если значение
-    //    выглядит как код уборщика «С*» (не T/G/«/»/empty), валидируем
-    //    против validCleaningCodes — легаси «С2» из старого 2-уборщикового
-    //    setup'а не должен светиться когда в текущей конфигурации только С1.
+    // 1. Manual matrix override — только Т/Г/«/» валидно для room-cell.
+    //    Любые С-коды (легаси из 2-уборщикового setup'а или ошибочно
+    //    записанные через старый cellValue completion-fallback) — игнор.
+    //    Room-cells показывают ТИП уборки (Т/Г) или «не проводилась» (/),
+    //    а не подпись (С1/С2 живут только в строке «Ответственный за уборку»).
     const matrixVal = config.matrix[row.id]?.[dateKey];
-    if (matrixVal) {
-      if (/^С\d+$/.test(matrixVal) && !validCleaningCodes.has(matrixVal)) {
-        // Stale «С2»/«С3»/... — игнорируем, идём в completion-fallback.
-      } else {
-        return matrixVal;
-      }
+    if (matrixVal && (matrixVal === "T" || matrixVal === "G" || matrixVal === "/")) {
+      return matrixVal;
     }
-    // 2. Completion из DB — fallback когда matrix пустой ИЛИ содержит
-    //    stale-код. cleanerCodeById уже отфильтрован — ghost-уборщик
-    //    (например, контролёр) сюда не попадёт.
+    // 2. Completion из DB — cleaner закрыл TF-задачу. Возвращаем тип
+    //    уборки на этот день: Г если день в generalDays bitmask room'а,
+    //    иначе Т. Ранее возвращали С1/С2 — пользователь жаловался что
+    //    в room-cells светится С1, хотя коды должны быть только в строке
+    //    «Ответственный за уборку».
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;
       if (
@@ -807,11 +814,21 @@ export function CleaningDocumentClient(props: Props) {
         d?.dateKey === dateKey
       ) {
         const cleanerId = String(d.cleanerUserId ?? "");
-        const code = cleanerCodeById.get(cleanerId);
-        if (code) return code;
-        // userId в completion есть, но он не в списке уборщиков
-        // (контролёр / бывший сотрудник) — не показываем «фантом».
-        return "";
+        if (!cleanerCodeById.has(cleanerId)) {
+          // Контролёр / бывший — не показываем фантомное «выполнено».
+          return "";
+        }
+        // Cleaner валидный. Определяем тип уборки по день-недели bitmask.
+        const dow = (() => {
+          const d = new Date(`${dateKey}T00:00:00.000Z`);
+          if (Number.isNaN(d.getTime())) return -1;
+          const js = d.getUTCDay(); // 0=Вс..6=Сб
+          return js === 0 ? 6 : js - 1; // приводим к Пн=0..Вс=6
+        })();
+        const generalDays =
+          typeof row.room.generalDays === "number" ? row.room.generalDays : 0;
+        if (dow >= 0 && (generalDays & (1 << dow)) !== 0) return "G";
+        return "T";
       }
     }
     return "";
