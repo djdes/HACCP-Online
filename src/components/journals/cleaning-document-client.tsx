@@ -1146,6 +1146,8 @@ export function CleaningDocumentClient(props: Props) {
       ? (config.selectedRoomIds ?? [])
       : config.rooms.map((r) => r.id);
     if (roomIds.length === 0) return;
+    // bulk-clear → sentinel «—» (см. bulkSetSelectedCells выше).
+    const storedValue = value === "" ? "—" : value;
     const offDays = dayKeys.filter((dk) => {
       const k = getCalendarDayKind(dk).kind;
       return k === "weekend" || k === "holiday";
@@ -1162,7 +1164,7 @@ export function CleaningDocumentClient(props: Props) {
           config: nextConfig,
           rowId: roomId,
           dateKey,
-          value,
+          value: storedValue,
         });
         cellsUpdated += 1;
       }
@@ -1195,6 +1197,11 @@ export function CleaningDocumentClient(props: Props) {
         ? (config.selectedRoomIds ?? [])
         : config.rooms.map((r) => r.id),
     );
+    // При bulk-clear (value="") пишем sentinel «—» вместо delete, чтобы
+    // подавить completion-fallback. Иначе клетки с completion-задачами
+    // остались бы визуально с «Т»/«Г» — менеджер жаловался: «при
+    // очистке некоторые дни не очищаются».
+    const storedValue = value === "" ? "—" : value;
     let nextConfig = config;
     for (const k of selectedCells) {
       const [rowId, dateKey] = k.split("::");
@@ -1206,7 +1213,7 @@ export function CleaningDocumentClient(props: Props) {
         config: nextConfig,
         rowId,
         dateKey,
-        value,
+        value: storedValue,
       });
     }
     try {
