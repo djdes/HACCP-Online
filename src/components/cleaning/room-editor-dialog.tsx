@@ -57,11 +57,31 @@ export type RoomEditorInitial = {
   requirePhoto?: boolean;
 };
 
+/**
+ * Snapshot переданного на сервер patch'а — каллер использует его, чтобы
+ * сразу пересчитать matrix/TF-задачи без ожидания router.refresh()
+ * (который async и приходит на 1 render позже).
+ */
+export type RoomEditorSavedSnapshot = {
+  id: string;
+  name: string;
+  detergent: string;
+  currentScope: string[];
+  generalScope: string[];
+  currentDays: number;
+  generalDays: number;
+  currentScheduleType: "weekly" | "monthly";
+  generalScheduleType: "weekly" | "monthly";
+  currentMonthDays: string[];
+  generalMonthDays: string[];
+  requirePhoto: boolean;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initial: RoomEditorInitial | null;
-  onSaved?: () => void;
+  onSaved?: (snapshot: RoomEditorSavedSnapshot) => void;
 };
 
 export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props) {
@@ -150,7 +170,20 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
       }
       toast.success("Помещение сохранено");
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.({
+        id: initial.id,
+        name: name.trim(),
+        detergent: detergent.trim(),
+        currentScope: currentScope.map((s) => s.trim()).filter((s) => s.length > 0),
+        generalScope: generalScope.map((s) => s.trim()).filter((s) => s.length > 0),
+        currentDays,
+        generalDays,
+        currentScheduleType,
+        generalScheduleType,
+        currentMonthDays,
+        generalMonthDays,
+        requirePhoto,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
