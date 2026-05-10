@@ -364,6 +364,7 @@ export function CleaningDocumentClient(props: Props) {
   }) {
     const overrideMap = new Map(dbScheduleMap ?? new Map());
     overrideMap.set(snapshot.id, {
+      id: snapshot.id,
       currentDays: snapshot.currentDays,
       generalDays: snapshot.generalDays,
       currentScheduleType: snapshot.currentScheduleType,
