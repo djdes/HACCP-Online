@@ -86,8 +86,10 @@ export async function POST(request: Request) {
     parseScopeSteps(room.generalScope).some((s) => s.requirePhoto === true);
 
   // Находим все TF-задачи этого помещения. RowKey-форматы:
-  //   - "cell-override::{roomId}::{dateKey}" (override-задача от matrix-клика)
+  //   - "cell-override::{roomId}::{dateKey}" (legacy single)
+  //   - "cell-override::{roomId}::{dateKey}::cleaner::{userId}" (new multi)
   //   - "room::{roomId}::cleaner::{userId}" (race-mode bulk-assign)
+  // Все три захватываются через startsWith.
   const overridePrefix = `cell-override::${body.roomId}::`;
   const racePrefix = `room::${body.roomId}::cleaner::`;
   const links = await db.tasksFlowTaskLink.findMany({

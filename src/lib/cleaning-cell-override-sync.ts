@@ -73,32 +73,52 @@ function buildDescription(args: {
 }
 
 /**
- * Round-robin / first-pair pick of cleaner for a given room.
- * Returns null if no eligible cleaner found.
+ * Возвращает список уборщиков, которые должны получить override-задачу
+ * для (room, dateKey) при «/»→«Т»/«Г» переключении.
+ *
+ * Логика повторяет buildRoomsModeRows (см. tasksflow-adapters/cleaning.ts):
+ *   • Race-mode (rooms-mode + roomsRaceMode=true) — ВСЕ уборщики из
+ *     selectedCleanerUserIds. Каждый получит свою задачу. Тот, кто
+ *     первый закроет, sibling-cleanup помечает остальных claimed_by_other.
+ *   • Round-robin (rooms-mode без race) — один уборщик, выбираемый
+ *     по позиции комнаты в списке (selectedRoomIds.indexOf, fallback
+ *     на алфавитный порядок room.id если selectedRoomIds пуст).
+ *   • Pairs-mode (legacy) — первый cleaner из responsiblePairs.
+ *
+ * Раньше функция называлась pickCleanerWesetupId и возвращала ОДНОГО
+ * уборщика, поэтому в race-mode override создавал 1 задачу из N — и
+ * остальные уборщики не видели, что менеджер кликнул «Т» в matrix.
+ * Юзер: «когда я изменил со слэша на т ... задача не пришла».
+ *
+ * Также убран early-return когда selectedRoomIds пуст: теперь даже
+ * без явного selection round-robin работает (idx по DB-порядку).
  */
-function pickCleanerWesetupId(
+function pickCleanersForRoom(
   config: CleaningDocumentConfig,
   roomId: string,
-): string | null {
-  // rooms-mode: round-robin по selectedCleanerUserIds
+): string[] {
   if (
     config.cleaningMode === "rooms" &&
-    Array.isArray(config.selectedRoomIds) &&
     Array.isArray(config.selectedCleanerUserIds) &&
     config.selectedCleanerUserIds.length > 0
   ) {
-    const idx = config.selectedRoomIds.indexOf(roomId);
-    if (idx >= 0) {
-      return (
-        config.selectedCleanerUserIds[
-          idx % config.selectedCleanerUserIds.length
-        ] ?? null
-      );
-    }
+    const cleaners = config.selectedCleanerUserIds.filter(Boolean);
+    // Race-mode: все cleaners получают задачу.
+    if (config.roomsRaceMode === true) return cleaners;
+    // Round-robin: один cleaner. selectedRoomIds может быть пустой
+    // (legacy-документ или менеджер не настраивал) — тогда idx=0.
+    const selectedRoomIds = Array.isArray(config.selectedRoomIds)
+      ? config.selectedRoomIds
+      : [];
+    const idx = selectedRoomIds.indexOf(roomId);
+    const safeIdx = idx >= 0 ? idx : 0;
+    const picked = cleaners[safeIdx % cleaners.length];
+    return picked ? [picked] : [];
   }
-  // pairs-mode (legacy): первый cleaner из responsiblePairs
+  // Pairs-mode (legacy): первый cleaner из responsiblePairs.
   const firstPair = config.responsiblePairs?.[0];
-  return firstPair?.cleaningUserId ?? null;
+  if (firstPair?.cleaningUserId) return [firstPair.cleaningUserId];
+  return [];
 }
 
 function pickVerifierWesetupId(
@@ -136,18 +156,23 @@ export async function syncCleaningCellOverride(
   if (!integration || !integration.enabled) return;
 
   const overrideRowKey = buildRowKey(args.roomId, args.dateKey);
+  // Префикс для multi-cleaner override (новый формат, 2026-05-10):
+  //   cell-override::<roomId>::<dateKey>::cleaner::<userId>
+  // Старый формат cell-override::<roomId>::<dateKey> (без ::cleaner)
+  // тоже захватывается через startsWith.
+  const overridePrefix = `cell-override::${args.roomId}::${args.dateKey}`;
   const racePrefix = `room::${args.roomId}::cleaner::`;
 
-  // Находим ВСЕ TF-задачи на эту комнату+документ — и override, и race-mode
-  // bulk-assign (rowKey 'room::<id>::cleaner::*'). Раньше искали только
-  // override → bulk-assigned race-task'и оставались жить когда menager
-  // ставил «/» в matrix, и уборщица видела «зомби»-задачу на комнату.
+  // Находим ВСЕ TF-задачи на эту комнату+(день|постоянные)+документ:
+  //   1. cell-override::roomId::dateKey (legacy, single)
+  //   2. cell-override::roomId::dateKey::cleaner::userId (new, multi)
+  //   3. room::roomId::cleaner::userId (race-mode bulk-assigned)
   const relatedLinks = await db.tasksFlowTaskLink.findMany({
     where: {
       integrationId: integration.id,
       journalDocumentId: args.documentId,
       OR: [
-        { rowKey: overrideRowKey },
+        { rowKey: { startsWith: overridePrefix } },
         { rowKey: { startsWith: racePrefix } },
       ],
     },
@@ -231,25 +256,36 @@ export async function syncCleaningCellOverride(
     parseScopeSteps(dbRoom?.currentScope).some((s) => s.requirePhoto === true) ||
     parseScopeSteps(dbRoom?.generalScope).some((s) => s.requirePhoto === true);
 
-  const cleanerWesetupId = pickCleanerWesetupId(config, args.roomId);
-  if (!cleanerWesetupId) return;
+  // Список уборщиков для (room, dateKey). В race-mode = ВСЕ cleaners,
+  // в round-robin = один по индексу, в pairs-mode = первый. Раньше
+  // pickCleanerWesetupId возвращал ОДНОГО → в race-mode override-task
+  // получал только cleaner-1, остальные не видели — юзер: «задача не пришла».
+  const cleanerWesetupIds = pickCleanersForRoom(config, args.roomId);
+  if (cleanerWesetupIds.length === 0) {
+    console.warn(
+      `[cleaning-cell-override] no eligible cleaners for room=${args.roomId} doc=${args.documentId} (mode=${config.cleaningMode}, race=${config.roomsRaceMode})`,
+    );
+    return;
+  }
 
-  const userLink = await db.tasksFlowUserLink.findUnique({
+  // Resolve все TF user-id за один запрос.
+  const userLinks = await db.tasksFlowUserLink.findMany({
     where: {
-      integrationId_wesetupUserId: {
-        integrationId: integration.id,
-        wesetupUserId: cleanerWesetupId,
-      },
+      integrationId: integration.id,
+      wesetupUserId: { in: cleanerWesetupIds },
     },
-    select: { tasksflowUserId: true },
+    select: { wesetupUserId: true, tasksflowUserId: true },
   });
-  if (!userLink || userLink.tasksflowUserId == null) return;
-  const cleanerTfId = userLink.tasksflowUserId;
+  const tfUserIdByWesetup = new Map(
+    userLinks
+      .filter((l) => l.tasksflowUserId != null)
+      .map((l) => [l.wesetupUserId, l.tasksflowUserId as number]),
+  );
 
-  // Verifier (если есть TF-link)
+  // Verifier (общий для всех уборщиков комнаты)
   const verifierWesetupId = pickVerifierWesetupId(config, args.roomId);
   let verifierTfId: number | null = null;
-  if (verifierWesetupId && verifierWesetupId !== cleanerWesetupId) {
+  if (verifierWesetupId) {
     const verifierLink = await db.tasksFlowUserLink.findUnique({
       where: {
         integrationId_wesetupUserId: {
@@ -270,10 +306,24 @@ export async function syncCleaningCellOverride(
   });
 
   if (relatedLinks.length > 0) {
-    // У нас уже есть связанные TF-задачи (override и/или race-mode).
-    // Обновляем title во всех — T↔G меняется одновременно у всех
-    // потенциальных уборщиков. Description обновляем только у override
-    // (у race-задач description от bulk-assign template'а).
+    // У нас уже есть связанные TF-задачи (override и/или race-mode
+    // bulk-assigned). Обновляем title во всех — T↔G меняется одновременно
+    // у всех потенциальных уборщиков. Description обновляем только у
+    // override (у race-задач description от bulk-assign template'а).
+    //
+    // 2026-05-10: ДОПОЛНИТЕЛЬНО — если в race-mode появился новый
+    // cleaner после bulk-assign (или какой-то cleaner не получил задачу
+    // из-за фильтра matrix=/), создаём недостающие override-задачи для
+    // тех cleaners, у которых нет связанной задачи на эту комнату+день.
+    const cleanersWithExistingTask = new Set<string>();
+    for (const link of relatedLinks) {
+      const m = /^room::[^:]+::cleaner::([^:]+)$/.exec(link.rowKey);
+      if (m && m[1]) cleanersWithExistingTask.add(m[1]);
+      const o = /^cell-override::[^:]+::[^:]+::cleaner::([^:]+)$/.exec(
+        link.rowKey,
+      );
+      if (o && o[1]) cleanersWithExistingTask.add(o[1]);
+    }
     for (const link of relatedLinks) {
       try {
         if (link.rowKey === overrideRowKey) {
@@ -292,58 +342,124 @@ export async function syncCleaningCellOverride(
         );
       }
     }
+    // Создать недостающих cleaners в race-mode (или round-robin при
+    // первом override). Если cleanersWithExistingTask покрывает всех —
+    // ничего не создаём.
+    const missing = cleanerWesetupIds.filter(
+      (id) => !cleanersWithExistingTask.has(id),
+    );
+    if (missing.length > 0) {
+      await createOverrideTasksForCleaners({
+        client,
+        integration,
+        documentId: args.documentId,
+        roomId: args.roomId,
+        dateKey: args.dateKey,
+        title,
+        description,
+        cleanerIds: missing,
+        tfUserIdByWesetup,
+        verifierTfId,
+        requirePhoto,
+      });
+    }
     return;
   }
 
-  // Create override-задачу — links не было ни в одной форме (видимо
-  // комната не в bulk-assign списке, или manager поменял до фан-аута).
-  //
-  // 2026-05-09: ВАЖНО — category должна начинаться с 'WeSetup · ' и
-  // journalLink JSON-payload должен быть проставлен. Без этого
-  // isJournalTask() в TF возвращает false → TF открывает обычный
-  // TaskViewDialog (с «Завершить задачу» кнопкой) вместо
-  // TaskFormFiller (с pipeline-чек-листом из scope steps). Manager
-  // жалуется: 'override task без pipeline'.
-  const baseUrl = (process.env.NEXTAUTH_URL ?? "").trim() || "https://wesetup.ru";
-  const journalLink = JSON.stringify({
-    kind: "wesetup-cleaning",
-    baseUrl: baseUrl.replace(/\/+$/, ""),
-    integrationId: integration.id,
+  // links не было — создаём с нуля для всех cleaners.
+  await createOverrideTasksForCleaners({
+    client,
+    integration,
     documentId: args.documentId,
-    rowKey: overrideRowKey,
-    label: title,
-    isFreeText: false,
-    bonusAmountKopecks: 0,
-    taskScope: "personal",
-    siblingVisibility: false,
+    roomId: args.roomId,
+    dateKey: args.dateKey,
+    title,
+    description,
+    cleanerIds: cleanerWesetupIds,
+    tfUserIdByWesetup,
+    verifierTfId,
+    requirePhoto,
   });
-  try {
-    // journalLink передаётся прямо в createTask (TF insertTaskSchema
-    // его принимает). Раньше был second-step updateTask с `as never` —
-    // фрагильно и лишний RTT.
-    const created = await client.createTask({
-      title,
-      description,
-      workerId: cleanerTfId,
-      verifierWorkerId: verifierTfId,
-      isRecurring: false,
-      requiresPhoto: requirePhoto,
-      category: "WeSetup · Уборка",
-      journalLink,
+}
+
+/**
+ * Создаёт override-задачу для каждого переданного cleaner.
+ *
+ * RowKey-формат: `cell-override::<roomId>::<dateKey>::cleaner::<userId>` —
+ * включает cleaner-id чтобы поддержать race-mode (N задач на комнату).
+ * Pairs-mode и round-robin использует тот же шаблон с одним cleaner.
+ *
+ * Старый формат `cell-override::<roomId>::<dateKey>` (без cleaner)
+ * остаётся читаемым в `relatedLinks` (startsWith `cell-override::roomId::dateKey`)
+ * для back-compat с существующими записями TaskLink.
+ */
+async function createOverrideTasksForCleaners(args: {
+  client: ReturnType<typeof tasksflowClientFor>;
+  integration: { id: string };
+  documentId: string;
+  roomId: string;
+  dateKey: string;
+  title: string;
+  description: string;
+  cleanerIds: string[];
+  tfUserIdByWesetup: Map<string, number>;
+  verifierTfId: number | null;
+  requirePhoto: boolean;
+}): Promise<void> {
+  const baseUrl = (process.env.NEXTAUTH_URL ?? "").trim() || "https://wesetup.ru";
+  for (const cleanerWesetupId of args.cleanerIds) {
+    const cleanerTfId = args.tfUserIdByWesetup.get(cleanerWesetupId);
+    if (cleanerTfId == null) {
+      console.warn(
+        `[cleaning-cell-override] no TF link for cleaner=${cleanerWesetupId}`,
+      );
+      continue;
+    }
+    const verifierTfId =
+      args.verifierTfId !== null && args.verifierTfId !== cleanerTfId
+        ? args.verifierTfId
+        : null;
+    const rowKey = `cell-override::${args.roomId}::${args.dateKey}::cleaner::${cleanerWesetupId}`;
+    const journalLink = JSON.stringify({
+      kind: "wesetup-cleaning",
+      baseUrl: baseUrl.replace(/\/+$/, ""),
+      integrationId: args.integration.id,
+      documentId: args.documentId,
+      rowKey,
+      label: args.title,
+      isFreeText: false,
+      bonusAmountKopecks: 0,
+      taskScope: "personal",
+      siblingVisibility: false,
     });
-    await db.tasksFlowTaskLink.create({
-      data: {
-        integrationId: integration.id,
-        journalCode: "cleaning",
-        journalDocumentId: args.documentId,
-        rowKey: overrideRowKey,
-        tasksflowTaskId: created.id,
-        remoteStatus: created.isCompleted ? "completed" : "active",
-        lastDirection: "push",
-      },
-    });
-  } catch (err) {
-    console.error("[cleaning-cell-override] create failed", err);
+    try {
+      const created = await args.client.createTask({
+        title: args.title,
+        description: args.description,
+        workerId: cleanerTfId,
+        verifierWorkerId: verifierTfId,
+        isRecurring: false,
+        requiresPhoto: args.requirePhoto,
+        category: "WeSetup · Уборка",
+        journalLink,
+      });
+      await db.tasksFlowTaskLink.create({
+        data: {
+          integrationId: args.integration.id,
+          journalCode: "cleaning",
+          journalDocumentId: args.documentId,
+          rowKey,
+          tasksflowTaskId: created.id,
+          remoteStatus: created.isCompleted ? "completed" : "active",
+          lastDirection: "push",
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[cleaning-cell-override] create failed cleaner=${cleanerWesetupId}`,
+        err,
+      );
+    }
   }
 }
 
