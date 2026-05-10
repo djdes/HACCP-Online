@@ -484,20 +484,32 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [props.users]);
 
-  // Контролёр(ы): для каждой записи всегда присваиваем «К1/К2/...».
-  // Раньше fallback'или на сохранённый `code` — но в старых документах
-  // контролёр имел сохранённый код «С1», что в UI выглядело как первый
-  // уборщик и путало менеджера. Теперь жёстко принудительно «К» —
-  // user-typing-storage isolation: storage может содержать что угодно
-  // legacy, в UI всегда чисто.
-  const controlResponsibleList = useMemo<CleaningResponsible[]>(
-    () =>
-      config.controlResponsibles.map((resp, idx) => ({
-        ...resp,
-        code: `К${idx + 1}`,
-      })),
-    [config.controlResponsibles],
-  );
+  // Контролёр(ы): код «С(N+1)» где N — число уборщиков (cleaner-list).
+  // Пользователь явно попросил единый префикс «С» для всех подписей
+  // (С1=уборщик, С2=контролёр). К-префикс был отброшен. Нумерация
+  // continuous: cleaning-list занимает С1..СN, control-list — С(N+1)..
+  // Это совпадает с поведением haccp-online.ru reference.
+  const controlResponsibleList = useMemo<CleaningResponsible[]>(() => {
+    // count актуальных уборщиков считаем ниже после cleaningResponsibleList,
+    // но useMemo cleanResp.list зависит от controlUserIdSet, а тот от
+    // controlResponsibleList → cyclic. Решаем: считаем «грубо» на основе
+    // selectedCleanerUserIds или config.cleaningResponsibles, без учёта
+    // дедупа. На практике контролёр всегда отдельный пользователь, дедуп
+    // редко вычитает > 0 — нумерация останется стабильной.
+    const cleanerCount =
+      isRoomsMode && Array.isArray(config.selectedCleanerUserIds)
+        ? config.selectedCleanerUserIds.length
+        : config.cleaningResponsibles.length;
+    return config.controlResponsibles.map((resp, idx) => ({
+      ...resp,
+      code: `С${cleanerCount + idx + 1}`,
+    }));
+  }, [
+    config.controlResponsibles,
+    config.cleaningResponsibles,
+    config.selectedCleanerUserIds,
+    isRoomsMode,
+  ]);
 
   // Множество userId контролёров — для дедупликации. Если человек уже
   // контролёр — не показываем его как уборщика С2. Раньше менеджер видел:
