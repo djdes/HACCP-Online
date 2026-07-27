@@ -88,6 +88,15 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="WeSetup" />
       </head>
       <body className="antialiased overflow-x-clip">
+        <div
+          role="status"
+          className="relative z-[100] flex min-h-10 items-center justify-center bg-amber-400 px-4 py-2 text-center text-[13px] font-medium leading-5 text-[#3d2900] shadow-sm sm:text-[14px]"
+        >
+          <span className="mr-2 inline-flex size-2 shrink-0 rounded-full bg-[#8a5700]" aria-hidden />
+          <span>
+            Сайт находится на техническом обслуживании — ведутся технические работы.
+          </span>
+        </div>
         {children}
         <ServiceWorkerRegister />
         <BuildVersionWatcher />
