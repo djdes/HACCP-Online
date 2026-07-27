@@ -12,6 +12,7 @@ import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
+import { FeedbackReply } from "./feedback-reply";
 
 export const dynamic = "force-dynamic";
 
@@ -229,6 +230,18 @@ export default async function RootFeedbackPage({
                       {r.message}
                     </p>
 
+                    {r.responseMessage ? (
+                      <div className="mt-4 rounded-xl border border-[#c7ccea] bg-[#f5f6ff] p-3">
+                        <div className="text-[12px] font-medium text-[#5566f6]">
+                          Ответ {r.respondedByName ? `· ${r.respondedByName}` : ""}
+                          {r.respondedAt ? ` · ${r.respondedAt.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })}` : ""}
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-[1.55] text-[#0b1024]">
+                          {r.responseMessage}
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6f7282]">
                       {r.userName || r.userEmail ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -247,6 +260,9 @@ export default async function RootFeedbackPage({
                           {r.phone}
                         </a>
                       ) : null}
+                    </div>
+                    <div className="mt-4">
+                      <FeedbackReply reportId={r.id} hasRecipient={Boolean(r.userId && r.organizationId)} />
                     </div>
                   </div>
                 </div>

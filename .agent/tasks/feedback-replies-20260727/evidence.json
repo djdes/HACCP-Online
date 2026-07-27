@@ -1,0 +1,11 @@
+{
+  "taskId": "feedback-replies-20260727",
+  "verification": "BLOCKED",
+  "criteria": [
+    { "id": "AC1", "status": "IMPLEMENTED_UNVERIFIED" },
+    { "id": "AC2", "status": "IMPLEMENTED_UNVERIFIED" },
+    { "id": "AC3", "status": "IMPLEMENTED_UNVERIFIED" },
+    { "id": "AC4", "status": "IMPLEMENTED_UNVERIFIED" },
+    { "id": "AC5", "status": "IMPLEMENTED_UNVERIFIED" }
+  ]
+}

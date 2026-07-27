@@ -782,6 +782,10 @@ model FeedbackReport {
   type             String
   message          String
   phone            String?
+  responseMessage  String?
+  respondedAt      DateTime?
+  respondedById    String?
+  respondedByName  String?
   createdAt        DateTime @default(now())
 
   @@index([createdAt])
