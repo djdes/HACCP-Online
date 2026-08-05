@@ -57,6 +57,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Журналы: ListChecks,
   "Раньше — тоже полезное": ListChecks,
   "Соответствие методичке ХАССП — 5 новых журналов + выровненные колонки": ShieldCheck,
+  "Документы и конфиденциальность": ShieldCheck,
 };
 
 function iconForCategory(name: string): LucideIcon {
