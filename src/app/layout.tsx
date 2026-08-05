@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
 import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
 import { YandexMetrika } from "@/components/layout/yandex-metrika";
+import { CookieConsent } from "@/components/public/cookie-consent";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -101,6 +102,7 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         <BuildVersionWatcher />
         <YandexMetrika />
+        <CookieConsent />
       </body>
     </html>
   );

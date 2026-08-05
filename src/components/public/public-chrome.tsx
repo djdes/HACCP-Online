@@ -164,6 +164,20 @@ export function PublicFooter() {
               support@wesetup.ru
             </a>
           </div>
+          <div className="mt-2 flex flex-col">
+            <Link
+              href="/oferta"
+              className="inline-flex min-h-[32px] items-center transition-colors hover:text-[#0b1024]"
+            >
+              Договор-оферта
+            </Link>
+            <Link
+              href="/privacy"
+              className="inline-flex min-h-[32px] items-center transition-colors hover:text-[#0b1024]"
+            >
+              Политика конфиденциальности
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-col flex-wrap text-[13px] text-[#6f7282] md:items-end">
@@ -174,6 +188,8 @@ export function PublicFooter() {
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
           <Link href="/login" className="py-2.5 transition-colors hover:text-[#0b1024]">Войти</Link>
           <Link href="/register" className="py-2.5 transition-colors hover:text-[#0b1024]">Регистрация</Link>
+          <Link href="/oferta" className="py-2.5 transition-colors hover:text-[#0b1024]">Оферта</Link>
+          <Link href="/privacy" className="py-2.5 transition-colors hover:text-[#0b1024]">Конфиденциальность</Link>
           <a
             href="https://t.me/wesetupbot"
             target="_blank"

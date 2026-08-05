@@ -39,6 +39,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${SITE}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/register`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${SITE}/oferta`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const journalPages: MetadataRoute.Sitemap = Object.keys(JOURNAL_INFO).map(

@@ -404,9 +404,22 @@ export default function RegisterPage() {
             </form>
           )}
 
-          <p className="mt-8 text-center text-[12px] text-[#9b9fb3]">
-            Регистрируясь, вы соглашаетесь с политикой обработки персональных
-            данных.
+          <p className="mt-8 text-center text-[12px] leading-[1.6] text-[#9b9fb3]">
+            Регистрируясь, вы соглашаетесь с условиями{" "}
+            <Link
+              href="/oferta"
+              className="text-[#3848c7] transition-colors hover:text-[#0b1024]"
+            >
+              договора-оферты
+            </Link>{" "}
+            и{" "}
+            <Link
+              href="/privacy"
+              className="text-[#3848c7] transition-colors hover:text-[#0b1024]"
+            >
+              политикой обработки персональных данных
+            </Link>
+            .
           </p>
         </div>
       </main>
