@@ -46,6 +46,18 @@ function isStaffRestrictedWebPath(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // ResultURL Робокассы прописан в кабинете со слешем на конце
+  // (`https://wesetup.ru/payment/`), а Next.js на такой POST отвечает
+  // редиректом 308 на вариант без слеша. Робокасса за редиректом не
+  // ходит — уведомление об оплате терялось, и заказ навсегда оставался
+  // в статусе pending. Переписываем путь до того, как сработает
+  // нормализация трейлинг-слеша.
+  if (pathname === "/payment/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/payment";
+    return NextResponse.rewrite(url);
+  }
+
   const rawToken =
     req.cookies.get(CUSTOM_SESSION_COOKIE)?.value ??
     LEGACY_SESSION_COOKIES.map((name) => req.cookies.get(name)?.value).find(
