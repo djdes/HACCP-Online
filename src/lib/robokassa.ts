@@ -166,6 +166,29 @@ export function verifyResultSignature(args: {
 }
 
 /**
+ * Проверка подписи запроса оплаты (`login:OutSum:InvId[:Receipt]:Password1`).
+ *
+ * Используется как одноразовый «пропуск» к статусу заказа: страница
+ * оформления получает эту подпись при создании заказа и опрашивает с ней
+ * статус, пока клиент платит в iFrame. Подобрать её нельзя — она зависит
+ * от Пароля #1, а знание номера заказа само по себе доступа не даёт.
+ */
+export function verifyPaymentRequestSignature(args: {
+  outSum: string;
+  invId: string;
+  signature: string;
+  isTest: boolean;
+}): boolean {
+  const base = [
+    merchantLogin(),
+    args.outSum,
+    args.invId,
+    password1(args.isTest),
+  ].join(":");
+  return signaturesMatch(md5(base), args.signature);
+}
+
+/**
  * Подпись возврата пользователя на SuccessURL: `OutSum:InvId:Password1`.
  * Используется, чтобы показать статус заказа только тому, кто реально
  * пришёл от Робокассы, — иначе чужой InvId раскрывал бы чужую оплату.

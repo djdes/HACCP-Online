@@ -92,6 +92,74 @@ function Checkout({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scriptReady = useRobokassaScript();
+  // Пока клиент платит в iFrame, следим за заказом здесь: возврат на
+  // SuccessURL происходит внутри рамки, и внешняя страница иначе так и
+  // осталась бы формой оплаты, хотя деньги уже прошли.
+  const [watch, setWatch] = useState<{ invId: number; psig: string } | null>(
+    null,
+  );
+  const [paid, setPaid] = useState<OrderStatus | null>(null);
+
+  useEffect(() => {
+    if (!watch || paid) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const tick = async () => {
+      try {
+        const res = await fetch(
+          `/api/payments/robokassa/status?invId=${watch.invId}&psig=${encodeURIComponent(watch.psig)}`,
+        );
+        if (res.ok) {
+          const data = (await res.json()) as OrderStatus;
+          if (data.status !== "pending") {
+            if (!stopped) setPaid(data);
+            return;
+          }
+        }
+      } catch {
+        /* сеть моргнула — просто пробуем ещё раз */
+      }
+      if (!stopped) timer = setTimeout(tick, 3000);
+    };
+    timer = setTimeout(tick, 3000);
+
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [watch, paid]);
+
+  if (paid) {
+    return (
+      <Card>
+        <Paid order={paid} />
+        {paid.needsCompletion ? (
+          <>
+            <p className="mt-4 text-[15px] leading-[1.7] text-[#3c4053]">
+              Мы отправили на <strong>{paid.email}</strong> письмо со ссылкой
+              для завершения настройки: там нужно задать пароль и название
+              организации.
+            </p>
+            <p className="mt-2 text-[13px] text-[#9b9fb3]">
+              Письма нет через 10 минут? Напишите на support@wesetup.ru —
+              вышлем ссылку вручную.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-[15px] leading-[1.7] text-[#3c4053]">
+              Подписка вашей организации продлена. Входите под своей обычной
+              учётной записью.
+            </p>
+            <div className="mt-6">
+              <PrimaryLink href="/login">Войти в кабинет</PrimaryLink>
+            </div>
+          </>
+        )}
+      </Card>
+    );
+  }
 
   if (!tariff) {
     return (
@@ -141,6 +209,7 @@ function Checkout({
       // упёрся в неработающую кнопку.
       if (scriptReady && window.Robokassa) {
         window.Robokassa.StartPayment(data.params);
+        setWatch({ invId: data.invId, psig: data.params.SignatureValue });
         setLoading(false);
         return;
       }
@@ -238,6 +307,13 @@ function Checkout({
             </>
           )}
         </button>
+
+        {watch ? (
+          <p className="mt-3 flex items-center justify-center gap-2 text-[13px] text-[#6f7282]">
+            <Loader2 className="size-3.5 animate-spin text-[#5566f6]" />
+            Ждём подтверждение оплаты — страница обновится сама.
+          </p>
+        ) : null}
       </form>
 
       <p className="mt-4 flex items-start gap-2 text-[12px] leading-[1.6] text-[#9b9fb3]">
