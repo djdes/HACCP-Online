@@ -27,6 +27,14 @@ function getBuildTime(): string {
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Штатная нормализация трейлинг-слеша срабатывает ДО middleware и
+  // отвечает редиректом 308. Робокасса шлёт уведомление об оплате
+  // POST'ом на `https://wesetup.ru/payment/` (адрес зафиксирован в
+  // кабинете магазина) и за редиректом не идёт — платежи молча
+  // терялись. Отключаем автоматический редирект и обрабатываем слеш
+  // сами в middleware: `/payment/` переписываем, остальным путям
+  // отдаём тот же 308, что и раньше.
+  skipTrailingSlashRedirect: true,
   typescript: {
     // Temporary deploy unblocker: unrelated dashboard pages still carry legacy Next build type errors.
     ignoreBuildErrors: true,

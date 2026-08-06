@@ -46,16 +46,26 @@ function isStaffRestrictedWebPath(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ResultURL Робокассы прописан в кабинете со слешем на конце
-  // (`https://wesetup.ru/payment/`), а Next.js на такой POST отвечает
-  // редиректом 308 на вариант без слеша. Робокасса за редиректом не
-  // ходит — уведомление об оплате терялось, и заказ навсегда оставался
-  // в статусе pending. Переписываем путь до того, как сработает
-  // нормализация трейлинг-слеша.
+  // Трейлинг-слеш обрабатываем вручную: автоматический редирект
+  // выключен в next.config.ts (`skipTrailingSlashRedirect`), потому что
+  // он срабатывал раньше middleware и ломал приём оплаты.
+  //
+  // ResultURL Робокассы прописан в кабинете как
+  // `https://wesetup.ru/payment/`. На редирект 308 Робокасса не идёт —
+  // уведомления терялись, и оплаченные заказы навсегда оставались
+  // в статусе pending. Этот путь переписываем без редиректа, всем
+  // остальным сохраняем прежнее поведение.
   if (pathname === "/payment/") {
     const url = req.nextUrl.clone();
     url.pathname = "/payment";
     return NextResponse.rewrite(url);
+  }
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    // URL строим из req.url, а не из nextUrl.clone(): клон сохраняет
+    // исходный путь со слешем, и редирект зацикливается сам на себя.
+    const url = new URL(req.url);
+    url.pathname = pathname.replace(/\/+$/, "");
+    return NextResponse.redirect(url, 308);
   }
 
   const rawToken =
