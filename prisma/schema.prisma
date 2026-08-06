@@ -1861,3 +1861,64 @@ model ProductionCalendarDay {
 
   @@index([year, kind])
 }
+
+/// Тарифы платформы, которые Wesetup продаёт через Робокассу.
+///
+/// Раньше цена «1 990 ₽/мес» была захардкожена в лендинге и калькуляторе,
+/// и любое изменение требовало деплоя. Теперь цена живёт в БД и правится
+/// ROOT'ом в /root/tariffs — лендинг, /pricing и создание платежа читают
+/// одну и ту же строку.
+///
+/// Глобальная таблица (без organizationId): тарифы одни для всех клиентов.
+model PlatformTariff {
+  /// Стабильный ключ, на который ссылаются кнопки и PaymentOrder:
+  ///   • "monthly" — «Подписка»
+  ///   • "bundle"  — «Подписка + оборудование» (сумма железа считается
+  ///     сервером по hardware-pricing.ts и прибавляется к priceRub)
+  key        String   @id
+  title      String
+  priceRub   Int
+  /// На сколько дней продлевает подписку организации после оплаты.
+  periodDays Int      @default(30)
+  active     Boolean  @default(true)
+  sort       Int      @default(0)
+  updatedAt  DateTime @updatedAt
+}
+
+/// Заказ на оплату через Робокассу — от нажатия кнопки до заведённой
+/// организации.
+///
+/// Жизненный цикл status:
+///   pending   — заказ создан, платёж ещё не подтверждён
+///   paid      — пришёл ResultURL с валидной подписью, деньги получены,
+///               организация и пользователь заведены/продлены
+///   completed — клиент дозаполнил профиль (название, имя, пароль)
+///   failed    — зарезервировано под ручное закрытие проблемных заказов
+model PaymentOrder {
+  /// Уходит в Робокассу как InvId, поэтому именно int (int32), не uuid.
+  id                     Int       @id @default(autoincrement())
+  email                  String
+  tariffKey              String
+  amountRub              Decimal   @db.Decimal(10, 2)
+  description            String
+  /// Состав калькулятора для тарифа "bundle": { deviceId: qty }.
+  bundleConfig           Json?
+  status                 String    @default("pending")
+  /// Платёж проведён в тестовом режиме Робокассы (ROBOKASSA_IS_TEST=1) —
+  /// от этого зависит, каким паролем проверяется подпись.
+  isTest                 Boolean   @default(false)
+  organizationId         String?
+  userId                 String?
+  /// sha256 одноразового токена достройки профиля; сам токен уходит
+  /// клиенту письмом и в success-возврате.
+  completeTokenHash      String?   @unique
+  completeTokenExpiresAt DateTime?
+  /// Сырое тело ResultURL — для разбора спорных платежей.
+  rawResult              Json?
+  createdAt              DateTime  @default(now())
+  paidAt                 DateTime?
+  completedAt            DateTime?
+
+  @@index([email])
+  @@index([status])
+}

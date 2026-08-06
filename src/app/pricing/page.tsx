@@ -1,16 +1,27 @@
 import Link from "next/link";
-import { ArrowRight, Coins } from "lucide-react";
+import { ArrowRight, Check, Wrench } from "lucide-react";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
+import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import {
+  readTariffs,
+  fallbackTariffs,
+  formatRub,
+  TARIFF_MONTHLY,
+  TARIFF_BUNDLE,
+} from "@/lib/tariffs";
 import {
   DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
   DEFAULT_TWITTER_IMAGES,
 } from "@/lib/meta-defaults";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "Стоимость и ROI калькулятор",
   description:
-    "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
+    "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием. Калькулятор экономии.",
   alternates: { canonical: "https://wesetup.ru/pricing" },
   openGraph: {
     type: "website",
@@ -19,7 +30,7 @@ export const metadata = {
     url: "https://wesetup.ru/pricing",
     title: "Стоимость и ROI калькулятор",
     description:
-      "Сколько вы сэкономите с WeSetup? Калькулятор: стоимость, экономия часов, защита от штрафов РПН.",
+      "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием.",
     images: DEFAULT_OG_IMAGES,
   },
   twitter: {
@@ -30,108 +41,212 @@ export const metadata = {
 };
 
 /**
- * Публичная страница `/pricing` со ROI-калькулятором + кратким
- * описанием тарификации. H10 в brainstorm.
+ * Публичная страница тарифов.
+ *
+ * Цены берутся из БД (`PlatformTariff`) — те же, что на лендинге и в
+ * кнопках оплаты. Прежняя шкала «100/80/60 ₽ за сотрудника» убрана:
+ * она противоречила фикс-подписке на главной, и модератор платёжного
+ * сервиса справедливо счёл бы это расхождением.
  */
-export default function PricingPage() {
+export default async function PricingPage() {
+  const tariffs = await readTariffs().catch(() => fallbackTariffs());
+  const monthly =
+    tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
+  const bundle = tariffs.find((t) => t.key === TARIFF_BUNDLE) ?? null;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-12">
-      <div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          ← На главную
-        </Link>
-        <h1 className="mt-4 text-[clamp(2rem,2vw+1.5rem,2.75rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
-          Сколько стоит WeSetup
-        </h1>
-        <p className="mt-3 max-w-[640px] text-[16px] leading-relaxed text-[#3c4053]">
-          Платите только за активных сотрудников. До 5 человек — бесплатно
-          навсегда. Дальше скидки растут с количеством. Никаких скрытых
-          платежей.
+    <div className="min-h-screen bg-white text-[#0b1024]">
+      <PublicHeader />
+      <main className="mx-auto max-w-[1000px] space-y-8 px-4 py-12 sm:px-6">
+        <div>
+          <h1 className="text-[clamp(2rem,2vw+1.5rem,2.75rem)] font-semibold tracking-[-0.02em]">
+            Сколько стоит WeSetup
+          </h1>
+          <p className="mt-3 max-w-[640px] text-[16px] leading-relaxed text-[#3c4053]">
+            Все 35 журналов доступны бесплатно небольшой смене. Платная
+            подписка снимает лимит по сотрудникам и включает автоматизацию.
+            Оборудование — разовая покупка, без скрытых платежей.
+          </p>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          <PlanCard
+            name="Бесплатный"
+            price="0 ₽"
+            period="навсегда"
+            description="Для заведения с небольшой сменой."
+            points={[
+              "До 5 сотрудников",
+              "Все 35 журналов СанПиН и ХАССП",
+              "Telegram-бот с пошаговым заполнением",
+              "PDF для проверок, без привязки карты",
+            ]}
+            ctaLabel="Начать бесплатно"
+            ctaHref="/register"
+          />
+
+          <PlanCard
+            name={monthly.title}
+            price={formatRub(monthly.priceRub)}
+            period={`за ${monthly.periodDays} дней`}
+            description="Если датчики и планшеты уже есть — подключаем их и снимаем ограничения."
+            points={[
+              "Без лимита по сотрудникам",
+              "Подключение своих IoT-датчиков",
+              "Автозаполнение температур и гигиены",
+              "Приоритетная поддержка в Telegram",
+            ]}
+            ctaLabel="Оплатить картой"
+            ctaHref="/order?plan=monthly"
+            highlighted
+          />
+
+          <PlanCard
+            name={bundle?.title ?? "Подписка + оборудование"}
+            price={formatRub(bundle?.priceRub ?? monthly.priceRub)}
+            period="в месяц + железо"
+            icon
+            description="Та же подписка плюс датчики, планшет и выездной монтаж. Состав собирается в калькуляторе на главной."
+            points={[
+              "Всё из тарифа «Подписка»",
+              "Датчики температуры и термогигрометры",
+              "Планшет на кухню и NFC-брелоки",
+              "Выезд инженера, настройка и обучение смены",
+            ]}
+            ctaLabel="Собрать комплект"
+            ctaHref="/#pricing"
+          />
+        </div>
+
+        <p className="text-center text-[13px] text-[#9b9fb3]">
+          Оплата картой через сервис «Робокасса». Возврат за неиспользованный
+          период — по заявлению на support@wesetup.ru, условия описаны в{" "}
+          <Link href="/oferta" className="text-[#3848c7]">
+            договоре-оферте
+          </Link>
+          .
         </p>
+
+        <RoiCalculator />
+
+        <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
+          <h2 className="text-[18px] font-semibold tracking-[-0.01em]">
+            Что внутри после регистрации
+          </h2>
+          <p className="mt-2 max-w-[640px] text-[14px] leading-relaxed text-[#3c4053]">
+            35 готовых журналов СанПиН/ХАССП — от гигиены сотрудников и
+            контроля холодильников до бракеража и журнала уборок.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/journals-info"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Каталог журналов →
+            </Link>
+            <Link
+              href="/features"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Все возможности →
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-[#ececf4] bg-[#0b1024] p-8 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] md:p-10">
+          <h2 className="text-[24px] font-semibold tracking-[-0.02em]">
+            Попробуйте бесплатно
+          </h2>
+          <p className="mt-2 max-w-[480px] text-[15px] leading-relaxed text-white/70">
+            Регистрация занимает 2 минуты. До 5 сотрудников — бесплатно
+            навсегда. Карта не требуется.
+          </p>
+          <Link
+            href="/register"
+            className="mt-6 inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
+          >
+            Зарегистрироваться <ArrowRight className="size-4" />
+          </Link>
+        </section>
+      </main>
+      <PublicFooter />
+    </div>
+  );
+}
+
+function PlanCard({
+  name,
+  price,
+  period,
+  description,
+  points,
+  ctaLabel,
+  ctaHref,
+  highlighted,
+  icon,
+}: {
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  points: string[];
+  ctaLabel: string;
+  ctaHref: string;
+  highlighted?: boolean;
+  icon?: boolean;
+}) {
+  return (
+    <div
+      className={
+        "flex flex-col rounded-3xl border bg-white p-6 transition-shadow md:p-7 " +
+        (highlighted
+          ? "border-[#5566f6]/40 shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
+          : "border-[#ececf4] shadow-[0_0_0_1px_rgba(240,240,250,0.45)]")
+      }
+    >
+      <div className="flex items-center gap-3">
+        {icon ? (
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+            <Wrench className="size-5" />
+          </span>
+        ) : null}
+        <div className="text-[18px] font-semibold tracking-[-0.01em]">
+          {name}
+        </div>
       </div>
 
-      {/* Tarification overview */}
-      <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
-        <div className="flex items-start gap-3">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
-            <Coins className="size-6" />
-          </span>
-          <div>
-            <h2 className="text-[20px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-              Шкала тарифов
-            </h2>
-            <ul className="mt-3 space-y-1.5 text-[14px] leading-relaxed text-[#3c4053]">
-              <li>
-                <strong>1–5 сотрудников:</strong>{" "}
-                <span className="text-[#116b2a]">бесплатно навсегда</span>
-              </li>
-              <li>
-                <strong>6–29:</strong> 100 ₽ за каждого активного в месяц
-                (сверх первых 5)
-              </li>
-              <li>
-                <strong>30–99 (средний бизнес):</strong> 80 ₽/чел/мес
-              </li>
-              <li>
-                <strong>100+ (сети):</strong> 60 ₽/чел/мес
-              </li>
-            </ul>
-            <p className="mt-3 text-[13px] text-[#6f7282]">
-              Скидка −20% при оплате за год вперёд. Подписка сразу со всеми
-              функциями: AI-помощник по СанПиН, авто-CAPA, отчёты,
-              интеграция с TasksFlow и Telegram-бот.
-            </p>
-          </div>
-        </div>
-      </section>
+      <div className="mt-4 flex items-baseline gap-2">
+        <span className="text-[30px] font-semibold tracking-[-0.02em] tabular-nums">
+          {price}
+        </span>
+        <span className="text-[13px] text-[#6f7282]">{period}</span>
+      </div>
 
-      <RoiCalculator />
+      <p className="mt-3 text-[14px] leading-[1.55] text-[#6f7282]">
+        {description}
+      </p>
 
-      {/* F8 — sample reports demo link. Ведёт на public каталог журналов
-          с пояснением что внутри получает менеджер после регистрации. */}
-      <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
-        <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-          Что внутри после регистрации
-        </h2>
-        <p className="mt-2 max-w-[640px] text-[14px] leading-relaxed text-[#3c4053]">
-          35 готовых журналов СанПиН/ХАССП — от гигиены сотрудников и
-          контроля холодильников до бракеража и журнала уборок.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link
-            href="/journals-info"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          >
-            Каталог журналов →
-          </Link>
-          <Link
-            href="/features"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          >
-            Все возможности →
-          </Link>
-        </div>
-      </section>
+      <ul className="mt-5 flex-1 space-y-2">
+        {points.map((point) => (
+          <li key={point} className="flex gap-2 text-[14px] text-[#3c4053]">
+            <Check className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
+            <span className="leading-[1.5]">{point}</span>
+          </li>
+        ))}
+      </ul>
 
-      {/* CTA */}
-      <section className="rounded-3xl border border-[#ececf4] bg-[#0b1024] p-8 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] md:p-10">
-        <h2 className="text-[24px] font-semibold tracking-[-0.02em]">
-          Попробуйте бесплатно
-        </h2>
-        <p className="mt-2 max-w-[480px] text-[15px] leading-relaxed text-white/70">
-          Регистрация занимает 2 минуты. До 5 сотрудников — бесплатно
-          навсегда. Карта не требуется.
-        </p>
-        <Link
-          href="/register"
-          className="mt-6 inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-[15px] font-medium text-[#0b1024] hover:bg-white/90"
-        >
-          Зарегистрироваться <ArrowRight className="size-4" />
-        </Link>
-      </section>
+      <Link
+        href={ctaHref}
+        className={
+          "mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-5 text-[14px] font-medium transition-colors " +
+          (highlighted
+            ? "bg-[#5566f6] text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
+            : "border border-[#dcdfed] bg-white text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]")
+        }
+      >
+        {ctaLabel}
+        <ArrowRight className="size-4" />
+      </Link>
     </div>
   );
 }

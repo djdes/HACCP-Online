@@ -5,6 +5,7 @@ import {
   NotebookText,
   ScrollText,
   Settings2,
+  Wallet,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -87,6 +88,13 @@ export default async function RootAreaLayout({
             >
               <NotebookText className="size-4" />
               Блог
+            </Link>
+            <Link
+              href="/root/tariffs"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Wallet className="size-4" />
+              Тарифы
             </Link>
             <Link
               href="/root/telegram-logs"

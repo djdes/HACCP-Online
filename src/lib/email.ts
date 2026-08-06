@@ -164,6 +164,50 @@ export async function sendWelcomeEmail(params: {
   await sendEmail(to, subject, layout("Добро пожаловать!", body));
 }
 
+/**
+ * Письмо после успешной оплаты через Робокассу.
+ *
+ * Новому клиенту уходит ссылка с одноразовым токеном на достройку
+ * профиля (название организации, имя, пароль), существующему —
+ * подтверждение продления со ссылкой на вход.
+ */
+export async function sendPaymentReceiptEmail(params: {
+  to: string;
+  amountRub: number;
+  description: string;
+  actionUrl: string;
+  isNewClient: boolean;
+  subscriptionEnd: Date;
+}) {
+  const { to, amountRub, description, actionUrl, isNewClient, subscriptionEnd } =
+    params;
+  const subject = isNewClient
+    ? "Оплата получена — завершите настройку"
+    : "Оплата получена — подписка продлена";
+  const amount = new Intl.NumberFormat("ru-RU").format(amountRub) + " ₽";
+  const until = subscriptionEnd.toLocaleDateString("ru-RU");
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Мы получили вашу оплату. Спасибо!</p>
+    <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Тариф: <strong>${escapeHtml(description)}</strong></p>
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Сумма: <strong>${escapeHtml(amount)}</strong></p>
+      <p style="margin:0;color:#3f3f46;font-size:14px">Подписка действует до: <strong>${escapeHtml(until)}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">${
+      isNewClient
+        ? "Осталось задать пароль и указать название организации — это займёт минуту."
+        : "Подписка вашей организации продлена, дополнительных действий не требуется."
+    }</p>
+    <a href="${actionUrl}" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">${
+      isNewClient ? "Завершить настройку" : "Войти в кабинет"
+    }</a>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы по оплате и возврату — support@wesetup.ru.</p>`;
+
+  await sendEmail(to, subject, layout(subject, body));
+}
+
 export async function sendFeedbackAdminEmail(params: {
   to: string;
   type: "bug" | "suggestion";

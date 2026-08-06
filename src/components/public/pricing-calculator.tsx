@@ -14,6 +14,14 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import {
+  HARDWARE_DEVICES,
+  HARDWARE_BUNDLES,
+  bundleTotal,
+  type HardwareDevice,
+  type HardwareBundle,
+  type HardwareBundleId,
+} from "@/lib/hardware-pricing";
 
 /**
  * Pricing calculator: bundle-first, customizable second.
@@ -25,117 +33,57 @@ import {
  * fine-tuning, но 90% посетителей принимают решение по пакету.
  */
 
-type DeviceOption = {
-  id: string;
-  title: string;
-  icon: LucideIcon;
-  price: number;
-  /// "per-unit" lets the customer choose quantity; "flat" is a single
-  /// checkbox (install / setup fee).
-  mode: "per-unit" | "flat";
-  hint?: string;
-  defaultQty?: number;
+/**
+ * Прайс железа и пресеты пакетов живут в `@/lib/hardware-pricing` —
+ * тот же модуль импортирует сервер, когда пересчитывает сумму заказа.
+ * Здесь остаётся только представление: иконки к позициям и вёрстка.
+ */
+type DeviceOption = HardwareDevice & { icon: LucideIcon };
+type BundleId = HardwareBundleId;
+type BundlePreset = HardwareBundle;
+
+const DEVICE_ICONS: Record<string, LucideIcon> = {
+  install: Wrench,
+  temp: Thermometer,
+  thermo: Gauge,
+  tablet: Smartphone,
+  nfc: UserCheck,
 };
 
-const SUBSCRIPTION_MONTHLY = 1990;
+const DEVICES: DeviceOption[] = HARDWARE_DEVICES.map((d) => ({
+  ...d,
+  icon: DEVICE_ICONS[d.id] ?? Package,
+}));
 
-const DEVICES: DeviceOption[] = [
-  {
-    id: "install",
-    title: "Выездной монтаж и настройка",
-    icon: Wrench,
-    price: 9900,
-    mode: "flat",
-    hint: "Инженер приезжает на кухню, устанавливает датчики, настраивает профили и проводит обучение смены.",
-    defaultQty: 1,
-  },
-  {
-    id: "temp",
-    title: "Датчик температуры",
-    icon: Thermometer,
-    price: 3490,
-    mode: "per-unit",
-    hint: "Для холодильной или морозильной камеры — одна штука на одно оборудование.",
-    defaultQty: 2,
-  },
-  {
-    id: "thermo",
-    title: "Термогигрометр",
-    icon: Gauge,
-    price: 2890,
-    mode: "per-unit",
-    hint: "Для контроля температуры и влажности в зале / цеху.",
-    defaultQty: 1,
-  },
-  {
-    id: "tablet",
-    title: "Планшет для кухни",
-    icon: Smartphone,
-    price: 12900,
-    mode: "per-unit",
-    hint: "10 дюймов, защитный чехол, предустановленный профиль. Клеится к стене в цехе.",
-    defaultQty: 1,
-  },
-  {
-    id: "nfc",
-    title: "NFC-брелоки",
-    icon: UserCheck,
-    price: 490,
-    mode: "per-unit",
-    hint: "Вход в журналы одним тапом — по одному на активную смену.",
-    defaultQty: 5,
-  },
-];
-
-type BundleId = "solo" | "standard" | "network";
-type BundlePreset = {
-  id: BundleId;
-  name: string;
-  forWhom: string;
-  /// маркетинговый «крючок» — что выдыхают на месте.
-  hook: string;
-  popular?: boolean;
-  /// итоговое железо: device-id → qty.
-  composition: Record<string, number>;
-};
-
-const BUNDLES: BundlePreset[] = [
-  {
-    id: "solo",
-    name: "Соло",
-    forWhom: "1 точка, маленькая смена",
-    hook: "Один датчик в основной холодильник, термогигрометр в цехе, NFC-вход для смены.",
-    composition: { install: 1, temp: 1, thermo: 1, tablet: 0, nfc: 3 },
-  },
-  {
-    id: "standard",
-    name: "Стандарт",
-    forWhom: "Активная кухня, регулярные проверки",
-    hook: "Все ключевые холодильники под датчиком, планшет на кухне, брелоки на всю смену.",
-    popular: true,
-    composition: { install: 1, temp: 2, thermo: 1, tablet: 1, nfc: 5 },
-  },
-  {
-    id: "network",
-    name: "Сетевой",
-    forWhom: "Сеть из 2–3 точек или большое производство",
-    hook: "Двойной выезд для разных адресов, расширенный набор датчиков и техники.",
-    composition: { install: 2, temp: 5, thermo: 2, tablet: 2, nfc: 10 },
-  },
-];
+const BUNDLES: BundlePreset[] = HARDWARE_BUNDLES;
 
 function formatRub(n: number): string {
   return new Intl.NumberFormat("ru-RU").format(n) + " ₽";
 }
 
-function bundleTotal(bundle: BundlePreset): number {
-  return DEVICES.reduce(
-    (sum, d) => sum + d.price * (bundle.composition[d.id] ?? 0),
-    0
+/**
+ * Состав корзины уезжает на /order строкой base64 — так ссылка остаётся
+ * одной кнопкой без формы, а сервер всё равно пересчитает сумму сам.
+ */
+function encodeConfig(config: Record<string, number>): string {
+  const compact: Record<string, number> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (value > 0) compact[key] = value;
+  }
+  if (typeof window === "undefined") return "";
+  return window.btoa(
+    String.fromCharCode(...new TextEncoder().encode(JSON.stringify(compact))),
   );
 }
 
-export function PricingCalculator() {
+export function PricingCalculator({
+  subscriptionMonthly,
+}: {
+  /// Цена подписки из БД (PlatformTariff.monthly) — приходит с сервера,
+  /// чтобы ROOT мог поменять её без деплоя.
+  subscriptionMonthly: number;
+}) {
+  const SUBSCRIPTION_MONTHLY = subscriptionMonthly;
   // Default — Стандарт, как «most-popular anchor». Маркетинг: пользователь
   // приходит на лендинг, видит уже выбранный набор с реальной ценой —
   // не пугающий пустой калькулятор, а готовое предложение.
@@ -269,13 +217,20 @@ export function PricingCalculator() {
       </div>
 
       <a
+        href={`/order?plan=bundle&cfg=${encodeConfig(quantities)}`}
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+      >
+        Оплатить картой
+        <ArrowRight className="size-4" />
+      </a>
+
+      <a
         href="https://t.me/wesetupbot"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+        className="-mt-2 inline-flex items-center justify-center gap-1.5 self-center text-[12px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
       >
-        Оформить в Telegram
-        <ArrowRight className="size-4" />
+        Или оформить в Telegram
       </a>
 
       <button

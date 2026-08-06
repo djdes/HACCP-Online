@@ -40,6 +40,12 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  readTariffs,
+  fallbackTariffs,
+  formatRub,
+  TARIFF_MONTHLY,
+} from "@/lib/tariffs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -258,6 +264,13 @@ export default async function LandingPage() {
       return [];
     });
 
+  // Цены тарифов живут в БД и правятся ROOT'ом в /root/tariffs — карточки,
+  // калькулятор и JSON-LD читают одно и то же значение, поэтому смена
+  // цены не требует деплоя. Страница уже force-dynamic.
+  const tariffs = await readTariffs().catch(() => fallbackTariffs());
+  const monthly =
+    tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -329,12 +342,12 @@ export default async function LandingPage() {
           },
           {
             "@type": "Offer",
-            name: "Подписка",
-            price: "1990",
+            name: monthly.title,
+            price: String(monthly.priceRub),
             priceCurrency: "RUB",
             priceSpecification: {
               "@type": "UnitPriceSpecification",
-              price: "1990",
+              price: String(monthly.priceRub),
               priceCurrency: "RUB",
               unitText: "месяц",
             },
@@ -666,7 +679,7 @@ export default async function LandingPage() {
             Все журналы бесплатно. Платите за автоматизацию.
           </h2>
           <p className="mt-4 text-[15px] text-[#6f7282]">
-            Подписка единая — 1 990 ₽/мес. Пакеты отличаются только
+            Подписка единая — {formatRub(monthly.priceRub)}/мес. Пакеты отличаются только
             набором оборудования и услугами: приехать, подключить
             датчики к холодильникам, настроить профили и обучить смену.
             Всё железо — разовая покупка.
@@ -694,8 +707,8 @@ export default async function LandingPage() {
           {/* Subscription tier (user brings own equipment) */}
           <PricingCard
             kind="team"
-            name="Подписка"
-            from="1 990 ₽"
+            name={monthly.title}
+            from={formatRub(monthly.priceRub)}
             period="в месяц"
             description="Если датчики, планшеты и брелоки уже есть — подключаем их к WeSetup и снимаем все ограничения."
             points={[
@@ -704,8 +717,8 @@ export default async function LandingPage() {
               "Автозаполнение температур и гигиены",
               "Приоритетная поддержка в Telegram",
             ]}
-            ctaLabel="Начать бесплатно"
-            ctaHref="/register"
+            ctaLabel="Оплатить картой"
+            ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
           />
@@ -725,7 +738,7 @@ export default async function LandingPage() {
               или датчики — снимите галочку, и останется только подписка.
             </p>
             <div className="mt-5">
-              <PricingCalculator />
+              <PricingCalculator subscriptionMonthly={monthly.priceRub} />
             </div>
           </div>
         </div>
