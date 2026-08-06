@@ -1,13 +1,25 @@
 import nodemailer from "nodemailer";
 import { escapeHtml } from "@/lib/html-escape";
 
+/**
+ * Локальный relay на той же машине. Прод отправляет через exim на
+ * 127.0.0.1, а он отдаёт самоподписанный сертификат — проверять его
+ * бессмысленно (трафик не покидает хост), но и слать в обход TLS не
+ * нужно. Поэтому для петлевых адресов проверку цепочки отключаем,
+ * для внешних SMTP — оставляем строгой.
+ */
+const LOCAL_SMTP_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function isLocalSmtpHost(): boolean {
+  return LOCAL_SMTP_HOSTS.has((process.env.SMTP_HOST ?? "localhost").trim());
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "localhost",
   port: Number(process.env.SMTP_PORT) || 25,
   secure: false,
-  // Allow self-signed certs only for localhost SMTP relays.
   tls: {
-    rejectUnauthorized: (process.env.SMTP_HOST ?? "localhost") !== "localhost",
+    rejectUnauthorized: !isLocalSmtpHost(),
   },
   connectionTimeout: 5000,
   socketTimeout: 5000,
