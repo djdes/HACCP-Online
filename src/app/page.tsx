@@ -35,6 +35,7 @@ import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { DemoJournalWidget } from "@/components/landing/demo-journal-widget";
+import { HeroEmailStart } from "@/components/landing/hero-email-start";
 import { JournalAutoplayVideo } from "@/components/landing/journal-autoplay-video";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -186,7 +187,48 @@ const AUDIENCE = [
   },
 ];
 
+/**
+ * Бонусный стек к подписке. Тот же продукт, разобранный на части, —
+ * так виден объём работы, который иначе пришлось бы делать самому.
+ *
+ * ВАЖНО: перечислено только то, что реально существует в сервисе.
+ * Суммы «сколько стоило бы отдельно» — оценка, а не прайс подрядчика;
+ * согласованы с владельцем как ориентир.
+ */
+const OFFER_BONUSES = [
+  {
+    icon: NotebookText,
+    title: "35 журналов под ваш тип заведения",
+    worth: "18 000 ₽",
+    text: "Кафе, столовая, пекарня, дарк-китчен — шаблоны уже заполнены нужными полями и периодичностью. Не нужно собирать формы с нуля.",
+  },
+  {
+    icon: Wand2,
+    title: "Пошаговые инструкции для смены",
+    worth: "12 000 ₽",
+    text: "В каждом журнале — гайд «как правильно заполнить»: что взять, что проверить, типичные ошибки. Новый сотрудник справляется без обучения.",
+  },
+  {
+    icon: Send,
+    title: "Telegram-бот для сотрудников",
+    worth: "9 000 ₽",
+    text: "Напоминания, заполнение и отметка смены прямо в мессенджере. Не нужно ставить приложение и раздавать пароли.",
+  },
+  {
+    icon: Handshake,
+    title: "Помощь с настройкой",
+    worth: "10 000 ₽",
+    text: "Поможем завести заведение, сотрудников и оборудование, разложить ответственных по журналам. Пишете в поддержку — разбираемся вместе.",
+  },
+] as const;
+
+const OFFER_BONUSES_TOTAL = 49000;
+
 const FAQ = [
+  {
+    q: "Что если сервис не подойдёт — можно вернуть деньги?",
+    a: "Да. В течение 30 дней с оплаты подписки вернём всю сумму по заявлению на support@wesetup.ru — без вопросов и без удержаний. Условия возврата закреплены в договоре-оферте, это обязательство, а не рекламное обещание.",
+  },
   {
     q: "Что такое электронный журнал для общепита?",
     a: "Веб-сервис, куда сотрудники вносят те же записи, что раньше делали в бумажных журналах — гигиена, температура, бракераж и так далее. С 1 января 2021 года такой формат разрешён СанПиН 2.3/2.4.3590-20.",
@@ -469,11 +511,22 @@ export default async function LandingPage() {
           {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,
               linear in between via clamp() so the headline reads well on
               every viewport width without breakpoint jumps. */}
+          {/* H1 — вариант B, выбран как основной. Интервал заявлен через
+              ДЕЙСТВИЕ («первый журнал заполнен»), а не через результат
+              («пройдёте проверку»): обещание результата со сроком
+              рекламные площадки трактуют как гарантию и блокируют.
+
+              Варианты для A/B-теста:
+              A (контроль): «Электронные журналы для вашей кухни»
+              B (текущий):  «Журналы СанПиН и ХАССП — первый заполнен
+                             за 5 минут» — давит на скорость (время)
+              C (статус):   «Кухня ведёт журналы сама — вы только
+                             проверяете» — давит на усилия (DFY) */}
           <h1 className="hero-title mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
-            Электронные журналы
+            Журналы СанПиН и ХАССП —
             <br />
             <span className="relative inline-block">
-              <span className="relative z-10">для вашей кухни</span>
+              <span className="relative z-10">первый заполнен за 5 минут</span>
               <span
                 aria-hidden="true"
                 className="absolute inset-x-0 bottom-[0.08em] -z-0 h-[0.28em] bg-[#5566f6]/15"
@@ -481,11 +534,15 @@ export default async function LandingPage() {
             </span>
           </h1>
 
-          {/* Subhead */}
+          {/* Subhead — все четыре рычага уравнения ценности: результат
+              (проверка без штрафов), вероятность (реестр ПО, СанПиН —
+              бейджи рядом), время (5 минут), усилия (шаблоны, Telegram,
+              PDF в один клик). */}
           <p className="hero-copy mx-auto mt-7 max-w-[640px] text-[16px] leading-[1.6] text-[#3c4053] sm:text-[18px]">
-            СанПиН и ХАССП в одной системе. Заполняете с планшета на кухне
-            или из Telegram, PDF для Роспотребнадзора — в один клик.
-            Бесплатно навсегда до 5 сотрудников.
+            Бумажные журналы отнимают полчаса в день и всё равно подводят
+            на проверке. WeSetup ведёт их за вас: готовые шаблоны под ваш
+            тип заведения, заполнение с телефона или из Telegram, PDF для
+            инспектора — в один клик. Бесплатно навсегда до 5 сотрудников.
           </p>
 
           {/* Compliance proof — на видном месте, чтобы менеджер сразу
@@ -498,18 +555,29 @@ export default async function LandingPage() {
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
               для анонимного — «Начать бесплатно» (регистрация) */}
           <div className="hero-cta mt-10 flex flex-col items-center gap-3">
-            <Link
-              href={isAuthed ? homeHref : "/register"}
-              className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)] sm:h-[56px] sm:px-8 sm:text-[16px]"
-            >
-              {isAuthed ? "Открыть кабинет" : "Начать бесплатно"}
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <div className="text-[12px] text-[#9b9fb3]">
-              {isAuthed
-                ? `Залогинены как ${session?.user?.name ?? ""}`
-                : "Без карты · Всё включено на бесплатном тарифе"}
-            </div>
+            {isAuthed ? (
+              <>
+                <Link
+                  href={homeHref}
+                  className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)] sm:h-[56px] sm:px-8 sm:text-[16px]"
+                >
+                  Открыть кабинет
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <div className="text-[12px] text-[#9b9fb3]">
+                  Залогинены как {session?.user?.name ?? ""}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Почта спрашивается прямо здесь: так первый шаг —
+                    одно поле, а не переход на отдельную страницу. */}
+                <HeroEmailStart />
+                <div className="text-[12px] text-[#9b9fb3]">
+                  Без карты · Всё включено на бесплатном тарифе
+                </div>
+              </>
+            )}
           </div>
 
           {/* Audience chips */}
@@ -712,6 +780,7 @@ export default async function LandingPage() {
             period="в месяц"
             description="Если датчики, планшеты и брелоки уже есть — подключаем их к WeSetup и снимаем все ограничения."
             points={[
+              "30 дней — вернём деньги, если не подойдёт",
               "Без лимита по сотрудникам",
               "Подключение своих IoT-датчиков",
               "Автозаполнение температур и гигиены",
@@ -744,6 +813,84 @@ export default async function LandingPage() {
         </div>
         <div className="mt-4 text-center text-[13px] text-[#9b9fb3]">
           Годовая оплата подписки — −20%. Железо — один раз.
+        </div>
+
+        {/* ГАРАНТИЯ + БОНУСЫ — снимаем главное возражение («а вдруг не
+            подойдёт») и наращиваем разрыв цена/ценность бонусами, не
+            трогая цену ядра. */}
+        <div className="mt-14 grid gap-5 lg:grid-cols-[1fr_1.1fr]">
+          <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] p-6 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-20 -top-20 size-[320px] rounded-full bg-[#5566f6] opacity-40 blur-[110px]" />
+              <div className="absolute -bottom-28 -right-24 size-[340px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
+            </div>
+            <div className="relative z-10">
+              <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                <ShieldCheck className="size-6" />
+              </span>
+              <div className="mt-5 text-[22px] font-semibold tracking-[-0.01em]">
+                Гарантия спокойного месяца
+              </div>
+              <p className="mt-3 text-[15px] leading-[1.65] text-white/75">
+                Оплатили подписку и в течение 30 дней поняли, что не
+                подошло — вернём всю сумму. Без вопросов, без «объясните
+                причину», без удержаний.
+              </p>
+              <p className="mt-4 text-[13px] leading-[1.6] text-white/50">
+                Условия возврата закреплены в{" "}
+                <Link href="/oferta" className="text-white/80 underline underline-offset-4">
+                  договоре-оферте
+                </Link>{" "}
+                — это обязательство, а не обещание в рекламе.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+              Входит в подписку
+            </div>
+            <div className="mt-2 text-[20px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+              Всё, что обычно приходится делать самому
+            </div>
+            <ul className="mt-5 space-y-3.5">
+              {OFFER_BONUSES.map((bonus) => (
+                <li key={bonus.title} className="flex gap-3">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+                    <bonus.icon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-[14px] font-semibold text-[#0b1024]">
+                        {bonus.title}
+                      </span>
+                      <span className="text-[12px] text-[#9b9fb3] line-through">
+                        {bonus.worth}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[13px] leading-[1.55] text-[#6f7282]">
+                      {bonus.text}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#ececf4] pt-5">
+              <div className="text-[13px] text-[#6f7282]">
+                Отдельно это стоило бы{" "}
+                <span className="font-semibold text-[#0b1024]">
+                  от {formatRub(OFFER_BONUSES_TOTAL)}
+                </span>
+              </div>
+              <Link
+                href="/order?plan=monthly"
+                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                Оформить подписку
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1301,20 +1448,9 @@ export default async function LandingPage() {
               </Link>
             ) : (
               <>
-                <Link
-                  href="/register"
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
-                >
-                  Начать бесплатно
-                  <ArrowRight className="size-4" />
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-white"
-                >
-                  У меня уже есть аккаунт
-                  <ArrowRight className="size-4 text-[#5566f6]" />
-                </Link>
+                {/* Тот же одношаговый старт, что и в hero — человек
+                    дочитал страницу, не надо снова вести его на форму. */}
+                <HeroEmailStart />
               </>
             )}
           </div>
