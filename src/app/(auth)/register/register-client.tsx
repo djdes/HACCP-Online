@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Loader2,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
@@ -31,7 +30,24 @@ const STEPS: { id: Step; label: string; helper: string }[] = [
 ];
 
 export default function RegisterPage() {
+  // useSearchParams требует Suspense-границы при статическом рендере.
+  return (
+    <Suspense fallback={null}>
+      <RegisterWizard />
+    </Suspense>
+  );
+}
+
+function RegisterWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Почту могли ввести ещё на лендинге — тогда она приезжает в query и
+  // поле здесь уже заполнено, человек не набирает её второй раз.
+  const prefilledEmail = (() => {
+    const raw = searchParams.get("email")?.trim() ?? "";
+    return raw.includes("@") && raw.length <= 200 ? raw : "";
+  })();
+
   const [step, setStep] = useState<Step>("details");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +57,7 @@ export default function RegisterPage() {
     organizationType: "restaurant",
     inn: "",
     name: "",
-    email: "",
+    email: prefilledEmail,
     phone: "",
     password: "",
     code: "",
@@ -135,13 +151,13 @@ export default function RegisterPage() {
         />
 
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ShieldCheck className="size-5 text-white" />
-            </div>
-            <div className="text-[15px] font-semibold tracking-tight">
-              HACCP-Online
-            </div>
+          {/* Тот же текстовый локап, что в шапке лендинга и в футере —
+              один бренд на всех публичных экранах. */}
+          <Link
+            href="/"
+            className="text-[15px] font-semibold tracking-[0.22em] text-white sm:text-[17px]"
+          >
+            WESETUP
           </Link>
         </div>
 
@@ -178,7 +194,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="mt-10 flex items-center gap-4 text-[12px] text-white/50">
-            <span>© 2026 HACCP-Online</span>
+            <span>© 2026 WESETUP</span>
             <span className="size-1 rounded-full bg-white/25" />
             <Link
               href="/login"
@@ -203,13 +219,13 @@ export default function RegisterPage() {
 
         <div className="relative w-full max-w-[480px]">
           {/* Mobile brand */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div className="text-[15px] font-semibold tracking-tight text-[#0b1024]">
-              HACCP-Online
-            </div>
+          <div className="mb-8 lg:hidden">
+            <Link
+              href="/"
+              className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]"
+            >
+              WESETUP
+            </Link>
           </div>
 
           <StepIndicator activeIndex={activeIndex} />
@@ -249,6 +265,9 @@ export default function RegisterPage() {
                 onChange={(v) => update("organizationName", v)}
                 placeholder="ООО «Вкусный дом»"
                 required
+                // Почта уже введена на лендинге — ставим курсор в первое
+                // незаполненное поле, чтобы человек продолжил с места.
+                autoFocus={Boolean(prefilledEmail)}
               />
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.2fr_1fr]">
                 <SelectField
@@ -484,6 +503,7 @@ function Field({
   minLength,
   inputMode,
   helperText,
+  autoFocus,
 }: {
   id: string;
   label: string;
@@ -496,6 +516,7 @@ function Field({
   minLength?: number;
   inputMode?: "numeric" | "text" | "tel" | "email";
   helperText?: string;
+  autoFocus?: boolean;
 }) {
   return (
     <label htmlFor={id} className="block">
@@ -513,6 +534,7 @@ function Field({
         required={required}
         minLength={minLength}
         inputMode={inputMode}
+        autoFocus={autoFocus}
         className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
       />
       {helperText ? (
