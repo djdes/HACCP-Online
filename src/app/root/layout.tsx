@@ -61,7 +61,7 @@ export default async function RootAreaLayout({
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-[0.18em] text-white/60 sm:text-[12px]">
-              HACCP-Online · Platform
+              WeSetup · Platform
             </div>
             <div className="mt-1 truncate text-[16px] font-semibold tracking-tight sm:text-[20px]">
               {session.user.name || session.user.email}

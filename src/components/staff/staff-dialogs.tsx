@@ -801,7 +801,7 @@ export function StaffIikoDialog(props: Close) {
         {shell(
           "Заполнение выходных дней из iiko",
           <p className="text-[13px] text-[#6f7282]">
-            Для настройки синхронизации с iiko обратитесь к разработчикам сервиса HACCP-Online.
+            Для настройки синхронизации с iiko обратитесь к разработчикам сервиса WeSetup.
           </p>
         )}
       </DialogContent>

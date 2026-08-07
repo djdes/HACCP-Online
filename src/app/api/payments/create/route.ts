@@ -74,7 +74,7 @@ export async function POST(request: Request) {
             type: "redirect",
             return_url: `${process.env.NEXTAUTH_URL}/settings/subscription?status=success`,
           },
-          description: `HACCP-Online: тариф "${planInfo.name}" (${planInfo.durationDays} дн)`,
+          description: `WeSetup: тариф "${planInfo.name}" (${planInfo.durationDays} дн)`,
           metadata: {
             organizationId: getActiveOrgId(session),
             plan,

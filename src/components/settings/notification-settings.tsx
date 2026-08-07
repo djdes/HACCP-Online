@@ -473,7 +473,7 @@ function ChatPreview({
             <Bubble variant="me" body="/start" time="..." />
             <Bubble
               variant="bot"
-              body="Для привязки откройте ссылку из настроек HACCP-Online"
+              body="Для привязки откройте ссылку из настроек WeSetup"
               time="..."
               muted
             />

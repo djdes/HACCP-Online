@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 
     // Build workbook
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "HACCP-Online";
+    workbook.creator = "WeSetup";
     workbook.created = new Date();
 
     const sheet = workbook.addWorksheet(template.name);

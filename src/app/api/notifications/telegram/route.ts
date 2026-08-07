@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       if (!token) {
         await sendTelegramMessage(
           chatId,
-          "Для привязки аккаунта используйте ссылку из настроек HACCP-Online."
+          "Для привязки аккаунта используйте ссылку из настроек WeSetup."
         );
         return NextResponse.json({ ok: true });
       }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       if (!parsed) {
         await sendTelegramMessage(
           chatId,
-          "Неверная ссылка привязки. Попробуйте получить новую ссылку в настройках HACCP-Online."
+          "Неверная ссылка привязки. Попробуйте получить новую ссылку в настройках WeSetup."
         );
         return NextResponse.json({ ok: true });
       }
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
       if (!user) {
         await sendTelegramMessage(
           chatId,
-          "Ваш аккаунт не привязан к HACCP-Online."
+          "Ваш аккаунт не привязан к WeSetup."
         );
         return NextResponse.json({ ok: true });
       }
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
       await sendTelegramMessage(
         chatId,
-        "Аккаунт отвязан. Вы больше не будете получать уведомления.\nДля повторной привязки используйте ссылку из настроек HACCP-Online."
+        "Аккаунт отвязан. Вы больше не будете получать уведомления.\nДля повторной привязки используйте ссылку из настроек WeSetup."
       );
 
       return NextResponse.json({ ok: true });
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     // For any other message, send a help message
     await sendTelegramMessage(
       chatId,
-      "Этот бот отправляет уведомления из HACCP-Online.\n\nКоманды:\n/stop — отвязать аккаунт\n\nДля привязки аккаунта используйте ссылку из настроек."
+      "Этот бот отправляет уведомления из WeSetup.\n\nКоманды:\n/stop — отвязать аккаунт\n\nДля привязки аккаунта используйте ссылку из настроек."
     );
 
     return NextResponse.json({ ok: true });

@@ -172,7 +172,7 @@ export async function generateJournalPDF(params: {
       doc.setTextColor(128, 128, 128);
 
       const now = new Date();
-      const footerLeft = `Сгенерировано в HACCP-Online | ${formatDateTime(now)}`;
+      const footerLeft = `Сгенерировано в WeSetup | ${formatDateTime(now)}`;
       doc.text(footerLeft, 14, pageHeight - 10);
 
       const pageNum = `${data.pageNumber}`;

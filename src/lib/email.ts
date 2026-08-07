@@ -25,7 +25,7 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 5000,
 });
 
-const FROM = process.env.SMTP_FROM || "HACCP-Online <noreply@haccp.magday.ru>";
+const FROM = process.env.SMTP_FROM || "WeSetup <noreply@wesetup.ru>";
 const APP_URL = process.env.NEXTAUTH_URL || "https://haccp.magday.ru";
 
 function layout(title: string, body: string) {
@@ -37,14 +37,14 @@ function layout(title: string, body: string) {
 <tr><td align="center">
 <table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
   <tr><td style="background:#18181b;padding:24px 32px">
-    <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">HACCP-Online</h1>
+    <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">WeSetup</h1>
   </td></tr>
   <tr><td style="padding:32px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#18181b">${title}</h2>
     ${body}
   </td></tr>
   <tr><td style="padding:16px 32px;background:#fafafa;border-top:1px solid #e4e4e7">
-    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">&copy; 2026 HACCP-Online. Электронные журналы ХАССП.</p>
+    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">&copy; 2026 WeSetup. Электронные журналы СанПиН и ХАССП.</p>
   </td></tr>
 </table>
 </td></tr>
@@ -91,7 +91,7 @@ export async function sendVerificationEmail(to: string, code: string) {
   if (!isSmtpConfigured()) {
     console.info(`[email/dev] Код подтверждения для ${to}: ${code}`);
   }
-  const subject = `Код подтверждения — HACCP-Online`;
+  const subject = `Код подтверждения — WeSetup`;
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Ваш код подтверждения регистрации:</p>
@@ -109,7 +109,7 @@ export async function sendInviteTokenEmail(params: {
   inviteUrl: string;
 }) {
   const { to, name, organizationName, inviteUrl } = params;
-  const subject = `Вас пригласили в ${organizationName} — HACCP-Online`;
+  const subject = `Вас пригласили в ${organizationName} — WeSetup`;
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте, <strong>${escapeHtml(name)}</strong>!</p>
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Вас пригласили в организацию <strong>${escapeHtml(organizationName)}</strong>. Нажмите кнопку ниже, чтобы установить пароль и войти.</p>
@@ -125,7 +125,7 @@ export async function sendInviteEmail(params: {
   organizationName: string;
 }) {
   const { to, name, password, organizationName } = params;
-  const subject = `Вас пригласили в ${organizationName} — HACCP-Online`;
+  const subject = `Вас пригласили в ${organizationName} — WeSetup`;
 
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте, <strong>${escapeHtml(name)}</strong>!</p>
@@ -147,7 +147,7 @@ export async function sendWelcomeEmail(params: {
   organizationName: string;
 }) {
   const { to, name, organizationName } = params;
-  const subject = "Добро пожаловать в HACCP-Online!";
+  const subject = "Добро пожаловать в WeSetup!";
 
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте, <strong>${escapeHtml(name)}</strong>!</p>

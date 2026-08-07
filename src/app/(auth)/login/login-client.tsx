@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -68,13 +68,13 @@ function LoginForm() {
         />
 
         <div className="relative z-10 flex flex-col">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ShieldCheck className="size-5 text-white" />
-            </div>
-            <div className="text-[15px] font-semibold tracking-tight">
-              HACCP-Online
-            </div>
+          {/* Тот же текстовый локап, что в шапке лендинга и в футере —
+              один бренд на всех публичных экранах. */}
+          <Link
+            href="/"
+            className="text-[15px] font-semibold tracking-[0.22em] text-white sm:text-[17px]"
+          >
+            WESETUP
           </Link>
         </div>
 
@@ -107,7 +107,7 @@ function LoginForm() {
           </ul>
 
           <div className="mt-10 flex items-center gap-4 text-[12px] text-white/50">
-            <span>© 2026 HACCP-Online</span>
+            <span>© 2026 WESETUP</span>
             <span className="size-1 rounded-full bg-white/25" />
             <Link
               href="/register"
@@ -133,13 +133,13 @@ function LoginForm() {
 
         <div className="relative w-full max-w-[420px]">
           {/* Mobile brand header */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div className="text-[15px] font-semibold tracking-tight text-[#0b1024]">
-              HACCP-Online
-            </div>
+          <div className="mb-8 lg:hidden">
+            <Link
+              href="/"
+              className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]"
+            >
+              WESETUP
+            </Link>
           </div>
 
           <h2 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
