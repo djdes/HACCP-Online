@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { EmailHint, useEmailField } from "@/components/ui/email-field";
 
 /**
  * Стартовая форма лендинга: посетитель вводит почту — и аккаунт
@@ -23,7 +24,7 @@ export function HeroEmailStart({
   buttonLabel?: string;
 }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const field = useEmailField();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dark = tone === "dark";
@@ -49,11 +50,11 @@ export function HeroEmailStart({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const value = email.trim().toLowerCase();
-    if (!value.includes("@")) {
-      setError("Введите адрес электронной почты");
-      return;
-    }
+    field.setTouched(true);
+    // Кнопка и так заблокирована при неверном адресе — это страховка на
+    // случай отправки формы клавишей Enter.
+    if (!field.valid) return;
+    const value = field.value.trim().toLowerCase();
 
     setError(null);
     setLoading(true);
@@ -99,8 +100,8 @@ export function HeroEmailStart({
         <input
           id="hero-email"
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={field.value}
+          onChange={(e) => field.setValue(e.target.value)}
           placeholder="Ваш e-mail"
           autoComplete="email"
           inputMode="email"
@@ -113,7 +114,7 @@ export function HeroEmailStart({
         />
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !field.valid}
           className={
             "group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:h-[56px] sm:px-7 sm:text-[16px] " +
             (dark
@@ -134,6 +135,14 @@ export function HeroEmailStart({
           )}
         </button>
       </form>
+
+      <EmailHint
+        check={field.check}
+        touched={field.touched}
+        domainState={field.domainState}
+        onApply={field.applySuggestion}
+        tone={tone}
+      />
 
       {error ? (
         <p

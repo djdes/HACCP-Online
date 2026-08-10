@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import { EmailHint, useEmailField } from "@/components/ui/email-field";
 
 /**
  * Регистрация в один экран: только почта.
@@ -38,17 +39,16 @@ function RegisterScreen() {
     return raw.includes("@") && raw.length <= 200 ? raw : "";
   })();
 
-  const [email, setEmail] = useState(prefilled);
+  const field = useEmailField(prefilled);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const value = email.trim().toLowerCase();
-    if (!value.includes("@")) {
-      setError("Введите адрес электронной почты");
-      return;
-    }
+    field.setTouched(true);
+    // Кнопка заблокирована при неверном адресе — это страховка на Enter.
+    if (!field.valid) return;
+    const value = field.value.trim().toLowerCase();
 
     setError(null);
     setLoading(true);
@@ -190,14 +190,21 @@ function RegisterScreen() {
             <input
               id="register-email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={field.value}
+              onChange={(e) => field.setValue(e.target.value)}
               placeholder="you@company.ru"
               autoComplete="email"
               inputMode="email"
               autoFocus={!prefilled}
               required
               className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+
+            <EmailHint
+              check={field.check}
+              touched={field.touched}
+              domainState={field.domainState}
+              onApply={field.applySuggestion}
             />
 
             {error ? (
@@ -208,7 +215,7 @@ function RegisterScreen() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !field.valid}
               className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (

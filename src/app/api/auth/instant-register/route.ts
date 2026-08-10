@@ -6,6 +6,7 @@ import { issueSession } from "@/lib/issue-session";
 import { sendAccountPasswordEmail } from "@/lib/email";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
+import { domainAcceptsMail } from "@/lib/mail-domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Слишком часто. Попробуйте через несколько минут" },
       { status: 429 },
+    );
+  }
+
+  // Домен обязан принимать почту. Проверка в поле ввода — для удобства,
+  // а здесь она обязательна: пароль существует только в письме, и на
+  // несуществующий домен уйдёт в никуда вместе с доступом к аккаунту.
+  if (!(await domainAcceptsMail(email.split("@")[1] ?? ""))) {
+    return NextResponse.json(
+      {
+        error:
+          "Такого почтового домена не существует — проверьте адрес. Письмо с паролем на него не дойдёт",
+      },
+      { status: 400 },
     );
   }
 
