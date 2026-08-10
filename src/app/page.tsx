@@ -573,8 +573,17 @@ export default async function LandingPage() {
                 {/* Почта спрашивается прямо здесь: так первый шаг —
                     одно поле, а не переход на отдельную страницу. */}
                 <HeroEmailStart />
-                <div className="text-[12px] text-[#9b9fb3]">
-                  Без карты · Всё включено на бесплатном тарифе
+                {/* Гарантия — прямо в первом экране: снимать риск нужно
+                    там же, где просим действие, а не через два экрана. */}
+                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-[#9b9fb3]">
+                  <span>Без карты</span>
+                  <span aria-hidden>·</span>
+                  <span>Всё включено на бесплатном тарифе</span>
+                  <span aria-hidden>·</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-[#116b2a]">
+                    <ShieldCheck className="size-3.5" />
+                    30 дней — вернём деньги
+                  </span>
                 </div>
               </>
             )}
@@ -876,10 +885,19 @@ export default async function LandingPage() {
               ))}
             </ul>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#ececf4] pt-5">
-              <div className="text-[13px] text-[#6f7282]">
+              {/* Разрыв ценность/цена показываем в одну строку: так он
+                  считывается сразу, без арифметики в уме. */}
+              <div className="text-[13px] leading-[1.5] text-[#6f7282]">
                 Отдельно это стоило бы{" "}
                 <span className="font-semibold text-[#0b1024]">
                   от {formatRub(OFFER_BONUSES_TOTAL)}
+                </span>
+                <br className="hidden sm:block" />
+                <span>
+                  Входит в подписку за{" "}
+                  <span className="font-semibold text-[#0b1024]">
+                    {formatRub(monthly.priceRub)}/мес
+                  </span>
                 </span>
               </div>
               <Link
