@@ -44,6 +44,7 @@ import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { ThemeQuickSwitch } from "@/components/theme/theme-quick-switch";
+import { orgDisplayName } from "@/lib/org-display-name";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
 // отдельной pill-кнопкой в шапке (см. разметку ниже), т.к. это самый
@@ -104,7 +105,7 @@ type HeaderProps = {
 export function Header({
   userName,
   userEmail,
-  organizationName,
+  organizationName: rawOrganizationName,
   organizationLogoUrl,
   userRole,
   positionTitle,
@@ -188,6 +189,9 @@ export function Header({
     if (name && title) return `${name} · ${title}`;
     return name || title || "Дашборд";
   })();
+  // Почта в названии организации (следствие мгновенной регистрации)
+  // не должна попадать в шапку — показываем нейтральную заглушку.
+  const organizationName = orgDisplayName(rawOrganizationName, "");
   const homeLabel = showsOrg
     ? organizationName || "Дашборд"
     : employeeLabelShort;

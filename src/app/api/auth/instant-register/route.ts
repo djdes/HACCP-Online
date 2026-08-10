@@ -26,6 +26,7 @@ const PASSWORD_ALPHABET =
   "23456789abcdefghjkmnpqrstuvwxyzACDEFHJKLMNPRTUVWXY";
 const PASSWORD_LENGTH = 12;
 const TRIAL_DAYS = 14;
+const DEFAULT_ORG_NAME = "Моя организация";
 
 function generatePassword(): string {
   let out = "";
@@ -95,7 +96,10 @@ export async function POST(request: Request) {
     created = await db.$transaction(async (tx) => {
       const organization = await tx.organization.create({
         data: {
-          name: `Организация ${email}`,
+          // Нейтральная заглушка: почта в названии протекала
+          // в шапку кабинета, PDF-выгрузки и селектор организаций.
+          // Настоящее название человек задаёт в анкете после входа.
+          name: DEFAULT_ORG_NAME,
           type: "other",
           subscriptionPlan: "trial",
           subscriptionEnd: new Date(

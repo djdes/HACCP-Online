@@ -56,6 +56,7 @@ import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderb
 import { getWeeklyTails } from "@/lib/weekly-tails";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
+import { orgDisplayName } from "@/lib/org-display-name";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -352,7 +353,7 @@ export default async function DashboardPage() {
                   {greetingName ? `, ${greetingName}` : ""}
                 </h1>
                 <p className="mt-1 text-[15px] text-white/70">
-                  {formatDayLabel(now).charAt(0).toUpperCase() + formatDayLabel(now).slice(1)} · {session.user.organizationName || "ваша организация"}
+                  {formatDayLabel(now).charAt(0).toUpperCase() + formatDayLabel(now).slice(1)} · {orgDisplayName(session.user.organizationName, "ваша организация")}
                 </p>
               </div>
             </div>
