@@ -3,132 +3,79 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  ChevronDown,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 
-const organizationTypes = [
-  { value: "restaurant", label: "Ресторан / кафе" },
-  { value: "meat", label: "Мясная продукция" },
-  { value: "dairy", label: "Молочная продукция" },
-  { value: "bakery", label: "Хлебобулочные изделия" },
-  { value: "confectionery", label: "Кондитерские изделия" },
-  { value: "other", label: "Другое" },
-];
-
-type Step = "details" | "verify";
-
-const STEPS: { id: Step; label: string; helper: string }[] = [
-  { id: "details", label: "Компания", helper: "название, email, пароль" },
-  { id: "verify", label: "Код", helper: "из письма" },
-];
-
+/**
+ * Регистрация в один экран: только почта.
+ *
+ * Раньше здесь был двухшаговый визард на семь полей плюс код из письма —
+ * он и был главным местом, где отваливались люди. Теперь аккаунт
+ * создаётся сразу, пароль уходит письмом, а анкета (организация, имя,
+ * телефон) заполняется уже внутри кабинета по ненавязчивому баннеру.
+ *
+ * Страница осталась для прямых заходов и для ссылок «Начать бесплатно»
+ * с тарифных карточек — логика ровно та же, что у формы на лендинге.
+ */
 export default function RegisterPage() {
   // useSearchParams требует Suspense-границы при статическом рендере.
   return (
     <Suspense fallback={null}>
-      <RegisterWizard />
+      <RegisterScreen />
     </Suspense>
   );
 }
 
-function RegisterWizard() {
+function RegisterScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Почту могли ввести ещё на лендинге — тогда она приезжает в query и
-  // поле здесь уже заполнено, человек не набирает её второй раз.
-  const prefilledEmail = (() => {
-    const raw = searchParams.get("email")?.trim() ?? "";
+
+  // Почту могли ввести ещё на лендинге. Аккаунт при этом НЕ создаётся:
+  // GET-заход только подставляет значение в поле, создание идёт строго
+  // по клику — иначе краулеры плодили бы пустые организации.
+  const prefilled = (() => {
+    const raw = searchParams.get("email")?.trim().toLowerCase() ?? "";
     return raw.includes("@") && raw.length <= 200 ? raw : "";
   })();
 
-  const [step, setStep] = useState<Step>("details");
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState(prefilled);
   const [loading, setLoading] = useState(false);
-  const [devCode, setDevCode] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    organizationName: "",
-    organizationType: "restaurant",
-    inn: "",
-    name: "",
-    email: prefilledEmail,
-    phone: "",
-    password: "",
-    code: "",
-  });
+  const [error, setError] = useState<string | null>(null);
 
-  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function submitDetails(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const value = email.trim().toLowerCase();
+    if (!value.includes("@")) {
+      setError("Введите адрес электронной почты");
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register/request", {
+      const res = await fetch("/api/auth/instant-register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email }),
+        body: JSON.stringify({ email: value }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || "Не удалось отправить код");
-      }
-      if (typeof data?.devCode === "string") {
-        setDevCode(data.devCode);
-      } else {
-        setDevCode(null);
-      }
-      setStep("verify");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  async function finishRegistration(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/register/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || "Не удалось завершить регистрацию");
-      }
-      // Custom login endpoint overwrites the primary site cookie so we don't
-      // inherit a stray impersonation session from earlier.
-      const login = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, password: form.password }),
-      });
-      if (!login.ok) {
-        router.push("/login?registered=true");
-      } else {
-        router.push("/dashboard");
+      if (res.ok && data.created) {
+        router.push("/dashboard?welcome=1");
         router.refresh();
+        return;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+      if (res.ok && data.exists) {
+        router.push(`/login?email=${encodeURIComponent(value)}&exists=1`);
+        return;
+      }
+      setError(data.error ?? "Не получилось — попробуйте ещё раз");
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз");
     } finally {
       setLoading(false);
     }
   }
-
-  const activeIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
@@ -167,12 +114,11 @@ function RegisterWizard() {
             Бесплатно навсегда · без карты
           </div>
           <h1 className="text-[46px] font-semibold leading-[1.05] tracking-[-0.03em]">
-            Зарегистрируйте компанию за 2 минуты
+            Аккаунт создаётся сразу
           </h1>
           <p className="mt-5 max-w-[440px] text-[16px] leading-[1.6] text-white/70">
-            Подтвердите email — и вся рутина ХАССП уже работает за вас.
-            Приглашайте сотрудников, раздавайте доступ, собирайте подписи,
-            печатайте в Роспотребнадзор.
+            Введите почту — и вы уже в кабинете. Пароль придёт письмом,
+            данные организации заполните позже, когда будет удобно.
           </p>
 
           <div className="mt-10 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
@@ -187,8 +133,8 @@ function RegisterWizard() {
                 </li>
               ))}
               <li className="pl-6 text-[13px] text-white/50">
-                …и ещё {ACTIVE_JOURNAL_CATALOG.length - 6} журналов
-                СанПиН и ХАССП
+                …и ещё {ACTIVE_JOURNAL_CATALOG.length - 6} журналов СанПиН и
+                ХАССП
               </li>
             </ul>
           </div>
@@ -206,19 +152,17 @@ function RegisterWizard() {
         </div>
       </aside>
 
-      {/* Right panel — wizard */}
+      {/* Right panel — one-field form */}
       <main className="relative flex items-center justify-center px-6 py-10 sm:px-10">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
           style={{
-            backgroundImage:
-              "radial-gradient(#d9dceb 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(#d9dceb 1px, transparent 1px)",
             backgroundSize: "22px 22px",
           }}
         />
 
-        <div className="relative w-full max-w-[480px]">
-          {/* Mobile brand */}
+        <div className="relative w-full max-w-[420px]">
           <div className="mb-8 lg:hidden">
             <Link
               href="/"
@@ -228,200 +172,68 @@ function RegisterWizard() {
             </Link>
           </div>
 
-          <StepIndicator activeIndex={activeIndex} />
-
-          <h2 className="mt-8 text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
-            {step === "details" && "Создание компании"}
-            {step === "verify" && "Подтверждение email"}
+          <h2 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+            Начать бесплатно
           </h2>
-          <p className="mt-2 text-[14px] text-[#6f7282]">
-            {step === "details" &&
-              "Заполните данные организации и создайте администратора."}
-            {step === "verify" && (
-              <>
-                Мы отправили код на{" "}
-                <span className="font-medium text-[#0b1024]">{form.email}</span>
-                . После подтверждения откроется доступ ко всем журналам —
-                бесплатно.
-              </>
-            )}
+          <p className="mt-2 text-[14px] leading-[1.6] text-[#6f7282]">
+            Достаточно почты. Пароль отправим письмом, войдёте сразу —
+            заполнять анкету сейчас не нужно.
           </p>
 
-          {error && (
-            <div
-              role="alert"
-              className="mt-6 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 text-[13px] text-[#d2453d]"
+          <form onSubmit={submit} className="mt-8">
+            <label
+              htmlFor="register-email"
+              className="mb-1.5 block text-[13px] font-medium text-[#0b1024]"
             >
-              {error}
-            </div>
-          )}
+              Электронная почта
+            </label>
+            <input
+              id="register-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.ru"
+              autoComplete="email"
+              inputMode="email"
+              autoFocus={!prefilled}
+              required
+              className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
 
-          {step === "details" && (
-            <form onSubmit={submitDetails} className="mt-8 space-y-5">
-              <Field
-                id="organizationName"
-                label="Название организации"
-                value={form.organizationName}
-                onChange={(v) => update("organizationName", v)}
-                placeholder="ООО «Вкусный дом»"
-                required
-                // Почта уже введена на лендинге — ставим курсор в первое
-                // незаполненное поле, чтобы человек продолжил с места.
-                autoFocus={Boolean(prefilledEmail)}
-              />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.2fr_1fr]">
-                <SelectField
-                  id="organizationType"
-                  label="Тип организации"
-                  value={form.organizationType}
-                  onChange={(v) => update("organizationType", v)}
-                  options={organizationTypes}
-                />
-                <div className="space-y-1.5">
-                  <Field
-                    id="inn"
-                    label="ИНН"
-                    value={form.inn}
-                    onChange={(v) => update("inn", v)}
-                    placeholder="опционально"
-                    inputMode="numeric"
-                  />
-                  {/^\d{10}$|^\d{12}$/.test(form.inn) ? (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setError(null);
-                        try {
-                          const r = await fetch(
-                            `/api/public/inn-lookup?inn=${form.inn}`
-                          );
-                          const d = await r.json();
-                          if (!d.ok) {
-                            setError(d.error ?? "Не нашли по ИНН");
-                            return;
-                          }
-                          if (d.name) update("organizationName", d.name);
-                        } catch {
-                          setError("Ошибка проверки ИНН");
-                        }
-                      }}
-                      className="text-[12px] font-medium text-[#3848c7] hover:underline"
-                    >
-                      Подтянуть название по ИНН
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <Field
-                id="name"
-                label="Ваше имя"
-                value={form.name}
-                onChange={(v) => update("name", v)}
-                placeholder="Иван Петров"
-                required
-              />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field
-                  id="email"
-                  label="Email"
-                  type="email"
-                  value={form.email}
-                  onChange={(v) => update("email", v)}
-                  placeholder="name@company.com"
-                  autoComplete="email"
-                  required
-                />
-                <Field
-                  id="phone"
-                  label="Телефон"
-                  type="tel"
-                  value={form.phone}
-                  onChange={(v) => update("phone", v)}
-                  placeholder="+7 985 123-45-67"
-                  autoComplete="tel"
-                  required
-                  helperText="Нужен, чтобы связать аккаунт с TasksFlow. Можно вводить в любом формате — приведём к +7."
-                />
-              </div>
-              <Field
-                id="password"
-                label="Пароль"
-                type="password"
-                value={form.password}
-                onChange={(v) => update("password", v)}
-                placeholder="минимум 6 символов"
-                autoComplete="new-password"
-                minLength={6}
-                required
-              />
-              <PrimaryButton type="submit" loading={loading}>
-                {loading ? "Отправка…" : "Получить код на email"}
-              </PrimaryButton>
-            </form>
-          )}
+            {error ? (
+              <p className="mt-3 rounded-2xl bg-[#fff4f2] px-4 py-3 text-[13px] text-[#a13a32]">
+                {error}
+              </p>
+            ) : null}
 
-          {step === "verify" && (
-            <form
-              onSubmit={(e) => {
-                if (form.code.length !== 6) {
-                  e.preventDefault();
-                  setError("Введите 6-значный код");
-                  return;
-                }
-                void finishRegistration(e);
-              }}
-              className="mt-8 space-y-5"
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {devCode ? (
-                <div className="rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] p-4 text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#116b2a]">
-                    Dev-режим · SMTP не настроен
-                  </p>
-                  <p className="mt-1 text-[22px] font-semibold tracking-[0.28em] text-[#0f5a22]">
-                    {devCode}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#136b2a]/80">
-                    Письмо не отправлено, код показан здесь. В проде — придёт на email.
-                  </p>
-                </div>
-              ) : null}
-              <label htmlFor="code" className="block">
-                <span className="mb-2 block text-[13px] font-medium text-[#0b1024]">
-                  Код подтверждения
-                </span>
-                <input
-                  id="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  maxLength={6}
-                  value={form.code}
-                  onChange={(e) =>
-                    update("code", e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  className="h-16 w-full rounded-2xl border border-[#dcdfed] bg-white text-center text-[28px] font-semibold tracking-[0.42em] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-                  placeholder="••••••"
-                />
-                <p className="mt-2 text-[12px] text-[#9b9fb3]">
-                  Код действителен 10 минут. Не получили? Попробуйте ещё раз
-                  или проверьте папку «Спам».
-                </p>
-              </label>
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Создаём аккаунт…
+                </>
+              ) : (
+                <>
+                  Создать аккаунт
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </button>
+          </form>
 
-              <div className="flex items-center gap-3">
-                <SecondaryButton
-                  type="button"
-                  onClick={() => setStep("details")}
-                >
-                  <ArrowLeft className="size-4" />
-                  Изменить данные
-                </SecondaryButton>
-                <PrimaryButton type="submit" loading={loading}>
-                  {loading ? "Создание…" : "Создать аккаунт"}
-                </PrimaryButton>
-              </div>
-            </form>
-          )}
+          <p className="mt-6 text-center text-[13px] text-[#6f7282]">
+            Уже есть аккаунт?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-[#3848c7] underline-offset-4 hover:underline"
+            >
+              Войти
+            </Link>
+          </p>
 
           <p className="mt-8 text-center text-[12px] leading-[1.6] text-[#9b9fb3]">
             Регистрируясь, вы соглашаетесь с условиями{" "}
@@ -445,192 +257,3 @@ function RegisterWizard() {
     </div>
   );
 }
-
-function StepIndicator({ activeIndex }: { activeIndex: number }) {
-  return (
-    <ol className="flex items-center gap-2">
-      {STEPS.map((s, i) => {
-        const done = i < activeIndex;
-        const active = i === activeIndex;
-        return (
-          <li key={s.id} className="flex flex-1 items-center gap-3">
-            <div
-              className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold transition-colors ${
-                done
-                  ? "bg-[#5566f6] text-white"
-                  : active
-                    ? "bg-[#0b1024] text-white"
-                    : "bg-[#eceef7] text-[#9b9fb3]"
-              }`}
-            >
-              {done ? <CheckCircle2 className="size-4" /> : i + 1}
-            </div>
-            <div className="hidden min-w-0 flex-1 sm:block">
-              <div
-                className={`truncate text-[12px] font-medium ${
-                  active ? "text-[#0b1024]" : "text-[#6f7282]"
-                }`}
-              >
-                {s.label}
-              </div>
-              <div className="truncate text-[11px] text-[#9b9fb3]">
-                {s.helper}
-              </div>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={`hidden h-px flex-1 sm:block ${
-                  done ? "bg-[#5566f6]" : "bg-[#eceef7]"
-                }`}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function Field({
-  id,
-  label,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-  required,
-  minLength,
-  inputMode,
-  helperText,
-  autoFocus,
-}: {
-  id: string;
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoComplete?: string;
-  required?: boolean;
-  minLength?: number;
-  inputMode?: "numeric" | "text" | "tel" | "email";
-  helperText?: string;
-  autoFocus?: boolean;
-}) {
-  return (
-    <label htmlFor={id} className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-[#0b1024]">
-        {label}
-      </span>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required={required}
-        minLength={minLength}
-        inputMode={inputMode}
-        autoFocus={autoFocus}
-        className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-      />
-      {helperText ? (
-        <span className="mt-1 block text-[11px] leading-snug text-[#6f7282]">
-          {helperText}
-        </span>
-      ) : null}
-    </label>
-  );
-}
-
-function SelectField({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label htmlFor={id} className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-[#0b1024]">
-        {label}
-      </span>
-      <div className="relative">
-        <select
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white px-4 pr-10 text-[15px] text-[#0b1024] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#8a8ea4]" />
-      </div>
-    </label>
-  );
-}
-
-function PrimaryButton({
-  type = "button",
-  children,
-  loading,
-  onClick,
-}: {
-  type?: "button" | "submit";
-  children: React.ReactNode;
-  loading?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={loading}
-      className="group relative flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-all hover:bg-[#4a5bf0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5566f6]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-70"
-    >
-      <span className="relative z-10 inline-flex items-center gap-2">
-        {children}
-        {!loading && <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />}
-        {loading && <Loader2 className="size-4 animate-spin" />}
-      </span>
-      <span
-        aria-hidden
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-      />
-    </button>
-  );
-}
-
-function SecondaryButton({
-  type = "button",
-  children,
-  onClick,
-}: {
-  type?: "button" | "submit";
-  children: React.ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      className="flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-    >
-      {children}
-    </button>
-  );
-}
-

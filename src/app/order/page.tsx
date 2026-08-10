@@ -1,4 +1,6 @@
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
 import { readTariffs, fallbackTariffs, TARIFF_BUNDLE } from "@/lib/tariffs";
 import { normalizeHardwareConfig, hardwareTotal } from "@/lib/hardware-pricing";
 import { OrderClient } from "./order-client";
@@ -34,6 +36,11 @@ export default async function OrderPage({
 
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
 
+  // Залогиненного не переспрашиваем о почте: после мгновенной
+  // регистрации он мог сразу нажать «Оплатить картой».
+  const session = await getServerSession(authOptions).catch(() => null);
+  const sessionEmail = session?.user?.email ?? "";
+
   const planKey = first("plan") || "monthly";
   const tariff = tariffs.find((t) => t.key === planKey && t.active) ?? null;
 
@@ -57,6 +64,7 @@ export default async function OrderPage({
           tariff={tariff}
           bundleConfig={bundleConfig}
           amountRub={amountRub}
+          sessionEmail={sessionEmail}
           returnParams={{
             outSum: first("OutSum"),
             invId: first("InvId"),

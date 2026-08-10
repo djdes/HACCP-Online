@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { isImpersonating, requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { AuthSessionProvider } from "@/components/layout/session-provider";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
+import { CompleteProfileNudge } from "@/components/dashboard/complete-profile-nudge";
 import { Toaster } from "@/components/ui/sonner";
 import {
   SiteThemeBootstrap,
@@ -51,7 +53,15 @@ export default async function DashboardLayout({
       : Promise.resolve(null),
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { positionTitle: true, themePreference: true },
+      select: {
+        positionTitle: true,
+        themePreference: true,
+        // Признаки незавершённой анкеты после мгновенной регистрации:
+        // имя равно почте и/или не заполнен телефон.
+        email: true,
+        name: true,
+        phone: true,
+      },
     }),
     // H1 — white-label: читаем brandColor для override основного
     // indigo и logoUrl для замены WESETUP-лейбла в шапке.
@@ -64,6 +74,16 @@ export default async function DashboardLayout({
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
+
+  // Анкета считается незаполненной, если аккаунт завели мгновенной
+  // регистрацией (имя = почта) или так и не указали телефон. Схему под
+  // это не меняли: старые аккаунты из визарда телефон указывали
+  // обязательно и под эвристику не попадают.
+  const needsProfileCompletion =
+    hasFullWorkspaceAccess(session.user) &&
+    !isImpersonating(session) &&
+    Boolean(profile) &&
+    (!profile?.phone || profile?.name === profile?.email);
 
   // Validate hex color (#RRGGBB) — иначе CSS injection-vector.
   const brandColor =
@@ -91,6 +111,12 @@ export default async function DashboardLayout({
         >
           {impersonatedName ? (
             <ImpersonationBanner organizationName={impersonatedName} />
+          ) : null}
+          {needsProfileCompletion ? (
+            // Suspense — компонент читает `?welcome=1` через useSearchParams.
+            <Suspense fallback={null}>
+              <CompleteProfileNudge email={profile?.email ?? ""} />
+            </Suspense>
           ) : null}
           <Header
             userName={session.user.name ?? "Пользователь"}

@@ -57,11 +57,15 @@ export function OrderClient({
   bundleConfig,
   amountRub,
   returnParams,
+  sessionEmail = "",
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
   amountRub: number;
   returnParams: ReturnParams;
+  /// Почта вошедшего пользователя — подставляем, чтобы не спрашивать её
+  /// второй раз сразу после регистрации.
+  sessionEmail?: string;
 }) {
   const isReturn = Boolean(
     (returnParams.invId && returnParams.signature) || returnParams.completeToken,
@@ -73,6 +77,7 @@ export function OrderClient({
       tariff={tariff}
       bundleConfig={bundleConfig}
       amountRub={amountRub}
+      sessionEmail={sessionEmail}
     />
   );
 }
@@ -83,12 +88,14 @@ function Checkout({
   tariff,
   bundleConfig,
   amountRub,
+  sessionEmail,
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
   amountRub: number;
+  sessionEmail: string;
 }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(sessionEmail);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scriptReady = useRobokassaScript();

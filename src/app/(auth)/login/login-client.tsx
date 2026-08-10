@@ -10,10 +10,48 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "true";
   const inviteAccepted = searchParams.get("invite") === "accepted";
+  // Пришли с лендинга, где почта уже занята: подставляем её и объясняем,
+  // почему вместо регистрации показан вход.
+  const alreadyExists = searchParams.get("exists") === "1";
+  const prefilledEmail = (() => {
+    const raw = searchParams.get("email")?.trim().toLowerCase() ?? "";
+    return raw.includes("@") && raw.length <= 200 ? raw : "";
+  })();
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: prefilledEmail,
+    password: "",
+  });
+  const [forgotState, setForgotState] = useState<"idle" | "sending" | "sent">(
+    "idle",
+  );
+
+  /**
+   * Восстановление доступа. Ответ сервера всегда одинаковый (чтобы нельзя
+   * было перебирать чужие почты), поэтому и текст здесь нейтральный.
+   */
+  async function requestReset() {
+    const email = formData.email.trim().toLowerCase();
+    if (!email.includes("@")) {
+      setError("Введите email — на него придёт ссылка для смены пароля");
+      return;
+    }
+    setForgotState("sending");
+    try {
+      await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setForgotState("sent");
+    } catch {
+      setForgotState("idle");
+      setError("Не удалось отправить письмо. Попробуйте ещё раз");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -149,6 +187,16 @@ function LoginForm() {
             Введите email и пароль, выданные вашей компанией.
           </p>
 
+          {alreadyExists && (
+            <div className="mt-6 flex items-start gap-2 rounded-2xl border border-[#dcdfed] bg-[#f5f6ff] px-4 py-3 text-[13px] text-[#3c4053]">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
+              <span>
+                Аккаунт с этой почтой уже есть — введите пароль. Не помните
+                его? Нажмите «Забыли пароль?» ниже.
+              </span>
+            </div>
+          )}
+
           {(registered || inviteAccepted) && (
             <div className="mt-6 flex items-start gap-2 rounded-2xl border border-[#c8f0d5] bg-[#effaf1] px-4 py-3 text-[13px] text-[#136b2a]">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
@@ -226,6 +274,24 @@ function LoginForm() {
               />
             </button>
           </form>
+
+          {forgotState === "sent" ? (
+            <p className="mt-4 rounded-2xl border border-[#c8f0d5] bg-[#effaf1] px-4 py-3 text-[13px] text-[#136b2a]">
+              Если аккаунт с такой почтой существует, письмо со ссылкой для
+              смены пароля уже отправлено. Проверьте входящие и папку «Спам».
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={requestReset}
+              disabled={forgotState === "sending"}
+              className="mt-4 w-full text-center text-[13px] text-[#6f7282] underline-offset-4 transition-colors hover:text-[#3848c7] hover:underline disabled:opacity-60"
+            >
+              {forgotState === "sending"
+                ? "Отправляем письмо…"
+                : "Забыли пароль?"}
+            </button>
+          )}
 
           <div className="mt-8 flex items-center gap-3">
             <div className="h-px flex-1 bg-[#ececf4]" />

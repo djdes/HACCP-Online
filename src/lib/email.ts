@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const FROM = process.env.SMTP_FROM || "WeSetup <noreply@wesetup.ru>";
-const APP_URL = process.env.NEXTAUTH_URL || "https://haccp.magday.ru";
+const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 function layout(title: string, body: string) {
   return `<!DOCTYPE html>
@@ -139,6 +139,55 @@ export async function sendInviteEmail(params: {
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Рекомендуем сменить пароль после первого входа.</p>`;
 
   await sendEmail(to, subject, layout("Приглашение в систему", body));
+}
+
+/**
+ * Письмо после мгновенной регистрации с лендинга.
+ *
+ * Пароль генерируется за пользователя и существует только здесь — в
+ * интерфейсе он нигде не показывается, поэтому письмо критично: без
+ * него человек не сможет войти со второго устройства. Отправляется
+ * fire-and-forget, вход при этом уже произошёл.
+ */
+export async function sendAccountPasswordEmail(params: {
+  to: string;
+  password: string;
+}) {
+  const { to, password } = params;
+  const subject = "Ваш аккаунт WeSetup создан — пароль внутри";
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Аккаунт создан, вы уже вошли в кабинет. Сохраните данные для входа с других устройств:</p>
+    <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 4px;color:#18181b"><strong>Логин:</strong> ${escapeHtml(to)}</p>
+      <p style="margin:0;color:#18181b"><strong>Пароль:</strong> <span style="font-family:monospace;font-size:16px;letter-spacing:1px">${escapeHtml(password)}</span></p>
+    </div>
+    <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть кабинет</a>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Пароль можно сменить в настройках профиля. В кабинете осталось подтвердить почту и заполнить данные организации — они попадают в шапку журналов и PDF для проверок.</p>`;
+
+  await sendEmail(to, subject, layout("Аккаунт создан", body));
+}
+
+/**
+ * Письмо восстановления доступа. Ссылка ведёт на ту же страницу, что и
+ * приглашение сотрудника, поэтому копия нейтральная — «задайте новый
+ * пароль», без слова «приглашение».
+ */
+export async function sendPasswordResetEmail(params: {
+  to: string;
+  resetUrl: string;
+}) {
+  const { to, resetUrl } = params;
+  const subject = "Восстановление доступа к WeSetup";
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Вы запросили восстановление доступа к аккаунту <strong>${escapeHtml(to)}</strong>. Нажмите кнопку ниже, чтобы задать новый пароль.</p>
+    <a href="${resetUrl}" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Задать новый пароль</a>
+    <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Ссылка действительна 7 дней. Если вы не запрашивали восстановление — просто проигнорируйте письмо, пароль останется прежним.</p>`;
+
+  await sendEmail(to, subject, layout(subject, body));
 }
 
 export async function sendWelcomeEmail(params: {

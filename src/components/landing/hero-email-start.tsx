@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 /**
- * Стартовая форма лендинга: посетитель вводит почту прямо здесь и
- * попадает на регистрацию с уже заполненным полем.
+ * Стартовая форма лендинга: посетитель вводит почту — и аккаунт
+ * создаётся сразу, без анкеты и кода из письма. Дальше он уже внутри
+ * кабинета, а пароль уходит письмом.
  *
- * Валидация намеренно мягкая: пустое или явно не-почтовое значение не
- * блокирует переход, а просто уводит на /register без параметра.
- * Задача формы — снизить порог входа, а не отсеивать людей на первом
- * же шаге; настоящая проверка живёт в самой регистрации.
+ * Почта здесь обязательна (в отличие от прежней версии, которая пускала
+ * дальше и с пустым полем): без валидного адреса пароль доставить
+ * некуда, и аккаунт окажется мёртвым.
  */
 export function HeroEmailStart({
   tone = "light",
@@ -24,14 +24,15 @@ export function HeroEmailStart({
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dark = tone === "dark";
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const value = email.trim();
-    // Метрика: считаем именно старты с лендинга, чтобы отличать их от
-    // прямых заходов на /register. Счётчик берём из той же переменной,
-    // что и сам скрипт Метрики, — хардкодить номер нельзя.
+  /**
+   * Метрика: счётчик берём из той же переменной, что и сам скрипт
+   * Метрики, — хардкодить номер нельзя.
+   */
+  function goal(name: string) {
     try {
       const counter = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID);
       if (Number.isFinite(counter) && counter > 0) {
@@ -39,16 +40,51 @@ export function HeroEmailStart({
           window as unknown as {
             ym?: (id: number, action: string, goal: string) => void;
           }
-        ).ym?.(counter, "reachGoal", "hero_email_submit");
+        ).ym?.(counter, "reachGoal", name);
       }
     } catch {
-      /* метрика недоступна — не мешаем переходу */
+      /* метрика недоступна — не мешаем сценарию */
     }
-    router.push(
-      value.includes("@")
-        ? `/register?email=${encodeURIComponent(value)}`
-        : "/register",
-    );
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const value = email.trim().toLowerCase();
+    if (!value.includes("@")) {
+      setError("Введите адрес электронной почты");
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    goal("hero_email_submit");
+
+    try {
+      const res = await fetch("/api/auth/instant-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.created) {
+        goal("instant_register_done");
+        router.push("/dashboard?welcome=1");
+        router.refresh();
+        return;
+      }
+      if (res.ok && data.exists) {
+        // Аккаунт уже есть — уводим на вход с подсказкой и заполненной
+        // почтой, чтобы человек не гадал, почему «не регистрируется».
+        router.push(`/login?email=${encodeURIComponent(value)}&exists=1`);
+        return;
+      }
+      setError(data.error ?? "Не получилось — попробуйте ещё раз");
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -77,17 +113,37 @@ export function HeroEmailStart({
         />
         <button
           type="submit"
+          disabled={loading}
           className={
-            "group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 sm:h-[56px] sm:px-7 sm:text-[16px] " +
+            "group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:h-[56px] sm:px-7 sm:text-[16px] " +
             (dark
               ? "bg-white text-[#0b1024] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] hover:bg-white/90"
               : "bg-[#5566f6] text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)]")
           }
         >
-          {buttonLabel}
-          <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+          {loading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Создаём аккаунт…
+            </>
+          ) : (
+            <>
+              {buttonLabel}
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </>
+          )}
         </button>
       </form>
+
+      {error ? (
+        <p
+          className={
+            "mt-2.5 text-[13px] " + (dark ? "text-[#ffb4ab]" : "text-[#a13a32]")
+          }
+        >
+          {error}
+        </p>
+      ) : null}
 
       <div
         className={
