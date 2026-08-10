@@ -325,6 +325,8 @@ export default async function DashboardPage() {
           в TF без time-фильтра — для итеративного тестирования. */}
       <SuperUserDevTools enabled={isSuperUser(session)} />
 
+      <ZoneHeading>Что сделать сегодня</ZoneHeading>
+
       {/* Dark hero with greeting + stat pills */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
@@ -670,6 +672,15 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* Зона «Требует внимания» показывается только когда есть что
+          показать: пустой блок «всё хорошо» — шум, отсутствие тревоги
+          и так означает, что всё в порядке (см. DASHBOARD.md). */}
+      {(weeklyTails.length > 0 ||
+        openCapaCount > 0 ||
+        expiringBatches > 0 ||
+        weekLossCount > 0 ||
+        pendingApproval > 0) && <ZoneHeading>Требует внимания</ZoneHeading>}
+
       {/* Weekly tails — «просрочено за последние 7 дней», shortcut to
           the exact date inside the document viewer */}
       {weeklyTails.length > 0 && (
@@ -911,6 +922,8 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      <ZoneHeading>Разделы и настройка</ZoneHeading>
+
       {/* Quick actions — big tappable buttons */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <QuickAction
@@ -1082,6 +1095,20 @@ export default async function DashboardPage() {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Заголовок зоны дашборда. По гайду DASHBOARD.md экран делится на три
+ * зоны — «Что сделать сегодня», «Требует внимания», «Разделы и
+ * настройка». Заголовок — это то, что читает человек, когда не
+ * понимает, куда смотреть.
+ */
+function ZoneHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+      {children}
+    </h2>
   );
 }
 
