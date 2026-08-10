@@ -24,6 +24,15 @@ export function JournalTopBar(props: {
   templateName: string;
   users: { id: string; name: string; role: string }[];
   compact?: boolean;
+  /**
+   * Своя кнопка «Создать документ». Нужна журналам, которые создают
+   * документ с преднастроенным `config` (disinfectant, accident,
+   * breakdown-history) и потому не могут пользоваться общим
+   * `<CreateDocumentDialog>`. Когда передан — рендерим его вместо
+   * дефолтного диалога, всё остальное (заголовок, «Инструкция»,
+   * respons-раскладка) остаётся общим.
+   */
+  createSlot?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -41,7 +50,8 @@ export function JournalTopBar(props: {
             Инструкция
           </Link>
         </Button>
-        {props.activeTab === "active" && (
+        {props.activeTab === "active" && props.createSlot}
+        {props.activeTab === "active" && !props.createSlot && (
           <CreateDocumentDialog
             templateCode={props.templateCode}
             templateName={props.templateName}

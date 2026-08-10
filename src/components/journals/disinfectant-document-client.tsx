@@ -56,6 +56,17 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+
+/**
+ * Screen ↔ print duality (см. `cleaning-document-client.tsx`).
+ * На экране — скруглённый viewport дизайн-системы; в печати wrapper
+ * становится прозрачным, а рамки таблиц — чёрными («бумага» для РПН).
+ */
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
 type UserItem = { id: string; name: string; role: string };
 
 type Props = {
@@ -226,7 +237,7 @@ function AddSubdivisionDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -471,7 +482,7 @@ function EditSubdivisionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -674,7 +685,7 @@ function ReceiptDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -914,7 +925,7 @@ function ConsumptionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -1150,7 +1161,7 @@ function DocumentSettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -1226,9 +1237,17 @@ export function DisinfectantDocumentClient({
   async function deleteSelectedSubs() {
     if (selectedSubIds.length === 0) return;
     if (
-      !window.confirm(
-        `Удалить выбранные строки (${selectedSubIds.length})?`
-      )
+      !(await confirmAsync({
+        title: `Удалить выбранные строки (${selectedSubIds.length})?`,
+        description:
+          "Строки будут удалены из расчёта потребности в дезсредствах. Отменить это действие нельзя.",
+        variant: "danger",
+        confirmLabel: "Удалить",
+        bullets: [
+          { label: `Будет удалено строк: ${selectedSubIds.length}`, tone: "warn" },
+          { label: "Расчёты потребности пересчитаются автоматически" },
+        ],
+      }))
     )
       return;
     const next = normalized.subdivisions.filter(
@@ -1254,9 +1273,17 @@ export function DisinfectantDocumentClient({
   async function deleteSelectedReceipts() {
     if (selectedRecIds.length === 0) return;
     if (
-      !window.confirm(
-        `Удалить выбранные строки (${selectedRecIds.length})?`
-      )
+      !(await confirmAsync({
+        title: `Удалить выбранные строки (${selectedRecIds.length})?`,
+        description:
+          "Строки будут удалены из таблицы получения дезсредств. Отменить это действие нельзя.",
+        variant: "danger",
+        confirmLabel: "Удалить",
+        bullets: [
+          { label: `Будет удалено строк: ${selectedRecIds.length}`, tone: "warn" },
+          { label: "Итог по полученному количеству пересчитается" },
+        ],
+      }))
     )
       return;
     const next = normalized.receipts.filter(
@@ -1284,9 +1311,17 @@ export function DisinfectantDocumentClient({
   async function deleteSelectedConsumptions() {
     if (selectedConIds.length === 0) return;
     if (
-      !window.confirm(
-        `Удалить выбранные строки (${selectedConIds.length})?`
-      )
+      !(await confirmAsync({
+        title: `Удалить выбранные строки (${selectedConIds.length})?`,
+        description:
+          "Строки будут удалены из таблицы расхода дезсредств. Отменить это действие нельзя.",
+        variant: "danger",
+        confirmLabel: "Удалить",
+        bullets: [
+          { label: `Будет удалено строк: ${selectedConIds.length}`, tone: "warn" },
+          { label: "История дезинфекционных работ по этим строкам будет потеряна" },
+        ],
+      }))
     )
       return;
     const next = normalized.consumptions.filter(
@@ -1362,6 +1397,10 @@ export function DisinfectantDocumentClient({
         {title}
       </h1>
 
+      {readOnly ? (
+        <JournalClosedBanner hint="Откройте журнал заново, чтобы добавлять получение, расход и подразделения." />
+      ) : null}
+
       {/* Selection bar */}
       {anySelected && !readOnly && (
         <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3">
@@ -1395,12 +1434,12 @@ export function DisinfectantDocumentClient({
 
       {/* Document Header */}
       <section className="space-y-4 rounded-[18px] border border-[#dadde9] bg-white p-8">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_220px] border border-black/70">
-          <div className="flex items-center justify-center border-r border-black/70 py-10 text-[16px] font-semibold">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_220px] border border-[#ececf4] print:border-black">
+          <div className="flex items-center justify-center border-r border-[#ececf4] print:border-black py-10 text-[16px] font-semibold">
             {organizationName}
           </div>
           <div className="grid grid-rows-2">
-            <div className="flex items-center justify-center border-b border-black/70 py-4 text-[14px]">
+            <div className="flex items-center justify-center border-b border-[#ececf4] print:border-black py-4 text-[14px]">
               СИСТЕМА ХАССП
             </div>
             <div className="flex items-center justify-center px-4 py-4 text-center text-[14px] font-semibold uppercase">
@@ -1408,7 +1447,7 @@ export function DisinfectantDocumentClient({
               ПРОВЕДЕНИЯ ДЕЗИНФЕКЦИОННЫХ РАБОТ НА ОБЪЕКТЕ
             </div>
           </div>
-          <div className="flex items-center justify-center border-l border-black/70 text-[14px]">
+          <div className="flex items-center justify-center border-l border-[#ececf4] print:border-black text-[14px]">
             СТР. 1 ИЗ 1
           </div>
         </div>
@@ -1424,7 +1463,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddSubOpen(true)}
           >
             <Plus className="size-5" /> Добавить подразделение
@@ -1433,14 +1472,14 @@ export function DisinfectantDocumentClient({
 
         <MobileViewTableWrapper
           mobileView={mobileView}
-          className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+          className={GRID_VIEWPORT_CLASS}
         >
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-            <thead>
+          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead className="bg-[#f8f9fc] print:bg-white">
               <tr>
                 <th
                   rowSpan={2}
-                  className="w-12 border border-black/70 px-1 py-2"
+                  className="w-12 border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   {!readOnly && (
                     <Checkbox
@@ -1457,68 +1496,68 @@ export function DisinfectantDocumentClient({
                 </th>
                 <th
                   rowSpan={2}
-                  className="min-w-[200px] border border-black/70 px-2 py-2"
+                  className="min-w-[200px] border border-[#ececf4] print:border-black px-2 py-2"
                 >
                   Наименование подразделения / объекта подлежащего дезинфекции
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-black/70 px-1 py-2"
+                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   Площадь объекта (кв.м)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[60px] border border-black/70 px-1 py-2"
+                  className="w-[60px] border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   Вид обработки (Т, Г)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-black/70 px-1 py-2"
+                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   Кратность обработок в месяц
                 </th>
                 <th
                   colSpan={2}
-                  className="border border-black/70 px-2 py-2"
+                  className="border border-[#ececf4] print:border-black px-2 py-2"
                 >
                   Дезинфицирующее средство
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-black/70 px-1 py-2"
+                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   Расход рабочего раствора на один кв. м. (л)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[100px] border border-black/70 px-1 py-2"
+                  className="w-[100px] border border-[#ececf4] print:border-black px-1 py-2"
                 >
                   Количество рабочего раствора для однократной обработки объекта
                   (л)
                 </th>
                 <th
                   colSpan={3}
-                  className="border border-black/70 px-2 py-2"
+                  className="border border-[#ececf4] print:border-black px-2 py-2"
                 >
                   Потребность в дезинфицирующем средстве
                 </th>
               </tr>
               <tr>
-                <th className="w-[120px] border border-black/70 px-1 py-2">
+                <th className="w-[120px] border border-[#ececf4] print:border-black px-1 py-2">
                   Наименование
                 </th>
-                <th className="w-[80px] border border-black/70 px-1 py-2">
+                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
                   Концентрация (%)
                 </th>
-                <th className="w-[80px] border border-black/70 px-1 py-2">
+                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
                   На одну обработку (кг, л)
                 </th>
-                <th className="w-[80px] border border-black/70 px-1 py-2">
+                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
                   На один месяц (кг, л)
                 </th>
-                <th className="w-[80px] border border-black/70 px-1 py-2">
+                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
                   На один год (кг, л)
                 </th>
               </tr>
@@ -1533,7 +1572,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditSubTarget(sub)}
                 >
                   <td
-                    className="border border-black/70 px-1 py-2 text-center"
+                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1549,37 +1588,37 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {sub.name}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.byCapacity ? "На ёмк." : sub.area}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.treatmentType === "current" ? "Т" : "Г"}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.frequencyPerMonth}
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {sub.disinfectantName}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.concentration || ""}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.solutionConsumptionPerSqm || ""}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {sub.solutionPerTreatment || ""}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {formatNumber(computeNeedPerTreatment(sub))}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {formatNumber(computeNeedPerMonth(sub))}
                   </td>
-                  <td className="border border-black/70 px-1 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                     {formatNumber(computeNeedPerYear(sub))}
                   </td>
                 </tr>
@@ -1587,17 +1626,17 @@ export function DisinfectantDocumentClient({
               <tr className="font-semibold">
                 <td
                   colSpan={9}
-                  className="border border-black/70 px-2 py-2 text-right"
+                  className="border border-[#ececf4] print:border-black px-2 py-2 text-right"
                 >
                   Общая потребность дез. средства
                 </td>
-                <td className="border border-black/70 px-1 py-2 text-center">
+                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                   {formatNumber(totalNeedPerTreatment)}
                 </td>
-                <td className="border border-black/70 px-1 py-2 text-center">
+                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                   {formatNumber(totalNeedPerMonth)}
                 </td>
-                <td className="border border-black/70 px-1 py-2 text-center">
+                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
                   {formatNumber(totalNeedPerYear)}
                 </td>
               </tr>
@@ -1618,7 +1657,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddRecOpen(true)}
           >
             <Plus className="size-5" /> Добавить поступление
@@ -1655,12 +1694,12 @@ export function DisinfectantDocumentClient({
 
         <MobileViewTableWrapper
           mobileView={mobileView}
-          className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+          className={GRID_VIEWPORT_CLASS}
         >
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-            <thead>
+          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead className="bg-[#f8f9fc] print:bg-white">
               <tr>
-                <th className="w-12 border border-black/70 px-1 py-2">
+                <th className="w-12 border border-[#ececf4] print:border-black px-1 py-2">
                   {!readOnly && (
                     <Checkbox
                       checked={allRecsSelected}
@@ -1674,19 +1713,19 @@ export function DisinfectantDocumentClient({
                     />
                   )}
                 </th>
-                <th className="w-[120px] border border-black/70 px-2 py-2">
+                <th className="w-[120px] border border-[#ececf4] print:border-black px-2 py-2">
                   Дата получения
                 </th>
-                <th className="min-w-[200px] border border-black/70 px-2 py-2">
+                <th className="min-w-[200px] border border-[#ececf4] print:border-black px-2 py-2">
                   Наименование дез. средства
                 </th>
-                <th className="w-[160px] border border-black/70 px-2 py-2">
+                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
                   Количество полученного дез. средства (кг, литр, флакон)
                 </th>
-                <th className="w-[120px] border border-black/70 px-2 py-2">
+                <th className="w-[120px] border border-[#ececf4] print:border-black px-2 py-2">
                   Срок годности до
                 </th>
-                <th className="w-[160px] border border-black/70 px-2 py-2">
+                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
                   Ответственный за получение
                 </th>
               </tr>
@@ -1701,7 +1740,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditRecTarget(rec)}
                 >
                   <td
-                    className="border border-black/70 px-1 py-2 text-center"
+                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1717,19 +1756,19 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatDateRu(rec.date)}
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {rec.disinfectantName}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatQuantityWithUnit(rec.quantity, rec.unit)}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatDateRu(rec.expiryDate)}
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {rec.responsibleEmployee}
                   </td>
                 </tr>
@@ -1737,16 +1776,16 @@ export function DisinfectantDocumentClient({
               <tr className="font-semibold">
                 <td
                   colSpan={3}
-                  className="border border-black/70 px-2 py-2 text-right"
+                  className="border border-[#ececf4] print:border-black px-2 py-2 text-right"
                 >
                   Итого:
                 </td>
-                <td className="border border-black/70 px-2 py-2 text-center">
+                <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                   {totalReceiptQuantity}
                 </td>
                 <td
                   colSpan={2}
-                  className="border border-black/70 px-2 py-2"
+                  className="border border-[#ececf4] print:border-black px-2 py-2"
                 />
               </tr>
             </tbody>
@@ -1760,7 +1799,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddConOpen(true)}
           >
             <Plus className="size-5" /> Добавить расход
@@ -1811,12 +1850,12 @@ export function DisinfectantDocumentClient({
 
         <MobileViewTableWrapper
           mobileView={mobileView}
-          className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+          className={GRID_VIEWPORT_CLASS}
         >
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-            <thead>
+          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead className="bg-[#f8f9fc] print:bg-white">
               <tr>
-                <th className="w-12 border border-black/70 px-1 py-2">
+                <th className="w-12 border border-[#ececf4] print:border-black px-1 py-2">
                   {!readOnly && (
                     <Checkbox
                       checked={allConsSelected}
@@ -1830,24 +1869,24 @@ export function DisinfectantDocumentClient({
                     />
                   )}
                 </th>
-                <th className="w-[130px] border border-black/70 px-2 py-2">
+                <th className="w-[130px] border border-[#ececf4] print:border-black px-2 py-2">
                   За период с_____ по_____
                 </th>
-                <th className="min-w-[180px] border border-black/70 px-2 py-2">
+                <th className="min-w-[180px] border border-[#ececf4] print:border-black px-2 py-2">
                   Наименование дез. средства
                 </th>
-                <th className="w-[160px] border border-black/70 px-2 py-2">
+                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
                   Общее количество полученного дез. средства (кг, литр, флакон),
                   в том числе остаток с прошлого периода
                 </th>
-                <th className="w-[160px] border border-black/70 px-2 py-2">
+                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
                   Общее количество израсходованного за период дез. средства (кг,
                   литр, флакон)
                 </th>
-                <th className="w-[140px] border border-black/70 px-2 py-2">
+                <th className="w-[140px] border border-[#ececf4] print:border-black px-2 py-2">
                   Остаток на конец периода дез. средства (кг, литр, флакон)
                 </th>
-                <th className="w-[140px] border border-black/70 px-2 py-2">
+                <th className="w-[140px] border border-[#ececf4] print:border-black px-2 py-2">
                   Ответственный за получение
                 </th>
               </tr>
@@ -1862,7 +1901,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditConTarget(con)}
                 >
                   <td
-                    className="border border-black/70 px-1 py-2 text-center"
+                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1878,30 +1917,30 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     <div>{formatDateRu(con.periodFrom)}</div>
                     <div className="my-1 text-[13px] text-[#999]">—</div>
                     <div>{formatDateRu(con.periodTo)}</div>
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {con.disinfectantName}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatQuantityWithUnit(
                       con.totalReceived,
                       con.totalReceivedUnit
                     )}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatQuantityWithUnit(
                       con.totalConsumed,
                       con.totalConsumedUnit
                     )}
                   </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
                     {formatQuantityWithUnit(con.remainder, con.remainderUnit)}
                   </td>
-                  <td className="border border-black/70 px-2 py-2">
+                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
                     {con.responsibleEmployee}
                   </td>
                 </tr>

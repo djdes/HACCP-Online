@@ -46,6 +46,21 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/*
+  Brand-токены дизайн-системы WeSetup (см. .claude/skills/design-system).
+  Отдельный (не `inline`) @theme-блок — чтобы Tailwind сгенерировал
+  настоящую CSS-переменную `--color-brand`, и её можно было читать не
+  только через утилиты (`bg-brand`, `text-brand`, `border-brand`,
+  `ring-brand`), но и в произвольном CSS через `var(--color-brand)`.
+
+  Существующие `#5566f6`-литералы массово НЕ переименовываем — токен
+  предназначен для нового и мигрируемого кода.
+*/
+@theme {
+  --color-brand: #5566f6;
+  --color-brand-hover: #4a5bf0;
+}
+
 :root {
   --font-geist-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "Consolas", "Liberation Mono", "Courier New", monospace;

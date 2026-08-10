@@ -12,6 +12,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,15 +47,16 @@ import {
 } from "@/lib/disinfectant-document";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 type UserItem = { id: string; name: string; role: string };
 
@@ -138,7 +141,7 @@ function SettingsDialog(props: {
         {activeState && (
           <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#7a7c8e]">
+              <Label className="text-[14px] text-[#6f7282]">
                 Название документа
               </Label>
               <Input
@@ -147,11 +150,11 @@ function SettingsDialog(props: {
                   setState({ ...activeState, title: e.target.value })
                 }
                 placeholder="Введите название документа"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#7a7c8e]">
+              <Label className="text-[14px] text-[#6f7282]">
                 Должность ответственного
               </Label>
               <Select
@@ -167,7 +170,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -180,7 +183,7 @@ function SettingsDialog(props: {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#7a7c8e]">Сотрудник</Label>
+              <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
               <Select
                 value={activeState.responsibleEmployeeId}
                 onValueChange={(v) => {
@@ -192,7 +195,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,7 +214,7 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -234,8 +237,8 @@ export function DisinfectantDocumentsClient({
   const [settingsTarget, setSettingsTarget] =
     useState<DisinfectantDocumentItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [archiveTarget, setArchiveTarget] =
-    useState<DisinfectantDocumentItem | null>(null);
+  // delete / status / pdf — общий хук вместо трёх локальных fetch'ей.
+  const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
 
   const defaultConfig = getDisinfectantDefaultConfig();
 
@@ -295,32 +298,40 @@ export function DisinfectantDocumentsClient({
     router.refresh();
   }
 
-  async function handleDelete(documentId: string, docTitle: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${docTitle}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "DELETE",
+  async function handleDelete(document: DisinfectantDocumentItem) {
+    const cfg = normalizeDisinfectantConfig(document.config);
+    const docTitle = document.title || DISINFECTANT_DOCUMENT_TITLE;
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${docTitle}» будет удалён безвозвратно.`,
+      bullets: [
+        {
+          label: `Подразделений в расчёте потребности: ${cfg.subdivisions.length}`,
+          tone: "info",
+        },
+        { label: `Записей о получении: ${cfg.receipts.length}`, tone: "warn" },
+        { label: `Записей о расходе: ${cfg.consumptions.length}`, tone: "warn" },
+      ],
+      successMessage: `Документ «${docTitle}» удалён`,
+      errorMessage: "Не удалось удалить документ",
     });
-    if (!response.ok) {
-      toast.error("Не удалось удалить");
-      return;
-    }
-    router.refresh();
   }
 
-  async function moveToStatus(
-    documentId: string,
-    newStatus: "active" | "closed"
-  ) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
+  async function handleArchive(document: DisinfectantDocumentItem) {
+    const docTitle = document.title || DISINFECTANT_DOCUMENT_TITLE;
+    const confirmed = await confirmAsync({
+      title: "Перенести документ в закрытые?",
+      description: `Документ «${docTitle}» станет доступен только для просмотра.`,
+      variant: "warn",
+      confirmLabel: "В архив",
+      bullets: [
+        { label: "Данные сохраняются — печать и просмотр остаются" },
+        { label: "Добавлять и править записи будет нельзя", tone: "warn" },
+        { label: "Документ можно вернуть в активные из вкладки «Закрытые»", tone: "info" },
+      ],
     });
-    if (!response.ok) {
-      toast.error("Ошибка");
-      return;
-    }
-    router.refresh();
+    if (!confirmed) return;
+    await setStatus("closed", { documentId: document.id });
   }
 
   const defaultCreateState = useMemo<SettingsState>(
@@ -335,55 +346,23 @@ export function DisinfectantDocumentsClient({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-          {DISINFECTANT_HEADING}
-        </h1>
-        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
+      <JournalTopBar
+        heading={DISINFECTANT_HEADING}
+        activeTab={activeTab}
+        templateCode={templateCode}
+        templateName={DISINFECTANT_DOCUMENT_TITLE}
+        users={users}
+        createSlot={
           <Button
-            variant="outline"
-            className="h-12 w-full rounded-2xl border-[#e8ebf7] px-6 text-[16px] text-[#5566f6] shadow-none sm:w-auto"
-            asChild
+            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+            onClick={() => setCreateOpen(true)}
           >
-            <Link href="/sanpin">
-              <BookOpenText className="size-5" /> Инструкция
-            </Link>
+            <Plus className="size-4" /> Создать документ
           </Button>
-          {activeTab === "active" && (
-            <Button
-              className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="size-5" /> Создать документ
-            </Button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
-      <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-          <Link
-            href={`/journals/${routeCode}`}
-            className={`relative pb-6 ${
-              activeTab === "active"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Активные
-          </Link>
-          <Link
-            href={`/journals/${routeCode}?tab=closed`}
-            className={`relative pb-6 ${
-              activeTab === "closed"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Закрытые
-          </Link>
-        </div>
-      </div>
+      <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
       <div className="space-y-4">
         {documents.length === 0 && (
@@ -439,12 +418,7 @@ export function DisinfectantDocumentsClient({
                     )}
                     <DropdownMenuItem
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                      onSelect={() =>
-                        window.open(
-                          `/api/journal-documents/${document.id}/pdf`,
-                          "_blank"
-                        )
-                      }
+                      onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать
                     </DropdownMenuItem>
@@ -452,16 +426,18 @@ export function DisinfectantDocumentsClient({
                       <>
                         <DropdownMenuItem
                           className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                          onSelect={() => setArchiveTarget(document)}
+                          onSelect={() => {
+                            void handleArchive(document);
+                          }}
                         >
                           <BookOpenText className="mr-3 size-6 text-[#6f7282]" />{" "}
                           Отправить в закрытые
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                          onSelect={() =>
-                            handleDelete(document.id, document.title)
-                          }
+                          onSelect={() => {
+                            void handleDelete(document);
+                          }}
                         >
                           <Trash2 className="mr-3 size-6 text-[#ff3b30]" />{" "}
                           Удалить
@@ -471,7 +447,9 @@ export function DisinfectantDocumentsClient({
                     {document.status === "closed" && (
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                        onSelect={() => moveToStatus(document.id, "active")}
+                        onSelect={() => {
+                          void setStatus("active", { documentId: document.id });
+                        }}
                       >
                         <BookOpenText className="mr-3 size-6 text-[#6f7282]" />{" "}
                         Отправить в активные
@@ -524,41 +502,6 @@ export function DisinfectantDocumentsClient({
         dialogTitle="Настройки документа"
       />
 
-      <Dialog
-        open={!!archiveTarget}
-        onOpenChange={(v) => {
-          if (!v) setArchiveTarget(null);
-        }}
-      >
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[660px]">
-          <DialogHeader className="border-b px-8 py-6">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-[22px] font-semibold text-black">
-                Перенести в архив документ &quot;{archiveTarget?.title}&quot;
-              </DialogTitle>
-              <button
-                type="button"
-                className="rounded-xl p-2"
-                onClick={() => setArchiveTarget(null)}
-              >
-                <X className="size-7" />
-              </button>
-            </div>
-          </DialogHeader>
-          <div className="flex justify-end px-8 py-6">
-            <Button
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
-              onClick={async () => {
-                if (!archiveTarget) return;
-                await moveToStatus(archiveTarget.id, "closed");
-                setArchiveTarget(null);
-              }}
-            >
-              В архив
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

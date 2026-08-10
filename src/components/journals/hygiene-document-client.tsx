@@ -2,12 +2,16 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { JournalLegendBlock } from "@/components/journals/journal-document-header";
+import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import { useMobileView } from "@/lib/use-mobile-view";
 import {
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
@@ -43,6 +47,20 @@ type Props = {
   useV2?: boolean;
 };
 
+/**
+ * Screen ↔ print duality tokens (тот же приём, что в
+ * `cleaning-document-client.tsx`).
+ *
+ * НА ЭКРАНЕ гигиенический журнал должен читаться как часть WeSetup:
+ * мягкие границы `#ececf4`, серо-голубая шапка, скруглённый viewport.
+ * ПРИ ПЕЧАТИ (Ctrl+P) инспектор РПН/СЭС ждёт «бумагу» — чёрные рамки
+ * без заливок. Поэтому каждый токен несёт пару screen + `print:`.
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
 const STATUS_CYCLE: Array<HygieneStatus | null> = [
   null,
   "healthy",
@@ -73,27 +91,27 @@ function HygieneHeader({
   organizationLabel: string;
 }) {
   return (
-    <table className="hygiene-header w-full border-collapse">
+    <table className="hygiene-header w-full border-collapse overflow-hidden rounded-2xl print:rounded-none">
       <tbody>
         <tr>
           <td
             rowSpan={2}
-            className="w-[270px] border border-black px-8 py-8 text-center text-[22px] font-semibold"
+            className={`w-[270px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[22px] font-semibold`}
           >
             {organizationLabel}
           </td>
-          <td className="border border-black px-8 py-4 text-center text-[18px] uppercase">
+          <td className={`${GRID_HEAD_CELL_CLASS} px-8 py-4 text-center text-[18px] uppercase`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className="w-[170px] border border-black px-8 py-8 text-center text-[18px] uppercase"
+            className={`w-[170px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[18px] uppercase`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className="border border-black px-8 py-4 text-center text-[17px] italic uppercase">
+          <td className={`${GRID_CELL_CLASS} px-8 py-4 text-center text-[17px] italic uppercase`}>
             ГИГИЕНИЧЕСКИЙ ЖУРНАЛ
           </td>
         </tr>
@@ -179,11 +197,10 @@ export function HygieneDocumentClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
   // Mobile-only view preference: 'cards' (default) vs 'table' (horizontal
-  // scroll of the full sheet). Stored in localStorage so the choice sticks
-  // per-device. Desktop / print always render the table — the toggle is
-  // hidden on sm+ via Tailwind (`sm:hidden`), but we keep the state in
-  // sync either way for consistency.
-  const [mobileView, setMobileView] = useState<"cards" | "table">("cards");
+  // scroll of the full sheet). Общий хук `useMobileView` — тот же, что в
+  // cleaning / disinfectant, ключ `journal-mobile-view:hygiene`. Desktop и
+  // печать всегда рендерят таблицу.
+  const { mobileView, switchMobileView } = useMobileView("hygiene");
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
@@ -192,23 +209,21 @@ export function HygieneDocumentClient({
     setEntryMap(buildEntryMap(initialEntries));
   }, [initialEntries]);
 
+  // Миграция со старого ключа "hygiene-mobile-view" (до перехода на общий
+  // useMobileView). Читаем один раз: если нового ключа ещё нет, а старый
+  // лежит — переносим выбор пользователя и чистим легаси. Эффект объявлен
+  // ПОСЛЕ useMobileView, поэтому его restore-эффект уже отработал.
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("hygiene-mobile-view");
-      if (saved === "table" || saved === "cards") setMobileView(saved);
+      if (window.localStorage.getItem("journal-mobile-view:hygiene")) return;
+      const legacy = window.localStorage.getItem("hygiene-mobile-view");
+      if (legacy === "table" || legacy === "cards") switchMobileView(legacy);
+      window.localStorage.removeItem("hygiene-mobile-view");
     } catch {
-      /* localStorage blocked — fall back to default 'cards' */
+      /* localStorage blocked — остаёмся на дефолте 'cards' */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function switchMobileView(next: "cards" | "table") {
-    setMobileView(next);
-    try {
-      window.localStorage.setItem("hygiene-mobile-view", next);
-    } catch {
-      /* ignore */
-    }
-  }
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
@@ -428,6 +443,10 @@ export function HygieneDocumentClient({
           useV2={useV2}
         />
 
+        {!isActive ? (
+          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки сотрудников." />
+        ) : null}
+
         {isActive && selectedCount > 0 ? (
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -454,40 +473,7 @@ export function HygieneDocumentClient({
         {/* Mobile-only view toggle. Cards is the default — vertical list
             of employees with day-by-day accordion — far more usable on a
             phone than a 1100-px-wide table behind horizontal scroll. */}
-        <div
-          role="tablist"
-          aria-label="Режим отображения"
-          className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mobileView === "cards"}
-            onClick={() => switchMobileView("cards")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-              mobileView === "cards"
-                ? "bg-[#f5f6ff] text-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            <LayoutGrid className="size-4" />
-            Карточки
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mobileView === "table"}
-            onClick={() => switchMobileView("table")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-              mobileView === "table"
-                ? "bg-[#f5f6ff] text-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            <Rows3 className="size-4" />
-            Таблица
-          </button>
-        </div>
+        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
       </div>
 
       {/* Mobile cards view — rendered outside the scroll wrapper so it
@@ -645,7 +631,7 @@ export function HygieneDocumentClient({
           mobileView === "cards" ? "hidden sm:block print:block" : ""
         }`}
       >
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
+      <div className={GRID_VIEWPORT_CLASS}>
         <div className="hygiene-sheet mx-auto min-w-[1100px] max-w-[1720px] px-8 py-6 sm:min-w-0">
 
         <div className="hygiene-page">
@@ -660,9 +646,9 @@ export function HygieneDocumentClient({
 
             <table className="hygiene-grid w-full border-collapse text-[15px]">
               <thead>
-                <tr className="bg-[#f2f2f2]">
+                <tr>
                   <th
-                    className="w-[42px] border border-black p-2 text-center font-semibold"
+                    className={`w-[42px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                     rowSpan={2}
                   >
                     <HygieneCheckbox
@@ -676,36 +662,36 @@ export function HygieneDocumentClient({
                     />
                   </th>
                   <th
-                    className="w-[72px] border border-black p-2 text-center font-semibold"
+                    className={`w-[72px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                     rowSpan={2}
                   >
                     № п/п
                   </th>
                   <th
-                    className="w-[230px] border border-black p-2 text-center font-semibold"
+                    className={`w-[230px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                     rowSpan={2}
                   >
                     Ф.И.О. работника
                   </th>
                   <th
-                    className="w-[290px] border border-black p-2 text-center font-semibold"
+                    className={`w-[290px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                     rowSpan={2}
                   >
                     Должность
                   </th>
                   <th
-                    className="border border-black p-2 text-center text-[16px] font-semibold"
+                    className={`${GRID_HEAD_CELL_CLASS} p-2 text-center text-[16px] font-semibold`}
                     colSpan={dateKeys.length}
                   >
                     Месяц {monthLabel}
                   </th>
                 </tr>
-                <tr className="bg-[#f2f2f2]">
+                <tr>
                   {dateKeys.map((dateKey) => (
                     <th
                       key={dateKey}
                       data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                      className="w-[58px] border border-black p-2 text-center font-semibold"
+                      className={`w-[58px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                     >
                       {getDayNumber(dateKey)}
                     </th>
@@ -717,7 +703,7 @@ export function HygieneDocumentClient({
                 {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
-                      <td rowSpan={2} className="border border-black p-2 text-center align-middle">
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
@@ -728,11 +714,11 @@ export function HygieneDocumentClient({
                           />
                         ) : null}
                       </td>
-                      <td rowSpan={2} className="border border-black p-2 text-center align-middle">
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                         {employee.name ? employee.number : ""}
                       </td>
-                      <td className="border border-black p-2 text-center">{employee.name || ""}</td>
-                      <td className="border border-black p-2 text-center">
+                      <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{employee.name || ""}</td>
+                      <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
                         {employee.position || ""}
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -744,7 +730,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
-                            className={`border border-black p-2 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} p-2 text-center align-middle ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -758,7 +744,7 @@ export function HygieneDocumentClient({
                       })}
                     </tr>
                     <tr>
-                      <td colSpan={2} className="border border-black p-2 text-center">
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center`}>
                         Температура сотрудника более 37°C?
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -769,7 +755,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
-                            className={`border border-black p-2 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} p-2 text-center align-middle ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -786,15 +772,15 @@ export function HygieneDocumentClient({
                 ))}
 
                 <tr>
-                  <td className="border border-black p-2 text-center align-middle">
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                     <HygieneCheckbox />
                   </td>
-                  <td colSpan={2} className="border border-black p-2 text-center">
+                  <td colSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center`}>
                     Должность ответственного за контроль
                   </td>
-                  <td className="border border-black p-2 text-center">{responsibleLabel}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
-                    <td key={`blank:${dateKey}`} className="border border-black p-2" />
+                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} p-2`} />
                   ))}
                 </tr>
               </tbody>

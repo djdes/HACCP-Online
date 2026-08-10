@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
-import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
+import {
+  DocumentActionsMenu,
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
 import {
   Dialog,
   DialogContent,
@@ -15,12 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -36,17 +33,15 @@ import {
   getJournalDocumentHeading,
   isStaffDocumentTemplate,
 } from "@/lib/journal-document-helpers";
-import { openDocumentPdf } from "@/lib/open-document-pdf";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -118,7 +113,10 @@ function EditDocumentDialog({
         }),
       });
       if (!response.ok) {
-        throw new Error("Не удалось сохранить настройки документа");
+        const data = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(data?.error || "Не удалось сохранить настройки документа");
       }
 
       onOpenChange(false);
@@ -147,12 +145,12 @@ function EditDocumentDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
             />
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
+            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -160,7 +158,7 @@ function EditDocumentDialog({
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -170,9 +168,9 @@ function EditDocumentDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
+            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -186,8 +184,8 @@ function EditDocumentDialog({
           </div>
 
           {isStaffDocumentTemplate(templateCode) && templateCode !== "health_check" && (
-            <div className="space-y-2 rounded-3xl border border-[#dfe1ec] px-6 py-5">
-              <div className="text-[14px] text-[#73738a]">Периодичность контроля</div>
+            <div className="space-y-2 rounded-3xl border border-[#ececf4] px-6 py-5">
+              <div className="text-[14px] text-[#6f7282]">Периодичность контроля</div>
               <div className="text-[15px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
             </div>
           )}
@@ -197,7 +195,7 @@ function EditDocumentDialog({
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -213,18 +211,20 @@ function DocumentRow({
   document,
   canManage,
   onEdit,
+  onPrint,
   onDelete,
 }: {
   templateCode: string;
   document: JournalListDocument;
   canManage: boolean;
   onEdit: (document: JournalListDocument) => void;
+  onPrint: (document: JournalListDocument) => void;
   onDelete: (document: JournalListDocument) => void;
 }) {
   const href = `/journals/${templateCode}/documents/${document.id}`;
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5">
+    <div className={JOURNAL_LIST_CARD_CLASS}>
       <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
         {document.title}
       </Link>
@@ -237,43 +237,11 @@ function DocumentRow({
         <div className={JOURNAL_CARD_VALUE_CLASS}>{document.periodLabel}</div>
       </Link>
       <div className="flex items-center justify-center text-[#5566f6]">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
-            >
-              <Ellipsis className="size-8" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-6 shadow-xl sm:w-[320px]">
-            {canManage && (
-              <DropdownMenuItem
-                className="mb-3 h-11 rounded-2xl px-4 text-[15px]"
-                onSelect={() => onEdit(document)}
-              >
-                <Pencil className="mr-4 size-7 text-[#6f7282]" />
-                Настройки
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="mb-3 h-11 rounded-2xl px-4 text-[15px]"
-              onSelect={() => openDocumentPdf(document.id)}
-            >
-              <Printer className="mr-4 size-7 text-[#6f7282]" />
-              Печать
-            </DropdownMenuItem>
-            {canManage && (
-              <DropdownMenuItem
-                className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                onSelect={() => onDelete(document)}
-              >
-                <Trash2 className="mr-4 size-7 text-[#ff3b30]" />
-                Удалить
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <DocumentActionsMenu
+          onEdit={canManage ? () => onEdit(document) : undefined}
+          onPrint={() => onPrint(document)}
+          onDelete={canManage ? () => onDelete(document) : undefined}
+        />
       </div>
     </div>
   );
@@ -286,82 +254,41 @@ export function HygieneDocumentsClient({
   users,
   documents,
 }: Props) {
-  const router = useRouter();
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
   const responsibleOptions = getStaffJournalResponsibleTitleOptions(users);
+  // Единый источник delete / status / pdf для журнальных документов.
+  // documentId передаём в каждом вызове — на списке их много.
+  const { deleteDocument, openPdf } = useJournalDocumentActions();
 
   async function handleDelete(document: JournalListDocument) {
-    const confirmed = await confirmAsync({ title: "Удалить документ?", description: `Документ «${document.title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" });
-    if (!confirmed) return;
-
-    const response = await fetch(`/api/journal-documents/${document.id}`, {
-      method: "DELETE",
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Период документа: ${document.periodLabel}`, tone: "info" },
+        {
+          label: "Удалятся все отметки сотрудников за этот период",
+          tone: "warn",
+        },
+        { label: "Печатную форму этого документа восстановить будет нельзя", tone: "warn" },
+      ],
+      successMessage: `Документ «${document.title}» удалён`,
+      errorMessage: "Ошибка удаления документа",
     });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      toast.error(data?.error || "Ошибка удаления документа");
-      return;
-    }
-
-    router.refresh();
   }
 
   return (
     <>
       <div className="space-y-8 sm:space-y-14">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-            {getJournalDocumentHeading(templateCode, activeTab === "closed")}
-          </h1>
-          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-            <Button
-              variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
-              asChild
-            >
-              <Link href="/sanpin">
-                <BookOpenText className="size-6" />
-                Инструкция
-              </Link>
-            </Button>
-            {activeTab === "active" && (
-              <CreateDocumentDialog
-                templateCode={templateCode}
-                templateName={templateName}
-                users={users}
-                triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-                triggerLabel="Создать документ"
-                triggerIcon={<Plus className="size-7" />}
-              />
-            )}
-          </div>
-        </div>
+        <JournalTopBar
+          heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
+          activeTab={activeTab}
+          templateCode={templateCode}
+          templateName={templateName}
+          users={users}
+        />
 
-        <div className="border-b border-[#ececf4]">
-          <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-            <Link
-              href={`/journals/${templateCode}`}
-              className={`relative pb-5 ${
-                activeTab === "active"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Активные
-            </Link>
-            <Link
-              href={`/journals/${templateCode}?tab=closed`}
-              className={`relative pb-5 ${
-                activeTab === "closed"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Закрытые
-            </Link>
-          </div>
-        </div>
+        <JournalTabs activeTab={activeTab} templateCode={templateCode} />
 
         <div className="space-y-6">
           {documents.length === 0 && <EmptyDocumentsState />}
@@ -372,6 +299,7 @@ export function HygieneDocumentsClient({
               document={document}
               canManage={document.status === "active"}
               onEdit={setEditingDocument}
+              onPrint={(doc) => openPdf({ documentId: doc.id })}
               onDelete={handleDelete}
             />
           ))}

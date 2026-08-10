@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Pencil, Plus, Printer, RefreshCw, Trash2, UserPlus, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Printer, RefreshCw, Trash2, UserPlus, X } from "lucide-react";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   RoomEditorDialog,
@@ -71,6 +71,7 @@ import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-resp
 import { useMobileView } from "@/lib/use-mobile-view";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
@@ -237,28 +238,6 @@ function CleaningDayColorLegend() {
           {item.label}
         </span>
       ))}
-    </div>
-  );
-}
-
-/**
- * Баннер «журнал закрыт». Раньше закрытый журнал просто молча
- * отключал контролы — пользователь не понимал, почему ничего не
- * нажимается. В C2 вынесем в общий компонент для всех журналов.
- */
-function JournalClosedBanner() {
-  return (
-    <div className="flex items-start gap-3 rounded-2xl border border-[#ffe9b0] bg-[#fff8eb] px-4 py-3 print:hidden">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/70 text-[#b25f00]">
-        <Lock className="size-4" />
-      </span>
-      <div className="text-[13px] leading-[1.55] text-[#7a4a00]">
-        <div className="text-[14px] font-semibold text-[#5c3800]">
-          Журнал закрыт — только просмотр
-        </div>
-        Откройте журнал заново, чтобы редактировать отметки, помещения и
-        ответственных.
-      </div>
     </div>
   );
 }
@@ -1480,7 +1459,9 @@ export function CleaningDocumentClient(props: Props) {
           {saving ? <div className="text-[14px] text-[#6f7282]">Сохранение...</div> : null}
         </div>
 
-        {props.status !== "active" ? <JournalClosedBanner /> : null}
+        {props.status !== "active" ? (
+          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки, помещения и ответственных." />
+        ) : null}
 
         {/* Автозаполнение — типографика в один масштаб с тулбаром ниже
             (text-[13px]/[14px], h-11), как в соседних журналах. */}
