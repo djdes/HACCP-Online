@@ -365,7 +365,7 @@ function TrackedDocumentsClientImpl({
               className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
-              <Link href="/sanpin">
+              <Link href={`/journals/${templateCode}/guide`}>
                 <BookOpenText className="size-4" />
                 Инструкция
               </Link>

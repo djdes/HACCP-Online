@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Archive,
   ChevronDown,
   ChevronUp,
   Pencil,
   Plus,
-  Printer,
-  Settings2,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,10 +41,10 @@ import {
 } from "@/lib/climate-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -664,7 +663,7 @@ function JournalSettingsDialog({
       <JournalSettingsModal
         open={open}
         onOpenChange={onOpenChange}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Название журнала, ответственный сотрудник по умолчанию и расписание контроля."
         size="lg"
         isSaving={isSubmitting}
@@ -780,7 +779,7 @@ function JournalSettingsDialog({
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[860px]">
         <DialogHeader className="border-b px-14 py-12">
           <DialogTitle className="text-[22px] font-medium text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
         </DialogHeader>
 
@@ -922,6 +921,7 @@ export function ClimateDocumentClient({
     responsibleUserId
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const closeAction = useDocumentCloseAction({ documentId, title: documentTitle });
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
@@ -1348,44 +1348,29 @@ export function ClimateDocumentClient({
         }
       />
       <div className="mx-auto max-w-[1840px] px-4 py-4 sm:px-6 sm:py-8">
-        <DocumentBackLink href="/journals/climate_control" documentId={documentId} />
+        <DocumentActionsBar
+          backHref="/journals/climate_control"
+          documentId={documentId}
+          onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          menuItems={
+            status === "active"
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void closeAction.closeDocument(),
+                    disabled: closeAction.isClosing,
+                  },
+                ]
+              : []
+          }
+        />
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div>
             <h1 className="mt-2 text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
               {documentTitle}
             </h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 print:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            >
-              <Printer className="size-5" />
-              Печать
-            </Button>
-            {status === "active" && (
-              <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-              >
-                <Settings2 className="size-6" />
-                Настройки документа
-              </Button>
-              <DocumentCloseButton
-                documentId={documentId}
-                title={documentTitle}
-                variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-              />
-              </>
-            )}
           </div>
         </div>
 

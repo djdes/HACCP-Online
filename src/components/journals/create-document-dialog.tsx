@@ -9,13 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -23,7 +16,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   getColdEquipmentCreatePeriodBounds,
@@ -64,10 +56,7 @@ import {
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
-import {
-  PositionEmployeePicker,
-  PositionSelectItems,
-} from "@/components/shared/position-select";
+import { PositionEmployeePicker } from "@/components/shared/position-select";
 import {
   getTrackedDocumentCreateMode,
   getTrackedDocumentTitle,
@@ -261,7 +250,7 @@ export function CreateDocumentDialog({
   const [productWriteoffComment, setProductWriteoffComment] = useState("");
   const [equipmentCleaningVariant, setEquipmentCleaningVariant] =
     useState<EquipmentCleaningFieldVariant>("rinse_temperature");
-  const [cleaningVentilation, setCleaningVentilation] = useState(true);
+  const [cleaningVentilation] = useState(true);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -371,6 +360,20 @@ export function CreateDocumentDialog({
   }
 
   const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isProductWriteoffJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal || isCleaningJournal || isEquipmentCleaningJournal;
+  /**
+   * Каскад «Должность → Сотрудник» в компактной модалке. Журналы, у которых
+   * ответственный задаётся не при создании (медкнижки, списания, обучение,
+   * ТО/поверка, уборка оборудования), картинку не показывают.
+   */
+  const showResponsiblePicker =
+    !isMedBookJournal &&
+    !isPerishableRejectionJournal &&
+    !isProductWriteoffJournal &&
+    !isStaffTrainingJournal &&
+    !isEquipmentMaintenanceJournal &&
+    !isEquipmentCalibrationJournal &&
+    !isCleaningJournal &&
+    !isEquipmentCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
 
   return (
@@ -607,114 +610,22 @@ export function CreateDocumentDialog({
                 </>
               )}
 
-              {isCleaningJournal && (
-                <>
-                  <div className="space-y-3">
-                    <Label htmlFor="cleaning-date-from" className="text-[14px] text-[#73738a]">
-                      Дата начала
-                    </Label>
-                    <Input
-                      id="cleaning-date-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 text-[16px]">
-                      <input
-                        type="checkbox"
-                        checked={cleaningVentilation}
-                        onChange={(e) => setCleaningVentilation(e.target.checked)}
-                        className="size-5 rounded accent-[#5566f6]"
-                      />
-                      Проветривание
-                    </label>
-                    <p className="text-[14px] text-[#73738a]">
-                      Если у вас есть окна и возможность проветривать помещение
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-                    <Select
-                      value={responsibleTitle}
-                      onValueChange={(v) => {
-                        setResponsibleTitle(v);
-                        setResponsibleUserId("");
-                      }}
-                    >
-                      <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                        <SelectValue placeholder="- Выберите значение -" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <PositionSelectItems users={users} />
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
-                    <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-                      <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                        <SelectValue placeholder="- Выберите значение -" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(responsibleTitle
-                          ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId })
-                          : users
-                        ).map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+              {showResponsiblePicker && (
+                <PositionEmployeePicker
+                  users={users}
+                  value={{ positionTitle: responsibleTitle, userId: responsibleUserId }}
+                  onChange={(next) => {
+                    setResponsibleTitle(next.positionTitle);
+                    setResponsibleUserId(next.userId);
+                  }}
+                  positionLabel="Должность ответственного"
+                  employeeLabel="Ответственный"
+                  labelClassName="text-[14px] text-[#73738a]"
+                  triggerClassName="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+                />
               )}
 
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (
-              <>
-                <div className="space-y-3">
-                  <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-                  <Select
-                    value={responsibleTitle}
-                    onValueChange={(v) => {
-                      setResponsibleTitle(v);
-                      setResponsibleUserId("");
-                    }}
-                  >
-                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                      <SelectValue placeholder="- Выберите значение -" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <PositionSelectItems users={users} />
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
-                  <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                      <SelectValue placeholder="- Выберите значение -" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(responsibleTitle
-                        ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId })
-                        : users
-                      ).map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-              )}
-
-              {!isMedBookJournal && !isPerishableRejectionJournal && !isProductWriteoffJournal && !isStaffTrainingJournal && !isEquipmentMaintenanceJournal && !isEquipmentCalibrationJournal && !isCleaningJournal && !isEquipmentCleaningJournal && (isStaffJournal || trackedCreateMode === "staff" ? (
+              {showResponsiblePicker && (isStaffJournal || trackedCreateMode === "staff" ? (
                 <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
                   <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
                   <div className="text-[15px] leading-[1.35] text-black">

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -25,7 +25,6 @@ import {
   Paperclip,
   Plus,
   RotateCcw,
-  Settings2,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -262,10 +261,10 @@ export function MedBookDocumentClient({
 
   async function closeJournal() {
     const confirmed = await confirmAsync({
-      title: "Закрыть журнал?",
+      title: "Закончить журнал?",
       description: `Документ «${docTitle}» перейдёт в закладку «Закрытые» и станет доступен только для просмотра.`,
       variant: "warn",
-      confirmLabel: "Закрыть журнал",
+      confirmLabel: "Закончить журнал",
       bullets: [
         { label: `Строк сотрудников в журнале: ${rows.length}`, tone: "info" },
         { label: "Даты осмотров и прививок редактировать будет нельзя", tone: "warn" },
@@ -523,44 +522,33 @@ export function MedBookDocumentClient({
   return (
     <div className="space-y-8">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/med_books" documentId={documentId} />
+      <DocumentActionsBar
+        backHref="/journals/med_books"
+        documentId={documentId}
+        onSettings={() => setSettingsOpen(true)}
+        menuItems={[
+          isClosed
+            ? {
+                key: "reopen-journal",
+                label: "Вернуть в активные",
+                icon: <RotateCcw className="size-4" />,
+                onSelect: () => void setStatus("active"),
+                disabled: isChangingStatus,
+              }
+            : {
+                key: "close-journal",
+                label: "Закончить журнал",
+                icon: <Archive className="size-4" />,
+                onSelect: () => void closeJournal(),
+                disabled: isChangingStatus,
+              },
+        ]}
+      />
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
             {docTitle}
           </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 className="size-4" />
-            Настройки журнала
-          </Button>
-          {isClosed ? (
-            <Button
-              type="button"
-              disabled={isChangingStatus}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
-              onClick={() => void setStatus("active")}
-            >
-              <RotateCcw className="size-4" />
-              Вернуть в активные
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              disabled={isChangingStatus}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
-              onClick={() => void closeJournal()}
-            >
-              <Archive className="size-4" />
-              Закрыть журнал
-            </Button>
-          )}
         </div>
       </div>
 
@@ -997,7 +985,7 @@ export function MedBookDocumentClient({
         <JournalSettingsModal
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
-          title="Настройки документа"
+          title="Настройки журнала"
           description="Название журнала, перечень обследований и прививок."
           size="md"
           isSaving={saving}
@@ -1086,7 +1074,7 @@ export function MedBookDocumentClient({
           <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
             <DialogHeader className="border-b border-[#e5e7f0] px-8 py-6">
               <DialogTitle className="text-[20px] font-medium text-black">
-                Настройки документа
+                Настройки журнала
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-5 px-8 py-6">

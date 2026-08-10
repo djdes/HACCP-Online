@@ -3,20 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import {
   JournalDocumentHeader,
   JournalDocumentTitle,
 } from "@/components/journals/journal-document-header";
 import {
-  ArrowLeft,
+  Archive,
   ChevronDown,
   ChevronUp,
+  Copy,
   Pencil,
   Plus,
-  Printer,
-  Settings2,
   Trash2,
   X,
 } from "lucide-react";
@@ -57,9 +56,8 @@ import {
   isWeekend,
   toDateKey,
 } from "@/lib/hygiene-document";
-import { openDocumentPdf } from "@/lib/open-document-pdf";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
-import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
+import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
@@ -573,6 +571,8 @@ export function ColdEquipmentDocumentClient({
   const [checkedAutoFill, setCheckedAutoFill] = useState(autoFill);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const copyYesterday = useCopyYesterdayAction(documentId);
+  const closeAction = useDocumentCloseAction({ documentId, title });
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<ColdEquipmentConfigItem | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -847,61 +847,44 @@ export function ColdEquipmentDocumentClient({
     });
   }
 
-  async function handlePrint() {
-    try {
-      await openDocumentPdf(documentId);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF");
-    }
-  }
-
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller />
       <div className="mx-auto max-w-[1880px] px-6 py-8">
-        <DocumentBackLink href="/journals/cold_equipment_control" documentId={documentId} />
+        <DocumentActionsBar
+          backHref="/journals/cold_equipment_control"
+          documentId={documentId}
+          onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          menuItems={
+            status === "active"
+              ? [
+                  {
+                    key: "copy-yesterday",
+                    label: "Скопировать вчерашнее",
+                    icon: <Copy className="size-4" />,
+                    title:
+                      "Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось.",
+                    onSelect: () => void copyYesterday.run(false),
+                    disabled: copyYesterday.busy,
+                  },
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void closeAction.closeDocument(),
+                    disabled: closeAction.isClosing,
+                  },
+                ]
+              : []
+          }
+        >
+          {copyYesterday.dialog}
+        </DocumentActionsBar>
         <div className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-[1260px]">
             <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
               {documentTitle}
             </h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                handlePrint().catch(() => undefined);
-              }}
-              className="h-12 rounded-2xl border-[#dcdfed] px-5 text-[17px] text-[#5566f6] shadow-none hover:bg-[#f5f6ff]"
-            >
-              <Printer className="size-5" />
-              Печать
-            </Button>
-
-            {status === "active" ? (
-              <>
-              <CopyYesterdayButton documentId={documentId} />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#5566f6] shadow-none hover:bg-[#f5f6ff]"
-              >
-                <Settings2 className="size-6" />
-                Настройки журнала
-              </Button>
-              <DocumentCloseButton
-                documentId={documentId}
-                title={documentTitle}
-                variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#5566f6] shadow-none hover:bg-[#f5f6ff]"
-              >
-                Закончить журнал
-              </DocumentCloseButton>
-              </>
-            ) : null}
           </div>
         </div>
 

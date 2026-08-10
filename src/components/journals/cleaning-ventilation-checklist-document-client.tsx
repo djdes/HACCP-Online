@@ -7,8 +7,8 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  Copy,
   Plus,
-  Printer,
   Trash2,
   X,
 } from "lucide-react";
@@ -42,9 +42,9 @@ import {
   type CleaningVentilationResponsible,
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { toDateKey } from "@/lib/hygiene-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
-import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
+import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { isManagementRole } from "@/lib/user-roles";
@@ -213,7 +213,7 @@ function DocumentSettingsDialog(props: {
           if (nextOpen) setState(props.initial);
           props.onOpenChange(nextOpen);
         }}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Название журнала, дата начала, режим проветривания и ответственный сотрудник."
         size="md"
         isSaving={submitting}
@@ -334,7 +334,7 @@ function DocumentSettingsDialog(props: {
         <DialogHeader className="border-b px-8 py-7">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
-              Настройки документа
+              Настройки журнала
             </DialogTitle>
             <button
               type="button"
@@ -575,6 +575,7 @@ export function CleaningVentilationChecklistDocumentClient({
     )
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const copyYesterday = useCopyYesterdayAction(documentId);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [selection, setSelection] = useState<string[]>([]);
@@ -775,37 +776,34 @@ export function CleaningVentilationChecklistDocumentClient({
       ) : null}
 
       <div className="space-y-6 overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
-        <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
+        <DocumentActionsBar
+          className="mb-0"
+          backHref={`/journals/${routeCode}`}
+          documentId={documentId}
+          onSettings={isActive ? () => setSettingsOpen(true) : undefined}
+          menuItems={
+            isActive
+              ? [
+                  {
+                    key: "copy-yesterday",
+                    label: "Скопировать вчерашнее",
+                    icon: <Copy className="size-4" />,
+                    title:
+                      "Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось.",
+                    onSelect: () => void copyYesterday.run(false),
+                    disabled: copyYesterday.busy,
+                  },
+                ]
+              : []
+          }
+        >
+          {copyYesterday.dialog}
+        </DocumentActionsBar>
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <h1 className="max-w-[980px] text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
             {docTitle}
           </h1>
-          <div className="flex items-center gap-3 print:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[17px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            >
-              <Printer className="size-4" />
-              Печать
-            </Button>
-            {isActive ? (
-              <>
-                <CopyYesterdayButton documentId={documentId} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSettingsOpen(true)}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[17px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                >
-                  Настройки журнала
-                </Button>
-              </>
-            ) : null}
-          </div>
         </div>
 
         {!isActive ? (

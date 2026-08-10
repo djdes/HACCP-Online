@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -25,13 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   applyCleaningAutoFillToConfig,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   CLEANING_DOCUMENT_TITLE,
@@ -42,7 +35,7 @@ import {
   normalizeCleaningDocumentConfig,
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
-import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
+import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -52,7 +45,7 @@ import {
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import { PositionEmployeePicker } from "@/components/shared/position-select";
 
 type UserItem = {
   id: string;
@@ -93,9 +86,9 @@ type Props = {
   documents: DocumentItem[];
 };
 
-function getRoleOptions(users: UserItem[]) {
-  return getDistinctRoleLabels(users);
-}
+/** Общий класс триггера селектов в диалогах уборки. */
+const CLEANING_TRIGGER_CLASS =
+  "h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]";
 
 function pickFirstUserId(users: UserItem[], roleLabel: string) {
   return getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
@@ -112,9 +105,10 @@ function buildCreateState(users: UserItem[]): CreateState {
   return {
     title: "",
     cleaningRole,
-    cleaningUserId: pickFirstUserId(users, cleaningRole),
+    // Сотрудника пользователь выбирает осознанно — без авто-подстановки.
+    cleaningUserId: "",
     controlRole,
-    controlUserId: pickFirstUserId(users, controlRole),
+    controlUserId: "",
   };
 }
 
@@ -186,7 +180,6 @@ function CreateDialog(props: {
 }) {
   const [state, setState] = useState<CreateState>(buildCreateState(props.users));
   const [submitting, setSubmitting] = useState(false);
-  const roleOptions = useMemo(() => getRoleOptions(props.users), [props.users]);
 
   useEffect(() => {
     if (!props.open) return;
@@ -220,86 +213,36 @@ function CreateDialog(props: {
               className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Должность ответственного за уборку</Label>
-            <Select
-              value={state.cleaningRole}
-              onValueChange={(value) =>
-                setState((current) => ({
-                  ...current,
-                  cleaningRole: value,
-                  cleaningUserId: pickFirstUserId(props.users, value),
-                }))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={props.users} />
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
-            <Select
-              value={state.cleaningUserId}
-              onValueChange={(value) =>
-                setState((current) => ({ ...current, cleaningUserId: value }))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {getUsersForRoleLabel(props.users, state.cleaningRole).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Должность ответственного за контроль</Label>
-            <Select
-              value={state.controlRole}
-              onValueChange={(value) =>
-                setState((current) => ({
-                  ...current,
-                  controlRole: value,
-                  controlUserId: pickFirstUserId(props.users, value),
-                }))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={props.users} />
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
-            <Select
-              value={state.controlUserId}
-              onValueChange={(value) =>
-                setState((current) => ({ ...current, controlUserId: value }))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {getUsersForRoleLabel(props.users, state.controlRole).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PositionEmployeePicker
+            users={props.users}
+            value={{ positionTitle: state.cleaningRole, userId: state.cleaningUserId }}
+            onChange={(next) =>
+              setState((current) => ({
+                ...current,
+                cleaningRole: next.positionTitle,
+                cleaningUserId: next.userId,
+              }))
+            }
+            positionLabel="Должность ответственного за уборку"
+            employeeLabel="Сотрудник, ответственный за уборку"
+            labelClassName="text-[16px] text-[#73738a]"
+            triggerClassName={CLEANING_TRIGGER_CLASS}
+          />
+          <PositionEmployeePicker
+            users={props.users}
+            value={{ positionTitle: state.controlRole, userId: state.controlUserId }}
+            onChange={(next) =>
+              setState((current) => ({
+                ...current,
+                controlRole: next.positionTitle,
+                controlUserId: next.userId,
+              }))
+            }
+            positionLabel="Должность ответственного за контроль"
+            employeeLabel="Сотрудник, ответственный за контроль"
+            labelClassName="text-[16px] text-[#73738a]"
+            triggerClassName={CLEANING_TRIGGER_CLASS}
+          />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
@@ -333,7 +276,6 @@ function SettingsDialog(props: {
 }) {
   const [state, setState] = useState<SettingsState | null>(props.initialState);
   const [submitting, setSubmitting] = useState(false);
-  const roleOptions = useMemo(() => getRoleOptions(props.users), [props.users]);
 
   useEffect(() => {
     if (!props.open) return;
@@ -342,16 +284,13 @@ function SettingsDialog(props: {
 
   if (!state) return null;
 
-  const cleaningUsers = getUsersForRoleLabel(props.users, state.cleaningRole);
-  const controlUsers = getUsersForRoleLabel(props.users, state.controlRole);
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold text-black">
-              Настройки документа
+              Настройки журнала
             </DialogTitle>
             <button
               type="button"
@@ -371,94 +310,44 @@ function SettingsDialog(props: {
               className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Должность ответственного за уборку</Label>
-            <Select
-              value={state.cleaningRole}
-              onValueChange={(value) =>
-                setState((current) =>
-                  current
-                    ? {
-                        ...current,
-                        cleaningRole: value,
-                        cleaningUserId: pickFirstUserId(props.users, value),
-                      }
-                    : current
-                )
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={props.users} />
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
-            <Select
-              value={state.cleaningUserId}
-              onValueChange={(value) =>
-                setState((current) => (current ? { ...current, cleaningUserId: value } : current))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {cleaningUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Должность ответственного за контроль</Label>
-            <Select
-              value={state.controlRole}
-              onValueChange={(value) =>
-                setState((current) =>
-                  current
-                    ? {
-                        ...current,
-                        controlRole: value,
-                        controlUserId: pickFirstUserId(props.users, value),
-                      }
-                    : current
-                )
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={props.users} />
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
-            <Select
-              value={state.controlUserId}
-              onValueChange={(value) =>
-                setState((current) => (current ? { ...current, controlUserId: value } : current))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                {controlUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PositionEmployeePicker
+            users={props.users}
+            value={{ positionTitle: state.cleaningRole, userId: state.cleaningUserId }}
+            onChange={(next) =>
+              setState((current) =>
+                current
+                  ? {
+                      ...current,
+                      cleaningRole: next.positionTitle,
+                      cleaningUserId: next.userId,
+                    }
+                  : current
+              )
+            }
+            positionLabel="Должность ответственного за уборку"
+            employeeLabel="Сотрудник, ответственный за уборку"
+            labelClassName="text-[16px] text-[#73738a]"
+            triggerClassName={CLEANING_TRIGGER_CLASS}
+          />
+          <PositionEmployeePicker
+            users={props.users}
+            value={{ positionTitle: state.controlRole, userId: state.controlUserId }}
+            onChange={(next) =>
+              setState((current) =>
+                current
+                  ? {
+                      ...current,
+                      controlRole: next.positionTitle,
+                      controlUserId: next.userId,
+                    }
+                  : current
+              )
+            }
+            positionLabel="Должность ответственного за контроль"
+            employeeLabel="Сотрудник, ответственный за контроль"
+            labelClassName="text-[16px] text-[#73738a]"
+            triggerClassName={CLEANING_TRIGGER_CLASS}
+          />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
@@ -649,7 +538,7 @@ export function CleaningDocumentsClient(props: Props) {
               className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
-              <Link href="/sanpin">
+              <Link href={`/journals/${props.routeCode}/guide`}>
                 <BookOpenText className="size-5" />
                 Инструкция
               </Link>

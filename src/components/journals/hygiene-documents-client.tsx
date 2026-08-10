@@ -132,7 +132,7 @@ function EditDocumentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
-          <DialogTitle className="text-[22px] font-medium text-black">Настройки документа</DialogTitle>
+          <DialogTitle className="text-[22px] font-medium text-black">Настройки журнала</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-8 px-10 py-8">

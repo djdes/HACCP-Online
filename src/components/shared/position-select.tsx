@@ -11,7 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getPositionLabelsGrouped, type UserLike } from "@/lib/user-roles";
+import {
+  getPositionLabelsGrouped,
+  getUserPositionLabel,
+  getUsersForRoleLabel,
+  type UserLike,
+} from "@/lib/user-roles";
 
 type PositionSelectProps = {
   /// Whole users collection available for this journal / screen. The
@@ -98,16 +103,26 @@ export function PositionSelectItems({
   );
 }
 
+/** Единые тексты плейсхолдеров каскада — «селект сам говорит, что выбираем». */
+export const POSITION_PLACEHOLDER = "Выберите должность";
+export const EMPLOYEE_PLACEHOLDER = "Выберите сотрудника";
+
 /**
- * Two stacked selects — Должность → Сотрудник — for journals that need to
- * pick a specific employee and don't just care about the position label.
- * Mirrors the pattern used in intensive-cooling-document-client: pick a
- * position (grouped Руководство/Сотрудники), then pick an employee that
- * belongs to that position. Users that don't match the chosen position are
- * hidden from the second select; clearing the position shows all users.
+ * Анимация появления второго (каскадного) селекта. Держим в одном месте,
+ * чтобы «Должность → Сотрудник» выглядел одинаково во всех журналах.
+ * Длительность 200ms — верхняя граница дизайн-системы.
+ */
+export const CASCADE_REVEAL_CLASS =
+  "animate-in fade-in-0 slide-in-from-top-1 duration-200";
+
+/**
+ * Каскад Должность → Сотрудник.
  *
- * Use this wherever a single combined "Должность — ФИО" dropdown starts
- * becoming unwieldy (hygiene staff list, periodic journal entries, etc.).
+ * Сначала виден ТОЛЬКО селект должности с говорящим плейсхолдером
+ * «Выберите должность». Как только должность выбрана — НИЖЕ мягко
+ * появляется «Выберите сотрудника», отфильтрованный по этой должности.
+ * Пока должность не выбрана, список сотрудников не показываем вообще
+ * (иначе пользователь выбирает вслепую из всех).
  */
 export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   users,
@@ -116,8 +131,8 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   disabled,
   positionLabel = "Должность",
   employeeLabel = "Сотрудник",
-  emptyPositionPlaceholder = "- Выберите значение -",
-  emptyEmployeePlaceholder = "- Выберите значение -",
+  emptyPositionPlaceholder = POSITION_PLACEHOLDER,
+  emptyEmployeePlaceholder = EMPLOYEE_PLACEHOLDER,
   triggerClassName,
   labelClassName,
 }: {
@@ -133,15 +148,11 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   labelClassName?: string;
 }) {
   const availableEmployees = useMemo(() => {
-    if (!value.positionTitle) return users;
-    return users.filter((u) => {
-      const label =
-        u.jobPosition?.name?.trim() ||
-        (typeof u.positionTitle === "string" ? u.positionTitle.trim() : "") ||
-        "";
-      return label === value.positionTitle;
+    if (!value.positionTitle) return [];
+    return getUsersForRoleLabel(users, value.positionTitle, {
+      keepUserId: value.userId,
     });
-  }, [users, value.positionTitle]);
+  }, [users, value.positionTitle, value.userId]);
 
   const positionValue = value.positionTitle || "__empty__";
   const userValue = value.userId || "__empty__";
@@ -162,9 +173,9 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
                 ? users.some(
                     (u) =>
                       u.id === value.userId &&
-                      (u.jobPosition?.name ?? u.positionTitle ?? "") === nextTitle
+                      getUserPositionLabel(u) === nextTitle
                   )
-                : true);
+                : false);
             onChange({
               positionTitle: nextTitle,
               userId: stillValid ? value.userId : "",
@@ -182,33 +193,40 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <div className={cn("text-[13px] font-medium text-[#6f7282]", labelClassName)}>
-          {employeeLabel}
+      {value.positionTitle ? (
+        <div className={cn("space-y-2", CASCADE_REVEAL_CLASS)}>
+          <div className={cn("text-[13px] font-medium text-[#6f7282]", labelClassName)}>
+            {employeeLabel}
+          </div>
+          <Select
+            value={userValue}
+            onValueChange={(v) => {
+              onChange({
+                positionTitle: value.positionTitle,
+                userId: v === "__empty__" ? "" : v,
+              });
+            }}
+            disabled={disabled || availableEmployees.length === 0}
+          >
+            <SelectTrigger className={triggerClassName}>
+              <SelectValue placeholder={emptyEmployeePlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">{emptyEmployeePlaceholder}</SelectItem>
+              {availableEmployees.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {availableEmployees.length === 0 ? (
+            <div className="text-[13px] text-[#9b9fb3]">
+              На этой должности пока нет сотрудников — добавьте их в «Настройки → Сотрудники».
+            </div>
+          ) : null}
         </div>
-        <Select
-          value={userValue}
-          onValueChange={(v) => {
-            onChange({
-              positionTitle: value.positionTitle,
-              userId: v === "__empty__" ? "" : v,
-            });
-          }}
-          disabled={disabled}
-        >
-          <SelectTrigger className={triggerClassName}>
-            <SelectValue placeholder={emptyEmployeePlaceholder} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__empty__">{emptyEmployeePlaceholder}</SelectItem>
-            {availableEmployees.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      ) : null}
     </div>
   );
 }

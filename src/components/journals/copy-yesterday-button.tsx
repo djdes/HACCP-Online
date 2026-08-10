@@ -31,7 +31,12 @@ type Result = {
  *   - «Перезаписать сегодня»: if the default leaves `kept > 0`, the
  *     button re-opens a confirm dialog offering the overwrite.
  */
-export function CopyYesterdayButton({ documentId }: { documentId: string }) {
+/**
+ * Headless-версия «Скопировать вчерашнее» — используется пунктом меню «⋯».
+ * Возвращает обработчик и JSX подтверждающего диалога, который надо
+ * отрендерить ВНЕ DropdownMenuContent (иначе он размонтируется вместе с меню).
+ */
+export function useCopyYesterdayAction(documentId: string) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirmOverwrite, setConfirmOverwrite] = useState<number | null>(null);
@@ -86,24 +91,8 @@ export function CopyYesterdayButton({ documentId }: { documentId: string }) {
     }
   }
 
-  return (
+  const dialog = (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => run(false)}
-        disabled={busy}
-        title="Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось."
-        className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-      >
-        {busy ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Copy className="size-4" />
-        )}
-        Скопировать вчерашнее
-      </Button>
-
       <Dialog
         open={confirmOverwrite !== null}
         onOpenChange={(open) => {
@@ -139,6 +128,32 @@ export function CopyYesterdayButton({ documentId }: { documentId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  return { run, busy, dialog };
+}
+
+export function CopyYesterdayButton({ documentId }: { documentId: string }) {
+  const { run, busy, dialog } = useCopyYesterdayAction(documentId);
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => run(false)}
+        disabled={busy}
+        title="Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось."
+        className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Copy className="size-4" />
+        )}
+        Скопировать вчерашнее
+      </Button>
+      {dialog}
     </>
   );
 }

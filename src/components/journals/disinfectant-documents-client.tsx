@@ -347,6 +347,7 @@ export function DisinfectantDocumentsClient({
   return (
     <div className="space-y-8">
       <JournalTopBar
+        routeCode={routeCode}
         heading={DISINFECTANT_HEADING}
         activeTab={activeTab}
         templateCode={templateCode}

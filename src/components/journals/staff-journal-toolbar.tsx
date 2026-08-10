@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Printer, UserPlus, Users } from "lucide-react";
+import { Archive, ChevronDown, Copy, Plus, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -21,9 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
-import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
+import {
+  DocumentCloseButton,
+  useDocumentCloseAction,
+} from "@/components/journals/document-close-button";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import {
   getHygienePositionLabel,
   getStaffJournalResponsibleTitleOptions,
@@ -341,7 +344,7 @@ function JournalSettingsDialog({
       <JournalSettingsModal
         open={open}
         onOpenChange={onOpenChange}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Название журнала и ответственный сотрудник. Применяется ко всему периоду документа."
         size="md"
         isSaving={isSubmitting}
@@ -423,7 +426,7 @@ function JournalSettingsDialog({
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[765px]">
         <DialogHeader className="border-b px-14 py-12">
           <DialogTitle className="text-[22px] font-medium text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-8 px-14 py-12">
@@ -523,6 +526,8 @@ export function StaffJournalToolbar({
   const [fillOpen, setFillOpen] = useState(false);
   const [checked, setChecked] = useState(autoFill);
   const [isSwitching, setIsSwitching] = useState(false);
+  const copyYesterday = useCopyYesterdayAction(documentId);
+  const closeAction = useDocumentCloseAction({ documentId, title });
 
   useEffect(() => {
     setChecked(autoFill);
@@ -561,51 +566,41 @@ export function StaffJournalToolbar({
     <>
       <div className="space-y-8">
         {showHeaderActions && routeCode ? (
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <DocumentBackLink href={`/journals/${routeCode}`} className="mb-0" />
-            <div className="flex flex-wrap items-center gap-3">
-              {!hidePrint && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    window.open(`/api/journal-documents/${documentId}/pdf`, "_blank", "noopener,noreferrer")
-                  }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                >
-                  <Printer className="size-4" />
-                  Печать
-                </Button>
-              )}
-              {status === "active" && (
-                <>
-                <CopyYesterdayButton documentId={documentId} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (onSettingsClick) {
-                      onSettingsClick();
-                    } else {
-                      setSettingsOpen(true);
-                    }
-                  }}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                >
-                  Настройки журнала
-                </Button>
-                <DocumentCloseButton
-                  documentId={documentId}
-                  title={title}
-                  variant="outline"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                >
-                  Закончить журнал
-                </DocumentCloseButton>
-                </>
-              )}
-            </div>
-          </div>
+          <DocumentActionsBar
+            className="mb-0"
+            backHref={`/journals/${routeCode}`}
+            documentId={documentId}
+            showPrint={!hidePrint}
+            onSettings={
+              status === "active"
+                ? () => (onSettingsClick ? onSettingsClick() : setSettingsOpen(true))
+                : undefined
+            }
+            menuItems={
+              status === "active"
+                ? [
+                    {
+                      key: "copy-yesterday",
+                      label: "Скопировать вчерашнее",
+                      icon: <Copy className="size-4" />,
+                      title:
+                        "Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось.",
+                      onSelect: () => void copyYesterday.run(false),
+                      disabled: copyYesterday.busy,
+                    },
+                    {
+                      key: "close-journal",
+                      label: "Закончить журнал",
+                      icon: <Archive className="size-4" />,
+                      onSelect: () => void closeAction.closeDocument(),
+                      disabled: closeAction.isClosing,
+                    },
+                  ]
+                : []
+            }
+          >
+            {copyYesterday.dialog}
+          </DocumentActionsBar>
         ) : null}
 
         <div className="flex items-start justify-between gap-6">

@@ -669,7 +669,7 @@ export function HealthDocumentClient(props: Props) {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[520px]">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[22px] font-medium text-black">
-              Настройки документа
+              Настройки журнала
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 px-6 py-5">

@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
+  Archive,
   CalendarDays,
   ChevronDown,
   Paperclip,
   Pencil,
   Plus,
-  Printer,
   Upload,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
@@ -1053,7 +1053,7 @@ function SettingsDialog(props: {
       <JournalSettingsModal
         open={props.open}
         onOpenChange={props.onOpenChange}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Название журнала, дата начала, формат поля срока и ответственный по умолчанию."
         size="md"
         isSaving={isSubmitting}
@@ -1069,7 +1069,7 @@ function SettingsDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[560px]">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="text-[24px] font-semibold text-black">Настройки документа</DialogTitle>
+          <DialogTitle className="text-[24px] font-semibold text-black">Настройки журнала</DialogTitle>
           <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
         </DialogHeader>
         <div className="space-y-4 px-8 py-6">
@@ -1663,7 +1663,23 @@ export function AcceptanceDocumentClient(props: Props) {
         ) : null}
 
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${routeCode}`} documentId={props.documentId} />
+        <DocumentActionsBar
+          backHref={`/journals/${routeCode}`}
+          documentId={props.documentId}
+          onSettings={() => setSettingsOpen(true)}
+          menuItems={
+            !isClosed
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void handleCloseJournal(),
+                  },
+                ]
+              : []
+          }
+        />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-5">
@@ -1672,25 +1688,6 @@ export function AcceptanceDocumentClient(props: Props) {
               <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
               <span>Сортировать по сроку годности</span>
             </label>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 print:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            >
-              <Printer className="size-4" />Печать
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            >
-              Настройки журнала
-            </Button>
           </div>
         </div>
 
@@ -1759,11 +1756,6 @@ export function AcceptanceDocumentClient(props: Props) {
               Редактировать списки
             </Button>
 
-            <div className="flex-1" />
-
-            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => void handleCloseJournal()}>
-              Закончить журнал
-            </Button>
           </div>
         )}
 

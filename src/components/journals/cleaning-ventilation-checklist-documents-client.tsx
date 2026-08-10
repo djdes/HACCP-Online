@@ -248,6 +248,7 @@ export function CleaningVentilationChecklistDocumentsClient({
   return (
     <div className="space-y-8 sm:space-y-14">
       <JournalTopBar
+        routeCode={routeCode}
         heading={`${CLEANING_VENTILATION_CHECKLIST_TITLE}${activeTab === "closed" ? " (закрытые)" : ""}`}
         activeTab={activeTab}
         templateCode={templateCode}
@@ -369,7 +370,7 @@ export function CleaningVentilationChecklistDocumentsClient({
           await saveSettings(settingsTarget.id, value);
         }}
         submitText="Сохранить"
-        title="Настройки документа"
+        title="Настройки журнала"
       />
     </div>
   );

@@ -157,7 +157,7 @@ function UvRuntimeSettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
           <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
           <button
             type="button"
@@ -308,6 +308,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
   return (
     <div className="space-y-8 sm:space-y-14">
       <JournalTopBar
+        routeCode={routeCode}
         heading={heading}
         activeTab={props.activeTab}
         templateCode={props.templateCode}

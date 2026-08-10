@@ -132,7 +132,7 @@ function EditDocumentDialog({
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[38px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[970px]">
         <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-18 py-12">
           <DialogTitle className="text-[22px] font-medium text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
           <button
             type="button"
@@ -237,6 +237,7 @@ export function ColdEquipmentDocumentsClient({
     <>
       <div className="space-y-8 sm:space-y-14">
         <JournalTopBar
+        routeCode={routeCode}
           heading={templateName}
           activeTab={activeTab}
           templateCode={templateCode}

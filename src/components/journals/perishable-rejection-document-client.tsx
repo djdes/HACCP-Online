@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Printer, Save, Trash2, X } from "lucide-react";
+import { Archive, ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ import {
   type PerishableRejectionConfig,
   type PerishableRejectionRow,
 } from "@/lib/perishable-rejection-document";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import {
   Select,
@@ -135,6 +135,34 @@ export function PerishableRejectionDocumentClient({
     normalizePerishableRejectionConfig(initialConfig)
   );
   const readOnly = status === "closed";
+  // «Настройки журнала» — название документа и дата начала. Раньше их
+  // можно было изменить только со страницы списка; теперь доступны из «⋯».
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTitle, setSettingsTitle] = useState(title);
+  const [settingsDateFrom, setSettingsDateFrom] = useState(dateFrom);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const closeAction = useDocumentCloseAction({ documentId, title: settingsTitle });
+
+  async function saveDocumentSettings() {
+    setSettingsSaving(true);
+    try {
+      const response = await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: settingsTitle.trim() || title,
+          dateFrom: settingsDateFrom,
+        }),
+      });
+      if (!response.ok) throw new Error();
+      setSettingsOpen(false);
+      router.refresh();
+    } catch {
+      toast.error("Не удалось сохранить настройки");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
   const { mobileView, switchMobileView } = useMobileView("perishable_rejection");
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
@@ -498,39 +526,34 @@ export function PerishableRejectionDocumentClient({
       <FocusTodayScroller
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
-      <DocumentBackLink href="/journals/perishable_rejection" documentId={documentId} />
+      <DocumentActionsBar
+        backHref="/journals/perishable_rejection"
+        documentId={documentId}
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+        menuItems={
+          !readOnly
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeAction.closeDocument(),
+                  disabled: closeAction.isClosing,
+                },
+              ]
+            : []
+        }
+      />
       <div className="flex items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
-            {title}
+            {settingsTitle}
           </h1>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => window.print()}
-          title="Распечатать журнал"
-          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-        >
-          <Printer className="size-4" />Печать
-        </Button>
       </div>
 
       {readOnly ? (
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
-      ) : null}
-
-      {!readOnly ? (
-        <div className="flex justify-end">
-          <DocumentCloseButton
-            documentId={documentId}
-            title={title}
-            variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]"
-          >
-            Закончить журнал
-          </DocumentCloseButton>
-        </div>
       ) : null}
 
       <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
@@ -1688,6 +1711,46 @@ export function PerishableRejectionDocumentClient({
                 }}
               >
                 Закрыть
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Настройки журнала — название документа и дата начала. */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[22px] font-medium text-black">
+              Настройки журнала
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-5">
+            <div className="space-y-2">
+              <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
+              <Input
+                value={settingsTitle}
+                onChange={(event) => setSettingsTitle(event.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
+              <Input
+                type="date"
+                value={settingsDateFrom}
+                onChange={(event) => setSettingsDateFrom(event.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                disabled={settingsSaving}
+                onClick={() => void saveDocumentSettings()}
+                className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              >
+                {settingsSaving ? "Сохранение..." : "Сохранить"}
               </Button>
             </div>
           </div>

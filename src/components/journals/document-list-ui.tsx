@@ -25,6 +25,12 @@ export function JournalTopBar(props: {
   users: { id: string; name: string; role: string }[];
   compact?: boolean;
   /**
+   * Код журнала в URL (`/journals/<code>`). Нужен «Инструкции», чтобы
+   * открыть пожурнальный гайд, а не общий /sanpin. По умолчанию совпадает
+   * с `templateCode`; передавайте явно там, где route ≠ template.
+   */
+  routeCode?: string;
+  /**
    * Своя кнопка «Создать документ». Нужна журналам, которые создают
    * документ с преднастроенным `config` (disinfectant, accident,
    * breakdown-history) и потому не могут пользоваться общим
@@ -45,7 +51,7 @@ export function JournalTopBar(props: {
           className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
           asChild
         >
-          <Link href="/sanpin">
+          <Link href={`/journals/${props.routeCode ?? props.templateCode}/guide`}>
             <BookOpenText className="size-4" />
             Инструкция
           </Link>

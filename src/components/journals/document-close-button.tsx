@@ -20,6 +20,59 @@ const CLOSED_TOAST = "\u0416\u0443\u0440\u043d\u0430\u043b \u0437\u0430\u043a\u0
 const CLOSE_ERROR =
   "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043a\u0440\u044b\u0442\u044c \u0436\u0443\u0440\u043d\u0430\u043b";
 
+/**
+ * Headless-версия «Закончить журнал» — для пунктов меню «⋯», где кнопка
+ * не нужна, а нужен только обработчик с тем же confirm-диалогом и toast'ом.
+ */
+export function useDocumentCloseAction({
+  documentId,
+  title,
+  confirmMessage,
+  successMessage = CLOSED_TOAST,
+  onClosed,
+}: {
+  documentId: string;
+  title: string;
+  confirmMessage?: string;
+  successMessage?: string;
+  onClosed?: () => void;
+}) {
+  const router = useRouter();
+  const [isClosing, setIsClosing] = useState(false);
+
+  async function closeDocument() {
+    if (isClosing) return;
+    const confirmed = await confirmAsync({
+      title: confirmMessage || `${CLOSE_LABEL} "${title}"?`,
+      variant: "warn",
+      confirmLabel: CLOSE_LABEL,
+    });
+    if (!confirmed) return;
+
+    setIsClosing(true);
+    try {
+      const response = await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || CLOSE_ERROR);
+      }
+      onClosed?.();
+      toast.success(successMessage);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : CLOSE_ERROR);
+    } finally {
+      setIsClosing(false);
+    }
+  }
+
+  return { closeDocument, isClosing, closeLabel: CLOSE_LABEL };
+}
+
 export function DocumentCloseButton({
   documentId,
   title,

@@ -7,8 +7,6 @@ import {
   CalendarDays,
   Pencil,
   Plus,
-  Printer,
-  Settings2,
   Trash2,
   X,
 } from "lucide-react";
@@ -43,7 +41,7 @@ import {
   type SanitationDayConfig,
   type SanitationMonthKey,
 } from "@/lib/sanitation-day-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
@@ -304,7 +302,7 @@ function DocumentSettingsDialog(props: {
           if (value) setState(props.initial);
           props.onOpenChange(value);
         }}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Название журнала, дата, год и две роли: утверждающий и ответственный."
         size="md"
         isSaving={submitting}
@@ -507,7 +505,7 @@ function DocumentSettingsDialog(props: {
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[42px] font-semibold tracking-[-0.03em] text-black">
-              Настройки документа
+              Настройки журнала
             </DialogTitle>
             <button
               type="button"
@@ -840,32 +838,11 @@ export function SanitationDayDocumentClient({
   return (
     <div className="space-y-8">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={journalHref} documentId={documentId} />
-      <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Распечатать журнал"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-          >
-            <Printer className="size-4" />
-            Печать
-          </Button>
-          {!readOnly && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-            >
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-          )}
-        </div>
-      </div>
+      <DocumentActionsBar
+        backHref={journalHref}
+        documentId={documentId}
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+      />
 
       <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024] print:hidden">
         {title}

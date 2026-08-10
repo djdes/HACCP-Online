@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import {
   JournalDocumentHeader,
   JournalDocumentTitle,
@@ -47,7 +47,7 @@ import {
   type UvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -415,7 +415,7 @@ function UvRuntimeSettingsDialog(props: {
       <JournalSettingsModal
         open={props.open}
         onOpenChange={props.onOpenChange}
-        title="Настройки документа"
+        title="Настройки журнала"
         description="Учёт работы бактерицидной установки"
         size="md"
         isSaving={submitting}
@@ -506,7 +506,7 @@ function UvRuntimeSettingsDialog(props: {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
           <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
           <button
             type="button"
@@ -1187,20 +1187,28 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           props.status === "active" ? () => setAddRowOpen(true) : undefined
         }
       />
-      <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
+      <DocumentActionsBar
+        backHref={`/journals/${props.routeCode}`}
+        documentId={props.documentId}
+        onSettings={props.status === "active" ? () => setSettingsOpen(true) : undefined}
+        menuItems={
+          props.status === "active"
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void handleCloseJournal(),
+                },
+              ]
+            : []
+        }
+      />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
         <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
           Журнал учета работы УФ бактерицидной установки
         </h1>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setSettingsOpen(true)}
-          className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-        >
-          Настройки журнала
-        </Button>
       </div>
 
       {props.status !== "active" ? (
@@ -1269,7 +1277,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Monthly summary */}
       <MonthlySummaryTable monthlyData={monthlyData} />
 
-      {/* Add button + Close journal */}
+      {/* Add button */}
       {props.status === "active" && (
         <div className="flex items-center justify-between print:hidden">
           <Button
@@ -1279,14 +1287,6 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           >
             <Plus className="mr-1 size-4" />
             Добавить
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCloseJournal}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-          >
-            Закончить журнал
           </Button>
         </div>
       )}
@@ -1497,21 +1497,6 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           </tbody>
         </table>
       </MobileViewTableWrapper>
-
-      {/* Settings / Print buttons */}
-      <div className="flex items-center justify-end gap-2 print:hidden">
-        {props.status === "active" && (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-md border-[#eceef5] px-3 text-[13px]"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 className="mr-1 size-4" />
-            Настройки документа
-          </Button>
-        )}
-      </div>
 
       {/* Dialogs */}
       <UvRuntimeSettingsDialog

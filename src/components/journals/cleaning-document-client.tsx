@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Pencil, Plus, Printer, RefreshCw, Trash2, UserPlus, X } from "lucide-react";
+import { Archive, ChevronDown, Pencil, Plus, RefreshCw, Save, Trash2, UserPlus } from "lucide-react";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   RoomEditorDialog,
@@ -58,8 +58,8 @@ import {
   toggleWeekdayBit,
 } from "@/lib/weekday-mask";
 import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
   JournalDocumentHeader,
@@ -395,6 +395,10 @@ export function CleaningDocumentClient(props: Props) {
   // текущего config'а в Organization.defaultCleaningDocumentConfig.
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
   const [saveAsTemplateBusy, setSaveAsTemplateBusy] = useState(false);
+  const closeAction = useDocumentCloseAction({
+    documentId: props.documentId,
+    title: normalized.documentTitle || CLEANING_PAGE_TITLE,
+  });
 
   // «Заполнить по плану» — применяет weekday-маски всех помещений к
   // матрице. По умолчанию fill-empty (только пустые), но если зажат
@@ -1384,75 +1388,60 @@ export function CleaningDocumentClient(props: Props) {
       <div className="space-y-8">
         <FocusTodayScroller />
         <div className="print:hidden">
-            <DocumentBackLink href="/journals/cleaning" documentId={props.documentId} />
-            <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
-              {props.hasTasksFlowIntegration ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={tasksFlowSyncing}
-                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                    onClick={() => syncFromTasksFlow()}
-                    title="Подтянуть отметки выполнения из TasksFlow"
-                  >
-                    <RefreshCw
-                      className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
-                    />
-                    {tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={cleanupCompletedRunning}
-                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3c4053] shadow-none hover:bg-[#fff4f2] hover:text-[#a13a32]"
-                    onClick={cleanupCompletedTasks}
-                    title="Удалить выполненные задачи из TasksFlow (compliance-история сохранится в журнале)"
-                  >
-                    <Trash2 className="size-4" />
-                    {cleanupCompletedRunning ? "Чищу…" : "Очистить TF архив"}
-                  </Button>
-                </>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                title="Распечатать журнал"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
-              >
-                <Printer className="size-4" />
-                Печать
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                onClick={() => setSettingsOpen(true)}
-              >
-                Настройки журнала
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                title="Сохранить помещения, ответственных и шаги уборки как шаблон по умолчанию для новых журналов уборки"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
-                onClick={() => setSaveAsTemplateOpen(true)}
-              >
-                Сохранить как шаблон
-              </Button>
-              {props.status === "active" ? (
-                <DocumentCloseButton
-                  documentId={props.documentId}
-                  title={config.documentTitle || CLEANING_PAGE_TITLE}
-                  variant="outline"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                >
-                  Закончить журнал
-                </DocumentCloseButton>
-              ) : null}
-            </div>
-          </div>
+          <DocumentActionsBar
+            className="mb-0 flex flex-wrap items-center justify-between gap-3"
+            backHref="/journals/cleaning"
+            documentId={props.documentId}
+            onSettings={() => setSettingsOpen(true)}
+            menuItems={[
+              ...(props.hasTasksFlowIntegration
+                ? [
+                    {
+                      key: "tf-sync",
+                      label: tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow",
+                      icon: (
+                        <RefreshCw
+                          className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
+                        />
+                      ),
+                      title: "Подтянуть отметки выполнения из TasksFlow",
+                      onSelect: () => void syncFromTasksFlow(),
+                      disabled: tasksFlowSyncing,
+                    },
+                    {
+                      key: "tf-cleanup",
+                      label: cleanupCompletedRunning ? "Чищу…" : "Очистить TF архив",
+                      icon: <Trash2 className="size-4" />,
+                      title:
+                        "Удалить выполненные задачи из TasksFlow (compliance-история сохранится в журнале)",
+                      onSelect: () => void cleanupCompletedTasks(),
+                      disabled: cleanupCompletedRunning,
+                      tone: "danger" as const,
+                    },
+                  ]
+                : []),
+              {
+                key: "save-as-template",
+                label: "Сохранить как шаблон",
+                icon: <Save className="size-4" />,
+                title:
+                  "Сохранить помещения, ответственных и шаги уборки как шаблон по умолчанию для новых журналов уборки",
+                onSelect: () => setSaveAsTemplateOpen(true),
+              },
+              ...(props.status === "active"
+                ? [
+                    {
+                      key: "close-journal",
+                      label: "Закончить журнал",
+                      icon: <Archive className="size-4" />,
+                      onSelect: () => void closeAction.closeDocument(),
+                      disabled: closeAction.isClosing,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
 
         <div className="flex items-start justify-between gap-6 print:hidden">
           <div><h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">{config.documentTitle || CLEANING_PAGE_TITLE}</h1><p className="mt-2 text-[15px] text-[#6f7282]">{getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</p></div>
@@ -1510,54 +1499,77 @@ export function CleaningDocumentClient(props: Props) {
                 completion-инициалы из TF webhook'а перекроют план поверху). */}
             {props.status === "active" ? (
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                <button
-                  type="button"
-                  onClick={() => applySchedulePlan("fill-empty")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#5566f6] bg-[#5566f6] px-3 py-1.5 font-medium text-white shadow-[0_6px_16px_-8px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-                  title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
-                >
-                  Заполнить по плану
-                </button>
-                <button
-                  type="button"
-                  onClick={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffd7d3] bg-[#fff4f2] px-3 py-1.5 font-medium text-[#a13a32] transition-colors hover:bg-[#fff2f1]"
-                  title="Поставить «/» (не проводилась) на все выходные и праздники периода"
-                >
-                  Отметить выходные «/»
-                </button>
-                <button
-                  type="button"
-                  onClick={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#6f7282] transition-colors hover:bg-[#fafbff]"
-                  title="Очистить ячейки выходных и праздников периода"
-                >
-                  Очистить выходные
-                </button>
-                <span className="hidden text-[#dcdfed] sm:inline">·</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (cellSelectMode) {
-                      setCellSelectMode(false);
-                      clearCellSelection();
-                    } else {
-                      setCellSelectMode(true);
-                    }
-                  }}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
-                  title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
-                >
-                  {cellSelectMode ? "Выделение: ВКЛ" : "Выделить мышкой"}
-                </button>
-                <button
-                  type="button"
-                  onClick={selectAllCells}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-1.5 font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-                  title="Выделить все ячейки матрицы"
-                >
-                  Выделить всё
-                </button>
+                {/* «Заполнение ▾» — план + выходные в одном меню,
+                    чтобы шапка не разрасталась в 15 кнопок. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#5566f6] bg-[#5566f6] px-3 py-1.5 font-medium text-white shadow-[0_6px_16px_-8px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+                    >
+                      Заполнение
+                      <ChevronDown className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[300px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      onSelect={() => applySchedulePlan("fill-empty")}
+                      title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
+                    >
+                      Заполнить по плану
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      onSelect={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
+                      title="Поставить «/» (не проводилась) на все выходные и праздники периода"
+                    >
+                      Отметить выходные «/»
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      onSelect={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
+                      title="Очистить ячейки выходных и праздников периода"
+                    >
+                      Очистить выходные
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* «Выделение ▾» — режим мышкой + выделить всё. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
+                    >
+                      {cellSelectMode ? "Выделение: ВКЛ" : "Выделение"}
+                      <ChevronDown className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[320px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      onSelect={() => {
+                        if (cellSelectMode) {
+                          setCellSelectMode(false);
+                          clearCellSelection();
+                        } else {
+                          setCellSelectMode(true);
+                        }
+                      }}
+                      title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
+                    >
+                      {cellSelectMode ? "Выключить выделение мышкой" : "Выделить мышкой"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      onSelect={selectAllCells}
+                      title="Выделить все ячейки матрицы"
+                    >
+                      Выделить всё
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {cellSelectMode ? (
                   <>
                     <span className="text-[12px] text-[#6f7282]">
@@ -2224,11 +2236,11 @@ export function CleaningDocumentClient(props: Props) {
           ) : null}
         </DialogContent>
       </Dialog>
-      {props.useV2 ? (
+
         <JournalSettingsModal
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
-          title="Настройки документа"
+          title="Настройки журнала"
           description="Название журнала и ответственные. Изменения применяются ко всему периоду документа."
           size="md"
           isSaving={saving}
@@ -2432,9 +2444,6 @@ export function CleaningDocumentClient(props: Props) {
             ) : null}
           </div>
         </JournalSettingsModal>
-      ) : (
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]"><DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8"><div className="flex items-center justify-between"><DialogTitle className="text-[22px] font-semibold text-black">Настройки документа</DialogTitle><button type="button" className="rounded-xl p-2 hover:bg-black/5" onClick={() => setSettingsOpen(false)}><X className="size-7" /></button></div></DialogHeader><div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8"><Input value={settingsState.title} onChange={(event) => setSettingsState((current) => ({ ...current, title: event.target.value }))} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" /><Select value={settingsState.cleaningRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningRole: value, cleaningUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за уборку" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.cleaningUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, cleaningUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><Select value={settingsState.controlRole} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlRole: value, controlUserId: primaryUserId(props.users, value) }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Должность ответственного за контроль" /></SelectTrigger><SelectContent><PositionSelectItems users={props.users} /></SelectContent></Select><Select value={settingsState.controlUserId} onValueChange={(value) => setSettingsState((current) => ({ ...current, controlUserId: value }))}><SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f2f3f8] text-[18px]"><SelectValue placeholder="Сотрудник" /></SelectTrigger><SelectContent>{getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select><div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]" onClick={async () => { await updateSettings({}); setSettingsOpen(false); }}>Сохранить</Button></div></div></DialogContent></Dialog>
-      )}
       <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[520px]">
           <DialogHeader className="border-b px-6 py-5">

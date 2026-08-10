@@ -105,7 +105,7 @@ function SettingsDialog({
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[560px]">
         <DialogHeader className="border-b border-[#ececf4] px-8 py-6">
           <DialogTitle className="text-[20px] font-medium text-black">
-            Настройки документа
+            Настройки журнала
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5 px-8 py-6">

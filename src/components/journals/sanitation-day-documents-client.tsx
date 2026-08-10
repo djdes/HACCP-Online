@@ -36,8 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
-import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import {
   SANITATION_DAY_DOCUMENT_TITLE,
   SANITATION_DAY_HEADING,
@@ -63,7 +61,7 @@ import {
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import { PositionEmployeePicker } from "@/components/shared/position-select";
 type UserItem = {
   id: string;
   name: string;
@@ -99,13 +97,9 @@ type SettingsState = {
   responsibleEmployee: string;
 };
 
-function roleOptionsFromUsers(users: UserItem[]) {
-  return getDistinctRoleLabels(users);
-}
-
-function usersForRole(users: UserItem[], roleLabel: string) {
-  return getUsersForRoleLabel(users, roleLabel);
-}
+/** Общий класс триггера селектов в диалоге настроек санитарного дня. */
+const SANITATION_TRIGGER_CLASS =
+  "h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]";
 
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -142,7 +136,6 @@ function SettingsDialog(props: {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
   const activeState = state || props.initial;
 
   async function handleSubmit() {
@@ -239,114 +232,47 @@ function SettingsDialog(props: {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">
-                Должность &quot;Утверждаю&quot;
-              </Label>
-              <Select
-                value={activeState.approveRole}
-                onValueChange={(value) => {
-                  const firstUser = usersForRole(props.users, value)[0];
-                  setState({
-                    ...activeState,
-                    approveRole: value,
-                    approveEmployeeId: firstUser?.id || "",
-                    approveEmployee:
-                      firstUser?.name || activeState.approveEmployee,
-                  });
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                  <SelectValue placeholder="- Выберите значение -" />
-                </SelectTrigger>
-                <SelectContent>
-                  <PositionSelectItems users={props.users} />
-                </SelectContent>
-              </Select>
-            </div>
+            <PositionEmployeePicker
+              users={props.users}
+              value={{
+                positionTitle: activeState.approveRole,
+                userId: activeState.approveEmployeeId,
+              }}
+              onChange={(next) =>
+                setState({
+                  ...activeState,
+                  approveRole: next.positionTitle,
+                  approveEmployeeId: next.userId,
+                  approveEmployee:
+                    props.users.find((item) => item.id === next.userId)?.name || "",
+                })
+              }
+              positionLabel={'Должность «Утверждаю»'}
+              employeeLabel={'Сотрудник «Утверждаю»'}
+              labelClassName="text-[15px] text-[#6f7282]"
+              triggerClassName={SANITATION_TRIGGER_CLASS}
+            />
 
-            <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
-              <Select
-                value={activeState.approveEmployeeId}
-                onValueChange={(value) => {
-                  const user = props.users.find((item) => item.id === value);
-                  setState({
-                    ...activeState,
-                    approveEmployeeId: value,
-                    approveEmployee: user?.name || activeState.approveEmployee,
-                  });
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                  <SelectValue placeholder="- Выберите значение -" />
-                </SelectTrigger>
-                <SelectContent>
-                  {usersForRole(props.users, activeState.approveRole).map(
-                    (user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {buildStaffOptionLabel(user)}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">
-                Ответственный
-              </Label>
-              <Select
-                value={activeState.responsibleRole}
-                onValueChange={(value) => {
-                  const firstUser = usersForRole(props.users, value)[0];
-                  setState({
-                    ...activeState,
-                    responsibleRole: value,
-                    responsibleEmployeeId: firstUser?.id || "",
-                    responsibleEmployee:
-                      firstUser?.name || activeState.responsibleEmployee,
-                  });
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                  <SelectValue placeholder="- Выберите значение -" />
-                </SelectTrigger>
-                <SelectContent>
-                  <PositionSelectItems users={props.users} />
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
-              <Select
-                value={activeState.responsibleEmployeeId}
-                onValueChange={(value) => {
-                  const user = props.users.find((item) => item.id === value);
-                  setState({
-                    ...activeState,
-                    responsibleEmployeeId: value,
-                    responsibleEmployee:
-                      user?.name || activeState.responsibleEmployee,
-                  });
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                  <SelectValue placeholder="- Выберите значение -" />
-                </SelectTrigger>
-                <SelectContent>
-                  {usersForRole(props.users, activeState.responsibleRole).map(
-                    (user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {buildStaffOptionLabel(user)}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            <PositionEmployeePicker
+              users={props.users}
+              value={{
+                positionTitle: activeState.responsibleRole,
+                userId: activeState.responsibleEmployeeId,
+              }}
+              onChange={(next) =>
+                setState({
+                  ...activeState,
+                  responsibleRole: next.positionTitle,
+                  responsibleEmployeeId: next.userId,
+                  responsibleEmployee:
+                    props.users.find((item) => item.id === next.userId)?.name || "",
+                })
+              }
+              positionLabel="Должность ответственного"
+              employeeLabel="Ответственный сотрудник"
+              labelClassName="text-[15px] text-[#6f7282]"
+              triggerClassName={SANITATION_TRIGGER_CLASS}
+            />
 
             <div className="flex justify-end pt-3">
               <Button
@@ -512,6 +438,7 @@ export function SanitationDayDocumentsClient({
   return (
     <div className="space-y-8 sm:space-y-14">
       <JournalTopBar
+        routeCode={routeCode}
         heading={`${SANITATION_DAY_HEADING}${activeTab === "closed" ? " (закрытые)" : ""}`}
         activeTab={activeTab}
         templateCode={templateCode}
@@ -697,7 +624,7 @@ export function SanitationDayDocumentsClient({
           await saveSettings(settingsTarget.id, value);
         }}
         submitText="Сохранить"
-        title="Настройки документа"
+        title="Настройки журнала"
       />
     </div>
   );

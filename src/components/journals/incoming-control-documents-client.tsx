@@ -15,13 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   getAcceptanceDocumentTitle,
   getAcceptancePageTitle,
   buildAcceptanceDocumentConfigFromData,
@@ -41,7 +34,7 @@ import {
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import { PositionEmployeePicker } from "@/components/shared/position-select";
 
 type User = { id: string; name: string; role: string };
 
@@ -113,7 +106,6 @@ function SettingsDialog({
   submitLabel,
   initial,
   users,
-  showEmployeeField,
   onSubmit,
 }: {
   open: boolean;
@@ -122,32 +114,16 @@ function SettingsDialog({
   submitLabel: string;
   initial: DialogState;
   users: User[];
-  showEmployeeField: boolean;
   onSubmit: (value: DialogState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
-  const employeeOptions = useMemo(() => {
-    const options = getUsersForRole(users, state.responsibleTitle);
-    if (options.length > 0) return options;
-    return users;
-  }, [state.responsibleTitle, users]);
 
   useEffect(() => {
     if (!open) return;
     setState(initial);
     setSubmitting(false);
   }, [initial, open]);
-
-  useEffect(() => {
-    if (!open || !showEmployeeField) return;
-    if (!employeeOptions.some((user) => user.id === state.responsibleUserId)) {
-      setState((current) => ({
-        ...current,
-        responsibleUserId: employeeOptions[0]?.id || "",
-      }));
-    }
-  }, [employeeOptions, open, showEmployeeField, state.responsibleUserId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,46 +173,24 @@ function SettingsDialog({
               &quot;Срок годности&quot;
             </label>
           </div>
-          <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
-            <Select
-              value={state.responsibleTitle}
-              onValueChange={(value) =>
-                setState({
-                  ...state,
-                  responsibleTitle: value,
-                  responsibleUserId: getUsersForRole(users, value)[0]?.id || state.responsibleUserId,
-                })
-              }
-            >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={users} />
-              </SelectContent>
-            </Select>
-          </div>
-          {showEmployeeField && (
-            <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
-              <Select
-                value={state.responsibleUserId}
-                onValueChange={(value) => setState({ ...state, responsibleUserId: value })}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
-                  <SelectValue placeholder="- Выберите значение -" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employeeOptions.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <PositionEmployeePicker
+            users={users}
+            value={{
+              positionTitle: state.responsibleTitle,
+              userId: state.responsibleUserId,
+            }}
+            onChange={(next) =>
+              setState((current) => ({
+                ...current,
+                responsibleTitle: next.positionTitle,
+                responsibleUserId: next.userId,
+              }))
+            }
+            positionLabel="Должность ответственного"
+            employeeLabel="Ответственный сотрудник"
+            labelClassName="text-[14px] text-[#73738a]"
+            triggerClassName="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+          />
           <div className="flex justify-end">
             <Button
               type="button"
@@ -305,8 +259,8 @@ export function IncomingControlDocumentsClient({
 
   async function createDocument(payload: DialogState) {
     const responsibleUserId =
-      getUsersForRole(users, payload.responsibleTitle)[0]?.id ||
       payload.responsibleUserId ||
+      getUsersForRole(users, payload.responsibleTitle)[0]?.id ||
       users[0]?.id ||
       "";
     const config = {
@@ -386,6 +340,7 @@ export function IncomingControlDocumentsClient({
     <>
       <div className="space-y-10">
         <JournalTopBar
+        routeCode={routeCode}
           heading={heading}
           activeTab={activeTab}
           templateCode={templateCode}
@@ -498,7 +453,6 @@ export function IncomingControlDocumentsClient({
         submitLabel="Создать"
         initial={createState}
         users={users}
-        showEmployeeField={false}
         onSubmit={createDocument}
       />
 
@@ -507,7 +461,7 @@ export function IncomingControlDocumentsClient({
         onOpenChange={(open) => {
           if (!open) setSettingsDocument(null);
         }}
-        title="Настройки документа"
+        title="Настройки журнала"
         submitLabel="Сохранить"
         initial={
           settingsDocument
@@ -528,7 +482,6 @@ export function IncomingControlDocumentsClient({
             : createState
         }
         users={users}
-        showEmployeeField={true}
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveSettings(settingsDocument, value);

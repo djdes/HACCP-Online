@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Pencil, Plus, Printer, Settings2, Trash2, X } from "lucide-react";
+import { Archive, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -402,6 +402,7 @@ export function FryerOilDocumentClient(props: Props) {
   const [listsOpen, setListsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = status === "active";
+  const closeAction = useDocumentCloseAction({ documentId: props.documentId, title });
   const { mobileView, switchMobileView } = useMobileView("fryer_oil");
 
   const cardItems: RecordCardItem[] = entries.map((entry, index) => ({
@@ -537,29 +538,27 @@ export function FryerOilDocumentClient(props: Props) {
         }
       />
       <div className="mx-auto max-w-[1880px] space-y-8 px-6 py-8">
+        <DocumentActionsBar
+          backHref={`/journals/${props.routeCode}`}
+          documentId={props.documentId}
+          onSettings={() => setSettingsOpen(true)}
+          menuItems={
+            isActive
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void closeAction.closeDocument(),
+                    disabled: closeAction.isClosing,
+                  },
+                ]
+              : []
+          }
+        />
         <div className="flex flex-wrap items-start justify-between gap-6 print:hidden">
-          <div className="space-y-3">
-            <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
-            <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">{title}</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[#3848c7] print:hidden"><Printer className="size-5" />Печать</Button>
-            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[#3848c7]" onClick={() => setSettingsOpen(true)}><Settings2 className="size-5" />Настройки журнала</Button>
-          </div>
+          <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">{title}</h1>
         </div>
-
-        {isActive ? (
-          <div className="flex justify-end print:hidden">
-            <DocumentCloseButton
-              documentId={props.documentId}
-              title={title}
-              variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[#3848c7]"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-          </div>
-        ) : null}
 
         {!isActive ? (
           <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи об использовании фритюрных жиров." />

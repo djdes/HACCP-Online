@@ -2,17 +2,16 @@
 
 import { useMemo, useState, useTransition } from "react";
 import {
+  Archive,
   ChevronDown,
   ChevronRight,
   Plus,
-  Printer,
   Save,
-  Settings2,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,7 @@ import {
   type FinishedProductDocumentConfig,
   type FinishedProductDocumentRow,
 } from "@/lib/finished-product-document";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -126,7 +125,6 @@ export function FinishedProductDocumentClient({
   status,
   initialConfig,
   users,
-  useV2 = false,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -135,6 +133,7 @@ export function FinishedProductDocumentClient({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const closeAction = useDocumentCloseAction({ documentId, title });
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -298,31 +297,23 @@ export function FinishedProductDocumentClient({
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
       <div className="rounded-[28px] bg-white px-4 py-5 shadow-sm sm:px-8 sm:py-7">
-        <DocumentPageHeader
+        <DocumentActionsBar
+          className="mb-0 flex flex-wrap items-center justify-between gap-3 print:hidden"
           backHref="/journals/finished_product"
           documentId={documentId}
-          rightActions={
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                title="Распечатать журнал"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
-              >
-                <Printer className="size-4" />Печать
-              </Button>
-              {!readOnly ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Settings2 className="size-4" />Настройки журнала
-                </Button>
-              ) : null}
-            </>
+          onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+          menuItems={
+            !readOnly
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void closeAction.closeDocument(),
+                    disabled: closeAction.isClosing,
+                  },
+                ]
+              : []
           }
         />
         <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
@@ -332,19 +323,6 @@ export function FinishedProductDocumentClient({
 
       {readOnly ? (
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража." />
-      ) : null}
-
-      {!readOnly ? (
-        <div className="flex justify-end">
-          <DocumentCloseButton
-            documentId={documentId}
-            title={title}
-            variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-          >
-            Закончить журнал
-          </DocumentCloseButton>
-        </div>
       ) : null}
 
       <div className="space-y-5 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
@@ -528,9 +506,8 @@ export function FinishedProductDocumentClient({
         </DialogContent>
       </Dialog>
 
-      {useV2 ? (
-        <JournalSettingsModal
-          open={readOnly ? false : settingsOpen}
+      <JournalSettingsModal
+        open={readOnly ? false : settingsOpen}
           onOpenChange={setSettingsOpen}
           title="Настройки журнала"
           description="Колонки таблицы и подпись внизу журнала."
@@ -587,17 +564,7 @@ export function FinishedProductDocumentClient({
             />
           </div>
         </JournalSettingsModal>
-      ) : (
-        <Dialog open={readOnly ? false : settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="sm:max-w-[640px]"><DialogHeader><DialogTitle>Настройки журнала</DialogTitle></DialogHeader><div className="space-y-4">
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showProductTemp} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showProductTemp: value === true }))} />T°C внутри продукта</label>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCorrectiveAction} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCorrectiveAction: value === true }))} />Корректирующие действия</label>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={config.showCourierTime} onCheckedChange={(value) => setConfig((prev) => ({ ...prev, showCourierTime: value === true }))} />Время передачи блюд курьеру</label>
-            <Textarea value={config.footerNote} onChange={(e) => setConfig((prev) => ({ ...prev, footerNote: e.target.value }))} />
-            <div className="flex justify-end"><Button onClick={() => saveConfig()} disabled={isSaving}>{isSaving ? "Сохранение..." : "Сохранить"}</Button></div>
-          </div></DialogContent>
-        </Dialog>
-      )}
+
 
       {/* «Добавить списком» — многострочная вставка вместо window.prompt. */}
       <Dialog open={readOnly ? false : bulkOpen} onOpenChange={setBulkOpen}>
