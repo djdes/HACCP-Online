@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import {
   Dialog,
   DialogContent,
@@ -15,22 +13,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  DocumentActionsMenu,
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
 } from "@/components/journals/journal-responsive";
+
 type HealthListDocument = {
   id: string;
   title: string;
@@ -47,6 +52,8 @@ type Props = {
   users: { id: string; name: string; role: string }[];
   documents: HealthListDocument[];
 };
+
+const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
 
 function EditDocumentDialog(props: {
   open: boolean;
@@ -81,7 +88,7 @@ function EditDocumentDialog(props: {
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error || "Не удалось сохранить настройки документа");
       }
 
@@ -113,23 +120,24 @@ function EditDocumentDialog(props: {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Добавлять пустых строк при печати</Label>
-            <select
-              value={emptyRows}
-              onChange={(event) => setEmptyRows(event.target.value)}
-              className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]"
-            >
-              {[0, 1, 2, 3, 4, 5, 10, 15, 20].map((n) => (
-                <option key={n} value={String(n)}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            <Label className="text-[14px] text-[#6f7282]">Добавлять пустых строк при печати</Label>
+            <Select value={emptyRows} onValueChange={setEmptyRows}>
+              <SelectTrigger className="h-11 w-full rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EMPTY_ROWS_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end pt-2">
@@ -137,7 +145,7 @@ function EditDocumentDialog(props: {
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -152,149 +160,66 @@ function HealthDocumentRow(props: {
   document: HealthListDocument;
   templateCode: string;
   onEdit: (document: HealthListDocument) => void;
+  onPrint: (document: HealthListDocument) => void;
   onDelete: (document: HealthListDocument) => void;
 }) {
   const href = `/journals/${props.templateCode}/documents/${props.document.id}`;
   const canManage = props.document.status === "active";
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5">
-      <Link href={href} className="min-w-0 pr-4">
-        <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>
-          {props.document.title}
-        </div>
+    <div className={JOURNAL_LIST_CARD_CLASS}>
+      <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
+        {props.document.title}
       </Link>
-      <Link href={href} className={`${JOURNAL_CARD_SECTION_CLASS} min-w-0`}>
+      <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
         <div className={JOURNAL_CARD_LABEL_CLASS}>Период</div>
-        <div className={`${JOURNAL_CARD_VALUE_CLASS} truncate`}>
-          {props.document.periodLabel}
-        </div>
+        <div className={JOURNAL_CARD_VALUE_CLASS}>{props.document.periodLabel}</div>
       </Link>
+      <div className={JOURNAL_CARD_SECTION_CLASS} />
       <div className="flex items-center justify-center text-[#5566f6]">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
-            >
-              <Ellipsis className="size-7" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[300px] rounded-[24px] border-0 p-4 shadow-xl">
-            {canManage ? (
-              <DropdownMenuItem
-                className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                onSelect={() => props.onEdit(props.document)}
-              >
-                <Pencil className="mr-3 size-5 text-[#6f7282]" />
-                Настройки
-              </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuItem
-              className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-              onSelect={() => window.open(`/api/journal-documents/${props.document.id}/pdf`, "_blank")}
-            >
-              <Printer className="mr-3 size-5 text-[#6f7282]" />
-              Печать
-            </DropdownMenuItem>
-            {canManage ? (
-              <DropdownMenuItem
-                className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                onSelect={() => props.onDelete(props.document)}
-              >
-                <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                Удалить
-              </DropdownMenuItem>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <DocumentActionsMenu
+          onEdit={canManage ? () => props.onEdit(props.document) : undefined}
+          onPrint={() => props.onPrint(props.document)}
+          onDelete={canManage ? () => props.onDelete(props.document) : undefined}
+        />
       </div>
     </div>
   );
 }
 
 export function HealthDocumentsClient(props: Props) {
-  const router = useRouter();
   const [editingDocument, setEditingDocument] = useState<HealthListDocument | null>(null);
-  const heading =
-    props.activeTab === "closed" ? "Журнал здоровья (Закрытые!!!)" : "Журнал здоровья";
+  const heading = props.activeTab === "closed" ? "Журнал здоровья (закрытые)" : "Журнал здоровья";
+  const { deleteDocument, openPdf } = useJournalDocumentActions();
 
   async function handleDelete(document: HealthListDocument) {
-    const confirmed = await confirmAsync({ title: "Удалить документ?", description: `Документ «${document.title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" });
-    if (!confirmed) return;
-
-    const response = await fetch(`/api/journal-documents/${document.id}`, {
-      method: "DELETE",
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Период документа: ${document.periodLabel}`, tone: "info" },
+        { label: "Удалятся все отметки сотрудников за этот период", tone: "warn" },
+        { label: "Печатную форму этого документа восстановить будет нельзя", tone: "warn" },
+      ],
+      successMessage: `Документ «${document.title}» удалён`,
+      errorMessage: "Ошибка удаления документа",
     });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      toast.error(data?.error || "Ошибка удаления документа");
-      return;
-    }
-
-    router.refresh();
   }
 
   return (
     <>
-      <div className="space-y-12">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
-              {heading}
-            </h1>
-          </div>
-          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-            <Button
-              variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
-              asChild
-            >
-              <Link href="/sanpin">
-                <BookOpenText className="size-6" />
-                Инструкция
-              </Link>
-            </Button>
-            {props.activeTab === "active" ? (
-              <CreateDocumentDialog
-                templateCode={props.templateCode}
-                templateName={props.templateName}
-                users={props.users}
-                triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-                triggerLabel="Создать документ"
-                triggerIcon={<Plus className="size-7" />}
-              />
-            ) : null}
-          </div>
-        </div>
+      <div className="space-y-8 sm:space-y-14">
+        <JournalTopBar
+          heading={heading}
+          activeTab={props.activeTab}
+          templateCode={props.templateCode}
+          templateName={props.templateName}
+          users={props.users}
+        />
 
-        <div className="border-b border-[#ececf4]">
-          <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-            <Link
-              href={`/journals/${props.templateCode}`}
-              className={`relative pb-5 ${
-                props.activeTab === "active"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Активные
-            </Link>
-            <Link
-              href={`/journals/${props.templateCode}?tab=closed`}
-              className={`relative pb-5 ${
-                props.activeTab === "closed"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Закрытые
-            </Link>
-          </div>
-        </div>
+        <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {props.documents.length === 0 && <EmptyDocumentsState />}
           {props.documents.map((document) => (
             <HealthDocumentRow
@@ -302,6 +227,7 @@ export function HealthDocumentsClient(props: Props) {
               document={document}
               templateCode={props.templateCode}
               onEdit={setEditingDocument}
+              onPrint={(doc) => openPdf({ documentId: doc.id })}
               onDelete={handleDelete}
             />
           ))}

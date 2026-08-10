@@ -38,6 +38,30 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+
+/**
+ * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
+ * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
+ * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+/** Общий вид триггера shadcn-селекта внутри форм журнала. */
+const SELECT_TRIGGER_CLASS =
+  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+/**
+ * `<SelectItem value="">` в Radix запрещён — пустая строка зарезервирована
+ * под «ничего не выбрано». Пункт «— выберите —» несёт сентинел.
+ */
+const NONE_VALUE = "__none";
+const fromNone = (value: string) => (value === NONE_VALUE ? "" : value);
+const toNone = (value: string) => (value ? value : NONE_VALUE);
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; date: string; data: FryerOilEntryData };
 type Props = {
@@ -114,64 +138,83 @@ function EntryDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время начала</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input type="date" value={data.startDate} onChange={(e) => setData((v) => ({ ...v, startDate: e.target.value }))} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.startHour).padStart(2, "0")} onChange={(e) => setData((d) => ({ ...d, startHour: Number(e.target.value) }))}>
-                {HOURS.map((v) => <option key={v} value={v}>{v} ч</option>)}
-              </select>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.startMinute).padStart(2, "0")} onChange={(e) => setData((d) => ({ ...d, startMinute: Number(e.target.value) }))}>
-                {MINUTES.map((v) => <option key={v} value={v}>{v} мин</option>)}
-              </select>
+              <Select value={String(data.startHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startHour: Number(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
+                <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={String(data.startMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startMinute: Number(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
+                <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Вид фритюрного жира</Label>
-            <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={data.fatType} onChange={(e) => setData((d) => ({ ...d, fatType: e.target.value }))}>
-              <option value="">— выберите —</option>
-              {props.lists.fatTypes.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
+            <Select value={toNone(data.fatType)} onValueChange={(value) => setData((d) => ({ ...d, fatType: fromNone(value) }))}>
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                {props.lists.fatTypes.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Качество на начало</Label>
-            <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.qualityStart)} onChange={(e) => setData((d) => ({ ...d, qualityStart: Number(e.target.value) }))}>
-              {QUALITY_OPTIONS.map((v) => <option key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</option>)}
-            </select>
+            <Select value={String(data.qualityStart)} onValueChange={(value) => setData((d) => ({ ...d, qualityStart: Number(value) }))}>
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
+              <SelectContent>
+                {QUALITY_OPTIONS.map((v) => <SelectItem key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Тип жарочного оборудования</Label>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={data.equipmentType} onChange={(e) => setData((d) => ({ ...d, equipmentType: e.target.value }))}>
-                <option value="">— выберите —</option>
-                {props.lists.equipmentTypes.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+              <Select value={toNone(data.equipmentType)} onValueChange={(value) => setData((d) => ({ ...d, equipmentType: fromNone(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  {props.lists.equipmentTypes.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Вид продукции</Label>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={data.productType} onChange={(e) => setData((d) => ({ ...d, productType: e.target.value }))}>
-                <option value="">— выберите —</option>
-                {props.lists.productTypes.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+              <Select value={toNone(data.productType)} onValueChange={(value) => setData((d) => ({ ...d, productType: fromNone(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  {props.lists.productTypes.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Время окончания</Label>
             <div className="grid grid-cols-2 gap-2">
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.endHour).padStart(2, "0")} onChange={(e) => setData((d) => ({ ...d, endHour: Number(e.target.value) }))}>
-                {HOURS.map((v) => <option key={v} value={v}>{v} ч</option>)}
-              </select>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.endMinute).padStart(2, "0")} onChange={(e) => setData((d) => ({ ...d, endMinute: Number(e.target.value) }))}>
-                {MINUTES.map((v) => <option key={v} value={v}>{v} мин</option>)}
-              </select>
+              <Select value={String(data.endHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endHour: Number(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
+                <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={String(data.endMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endMinute: Number(value) }))}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
+                <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Качество на конец</Label>
-            <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={String(data.qualityEnd)} onChange={(e) => setData((d) => ({ ...d, qualityEnd: Number(e.target.value) }))}>
-              {QUALITY_OPTIONS.map((v) => <option key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</option>)}
-            </select>
+            <Select value={String(data.qualityEnd)} onValueChange={(value) => setData((d) => ({ ...d, qualityEnd: Number(value) }))}>
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
+              <SelectContent>
+                {QUALITY_OPTIONS.map((v) => <SelectItem key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -253,7 +296,7 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
               </TabsContent>
             ))}
           </Tabs>
-          <div className="mt-6 flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5863f8] px-7 text-white" onClick={() => { void props.onSave(lists); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="mt-6 flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-7 text-white" onClick={() => { void props.onSave(lists); props.onOpenChange(false); }}>Сохранить</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -328,7 +371,7 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
           <div className="space-y-1"><Label>Название документа</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 rounded-2xl" /></div>
           <div className="space-y-1"><Label>Дата начала</Label><Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-11 rounded-2xl" /></div>
           <div className="space-y-1"><Label>Статус документа</Label><Select value={status} onValueChange={(v: "active" | "closed") => setStatus(v)}><SelectTrigger className="h-11 rounded-2xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Активный</SelectItem><SelectItem value="closed">Закрытый</SelectItem></SelectContent></Select></div>
-          <div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5863f8] px-7 text-white" onClick={() => { void props.onSave({ title, dateFrom, status }); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="flex justify-end"><Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-7 text-white" onClick={() => { void props.onSave({ title, dateFrom, status }); props.onOpenChange(false); }}>Сохранить</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -339,8 +382,8 @@ function Appendix() {
   return (
     <div className="space-y-5 pt-8">
       <div className="text-[18px]">Приложение. Методика определения качества фритюрного жира.</div>
-      <table className="w-full border-collapse text-[14px]"><thead><tr className="bg-[#f2f2f2]"><th className="border border-black px-3 py-2">Показатели качества</th><th className="border border-black px-3 py-2">Отлично</th><th className="border border-black px-3 py-2">Хорошо</th><th className="border border-black px-3 py-2">Удовлетворительно</th><th className="border border-black px-3 py-2">Неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className="border border-black px-3 py-2">{x.name}</td><td className="border border-black px-3 py-2">{x.scores[5]}</td><td className="border border-black px-3 py-2">{x.scores[4]}</td><td className="border border-black px-3 py-2">{x.scores[3]}</td><td className="border border-black px-3 py-2">{x.scores[2]}</td></tr>)}</tbody></table>
-      <table className="w-full border-collapse text-[14px]"><thead><tr className="bg-[#f2f2f2]"><th className="border border-black px-3 py-2">Качество фритюра</th><th className="border border-black px-3 py-2">Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className="border border-black px-3 py-2 text-center">{x.label}</td><td className="border border-black px-3 py-2 text-center">{x.score}</td></tr>)}</tbody></table>
+      <table className="w-full border-collapse text-[14px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Показатели качества</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} px-3 py-2`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-2`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-2`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-2`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-2`}>{x.scores[2]}</td></tr>)}</tbody></table>
+      <table className="w-full border-collapse text-[14px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Качество фритюра</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>{x.label}</td><td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>{x.score}</td></tr>)}</tbody></table>
       <div className="text-[15px] leading-7">Пример расчета среднего балла: {QUALITY_ASSESSMENT_TABLE.formulaExample}</div>
     </div>
   );
@@ -421,7 +464,7 @@ export function FryerOilDocumentClient(props: Props) {
           setEntryItem(entry);
           setEntryOpen(true);
         }}
-        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5863f8] px-4 text-[14px] font-medium text-white hover:bg-[#4752e6]"
+        className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
       >
         Редактировать
       </button>
@@ -443,6 +486,39 @@ export function FryerOilDocumentClient(props: Props) {
     if (!response.ok) throw new Error(result?.error || "Не удалось удалить записи");
     setEntries((v) => v.filter((x) => !ids.includes(x.id)));
     setSelectedIds((v) => v.filter((x) => !ids.includes(x)));
+  }
+
+  /** Удаление выбранных строк — confirm со счётчиком последствий. */
+  async function confirmDeleteEntries() {
+    if (selectedIds.length === 0) return;
+    const fatTypes = Array.from(
+      new Set(
+        entries
+          .filter((entry) => selectedIds.includes(entry.id))
+          .map((entry) => entry.data.fatType)
+          .filter(Boolean),
+      ),
+    );
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description: "Записи об использовании фритюрных жиров будут удалены безвозвратно.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Записей будет удалено: ${selectedIds.length}`, tone: "warn" },
+        fatTypes.length > 0
+          ? { label: `Виды жира: ${fatTypes.slice(0, 4).join(", ")}`, tone: "info" as const }
+          : { label: "У выбранных записей не указан вид жира", tone: "info" as const },
+        {
+          label: `Останется записей: ${entries.length - selectedIds.length}`,
+          tone: "default",
+        },
+      ],
+    });
+    if (!confirmed) return;
+    await deleteEntries(selectedIds).catch((error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось удалить записи"),
+    );
   }
 
   const todayKey = new Date().toISOString().slice(0, 10);
@@ -485,21 +561,25 @@ export function FryerOilDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        {!isActive ? (
+          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи об использовании фритюрных жиров." />
+        ) : null}
+
+        <div className={GRID_VIEWPORT_CLASS}>
           <div className="min-w-[1400px]">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[240px_1fr_280px] border border-black">
-              <div className="flex min-h-[110px] items-center justify-center border-r border-black px-6 text-center text-[15px]">{props.organizationName}</div>
-              <div className="grid grid-rows-[55px_55px]"><div className="flex items-center justify-center border-b border-black text-[20px] uppercase">Система ХАССП</div><div className="flex items-center justify-center text-[18px] italic uppercase">Журнал учета использования фритюрных жиров</div></div>
-              <div className="grid grid-rows-[55px_55px] border-l border-black"><div className="space-y-1 border-b border-black px-6 py-3 text-[18px]"><div className="flex items-center justify-between"><span>Начат</span><span>{formatDateRu(dateFrom)}</span></div><div className="flex items-center justify-between"><span>Окончен</span><span>__________</span></div></div><div className="flex items-center justify-center text-[18px] uppercase">Стр. 1 из 1</div></div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[240px_1fr_280px] border border-[#ececf4] print:border-black">
+              <div className="flex min-h-[110px] items-center justify-center border-r border-[#ececf4] print:border-black px-6 text-center text-[15px]">{props.organizationName}</div>
+              <div className="grid grid-rows-[55px_55px]"><div className="flex items-center justify-center border-b border-[#ececf4] print:border-black text-[20px] uppercase">Система ХАССП</div><div className="flex items-center justify-center text-[18px] italic uppercase">Журнал учета использования фритюрных жиров</div></div>
+              <div className="grid grid-rows-[55px_55px] border-l border-[#ececf4] print:border-black"><div className="space-y-1 border-b border-[#ececf4] print:border-black px-6 py-3 text-[18px]"><div className="flex items-center justify-between"><span>Начат</span><span>{formatDateRu(dateFrom)}</span></div><div className="flex items-center justify-between"><span>Окончен</span><span>__________</span></div></div><div className="flex items-center justify-center text-[18px] uppercase">Стр. 1 из 1</div></div>
             </div>
             <div className="py-10 text-center text-[26px] font-semibold uppercase">Журнал учета использования фритюрных жиров</div>
-            {isActive ? <div className="mb-5 flex flex-wrap items-center gap-3 print:hidden"><Button type="button" className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" />Добавить</Button><Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[#ff3b30]" onClick={() => { if (window.confirm(`Удалить выбранные строки (${selectedIds.length})?`)) { void deleteEntries(selectedIds).catch((e) => toast.error(e instanceof Error ? e.message : "Не удалось удалить записи")); } }}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
+            {isActive ? <div className="mb-5 flex flex-wrap items-center gap-3 print:hidden"><Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" />Добавить</Button><Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[#ff3b30]" onClick={() => void confirmDeleteEntries()}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
             <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
             {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
             <MobileViewTableWrapper mobileView={mobileView}>
             <table className="w-full border-collapse text-[14px]">
-              <thead><tr className="bg-[#f2f2f2]">{isActive ? <th rowSpan={2} className="w-[52px] border border-black px-2 py-3 print:hidden"><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className="border border-black px-3 py-3">Дата, время начала использования фритюрного жира</th><th rowSpan={2} className="border border-black px-3 py-3">Вид фритюрного жира</th><th rowSpan={2} className="border border-black px-3 py-3">Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className="border border-black px-3 py-3">Тип жарочного оборудования</th><th rowSpan={2} className="border border-black px-3 py-3">Вид продукции</th><th rowSpan={2} className="border border-black px-3 py-3">Время окончания фритюрной жарки</th><th rowSpan={2} className="border border-black px-3 py-3">Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className="border border-black px-3 py-3">Использование оставшегося жира</th><th rowSpan={2} className="border border-black px-3 py-3">Должность, ФИО контролера</th></tr><tr className="bg-[#f2f2f2]"><th className="border border-black px-3 py-3">Переходящий остаток, кг</th><th className="border border-black px-3 py-3">Утилизированный, кг</th></tr></thead>
-              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className="border border-black px-6 py-10 text-center text-[#6f7282]">Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className="border border-black px-2 py-3 text-center print:hidden" onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className="border border-black px-3 py-3"><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className="border border-black px-3 py-3">{entry.data.fatType || "-"}</td><td className="border border-black px-3 py-3 text-center">{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className="border border-black px-3 py-3">{entry.data.equipmentType || "-"}</td><td className="border border-black px-3 py-3">{entry.data.productType || "-"}</td><td className="border border-black px-3 py-3 text-center">{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className="border border-black px-3 py-3 text-center">{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className="border border-black px-3 py-3 text-center">{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className="border border-black px-3 py-3 text-center">{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className="border border-black px-3 py-3">{entry.data.controllerName || "-"}</td></tr>)}</tbody>
+              <thead><tr>{isActive ? <th rowSpan={2} className={`w-[52px] ${GRID_HEAD_CELL_CLASS} px-2 py-3 print:hidden`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>Утилизированный, кг</th></tr></thead>
+              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282]`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center print:hidden`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-3 py-3`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-3 py-3`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-3 py-3`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-3 py-3`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-3 py-3`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>
             <Appendix />

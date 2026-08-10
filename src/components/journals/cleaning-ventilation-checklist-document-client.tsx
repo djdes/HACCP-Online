@@ -46,6 +46,7 @@ import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { isManagementRole } from "@/lib/user-roles";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -152,7 +153,7 @@ function TimeSelect({
         onValueChange={(nextHour) => onChange(`${nextHour}:${minute}`)}
         disabled={disabled}
       >
-        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#d8dcea] bg-white px-4 text-[16px]">
+        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#dcdfed] bg-white px-4 text-[16px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -168,7 +169,7 @@ function TimeSelect({
         onValueChange={(nextMinute) => onChange(`${hour}:${nextMinute}`)}
         disabled={disabled}
       >
-        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#d8dcea] bg-white px-4 text-[16px]">
+        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#dcdfed] bg-white px-4 text-[16px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -346,15 +347,15 @@ function DocumentSettingsDialog(props: {
         </DialogHeader>
         <div className="space-y-5 px-8 py-7">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Название документа</Label>
+            <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Дата начала</Label>
+            <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
             <div className="relative">
               <Input
                 type="date"
@@ -362,9 +363,9 @@ function DocumentSettingsDialog(props: {
                 onChange={(event) =>
                   setState((current) => ({ ...current, dateFrom: event.target.value }))
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-6 pr-14 text-[15px]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-6 pr-14 text-[15px]"
               />
-              <CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
+              <CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6f7282]" />
             </div>
           </div>
           <div className="space-y-3">
@@ -384,7 +385,7 @@ function DocumentSettingsDialog(props: {
             </p>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Должность ответственного</Label>
+            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={state.mainResponsibleTitle}
               onValueChange={(value) =>
@@ -403,7 +404,7 @@ function DocumentSettingsDialog(props: {
                 })
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -412,14 +413,14 @@ function DocumentSettingsDialog(props: {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Сотрудник</Label>
+            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select
               value={state.mainResponsibleUserId}
               onValueChange={(value) =>
                 setState((current) => ({ ...current, mainResponsibleUserId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -435,7 +436,7 @@ function DocumentSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -492,7 +493,7 @@ function AddResponsibleDialog(props: {
         </DialogHeader>
         <div className="space-y-5 px-8 py-7">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Должность ответственного</Label>
+            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={title}
               onValueChange={(value) => {
@@ -505,7 +506,7 @@ function AddResponsibleDialog(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -514,9 +515,9 @@ function AddResponsibleDialog(props: {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#7a7c8e]">Сотрудник</Label>
+            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f4f5fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -531,7 +532,7 @@ function AddResponsibleDialog(props: {
           <div className="flex justify-end pt-2">
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
               disabled={!title || !userId}
               onClick={async () => {
                 await props.onAdd({ id: createId(), title, userId });
@@ -752,7 +753,7 @@ export function CleaningVentilationChecklistDocumentClient({
         <div className="flex items-center gap-5 rounded-[22px] bg-white px-7 py-5 shadow-sm">
           <button
             type="button"
-            className="flex items-center gap-3 rounded-2xl bg-[#f5f6ff] px-6 py-4 text-[18px] text-[#5563ff]"
+            className="flex items-center gap-3 rounded-2xl bg-[#f5f6ff] px-6 py-4 text-[18px] text-[#5566f6]"
             onClick={() => setSelection([])}
           >
             <X className="size-5" />
@@ -807,6 +808,10 @@ export function CleaningVentilationChecklistDocumentClient({
           </div>
         </div>
 
+        {!isActive ? (
+          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки." />
+        ) : null}
+
         <div className="rounded-[28px] bg-[#f4f5fe] px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <label className="flex items-center gap-4 text-[22px] font-semibold text-black">
@@ -824,9 +829,9 @@ export function CleaningVentilationChecklistDocumentClient({
             </label>
             <button type="button" onClick={() => setPanelOpen((current) => !current)}>
               {panelOpen ? (
-                <ChevronUp className="size-7 text-[#5863f8]" />
+                <ChevronUp className="size-7 text-[#5566f6]" />
               ) : (
-                <ChevronDown className="size-7 text-[#5863f8]" />
+                <ChevronDown className="size-7 text-[#5566f6]" />
               )}
             </button>
           </div>
@@ -879,7 +884,7 @@ export function CleaningVentilationChecklistDocumentClient({
                         );
                       }}
                     >
-                      <SelectTrigger className="h-12 w-full rounded-[18px] border-[#d8dcea] bg-white px-4 text-[16px] md:w-[320px]">
+                      <SelectTrigger className="h-12 w-full rounded-[18px] border-[#dcdfed] bg-white px-4 text-[16px] md:w-[320px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -911,29 +916,29 @@ export function CleaningVentilationChecklistDocumentClient({
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-[28px] border border-[#d9dceb]">
+        <div className="overflow-hidden rounded-[28px] border border-[#ececf4] print:border-black">
           <table className="w-full border-collapse text-left">
             <tbody>
-              <tr className="border-b border-[#d9dceb]">
-                <td className="w-[220px] border-r border-[#d9dceb] px-5 py-4 align-middle text-[18px] font-semibold">
+              <tr className="border-b border-[#ececf4] print:border-black">
+                <td className="w-[220px] border-r border-[#ececf4] print:border-black px-5 py-4 align-middle text-[18px] font-semibold">
                   {organizationName || 'ООО "Тест"'}
                 </td>
-                <td className="border-r border-[#d9dceb] px-5 py-4 text-center text-[18px]">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-center text-[18px]">
                   СИСТЕМА ХАССП
                 </td>
-                <td className="w-[250px] border-r border-[#d9dceb] px-5 py-4 text-[15px] leading-6">
+                <td className="w-[250px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[15px] leading-6">
                   Начат {formatRuDate(dateFrom)}
                   <br />
                   Окончен __________
                 </td>
                 <td className="w-[120px] px-5 py-4 text-center text-[16px]">СТР. 1 ИЗ 1</td>
               </tr>
-              <tr className="border-b border-[#d9dceb]">
-                <td className="border-r border-[#d9dceb] px-5 py-4" />
-                <td className="border-r border-[#d9dceb] px-5 py-4 text-center text-[18px] italic">
+              <tr className="border-b border-[#ececf4] print:border-black">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-center text-[18px] italic">
                   {CLEANING_VENTILATION_CHECKLIST_TITLE.toUpperCase()}
                 </td>
-                <td className="border-r border-[#d9dceb] px-5 py-4" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
                 <td className="px-5 py-4" />
               </tr>
             </tbody>
@@ -941,11 +946,11 @@ export function CleaningVentilationChecklistDocumentClient({
 
           <table className="w-full border-collapse">
             <tbody>
-              <tr className="border-b border-[#d9dceb]">
-                <td className="w-[180px] border-r border-[#d9dceb] px-5 py-4 text-[16px] font-semibold">
+              <tr className="border-b border-[#ececf4] print:border-black">
+                <td className="w-[180px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
                   Процедура
                 </td>
-                <td className="border-r border-[#d9dceb] px-5 py-4 text-[15px] leading-6">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-[15px] leading-6">
                   {getCleaningVentilationDescriptionLines()
                     .filter(
                       (item) =>
@@ -959,7 +964,7 @@ export function CleaningVentilationChecklistDocumentClient({
                       </div>
                     ))}
                 </td>
-                <td className="w-[210px] border-r border-[#d9dceb] px-5 py-4 text-[16px] font-semibold">
+                <td className="w-[210px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
                   Периодичность
                 </td>
                 <td className="w-[260px] px-5 py-4 text-[15px] leading-6">
@@ -969,9 +974,9 @@ export function CleaningVentilationChecklistDocumentClient({
                 </td>
               </tr>
               <tr>
-                <td className="border-r border-[#d9dceb] px-5 py-4" />
-                <td className="border-r border-[#d9dceb] px-5 py-4" />
-                <td className="border-r border-[#d9dceb] px-5 py-4 text-[16px] font-semibold">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
                   Ответственные лица
                 </td>
                 <td className="space-y-3 px-5 py-4 text-[15px] leading-6">
@@ -1014,7 +1019,7 @@ export function CleaningVentilationChecklistDocumentClient({
                   {isActive ? (
                     <button
                       type="button"
-                      className="rounded-2xl bg-[#f4f5fe] px-4 py-3 text-[15px] font-medium text-[#5563ff]"
+                      className="rounded-2xl bg-[#f4f5fe] px-4 py-3 text-[15px] font-medium text-[#5566f6]"
                       onClick={() => setResponsibleDialogOpen(true)}
                     >
                       Добавить ответственного
@@ -1035,7 +1040,7 @@ export function CleaningVentilationChecklistDocumentClient({
                   toast.error(error instanceof Error ? error.message : "Не удалось добавить дату")
                 );
               }}
-              className="h-12 rounded-2xl bg-[#5563ff] px-6 text-[16px] text-white hover:bg-[#4554ff]"
+              className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="mr-2 size-5" />
               Добавить
@@ -1089,11 +1094,11 @@ export function CleaningVentilationChecklistDocumentClient({
           />
         ) : null}
 
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#d9dceb]">
+        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#ececf4] print:border-black">
           <table className="min-w-full border-collapse">
             <thead>
-              <tr className="bg-[#f8f9fc]">
-                <th className="w-[58px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black">
+              <tr className="bg-[#f8f9fc] print:bg-white">
+                <th className="w-[58px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
                   <div className="flex justify-center">
                     <Checkbox
                       checked={rows.length > 0 && selection.length === rows.length}
@@ -1105,22 +1110,22 @@ export function CleaningVentilationChecklistDocumentClient({
                     />
                   </div>
                 </th>
-                <th className="w-[140px] border-b border-r border-[#d9dceb] px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="w-[140px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
                   Дата
                 </th>
-                <th className="w-[240px] border-b border-r border-[#d9dceb] px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="w-[240px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
                   Процедура
                 </th>
-                <th className="w-[160px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
                   Время 1
                 </th>
-                <th className="w-[160px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
                   Время 2
                 </th>
-                <th className="w-[160px] border-b border-r border-[#d9dceb] px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
                   Время 3
                 </th>
-                <th className="border-b border-[#d9dceb] px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="border-b border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
                   ФИО ответственного лица
                 </th>
               </tr>
@@ -1141,7 +1146,7 @@ export function CleaningVentilationChecklistDocumentClient({
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}
-                          className="border-b border-r border-[#d9dceb] px-4 py-4 align-top"
+                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top"
                         >
                           <div className="flex justify-center">
                             <Checkbox
@@ -1162,18 +1167,18 @@ export function CleaningVentilationChecklistDocumentClient({
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}
-                          className="border-b border-r border-[#d9dceb] px-4 py-4 align-top text-[16px] text-black"
+                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top text-[16px] text-black"
                         >
                           {formatRuDate(row.dateKey)}
                         </td>
                       ) : null}
-                      <td className="border-b border-r border-[#d9dceb] px-4 py-4 text-[16px] text-black">
+                      <td className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black">
                         {procedure.label}
                       </td>
                       {[0, 1, 2].map((timeIndex) => (
                         <td
                           key={`${row.dateKey}-${procedure.id}-${timeIndex}`}
-                          className="border-b border-r border-[#d9dceb] px-3 py-3"
+                          className="border-b border-r border-[#ececf4] print:border-black px-3 py-3"
                         >
                           <TimeSelect
                             value={procedure.times[timeIndex] || "00:00"}
@@ -1191,7 +1196,7 @@ export function CleaningVentilationChecklistDocumentClient({
                           />
                         </td>
                       ))}
-                      <td className="border-b border-[#d9dceb] px-4 py-4 text-[16px] text-black">
+                      <td className="border-b border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black">
                         {responsibleName}
                       </td>
                     </tr>

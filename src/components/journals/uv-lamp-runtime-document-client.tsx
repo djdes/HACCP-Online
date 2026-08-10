@@ -49,6 +49,7 @@ import {
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { toDateKey } from "@/lib/hygiene-document";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -212,7 +213,7 @@ function UvSpecEditDialog(props: {
             <Input
               value={microorganism}
               onChange={(e) => setMicroorganism(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[16px]"
             />
           </div>
 
@@ -225,7 +226,7 @@ function UvSpecEditDialog(props: {
                   name="radiationMode"
                   checked={radiationMode === "continuous"}
                   onChange={() => setRadiationMode("continuous")}
-                  className="size-4 accent-[#5863f8]"
+                  className="size-4 accent-[#5566f6]"
                 />
                 Непрерывный
               </label>
@@ -235,7 +236,7 @@ function UvSpecEditDialog(props: {
                   name="radiationMode"
                   checked={radiationMode === "intermittent"}
                   onChange={() => setRadiationMode("intermittent")}
-                  className="size-4 accent-[#5863f8]"
+                  className="size-4 accent-[#5566f6]"
                 />
                 Повторно-кратковременный
               </label>
@@ -251,7 +252,7 @@ function UvSpecEditDialog(props: {
                   name="condition"
                   checked={condition === "with_people"}
                   onChange={() => setCondition("with_people")}
-                  className="size-4 accent-[#5863f8]"
+                  className="size-4 accent-[#5566f6]"
                 />
                 В присутствии людей
               </label>
@@ -261,7 +262,7 @@ function UvSpecEditDialog(props: {
                   name="condition"
                   checked={condition === "without_people"}
                   onChange={() => setCondition("without_people")}
-                  className="size-4 accent-[#5863f8]"
+                  className="size-4 accent-[#5566f6]"
                 />
                 В отсутствии людей
               </label>
@@ -274,7 +275,7 @@ function UvSpecEditDialog(props: {
               type="number"
               value={lampHours}
               onChange={(e) => setLampHours(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[16px]"
             />
             <div className="text-[13px] text-[#999]">*срок замены отработавших ламп</div>
           </div>
@@ -285,7 +286,7 @@ function UvSpecEditDialog(props: {
               type="date"
               value={commDate}
               onChange={(e) => setCommDate(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[16px]"
             />
           </div>
 
@@ -294,7 +295,7 @@ function UvSpecEditDialog(props: {
             <Input
               value={minInterval}
               onChange={(e) => setMinInterval(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[16px]"
             />
             <div className="text-[13px] text-[#999]">*для повторно-кратковременного облучения</div>
           </div>
@@ -302,7 +303,7 @@ function UvSpecEditDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Частота контроля работы установки</Label>
             <Select value={frequency} onValueChange={setFrequency}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[16px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -337,7 +338,7 @@ function UvSpecEditDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -522,7 +523,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[24px] leading-none"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[24px] leading-none"
             />
           </div>
           <div className="space-y-1">
@@ -530,7 +531,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
           <div className="space-y-1">
@@ -539,7 +540,7 @@ function UvRuntimeSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
           <div className="space-y-1">
@@ -553,7 +554,7 @@ function UvRuntimeSettingsDialog(props: {
               }
               setResponsibleTitle(value);
             }}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -584,7 +585,7 @@ function UvRuntimeSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -602,7 +603,7 @@ function UvRuntimeSettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -665,7 +666,7 @@ function AddRowDialog(props: {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
 
@@ -675,7 +676,7 @@ function AddRowDialog(props: {
               <div className="flex-1 space-y-1">
                 <Label className="text-[14px] text-[#6f7282]">Часы</Label>
                 <Select value={startHour} onValueChange={setStartHour}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -688,7 +689,7 @@ function AddRowDialog(props: {
               <div className="flex-1 space-y-1">
                 <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
                 <Select value={startMin} onValueChange={setStartMin}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -707,7 +708,7 @@ function AddRowDialog(props: {
               <div className="flex-1 space-y-1">
                 <Label className="text-[14px] text-[#6f7282]">Часы</Label>
                 <Select value={endHour} onValueChange={setEndHour}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -720,7 +721,7 @@ function AddRowDialog(props: {
               <div className="flex-1 space-y-1">
                 <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
                 <Select value={endMin} onValueChange={setEndMin}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -744,7 +745,7 @@ function AddRowDialog(props: {
               }
               setResponsibleTitle(value);
             }}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -775,7 +776,7 @@ function AddRowDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -801,7 +802,7 @@ function AddRowDialog(props: {
                 });
                 props.onOpenChange(false);
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               Добавить
             </Button>
@@ -1061,7 +1062,13 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   }
 
   async function handleCloseJournal() {
-    if (!window.confirm("Закончить журнал? Документ станет доступен только для чтения.")) return;
+    const confirmed = await confirmAsync({
+      title: "Закончить журнал?",
+      description: "Документ станет доступен только для чтения.",
+      variant: "warn",
+      confirmLabel: "Закончить",
+    });
+    if (!confirmed) return;
 
     const response = await fetch(`/api/journal-documents/${props.documentId}`, {
       method: "PATCH",
@@ -1195,6 +1202,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           Настройки журнала
         </Button>
       </div>
+
+      {props.status !== "active" ? (
+        <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки времени." />
+      ) : null}
 
       {/* Auto-fill toggle */}
       {props.status === "active" && (
@@ -1418,7 +1429,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                         onBlur={() => {
                           saveRow(row).catch(() => toast.error("Не удалось сохранить строку"));
                         }}
-                        className="mx-auto h-9 w-[110px] rounded-md border-[#dfe1ec] text-center text-[13px]"
+                        className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
                       />
                     ) : (
                       <span className="text-[14px] text-black">{row.data.startTime || "—"}</span>
@@ -1441,7 +1452,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                         onBlur={() => {
                           saveRow(row).catch(() => toast.error("Не удалось сохранить строку"));
                         }}
-                        className="mx-auto h-9 w-[110px] rounded-md border-[#dfe1ec] text-center text-[13px]"
+                        className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
                       />
                     ) : (
                       <span className="text-[14px] text-black">{row.data.endTime || "—"}</span>
@@ -1465,7 +1476,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                           return;
                         }}
                       >
-                        <SelectTrigger className="h-9 rounded-md border-[#dfe1ec] text-[13px]">
+                        <SelectTrigger className="h-9 rounded-md border-[#dcdfed] text-[13px]">
                           <SelectValue placeholder="Выберите сотрудника" />
                         </SelectTrigger>
                         <SelectContent>

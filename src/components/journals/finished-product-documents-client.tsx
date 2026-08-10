@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { normalizeFinishedProductDocumentConfig } from "@/lib/finished-product-document";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -86,14 +86,22 @@ export function FinishedProductDocumentsClient({
     setFooterNote(cfg.footerNote);
   }, [editingDocument]);
 
-  async function handleDelete(documentId: string, titleValue: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${titleValue}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
-    const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-    router.refresh();
+  // Единый источник delete / pdf для журнальных документов.
+  const { deleteDocument, openPdf } = useJournalDocumentActions();
+
+  async function handleDelete(document: JournalListDocument) {
+    const cfg = normalizeFinishedProductDocumentConfig(document.config);
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Записей бракеража: ${cfg.rows.length}`, tone: "warn" },
+        { label: `Изделий в справочнике документа: ${cfg.itemsCatalog.length}`, tone: "info" },
+        { label: `Период документа: ${document.periodLabel}`, tone: "info" },
+      ],
+      successMessage: `Документ «${document.title}» удалён`,
+      errorMessage: "Не удалось удалить документ",
+    });
   }
 
   async function saveSettings() {
@@ -134,7 +142,7 @@ export function FinishedProductDocumentsClient({
       <JournalTopBar
         heading={
           activeTab === "closed"
-            ? "Журнал бракеража готовой пищевой продукции (Закрытые!!!)"
+            ? "Журнал бракеража готовой пищевой продукции (закрытые)"
             : "Журнал бракеража готовой пищевой продукции"
         }
         activeTab={activeTab}
@@ -165,11 +173,9 @@ export function FinishedProductDocumentsClient({
             <DocumentActionsMenu
               size="sm"
               onEdit={activeTab === "active" ? () => setEditingDocument(document) : undefined}
-              onPrint={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+              onPrint={() => openPdf({ documentId: document.id })}
               onDelete={
-                activeTab === "active"
-                  ? () => handleDelete(document.id, document.title)
-                  : undefined
+                activeTab === "active" ? () => void handleDelete(document) : undefined
               }
             />
           </div>

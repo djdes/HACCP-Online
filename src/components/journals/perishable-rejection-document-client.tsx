@@ -32,7 +32,19 @@ import {
   type PerishableRejectionRow,
 } from "@/lib/perishable-rejection-document";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
-import { PositionNativeOptions } from "@/components/shared/position-select";
+import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { promptAsync } from "@/components/ui/prompt-async";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -54,6 +66,32 @@ type Props = {
 };
 
 const RESPONSIBLE_POSITIONS = USER_ROLE_LABEL_VALUES;
+
+/**
+ * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
+ * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
+ * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+/** Общий вид триггера shadcn-селекта внутри форм журнала. */
+const SELECT_TRIGGER_CLASS =
+  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+/**
+ * `<SelectItem value="">` в Radix запрещён — пустая строка зарезервирована
+ * под «ничего не выбрано». Поэтому пункт «— выберите —» несёт сентинел,
+ * который на входе/выходе мапится в пустую строку.
+ */
+const NONE_VALUE = "__none";
+const fromNone = (value: string) => (value === NONE_VALUE ? "" : value);
+const toNone = (value: string) => (value ? value : NONE_VALUE);
+
+/** Сколько строк максимум разрешаем добавить одной пачкой. */
+const BULK_ROWS_MAX = 50;
 
 function nowDate() {
   return new Date().toISOString().slice(0, 10);
@@ -138,6 +176,8 @@ export function PerishableRejectionDocumentClient({
     "products" | "manufacturers" | "suppliers"
   >("products");
   const [newListName, setNewListName] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [activeListId, setActiveListId] = useState<string>("");
 
@@ -204,9 +244,33 @@ export function PerishableRejectionDocumentClient({
     );
   }
 
-  function removeSelectedRows() {
+  async function removeSelectedRows() {
     if (readOnly) return;
     if (selectedRows.length === 0) return;
+    const names = config.rows
+      .filter((row) => selectedRows.includes(row.id))
+      .map((row) => row.productName)
+      .filter(Boolean);
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные записи?",
+      description: "Записи бракеража скоропортящейся продукции исчезнут из журнала.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Записей будет удалено: ${selectedRows.length}`, tone: "warn" },
+        names.length > 0
+          ? {
+              label: `Изделия: ${names.slice(0, 4).join(", ")}${names.length > 4 ? " и др." : ""}`,
+              tone: "info" as const,
+            }
+          : { label: "У выбранных записей не заполнено наименование", tone: "info" as const },
+        {
+          label: `Останется записей: ${config.rows.length - selectedRows.length}`,
+          tone: "default",
+        },
+      ],
+    });
+    if (!confirmed) return;
     setConfig((prev) => ({
       ...prev,
       rows: prev.rows.filter((row) => !selectedRows.includes(row.id)),
@@ -239,17 +303,45 @@ export function PerishableRejectionDocumentClient({
     list.items.forEach((item) => addSingleRow(item));
   }
 
-  function addFromFile() {
+  /** «Добавить несколько изделий» — пачка пустых строк. */
+  async function addSeveralRows() {
     if (readOnly) return;
-    const text = window.prompt(
-      "Вставьте названия изделий, каждое с новой строки:"
-    );
-    if (!text) return;
-    text
+    const raw = await promptAsync({
+      title: "Добавить несколько изделий",
+      description:
+        "В таблицу добавятся пустые строки с текущей датой и временем поступления — останется вписать наименования.",
+      label: "Сколько строк добавить",
+      type: "number",
+      defaultValue: "3",
+      placeholder: "3",
+      confirmLabel: "Добавить",
+      validate: (value) => {
+        const count = Number(value);
+        if (!value.trim()) return "Введите число";
+        if (!Number.isInteger(count) || count <= 0) return "Нужно целое число больше нуля";
+        if (count > BULK_ROWS_MAX)
+          return `За один раз можно добавить не больше ${BULK_ROWS_MAX} строк`;
+        return null;
+      },
+    });
+    if (raw === null) return;
+    const count = Number(raw);
+    if (!Number.isInteger(count) || count <= 0 || count > BULK_ROWS_MAX) return;
+    for (let i = 0; i < count; i += 1) addSingleRow();
+  }
+
+  /** «Добавить списком» — многострочная вставка наименований. */
+  function addRowsFromText() {
+    if (readOnly) return;
+    const items = bulkText
       .split("\n")
       .map((x) => x.trim())
-      .filter(Boolean)
-      .forEach((item) => addSingleRow(item));
+      .filter(Boolean);
+    if (items.length === 0) return;
+    items.forEach((item) => addSingleRow(item));
+    setBulkText("");
+    setBulkOpen(false);
+    toast.success(`Добавлено строк: ${items.length}`);
   }
 
   function resetDraftRow() {
@@ -347,12 +439,28 @@ export function PerishableRejectionDocumentClient({
     setNewItemName("");
   }
 
-  function importItemsFromText(section: "products" | "manufacturers" | "suppliers") {
+  async function importItemsFromText(
+    section: "products" | "manufacturers" | "suppliers",
+  ) {
     if (readOnly) return;
-    const text = window.prompt("Вставьте элементы, каждый с новой строки:");
-    if (!text) return;
+    const sectionLabel =
+      section === "products"
+        ? "изделий"
+        : section === "manufacturers"
+          ? "изготовителей"
+          : "поставщиков";
+    const text = await promptAsync({
+      title: `Импорт ${sectionLabel}`,
+      description:
+        "Вставьте элементы через запятую или точку с запятой — они добавятся в справочник документа. Дубликаты будут отброшены.",
+      label: "Список элементов",
+      placeholder: "Молоко 3,2%; Творог 9%; Сметана 20%",
+      confirmLabel: "Импортировать",
+      validate: (value) => (value.trim() ? null : "Вставьте хотя бы один элемент"),
+    });
+    if (text === null) return;
     const items = text
-      .split("\n")
+      .split(/[\n;]/)
       .map((x) => x.trim())
       .filter(Boolean);
     if (section === "products") {
@@ -408,12 +516,17 @@ export function PerishableRejectionDocumentClient({
         </Button>
       </div>
 
+      {readOnly ? (
+        <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
+      ) : null}
+
       {!readOnly ? (
         <div className="flex justify-end">
           <DocumentCloseButton
             documentId={documentId}
             title={title}
             variant="outline"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]"
           >
             Закончить журнал
           </DocumentCloseButton>
@@ -427,23 +540,23 @@ export function PerishableRejectionDocumentClient({
             <tr>
               <td
                 rowSpan={2}
-                className="w-[18%] border border-black p-3 text-center font-semibold"
+                className={`w-[18%] ${GRID_CELL_CLASS} p-3 text-center font-semibold`}
               >
                 {organizationName}
               </td>
-              <td className="border border-black p-2 text-center">
+              <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className="w-[20%] border border-black p-2 text-[18px] font-medium">
+              <td className={`w-[20%] ${GRID_CELL_CLASS} p-2 text-[18px] font-medium`}>
                 Начат&nbsp;&nbsp;{new Date(dateFrom).toLocaleDateString("ru-RU")}
                 <div className="mt-2 font-normal">Окончен&nbsp;__________</div>
               </td>
             </tr>
             <tr>
-              <td className="border border-black p-2 text-center text-sm uppercase italic">
+              <td className={`${GRID_CELL_CLASS} p-2 text-center text-sm uppercase italic`}>
                 ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ
               </td>
-              <td className="border border-black p-2 text-center text-[18px]">
+              <td className={`${GRID_CELL_CLASS} p-2 text-center text-[18px]`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
@@ -461,33 +574,40 @@ export function PerishableRejectionDocumentClient({
               <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
-                  className="bg-[#5566f6] hover:bg-[#4d58f5]"
+                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
                 >
                   <Plus className="size-4" />
                   Добавить
                   <ChevronDown className="ml-1 size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[280px] rounded-2xl border-0 p-2">
-                <DropdownMenuItem onSelect={() => setAddModalOpen(true)}>
+              <DropdownMenuContent className="w-[280px] rounded-[24px] border-0 p-3 shadow-xl">
+                <DropdownMenuItem
+                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  onSelect={() => setAddModalOpen(true)}
+                >
                   Добавить изделие
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={() => {
-                    const count = Number(
-                      window.prompt("Сколько изделий добавить?", "3") || "0"
-                    );
-                    if (count > 0)
-                      for (let i = 0; i < count; i += 1) addSingleRow();
-                  }}
+                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  onSelect={() => void addSeveralRows()}
                 >
                   Добавить несколько изделий
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={addRowsFromList}>
+                <DropdownMenuItem
+                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  onSelect={addRowsFromList}
+                >
                   Добавить из списка
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={addFromFile}>
-                  Добавить из файла
+                <DropdownMenuItem
+                  className="h-11 rounded-2xl px-4 text-[15px]"
+                  onSelect={() => {
+                    setBulkText("");
+                    setBulkOpen(true);
+                  }}
+                >
+                  Добавить списком
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -495,6 +615,7 @@ export function PerishableRejectionDocumentClient({
           <Button
             type="button"
             variant="outline"
+            className="h-11 rounded-2xl border-0 bg-[#f5f6ff] px-4 text-[15px] text-[#3848c7] transition-colors hover:bg-[#eceeff]"
             onClick={() => setListModalOpen(true)}
             disabled={readOnly}
           >
@@ -503,14 +624,16 @@ export function PerishableRejectionDocumentClient({
           <Button
             type="button"
             variant="outline"
-            onClick={removeSelectedRows}
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]"
+            onClick={() => void removeSelectedRows()}
             disabled={readOnly || selectedRows.length === 0}
           >
             <Trash2 className="size-4" />
-            Удалить выбранные
+            Удалить выбранные{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
           </Button>
           <Button
             type="button"
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => saveConfig()}
             disabled={readOnly || isSaving || isPending}
           >
@@ -529,42 +652,42 @@ export function PerishableRejectionDocumentClient({
         ) : null}
 
         {/* Main data table */}
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[2200px] w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="w-10 border p-2" />
-                <th className="border p-2">
+                <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} />
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Дата, время поступления пищ. продукции
                 </th>
-                <th className="border p-2">Наименование</th>
-                <th className="border p-2">Дата выработки</th>
-                <th className="border p-2">Изготовитель/поставщик</th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Наименование</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Дата выработки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Изготовитель/поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
                 </th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Номер документа, подтверждающего безопасность
                 </th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Результаты органолептической оценки
                 </th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Условия хранения, конечный срок реализации
                 </th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Дата, время фактической реализации
                 </th>
-                <th className="border p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
                   Ответственное лицо (ФИО, должность)
                 </th>
-                <th className="border p-2">Примечание</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Примечание</th>
               </tr>
             </thead>
             <tbody>
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-                  <td className="border p-2 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-2 align-top`}>
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) =>
@@ -573,7 +696,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={`${row.arrivalDate} ${row.arrivalTime}`}
                       onChange={(e) => {
@@ -588,7 +711,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={row.productName}
                       onChange={(e) =>
@@ -598,7 +721,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={row.productionDate}
                       onChange={(e) =>
@@ -608,7 +731,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={
                         [row.manufacturer, row.supplier]
@@ -622,7 +745,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={
                         [row.packaging, row.quantity]
@@ -636,7 +759,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={row.documentNumber}
                       onChange={(e) =>
@@ -648,7 +771,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={
                         ORGANOLEPTIC_LABELS[row.organolepticResult] ||
@@ -667,7 +790,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
                       onChange={(e) =>
@@ -677,7 +800,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={`${row.actualSaleDate} ${row.actualSaleTime}`}
                       onChange={(e) => {
@@ -692,7 +815,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={row.responsiblePerson}
                       onChange={(e) =>
@@ -704,7 +827,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className="border p-1 align-top">
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
                     <Input
                       value={row.note}
                       onChange={(e) =>
@@ -749,38 +872,46 @@ export function PerishableRejectionDocumentClient({
                     }))
                   }
                 />
-                <select
-                  className="h-11 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                <Select
                   value={arrivalHM.h}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setDraftRow((prev) => ({
                       ...prev,
-                      arrivalTime: mergeHM(e.target.value, arrivalHM.m),
+                      arrivalTime: mergeHM(value, arrivalHM.m),
                     }))
                   }
                 >
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={padTwo(i)}>
-                      {padTwo(i)} ч
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-11 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="Час" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={padTwo(i)}>
+                        {padTwo(i)} ч
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={arrivalHM.m}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setDraftRow((prev) => ({
                       ...prev,
-                      arrivalTime: mergeHM(arrivalHM.h, e.target.value),
+                      arrivalTime: mergeHM(arrivalHM.h, value),
                     }))
                   }
                 >
-                  {Array.from({ length: 60 }, (_, i) => (
-                    <option key={i} value={padTwo(i)}>
-                      {padTwo(i)} мин
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="Мин" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <SelectItem key={i} value={padTwo(i)}>
+                        {padTwo(i)} мин
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -789,27 +920,31 @@ export function PerishableRejectionDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Наименование изделия
               </Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={
+              <Select
+                value={toNone(
                   productOptions.includes(draftRow.productName)
                     ? draftRow.productName
                     : ""
-                }
-                onChange={(e) =>
+                )}
+                onValueChange={(value) =>
                   setDraftRow((prev) => ({
                     ...prev,
-                    productName: e.target.value,
+                    productName: fromNone(value),
                   }))
                 }
               >
-                <option value="">— выберите из списка —</option>
-                {productOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите из списка —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите из списка —</SelectItem>
+                  {productOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 placeholder="Или введите новое наименование"
@@ -850,27 +985,31 @@ export function PerishableRejectionDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Изготовитель
               </Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={
+              <Select
+                value={toNone(
                   config.manufacturers.includes(draftRow.manufacturer)
                     ? draftRow.manufacturer
                     : ""
-                }
-                onChange={(e) =>
+                )}
+                onValueChange={(value) =>
                   setDraftRow((prev) => ({
                     ...prev,
-                    manufacturer: e.target.value,
+                    manufacturer: fromNone(value),
                   }))
                 }
               >
-                <option value="">— выберите из списка —</option>
-                {manufacturerOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите из списка —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите из списка —</SelectItem>
+                  {manufacturerOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 placeholder="Или введите нового изготовителя"
@@ -893,27 +1032,31 @@ export function PerishableRejectionDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Поставщик
               </Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={
+              <Select
+                value={toNone(
                   config.suppliers.includes(draftRow.supplier)
                     ? draftRow.supplier
                     : ""
-                }
-                onChange={(e) =>
+                )}
+                onValueChange={(value) =>
                   setDraftRow((prev) => ({
                     ...prev,
-                    supplier: e.target.value,
+                    supplier: fromNone(value),
                   }))
                 }
               >
-                <option value="">— выберите из списка —</option>
-                {supplierOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите из списка —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите из списка —</SelectItem>
+                  {supplierOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
                 placeholder="Или введите нового поставщика"
@@ -1098,38 +1241,46 @@ export function PerishableRejectionDocumentClient({
                     }))
                   }
                 />
-                <select
-                  className="h-11 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                <Select
                   value={saleHM.h}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setDraftRow((prev) => ({
                       ...prev,
-                      actualSaleTime: mergeHM(e.target.value, saleHM.m),
+                      actualSaleTime: mergeHM(value, saleHM.m),
                     }))
                   }
                 >
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={padTwo(i)}>
-                      {padTwo(i)} ч
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-11 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="Час" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={padTwo(i)}>
+                        {padTwo(i)} ч
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={saleHM.m}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setDraftRow((prev) => ({
                       ...prev,
-                      actualSaleTime: mergeHM(saleHM.h, e.target.value),
+                      actualSaleTime: mergeHM(saleHM.h, value),
                     }))
                   }
                 >
-                  {Array.from({ length: 60 }, (_, i) => (
-                    <option key={i} value={padTwo(i)}>
-                      {padTwo(i)} мин
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="Мин" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <SelectItem key={i} value={padTwo(i)}>
+                        {padTwo(i)} мин
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1139,11 +1290,9 @@ export function PerishableRejectionDocumentClient({
                 <Label className="text-[13px] font-medium text-[#3c4053]">
                   Должность ответственного
                 </Label>
-                <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                <Select
                   value={draftPosition}
-                  onChange={(e) => {
-                    const pos = e.target.value;
+                  onValueChange={(pos) => {
                     setDraftPosition(pos);
                     const candidates = getUsersForRoleLabel(users, pos);
                     if (draftUserId && !candidates.some((u) => u.id === draftUserId)) {
@@ -1151,25 +1300,34 @@ export function PerishableRejectionDocumentClient({
                     }
                   }}
                 >
-                  <PositionNativeOptions users={users} />
-                </select>
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="— выберите должность —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <PositionSelectItems users={users} />
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">
                   Сотрудник
                 </Label>
-                <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                  value={draftUserId}
-                  onChange={(e) => setDraftUserId(e.target.value)}
+                <Select
+                  value={toNone(draftUserId)}
+                  onValueChange={(value) => setDraftUserId(fromNone(value))}
                 >
-                  <option value="">— выберите —</option>
-                  {getUsersForRoleLabel(users, draftPosition).map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                    <SelectValue placeholder="— выберите —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                    {getUsersForRoleLabel(users, draftPosition).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1206,6 +1364,53 @@ export function PerishableRejectionDocumentClient({
               disabled={isSaving}
             >
               {isSaving ? "Сохранение…" : "Добавить запись"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* «Добавить списком» — многострочная вставка вместо window.prompt. */}
+      <Dialog open={readOnly ? false : bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              Добавить изделия списком
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 px-6 py-5">
+            <p className="text-[13px] leading-[1.55] text-[#6f7282]">
+              Вставьте наименования изделий — каждое с новой строки. Для каждой строки
+              создастся запись с текущей датой и временем поступления.
+            </p>
+            <Textarea
+              value={bulkText}
+              onChange={(event) => setBulkText(event.target.value)}
+              placeholder={"Молоко 3,2%\nТворог 9%\nСметана 20%"}
+              className="min-h-[180px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+            <div className="text-[12px] text-[#9b9fb3]">
+              Будет добавлено строк:{" "}
+              {bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length}
+            </div>
+          </div>
+          <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none transition-colors hover:bg-[#fafbff] sm:w-auto"
+              onClick={() => setBulkOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+              onClick={addRowsFromText}
+              disabled={
+                bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length === 0
+              }
+            >
+              Добавить
             </Button>
           </div>
         </DialogContent>
@@ -1377,7 +1582,7 @@ export function PerishableRejectionDocumentClient({
                   <button
                     type="button"
                     className="text-[#5566f6] underline"
-                    onClick={() => importItemsFromText("products")}
+                    onClick={() => void importItemsFromText("products")}
                   >
                     Добавить из файла
                   </button>
@@ -1424,7 +1629,7 @@ export function PerishableRejectionDocumentClient({
                 <button
                   type="button"
                   className="text-[#5566f6] underline"
-                  onClick={() => importItemsFromText("manufacturers")}
+                  onClick={() => void importItemsFromText("manufacturers")}
                 >
                   Добавить из файла
                 </button>
@@ -1468,7 +1673,7 @@ export function PerishableRejectionDocumentClient({
                 <button
                   type="button"
                   className="text-[#5566f6] underline"
-                  onClick={() => importItemsFromText("suppliers")}
+                  onClick={() => void importItemsFromText("suppliers")}
                 >
                   Добавить из файла
                 </button>

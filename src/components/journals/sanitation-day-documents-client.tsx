@@ -51,14 +51,17 @@ import {
 } from "@/lib/sanitation-day-document";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 type UserItem = {
@@ -180,7 +183,7 @@ function SettingsDialog(props: {
         {activeState ? (
           <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">
+              <Label className="text-[15px] text-[#6f7282]">
                 Название документа
               </Label>
               <Input
@@ -188,12 +191,12 @@ function SettingsDialog(props: {
                 onChange={(event) =>
                   setState({ ...activeState, title: event.target.value })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-5 text-[16px] tracking-[-0.02em]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px] tracking-[-0.02em]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">
+              <Label className="text-[15px] text-[#6f7282]">
                 Дата документа
               </Label>
               <div className="relative">
@@ -206,21 +209,21 @@ function SettingsDialog(props: {
                       documentDate: toIsoDate(event.target.value),
                     })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-5 pr-12 text-[16px] tracking-[-0.02em]"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-5 pr-12 text-[16px] tracking-[-0.02em]"
                 />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080] sm:right-6 sm:size-8" />
+                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">Год</Label>
+              <Label className="text-[15px] text-[#6f7282]">Год</Label>
               <Select
                 value={activeState.year}
                 onValueChange={(value) =>
                   setState({ ...activeState, year: value })
                 }
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +240,7 @@ function SettingsDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">
+              <Label className="text-[15px] text-[#6f7282]">
                 Должность &quot;Утверждаю&quot;
               </Label>
               <Select
@@ -253,7 +256,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -263,7 +266,7 @@ function SettingsDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">Сотрудник</Label>
+              <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
               <Select
                 value={activeState.approveEmployeeId}
                 onValueChange={(value) => {
@@ -275,7 +278,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +294,7 @@ function SettingsDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">
+              <Label className="text-[15px] text-[#6f7282]">
                 Ответственный
               </Label>
               <Select
@@ -307,7 +310,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -317,7 +320,7 @@ function SettingsDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">Сотрудник</Label>
+              <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
               <Select
                 value={activeState.responsibleEmployeeId}
                 onValueChange={(value) => {
@@ -330,7 +333,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-5 text-[16px]">
+                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,62 +353,13 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
             </div>
           </div>
         ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeleteDialog(props: {
-  open: boolean;
-  onOpenChange: (value: boolean) => void;
-  title: string;
-  onConfirm: () => Promise<void>;
-}) {
-  const [submitting, setSubmitting] = useState(false);
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="max-w-[80%] text-[22px] font-semibold tracking-[-0.03em] text-black">
-              Удаление документа &quot;{props.title}&quot;
-            </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-[#0b1024]"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-8" />
-            </button>
-          </div>
-        </DialogHeader>
-
-        <div className="flex justify-end px-5 py-6 sm:px-10 sm:py-8">
-          <Button
-            type="button"
-            disabled={submitting}
-            onClick={async () => {
-              setSubmitting(true);
-              try {
-                await props.onConfirm();
-                props.onOpenChange(false);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
-          >
-            {submitting ? "Удаление..." : "Удалить"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
@@ -421,9 +375,8 @@ export function SanitationDayDocumentsClient({
   const router = useRouter();
   const [settingsTarget, setSettingsTarget] =
     useState<SanitationDocumentItem | null>(null);
-  const [deleteTarget, setDeleteTarget] =
-    useState<SanitationDocumentItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
 
   async function createDocument(payload: SettingsState) {
     const config = {
@@ -501,41 +454,18 @@ export function SanitationDayDocumentsClient({
     router.refresh();
   }
 
-  async function handleDelete(documentId: string) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "DELETE",
+  async function handleDelete(document: SanitationDocumentItem) {
+    const cfg = normalizeSanitationDayConfig(document.config);
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title || SANITATION_DAY_DOCUMENT_TITLE}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Дата документа: ${getSanitationDocumentDateLabel(cfg.documentDate)}`, tone: "info" },
+        { label: "Удалятся все строки и отметки санитарного дня", tone: "warn" },
+      ],
+      successMessage: `Документ «${document.title || SANITATION_DAY_DOCUMENT_TITLE}» удалён`,
+      errorMessage: "Не удалось удалить документ",
     });
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-    router.refresh();
-  }
-
-  async function moveToClosed(documentId: string) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "closed" }),
-    });
-    if (!response.ok) {
-      toast.error("Не удалось закрыть документ");
-      return;
-    }
-    router.refresh();
-  }
-
-  async function moveToActive(documentId: string) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "active" }),
-    });
-    if (!response.ok) {
-      toast.error("Не удалось отправить в активные");
-      return;
-    }
-    router.refresh();
   }
 
   async function cloneDocument(documentId: string) {
@@ -580,63 +510,27 @@ export function SanitationDayDocumentsClient({
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-          {SANITATION_DAY_HEADING}
-          {activeTab === "closed" ? " (Закрытые!!!)" : ""}
-        </h1>
-
-        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
+    <div className="space-y-8 sm:space-y-14">
+      <JournalTopBar
+        heading={`${SANITATION_DAY_HEADING}${activeTab === "closed" ? " (закрытые)" : ""}`}
+        activeTab={activeTab}
+        templateCode={templateCode}
+        templateName={SANITATION_DAY_HEADING}
+        users={users}
+        createSlot={
           <Button
-            variant="outline"
-            className="h-12 w-full rounded-2xl border-[#e8ebf7] px-6 text-[16px] text-[#5566f6] shadow-none sm:w-auto"
-            asChild
+            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+            onClick={() => setCreateOpen(true)}
           >
-            <Link href="/sanpin">
-              <BookOpenText className="size-5" />
-              Инструкция
-            </Link>
+            <Plus className="size-4" />
+            Создать документ
           </Button>
+        }
+      />
 
-          {activeTab === "active" ? (
-            <Button
-              className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="size-5" />
-              Создать документ
-            </Button>
-          ) : null}
-        </div>
-      </div>
+      <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-      <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-          <Link
-            href={`/journals/${routeCode}`}
-            className={`relative pb-6 ${
-              activeTab === "active"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Активные
-          </Link>
-          <Link
-            href={`/journals/${routeCode}?tab=closed`}
-            className={`relative pb-6 ${
-              activeTab === "closed"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Закрытые
-          </Link>
-        </div>
-      </div>
-
-      <div className="space-y-4">
+      <div className="space-y-6">
         {documents.length === 0 ? (
           <EmptyDocumentsState />
         ) : null}
@@ -705,12 +599,12 @@ export function SanitationDayDocumentsClient({
                 </div>
               </Link>
 
-              <div className="flex justify-start sm:justify-center">
+              <div className="flex items-center justify-start text-[#5566f6] sm:justify-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
+                      className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
@@ -741,12 +635,7 @@ export function SanitationDayDocumentsClient({
 
                     <DropdownMenuItem
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                      onSelect={() =>
-                        window.open(
-                          `/api/journal-documents/${document.id}/pdf`,
-                          "_blank",
-                        )
-                      }
+                      onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" />
                       Печать
@@ -755,7 +644,7 @@ export function SanitationDayDocumentsClient({
                     {document.status === "closed" ? (
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                        onSelect={() => moveToActive(document.id)}
+                        onSelect={() => setStatus("active", { documentId: document.id })}
                       >
                         <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
                         Отправить в активные
@@ -764,14 +653,14 @@ export function SanitationDayDocumentsClient({
                       <>
                         <DropdownMenuItem
                           className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                          onSelect={() => moveToClosed(document.id)}
+                          onSelect={() => setStatus("closed", { documentId: document.id })}
                         >
                           <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
                           Отправить в закрытые
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                          onSelect={() => setDeleteTarget(document)}
+                          onSelect={() => handleDelete(document)}
                         >
                           <Trash2 className="mr-3 size-6 text-[#ff3b30]" />
                           Удалить
@@ -809,18 +698,6 @@ export function SanitationDayDocumentsClient({
         }}
         submitText="Сохранить"
         title="Настройки документа"
-      />
-
-      <DeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(value) => {
-          if (!value) setDeleteTarget(null);
-        }}
-        title={deleteTarget?.title || SANITATION_DAY_DOCUMENT_TITLE}
-        onConfirm={async () => {
-          if (!deleteTarget) return;
-          await handleDelete(deleteTarget.id);
-        }}
       />
     </div>
   );

@@ -3,6 +3,12 @@
 Дата: 2026-08-10. Статус: в работе (фаза A/B).
 Владелец задачи: Ярослав. Оркестратор: Fable; реализация: сабагент Opus 5 (effort medium).
 
+> **Объём (уточнение владельца 2026-08-10): пока только ОБЯЗАТЕЛЬНЫЕ журналы
+> базового тарифа — 13 штук.** Остальные 22 расширенных — после отмашки.
+> Базовые: hygiene, health_check, climate_control, cold_equipment_control,
+> cleaning_ventilation_checklist, cleaning, general_cleaning, uv_lamp_runtime,
+> finished_product, perishable_rejection, incoming_control, fryer_oil, med_books.
+
 ## Цель
 
 Все 35 журналов, скопированных с эталона lk.haccp-online.ru, должны:

@@ -55,7 +55,11 @@ import {
   type AcceptanceDocumentConfig,
   type AcceptanceRow,
 } from "@/lib/acceptance-document";
-import { PositionNativeOptions, PositionSelectItems } from "@/components/shared/position-select";
+import { PositionSelectItems } from "@/components/shared/position-select";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -81,6 +85,29 @@ type Props = {
   /** Design v2 toggle. */
   useV2?: boolean;
 };
+
+/**
+ * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
+ * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
+ * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+/** Общий вид триггера shadcn-селекта внутри форм журнала. */
+const SELECT_TRIGGER_CLASS =
+  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+/**
+ * `<SelectItem value="">` в Radix запрещён — пустая строка зарезервирована
+ * под «ничего не выбрано». Пункт «— выберите —» несёт сентинел, который
+ * на входе/выходе мапится в пустую строку.
+ */
+const NONE_VALUE = "__none";
+const fromNone = (value: string) => (value === NONE_VALUE ? "" : value);
+const toNone = (value: string) => (value ? value : NONE_VALUE);
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
@@ -276,14 +303,20 @@ function RowDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время поставки</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input type="date" value={row.deliveryDate} onChange={(e) => setValue("deliveryDate", e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={row.deliveryHour || "--"} onChange={(e) => setValue("deliveryHour", e.target.value === "--" ? "" : e.target.value)}>
-                <option value="--">-- ч</option>
-                {HOURS.map((h) => <option key={h} value={h}>{h} ч</option>)}
-              </select>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={row.deliveryMinute || "--"} onChange={(e) => setValue("deliveryMinute", e.target.value === "--" ? "" : e.target.value)}>
-                <option value="--">-- мин</option>
-                {MINUTES.map((m) => <option key={m} value={m}>{m} мин</option>)}
-              </select>
+              <Select value={row.deliveryHour || "--"} onValueChange={(value) => setValue("deliveryHour", value === "--" ? "" : value)}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- ч" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="--">-- ч</SelectItem>
+                  {HOURS.map((h) => <SelectItem key={h} value={h}>{h} ч</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={row.deliveryMinute || "--"} onValueChange={(value) => setValue("deliveryMinute", value === "--" ? "" : value)}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- мин" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="--">-- мин</SelectItem>
+                  {MINUTES.map((m) => <SelectItem key={m} value={m}>{m} мин</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -323,14 +356,18 @@ function RowDialog(props: {
           {/* Производитель */}
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Производитель</Label>
-            <select
-              className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-              value={row.manufacturer}
-              onChange={(e) => setValue("manufacturer", e.target.value)}
+            <Select
+              value={toNone(row.manufacturer)}
+              onValueChange={(value) => setValue("manufacturer", fromNone(value))}
             >
-              <option value="">Выберите из списка или добавьте нового</option>
-              {Array.from(new Set(manufacturerOptions)).map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите из списка или добавьте нового" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Выберите из списка или добавьте нового</SelectItem>
+                {Array.from(new Set(manufacturerOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <div className="flex gap-2">
               <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Добавить название нового производителя" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
               <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("manufacturer")}>
@@ -342,14 +379,18 @@ function RowDialog(props: {
           {/* Поставщик */}
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Поставщик</Label>
-            <select
-              className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-              value={row.supplier}
-              onChange={(e) => setValue("supplier", e.target.value)}
+            <Select
+              value={toNone(row.supplier)}
+              onValueChange={(value) => setValue("supplier", fromNone(value))}
             >
-              <option value="">Выберите из списка или добавьте нового</option>
-              {Array.from(new Set(supplierOptions)).map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите из списка или добавьте нового" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Выберите из списка или добавьте нового</SelectItem>
+                {Array.from(new Set(supplierOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <div className="flex gap-2">
               <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Добавить название нового поставщика" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
               <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("supplier")}>
@@ -449,14 +490,20 @@ function RowDialog(props: {
             </Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input type="date" value={row.expiryDate} onChange={(e) => setValue("expiryDate", e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={row.expiryHour || "--"} onChange={(e) => setValue("expiryHour", e.target.value === "--" ? "" : e.target.value)}>
-                <option value="--">-- ч</option>
-                {HOURS.map((h) => <option key={h} value={h}>{h} ч</option>)}
-              </select>
-              <select className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]" value={row.expiryMinute || "--"} onChange={(e) => setValue("expiryMinute", e.target.value === "--" ? "" : e.target.value)}>
-                <option value="--">-- мин</option>
-                {MINUTES.map((m) => <option key={m} value={m}>{m} мин</option>)}
-              </select>
+              <Select value={row.expiryHour || "--"} onValueChange={(value) => setValue("expiryHour", value === "--" ? "" : value)}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- ч" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="--">-- ч</SelectItem>
+                  {HOURS.map((h) => <SelectItem key={h} value={h}>{h} ч</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={row.expiryMinute || "--"} onValueChange={(value) => setValue("expiryMinute", value === "--" ? "" : value)}>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- мин" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="--">-- мин</SelectItem>
+                  {MINUTES.map((m) => <SelectItem key={m} value={m}>{m} мин</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -470,11 +517,10 @@ function RowDialog(props: {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={row.responsibleTitle}
-                onChange={(e) => {
-                  const v = e.target.value;
+              <Select
+                value={toNone(row.responsibleTitle)}
+                onValueChange={(value) => {
+                  const v = fromNone(value);
                   const candidates = getUsersForRoleLabel(props.users, v);
                   const stillValid = candidates.some((u) => u.id === row.responsibleUserId);
                   setValue("responsibleTitle", v);
@@ -485,17 +531,21 @@ function RowDialog(props: {
                   }
                 }}
               >
-                <option value="">— выберите —</option>
-                <PositionNativeOptions users={props.users} />
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  <PositionSelectItems users={props.users} />
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={row.responsibleUserId}
-                onChange={(e) => {
-                  const v = e.target.value;
+              <Select
+                value={toNone(row.responsibleUserId)}
+                onValueChange={(value) => {
+                  const v = fromNone(value);
                   setValue("responsibleUserId", v);
                   if (!row.responsibleTitle) {
                     const user = props.users.find((u) => u.id === v);
@@ -503,9 +553,14 @@ function RowDialog(props: {
                   }
                 }}
               >
-                <option value="">— выберите —</option>
-                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -584,8 +639,8 @@ function EditListsDialog(props: {
               </div>
             ))}
             <div className="flex gap-2">
-              <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Введите название нового изделия" className="h-12 rounded-xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5863f8] px-4" onClick={() => addItem(products, setProducts, newProduct, setNewProduct)}><Plus className="size-5" /></Button>
+              <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Введите название нового изделия" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
+              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(products, setProducts, newProduct, setNewProduct)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
@@ -599,8 +654,8 @@ function EditListsDialog(props: {
               </div>
             ))}
             <div className="flex gap-2">
-              <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Введите название нового производителя" className="h-12 rounded-xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5863f8] px-4" onClick={() => addItem(manufacturers, setManufacturers, newManufacturer, setNewManufacturer)}><Plus className="size-5" /></Button>
+              <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Введите название нового производителя" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
+              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(manufacturers, setManufacturers, newManufacturer, setNewManufacturer)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
@@ -614,13 +669,13 @@ function EditListsDialog(props: {
               </div>
             ))}
             <div className="flex gap-2">
-              <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Введите название нового поставщика" className="h-12 rounded-xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5863f8] px-4" onClick={() => addItem(suppliers, setSuppliers, newSupplier, setNewSupplier)}><Plus className="size-5" /></Button>
+              <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Введите название нового поставщика" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
+              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(suppliers, setSuppliers, newSupplier, setNewSupplier)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]">Закрыть</Button>
+            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">Закрыть</Button>
           </div>
         </div>
       </DialogContent>
@@ -692,7 +747,7 @@ function EditableListSection(props: {
           </div>
           <button
             type="button"
-            className="text-[#5566f6] hover:text-[#4b57f3]"
+            className="text-[#5566f6] hover:text-[#4a5bf0]"
             onClick={() => {
               setDraft(item);
               setEditingValue(item);
@@ -707,11 +762,11 @@ function EditableListSection(props: {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={props.placeholder}
-          className="h-12 rounded-xl border-[#dfe1ec] px-4 text-[15px]"
+          className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]"
         />
         <Button
           type="button"
-          className="h-12 rounded-xl bg-[#5863f8] px-4"
+          className="h-12 rounded-xl bg-[#5566f6] px-4"
           onClick={() => upsertValue(draft)}
         >
           <Plus className="size-5" />
@@ -719,7 +774,7 @@ function EditableListSection(props: {
       </div>
       <button
         type="button"
-        className="text-left text-[15px] text-[#5863f8] underline underline-offset-4"
+        className="text-left text-[15px] text-[#5566f6] underline underline-offset-4"
         onClick={() => {
           setImportOpen((current) => !current);
           setImportError(null);
@@ -766,11 +821,11 @@ function EditableListSection(props: {
               }
             }}
             className={`flex min-h-[148px] w-full flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed px-6 py-8 text-center ${
-              dragActive ? "border-[#5863f8] bg-[#f6f7ff]" : "border-[#d7d9e5] bg-white"
+              dragActive ? "border-[#5566f6] bg-[#f6f7ff]" : "border-[#dcdfed] bg-white"
             }`}
           >
             <Paperclip className="size-8 text-[#6f7282]" />
-            <span className="text-[18px] text-[#5863f8]">Выберите файл</span>
+            <span className="text-[18px] text-[#5566f6]">Выберите файл</span>
             <span className="text-[16px] text-[#3d4152]">или перетащите его сюда</span>
           </button>
           {importError ? (
@@ -826,7 +881,7 @@ function IncomingControlEditListsDialog(props: {
             onChange={setSuppliers}
           />
           <div className="flex justify-end">
-            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]">
+            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">
               Закрыть
             </Button>
           </div>
@@ -1020,20 +1075,20 @@ function SettingsDialog(props: {
         <div className="space-y-4 px-8 py-6">
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]" />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-2">
             <div className="text-[14px] font-semibold">Название поля</div>
             <label className="flex items-center gap-2 text-[15px]">
-              <input type="radio" name="expiryLabel" checked={expiryLabel === "expiry_deadline"} onChange={() => setExpiryLabel("expiry_deadline")} className="size-4 accent-[#5863f8]" />
+              <input type="radio" name="expiryLabel" checked={expiryLabel === "expiry_deadline"} onChange={() => setExpiryLabel("expiry_deadline")} className="size-4 accent-[#5566f6]" />
               &quot;Предельный срок реализации&quot;
             </label>
             <label className="flex items-center gap-2 text-[15px]">
-              <input type="radio" name="expiryLabel" checked={expiryLabel === "shelf_life"} onChange={() => setExpiryLabel("shelf_life")} className="size-4 accent-[#5863f8]" />
+              <input type="radio" name="expiryLabel" checked={expiryLabel === "shelf_life"} onChange={() => setExpiryLabel("shelf_life")} className="size-4 accent-[#5566f6]" />
               &quot;Срок годности&quot;
             </label>
           </div>
@@ -1049,7 +1104,7 @@ function SettingsDialog(props: {
               }
               onValueChange={(v) => setResponsibleTitle(v)}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={props.users} />
               </SelectContent>
@@ -1062,68 +1117,17 @@ function SettingsDialog(props: {
               const user = props.users.find((u) => u.id === v);
               if (user) setResponsibleTitle(getUserRoleLabel(user.role));
             }}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
                 {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="flex justify-end pt-2">
-            <Button type="button" onClick={handleSave} disabled={isSubmitting} className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]">
+            <Button type="button" onClick={handleSave} disabled={isSubmitting} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ConfirmDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  actionLabel: string;
-  onConfirm: () => Promise<void>;
-}) {
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (props.open) setSubmitting(false);
-  }, [props.open]);
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
-            {props.title}
-          </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
-        </DialogHeader>
-        <div className="flex justify-end px-8 py-6">
-          <Button
-            type="button"
-            disabled={submitting}
-            onClick={async () => {
-              setSubmitting(true);
-              try {
-                await props.onConfirm();
-                props.onOpenChange(false);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
-          >
-            {submitting ? "Сохранение..." : props.actionLabel}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1200,7 +1204,7 @@ function ImportRowsDialog(props: {
           <button
             type="button"
             onClick={downloadAcceptanceImportTemplate}
-            className="text-[16px] text-[#5863f8] underline underline-offset-4"
+            className="text-[16px] text-[#5566f6] underline underline-offset-4"
           >
             Скачать пример файла
           </button>
@@ -1232,11 +1236,11 @@ function ImportRowsDialog(props: {
               if (file) void handleFile(file);
             }}
             className={`flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-[24px] border border-dashed px-6 py-8 text-center ${
-              dragActive ? "border-[#5863f8] bg-[#f6f7ff]" : "border-[#d7d9e5] bg-white"
+              dragActive ? "border-[#5566f6] bg-[#f6f7ff]" : "border-[#dcdfed] bg-white"
             }`}
           >
             <Paperclip className="size-10 text-[#6f7282]" />
-            <span className="text-[15px] text-[#5863f8]">Выберите файл</span>
+            <span className="text-[15px] text-[#5566f6]">Выберите файл</span>
             <span className="text-[18px] text-[#3d4152]">или перетащите его сюда</span>
           </button>
           {errorMessage ? (
@@ -1247,13 +1251,13 @@ function ImportRowsDialog(props: {
 
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
-            <div className="flex h-14 items-center rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+            <div className="flex h-14 items-center rounded-2xl border border-[#dcdfed] bg-[#f3f4fb] px-5 text-[16px]">
               {props.responsibleTitle || "—"}
             </div>
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
-            <div className="flex h-14 items-center rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+            <div className="flex h-14 items-center rounded-2xl border border-[#dcdfed] bg-[#f3f4fb] px-5 text-[16px]">
               {props.users.find((user) => user.id === props.responsibleUserId)?.name || "—"}
             </div>
           </div>
@@ -1263,7 +1267,7 @@ function ImportRowsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={() => inputRef.current?.click()}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -1334,7 +1338,7 @@ function AddMultipleRowsDialog(props: {
               max={100}
               value={count}
               onChange={(event) => setCount(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]"
             />
           </div>
           {errorMessage ? (
@@ -1347,7 +1351,7 @@ function AddMultipleRowsDialog(props: {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -1378,8 +1382,10 @@ function IikoDialog(props: { open: boolean; onOpenChange: (open: boolean) => voi
 
 export function AcceptanceDocumentClient(props: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [config, setConfig] = useState(() => normalizeAcceptanceDocumentConfig(props.config, props.users));
+  // Единый источник status/pdf-действий над журнальным документом.
+  const { setStatus } = useJournalDocumentActions(props.documentId);
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
   const [sortByExpiry, setSortByExpiry] = useState(false);
@@ -1389,8 +1395,6 @@ export function AcceptanceDocumentClient(props: Props) {
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<AcceptanceRow | null>(null);
   const [iikoOpen, setIikoOpen] = useState(false);
-  const [finishOpen, setFinishOpen] = useState(false);
-  const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
   const [rowsImportOpen, setRowsImportOpen] = useState(false);
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -1499,21 +1503,49 @@ export function AcceptanceDocumentClient(props: Props) {
 
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
+    const names = config.rows
+      .filter((r) => selectedRowIds.includes(r.id))
+      .map((r) => r.productName)
+      .filter(Boolean);
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description: "Записи о приёмке исчезнут из журнала безвозвратно.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк будет удалено: ${selectedRowIds.length}`, tone: "warn" },
+        names.length > 0
+          ? {
+              label: `Продукция: ${names.slice(0, 4).join(", ")}${names.length > 4 ? " и др." : ""}`,
+              tone: "info" as const,
+            }
+          : { label: "У выбранных строк не заполнено наименование", tone: "info" as const },
+        {
+          label: `Останется строк: ${config.rows.length - selectedRowIds.length}`,
+          tone: "default",
+        },
+      ],
+    });
+    if (!confirmed) return;
     await persist(title, dateFrom, { ...config, rows: config.rows.filter((r) => !selectedRowIds.includes(r.id)) });
     setSelectedRowIds([]);
-    setDeleteSelectedOpen(false);
   }
 
   async function handleCloseJournal() {
-    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "closed" }),
+    const confirmed = await confirmAsync({
+      title: "Закончить журнал?",
+      description: `Документ «${title}» перейдёт в закладку «Закрытые» и станет доступен только для просмотра.`,
+      variant: "warn",
+      confirmLabel: "Закончить журнал",
+      bullets: [
+        { label: `Строк в журнале: ${config.rows.length}`, tone: "info" },
+        { label: "Добавлять и редактировать поставки будет нельзя", tone: "warn" },
+        { label: "Журнал можно вернуть в активные из списка документов", tone: "default" },
+      ],
     });
-    if (!response.ok) throw new Error("Не удалось закончить журнал");
+    if (!confirmed) return;
     setErrorMessage(null);
-    setFinishOpen(false);
-    startTransition(() => router.refresh());
+    await setStatus("closed");
   }
 
   async function addMultipleRows(count: number) {
@@ -1618,7 +1650,7 @@ export function AcceptanceDocumentClient(props: Props) {
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setSelectedRowIds([])} className="text-[#6f7282] hover:text-black"><X className="size-4" /></button>
             <span className="text-[14px]">Выбрано: {selectedRowIds.length}</span>
-            <Button type="button" variant="ghost" className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => setDeleteSelectedOpen(true)}>
+            <Button type="button" variant="ghost" className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => void handleDeleteSelected()}>
               <span className="mr-1">🗑</span> Удалить
             </Button>
           </div>
@@ -1663,20 +1695,20 @@ export function AcceptanceDocumentClient(props: Props) {
         </div>
 
         {/* HACCP header */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
+        <div className={GRID_VIEWPORT_CLASS}>
         <table className="w-full min-w-[640px] border-collapse text-[15px] sm:min-w-0">
           <tbody>
             <tr>
               <td
                 rowSpan={2}
-                className="w-[220px] border border-black px-4 py-3 text-center font-semibold"
+                className={`w-[220px] ${GRID_CELL_CLASS} px-4 py-3 text-center font-semibold`}
               >
                 {organizationLabel}
               </td>
-              <td className="border border-black px-4 py-2 text-center">
+              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center`}>
                 СИСТЕМА ХАССП
               </td>
-              <td rowSpan={2} className="w-[200px] border border-black px-3 py-2">
+              <td rowSpan={2} className={`w-[200px] ${GRID_CELL_CLASS} px-3 py-2`}>
                 <div className="text-sm font-semibold">
                   Начат {formatAcceptanceDateDash(dateFrom)}
                 </div>
@@ -1684,7 +1716,7 @@ export function AcceptanceDocumentClient(props: Props) {
               </td>
             </tr>
             <tr>
-              <td className="border border-black px-4 py-2 text-center italic">
+              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic`}>
                 {journalHeaderTitle}
               </td>
             </tr>
@@ -1693,6 +1725,10 @@ export function AcceptanceDocumentClient(props: Props) {
         </div>
 
         <div className="text-center text-[16px] font-semibold leading-tight sm:text-[20px]">{journalHeaderTitle}</div>
+
+        {isClosed ? (
+          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова регистрировать поставки и входной контроль." />
+        ) : null}
 
         {/* Toolbar */}
         {!isClosed && (
@@ -1725,7 +1761,7 @@ export function AcceptanceDocumentClient(props: Props) {
 
             <div className="flex-1" />
 
-            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setFinishOpen(true)}>
+            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => void handleCloseJournal()}>
               Закончить журнал
             </Button>
           </div>
@@ -1740,33 +1776,33 @@ export function AcceptanceDocumentClient(props: Props) {
         ) : null}
 
         {/* Data table */}
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[960px] w-full border-collapse text-[13px] sm:min-w-[1400px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[44px] border border-black p-2">
+              <tr>
+                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} p-2`}>
                   <Checkbox checked={allSelected} onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])} disabled={displayedRows.length === 0 || isClosed} />
                 </th>
-                <th className="border border-black p-2 text-center">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
                   {isProductAcceptance
                     ? "Дата, время поступления продукции, товара"
                     : "Дата, время поступления"}
                 </th>
-                <th className="border border-black p-2 text-center">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
                   {isProductAcceptance ? "Наименование продукции" : "Наименование"}
                 </th>
-                <th className="border border-black p-2 text-center">Производитель</th>
-                <th className="border border-black p-2 text-center">Поставщик</th>
-                <th className="border border-black p-2 text-center">Условия транспортировки</th>
-                <th className="border border-black p-2 text-center">
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Производитель</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Условия транспортировки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
                   {isProductAcceptance
                     ? "Соответствие упаковки, маркировки, гигиенические требования, наличие и правильность оформления товаросопроводительной документации"
                     : "Соответствие упаковки, маркировки и товаросопроводительной документации"}
                 </th>
-                <th className="border border-black p-2 text-center">Результаты органолептической оценки доброкачественности</th>
-                <th className="border border-black p-2 text-center">{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
-                <th className="border border-black p-2 text-center">Примечания</th>
-                <th className="border border-black p-2 text-center">Ответственный</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Результаты органолептической оценки доброкачественности</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Примечания</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Ответственный</th>
               </tr>
             </thead>
             <tbody>
@@ -1780,36 +1816,36 @@ export function AcceptanceDocumentClient(props: Props) {
                     setRowDialogOpen(true);
                   }}
                 >
-                  <td className="border border-black p-2 text-center" onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`} onClick={(event) => event.stopPropagation()}>
                     <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(c) => setSelectedRowIds((cur) => c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id))} disabled={isClosed} />
                   </td>
-                  <td className="border border-black p-2 text-center whitespace-pre-line">
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center whitespace-pre-line`}>
                     {formatAcceptanceDateDash(row.deliveryDate)}
                     {row.deliveryHour ? `\n${row.deliveryHour}:${row.deliveryMinute || "00"}` : ""}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} p-2`}>
                     <div className="text-left hover:text-[#5566f6]">
                       {row.productName || "—"}
                     </div>
                   </td>
-                  <td className="border border-black p-2 text-center">{row.manufacturer || "—"}</td>
-                  <td className="border border-black p-2 text-center">{row.supplier || "—"}</td>
-                  <td className="border border-black p-2 text-center">{TRANSPORT_LABELS[row.transportCondition]}</td>
-                  <td className="border border-black p-2 text-center">{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
-                  <td className="border border-black p-2 text-center">{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
-                  <td className="border border-black p-2 text-center whitespace-pre-line">
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{row.manufacturer || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{row.supplier || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{TRANSPORT_LABELS[row.transportCondition]}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center whitespace-pre-line`}>
                     {formatAcceptanceDateDash(row.expiryDate)}
                     {row.expiryHour ? `\n${row.expiryHour}:${row.expiryMinute || "00"}` : ""}
                   </td>
-                  <td className="border border-black p-2">{row.note || ""}</td>
-                  <td className="border border-black p-2">{getResponsibleLabel(row, props.users)}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2`}>{row.note || ""}</td>
+                  <td className={`${GRID_CELL_CLASS} p-2`}>{getResponsibleLabel(row, props.users)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={11} className="border border-black p-8 text-center text-[#80849a]">Строк пока нет</td></tr>
+                <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a]`}>Строк пока нет</td></tr>
               )}
               {/* Empty row at bottom */}
-              <tr><td className="border border-black p-2 text-center"><Checkbox disabled /></td><td colSpan={10} className="border border-black p-2" /></tr>
+              <tr><td className={`${GRID_CELL_CLASS} p-2 text-center`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} p-2`} /></tr>
             </tbody>
           </table>
         </MobileViewTableWrapper>
@@ -1830,8 +1866,6 @@ export function AcceptanceDocumentClient(props: Props) {
         />
       )}
       <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
-      <ConfirmDialog open={deleteSelectedOpen} onOpenChange={setDeleteSelectedOpen} title={`Удаление строк (${selectedRowIds.length})`} actionLabel="Удалить" onConfirm={handleDeleteSelected} />
-      <ConfirmDialog open={finishOpen} onOpenChange={setFinishOpen} title={`Закончить журнал "${title}"`} actionLabel="Закончить" onConfirm={handleCloseJournal} />
       <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} onFileSelect={handleImportFile} />
       <AddMultipleRowsDialog open={bulkAddOpen} onOpenChange={setBulkAddOpen} onSubmit={addMultipleRows} />
       <IikoDialog open={iikoOpen} onOpenChange={setIikoOpen} />

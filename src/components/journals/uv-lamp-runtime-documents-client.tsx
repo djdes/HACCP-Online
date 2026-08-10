@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, RotateCcw, Trash2, X } from "lucide-react";
-import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
+import { Ellipsis, Pencil, Printer, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,14 +39,18 @@ import { getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -171,7 +174,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px] leading-none"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] leading-none"
             />
           </div>
 
@@ -180,7 +183,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
 
@@ -190,7 +193,7 @@ function UvRuntimeSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
 
@@ -203,7 +206,7 @@ function UvRuntimeSettingsDialog(props: {
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -235,7 +238,7 @@ function UvRuntimeSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -256,7 +259,7 @@ function UvRuntimeSettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -271,95 +274,48 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState<EditingState | null>(null);
   const routeCode = props.routeCode || props.templateCode;
+  const heading =
+    props.activeTab === "closed"
+      ? "Журнал учета работы УФ бактерицидной установки (закрытые)"
+      : "Журнал учета работы УФ бактерицидной установки";
+  const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
 
-  async function handleDelete(documentId: string, title: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
-
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "DELETE",
+  async function handleDelete(document: DocumentItem, resolvedTitle: string) {
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${resolvedTitle}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Дата начала: ${formatRuDateDash(document.dateFrom)}`, tone: "info" },
+        { label: "Удалятся все отметки времени работы установки", tone: "warn" },
+      ],
+      successMessage: `Документ «${resolvedTitle}» удалён`,
+      errorMessage: "Не удалось удалить документ",
     });
-
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-
-    router.refresh();
   }
 
   async function handleReactivate(documentId: string, title: string) {
-    if (!window.confirm(`Отправить документ "${title}" в активные?`)) return;
-
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "active" }),
+    const confirmed = await confirmAsync({
+      title: "Вернуть документ в активные?",
+      description: `Документ «${title}» снова станет доступен для редактирования.`,
+      variant: "warn",
+      confirmLabel: "Вернуть",
     });
+    if (!confirmed) return;
 
-    if (!response.ok) {
-      toast.error("Не удалось вернуть документ в активные");
-      return;
-    }
-
-    router.refresh();
+    await setStatus("active", { documentId, successMessage: "Документ снова активен" });
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-          {props.activeTab === "closed"
-            ? "Журнал учета работы УФ бактерицидной установки (Закрытые!!!)"
-            : "Журнал учета работы УФ бактерицидной установки"}
-        </h1>
-        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-4" />
-              Инструкция
-            </Link>
-          </Button>
-          {props.activeTab === "active" && (
-            <CreateDocumentDialog
-              templateCode={props.templateCode}
-              templateName={props.templateName}
-              users={props.users}
-              triggerClassName="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-              triggerLabel="Создать документ"
-              triggerIcon={<Plus className="size-4" />}
-            />
-          )}
-        </div>
-      </div>
+    <div className="space-y-8 sm:space-y-14">
+      <JournalTopBar
+        heading={heading}
+        activeTab={props.activeTab}
+        templateCode={props.templateCode}
+        templateName={props.templateName}
+        users={props.users}
+      />
 
-      <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-9 text-[15px]">
-          <Link
-            href={`/journals/${routeCode}`}
-            className={`relative pb-4 ${
-              props.activeTab === "active"
-                ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            Активные
-          </Link>
-          <Link
-            href={`/journals/${routeCode}?tab=closed`}
-            className={`relative pb-4 ${
-              props.activeTab === "closed"
-                ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            Закрытые
-          </Link>
-        </div>
-      </div>
+      <JournalTabs activeTab={props.activeTab} templateCode={routeCode} />
 
       <div className="space-y-6">
         {props.documents.length === 0 && (
@@ -378,34 +334,31 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
             : ":";
 
           return (
-            <div
-              key={document.id}
-              className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5"
-            >
-              <Link href={href} className={`${JOURNAL_CARD_TITLE_CLASS} flex items-center pr-6`}>
+            <div key={document.id} className={JOURNAL_LIST_CARD_CLASS}>
+              <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                 {resolvedTitle}
               </Link>
 
-              <Link href={href} className={`${JOURNAL_CARD_SECTION_CLASS} flex flex-col justify-center`}>
+              <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                 <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный</div>
                 <div className={JOURNAL_CARD_VALUE_CLASS}>
                   {responsibleLabel}
                 </div>
               </Link>
 
-              <Link href={href} className={`${JOURNAL_CARD_SECTION_CLASS} flex flex-col justify-center`}>
+              <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                 <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>
                 <div className={JOURNAL_CARD_VALUE_CLASS}>
                   {formatRuDateDash(document.dateFrom)}
                 </div>
               </Link>
 
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center text-[#5566f6]">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="flex size-11 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
+                      className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-6" />
                     </button>
@@ -431,7 +384,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                     )}
                     <DropdownMenuItem
                       className="h-11 rounded-2xl px-4 text-[15px]"
-                      onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+                      onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-2 size-4 text-[#6f7282]" />
                       Печать
@@ -448,7 +401,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                     {document.status === "active" && (
                       <DropdownMenuItem
                         className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => handleDelete(document.id, resolvedTitle)}
+                        onSelect={() => handleDelete(document, resolvedTitle)}
                       >
                         <Trash2 className="mr-2 size-4 text-[#ff3b30]" />
                         Удалить

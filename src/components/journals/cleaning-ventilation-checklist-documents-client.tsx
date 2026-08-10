@@ -33,15 +33,18 @@ import {
 } from "@/lib/cleaning-ventilation-checklist-document";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -117,23 +120,23 @@ function SettingsDialog(props: {
         {activeState ? (
           <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">Название документа</Label>
+              <Label className="text-[15px] text-[#6f7282]">Название документа</Label>
               <Input
                 value={activeState.title}
                 onChange={(event) => setState({ ...activeState, title: event.target.value })}
-                className="h-11 rounded-2xl border-[#d8dae6] px-5 text-[16px]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#7a7c8e]">Дата начала</Label>
+              <Label className="text-[15px] text-[#6f7282]">Дата начала</Label>
               <div className="relative">
                 <Input
                   type="date"
                   value={activeState.dateFrom}
                   onChange={(event) => setState({ ...activeState, dateFrom: event.target.value })}
-                  className="h-11 rounded-2xl border-[#d8dae6] px-5 pr-12 text-[16px]"
+                  className="h-11 rounded-2xl border-[#dcdfed] px-5 pr-12 text-[16px]"
                 />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080] sm:right-6 sm:size-8" />
+                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
               </div>
             </div>
             <div className="flex justify-end pt-3">
@@ -150,7 +153,7 @@ function SettingsDialog(props: {
                   }
                 }}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -172,6 +175,7 @@ export function CleaningVentilationChecklistDocumentsClient({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
+  const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
 
   const createInitial = useMemo<SettingsState>(
     () => ({
@@ -228,88 +232,49 @@ export function CleaningVentilationChecklistDocumentsClient({
     router.refresh();
   }
 
-  async function deleteDocument(documentId: string, title: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
-    const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-    router.refresh();
-  }
-
-  async function moveDocument(documentId: string, status: "active" | "closed") {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+  async function handleDelete(document: DocumentItem) {
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Дата начала: ${formatDateLabel(document.dateFrom)}`, tone: "info" },
+        { label: "Удалятся все отметки чек-листа за этот документ", tone: "warn" },
+      ],
+      successMessage: `Документ «${document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}» удалён`,
+      errorMessage: "Не удалось удалить документ",
     });
-    if (!response.ok) {
-      toast.error("Не удалось изменить статус документа");
-      return;
-    }
-    router.refresh();
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-          {CLEANING_VENTILATION_CHECKLIST_TITLE}
-          {activeTab === "closed" ? " (Закрытые)" : ""}
-        </h1>
-        {activeTab === "active" ? (
+    <div className="space-y-8 sm:space-y-14">
+      <JournalTopBar
+        heading={`${CLEANING_VENTILATION_CHECKLIST_TITLE}${activeTab === "closed" ? " (закрытые)" : ""}`}
+        activeTab={activeTab}
+        templateCode={templateCode}
+        templateName={CLEANING_VENTILATION_CHECKLIST_TITLE}
+        users={users}
+        createSlot={
           <Button
-            className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
+            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             onClick={() => setCreateOpen(true)}
           >
-            <Plus className="mr-2 size-5" />
+            <Plus className="size-4" />
             Создать документ
           </Button>
-        ) : null}
-      </div>
+        }
+      />
 
-      <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-          <Link
-            href={`/journals/${routeCode}`}
-            className={`relative pb-6 ${
-              activeTab === "active"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Активные
-          </Link>
-          <Link
-            href={`/journals/${routeCode}?tab=closed`}
-            className={`relative pb-6 ${
-              activeTab === "closed"
-                ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                : "text-[#8a8ea4]"
-            }`}
-          >
-            Закрытые
-          </Link>
-        </div>
-      </div>
+      <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-      <div className="space-y-4">
-        {documents.length === 0 ? (
-          <EmptyDocumentsState />
-        ) : null}
+      <div className="space-y-6">
+        {documents.length === 0 ? <EmptyDocumentsState /> : null}
 
         {documents.map((document) => {
           const href = `/journals/${routeCode}/documents/${document.id}`;
           return (
-            <div
-              key={document.id}
-              className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5"
-            >
-              <Link href={href} className="min-w-0 pr-6">
-                <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>
-                  {document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}
-                </div>
+            <div key={document.id} className={JOURNAL_LIST_CARD_CLASS}>
+              <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
+                {document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}
               </Link>
 
               <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
@@ -326,12 +291,12 @@ export function CleaningVentilationChecklistDocumentsClient({
                 </div>
               </Link>
 
-              <div className="flex justify-center">
+              <div className="flex items-center justify-center text-[#5566f6]">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
+                      className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
@@ -341,35 +306,32 @@ export function CleaningVentilationChecklistDocumentsClient({
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
                       onSelect={() => setSettingsTarget(document)}
                     >
-                      <Settings2 className="mr-3 size-5 text-[#5566f6]" />
+                      <Settings2 className="mr-3 size-5 text-[#6f7282]" />
                       Настройки
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                      onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
+                      onSelect={() => openPdf({ documentId: document.id })}
                     >
-                      <Printer className="mr-3 size-5 text-[#5566f6]" />
+                      <Printer className="mr-3 size-5 text-[#6f7282]" />
                       Печать
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
                       onSelect={() =>
-                        moveDocument(document.id, document.status === "active" ? "closed" : "active")
+                        setStatus(document.status === "active" ? "closed" : "active", {
+                          documentId: document.id,
+                        })
                       }
                     >
-                      <CalendarDays className="mr-3 size-5 text-[#5566f6]" />
+                      <CalendarDays className="mr-3 size-5 text-[#6f7282]" />
                       {document.status === "active" ? "Закрыть" : "Вернуть в активные"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                      onSelect={() =>
-                        deleteDocument(
-                          document.id,
-                          document.title || CLEANING_VENTILATION_CHECKLIST_TITLE
-                        )
-                      }
+                      onSelect={() => handleDelete(document)}
                     >
-                      <Trash2 className="mr-3 size-5" />
+                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
                       Удалить
                     </DropdownMenuItem>
                   </DropdownMenuContent>

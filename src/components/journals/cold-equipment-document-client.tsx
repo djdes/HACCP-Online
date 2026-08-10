@@ -13,11 +13,9 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
-  LayoutGrid,
   Pencil,
   Plus,
   Printer,
-  Rows3,
   Settings2,
   Trash2,
   X,
@@ -63,11 +61,25 @@ import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentCloseButton } from "@/components/journals/document-close-button";
 import { CopyYesterdayButton } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import { useMobileView } from "@/lib/use-mobile-view";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
+
+/**
+ * Screen ↔ print duality tokens (тот же приём, что в
+ * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
 type EmployeeItem = {
   id: string;
   name: string;
@@ -207,14 +219,14 @@ function EquipmentDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[36px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[760px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#d8dcea] px-12 py-10">
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-12 py-10">
           <DialogTitle className="text-[22px] font-medium text-black">
             {initialItem ? "Редактирование оборудования" : "Добавление оборудования"}
           </DialogTitle>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-full p-2 text-black transition hover:bg-[#f3f4fb]"
+            className="rounded-full p-2 text-black transition hover:bg-[#fafbff]"
           >
             <X className="size-9" />
           </button>
@@ -222,7 +234,7 @@ function EquipmentDialog({
 
         <div className="space-y-7 px-12 py-10">
           <div className="space-y-3">
-            <Label htmlFor="equipment-name" className="text-[14px] text-[#73738a]">
+            <Label htmlFor="equipment-name" className="text-[14px] text-[#6f7282]">
               Наименование
             </Label>
             <Input
@@ -236,7 +248,7 @@ function EquipmentDialog({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
-              <Label htmlFor="equipment-min" className="text-[14px] text-[#73738a]">
+              <Label htmlFor="equipment-min" className="text-[14px] text-[#6f7282]">
                 Температура от
               </Label>
               <Input
@@ -248,7 +260,7 @@ function EquipmentDialog({
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="equipment-max" className="text-[14px] text-[#73738a]">
+              <Label htmlFor="equipment-max" className="text-[14px] text-[#6f7282]">
                 Температура до
               </Label>
               <Input
@@ -280,7 +292,7 @@ function EquipmentDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || name.trim() === ""}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4858eb]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : initialItem ? "Сохранить" : "Добавить"}
             </Button>
@@ -439,14 +451,14 @@ function JournalSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[38px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[980px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#d8dcea] px-16 py-12">
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-16 py-12">
           <DialogTitle className="text-[22px] font-medium text-black">
             Настройки журнала
           </DialogTitle>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-full p-2 text-black transition hover:bg-[#f3f4fb]"
+            className="rounded-full p-2 text-black transition hover:bg-[#fafbff]"
           >
             <X className="size-10" />
           </button>
@@ -454,7 +466,7 @@ function JournalSettingsDialog({
 
         <div className="space-y-8 px-16 py-12">
           <div className="space-y-3">
-            <Label htmlFor="journal-title" className="text-[15px] text-[#8b8fa3]">
+            <Label htmlFor="journal-title" className="text-[15px] text-[#6f7282]">
               Название журнала
             </Label>
             <Input
@@ -466,7 +478,7 @@ function JournalSettingsDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#8b8fa3]">
+            <Label className="text-[15px] text-[#6f7282]">
               Должность ответственного за снятие показателей
             </Label>
             <Select
@@ -481,7 +493,7 @@ function JournalSettingsDialog({
                 }
               }}
             >
-              <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[15px]">
+              <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#fafbff] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
@@ -491,9 +503,9 @@ function JournalSettingsDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#8b8fa3]">Сотрудник</Label>
+            <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
             <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#f3f4fb] px-8 text-[15px]">
+              <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#fafbff] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
@@ -528,7 +540,7 @@ function JournalSettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting}
-              className="h-20 rounded-[24px] bg-[#5566f6] px-12 text-[15px] text-white hover:bg-[#4858eb]"
+              className="h-20 rounded-[24px] bg-[#5566f6] px-12 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -568,27 +580,25 @@ export function ColdEquipmentDocumentClient({
   // Mobile-only view preference. The 1900-px table behind horizontal
   // scroll is unusable on a 320-px phone, so by default we render a card
   // per equipment with a per-day temperature input accordion. See
-  // hygiene-document-client.tsx for the original pattern.
-  const [mobileView, setMobileView] = useState<"cards" | "table">("cards");
+  // hygiene-document-client.tsx for the original pattern. Общий хук,
+  // ключ `journal-mobile-view:cold_equipment_control`.
+  const { mobileView, switchMobileView } = useMobileView("cold_equipment_control");
   const [expandedEquipmentId, setExpandedEquipmentId] = useState<string | null>(
     null
   );
+  // Миграция со старого ключа "cold-equipment-mobile-view" (до перехода на
+  // общий useMobileView).
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("cold-equipment-mobile-view");
-      if (saved === "table" || saved === "cards") setMobileView(saved);
+      if (window.localStorage.getItem("journal-mobile-view:cold_equipment_control")) return;
+      const legacy = window.localStorage.getItem("cold-equipment-mobile-view");
+      if (legacy === "table" || legacy === "cards") switchMobileView(legacy);
+      window.localStorage.removeItem("cold-equipment-mobile-view");
     } catch {
-      /* localStorage blocked — fall back to 'cards' */
+      /* localStorage blocked — остаёмся на дефолте 'cards' */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  function switchMobileView(next: "cards" | "table") {
-    setMobileView(next);
-    try {
-      window.localStorage.setItem("cold-equipment-mobile-view", next);
-    } catch {
-      /* ignore */
-    }
-  }
 
   const dateKeys = useMemo(() => buildDateKeys(dateFrom, dateTo), [dateFrom, dateTo]);
   const rowByDate = useMemo(
@@ -895,6 +905,12 @@ export function ColdEquipmentDocumentClient({
           </div>
         </div>
 
+        {status !== "active" ? (
+          <div className="mb-8">
+            <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать показания." />
+          </div>
+        ) : null}
+
         <div className="mb-10 rounded-[32px] bg-[#f5f6ff] px-8 py-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -928,10 +944,10 @@ export function ColdEquipmentDocumentClient({
                   <div className="text-[15px] leading-[1.35] text-black">
                     {item.name}, Темп. (T)
                   </div>
-                  <div className="rounded-[18px] border border-[#d6d9e6] bg-white px-6 py-4 text-[15px]">
+                  <div className="rounded-[18px] border border-[#dcdfed] bg-white px-6 py-4 text-[15px]">
                     От {item.min ?? "—"}
                   </div>
-                  <div className="rounded-[18px] border border-[#d6d9e6] bg-white px-6 py-4 text-[15px]">
+                  <div className="rounded-[18px] border border-[#dcdfed] bg-white px-6 py-4 text-[15px]">
                     До {item.max ?? "—"}
                   </div>
                   <div className="flex items-center justify-end">
@@ -982,7 +998,7 @@ export function ColdEquipmentDocumentClient({
                 setEditingEquipment(null);
                 setEquipmentDialogOpen(true);
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4858eb]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-6" />
               Добавить ХО
@@ -1006,40 +1022,7 @@ export function ColdEquipmentDocumentClient({
         {/* Mobile-only view toggle. Cards = accordion per equipment with
             per-day temperature inputs, vastly more usable on a phone than
             a 1900-px grid. Hidden on sm+ and in print. */}
-        <div
-          role="tablist"
-          aria-label="Режим отображения"
-          className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mobileView === "cards"}
-            onClick={() => switchMobileView("cards")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-              mobileView === "cards"
-                ? "bg-[#f5f6ff] text-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            <LayoutGrid className="size-4" />
-            Карточки
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mobileView === "table"}
-            onClick={() => switchMobileView("table")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-              mobileView === "table"
-                ? "bg-[#f5f6ff] text-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            <Rows3 className="size-4" />
-            Таблица
-          </button>
-        </div>
+        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
 
         {/* Mobile Cards view — accordion per equipment with per-day
             temperature inputs. `handleTemperatureBlur` is the same save
@@ -1193,11 +1176,11 @@ export function ColdEquipmentDocumentClient({
             </JournalDocumentTitle>
           </div>
         </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#d9dce6] bg-white">
+        <div className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1900px] border-collapse text-[16px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[52px] border border-black p-3 text-center" rowSpan={2}>
+              <tr>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] p-3 text-center`} rowSpan={2}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1209,13 +1192,13 @@ export function ColdEquipmentDocumentClient({
                   />
                 </th>
                 <th
-                  className="min-w-[420px] border border-black p-3 text-center text-[22px] font-semibold"
+                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] p-3 text-center text-[22px] font-semibold`}
                   rowSpan={2}
                 >
                   Номер ХК
                 </th>
                 <th
-                  className="border border-black p-3 text-center text-[22px] font-semibold"
+                  className={`${GRID_HEAD_CELL_CLASS} p-3 text-center text-[22px] font-semibold`}
                   colSpan={dateKeys.length}
                 >
                   Месяц{" "}
@@ -1225,12 +1208,12 @@ export function ColdEquipmentDocumentClient({
                   })}
                 </th>
               </tr>
-              <tr className="bg-[#f2f2f2]">
+              <tr>
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`w-[66px] border border-black p-2 text-center font-semibold ${
+                    className={`${GRID_HEAD_CELL_CLASS} w-[66px] p-2 text-center font-semibold ${
                       isWeekend(dateKey) ? "bg-[#eceffd]" : ""
                     }`}
                   >
@@ -1245,9 +1228,9 @@ export function ColdEquipmentDocumentClient({
 
             <tbody>
               <tr>
-                <td className="border border-black p-2" />
+                <td className={`${GRID_CELL_CLASS} p-2`} />
                 <td
-                  className="border border-black p-3 text-center text-[20px] font-semibold"
+                  className={`${GRID_CELL_CLASS} p-3 text-center text-[20px] font-semibold`}
                   colSpan={dateKeys.length + 1}
                 >
                   Температура °C
@@ -1256,7 +1239,7 @@ export function ColdEquipmentDocumentClient({
 
               {config.equipment.map((item) => (
                 <tr key={item.id}>
-                  <td className="border border-black p-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
                     <Checkbox
                       checked={selectedEquipmentIds.includes(item.id)}
                       onCheckedChange={(checked) =>
@@ -1270,9 +1253,9 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className="border border-black px-4 py-4 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-4 align-top`}>
                     <div className="text-[18px] font-medium">{item.name}</div>
-                    <div className="mt-1 text-[13px] text-[#666a80]">{formatRange(item.min, item.max)}</div>
+                    <div className="mt-1 text-[13px] text-[#6f7282]">{formatRange(item.min, item.max)}</div>
                   </td>
 
                   {dateKeys.map((dateKey) => {
@@ -1282,7 +1265,7 @@ export function ColdEquipmentDocumentClient({
                     return (
                       <td
                         key={`${item.id}:${dateKey}`}
-                        className={`border border-black p-1 text-center ${
+                        className={`${GRID_CELL_CLASS} p-1 text-center ${
                           isWeekend(dateKey) ? "bg-[#fafbff]" : ""
                         }`}
                       >
@@ -1306,10 +1289,10 @@ export function ColdEquipmentDocumentClient({
               ))}
 
               <tr>
-                <td className="border border-black p-2 text-center" />
-                <td className="border border-black px-4 py-4 align-top">
+                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-4 py-4 align-top`}>
                   <div className="text-[18px] font-medium">Ответственный за снятие показателей</div>
-                  <div className="mt-2 space-y-1 text-[13px] text-[#4f5368]">
+                  <div className="mt-2 space-y-1 text-[13px] text-[#6f7282]">
                     {responsibleCodes.items.map((item) => (
                       <div key={item.employeeId}>{item.label}</div>
                     ))}
@@ -1323,7 +1306,7 @@ export function ColdEquipmentDocumentClient({
                   return (
                     <td
                       key={`responsible:${dateKey}`}
-                      className={`border border-black p-2 text-center text-[15px] font-medium ${
+                      className={`${GRID_CELL_CLASS} p-2 text-center text-[15px] font-medium ${
                         isWeekend(dateKey) ? "bg-[#fafbff]" : ""
                       }`}
                     >

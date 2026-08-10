@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -13,7 +13,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import { useMobileView } from "@/lib/use-mobile-view";
 import {
   HEALTH_REGISTER_NOTES,
   HEALTH_REGISTER_REMINDER,
@@ -48,11 +59,28 @@ type Props = {
   useV2?: boolean;
 };
 
+/**
+ * Screen ↔ print duality tokens (тот же приём, что в
+ * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
+
 function HealthCheckbox(props: {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
-  return <Checkbox checked={props.checked} onCheckedChange={(value) => props.onCheckedChange?.(value === true)} className="mx-auto h-5 w-5 rounded-[5px] border-[#c8ccda] data-[state=checked]:border-[#2563ff] data-[state=checked]:bg-[#2563ff]" />;
+  return (
+    <Checkbox
+      checked={props.checked}
+      onCheckedChange={(value) => props.onCheckedChange?.(value === true)}
+      className="mx-auto h-5 w-5 rounded-[5px] border-[#c8ccda] data-[state=checked]:border-[#5566f6] data-[state=checked]:bg-[#5566f6]"
+    />
+  );
 }
 
 function HealthHeader({
@@ -63,27 +91,27 @@ function HealthHeader({
   pageLabel: string;
 }) {
   return (
-    <table className="health-header w-full border-collapse">
+    <table className="health-header w-full border-collapse overflow-hidden rounded-2xl print:rounded-none">
       <tbody>
         <tr>
           <td
             rowSpan={2}
-            className="w-[270px] border border-black px-8 py-8 text-center text-[22px] font-semibold"
+            className={`w-[270px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[22px] font-semibold`}
           >
             {organizationLabel}
           </td>
-          <td className="border border-black px-8 py-4 text-center text-[18px] uppercase">
+          <td className={`${GRID_HEAD_CELL_CLASS} px-8 py-4 text-center text-[18px] uppercase`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className="w-[170px] border border-black px-8 py-8 text-center text-[18px] uppercase"
+            className={`w-[170px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[18px] uppercase`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className="border border-black px-8 py-4 text-center text-[17px] italic uppercase">
+          <td className={`${GRID_CELL_CLASS} px-8 py-4 text-center text-[17px] italic uppercase`}>
             ЖУРНАЛ ЗДОРОВЬЯ
           </td>
         </tr>
@@ -142,33 +170,28 @@ export function HealthDocumentClient(props: Props) {
   const [emptyRows, setEmptyRows] = useState(String(printEmptyRows));
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // Mobile-only view preference: 'cards' (default) vs 'table'. See
-  // hygiene-document-client.tsx for the full rationale — a 1100-px-wide
-  // grid behind horizontal scroll is unusable on a phone, so by default
-  // we collapse the journal into an accordion per employee. Print and
-  // sm+ viewports always use the table.
-  const [mobileView, setMobileView] = useState<"cards" | "table">("cards");
+  // Mobile-only view preference: общий хук useMobileView, ключ
+  // `journal-mobile-view:health_check`. Desktop и печать всегда рендерят
+  // таблицу.
+  const { mobileView, switchMobileView } = useMobileView("health_check");
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
 
+  // Миграция со старого ключа "health-mobile-view" (до перехода на общий
+  // useMobileView). Читаем один раз: если нового ключа ещё нет, а старый
+  // лежит — переносим выбор пользователя и чистим легаси.
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("health-mobile-view");
-      if (saved === "table" || saved === "cards") setMobileView(saved);
+      if (window.localStorage.getItem("journal-mobile-view:health_check")) return;
+      const legacy = window.localStorage.getItem("health-mobile-view");
+      if (legacy === "table" || legacy === "cards") switchMobileView(legacy);
+      window.localStorage.removeItem("health-mobile-view");
     } catch {
-      /* localStorage blocked — fall back to default 'cards' */
+      /* localStorage blocked — остаёмся на дефолте 'cards' */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function switchMobileView(next: "cards" | "table") {
-    setMobileView(next);
-    try {
-      window.localStorage.setItem("health-mobile-view", next);
-    } catch {
-      /* ignore */
-    }
-  }
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
@@ -188,6 +211,7 @@ export function HealthDocumentClient(props: Props) {
 
   const selectedCount = selectedEmployeeIds.length;
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
+  const isActive = status === "active";
 
   function toggleEmployee(employeeId: string, checked: boolean) {
     setSelectedEmployeeIds((current) =>
@@ -197,7 +221,7 @@ export function HealthDocumentClient(props: Props) {
 
   async function handleDeleteSelected() {
     if (selectedEmployeeIds.length === 0) return;
-    if (status !== "active") return;
+    if (!isActive) return;
 
     setIsDeleting(true);
     try {
@@ -220,7 +244,7 @@ export function HealthDocumentClient(props: Props) {
   }
 
   async function handleSaveSettings() {
-    if (status !== "active") return;
+    if (!isActive) return;
     setIsSavingSettings(true);
     try {
       await requestJson(`/api/journal-documents/${documentId}`, {
@@ -337,7 +361,11 @@ export function HealthDocumentClient(props: Props) {
             }}
           />
 
-          {status === "active" && selectedCount > 0 && (
+          {!isActive ? (
+            <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки сотрудников." />
+          ) : null}
+
+          {isActive && selectedCount > 0 && (
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
@@ -363,40 +391,7 @@ export function HealthDocumentClient(props: Props) {
           {/* Mobile-only view toggle. Cards = accordion per employee (a
               lot easier to read on a 320-px phone than a 1100-px grid
               behind horizontal scroll). */}
-          <div
-            role="tablist"
-            aria-label="Режим отображения"
-            className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mobileView === "cards"}
-              onClick={() => switchMobileView("cards")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-                mobileView === "cards"
-                  ? "bg-[#f5f6ff] text-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              <LayoutGrid className="size-4" />
-              Карточки
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mobileView === "table"}
-              onClick={() => switchMobileView("table")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${
-                mobileView === "table"
-                  ? "bg-[#f5f6ff] text-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              <Rows3 className="size-4" />
-              Таблица
-            </button>
-          </div>
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>
 
         {/* Mobile Cards view — hidden on sm+ and in print. Read-only
@@ -431,10 +426,10 @@ export function HealthDocumentClient(props: Props) {
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={(checked) => {
-                            if (status !== "active") return;
+                            if (!isActive) return;
                             toggleEmployee(employee.id, Boolean(checked));
                           }}
-                          disabled={status !== "active"}
+                          disabled={!isActive}
                           className="size-5"
                         />
                       </span>
@@ -519,8 +514,8 @@ export function HealthDocumentClient(props: Props) {
             mobileView === "cards" ? "hidden sm:block print:block" : ""
           }`}
         >
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="mx-auto min-w-[1100px] max-w-[1860px] sm:min-w-0">
+        <div className={GRID_VIEWPORT_CLASS}>
+        <div className="mx-auto min-w-[1100px] max-w-[1860px] px-8 py-6 sm:min-w-0">
           <div className="mb-10">
             <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
           </div>
@@ -531,15 +526,15 @@ export function HealthDocumentClient(props: Props) {
 
           <table className="health-grid w-full border-collapse text-[15px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
+              <tr>
                 <th
-                  className="w-[42px] border border-black p-2 text-center font-semibold"
+                  className={`w-[42px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   rowSpan={2}
                 >
                   <HealthCheckbox
                     checked={allSelected}
                     onCheckedChange={(checked) => {
-                      if (status !== "active") return;
+                      if (!isActive) return;
                       setSelectedEmployeeIds(
                         checked ? rosterUsers.map((employee) => employee.id) : []
                       );
@@ -547,7 +542,7 @@ export function HealthDocumentClient(props: Props) {
                   />
                 </th>
                 <th
-                  className="w-[72px] border border-black p-2 text-center font-semibold"
+                  className={`w-[72px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   rowSpan={2}
                 >
                   №
@@ -555,36 +550,36 @@ export function HealthDocumentClient(props: Props) {
                   п/п
                 </th>
                 <th
-                  className="w-[230px] border border-black p-2 text-center font-semibold"
+                  className={`w-[230px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   rowSpan={2}
                 >
                   Ф.И.О. работника
                 </th>
                 <th
-                  className="w-[270px] border border-black p-2 text-center font-semibold"
+                  className={`w-[270px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   rowSpan={2}
                 >
                   Должность
                 </th>
                 <th
-                  className="border border-black p-2 text-center text-[16px] font-semibold"
+                  className={`${GRID_HEAD_CELL_CLASS} p-2 text-center text-[16px] font-semibold`}
                   colSpan={dateKeys.length}
                 >
                   Месяц {monthLabel}
                 </th>
                 <th
-                  className="w-[200px] border border-black p-2 text-center font-semibold"
+                  className={`w-[200px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   rowSpan={2}
                 >
                   Принятые меры
                 </th>
               </tr>
-              <tr className="bg-[#f2f2f2]">
+              <tr>
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className="w-[58px] border border-black p-2 text-center font-semibold"
+                    className={`w-[58px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
                   >
                     <div>{getDayNumber(dateKey)}</div>
                     <div>{getWeekdayShort(dateKey)}.</div>
@@ -599,24 +594,24 @@ export function HealthDocumentClient(props: Props) {
 
                 return (
                   <tr key={employee.id}>
-                    <td className="border border-black p-2 text-center align-middle">
+                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                       {employee.name ? (
                         <HealthCheckbox
                           checked={selectedEmployeeIds.includes(employee.id)}
                           onCheckedChange={(checked) => {
-                            if (status !== "active") return;
+                            if (!isActive) return;
                             toggleEmployee(employee.id, checked);
                           }}
                         />
                       ) : null}
                     </td>
-                    <td className="border border-black p-2 text-center align-middle">
+                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                       {employee.name ? employee.number : ""}
                     </td>
-                    <td className="border border-black p-2 text-center align-middle">
+                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                       {employee.name || ""}
                     </td>
-                    <td className="border border-black p-2 text-center align-middle">
+                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                       {employee.name
                         ? employee.position || getHygienePositionLabel("operator")
                         : ""}
@@ -627,13 +622,13 @@ export function HealthDocumentClient(props: Props) {
                       return (
                         <td
                           key={`${employee.id}:${dateKey}`}
-                          className="border border-black p-2 text-center align-middle"
+                          className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}
                         >
                           {data?.signed ? "+" : ""}
                         </td>
                       );
                     })}
-                    <td className="border border-black px-3 py-2 align-middle">
+                    <td className={`${GRID_CELL_CLASS} px-3 py-2 align-middle`}>
                       <div className="space-y-1 text-left text-[14px] leading-5">
                         {measures.map((item) => (
                           <div key={`${employee.id}:${item}`}>{item}</div>
@@ -645,16 +640,16 @@ export function HealthDocumentClient(props: Props) {
               })}
 
               <tr>
-                <td className="border border-black p-2 text-center align-middle">
+                <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
                   <HealthCheckbox />
                 </td>
-                <td className="border border-black p-2 text-center" />
-                <td className="border border-black p-2 text-center" />
-                <td className="border border-black p-2 text-center" />
+                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
+                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
+                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
                 {dateKeys.map((dateKey) => (
-                  <td key={`blank:${dateKey}`} className="border border-black p-2" />
+                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} p-2`} />
                 ))}
-                <td className="border border-black p-2" />
+                <td className={`${GRID_CELL_CLASS} p-2`} />
               </tr>
             </tbody>
           </table>
@@ -690,24 +685,25 @@ export function HealthDocumentClient(props: Props) {
             </div>
             <div className="space-y-2">
               <Label>Добавлять пустых строк при печати</Label>
-              <select
-                value={emptyRows}
-                onChange={(event) => setEmptyRows(event.target.value)}
-                className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-sm"
-              >
-                {[0, 1, 2, 3, 4, 5, 10, 15, 20].map((n) => (
-                  <option key={n} value={String(n)}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+              <Select value={emptyRows} onValueChange={setEmptyRows}>
+                <SelectTrigger className="h-11 w-full rounded-2xl border-[#dfe1ec] bg-[#fafbff] px-4 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPTY_ROWS_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end">
               <Button
                 type="button"
                 onClick={handleSaveSettings}
                 disabled={isSavingSettings}
-                className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[15px] text-white hover:bg-[#4b57ff]"
+                className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {isSavingSettings ? "Сохранение..." : "Сохранить"}
               </Button>

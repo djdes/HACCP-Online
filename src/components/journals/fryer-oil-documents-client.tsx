@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
-import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,25 +13,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { FRYER_OIL_PAGE_TITLE } from "@/lib/fryer-oil-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  DocumentActionsMenu,
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -174,78 +170,37 @@ export function FryerOilDocumentsClient(props: Props) {
   const routeCode = props.routeCode || props.templateCode;
   const pageTitle =
     props.activeTab === "closed"
-      ? `${FRYER_OIL_PAGE_TITLE} (Закрытые!!!)`
+      ? `${FRYER_OIL_PAGE_TITLE} (закрытые)`
       : FRYER_OIL_PAGE_TITLE;
 
-  async function handleDelete(documentId: string, title: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${title}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
+  // Единый источник delete / status / pdf для журнальных документов.
+  const { deleteDocument } = useJournalDocumentActions();
 
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "DELETE",
+  async function handleDelete(document: DocumentItem) {
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: "Удалятся все записи об использовании фритюрных жиров", tone: "warn" },
+        { label: `Журнал начат: ${formatDateDash(document.dateFrom)}`, tone: "info" },
+        { label: "Печатную форму документа восстановить будет нельзя", tone: "warn" },
+      ],
+      successMessage: `Документ «${document.title}» удалён`,
+      errorMessage: "Не удалось удалить документ",
     });
-
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-
-    router.refresh();
   }
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-          {pageTitle}
-        </h1>
-        <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-4" />
-              Инструкция
-            </Link>
-          </Button>
-          {props.activeTab === "active" && (
-            <CreateDocumentDialog
-              templateCode={props.templateCode}
-              templateName={props.templateName}
-              users={props.users}
-              triggerClassName="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-              triggerLabel="Создать документ"
-              triggerIcon={<Plus className="size-4" />}
-            />
-          )}
-        </div>
-      </div>
+      <JournalTopBar
+        heading={pageTitle}
+        activeTab={props.activeTab}
+        templateCode={props.templateCode}
+        templateName={props.templateName}
+        users={props.users}
+      />
 
-      <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-9 text-[15px]">
-          <Link
-            href={`/journals/${routeCode}`}
-            className={`relative pb-4 ${
-              props.activeTab === "active"
-                ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            Активные
-          </Link>
-          <Link
-            href={`/journals/${routeCode}?tab=closed`}
-            className={`relative pb-4 ${
-              props.activeTab === "closed"
-                ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                : "text-[#6f7282]"
-            }`}
-          >
-            Закрытые
-          </Link>
-        </div>
-      </div>
+      <JournalTabs activeTab={props.activeTab} templateCode={routeCode} />
 
       <div className="space-y-3">
         {props.documents.length === 0 && (
@@ -272,55 +227,31 @@ export function FryerOilDocumentsClient(props: Props) {
               </Link>
 
               <div className="flex justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex size-8 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
-                    >
-                      <Ellipsis className="size-6" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[206px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg">
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px]"
-                        onSelect={() =>
+                <DocumentActionsMenu
+                  size="sm"
+                  onEdit={
+                    document.status === "active"
+                      ? () =>
                           setEditing({
                             id: document.id,
                             title: document.title,
                             dateFrom: document.dateFrom,
                           })
-                        }
-                      >
-                        <Pencil className="mr-2 size-4 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="h-11 rounded-lg px-3 text-[14px]"
-                      onSelect={() => {
-                        void openDocumentPdf(document.id).catch((error) =>
-                          toast.error(
-                            error instanceof Error ? error.message : "Не удалось открыть PDF"
-                          )
-                        );
-                      }}
-                    >
-                      <Printer className="mr-2 size-4 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => handleDelete(document.id, document.title)}
-                      >
-                        <Trash2 className="mr-2 size-4 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      : undefined
+                  }
+                  onPrint={() => {
+                    void openDocumentPdf(document.id).catch((error) =>
+                      toast.error(
+                        error instanceof Error ? error.message : "Не удалось открыть PDF"
+                      )
+                    );
+                  }}
+                  onDelete={
+                    document.status === "active"
+                      ? () => void handleDelete(document)
+                      : undefined
+                  }
+                />
               </div>
             </div>
           );

@@ -46,18 +46,31 @@ import {
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
+
+/**
+ * Screen ↔ print duality tokens (тот же приём, что в
+ * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
 type UserItem = {
   id: string;
   name: string;
@@ -177,7 +190,7 @@ function RoomDialog(props: {
 
         <div className="space-y-4 px-8 py-6">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#73738a]">
+            <Label className="text-[14px] text-[#6f7282]">
               Название помещения
             </Label>
             <Input
@@ -189,7 +202,7 @@ function RoomDialog(props: {
                 }))
               }
               placeholder="Введите название помещения"
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
             />
           </div>
 
@@ -197,7 +210,7 @@ function RoomDialog(props: {
             <>
               {SANITATION_MONTHS.map((month) => (
                 <div key={month.key} className="space-y-2">
-                  <Label className="text-[14px] text-[#73738a]">
+                  <Label className="text-[14px] text-[#6f7282]">
                     {MONTH_FIELD_LABELS[month.key]}
                   </Label>
                   <Select
@@ -212,7 +225,7 @@ function RoomDialog(props: {
                       }))
                     }
                   >
-                    <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                    <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
                       <SelectValue placeholder="--" />
                     </SelectTrigger>
                     <SelectContent>
@@ -250,7 +263,7 @@ function RoomDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : props.submitText}
             </Button>
@@ -513,7 +526,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, title: event.target.value }))
             }
             placeholder="Название документа"
-            className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
           />
 
           <div className="relative">
@@ -526,9 +539,9 @@ function DocumentSettingsDialog(props: {
                   documentDate: toIsoDate(event.target.value),
                 }))
               }
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
+              className="h-11 rounded-2xl border-[#dcdfed] px-4 pr-14 text-[15px]"
             />
-            <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
+            <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282]" />
           </div>
 
           <Select
@@ -537,7 +550,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, year: value }))
             }
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -564,7 +577,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
               <SelectValue placeholder='Должность "Утверждаю"' />
             </SelectTrigger>
             <SelectContent>
@@ -594,7 +607,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
@@ -619,7 +632,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
               <SelectValue placeholder="Должность ответственного" />
             </SelectTrigger>
             <SelectContent>
@@ -649,7 +662,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
@@ -675,62 +688,11 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeleteRowsDialog(props: {
-  open: boolean;
-  onOpenChange: (value: boolean) => void;
-  count: number;
-  onConfirm: () => Promise<void>;
-}) {
-  const [submitting, setSubmitting] = useState(false);
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-8 py-6">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
-              {props.count > 1
-                ? `Удаление ${props.count} строк`
-                : "Удаление строки"}
-            </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-8" />
-            </button>
-          </div>
-        </DialogHeader>
-
-        <div className="flex justify-end px-8 py-6">
-          <Button
-            type="button"
-            disabled={submitting}
-            onClick={async () => {
-              setSubmitting(true);
-              try {
-                await props.onConfirm();
-                props.onOpenChange(false);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
-          >
-            {submitting ? "Удаление..." : "Удалить"}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -768,7 +730,6 @@ export function SanitationDayDocumentClient({
     },
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const normalized = normalizeSanitationDayConfig(config);
   const readOnly = status === "closed";
@@ -860,6 +821,15 @@ export function SanitationDayDocumentClient({
   }
 
   async function deleteSelectedRows() {
+    const count = selectedRowIds.length;
+    const confirmed = await confirmAsync({
+      title: count > 1 ? `Удалить ${count} строк?` : "Удалить строку?",
+      description: "Строки помещений и их отметки по месяцам будут удалены безвозвратно.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+    });
+    if (!confirmed) return;
+
     const rowIdSet = new Set(selectedRowIds);
     await patchConfig({
       ...normalized,
@@ -901,28 +871,32 @@ export function SanitationDayDocumentClient({
         {title}
       </h1>
 
-      <section className="space-y-6 overflow-hidden rounded-[18px] border border-[#dadde9] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
+      {readOnly ? (
+        <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать план и факт уборок." />
+      ) : null}
+
+      <section className="space-y-6 overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse sm:min-w-0">
           <tbody>
             <tr>
               <td
                 rowSpan={2}
-                className="w-[18%] border border-black p-3 text-center text-[26px] font-semibold"
+                className={`${GRID_CELL_CLASS} w-[18%] p-3 text-center text-[26px] font-semibold`}
               >
                 {organizationName}
               </td>
-              <td className="border border-black p-2 text-center text-[15px]">
+              <td className={`${GRID_CELL_CLASS} p-2 text-center text-[15px]`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className="w-[22%] border border-black p-2 text-center text-[15px]">
+              <td className={`${GRID_CELL_CLASS} w-[22%] p-2 text-center text-[15px]`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
             <tr>
               <td
                 colSpan={2}
-                className="border border-black p-2 text-center text-[18px] italic uppercase"
+                className={`${GRID_CELL_CLASS} p-2 text-center text-[18px] italic uppercase`}
               >
                 ГРАФИК И УЧЕТ ГЕНЕРАЛЬНЫХ УБОРОК
               </td>
@@ -973,7 +947,7 @@ export function SanitationDayDocumentClient({
                 });
                 setRoomDialogOpen(true);
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5]"
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-5" />
               Добавить помещение
@@ -995,7 +969,7 @@ export function SanitationDayDocumentClient({
                     });
                     setRoomDialogOpen(true);
                   }}
-                  className="rounded-2xl border-[#e9ecf6] px-5 py-3 text-[18px] text-[#5566f6]"
+                  className="rounded-2xl border-[#dcdfed] px-5 py-3 text-[18px] text-[#5566f6]"
                 >
                   <Pencil className="size-5" />
                   Редактировать
@@ -1003,7 +977,11 @@ export function SanitationDayDocumentClient({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setDeleteOpen(true)}
+                  onClick={() => {
+                    deleteSelectedRows().catch((error) =>
+                      toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
+                    );
+                  }}
                   className="rounded-2xl border-[#ffd8d4] px-5 py-3 text-[18px] text-[#ff6b5f] hover:bg-[#fff5f4]"
                 >
                   <Trash2 className="size-5" />
@@ -1056,13 +1034,13 @@ export function SanitationDayDocumentClient({
             />
           ) : null}
 
-          <MobileViewTableWrapper mobileView={mobileView}>
-          <table className="min-w-full border-collapse border border-black bg-white text-[14px]">
+          <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
+          <table className={`min-w-full border-collapse ${GRID_CELL_CLASS} bg-white text-[14px]`}>
             <thead>
               <tr>
                 <th
                   rowSpan={2}
-                  className="w-[54px] border border-black px-2 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[54px] px-2 py-2`}
                 >
                   {!readOnly ? (
                     <div className="flex items-center justify-center">
@@ -1079,17 +1057,17 @@ export function SanitationDayDocumentClient({
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[360px] border border-black px-3 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[360px] px-3 py-2`}
                 >
                   Помещение
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[160px] border border-black px-3 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-3 py-2`}
                 >
                   Вид
                 </th>
-                <th colSpan={12} className="border border-black px-3 py-2">
+                <th colSpan={12} className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>
                   График
                 </th>
               </tr>
@@ -1097,7 +1075,7 @@ export function SanitationDayDocumentClient({
                 {SANITATION_MONTHS.map((month) => (
                   <th
                     key={month.key}
-                    className="w-[90px] border border-black px-2 py-2"
+                    className={`${GRID_HEAD_CELL_CLASS} w-[90px] px-2 py-2`}
                   >
                     {month.short}
                   </th>
@@ -1110,7 +1088,7 @@ export function SanitationDayDocumentClient({
                   <tr>
                     <td
                       rowSpan={2}
-                      className="border border-black px-2 py-2 align-middle"
+                      className={`${GRID_CELL_CLASS} px-2 py-2 align-middle`}
                     >
                       {!readOnly ? (
                         <div className="flex items-center justify-center">
@@ -1129,7 +1107,7 @@ export function SanitationDayDocumentClient({
                     </td>
                     <td
                       rowSpan={2}
-                      className={`border border-black px-3 py-2 text-center align-middle ${readOnly ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      className={`${GRID_CELL_CLASS} px-3 py-2 text-center align-middle ${readOnly ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
                       onClick={() => {
                         if (readOnly) return;
                         setRoomDialogState({
@@ -1142,13 +1120,13 @@ export function SanitationDayDocumentClient({
                     >
                       {row.roomName}
                     </td>
-                    <td className="border border-black px-3 py-2 text-center">
+                    <td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>
                       План
                     </td>
                     {SANITATION_MONTHS.map((month) => (
                       <td
                         key={`${row.id}-plan-${month.key}`}
-                        className="border border-black px-2 py-1 text-center"
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center`}
                       >
                         {readOnly ? (
                           displayMonthValue(row.plan[month.key])
@@ -1173,13 +1151,13 @@ export function SanitationDayDocumentClient({
                     ))}
                   </tr>
                   <tr>
-                    <td className="border border-black px-3 py-2 text-center">
+                    <td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>
                       Факт
                     </td>
                     {SANITATION_MONTHS.map((month) => (
                       <td
                         key={`${row.id}-fact-${month.key}`}
-                        className="border border-black px-2 py-1 text-center"
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center`}
                       >
                         {readOnly ? (
                           displayMonthValue(row.fact[month.key])
@@ -1208,7 +1186,7 @@ export function SanitationDayDocumentClient({
               <tr>
                 <td
                   colSpan={3}
-                  className="border border-black px-3 py-2 text-center"
+                  className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}
                 >
                   Ответственный:{" "}
                   {getSanitationApproveLabel(
@@ -1218,7 +1196,7 @@ export function SanitationDayDocumentClient({
                 </td>
                 <td
                   colSpan={12}
-                  className="border border-black px-3 py-2 text-center text-[#4b5565]"
+                  className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[#6f7282]`}
                 >
                   Отметки по месяцам указаны в таблице выше.
                 </td>
@@ -1241,13 +1219,6 @@ export function SanitationDayDocumentClient({
         submitText={roomDialogState.id ? "Сохранить" : "Создать"}
         includePlanFields={!roomDialogState.id}
         onSubmit={saveRoomDialog}
-      />
-
-      <DeleteRowsDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        count={selectedRowIds.length}
-        onConfirm={deleteSelectedRows}
       />
 
       <DocumentSettingsDialog

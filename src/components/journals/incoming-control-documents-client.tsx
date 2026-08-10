@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpenText, Ellipsis, Plus, Printer, Trash2 } from "lucide-react";
+import { Ellipsis, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,14 +29,17 @@ import {
   type AcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  JournalTabs,
+  JournalTopBar,
+} from "@/components/journals/document-list-ui";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
-  JOURNAL_LIST_ACTIONS_CLASS,
-  JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 
@@ -258,50 +261,6 @@ function SettingsDialog({
   );
 }
 
-function DeleteDialog({
-  open,
-  onOpenChange,
-  title,
-  onDelete,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  onDelete: () => Promise<void>;
-}) {
-  const [submitting, setSubmitting] = useState(false);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[680px]">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="pr-10 text-[22px] font-medium text-black">
-            {`Удаление документа "${title}"`}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex justify-end px-12 py-10">
-          <Button
-            type="button"
-            disabled={submitting}
-            onClick={async () => {
-              setSubmitting(true);
-              try {
-                await onDelete();
-                onOpenChange(false);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
-          >
-            {submitting ? "Удаление..." : "Удалить"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function IncomingControlDocumentsClient({
   activeTab,
   routeCode,
@@ -315,7 +274,8 @@ export function IncomingControlDocumentsClient({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
-  const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
+  // Единый источник delete / pdf для журнальных документов.
+  const { deleteDocument, openPdf } = useJournalDocumentActions();
   const defaultDocumentTitle = getAcceptanceDocumentTitle(templateCode);
   const pageTitle = getAcceptancePageTitle(templateCode);
   const createState = useMemo(
@@ -398,74 +358,52 @@ export function IncomingControlDocumentsClient({
     router.refresh();
   }
 
-  async function deleteById(documentId: string) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
-    if (!response.ok) {
-      throw new Error("Не удалось удалить документ");
-    }
-    router.refresh();
+  async function handleDelete(document: DocumentItem) {
+    const config = normalizeAcceptanceDocumentConfig(document.config, users);
+    const docTitle = document.title || defaultDocumentTitle;
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${docTitle}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Записей о приёмке: ${config.rows.length}`, tone: "warn" },
+        {
+          label: `Позиций в справочниках документа: ${config.products.length + config.manufacturers.length + config.suppliers.length}`,
+          tone: "info",
+        },
+        { label: `Журнал начат: ${formatRuDate(document.dateFrom)}`, tone: "info" },
+      ],
+      successMessage: `Документ «${docTitle}» удалён`,
+      errorMessage: "Не удалось удалить документ",
+    });
   }
 
   const heading =
     activeTab === "closed" && routeCode === "incoming_control"
-      ? `${pageTitle} (Закрытые!!!)`
+      ? `${pageTitle} (закрытые)`
       : pageTitle;
 
   return (
     <>
       <div className="space-y-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-            {heading}
-          </h1>
-          <div className={JOURNAL_LIST_ACTIONS_CLASS}>
+        <JournalTopBar
+          heading={heading}
+          activeTab={activeTab}
+          templateCode={templateCode}
+          templateName={pageTitle}
+          users={users}
+          createSlot={
             <Button
-              variant="outline"
-              className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none sm:w-auto"
-              asChild
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             >
-              <Link href="/sanpin">
-                <BookOpenText className="size-4" />
-                Инструкция
-              </Link>
+              <Plus className="size-4" />
+              Создать документ
             </Button>
-            {activeTab === "active" && (
-              <Button
-                type="button"
-                onClick={() => setCreateOpen(true)}
-                className="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-              >
-                <Plus className="size-4" />
-                Создать документ
-              </Button>
-            )}
-          </div>
-        </div>
+          }
+        />
 
-        <div className="border-b border-[#d9dce8]">
-          <div className="flex gap-9 text-[15px]">
-            <Link
-              href={`/journals/${routeCode}`}
-              className={`relative pb-4 ${
-                activeTab === "active"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Активные
-            </Link>
-            <Link
-              href={`/journals/${routeCode}?tab=closed`}
-              className={`relative pb-4 ${
-                activeTab === "closed"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#6f7282]"
-              }`}
-            >
-              Закрытые
-            </Link>
-          </div>
-        </div>
+        <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
         <div className="space-y-3">
           {documents.length === 0 && (
@@ -530,13 +468,7 @@ export function IncomingControlDocumentsClient({
                       )}
                       <DropdownMenuItem
                         className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
-                        onSelect={() =>
-                          window.open(
-                            `/api/journal-documents/${document.id}/pdf`,
-                            "_blank",
-                            "noopener,noreferrer"
-                          )
-                        }
+                        onSelect={() => openPdf({ documentId: document.id })}
                       >
                         <Printer className="mr-3 size-5 text-[#6f7282]" />
                         Печать
@@ -544,7 +476,7 @@ export function IncomingControlDocumentsClient({
                       {document.status === "active" && (
                         <DropdownMenuItem
                           className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                          onSelect={() => setDeleteDocument(document)}
+                          onSelect={() => void handleDelete(document)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
                           Удалить
@@ -603,17 +535,6 @@ export function IncomingControlDocumentsClient({
         }}
       />
 
-      <DeleteDialog
-        open={!!deleteDocument}
-        onOpenChange={(open) => {
-          if (!open) setDeleteDocument(null);
-        }}
-        title={deleteDocument?.title || defaultDocumentTitle}
-        onDelete={async () => {
-          if (!deleteDocument) return;
-          await deleteById(deleteDocument.id);
-        }}
-      />
     </>
   );
 }

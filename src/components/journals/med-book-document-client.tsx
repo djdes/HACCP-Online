@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { promptAsync } from "@/components/ui/prompt-async";
+import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
@@ -15,13 +19,9 @@ import {
   MobileViewToggle,
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
-import {
-  RecordCardsView,
-  type RecordCardItem,
-} from "@/components/journals/record-cards-view";
+import { RecordCardsView } from "@/components/journals/record-cards-view";
 import {
   Archive,
-  ChevronLeft,
   Paperclip,
   Plus,
   RotateCcw,
@@ -93,6 +93,33 @@ type Props = {
   useV2?: boolean;
 };
 
+/**
+ * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
+ * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
+ * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
+ */
+const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+const GRID_HEAD_CELL_CLASS =
+  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
+const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+/** Человекочитаемые подсказки для промптов «тип прививки». */
+const VACCINATION_TYPES = Object.keys(
+  VACCINATION_TYPE_LABELS,
+) as MedBookVaccinationType[];
+const VACCINATION_TYPE_HINT = Object.entries(VACCINATION_TYPE_LABELS)
+  .map(([key, label]) => `${key} — ${label}`)
+  .join(", ");
+/** ISO-дата `YYYY-MM-DD` — то, что отдаёт `<input type="date">`. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Общий вид триггера shadcn-селекта внутри форм журнала. */
+const SELECT_TRIGGER_CLASS =
+  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+/** `<SelectItem value="">` в Radix запрещён — сентинел для «не выбрано». */
+const NONE_VALUE = "__none";
+
 const today = () => new Date().toISOString().slice(0, 10);
 const emptyDraft = (): Draft => ({
   employeeId: "",
@@ -131,6 +158,8 @@ export function MedBookDocumentClient({
 }: Props) {
   const router = useRouter();
   const isClosed = status === "closed";
+  // Единый источник status/pdf-действий над журнальным документом.
+  const { setStatus, isChangingStatus } = useJournalDocumentActions(documentId);
   const { mobileView, switchMobileView } = useMobileView("med_books");
   const [rows, setRows] = useState(initialRows);
   const [docTitle, setDocTitle] = useState(title);
@@ -231,18 +260,20 @@ export function MedBookDocumentClient({
     }
   }
 
-  async function patchStatus(nextStatus: "active" | "closed") {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
+  async function closeJournal() {
+    const confirmed = await confirmAsync({
+      title: "Закрыть журнал?",
+      description: `Документ «${docTitle}» перейдёт в закладку «Закрытые» и станет доступен только для просмотра.`,
+      variant: "warn",
+      confirmLabel: "Закрыть журнал",
+      bullets: [
+        { label: `Строк сотрудников в журнале: ${rows.length}`, tone: "info" },
+        { label: "Даты осмотров и прививок редактировать будет нельзя", tone: "warn" },
+        { label: "Журнал можно вернуть в активные в любой момент", tone: "default" },
+      ],
     });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      toast.error(payload?.error || "Не удалось обновить статус");
-      return;
-    }
-    router.refresh();
+    if (!confirmed) return;
+    await setStatus("closed");
   }
 
   function updateRow(rowId: string, patch: Partial<MedBookEntryData>) {
@@ -253,19 +284,40 @@ export function MedBookDocumentClient({
     );
   }
 
-  function editExam(rowId: string, column: string) {
+  async function editExam(rowId: string, column: string) {
     if (isClosed) return;
     const row = rows.find((item) => item.id === rowId);
     if (!row) return;
     const current = row.data.examinations[column];
-    const date =
-      window.prompt(`Дата осмотра: ${column}`, current?.date || "") ??
-      current?.date ??
-      "";
-    const expiryDate =
-      window.prompt(`Действует до: ${column}`, current?.expiryDate || "") ??
-      current?.expiryDate ??
-      "";
+
+    const date = await promptAsync({
+      title: `Дата осмотра — ${column}`,
+      description: `Сотрудник: ${row.name}. Когда осмотр или исследование было пройдено.`,
+      label: "Дата прохождения",
+      type: "date",
+      defaultValue: current?.date || "",
+      confirmLabel: "Далее",
+      validate: (value) =>
+        value && !ISO_DATE_RE.test(value) ? "Укажите дату в формате ГГГГ-ММ-ДД" : null,
+    });
+    if (date === null) return;
+
+    const expiryDate = await promptAsync({
+      title: `Действует до — ${column}`,
+      description:
+        "До какой даты результат осмотра действителен. Ячейка подсветится, когда срок истечёт.",
+      label: "Действителен до",
+      type: "date",
+      defaultValue: current?.expiryDate || "",
+      confirmLabel: "Сохранить",
+      validate: (value) => {
+        if (value && !ISO_DATE_RE.test(value)) return "Укажите дату в формате ГГГГ-ММ-ДД";
+        if (value && date && value < date) return "Срок действия раньше даты осмотра";
+        return null;
+      },
+    });
+    if (expiryDate === null) return;
+
     saveRows(
       rows.map((item) =>
         item.id === rowId
@@ -287,30 +339,73 @@ export function MedBookDocumentClient({
     );
   }
 
-  function editVacc(rowId: string, column: string) {
+  async function editVacc(rowId: string, column: string) {
     if (isClosed) return;
     const row = rows.find((item) => item.id === rowId);
     if (!row) return;
     const current = row.data.vaccinations[column];
-    const type = (window.prompt(
-      `Тип (${Object.keys(VACCINATION_TYPE_LABELS).join(", ")}): ${column}`,
-      current?.type || "done",
-    ) ||
-      current?.type ||
-      "done") as MedBookVaccinationType;
-    const dose =
-      type === "done"
-        ? (window.prompt(`Доза ${column}`, current?.dose || "") ?? "")
-        : "";
-    const date =
-      type === "done"
-        ? (window.prompt(`Дата ${column}`, current?.date || "") ?? "")
-        : "";
-    const expiryDate =
-      type === "done"
-        ? (window.prompt(`Действует до ${column}`, current?.expiryDate || "") ??
-          "")
-        : "";
+
+    const rawType = await promptAsync({
+      title: `Прививка «${column}»`,
+      description: `Сотрудник: ${row.name}. Что отметить в ячейке: ${VACCINATION_TYPE_HINT}.`,
+      label: "Тип отметки",
+      placeholder: "done",
+      defaultValue: current?.type || "done",
+      confirmLabel: "Далее",
+      validate: (value) =>
+        VACCINATION_TYPES.includes(value.trim() as MedBookVaccinationType)
+          ? null
+          : `Допустимые значения: ${VACCINATION_TYPES.join(", ")}`,
+    });
+    if (rawType === null) return;
+    const type = rawType.trim() as MedBookVaccinationType;
+
+    let dose = "";
+    let date = "";
+    let expiryDate = "";
+    if (type === "done") {
+      const doseValue = await promptAsync({
+        title: `Доза — ${column}`,
+        description: "Какая по счёту доза или ревакцинация. Можно оставить пустым.",
+        label: "Доза",
+        placeholder: "Например, V1 или RV2",
+        defaultValue: current?.dose || "",
+        confirmLabel: "Далее",
+      });
+      if (doseValue === null) return;
+      dose = doseValue;
+
+      const dateValue = await promptAsync({
+        title: `Дата прививки — ${column}`,
+        description: "Когда прививка была поставлена.",
+        label: "Дата вакцинации",
+        type: "date",
+        defaultValue: current?.date || "",
+        confirmLabel: "Далее",
+        validate: (value) =>
+          value && !ISO_DATE_RE.test(value) ? "Укажите дату в формате ГГГГ-ММ-ДД" : null,
+      });
+      if (dateValue === null) return;
+      date = dateValue;
+
+      const expiryValue = await promptAsync({
+        title: `Действует до — ${column}`,
+        description:
+          "До какой даты прививка действительна. Ячейка подсветится, когда срок истечёт.",
+        label: "Действительна до",
+        type: "date",
+        defaultValue: current?.expiryDate || "",
+        confirmLabel: "Сохранить",
+        validate: (value) => {
+          if (value && !ISO_DATE_RE.test(value)) return "Укажите дату в формате ГГГГ-ММ-ДД";
+          if (value && date && value < date) return "Срок действия раньше даты прививки";
+          return null;
+        },
+      });
+      if (expiryValue === null) return;
+      expiryDate = expiryValue;
+    }
+
     saveRows(
       rows.map((item) =>
         item.id === rowId
@@ -332,6 +427,65 @@ export function MedBookDocumentClient({
           : item,
       ),
     );
+  }
+
+  async function addExamColumn() {
+    const name = await promptAsync({
+      title: "Новое исследование",
+      description:
+        "Колонка появится в таблице медкнижек — по ней можно будет отмечать даты для каждого сотрудника.",
+      label: "Название специалиста или исследования",
+      placeholder: "Например, Флюорография",
+      confirmLabel: "Добавить",
+      validate: (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return "Введите название";
+        if (examColumns.includes(trimmed)) return "Такая колонка уже есть";
+        return null;
+      },
+    });
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || examColumns.includes(trimmed)) return;
+    setExamColumns((current) => [...current, trimmed]);
+  }
+
+  async function addVaccColumn() {
+    const name = await promptAsync({
+      title: "Новая прививка",
+      description:
+        "Колонка появится в таблице прививок — по ней можно будет отмечать вакцинацию, отказ или мед. отвод.",
+      label: "Название прививки",
+      placeholder: "Например, АДС-М",
+      confirmLabel: "Добавить",
+      validate: (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return "Введите название";
+        if (vaccColumns.includes(trimmed)) return "Такая прививка уже есть";
+        return null;
+      },
+    });
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || vaccColumns.includes(trimmed)) return;
+    setVaccColumns((current) => [...current, trimmed]);
+  }
+
+  async function deleteRow(rowId: string, rowName: string) {
+    const confirmed = await confirmAsync({
+      title: "Удалить строку сотрудника?",
+      description: `Строка «${rowName || "без имени"}» исчезнет из журнала медкнижек.`,
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Отметок об осмотрах: ${examColumns.length}`, tone: "warn" },
+        { label: `Отметок о прививках: ${vaccColumns.length}`, tone: "warn" },
+        { label: "Восстановить данные будет нельзя", tone: "warn" },
+      ],
+    });
+    if (!confirmed) return;
+    await saveRows(rows.filter((row) => row.id !== rowId));
+    setEditId(null);
   }
 
   async function onPhoto(files: FileList | null, target: "add" | "edit") {
@@ -380,7 +534,7 @@ export function MedBookDocumentClient({
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px] text-[#5863f8] shadow-none hover:bg-[#f5f6ff]"
+            className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]"
             onClick={() => setSettingsOpen(true)}
           >
             <Settings2 className="size-4" />
@@ -389,8 +543,9 @@ export function MedBookDocumentClient({
           {isClosed ? (
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white"
-              onClick={() => patchStatus("active")}
+              disabled={isChangingStatus}
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => void setStatus("active")}
             >
               <RotateCcw className="size-4" />
               Вернуть в активные
@@ -398,8 +553,9 @@ export function MedBookDocumentClient({
           ) : (
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white"
-              onClick={() => patchStatus("closed")}
+              disabled={isChangingStatus}
+              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => void closeJournal()}
             >
               <Archive className="size-4" />
               Закрыть журнал
@@ -408,11 +564,15 @@ export function MedBookDocumentClient({
         </div>
       </div>
 
+      {isClosed ? (
+        <JournalClosedBanner hint="Верните журнал в активные, чтобы менять даты осмотров, исследований и прививок." />
+      ) : null}
+
       {!isClosed ? (
         <div className="flex flex-wrap gap-3">
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white"
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => {
               setDraft(emptyDraft());
               setAddOpen(true);
@@ -423,12 +583,8 @@ export function MedBookDocumentClient({
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white"
-            onClick={() => {
-              const name = window.prompt("Введите название исследования");
-              if (name?.trim() && !examColumns.includes(name.trim()))
-                setExamColumns((current) => [...current, name.trim()]);
-            }}
+            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+            onClick={() => void addExamColumn()}
           >
             <Plus className="size-5" />
             Добавить исследование
@@ -482,7 +638,7 @@ export function MedBookDocumentClient({
                         ? "Осмотр просрочен"
                         : "Скоро истечёт"
                       : undefined,
-                    onClick: !isClosed ? () => editExam(row.id, column) : undefined,
+                    onClick: !isClosed ? () => void editExam(row.id, column) : undefined,
                   };
                 }),
                 onClick: !isClosed ? () => setEditId(row.id) : undefined,
@@ -504,34 +660,31 @@ export function MedBookDocumentClient({
             </JournalDocumentTitle>
           </div>
         </div>
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div className="h-6 min-w-[1320px] bg-[#ececec]" />
-        </MobileViewTableWrapper>
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1320px] border-collapse text-[14px] text-black">
             <thead>
               <tr>
                 <th
                   rowSpan={2}
-                  className="border border-black bg-[#ececec] px-2 py-4"
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-4`}
                 >
                   № п/п
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-black bg-[#ececec] px-3 py-4"
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                 >
                   Ф.И.О. сотрудника
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-black bg-[#ececec] px-3 py-4"
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                 >
                   Должность
                 </th>
                 <th
                   colSpan={examColumns.length}
-                  className="border border-black bg-[#ececec] px-3 py-4"
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                 >
                   Наименование специалиста / исследования
                 </th>
@@ -540,7 +693,7 @@ export function MedBookDocumentClient({
                 {examColumns.map((column) => (
                   <th
                     key={column}
-                    className="border border-black bg-[#ececec] px-3 py-3"
+                    className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}
                   >
                     {column}
                   </th>
@@ -550,23 +703,23 @@ export function MedBookDocumentClient({
             <tbody>
               {rows.map((row, index) => (
                 <tr key={row.id}>
-                  <td className="border border-black px-2 py-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center`}>
                     {index + 1}
                   </td>
-                  <td className="border border-black px-3 py-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>
                     <button
                       type="button"
-                      className={`inline-flex items-center gap-2 ${isClosed ? "" : "hover:text-[#5863f8]"}`}
+                      className={`inline-flex items-center gap-2 ${isClosed ? "" : "hover:text-[#5566f6]"}`}
                       onClick={() => !isClosed && setEditId(row.id)}
                     >
                       <span>{row.name}</span>
                       {row.data.photoUrl ? (
-                        <Paperclip className="size-4 text-[#5863f8]" />
+                        <Paperclip className="size-4 text-[#5566f6]" />
                       ) : null}
                     </button>
                   </td>
                   <td
-                    className={`border border-black px-3 py-3 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                    className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                     onClick={() => !isClosed && setEditId(row.id)}
                   >
                     {row.data.positionTitle}
@@ -578,8 +731,8 @@ export function MedBookDocumentClient({
                     return (
                       <td
                         key={column}
-                        className={`border border-black px-3 py-3 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
-                        onClick={() => editExam(row.id, column)}
+                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        onClick={() => void editExam(row.id, column)}
                       >
                         {exam?.date ? (
                           <div>
@@ -605,32 +758,29 @@ export function MedBookDocumentClient({
             </tbody>
           </table>
         </MobileViewTableWrapper>
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div className="h-6 min-w-[1320px] bg-[#ececec]" />
-        </MobileViewTableWrapper>
       </div>
 
       <div id="med-book-reference" className="space-y-5">
         <h2 className="text-[20px] font-semibold underline">
           Список специалистов и исследований
         </h2>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
             <thead>
               <tr>
                 <th
                   colSpan={2}
-                  className="border border-black bg-[#ececec] px-4 py-3 text-[18px]"
+                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}
                 >
                   Список специалистов и исследований при получении/прохождении
                   медицинской книжки для работников пищевой отрасли
                 </th>
               </tr>
               <tr>
-                <th className="border border-black bg-[#ececec] px-4 py-3 text-[18px]">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}>
                   Предварительные осмотры (при поступлении на работу)
                 </th>
-                <th className="border border-black bg-[#ececec] px-4 py-3 text-[18px]">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}>
                   Периодические (1 раз в год)
                 </th>
               </tr>
@@ -638,10 +788,10 @@ export function MedBookDocumentClient({
             <tbody>
               {MED_BOOK_PRELIMINARY_PERIODIC_ROWS.map((row) => (
                 <tr key={row.preliminary}>
-                  <td className="border border-black px-4 py-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     {row.preliminary}
                   </td>
-                  <td className="border border-black px-4 py-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     {row.periodic}
                   </td>
                 </tr>
@@ -649,17 +799,17 @@ export function MedBookDocumentClient({
             </tbody>
           </table>
         </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
             <thead>
               <tr>
-                <th className="border border-black bg-[#ececec] px-4 py-3">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
                   Наименование специалиста / исследования
                 </th>
-                <th className="border border-black bg-[#ececec] px-4 py-3">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
                   Периодичность
                 </th>
-                <th className="border border-black bg-[#ececec] px-4 py-3">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
                   Примечание
                 </th>
               </tr>
@@ -667,13 +817,13 @@ export function MedBookDocumentClient({
             <tbody>
               {EXAMINATION_REFERENCE_DATA.map((item) => (
                 <tr key={item.name}>
-                  <td className="border border-black px-4 py-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     {item.name}
                   </td>
-                  <td className="border border-black px-4 py-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     {item.periodicity}
                   </td>
-                  <td className="border border-black px-4 py-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     {item.note || "—"}
                   </td>
                 </tr>
@@ -689,34 +839,31 @@ export function MedBookDocumentClient({
             Прививки
           </h2>
           <div className="space-y-2">
-            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-              <div className="h-6 min-w-[1320px] bg-[#ececec]" />
-            </div>
-            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className={GRID_VIEWPORT_CLASS}>
               <table className="min-w-[1320px] border-collapse text-[14px] text-black">
                 <thead>
                   <tr>
                     <th
                       rowSpan={2}
-                      className="border border-black bg-[#ececec] px-2 py-4"
+                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-4`}
                     >
                       № п/п
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-black bg-[#ececec] px-3 py-4"
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                     >
                       Ф.И.О. сотрудника
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-black bg-[#ececec] px-3 py-4"
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                     >
                       Должность
                     </th>
                     <th
                       colSpan={vaccColumns.length + 1}
-                      className="border border-black bg-[#ececec] px-3 py-4"
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
                     >
                       Наименование прививки:
                     </th>
@@ -725,12 +872,12 @@ export function MedBookDocumentClient({
                     {vaccColumns.map((column) => (
                       <th
                         key={column}
-                        className="border border-black bg-[#ececec] px-3 py-3"
+                        className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}
                       >
                         {column}
                       </th>
                     ))}
-                    <th className="border border-black bg-[#ececec] px-3 py-3">
+                    <th className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>
                       Примечание
                     </th>
                   </tr>
@@ -738,17 +885,17 @@ export function MedBookDocumentClient({
                 <tbody>
                   {rows.map((row, index) => (
                     <tr key={row.id}>
-                      <td className="border border-black px-2 py-3 text-center">
+                      <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center`}>
                         {index + 1}
                       </td>
                       <td
-                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.name}
                       </td>
                       <td
-                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.positionTitle}
@@ -761,8 +908,8 @@ export function MedBookDocumentClient({
                         return (
                           <td
                             key={column}
-                            className={`border border-black px-3 py-3 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
-                            onClick={() => editVacc(row.id, column)}
+                            className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                            onClick={() => void editVacc(row.id, column)}
                           >
                             {vacc ? (
                               vacc.type === "done" ? (
@@ -789,7 +936,7 @@ export function MedBookDocumentClient({
                         );
                       })}
                       <td
-                        className={`border border-black px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.note || ""}
@@ -799,9 +946,6 @@ export function MedBookDocumentClient({
                 </tbody>
               </table>
             </div>
-            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-              <div className="h-6 min-w-[1320px] bg-[#ececec]" />
-            </div>
           </div>
           <h3 className="text-[20px] font-semibold underline">
             Список прививок
@@ -810,14 +954,14 @@ export function MedBookDocumentClient({
             Вакцинация всех сотрудников проводится в соответствии с Приказом
             Минздрава России от 06.12.2021 N 1122н.
           </p>
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className={GRID_VIEWPORT_CLASS}>
             <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
               <thead>
                 <tr>
-                  <th className="border border-black bg-[#ececec] px-4 py-3">
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
                     Наименование прививок
                   </th>
-                  <th className="border border-black bg-[#ececec] px-4 py-3">
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
                     Периодичность
                   </th>
                 </tr>
@@ -825,10 +969,10 @@ export function MedBookDocumentClient({
               <tbody>
                 {VACCINATION_REFERENCE_DATA.map((item) => (
                   <tr key={item.name}>
-                    <td className="border border-black px-4 py-3 align-top">
+                    <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                       {item.name}
                     </td>
-                    <td className="border border-black px-4 py-3 align-top">
+                    <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                       {item.periodicity}
                     </td>
                   </tr>
@@ -930,11 +1074,7 @@ export function MedBookDocumentClient({
                 type="button"
                 variant="outline"
                 className="h-10 rounded-2xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
-                onClick={() => {
-                  const name = window.prompt("Введите название прививки");
-                  if (name?.trim() && !vaccColumns.includes(name.trim()))
-                    setVaccColumns((current) => [...current, name.trim()]);
-                }}
+                onClick={() => void addVaccColumn()}
               >
                 + Добавить прививку
               </Button>
@@ -954,7 +1094,7 @@ export function MedBookDocumentClient({
               <Input
                 value={settingsTitle}
                 onChange={(event) => setSettingsTitle(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
               />
               <label className="flex items-center gap-3 text-[16px] text-black">
                 <input
@@ -963,19 +1103,15 @@ export function MedBookDocumentClient({
                   onChange={(event) =>
                     setIncludeVaccinations(event.target.checked)
                   }
-                  className="size-5 rounded accent-[#5863f8]"
+                  className="size-5 rounded accent-[#5566f6]"
                 />
                 включить &quot;Прививки&quot;
               </label>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5"
-                onClick={() => {
-                  const name = window.prompt("Введите название прививки");
-                  if (name?.trim() && !vaccColumns.includes(name.trim()))
-                    setVaccColumns((current) => [...current, name.trim()]);
-                }}
+                className="h-11 rounded-2xl border-[#dcdfed] px-5"
+                onClick={() => void addVaccColumn()}
               >
                 Добавить прививку
               </Button>
@@ -983,7 +1119,7 @@ export function MedBookDocumentClient({
                 <Button
                   type="button"
                   disabled={saving || !settingsTitle.trim()}
-                  className="h-12 rounded-2xl bg-[#5863f8] px-6 text-[16px] text-white"
+                  className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white"
                   onClick={async () => {
                     try {
                       await sync(rows, settingsTitle.trim(), {
@@ -1037,11 +1173,10 @@ export function MedBookDocumentClient({
 
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-              <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
-                value={draft.employeeId}
-                onChange={(event) => {
-                  const value = event.target.value;
+              <Select
+                value={draft.employeeId || NONE_VALUE}
+                onValueChange={(raw) => {
+                  const value = raw === NONE_VALUE ? "" : raw;
                   const employee = availableEmployees.find(
                     (item) => item.id === value,
                   );
@@ -1054,11 +1189,18 @@ export function MedBookDocumentClient({
                   }));
                 }}
               >
-                <option value="">— выберите —</option>
-                {availableEmployees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>{employee.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  {availableEmployees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1312,11 +1454,7 @@ export function MedBookDocumentClient({
                 type="button"
                 variant="outline"
                 className="h-11 w-full rounded-2xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff4d4f] shadow-none hover:bg-[#fff4f2] sm:w-auto"
-                onClick={() => {
-                  if (!window.confirm("Удалить строку сотрудника?")) return;
-                  saveRows(rows.filter((row) => row.id !== editRow.id));
-                  setEditId(null);
-                }}
+                onClick={() => void deleteRow(editRow.id, editRow.name)}
               >
                 <Trash2 className="mr-2 size-4" />
                 Удалить

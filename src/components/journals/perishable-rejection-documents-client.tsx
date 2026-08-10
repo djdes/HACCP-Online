@@ -15,7 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
-import { confirmAsync } from "@/components/ui/confirm-async";
+import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import { normalizePerishableRejectionConfig } from "@/lib/perishable-rejection-document";
+import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -58,14 +60,26 @@ export function PerishableRejectionDocumentsClient({
     setDateFrom(editingDocument.dateFrom);
   }, [editingDocument]);
 
-  async function handleDelete(documentId: string, titleValue: string) {
-    if (!(await confirmAsync({ title: "Удалить документ?", description: `Документ «${titleValue}» и все его записи будут удалены безвозвратно.`, variant: "danger", confirmLabel: "Удалить" }))) return;
-    const response = await fetch(`/api/journal-documents/${documentId}`, { method: "DELETE" });
-    if (!response.ok) {
-      toast.error("Не удалось удалить документ");
-      return;
-    }
-    router.refresh();
+  // Единый источник delete / pdf для журнальных документов.
+  const { deleteDocument, openPdf } = useJournalDocumentActions();
+
+  async function handleDelete(document: JournalListDocument) {
+    const cfg = normalizePerishableRejectionConfig(document.config);
+    const catalogSize =
+      cfg.productLists.reduce((sum, list) => sum + list.items.length, 0) +
+      cfg.manufacturers.length +
+      cfg.suppliers.length;
+    await deleteDocument({
+      documentId: document.id,
+      description: `Документ «${document.title}» будет удалён безвозвратно.`,
+      bullets: [
+        { label: `Записей бракеража: ${cfg.rows.length}`, tone: "warn" },
+        { label: `Позиций в справочниках документа: ${catalogSize}`, tone: "info" },
+        { label: `Журнал начат: ${document.startedAtLabel}`, tone: "info" },
+      ],
+      successMessage: `Документ «${document.title}» удалён`,
+      errorMessage: "Не удалось удалить документ",
+    });
   }
 
   async function saveSettings() {
@@ -90,7 +104,7 @@ export function PerishableRejectionDocumentsClient({
   return (
     <div className="space-y-8">
       <JournalTopBar
-        heading="Журнал бракеража скоропортящейся пищевой продукции"
+        heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
         activeTab={activeTab}
         templateCode={templateCode}
         templateName={templateName}
@@ -114,8 +128,8 @@ export function PerishableRejectionDocumentsClient({
             <DocumentActionsMenu
               size="sm"
               onEdit={() => setEditingDocument(document)}
-              onPrint={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
-              onDelete={() => handleDelete(document.id, document.title)}
+              onPrint={() => openPdf({ documentId: document.id })}
+              onDelete={() => void handleDelete(document)}
             />
           </div>
         ))}
@@ -128,15 +142,28 @@ export function PerishableRejectionDocumentsClient({
           </DialogHeader>
           <div className="space-y-4 px-6 py-5">
             <div className="space-y-2">
-              <Label>Название документа</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Дата начала</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              />
             </div>
             <div className="flex justify-end">
-              <Button onClick={saveSettings} disabled={isSaving}>
+              <Button
+                onClick={saveSettings}
+                disabled={isSaving}
+                className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              >
                 {isSaving ? "Сохранение..." : "Сохранить"}
               </Button>
             </div>
