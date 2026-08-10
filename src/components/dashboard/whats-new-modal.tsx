@@ -235,7 +235,7 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
                       {cat.items.map((item, i) => (
                         <li
                           key={i}
-                          className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-white px-3 py-2 text-[12.5px] leading-[1.5] text-[#3c4053]"
+                          className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-white px-3 py-2 text-[13px] leading-[1.5] text-[#3c4053]"
                         >
                           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
                           <span>{item}</span>
@@ -252,7 +252,7 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
                 {looseStrings.map((note, i) => (
                   <li
                     key={i}
-                    className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12.5px] leading-[1.5] text-[#3c4053]"
+                    className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[13px] leading-[1.5] text-[#3c4053]"
                   >
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#5566f6]" />
                     <span>{note}</span>

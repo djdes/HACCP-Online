@@ -70,7 +70,7 @@ export function DashboardSection({
             ) : null}
           </div>
           {subtitle ? (
-            <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282] sm:text-[12.5px]">
+            <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282] sm:text-[13px]">
               {subtitle}
             </p>
           ) : null}

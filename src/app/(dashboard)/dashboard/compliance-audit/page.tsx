@@ -83,7 +83,7 @@ export default async function ComplianceAuditPage() {
               {report.summary.warn} ⚠ предупреждение, {report.summary.fail} ✗
               критично.
             </p>
-            <div className="mt-3 text-[12.5px] text-[#6f7282]">
+            <div className="mt-3 text-[13px] text-[#6f7282]">
               {report.summary.journalsConfigured} из{" "}
               {report.summary.journalsTotal} журналов настроены ·{" "}
               {report.summary.journalsWithRecords30d} ведутся (записи за 30 дн.)
@@ -152,7 +152,7 @@ export default async function ComplianceAuditPage() {
                         </span>
                       </div>
                       {c.detail ? (
-                        <div className="mt-0.5 text-[12.5px] leading-snug text-[#6f7282]">
+                        <div className="mt-0.5 text-[13px] leading-snug text-[#6f7282]">
                           {c.detail}
                         </div>
                       ) : null}
@@ -173,7 +173,7 @@ export default async function ComplianceAuditPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-[#5566f6]/15 bg-[#f5f6ff]/50 p-4 text-[12.5px] leading-relaxed text-[#3848c7]">
+      <div className="rounded-2xl border border-[#5566f6]/15 bg-[#f5f6ff]/50 p-4 text-[13px] leading-relaxed text-[#3848c7]">
         <strong>Как считается score:</strong> 100 баллов разделены между 12
         проверками с разными весами. Самые важные — записи за 30 дней (15),
         ответственные (15), журналы включены (10), TasksFlow (10),

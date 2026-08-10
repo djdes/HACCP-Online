@@ -145,7 +145,7 @@ export async function TimeWindowAlerts({
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-[12.5px] leading-snug text-[#3c4053]">
+          <p className="mt-1 text-[13px] leading-snug text-[#3c4053]">
             Журналы с нарушением периодичности по СанПиН — последняя запись
             была дольше нормы. Заполните как можно скорее.
           </p>
@@ -175,7 +175,10 @@ export async function TimeWindowAlerts({
                 <AlertTriangle className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium text-[#0b1024]">
+                {/* Две строки вместо обрезки: названия журналов длинные, и
+                    «Журнал контроля температурного режима холодильного и…»
+                    не давало понять, о каком журнале речь. */}
+                <div className="line-clamp-2 text-[13px] font-medium leading-snug text-[#0b1024]">
                   {a.name}
                 </div>
                 <div className="mt-0.5 text-[11px] leading-snug text-[#6f7282]">

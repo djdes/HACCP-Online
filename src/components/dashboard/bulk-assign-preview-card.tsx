@@ -237,7 +237,7 @@ export function BulkAssignPreviewCard() {
             <h3 className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
               Превью отправки задач
             </h3>
-            <p className="mt-1 text-[12.5px] leading-snug text-[#6f7282]">
+            <p className="mt-1 text-[13px] leading-snug text-[#6f7282]">
               Что и кому уйдёт при нажатии «Отправить» — без реальной
               отправки. Сразу видно проблемные журналы и сотрудников
               которым задача не дойдёт.
@@ -582,7 +582,7 @@ function RecipientRow({
   tone: "ok" | "warn";
 }) {
   return (
-    <li className="flex items-start gap-2 rounded-xl bg-white px-3 py-1.5 text-[12.5px]">
+    <li className="flex items-start gap-2 rounded-xl bg-white px-3 py-1.5 text-[13px]">
       <span
         className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full ${
           tone === "ok"

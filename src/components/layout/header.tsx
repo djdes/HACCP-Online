@@ -488,6 +488,22 @@ export function Header({
 
           <ThemeQuickSwitch />
 
+          {isRoot ? (
+            <Link
+              href="/root"
+              aria-label="Панель платформы"
+              title="Панель платформы"
+              className={cn(
+                "hidden h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3848c7] transition-colors md:inline-flex hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]",
+                pathname.startsWith("/root") &&
+                  "border-[#5566f6]/40 bg-[#f5f6ff]"
+              )}
+            >
+              <ShieldCheck className="size-4" />
+              Панель платформы
+            </Link>
+          ) : null}
+
           {fullAccess ? (
             <Link
               href="/settings"
@@ -534,6 +550,14 @@ export function Header({
                   </p>
                 </div>
               </DropdownMenuLabel>
+              {isRoot ? (
+                <DropdownMenuItem asChild className="md:hidden">
+                  <Link href="/root">
+                    <ShieldCheck className="mr-2 size-4" />
+                    Панель платформы
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="md:hidden"

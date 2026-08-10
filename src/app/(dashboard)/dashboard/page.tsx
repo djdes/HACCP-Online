@@ -472,7 +472,7 @@ export default async function DashboardPage() {
               {/* Inline-stat: filled / total с прогресс-баром */}
               {complianceItems.length > 0 ? (
                 <div className="mt-3">
-                  <div className="flex items-end justify-between gap-2 text-[11.5px] text-[#6f7282]">
+                  <div className="flex items-end justify-between gap-2 text-[12px] text-[#6f7282]">
                     <span>
                       <strong className="text-[#0b1024]">{filledCount}</strong>
                       {" из "}
