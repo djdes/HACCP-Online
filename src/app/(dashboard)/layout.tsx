@@ -79,9 +79,16 @@ export default async function DashboardLayout({
   // регистрацией (имя = почта) или так и не указали телефон. Схему под
   // это не меняли: старые аккаунты из визарда телефон указывали
   // обязательно и под эвристику не попадают.
+  //
+  // ROOT и платформенная организация исключены: это служебный аккаунт
+  // владельца, у него нет и не должно быть анкеты заведения — эвристика
+  // цепляла его за отсутствующий телефон и показывала лишний баннер.
+  const platformOrgId = (process.env.PLATFORM_ORG_ID ?? "platform").trim();
   const needsProfileCompletion =
     hasFullWorkspaceAccess(session.user) &&
     !isImpersonating(session) &&
+    session.user.isRoot !== true &&
+    activeOrgId !== platformOrgId &&
     Boolean(profile) &&
     (!profile?.phone || profile?.name === profile?.email);
 

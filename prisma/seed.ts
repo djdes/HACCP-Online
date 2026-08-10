@@ -674,13 +674,13 @@ async function seedPlatformOrgAndRoot() {
   await prisma.organization.upsert({
     where: { id: PLATFORM_ORG_ID },
     update: {
-      name: "HACCP-Online",
+      name: "WeSetup",
       type: "platform",
       subscriptionPlan: "platform",
     },
     create: {
       id: PLATFORM_ORG_ID,
-      name: "HACCP-Online",
+      name: "WeSetup",
       type: "platform",
       subscriptionPlan: "platform",
     },

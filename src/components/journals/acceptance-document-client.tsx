@@ -1367,7 +1367,7 @@ function IikoDialog(props: { open: boolean; onOpenChange: (open: boolean) => voi
           <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
         </DialogHeader>
         <div className="px-8 py-6 text-[15px] text-[#555]">
-          Для настройки синхронизации с Iiko обратитесь к разработчикам сервиса Haccp-Online.
+          Для настройки синхронизации с Iiko обратитесь к разработчикам сервиса WeSetup.
         </div>
       </DialogContent>
     </Dialog>
