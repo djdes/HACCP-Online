@@ -3,6 +3,7 @@
 import { type ComponentProps, type MouseEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { toast } from "sonner";
 
 type Props = ComponentProps<typeof Button> & {
@@ -40,7 +41,12 @@ export function DocumentCloseButton({
 
     const message =
       confirmMessage || `${CLOSE_LABEL} "${title}"?`;
-    if (!window.confirm(message)) {
+    const confirmed = await confirmAsync({
+      title: message,
+      variant: "warn",
+      confirmLabel: CLOSE_LABEL,
+    });
+    if (!confirmed) {
       return;
     }
 

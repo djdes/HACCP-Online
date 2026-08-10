@@ -241,7 +241,11 @@ import {
   PEST_CONTROL_DOCUMENT_TITLE,
   PEST_CONTROL_TEMPLATE_CODE,
 } from "@/lib/pest-control-document";
-import { getUserRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
+import {
+  getUserRoleLabel,
+  pickPrimaryManager,
+  toCanonicalUserRole,
+} from "@/lib/user-roles";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -2008,7 +2012,8 @@ export default async function JournalDocumentsPage({
       const year = new Date().getUTCFullYear();
       const cfg = getDefaultEquipmentMaintenanceConfig(year);
       const manager = pickPrimaryManager(orgUsers);
-      const headChef = orgUsers.find((u) => getUserRoleLabel(u.role) === "???-?????") || manager;
+      const headChef =
+        orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
       if (manager) {
         cfg.approveEmployeeId = manager.id;
         cfg.approveEmployee = manager.name;
@@ -2048,7 +2053,8 @@ export default async function JournalDocumentsPage({
       const previousYear = new Date().getUTCFullYear() - 1;
       const cfg = getDefaultEquipmentMaintenanceConfig(previousYear);
       const manager = pickPrimaryManager(orgUsers);
-      const headChef = orgUsers.find((u) => getUserRoleLabel(u.role) === "???-?????") || manager;
+      const headChef =
+        orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
       if (manager) {
         cfg.approveEmployeeId = manager.id;
         cfg.approveEmployee = manager.name;
@@ -2376,9 +2382,7 @@ export default async function JournalDocumentsPage({
             dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
             createdById: session.user.id,
             responsibleUserId: responsibleUser?.id || null,
-            responsibleTitle: responsibleUser
-              ? (responsibleUser.role === "owner" ? "Управляющий" : "Управляющий")
-              : null,
+            responsibleTitle: responsibleUser ? "Управляющий" : null,
             config: cleaningConfig,
           },
         });

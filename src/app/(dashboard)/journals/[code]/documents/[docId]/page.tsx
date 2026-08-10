@@ -26,7 +26,6 @@ import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   normalizeFinishedProductDocumentConfig,
 } from "@/lib/finished-product-document";
-import { RegisterDocumentClient } from "@/components/journals/register-document-client";
 import { AcceptanceDocumentClient } from "@/components/journals/acceptance-document-client";
 import { SanitationDayDocumentClient } from "@/components/journals/sanitation-day-document-client";
 import { HealthDocumentClient } from "@/components/journals/health-document-client";
@@ -47,11 +46,8 @@ import {
   normalizePpeIssuanceConfig,
 } from "@/lib/ppe-issuance-document";
 import { PpeIssuanceDocumentClient } from "@/components/journals/ppe-issuance-document-client";
-import {
-  isRegisterDocumentTemplate,
-  normalizeRegisterDocumentConfig,
-  parseRegisterFields,
-} from "@/lib/register-document";
+import { isRegisterDocumentTemplate } from "@/lib/register-document";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
@@ -297,7 +293,7 @@ export default async function JournalDocumentPage({
         documentId={document.id}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -321,7 +317,7 @@ export default async function JournalDocumentPage({
       <HealthDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -375,7 +371,7 @@ export default async function JournalDocumentPage({
         routeCode={code}
         title={document.title}
         templateCode={resolvedCode}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status as "active" | "closed"}
         dateFrom={toDateKey(document.dateFrom)}
         config={normalizeEquipmentCleaningConfig(document.config)}
@@ -420,7 +416,7 @@ export default async function JournalDocumentPage({
         documentId={document.id}
         title={document.title}
         templateCode={code}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         config={medConfig}
         employees={enrichedEmployees}
@@ -436,7 +432,7 @@ export default async function JournalDocumentPage({
       <PerishableRejectionDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizePerishableRejectionConfig(document.config)}
@@ -450,7 +446,7 @@ export default async function JournalDocumentPage({
       <ProductWriteoffDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeProductWriteoffConfig(document.config)}
@@ -465,7 +461,7 @@ export default async function JournalDocumentPage({
       <GlassListDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         initialConfig={normalizeGlassListConfig(document.config)}
         users={enrichedEmployees}
@@ -480,7 +476,7 @@ export default async function JournalDocumentPage({
         documentId={document.id}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -506,7 +502,7 @@ export default async function JournalDocumentPage({
       <StaffTrainingDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeStaffTrainingConfig(document.config)}
@@ -521,7 +517,7 @@ export default async function JournalDocumentPage({
       <EquipmentMaintenanceDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
@@ -536,7 +532,7 @@ export default async function JournalDocumentPage({
       <EquipmentCalibrationDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeEquipmentCalibrationConfig(document.config)}
@@ -552,7 +548,7 @@ export default async function JournalDocumentPage({
         documentId={document.id}
         title={document.title}
         routeCode={code}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeTraceabilityDocumentConfig(document.config)}
@@ -567,7 +563,7 @@ export default async function JournalDocumentPage({
       <ComplaintDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'РћРћРћ "РўРµСЃС‚"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeComplaintConfig(document.config)}
@@ -582,7 +578,7 @@ export default async function JournalDocumentPage({
       <ColdEquipmentDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -607,7 +603,7 @@ export default async function JournalDocumentPage({
       <SanitationDayDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
@@ -621,7 +617,7 @@ export default async function JournalDocumentPage({
       <DisinfectantDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
@@ -635,7 +631,7 @@ export default async function JournalDocumentPage({
       <TrainingPlanDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
@@ -649,11 +645,11 @@ export default async function JournalDocumentPage({
       <AuditPlanDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         users={enrichedEmployees}
         config={normalizeAuditPlanConfig(document.config, {
-          organizationName: organization?.name || 'ООО "Тест"',
+          organizationName: organization?.name || ORG_NAME_FALLBACK,
           users: enrichedEmployees,
         })}
         useV2={organization?.experimentalUiV2 ?? true}
@@ -666,7 +662,7 @@ export default async function JournalDocumentPage({
       <AuditProtocolDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         config={normalizeAuditProtocolConfig(document.config)}
         useV2={organization?.experimentalUiV2 ?? true}
@@ -679,7 +675,7 @@ export default async function JournalDocumentPage({
       <AuditReportDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         config={normalizeAuditReportConfig(document.config)}
         useV2={organization?.experimentalUiV2 ?? true}
@@ -692,7 +688,7 @@ export default async function JournalDocumentPage({
       <MetalImpurityDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         config={normalizeMetalImpurityConfig(document.config)}
         users={enrichedEmployees}
@@ -706,7 +702,7 @@ export default async function JournalDocumentPage({
       <BreakdownHistoryDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -720,7 +716,7 @@ export default async function JournalDocumentPage({
       <AccidentDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -735,7 +731,7 @@ export default async function JournalDocumentPage({
         routeCode={code}
         documentId={document.id}
         title={document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -751,7 +747,7 @@ export default async function JournalDocumentPage({
         documentId={document.id}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         status={document.status}
@@ -767,7 +763,7 @@ export default async function JournalDocumentPage({
       <PpeIssuanceDocumentClient
         documentId={document.id}
         title={document.title || "Журнал учета выдачи СИЗ"}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         users={enrichedEmployees}
@@ -787,7 +783,7 @@ export default async function JournalDocumentPage({
         <FryerOilDocumentClient
           documentId={document.id}
           title={document.title || "Журнал учета использования фритюрных жиров"}
-          organizationName={organization?.name || 'ООО "Тест"'}
+          organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           config={fryerConfig}
@@ -811,7 +807,7 @@ export default async function JournalDocumentPage({
           documentId={document.id}
           routeCode={code}
           title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}
-          organizationName={organization?.name || 'ООО "Тест"'}
+          organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           dateTo={toIsoDate(document.dateTo)}
@@ -835,7 +831,7 @@ export default async function JournalDocumentPage({
         <CleaningVentilationChecklistDocumentClient
           documentId={document.id}
           title={document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}
-          organizationName={organization?.name || 'ООО "Тест"'}
+          organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           users={enrichedEmployees}
@@ -856,7 +852,7 @@ export default async function JournalDocumentPage({
         <SanitaryDayChecklistDocumentClient
           documentId={document.id}
           title={document.title || "Чек-лист"}
-          organizationName={organization?.name || 'ООО "Тест"'}
+          organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           users={enrichedEmployees}
@@ -914,7 +910,7 @@ export default async function JournalDocumentPage({
         templateCode={document.template.code}
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -938,7 +934,7 @@ export default async function JournalDocumentPage({
       <ClimateDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -989,7 +985,7 @@ export default async function JournalDocumentPage({
       <CleaningDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -1052,33 +1048,12 @@ export default async function JournalDocumentPage({
       <FinishedProductDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         status={document.status}
         initialConfig={normalizeFinishedProductDocumentConfig(document.config)}
         users={employees}
-        useV2={organization?.experimentalUiV2 ?? true}
-      />
-    );
-  }
-
-  if (isRegisterDocumentTemplate(document.template.code)) {
-    const fields = parseRegisterFields(document.template.fields);
-
-    return (
-      <RegisterDocumentClient
-        documentId={document.id}
-        templateCode={document.template.code}
-        title={document.title}
-        organizationName={organization?.name || 'ООО "Тест"'}
-        dateFrom={toDateKey(document.dateFrom)}
-        dateTo={toDateKey(document.dateTo)}
-        status={document.status}
-        fields={fields}
-        initialConfig={normalizeRegisterDocumentConfig(document.config, fields)}
-        users={enrichedEmployees}
-        equipment={equipment}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );

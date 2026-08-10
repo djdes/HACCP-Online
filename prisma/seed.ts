@@ -545,15 +545,6 @@ const journalTemplates = [
 
 const documentOnlyJournalTemplates = [
   {
-    code: "cleaning_ventilation_checklist",
-    name: "Чек-лист уборки и проветривания помещений",
-    description: "Чек-лист уборки и проветривания помещений",
-    sortOrder: 29,
-    isMandatorySanpin: true,
-    isMandatoryHaccp: false,
-    fields: [],
-  },
-  {
     code: "equipment_cleaning",
     name: "Журнал мойки и дезинфекции оборудования",
     description:

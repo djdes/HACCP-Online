@@ -150,13 +150,17 @@ export function JournalsBrowser({
       (t.isMandatorySanpin || t.isMandatoryHaccp) &&
       ALL_DAILY_JOURNAL_CODES.has(t.code)
   );
-  const compliancePercent = mandatoryEnabledTemplates.length
-    ? Math.round(
-        (mandatoryEnabledTemplates.filter((t) => t.filledToday).length /
-          mandatoryEnabledTemplates.length) *
-          100
-      )
-    : 100;
+  // null = считать не из чего (в организации нет включённых обязательных
+  // ежедневных журналов). Показывать в этом случае «100%» нельзя — это
+  // ложная зелёная готовность на пустой организации.
+  const compliancePercent =
+    mandatoryEnabledTemplates.length > 0
+      ? Math.round(
+          (mandatoryEnabledTemplates.filter((t) => t.filledToday).length /
+            mandatoryEnabledTemplates.length) *
+            100
+        )
+      : null;
   // А stat-pill'ы «Заполнено сегодня» и «Надо заполнить» ориентируются
   // на ВЕСЬ включённый набор журналов из настроек (Набор журналов).
   // Иначе менеджер с 35 включёнными журналами видит «Надо заполнить 9»
@@ -294,14 +298,17 @@ export function JournalsBrowser({
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    compliancePercent >= 90
-                      ? "bg-[#7cf5c0]"
-                      : compliancePercent >= 60
-                        ? "bg-[#ffd466]"
-                        : "bg-[#ffb0a6]"
+                    compliancePercent === null
+                      ? "bg-white/40"
+                      : compliancePercent >= 90
+                        ? "bg-[#7cf5c0]"
+                        : compliancePercent >= 60
+                          ? "bg-[#ffd466]"
+                          : "bg-[#ffb0a6]"
                   )}
                 />
-                Готовность сегодня: {compliancePercent}%
+                Готовность сегодня:{" "}
+                {compliancePercent === null ? "—" : `${compliancePercent}%`}
               </div>
             </div>
           </div>

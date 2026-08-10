@@ -174,7 +174,6 @@ function ConfirmDialog(props: { open: boolean; title: string; submitLabel: strin
 
 export function CleaningDocumentClient(props: Props) {
   const router = useRouter();
-  const printMode = false;
   const normalized = useMemo(() => normalizeCleaningDocumentConfig(props.config, { users: props.users }), [props.config, props.users]);
   const [config, setConfig] = useState(normalized);
   const [saving, setSaving] = useState(false);
@@ -732,7 +731,7 @@ export function CleaningDocumentClient(props: Props) {
     dateKey: string,
     codes: string[],
   ) {
-    if (printMode || props.status !== "active" || saving) return;
+    if (props.status !== "active" || saving) return;
     if (codes.length === 0) return;
     // Source-of-truth: видимое значение (matrix override ИЛИ computed).
     // Раньше читали только matrix → клик на computed-derived "С1" вёл к
@@ -1301,8 +1300,7 @@ export function CleaningDocumentClient(props: Props) {
     <>
       <div className="space-y-8">
         <FocusTodayScroller />
-        {!printMode ? (
-          <>
+        <>
             <DocumentBackLink href="/journals/cleaning" documentId={props.documentId} />
             <div className="flex flex-wrap items-center justify-end gap-3">
               {props.hasTasksFlowIntegration ? (
@@ -1372,11 +1370,10 @@ export function CleaningDocumentClient(props: Props) {
               ) : null}
             </div>
           </>
-        ) : null}
 
         <div className="flex items-start justify-between gap-6">
           <div><h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">{config.documentTitle || CLEANING_PAGE_TITLE}</h1><p className="mt-2 text-[18px] text-[#6d7285]">{getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</p></div>
-          {!printMode && saving ? <div className="text-[16px] text-[#6d7285]">Сохранение...</div> : null}
+          {saving ? <div className="text-[16px] text-[#6d7285]">Сохранение...</div> : null}
         </div>
 
         <section className="rounded-[24px] bg-[#f5f6ff] px-8 py-6">
@@ -1390,12 +1387,11 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         </section>
 
-        {!printMode ? (
-          // Sticky под dashboard-хедером (он `sticky top-0 z-30 h-14`).
-          // top-14 чтобы не перекрывать хедер; z-20 чтобы хедер всегда был выше
-          // (без этого dropdown-trigger перекрывался невидимыми элементами хедера
-          // и клик «Добавить» не регистрировался).
-          <div className="sticky top-14 z-20 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+        {/* Sticky под dashboard-хедером (он `sticky top-0 z-30 h-14`).
+            top-14 чтобы не перекрывать хедер; z-20 чтобы хедер всегда был выше
+            (без этого dropdown-trigger перекрывался невидимыми элементами хедера
+            и клик «Добавить» не регистрировался). */}
+        <div className="sticky top-14 z-20 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
@@ -1525,9 +1521,8 @@ export function CleaningDocumentClient(props: Props) {
               </div>
             ) : null}
           </div>
-        ) : null}
 
-        {!printMode && props.buildings && props.buildings.length > 0 ? (
+        {props.buildings && props.buildings.length > 0 ? (
           <CleaningRaceModeStrip
             enabled={(config.cleaningMode ?? "pairs") === "rooms"}
             raceMode={config.roomsRaceMode === true}
@@ -1557,8 +1552,7 @@ export function CleaningDocumentClient(props: Props) {
           />
         ) : null}
 
-        {!printMode ? (
-          <div role="tablist" aria-label="Режим отображения" className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden">
+        <div role="tablist" aria-label="Режим отображения" className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden">
             <button type="button" role="tab" aria-selected={mobileView === "cards"} onClick={() => switchMobileView("cards")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 transition-colors ${mobileView === "cards" ? "bg-[#f5f6ff] text-[#5566f6]" : "text-[#6f7282]"}`}>
               <LayoutGrid className="size-4" />Карточки
             </button>
@@ -1566,12 +1560,11 @@ export function CleaningDocumentClient(props: Props) {
               <Rows3 className="size-4" />Таблица
             </button>
           </div>
-        ) : null}
 
 
         {/* Mobile Cards view — hidden on sm+ and print. Each row (room or
             responsible) is an accordion with per-day tap-to-cycle cells. */}
-        {!printMode && mobileView === "cards" ? (
+        {mobileView === "cards" ? (
           <div className="space-y-2 sm:hidden print:hidden">
             {rows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
@@ -1729,22 +1722,22 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <div className={mobileView === "cards" && !printMode ? "hidden sm:block print:block" : ""}>
+        <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"><div className="min-w-[920px] space-y-8 sm:min-w-[1200px]">
           <table className="w-full border-collapse text-center"><thead><tr><th className="border border-black p-5 text-[24px] font-semibold">{props.organizationName}</th><th className="border border-black p-3 text-[22px] font-medium" colSpan={dayKeys.length + 1}>СИСТЕМА ХАССП<div className="mt-3 border-t border-black pt-3 italic">ЖУРНАЛ УБОРКИ</div></th><th className="border border-black p-5 text-[20px] font-medium">СТР. 1 ИЗ 1</th></tr></thead></table>
           <h2 className="text-center text-[28px] font-semibold uppercase">Журнал уборки</h2>
-          <table className="w-full border-collapse text-[16px]"><thead><tr><th className="w-12 border border-black bg-white p-2">{!printMode ? <Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /> : null}</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Моющие и дезинфицирующие средства</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold" colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" />{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className="border border-black bg-white p-2 text-[18px] font-semibold">{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[16px]"><thead><tr><th className="w-12 border border-black bg-white p-2"><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /></th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Наименование помещения</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold">Моющие и дезинфицирующие средства</th><th className="border border-black bg-[#f6f6f6] p-3 font-semibold" colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" /><th className="border border-black bg-white p-2" />{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className="border border-black bg-white p-2 text-[18px] font-semibold">{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
               return <tr key={row.id}>
-                <td className="border border-black p-2 text-center">{!printMode ? <Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /> : null}</td>
+                <td className="border border-black p-2 text-center"><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /></td>
                 <td className="border border-black p-3 align-middle">
                   <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
                       className="text-left hover:text-[#5863f8]"
-                      disabled={printMode || props.status !== "active"}
+                      disabled={props.status !== "active"}
                       onClick={() => {
                         if (row.kind === "room") {
                           openRoomEditorFromRow(row.id);
@@ -1757,7 +1750,7 @@ export function CleaningDocumentClient(props: Props) {
                     >
                       {title}
                     </button>
-                    {!printMode && props.status === "active" ? (
+                    {props.status === "active" ? (
                       <button
                         type="button"
                         aria-label="Редактировать"
@@ -1792,7 +1785,7 @@ export function CleaningDocumentClient(props: Props) {
                       : dayKind.kind === "short"
                         ? "bg-[#fff8eb]"
                         : "bg-white";
-                  const interactive = !printMode && props.status === "active";
+                  const interactive = props.status === "active";
                   return (
                     <td
                       key={dateKey}
@@ -1834,7 +1827,7 @@ export function CleaningDocumentClient(props: Props) {
                 <td className="border border-black p-3 align-middle">
                   <button
                     type="button"
-                    disabled={printMode || props.status !== "active"}
+                    disabled={props.status !== "active"}
                     onClick={() =>
                       setResponsibleDialog(
                         buildResponsibleState(
@@ -1864,7 +1857,7 @@ export function CleaningDocumentClient(props: Props) {
                         ? "bg-[#fff8eb]"
                         : "";
                   const code = cleaningCodeForDay(dateKey);
-                  const interactive = !printMode && props.status === "active";
+                  const interactive = props.status === "active";
                   const cleaningCodes = cleaningResponsibleList.map((r) => r.code);
                   return (
                     <td
@@ -1898,7 +1891,7 @@ export function CleaningDocumentClient(props: Props) {
                 <td className="border border-black p-3 align-middle">
                   <button
                     type="button"
-                    disabled={printMode || props.status !== "active"}
+                    disabled={props.status !== "active"}
                     onClick={() =>
                       setResponsibleDialog(
                         buildResponsibleState(
@@ -1928,7 +1921,7 @@ export function CleaningDocumentClient(props: Props) {
                         ? "bg-[#fff8eb]"
                         : "";
                   const code = controlCodeForDay(dateKey);
-                  const interactive = !printMode && props.status === "active";
+                  const interactive = props.status === "active";
                   const controlCodes = controlResponsibleList.map((r) => r.code);
                   return (
                     <td
