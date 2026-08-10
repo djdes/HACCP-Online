@@ -106,7 +106,12 @@ function timeBasedGreeting(hour: number): string {
  * one or two words are present.
  */
 function addressedName(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  const value = fullName.trim();
+  // После мгновенной регистрации имя равно почте, пока человек не
+  // заполнил анкету. Здороваться «Добрый день, ivan@mail.ru» — плохо,
+  // поэтому в таком случае обращаемся без имени.
+  if (!value || value.includes("@")) return "";
+  const parts = value.split(/\s+/).filter(Boolean);
   if (parts.length >= 3) return `${parts[1]} ${parts[2]}`;
   if (parts.length === 2) return parts[1];
   return parts[0] ?? "";
@@ -735,6 +740,7 @@ export default async function DashboardPage() {
         <OrgHealthWidget
           checks={healthCheck.checks}
           scorePercent={healthCheck.scorePercent}
+          warnCount={healthCheck.warnCount}
           okCount={healthCheck.okCount}
           totalCount={healthCheck.totalCount}
         />

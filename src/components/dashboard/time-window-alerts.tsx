@@ -68,7 +68,10 @@ export async function TimeWindowAlerts({
   type Alert = {
     code: string;
     name: string;
-    hoursOverdue: number;
+    /// null — журнал ещё ни разу не заполняли. Считать «просрочку» от
+    /// несуществующей записи бессмысленно: раньше это давало
+    /// «Просрочено на Infinity дней» на каждом свежем аккаунте.
+    hoursOverdue: number | null;
     severity: "urgent" | "warn";
     timeWindowHours: number;
     lastFilledLabel: string | null;
@@ -79,19 +82,30 @@ export async function TimeWindowAlerts({
     const tw = spec.timeWindowHours;
     if (!tw) continue;
     const last = lastByCode.get(code);
-    const hoursAgo = last
-      ? (now - last.getTime()) / 3_600_000
-      : Number.POSITIVE_INFINITY;
-    const overdue = hoursAgo - tw;
-    if (overdue < 1) continue; // меньше 1 часа просрочки — не паникуем
     const severity: "urgent" | "warn" = tw <= 24 ? "urgent" : "warn";
+
+    if (!last) {
+      // Ни одной записи — журнал нужно начать, но «просрочки» у него нет.
+      alerts.push({
+        code,
+        name: codeToName.get(code) ?? code,
+        hoursOverdue: null,
+        severity,
+        timeWindowHours: tw,
+        lastFilledLabel: null,
+      });
+      continue;
+    }
+
+    const overdue = (now - last.getTime()) / 3_600_000 - tw;
+    if (overdue < 1) continue; // меньше 1 часа просрочки — не паникуем
     alerts.push({
       code,
       name: codeToName.get(code) ?? code,
       hoursOverdue: overdue,
       severity,
       timeWindowHours: tw,
-      lastFilledLabel: last ? formatRelative(last) : null,
+      lastFilledLabel: formatRelative(last),
     });
   }
 
@@ -99,11 +113,16 @@ export async function TimeWindowAlerts({
     return null;
   }
 
-  // Сортируем: сначала urgent + бОльшая просрочка.
+  // Сортируем: сначала urgent, внутри — бОльшая просрочка. Журналы,
+  // которые ни разу не заполняли, идут в конец: у них нет просрочки, и
+  // сначала стоит закрыть то, что уже ведут и запустили.
   alerts.sort((a, b) => {
     if (a.severity !== b.severity) {
       return a.severity === "urgent" ? -1 : 1;
     }
+    if (a.hoursOverdue === null && b.hoursOverdue === null) return 0;
+    if (a.hoursOverdue === null) return 1;
+    if (b.hoursOverdue === null) return -1;
     return b.hoursOverdue - a.hoursOverdue;
   });
 
@@ -160,17 +179,31 @@ export async function TimeWindowAlerts({
                   {a.name}
                 </div>
                 <div className="mt-0.5 text-[11px] leading-snug text-[#6f7282]">
-                  Просрочено на{" "}
-                  <strong
-                    className={
-                      isUrgent ? "text-[#a13a32]" : "text-[#a16d32]"
-                    }
-                  >
-                    {formatHoursOverdue(a.hoursOverdue)}
-                  </strong>
-                  {" · норма каждые "}
-                  {formatHours(a.timeWindowHours)}
-                  {a.lastFilledLabel ? `, заполнено ${a.lastFilledLabel}` : null}
+                  {a.hoursOverdue === null ? (
+                    <>
+                      <strong
+                        className={isUrgent ? "text-[#a13a32]" : "text-[#a16d32]"}
+                      >
+                        Ещё ни разу не заполняли
+                      </strong>
+                      {" · норма каждые "}
+                      {formatHours(a.timeWindowHours)}
+                    </>
+                  ) : (
+                    <>
+                      Просрочено на{" "}
+                      <strong
+                        className={isUrgent ? "text-[#a13a32]" : "text-[#a16d32]"}
+                      >
+                        {formatHoursOverdue(a.hoursOverdue)}
+                      </strong>
+                      {" · норма каждые "}
+                      {formatHours(a.timeWindowHours)}
+                      {a.lastFilledLabel
+                        ? `, заполнено ${a.lastFilledLabel}`
+                        : null}
+                    </>
+                  )}
                 </div>
               </div>
               <span className="text-[11px] font-medium text-[#5566f6] opacity-0 transition-opacity group-hover:opacity-100">

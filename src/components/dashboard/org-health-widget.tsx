@@ -17,6 +17,7 @@ type Props = {
   checks: HealthCheck[];
   scorePercent: number;
   okCount: number;
+  warnCount: number;
   totalCount: number;
 };
 
@@ -30,6 +31,7 @@ export function OrgHealthWidget({
   checks,
   scorePercent,
   okCount,
+  warnCount,
   totalCount,
 }: Props) {
   const params = useSearchParams();
@@ -84,18 +86,23 @@ export function OrgHealthWidget({
           <HeartPulse className="size-5" />
         </span>
         <div className="flex-1 min-w-0">
+          {/* Раньше в заголовке стояло «0/8» рядом с «31%», и это
+              читалось как противоречие: пункты с замечаниями дают
+              половину балла, но в счётчик готовых не попадают. Теперь
+              процент — заголовок, а состав раскрыт строкой ниже. */}
           <div className="flex items-center gap-2 text-[14px] font-semibold text-[#0b1024]">
-            Здоровье настройки: {okCount}/{totalCount}
+            Здоровье настройки — {scorePercent}%
             <span
               className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone.chipClass}`}
             >
-              {scorePercent}% — {tone.label}
+              {tone.label}
             </span>
           </div>
           <div className="mt-0.5 text-[12px] text-[#6f7282]">
-            {open
-              ? "Кликните строку чтобы перейти на настройку"
-              : "Кликните чтобы посмотреть список"}
+            {okCount} из {totalCount} готово
+            {warnCount > 0 ? ` · ${warnCount} с замечаниями` : ""}
+            {" · "}
+            {open ? "кликните строку чтобы перейти" : "кликните чтобы раскрыть"}
           </div>
           {/* F5 — progress-bar «настройки готовы X%». Визуал прогресса
               делает онбординг ощутимее: «осталось 20% и я готов». */}

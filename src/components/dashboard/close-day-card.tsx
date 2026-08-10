@@ -113,19 +113,19 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
             ) : null}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
           <button
             type="button"
             onClick={handleClose}
             disabled={busy}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-none"
           >
             <ArrowDownToLine className="size-4" />
             {busy ? "Копирую…" : "Закрыть день"}
           </button>
           <Link
             href="/dashboard/catch-up"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-none"
           >
             <Wand2 className="size-4" />
             Догнать пропуски

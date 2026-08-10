@@ -7,6 +7,31 @@ import { usePathname } from "next/navigation";
 const STORAGE_KEY = "wesetup.cookie-consent";
 
 /**
+ * Разделы приложения, где баннер не показываем: это уже кабинет
+ * вошедшего пользователя, а не публичный сайт.
+ */
+const APP_PREFIXES = [
+  "/mini",
+  "/dashboard",
+  "/settings",
+  "/journals/",
+  "/reports",
+  "/root",
+  "/staff",
+  "/team",
+  "/batches",
+  "/capa",
+  "/losses",
+  "/plans",
+  "/changes",
+  "/competencies",
+  "/verifications",
+  "/equipment",
+  "/task-fill",
+  "/equipment-fill",
+] as const;
+
+/**
  * Компактный уведомительный бар про cookies.
  *
  * Требование модерации платёжного сервиса: посетитель должен видеть
@@ -48,7 +73,10 @@ export function CookieConsent() {
     };
   }, []);
 
-  if (pathname?.startsWith("/mini")) return null;
+  // Баннер — только для публичных страниц. Внутри кабинета согласие
+  // уже получено при регистрации, а плашка там налезала на карточки
+  // дашборда и на «Быстрый старт» (на мобильном — особенно заметно).
+  if (pathname && APP_PREFIXES.some((p) => pathname.startsWith(p))) return null;
   if (!visible) return null;
 
   function accept() {
