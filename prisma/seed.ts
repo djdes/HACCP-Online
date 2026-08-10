@@ -698,11 +698,11 @@ async function seedPlatformOrgAndRoot() {
       organizationId: PLATFORM_ORG_ID,
       role: "manager",
       passwordHash,
-      name: "Platform Root",
+      name: "Администратор",
     },
     create: {
       email: rootEmail,
-      name: "Platform Root",
+      name: "Администратор",
       role: "manager",
       organizationId: PLATFORM_ORG_ID,
       isRoot: true,
