@@ -461,7 +461,7 @@ export default async function DashboardPage() {
                   "Все журналы начаты сегодня"
                 ) : (
                   <>
-                    {isFreshOrg ? "Начните вести журналы — их" : "Нужно начать"}{" "}
+                    {isFreshOrg ? "Можно начинать — всего" : "Нужно начать"}{" "}
                     <span
                       className={
                         isFreshOrg

@@ -127,34 +127,51 @@ export async function TimeWindowAlerts({
   });
 
   const urgentCount = alerts.filter((a) => a.severity === "urgent").length;
+  // Все журналы ещё ни разу не заполняли — это новая организация, а не
+  // нарушитель. Красный блок на первом экране обесценивает красный,
+  // который загорится по делу (docs/design/dashboard-guidelines.md).
+  const allNeverFilled = alerts.every((a) => a.hoursOverdue === null);
 
   return (
-    <div className="rounded-3xl border border-[#ffd2cd] bg-gradient-to-br from-[#fff4f2] to-white p-5 shadow-[0_10px_30px_-12px_rgba(161,58,50,0.2)]">
+    <div
+      className={
+        allNeverFilled
+          ? "rounded-3xl border border-[#dcdfed] bg-gradient-to-br from-[#f5f6ff] to-white p-5 shadow-[0_10px_30px_-12px_rgba(85,102,246,0.15)]"
+          : "rounded-3xl border border-[#ffd2cd] bg-gradient-to-br from-[#fff4f2] to-white p-5 shadow-[0_10px_30px_-12px_rgba(161,58,50,0.2)]"
+      }
+    >
       <div className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#a13a32] text-white shadow-[0_8px_20px_-8px_rgba(161,58,50,0.55)]">
+        <span
+          className={
+            allNeverFilled
+              ? "flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white shadow-[0_8px_20px_-8px_rgba(85,102,246,0.55)]"
+              : "flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#a13a32] text-white shadow-[0_8px_20px_-8px_rgba(161,58,50,0.55)]"
+          }
+        >
           <Clock4 className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
-              Срочно нужно заполнить
+              {allNeverFilled ? "С чего начать" : "Срочно нужно заполнить"}
             </h3>
-            {urgentCount > 0 ? (
+            {urgentCount > 0 && !allNeverFilled ? (
               <span className="rounded-full bg-[#a13a32] px-2 py-0.5 text-[11px] font-semibold text-white">
                 {urgentCount} критичных
               </span>
             ) : null}
           </div>
           <p className="mt-1 text-[13px] leading-snug text-[#3c4053]">
-            Журналы с нарушением периодичности по СанПиН — последняя запись
-            была дольше нормы. Заполните как можно скорее.
+            {allNeverFilled
+              ? "Эти журналы нужно заполнять чаще всего. Начните с любого — дальше система будет напоминать сама."
+              : "Журналы с нарушением периодичности по СанПиН — последняя запись была дольше нормы. Заполните как можно скорее."}
           </p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {alerts.slice(0, 6).map((a) => {
-          const isUrgent = a.severity === "urgent";
+          const isUrgent = a.severity === "urgent" && !allNeverFilled;
           return (
             <Link
               key={a.code}
