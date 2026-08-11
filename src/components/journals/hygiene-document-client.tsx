@@ -793,8 +793,8 @@ export function HygieneDocumentClient({
               ))}
             </div>
 
-            {/* Условные обозначения — для печати, инспектор увидит легенду */}
-            <div className="mt-6 print:mt-4">
+            {/* Условные обозначения: карточка — на экране, курсивный блок ниже — в печати */}
+            <div className="mt-6 print:hidden">
               <JournalLegendBlock
                 items={[
                   { symbol: "Зд", description: "здоров (допущен к работе)" },
@@ -812,7 +812,7 @@ export function HygieneDocumentClient({
               числу работников на этот день в смену
             </div>
 
-            <div className="hygiene-legend mt-10 text-[16px] leading-7">
+            <div className="hygiene-legend mt-10 hidden text-[16px] leading-7 print:block">
               <div className="font-semibold italic underline">Условные обозначения:</div>
               {HYGIENE_REGISTER_LEGEND.map((item) => (
                 <div key={item} className="italic">
