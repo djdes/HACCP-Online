@@ -154,6 +154,7 @@ export default async function DashboardPage() {
 
   const [
     todayEntries,
+    totalEntriesEver,
     todayDocumentEntries,
     pendingApproval,
     activeUsers,
@@ -169,6 +170,10 @@ export default async function DashboardPage() {
     db.journalEntry.count({
       where: { organizationId, createdAt: { gte: todayStart } },
     }),
+    // Была ли у организации хоть одна запись за всё время. Отличает
+    // «новичок, ещё не начинал» от «работает, но отстаёт» — от этого
+    // зависит, красный на экране или нейтральный.
+    db.journalEntry.count({ where: { organizationId } }),
     db.journalDocumentEntry.count({
       where: {
         date: { gte: todayStart },
@@ -286,8 +291,18 @@ export default async function DashboardPage() {
   const compliancePercent = complianceItems.length
     ? Math.round((filledCount / complianceItems.length) * 100)
     : 100;
-  const complianceTone =
-    compliancePercent >= 90
+  // Организация, где ещё не было ни одной записи, — не нарушитель, а
+  // новичок. Красный с первой секунды обесценивает красный, который
+  // загорится по делу (см. docs/design/dashboard-guidelines.md).
+  const isFreshOrg = totalEntriesEver === 0;
+  const complianceTone = isFreshOrg
+    ? {
+        bgClass: "bg-[#eef1ff] text-[#3848c7]",
+        fgClass: "text-[#3848c7]",
+        ring: "#5566f6",
+        label: "ещё не начинали",
+      }
+    : compliancePercent >= 90
       ? {
           bgClass: "bg-[#ecfdf5] text-[#136b2a]",
           fgClass: "text-[#136b2a]",
@@ -406,7 +421,7 @@ export default async function DashboardPage() {
           ничего) — сразу понятно как дела с заполнением. */}
       <section
         className={`relative overflow-hidden rounded-3xl border bg-white p-5 shadow-[0_10px_30px_-15px_rgba(11,16,36,0.1)] sm:p-6 ${
-          complianceItems.length === 0
+          complianceItems.length === 0 || isFreshOrg
             ? "border-[#ececf4]"
             : unfilledCount === 0
               ? "border-emerald-200"
@@ -418,7 +433,7 @@ export default async function DashboardPage() {
         {/* Subtle gradient accent sweep — лёгкий цвет «настроения» */}
         <div
           className={`pointer-events-none absolute -right-32 -top-32 size-[400px] rounded-full opacity-30 blur-3xl ${
-            complianceItems.length === 0
+            complianceItems.length === 0 || isFreshOrg
               ? "bg-[#5566f6]/20"
               : unfilledCount === 0
                 ? "bg-emerald-300"
@@ -446,12 +461,14 @@ export default async function DashboardPage() {
                   "Все журналы начаты сегодня"
                 ) : (
                   <>
-                    Нужно начать{" "}
+                    {isFreshOrg ? "Начните вести журналы — их" : "Нужно начать"}{" "}
                     <span
                       className={
-                        compliancePercent >= 50
-                          ? "text-amber-700"
-                          : "text-rose-700"
+                        isFreshOrg
+                          ? "text-[#3848c7]"
+                          : compliancePercent >= 50
+                            ? "text-amber-700"
+                            : "text-rose-700"
                       }
                     >
                       {unfilledCount}{" "}
@@ -565,7 +582,8 @@ export default async function DashboardPage() {
             title="Превью отправки задач TasksFlow"
             subtitle="Что и кому уйдёт при отправке — без реальной отправки. Управление задачами в одном месте."
             icon={Send}
-            defaultOpen={true}
+            // Статусный блок, а не действие — по гайду свёрнут.
+            defaultOpen={false}
           >
             <BulkAssignPreviewCard />
           </DashboardSection>
