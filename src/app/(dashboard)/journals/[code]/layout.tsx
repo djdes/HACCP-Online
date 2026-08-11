@@ -19,7 +19,11 @@ import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide"
  */
 export default function JournalCodeLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="-m-4 min-h-full bg-white p-4 md:-m-6 md:p-6">
+    // Full-bleed белая подложка: `<main>` в (dashboard)/layout ограничен
+    // 1296px, поэтому выходим из контейнера через w-screen + центрирование —
+    // белый фон тянется от края до края, как на эталоне (body имеет
+    // overflow-x-clip, поэтому скроллбар не появляется).
+    <div className="relative left-1/2 -my-4 w-screen -translate-x-1/2 bg-white px-4 py-4 md:-my-6 md:px-6 md:py-6">
       {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
           скроллятся внутри собственного viewport-контейнера
           (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}

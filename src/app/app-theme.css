@@ -19,14 +19,10 @@
  * LIGHT — это default, оверрайдов нет (совпадает с текущим дизайном).
  * ================================================================== */
 
-/* Шрифт эталона. Объявлен на :root (а не на `.app-shell`), чтобы
-   Radix-порталы — они рендерятся в <body> вне шелла — тоже могли его
-   прочитать. Применяется он ТОЛЬКО там, где ниже явно указан
-   `font-family: var(--app-font)`, поэтому лендинг не затронут. */
-:root {
-  --app-font: var(--font-manrope), "Manrope", "Segoe UI", "Helvetica Neue",
-    Arial, sans-serif;
-}
+/* Шрифт эталона. Прямой стек без промежуточной переменной: сборщик
+   (lightningcss) вырезал объявление `--app-font` на :root из бандла,
+   из-за чего кабинет оставался на Segoe UI. `--font-manrope` приходит
+   из next/font (класс на <body>, см. src/app/layout.tsx). */
 
 .app-shell {
   /* Canonical tokens — одинаковые имена в обеих темах, меняются значения */
@@ -62,7 +58,8 @@
    * Ширина контента: 1296px — контейнер списка на эталоне. */
   --app-content-max: 1296px;
 
-  font-family: var(--app-font);
+  font-family: var(--font-manrope, "Manrope"), "Manrope", "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -80,7 +77,8 @@ body:has(.app-shell) [data-slot="popover-content"],
 body:has(.app-shell) [data-slot="dropdown-menu-content"],
 body:has(.app-shell) [data-radix-popper-content-wrapper],
 body:has(.app-shell) [data-sonner-toaster] {
-  font-family: var(--app-font, inherit);
+  font-family: var(--font-manrope, "Manrope"), "Manrope", "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ── Заголовки страниц: 32px/700 как на эталоне ────────────────────────
