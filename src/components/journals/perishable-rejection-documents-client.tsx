@@ -102,7 +102,7 @@ export function PerishableRejectionDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <JournalTopBar
         heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
         activeTab={activeTab}
@@ -146,7 +146,7 @@ export function PerishableRejectionDocumentsClient({
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -155,14 +155,14 @@ export function PerishableRejectionDocumentsClient({
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
             </div>
             <div className="flex justify-end">
               <Button
                 onClick={saveSettings}
                 disabled={isSaving}
-                className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {isSaving ? "Сохранение..." : "Сохранить"}
               </Button>

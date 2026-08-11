@@ -23,7 +23,6 @@ import {
 import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   HEALTH_REGISTER_NOTES,
@@ -42,6 +41,11 @@ import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import { toast } from "sonner";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
   title: string;
@@ -63,10 +67,6 @@ type Props = {
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
 
@@ -91,27 +91,27 @@ function HealthHeader({
   pageLabel: string;
 }) {
   return (
-    <table className="health-header w-full border-collapse overflow-hidden rounded-2xl print:rounded-none">
+    <table className="health-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
       <tbody>
         <tr>
           <td
             rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[22px] font-semibold`}
+            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[15px] font-semibold`}
           >
             {organizationLabel}
           </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-8 py-4 text-center text-[18px] uppercase`}>
+          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[18px] uppercase`}
+            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className={`${GRID_CELL_CLASS} px-8 py-4 text-center text-[17px] italic uppercase`}>
+          <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] italic uppercase`}>
             ЖУРНАЛ ЗДОРОВЬЯ
           </td>
         </tr>
@@ -371,7 +371,7 @@ export function HealthDocumentClient(props: Props) {
                 type="button"
                 variant="outline"
                 onClick={() => setSelectedEmployeeIds([])}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               >
                 Выбрано: {selectedCount}
                 <X className="size-4" />
@@ -381,7 +381,7 @@ export function HealthDocumentClient(props: Props) {
                 variant="outline"
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
-                className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
               >
                 {isDeleting ? "Удаление..." : "Удалить"}
               </Button>
@@ -524,7 +524,7 @@ export function HealthDocumentClient(props: Props) {
             {documentTitle}
           </div>
 
-          <table className="health-grid w-full border-collapse text-[15px]">
+          <table className="health-grid w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 <th
@@ -562,7 +562,7 @@ export function HealthDocumentClient(props: Props) {
                   Должность
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} p-2 text-center text-[16px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
                   colSpan={dateKeys.length}
                 >
                   Месяц {monthLabel}
@@ -594,7 +594,7 @@ export function HealthDocumentClient(props: Props) {
 
                 return (
                   <tr key={employee.id}>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                       {employee.name ? (
                         <HealthCheckbox
                           checked={selectedEmployeeIds.includes(employee.id)}
@@ -605,13 +605,13 @@ export function HealthDocumentClient(props: Props) {
                         />
                       ) : null}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                       {employee.name ? employee.number : ""}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                       {employee.name || ""}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                       {employee.name
                         ? employee.position || getHygienePositionLabel("operator")
                         : ""}
@@ -622,7 +622,7 @@ export function HealthDocumentClient(props: Props) {
                       return (
                         <td
                           key={`${employee.id}:${dateKey}`}
-                          className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}
+                          className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}
                         >
                           {data?.signed ? "+" : ""}
                         </td>
@@ -640,16 +640,16 @@ export function HealthDocumentClient(props: Props) {
               })}
 
               <tr>
-                <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                   <HealthCheckbox />
                 </td>
-                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
-                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
-                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
                 {dateKeys.map((dateKey) => (
-                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} p-2`} />
+                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
                 ))}
-                <td className={`${GRID_CELL_CLASS} p-2`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
               </tr>
             </tbody>
           </table>
@@ -680,13 +680,13 @@ export function HealthDocumentClient(props: Props) {
                 value={settingsDocTitle}
                 onChange={(event) => setSettingsDocTitle(event.target.value)}
                 placeholder="Введите название документа"
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5"
               />
             </div>
             <div className="space-y-2">
               <Label>Добавлять пустых строк при печати</Label>
               <Select value={emptyRows} onValueChange={setEmptyRows}>
-                <SelectTrigger className="h-11 w-full rounded-2xl border-[#dfe1ec] bg-[#fafbff] px-4 text-sm">
+                <SelectTrigger className="h-10 w-full rounded-xl border-[#dfe1ec] bg-[#fafbff] px-3.5 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -703,7 +703,7 @@ export function HealthDocumentClient(props: Props) {
                 type="button"
                 onClick={handleSaveSettings}
                 disabled={isSavingSettings}
-                className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {isSavingSettings ? "Сохранение..." : "Сохранить"}
               </Button>

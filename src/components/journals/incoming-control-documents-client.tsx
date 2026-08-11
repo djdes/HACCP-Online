@@ -137,7 +137,7 @@ function SettingsDialog({
             <Input
               value={state.title}
               onChange={(event) => setState({ ...state, title: event.target.value })}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               placeholder="Введите название документа"
             />
           </div>
@@ -147,7 +147,7 @@ function SettingsDialog({
               type="date"
               value={state.startDate}
               onChange={(event) => setState({ ...state, startDate: event.target.value })}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-4">
@@ -189,7 +189,7 @@ function SettingsDialog({
             positionLabel="Должность ответственного"
             employeeLabel="Ответственный сотрудник"
             labelClassName="text-[14px] text-[#73738a]"
-            triggerClassName="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+            triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end">
             <Button
@@ -204,7 +204,7 @@ function SettingsDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : submitLabel}
             </Button>
@@ -350,7 +350,7 @@ export function IncomingControlDocumentsClient({
             <Button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             >
               <Plus className="size-4" />
               Создать документ
@@ -415,14 +415,14 @@ export function IncomingControlDocumentsClient({
                     >
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setSettingsDocument(document)}
                         >
                           Настройки
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => openPdf({ documentId: document.id })}
                       >
                         <Printer className="mr-3 size-5 text-[#6f7282]" />
@@ -430,7 +430,7 @@ export function IncomingControlDocumentsClient({
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => void handleDelete(document)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

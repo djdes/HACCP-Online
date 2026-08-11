@@ -167,7 +167,7 @@ export function EquipmentMaintenanceDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <JournalTopBar
         heading="График профилактического обслуживания оборудования"
         activeTab={activeTab}

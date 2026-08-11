@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, NotebookPen } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { db } from "@/lib/db";
 import { JournalGuide } from "@/components/journals/journal-guide";
+import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -29,20 +31,29 @@ export default async function JournalGuidePage({
   // Если orga настроила в /settings/journal-guides-tree — он
   // переопределяет hardcoded `journal-filling-guides.steps[]`.
   const session = await getServerSession(authOptions);
-  const customNodes = session
-    ? (await loadGuideNodesForUI(getActiveOrgId(session), resolvedCode)) ??
-      undefined
-    : undefined;
+  const [customNodes, organization] = await Promise.all([
+    session
+      ? loadGuideNodesForUI(getActiveOrgId(session), resolvedCode).then(
+          (nodes) => nodes ?? undefined
+        )
+      : Promise.resolve(undefined),
+    session
+      ? db.organization.findUnique({
+          where: { id: getActiveOrgId(session) },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
-      <Link
-        href={`/journals/${resolvedCode}`}
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" />
-        К журналу
-      </Link>
+      <JournalBreadcrumbs
+        items={[
+          { label: organization?.name || ORG_NAME_FALLBACK, href: "/journals" },
+          { label: template.name, href: `/journals/${resolvedCode}` },
+          { label: "Инструкция" },
+        ]}
+      />
 
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">

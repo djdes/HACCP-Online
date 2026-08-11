@@ -69,9 +69,9 @@ function SectionDialog({
           <DialogTitle className="text-[22px] font-semibold text-black">Добавить новый раздел</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 px-8 py-6">
-          <Input value={value} onChange={(e) => setValue(e.target.value)} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+          <Input value={value} onChange={(e) => setValue(e.target.value)} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />
           <div className="flex justify-end">
-            <Button type="button" onClick={async () => { if (!value.trim()) return; await onCreate(value.trim()); onOpenChange(false); setValue(""); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
+            <Button type="button" onClick={async () => { if (!value.trim()) return; await onCreate(value.trim()); onOpenChange(false); setValue(""); }} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]">
               Добавить
             </Button>
           </div>
@@ -113,7 +113,7 @@ function RowDialog({
           <div className="space-y-2">
             <Label className="text-[14px] text-[#73738a]">Раздел</Label>
             <Select value={draft.sectionId} onValueChange={(value) => setDraft({ ...draft, sectionId: value })}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите раздел" />
               </SelectTrigger>
               <SelectContent>
@@ -128,7 +128,7 @@ function RowDialog({
             <Textarea value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} className="min-h-[160px] rounded-2xl border-[#d8dae6] px-4 py-3 text-[18px]" />
           </div>
           <div className="flex justify-end">
-            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
+            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]">
               Сохранить
             </Button>
           </div>
@@ -276,7 +276,7 @@ export function AuditProtocolDocumentClient({
 
   return (
     <>
-      <div className="space-y-8">
+      <div className="space-y-5">
         {selectedRowIds.length > 0 && status === "active" && (
           <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
             <button type="button" className="flex items-center gap-1 text-[16px] text-[#5566f6]" onClick={() => setSelectedRowIds([])}>
@@ -333,10 +333,10 @@ export function AuditProtocolDocumentClient({
 
           {status === "active" && (
             <div className="flex flex-wrap gap-3 print:hidden">
-              <Button className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={() => { setEditingRow(null); setRowOpen(true); }}>
+              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => { setEditingRow(null); setRowOpen(true); }}>
                 <Plus className="size-5" /> Добавить строку
               </Button>
-              <Button className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={() => setSectionOpen(true)}>
+              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setSectionOpen(true)}>
                 <Plus className="size-5" /> Добавить новый раздел
               </Button>
             </div>
@@ -351,7 +351,7 @@ export function AuditProtocolDocumentClient({
           ) : null}
 
           <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
+            <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
               <thead>
                 <tr>
                   <th className="w-14 border border-black/70 px-2 py-2 print:hidden">
@@ -452,7 +452,7 @@ export function AuditProtocolDocumentClient({
               <Input
                 value={documentTitle}
                 onChange={(e) => setDocumentTitle(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -461,7 +461,7 @@ export function AuditProtocolDocumentClient({
                 type="date"
                 value={config.documentDate}
                 onChange={(e) => setConfig({ ...config, documentDate: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -469,7 +469,7 @@ export function AuditProtocolDocumentClient({
               <Input
                 value={config.basisTitle}
                 onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -477,7 +477,7 @@ export function AuditProtocolDocumentClient({
               <Input
                 value={config.auditedObject}
                 onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
           </div>
@@ -491,22 +491,22 @@ export function AuditProtocolDocumentClient({
             <div className="space-y-4 px-8 py-6">
               <div className="space-y-2">
                 <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
-                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[14px] text-[#73738a]">Основание проверки</Label>
-                <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+                <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[14px] text-[#73738a]">Проверяемый объект</Label>
-                <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />
+                <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />
               </div>
               <div className="flex justify-end">
-                <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]">
+                <Button type="button" onClick={async () => { await saveSettings(documentTitle.trim() || AUDIT_PROTOCOL_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]">
                   Сохранить
                 </Button>
               </div>

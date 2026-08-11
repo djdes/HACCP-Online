@@ -363,7 +363,7 @@ export function StaffTrainingDocumentClient({
 
       {/* HACCP block */}
       <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[13px]">
           <tbody>
             <tr>
               <td
@@ -455,7 +455,7 @@ export function StaffTrainingDocumentClient({
 
         {/* main table */}
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1600px] w-full border-collapse text-sm">
+          <table className="min-w-[1600px] w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className="w-10 border p-2" />
@@ -921,7 +921,7 @@ export function StaffTrainingDocumentClient({
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
         </JournalSettingsModal>

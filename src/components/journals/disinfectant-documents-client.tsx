@@ -150,7 +150,7 @@ function SettingsDialog(props: {
                   setState({ ...activeState, title: e.target.value })
                 }
                 placeholder="Введите название документа"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -170,7 +170,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,7 +195,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +214,7 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -345,7 +345,7 @@ export function DisinfectantDocumentsClient({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <JournalTopBar
         routeCode={routeCode}
         heading={DISINFECTANT_HEADING}
@@ -355,7 +355,7 @@ export function DisinfectantDocumentsClient({
         users={users}
         createSlot={
           <Button
-            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-4" /> Создать документ
@@ -410,7 +410,7 @@ export function DisinfectantDocumentsClient({
                   >
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsTarget(document)}
                       >
                         <Pencil className="mr-3 size-6 text-[#6f7282]" />{" "}
@@ -418,7 +418,7 @@ export function DisinfectantDocumentsClient({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать
@@ -426,7 +426,7 @@ export function DisinfectantDocumentsClient({
                     {document.status === "active" && (
                       <>
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => {
                             void handleArchive(document);
                           }}
@@ -435,7 +435,7 @@ export function DisinfectantDocumentsClient({
                           Отправить в закрытые
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => {
                             void handleDelete(document);
                           }}
@@ -447,7 +447,7 @@ export function DisinfectantDocumentsClient({
                     )}
                     {document.status === "closed" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => {
                           void setStatus("active", { documentId: document.id });
                         }}

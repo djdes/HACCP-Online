@@ -140,7 +140,7 @@ function GlassControlFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, title: event.target.value }))
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -152,7 +152,7 @@ function GlassControlFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, dateFrom: event.target.value }))
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -166,7 +166,7 @@ function GlassControlFormDialog(props: {
                   controlFrequency: event.target.value,
                 }))
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -178,7 +178,7 @@ function GlassControlFormDialog(props: {
                 setState((prev) => ({ ...prev, responsibleTitle: value, responsibleUserId: "" }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -199,7 +199,7 @@ function GlassControlFormDialog(props: {
                 setState((prev) => ({ ...prev, responsibleUserId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -230,7 +230,7 @@ function GlassControlFormDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : props.submitLabel}
             </Button>
@@ -323,7 +323,7 @@ export function GlassControlDocumentsClient(props: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {GLASS_CONTROL_PAGE_TITLE}
@@ -430,7 +430,7 @@ export function GlassControlDocumentsClient(props: Props) {
                   >
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setEditingDocument(document)}
                       >
                         <Pencil className="mr-3 size-5 text-[#6f7282]" />
@@ -438,7 +438,7 @@ export function GlassControlDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() =>
                         window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
                       }
@@ -448,7 +448,7 @@ export function GlassControlDocumentsClient(props: Props) {
                     </DropdownMenuItem>
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() =>
                           handleDelete(
                             document.id,

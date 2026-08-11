@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { promptAsync } from "@/components/ui/prompt-async";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -54,6 +53,11 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 type Props = {
   documentId: string;
@@ -72,15 +76,11 @@ const RESPONSIBLE_POSITIONS = USER_ROLE_LABEL_VALUES;
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
  * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /** Общий вид триггера shadcn-селекта внутри форм журнала. */
 const SELECT_TRIGGER_CLASS =
-  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+  "h-9 w-full rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
 /**
  * `<SelectItem value="">` в Radix запрещён — пустая строка зарезервирована
  * под «ничего не выбрано». Поэтому пункт «— выберите —» несёт сентинел,
@@ -558,28 +558,28 @@ export function PerishableRejectionDocumentClient({
 
       <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         {/* HACCP header table */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[13px]">
           <tbody>
             <tr>
               <td
                 rowSpan={2}
-                className={`w-[18%] ${GRID_CELL_CLASS} p-3 text-center font-semibold`}
+                className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
               >
                 {organizationName}
               </td>
-              <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className={`w-[20%] ${GRID_CELL_CLASS} p-2 text-[18px] font-medium`}>
+              <td className={`w-[20%] ${GRID_CELL_CLASS} p-2 text-[13px] font-medium`}>
                 Начат&nbsp;&nbsp;{new Date(dateFrom).toLocaleDateString("ru-RU")}
                 <div className="mt-2 font-normal">Окончен&nbsp;__________</div>
               </td>
             </tr>
             <tr>
-              <td className={`${GRID_CELL_CLASS} p-2 text-center text-sm uppercase italic`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] uppercase italic`}>
                 ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ
               </td>
-              <td className={`${GRID_CELL_CLASS} p-2 text-center text-[18px]`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px]`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
@@ -597,7 +597,7 @@ export function PerishableRejectionDocumentClient({
               <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
-                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+                  className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
                 >
                   <Plus className="size-4" />
                   Добавить
@@ -606,25 +606,25 @@ export function PerishableRejectionDocumentClient({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[280px] rounded-[24px] border-0 p-3 shadow-xl">
                 <DropdownMenuItem
-                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
                   onSelect={() => setAddModalOpen(true)}
                 >
                   Добавить изделие
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
                   onSelect={() => void addSeveralRows()}
                 >
                   Добавить несколько изделий
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="mb-1 h-11 rounded-2xl px-4 text-[15px]"
+                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
                   onSelect={addRowsFromList}
                 >
                   Добавить из списка
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="h-11 rounded-2xl px-4 text-[15px]"
+                  className="h-9 rounded-xl px-3.5 text-[13.5px]"
                   onSelect={() => {
                     setBulkText("");
                     setBulkOpen(true);
@@ -638,7 +638,7 @@ export function PerishableRejectionDocumentClient({
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-2xl border-0 bg-[#f5f6ff] px-4 text-[15px] text-[#3848c7] transition-colors hover:bg-[#eceeff]"
+            className="h-9 rounded-xl border-0 bg-[#f5f6ff] px-3.5 text-[13.5px] text-[#3848c7] transition-colors hover:bg-[#eceeff]"
             onClick={() => setListModalOpen(true)}
             disabled={readOnly}
           >
@@ -647,7 +647,7 @@ export function PerishableRejectionDocumentClient({
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]"
             onClick={() => void removeSelectedRows()}
             disabled={readOnly || selectedRows.length === 0}
           >
@@ -656,7 +656,7 @@ export function PerishableRejectionDocumentClient({
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => saveConfig()}
             disabled={readOnly || isSaving || isPending}
           >
@@ -676,41 +676,41 @@ export function PerishableRejectionDocumentClient({
 
         {/* Main data table */}
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[2200px] w-full border-collapse text-sm">
+          <table className="min-w-[2200px] w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} />
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Дата, время поступления пищ. продукции
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Наименование</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Дата выработки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Изготовитель/поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Наименование</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Дата выработки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Изготовитель/поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Номер документа, подтверждающего безопасность
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Результаты органолептической оценки
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Условия хранения, конечный срок реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Дата, время фактической реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                   Ответственное лицо (ФИО, должность)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Примечание</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Примечание</th>
               </tr>
             </thead>
             <tbody>
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-                  <td className={`${GRID_CELL_CLASS} p-2 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 align-top`}>
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) =>
@@ -886,7 +886,7 @@ export function PerishableRejectionDocumentClient({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
                 <Input
                   type="date"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draftRow.arrivalDate}
                   onChange={(e) =>
                     setDraftRow((prev) => ({
@@ -969,7 +969,7 @@ export function PerishableRejectionDocumentClient({
                 </SelectContent>
               </Select>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 placeholder="Или введите новое наименование"
                 value={
                   productOptions.includes(draftRow.productName)
@@ -992,7 +992,7 @@ export function PerishableRejectionDocumentClient({
               </Label>
               <Input
                 type="date"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draftRow.productionDate}
                 onChange={(e) =>
                   setDraftRow((prev) => ({
@@ -1034,7 +1034,7 @@ export function PerishableRejectionDocumentClient({
                 </SelectContent>
               </Select>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 placeholder="Или введите нового изготовителя"
                 value={
                   config.manufacturers.includes(draftRow.manufacturer)
@@ -1081,7 +1081,7 @@ export function PerishableRejectionDocumentClient({
                 </SelectContent>
               </Select>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 placeholder="Или введите нового поставщика"
                 value={
                   config.suppliers.includes(draftRow.supplier)
@@ -1104,7 +1104,7 @@ export function PerishableRejectionDocumentClient({
                   Фасовка
                 </Label>
                 <Input
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draftRow.packaging}
                   onChange={(e) =>
                     setDraftRow((prev) => ({
@@ -1119,7 +1119,7 @@ export function PerishableRejectionDocumentClient({
                   Количество
                 </Label>
                 <Input
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draftRow.quantity}
                   onChange={(e) =>
                     setDraftRow((prev) => ({
@@ -1137,7 +1137,7 @@ export function PerishableRejectionDocumentClient({
                 Номер документа
               </Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draftRow.documentNumber}
                 onChange={(e) =>
                   setDraftRow((prev) => ({
@@ -1171,7 +1171,7 @@ export function PerishableRejectionDocumentClient({
                           organolepticResult: value,
                         }))
                       }
-                      className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                      className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                         active
                           ? "border-transparent text-white"
                           : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
@@ -1236,7 +1236,7 @@ export function PerishableRejectionDocumentClient({
               </Label>
               <Input
                 type="date"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draftRow.expiryDate}
                 onChange={(e) =>
                   setDraftRow((prev) => ({
@@ -1255,7 +1255,7 @@ export function PerishableRejectionDocumentClient({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
                 <Input
                   type="date"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draftRow.actualSaleDate}
                   onChange={(e) =>
                     setDraftRow((prev) => ({
@@ -1360,7 +1360,7 @@ export function PerishableRejectionDocumentClient({
                 Примечание
               </Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draftRow.note}
                 onChange={(e) =>
                   setDraftRow((prev) => ({ ...prev, note: e.target.value }))
@@ -1373,14 +1373,14 @@ export function PerishableRejectionDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setAddModalOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={() => {
                 void saveDraftRow();
               }}
@@ -1420,14 +1420,14 @@ export function PerishableRejectionDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none transition-colors hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none transition-colors hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setBulkOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
               onClick={addRowsFromText}
               disabled={
                 bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length === 0
@@ -1450,7 +1450,7 @@ export function PerishableRejectionDocumentClient({
               </button>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Section tabs */}
             <div className="flex gap-2 border-b pb-2">
               {(
@@ -1731,7 +1731,7 @@ export function PerishableRejectionDocumentClient({
               <Input
                 value={settingsTitle}
                 onChange={(event) => setSettingsTitle(event.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -1740,7 +1740,7 @@ export function PerishableRejectionDocumentClient({
                 type="date"
                 value={settingsDateFrom}
                 onChange={(event) => setSettingsDateFrom(event.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
             </div>
             <div className="flex justify-end">
@@ -1748,7 +1748,7 @@ export function PerishableRejectionDocumentClient({
                 type="button"
                 disabled={settingsSaving}
                 onClick={() => void saveDocumentSettings()}
-                className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {settingsSaving ? "Сохранение..." : "Сохранить"}
               </Button>

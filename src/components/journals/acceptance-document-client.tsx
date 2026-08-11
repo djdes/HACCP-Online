@@ -59,7 +59,6 @@ import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -69,6 +68,11 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 type User = { id: string; name: string; role: string };
 
@@ -91,15 +95,11 @@ type Props = {
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
  * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /** Общий вид триггера shadcn-селекта внутри форм журнала. */
 const SELECT_TRIGGER_CLASS =
-  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+  "h-9 w-full rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
 /**
  * `<SelectItem value="">` в Radix запрещён — пустая строка зарезервирована
  * под «ничего не выбрано». Пункт «— выберите —» несёт сентинел, который
@@ -302,7 +302,7 @@ function RowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время поставки</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
-              <Input type="date" value={row.deliveryDate} onChange={(e) => setValue("deliveryDate", e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+              <Input type="date" value={row.deliveryDate} onChange={(e) => setValue("deliveryDate", e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
               <Select value={row.deliveryHour || "--"} onValueChange={(value) => setValue("deliveryHour", value === "--" ? "" : value)}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- ч" /></SelectTrigger>
                 <SelectContent>
@@ -346,8 +346,8 @@ function RowDialog(props: {
               })}
             </div>
             <div className="flex gap-2">
-              <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название новой продукции" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("product")}>
+              <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название новой продукции" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
+              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("product")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -369,8 +369,8 @@ function RowDialog(props: {
               </SelectContent>
             </Select>
             <div className="flex gap-2">
-              <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Добавить название нового производителя" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("manufacturer")}>
+              <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Добавить название нового производителя" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
+              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("manufacturer")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -392,8 +392,8 @@ function RowDialog(props: {
               </SelectContent>
             </Select>
             <div className="flex gap-2">
-              <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Добавить название нового поставщика" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("supplier")}>
+              <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Добавить название нового поставщика" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
+              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("supplier")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -415,7 +415,7 @@ function RowDialog(props: {
                     key={value}
                     type="button"
                     onClick={() => setValue("transportCondition", value)}
-                    className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                    className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                       active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
                     }`}
                     style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
@@ -443,7 +443,7 @@ function RowDialog(props: {
                     key={value}
                     type="button"
                     onClick={() => setValue("packagingCompliance", value)}
-                    className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                    className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                       active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
                     }`}
                     style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
@@ -471,7 +471,7 @@ function RowDialog(props: {
                     key={value}
                     type="button"
                     onClick={() => setValue("organolepticResult", value)}
-                    className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                    className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                       active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
                     }`}
                     style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
@@ -489,7 +489,7 @@ function RowDialog(props: {
               {getExpiryFieldDisplayLabel(props.config.expiryFieldLabel)}
             </Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
-              <Input type="date" value={row.expiryDate} onChange={(e) => setValue("expiryDate", e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+              <Input type="date" value={row.expiryDate} onChange={(e) => setValue("expiryDate", e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
               <Select value={row.expiryHour || "--"} onValueChange={(value) => setValue("expiryHour", value === "--" ? "" : value)}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="-- ч" /></SelectTrigger>
                 <SelectContent>
@@ -569,7 +569,7 @@ function RowDialog(props: {
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+            className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
             onClick={() => props.onOpenChange(false)}
           >
             Отмена
@@ -578,7 +578,7 @@ function RowDialog(props: {
             type="button"
             onClick={handleSave}
             disabled={isSubmitting}
-            className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
           >
             {isSubmitting ? "Сохранение..." : isEdit ? "Сохранить" : "Добавить"}
           </Button>
@@ -675,7 +675,7 @@ function EditListsDialog(props: {
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">Закрыть</Button>
+            <Button type="button" onClick={handleClose} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]">Закрыть</Button>
           </div>
         </div>
       </DialogContent>
@@ -881,7 +881,7 @@ function IncomingControlEditListsDialog(props: {
             onChange={setSuppliers}
           />
           <div className="flex justify-end">
-            <Button type="button" onClick={handleClose} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">
+            <Button type="button" onClick={handleClose} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]">
               Закрыть
             </Button>
           </div>
@@ -945,7 +945,7 @@ function SettingsDialog(props: {
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
         />
       </div>
       <div className="space-y-2">
@@ -956,7 +956,7 @@ function SettingsDialog(props: {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+          className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
         />
       </div>
       <div className="space-y-2">
@@ -1006,7 +1006,7 @@ function SettingsDialog(props: {
             setResponsibleTitle(v);
           }}
         >
-          <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+          <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
             <SelectValue placeholder="— Выберите —" />
           </SelectTrigger>
           <SelectContent>
@@ -1028,7 +1028,7 @@ function SettingsDialog(props: {
             if (user) setResponsibleTitle(getUserRoleLabel(user.role));
           }}
         >
-          <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+          <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
             <SelectValue placeholder="— Выберите —" />
           </SelectTrigger>
           <SelectContent>
@@ -1075,11 +1075,11 @@ function SettingsDialog(props: {
         <div className="space-y-4 px-8 py-6">
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-1">
             <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]" />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-2">
             <div className="text-[14px] font-semibold">Название поля</div>
@@ -1104,7 +1104,7 @@ function SettingsDialog(props: {
               }
               onValueChange={(v) => setResponsibleTitle(v)}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#f3f4fb] px-3.5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={props.users} />
               </SelectContent>
@@ -1117,14 +1117,14 @@ function SettingsDialog(props: {
               const user = props.users.find((u) => u.id === v);
               if (user) setResponsibleTitle(getUserRoleLabel(user.role));
             }}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#f3f4fb] px-4 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#f3f4fb] px-3.5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
                 {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="flex justify-end pt-2">
-            <Button type="button" onClick={handleSave} disabled={isSubmitting} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]">
+            <Button type="button" onClick={handleSave} disabled={isSubmitting} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]">
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
@@ -1267,7 +1267,7 @@ function ImportRowsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={() => inputRef.current?.click()}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -1338,7 +1338,7 @@ function AddMultipleRowsDialog(props: {
               max={100}
               value={count}
               onChange={(event) => setCount(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px]"
             />
           </div>
           {errorMessage ? (
@@ -1351,7 +1351,7 @@ function AddMultipleRowsDialog(props: {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -1693,7 +1693,7 @@ export function AcceptanceDocumentClient(props: Props) {
 
         {/* HACCP header */}
         <div className={GRID_VIEWPORT_CLASS}>
-        <table className="w-full min-w-[640px] border-collapse text-[15px] sm:min-w-0">
+        <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <tr>
               <td
@@ -1732,27 +1732,27 @@ export function AcceptanceDocumentClient(props: Props) {
           <div className="flex flex-wrap items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[16px]">
+                <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-6 text-[16px]">
                   <Plus className="size-5" /> Добавить <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[300px] rounded-2xl border-0 p-2 shadow-xl">
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5566f6]" onSelect={() => { setEditingRow(null); setRowDialogOpen(true); }}>
+                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => { setEditingRow(null); setRowDialogOpen(true); }}>
                   <Plus className="mr-2 size-4" /> Добавить
                 </DropdownMenuItem>
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5566f6]" onSelect={() => setBulkAddOpen(true)}>
+                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setBulkAddOpen(true)}>
                   <Plus className="mr-2 size-4" /> Добавить несколько строк
                 </DropdownMenuItem>
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5566f6]" onSelect={() => setRowsImportOpen(true)}>
+                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setRowsImportOpen(true)}>
                   <Upload className="mr-2 size-4" /> Добавить из файла
                 </DropdownMenuItem>
-                <DropdownMenuItem className="h-11 rounded-xl px-3 text-[15px] text-[#5566f6]" onSelect={() => setIikoOpen(true)}>
+                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setIikoOpen(true)}>
                   <span className="mr-2">📋</span> Добавить из Айко
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setEditListsOpen(true)}>
+            <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setEditListsOpen(true)}>
               Редактировать списки
             </Button>
 
@@ -1775,26 +1775,26 @@ export function AcceptanceDocumentClient(props: Props) {
                 <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} p-2`}>
                   <Checkbox checked={allSelected} onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])} disabled={displayedRows.length === 0 || isClosed} />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
                   {isProductAcceptance
                     ? "Дата, время поступления продукции, товара"
                     : "Дата, время поступления"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
                   {isProductAcceptance ? "Наименование продукции" : "Наименование"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Производитель</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Условия транспортировки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Производитель</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Условия транспортировки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
                   {isProductAcceptance
                     ? "Соответствие упаковки, маркировки, гигиенические требования, наличие и правильность оформления товаросопроводительной документации"
                     : "Соответствие упаковки, маркировки и товаросопроводительной документации"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Результаты органолептической оценки доброкачественности</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Примечания</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center`}>Ответственный</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Результаты органолептической оценки доброкачественности</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Примечания</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Ответственный</th>
               </tr>
             </thead>
             <tbody>
@@ -1808,36 +1808,36 @@ export function AcceptanceDocumentClient(props: Props) {
                     setRowDialogOpen(true);
                   }}
                 >
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`} onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} onClick={(event) => event.stopPropagation()}>
                     <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(c) => setSelectedRowIds((cur) => c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id))} disabled={isClosed} />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center whitespace-pre-line`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center whitespace-pre-line`}>
                     {formatAcceptanceDateDash(row.deliveryDate)}
                     {row.deliveryHour ? `\n${row.deliveryHour}:${row.deliveryMinute || "00"}` : ""}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-2`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>
                     <div className="text-left hover:text-[#5566f6]">
                       {row.productName || "—"}
                     </div>
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{row.manufacturer || "—"}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{row.supplier || "—"}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{TRANSPORT_LABELS[row.transportCondition]}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center whitespace-pre-line`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{row.manufacturer || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{row.supplier || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{TRANSPORT_LABELS[row.transportCondition]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center whitespace-pre-line`}>
                     {formatAcceptanceDateDash(row.expiryDate)}
                     {row.expiryHour ? `\n${row.expiryHour}:${row.expiryMinute || "00"}` : ""}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-2`}>{row.note || ""}</td>
-                  <td className={`${GRID_CELL_CLASS} p-2`}>{getResponsibleLabel(row, props.users)}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{row.note || ""}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{getResponsibleLabel(row, props.users)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a]`}>Строк пока нет</td></tr>
               )}
               {/* Empty row at bottom */}
-              <tr><td className={`${GRID_CELL_CLASS} p-2 text-center`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} p-2`} /></tr>
+              <tr><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1.5`} /></tr>
             </tbody>
           </table>
         </MobileViewTableWrapper>

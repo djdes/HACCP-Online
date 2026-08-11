@@ -112,7 +112,7 @@ function SettingsDialog(props: {
               setForm((current) => ({ ...current, title: event.target.value }))
             }
             placeholder="Введите название документа"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Input
             type="date"
@@ -120,7 +120,7 @@ function SettingsDialog(props: {
             onChange={(event) =>
               setForm((current) => ({ ...current, dateFrom: event.target.value }))
             }
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end">
             <Button
@@ -388,7 +388,7 @@ export function PestControlDocumentsClient(props: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {PEST_CONTROL_PAGE_TITLE}
@@ -480,7 +480,7 @@ export function PestControlDocumentsClient(props: Props) {
                   >
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px]"
+                        className="h-9 rounded-lg px-3 text-[14px]"
                         onSelect={() =>
                           setEditing({
                             id: document.id,
@@ -494,7 +494,7 @@ export function PestControlDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="h-11 rounded-lg px-3 text-[14px]"
+                      className="h-9 rounded-lg px-3 text-[14px]"
                       onSelect={() =>
                         openDocumentPdf(document.id)
                       }
@@ -504,7 +504,7 @@ export function PestControlDocumentsClient(props: Props) {
                     </DropdownMenuItem>
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-lg px-3 text-[14px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-lg px-3 text-[14px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleting(document)}
                       >
                         <Trash2 className="mr-2 size-4 text-[#ff3b30]" />

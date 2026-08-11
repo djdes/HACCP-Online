@@ -363,7 +363,7 @@ export function EquipmentMaintenanceDocumentClient({
       {/* HACCP block */}
       <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         {/* HACCP header table */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[13px]">
           <tbody>
             <tr>
               <td
@@ -472,7 +472,7 @@ export function EquipmentMaintenanceDocumentClient({
           </table>
 
           {/* Main table */}
-          <table className="w-full min-w-[1200px] border-collapse text-sm">
+          <table className="w-full min-w-[1200px] border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-10 border border-black p-1" />
@@ -678,7 +678,7 @@ export function EquipmentMaintenanceDocumentClient({
                       key={value}
                       type="button"
                       onClick={() => setDraftMaintenanceType(value)}
-                      className={`flex h-11 items-center justify-center rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                         active
                           ? "border-[#5566f6] bg-[#5566f6] text-white"
                           : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
@@ -718,14 +718,14 @@ export function EquipmentMaintenanceDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setAddModalOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={saveDraftRow}
               disabled={!draftEquipmentName.trim()}
             >
@@ -770,14 +770,14 @@ export function EquipmentMaintenanceDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setEditModalOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={saveEditRow}
             >
               Сохранить
@@ -805,7 +805,7 @@ export function EquipmentMaintenanceDocumentClient({
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -817,7 +817,7 @@ export function EquipmentMaintenanceDocumentClient({
                 type="date"
                 value={settingsDate}
                 onChange={(e) => setSettingsDate(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -828,7 +828,7 @@ export function EquipmentMaintenanceDocumentClient({
                 value={String(settingsYear)}
                 onValueChange={(val) => setSettingsYear(Number(val))}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -854,7 +854,7 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -875,7 +875,7 @@ export function EquipmentMaintenanceDocumentClient({
                 if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -900,7 +900,7 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -921,7 +921,7 @@ export function EquipmentMaintenanceDocumentClient({
                 if (user) setSettingsResponsibleRole(getUserRoleLabel(user.role));
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>

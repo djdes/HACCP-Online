@@ -135,7 +135,7 @@ function RowDialog(props: {
                 type="date"
                 value={row.accidentDate}
                 onChange={(event) => setValue("accidentDate", event.target.value)}
-                className="h-11 rounded-2xl border-[#d7dbea] pr-12"
+                className="h-9 rounded-xl border-[#d7dbea] pr-12"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
@@ -144,7 +144,7 @@ function RowDialog(props: {
                 value={row.accidentHour}
                 onValueChange={(value) => setValue("accidentHour", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Часы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +159,7 @@ function RowDialog(props: {
                 value={row.accidentMinute}
                 onValueChange={(value) => setValue("accidentMinute", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Минуты" />
                 </SelectTrigger>
                 <SelectContent>
@@ -176,7 +176,7 @@ function RowDialog(props: {
           <Input
             value={row.locationName}
             onChange={(event) => setValue("locationName", event.target.value)}
-            className="h-11 rounded-2xl border-[#d7dbea]"
+            className="h-9 rounded-xl border-[#d7dbea]"
             placeholder="Введите наименование помещения"
           />
 
@@ -213,7 +213,7 @@ function RowDialog(props: {
                 type="date"
                 value={row.resolvedDate}
                 onChange={(event) => setValue("resolvedDate", event.target.value)}
-                className="h-11 rounded-2xl border-[#d7dbea] pr-12"
+                className="h-9 rounded-xl border-[#d7dbea] pr-12"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
@@ -222,7 +222,7 @@ function RowDialog(props: {
                 value={row.resolvedHour}
                 onValueChange={(value) => setValue("resolvedHour", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Часы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +237,7 @@ function RowDialog(props: {
                 value={row.resolvedMinute}
                 onValueChange={(value) => setValue("resolvedMinute", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Минуты" />
                 </SelectTrigger>
                 <SelectContent>
@@ -281,7 +281,7 @@ function RowDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
             >
               {submitting
                 ? "Сохранение..."
@@ -343,7 +343,7 @@ function SettingsDialog(props: {
           <Input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -354,7 +354,7 @@ function SettingsDialog(props: {
             type="date"
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -384,7 +384,7 @@ function SettingsDialog(props: {
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#d7dbea]"
+              className="h-9 rounded-xl border-[#d7dbea]"
             />
           </div>
           <div className="space-y-2">
@@ -393,7 +393,7 @@ function SettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#d7dbea]"
+              className="h-9 rounded-xl border-[#d7dbea]"
             />
           </div>
           <div className="flex justify-end">
@@ -401,7 +401,7 @@ function SettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -471,7 +471,7 @@ function FinishDialog(props: {
               type="button"
               onClick={handleFinish}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
             >
               {submitting ? "Завершение..." : "Закончить журнал"}
             </Button>
@@ -653,7 +653,7 @@ export function AccidentDocumentClient(props: Props) {
               variant="outline"
               onClick={() => window.print()}
               title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               <Printer className="size-4" />
               Печать
@@ -661,7 +661,7 @@ export function AccidentDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               onClick={() => setSettingsOpen(true)}
             >
               <Settings2 className="size-4" />
@@ -671,7 +671,7 @@ export function AccidentDocumentClient(props: Props) {
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1040px] border-collapse text-[16px]">
+          <table className="mx-auto min-w-[1040px] border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td
@@ -715,7 +715,7 @@ export function AccidentDocumentClient(props: Props) {
           {isActive ? (
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4452ee]"
               onClick={() => {
                 setEditingRow(null);
                 setRowDialogOpen(true);
@@ -731,7 +731,7 @@ export function AccidentDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-4 text-[15px] text-[#5566f6]"
+              className="h-9 rounded-xl border-[#edf0fb] bg-[#fafbff] px-3.5 text-[13.5px] text-[#5566f6]"
               onClick={() => setFinishOpen(true)}
             >
               Закончить журнал
@@ -748,7 +748,7 @@ export function AccidentDocumentClient(props: Props) {
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1650px] w-full border-collapse text-[14px]">
+          <table className="min-w-[1650px] w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[44px] border border-black p-2">

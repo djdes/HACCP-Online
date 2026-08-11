@@ -160,7 +160,7 @@ function SettingsDialog(props: {
           <Input
             value={docTitle}
             onChange={(e) => setDocTitle(e.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -171,7 +171,7 @@ function SettingsDialog(props: {
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -201,7 +201,7 @@ function SettingsDialog(props: {
             <Input
               value={docTitle}
               onChange={(e) => setDocTitle(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-1">
@@ -210,7 +210,7 @@ function SettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex justify-end pt-1">
@@ -218,7 +218,7 @@ function SettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -259,7 +259,7 @@ function AddItemDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Зона</Label>
             <Select value={zoneId} onValueChange={setZoneId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите зону -" />
               </SelectTrigger>
               <SelectContent>
@@ -289,7 +289,7 @@ function AddItemDialog(props: {
                 props.onAdd(zoneId, text.trim());
                 props.onOpenChange(false);
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               Добавить
             </Button>
@@ -333,7 +333,7 @@ function EditItemDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Зона</Label>
             <Select value={zoneId} onValueChange={setZoneId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите зону -" />
               </SelectTrigger>
               <SelectContent>
@@ -362,7 +362,7 @@ function EditItemDialog(props: {
                 props.onSave(props.item!.id, zoneId, text.trim());
                 props.onOpenChange(false);
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               Сохранить
             </Button>
@@ -544,7 +544,7 @@ function EditZonesDialog(props: {
                 props.onSave(zones);
                 props.onOpenChange(false);
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               Закрыть
             </Button>
@@ -645,7 +645,7 @@ function PrintHeader({
   pageLabel: string;
 }) {
   return (
-    <table className="sdc-header w-full border-collapse">
+    <table className="sdc-header w-full border-collapse text-[13px]">
       <tbody>
         <tr>
           <td
@@ -883,7 +883,7 @@ export function SanitaryDayChecklistDocumentClient({
                 variant="outline"
                 onClick={() => window.print()}
                 title="Распечатать журнал"
-                className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 shrink-0 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
                 <Printer className="size-4" />Печать
               </Button>
@@ -892,7 +892,7 @@ export function SanitaryDayChecklistDocumentClient({
                   type="button"
                   variant="outline"
                   onClick={() => setSettingsOpen(true)}
-                  className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                  className="h-9 shrink-0 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
                 >
                   Настройки журнала
                 </Button>
@@ -1007,7 +1007,7 @@ export function SanitaryDayChecklistDocumentClient({
 
         <MobileViewTableWrapper mobileView={mobileView}>
         {/* ─── Checklist Table ─── */}
-        <table className="sdc-table w-full border-collapse text-[15px]">
+        <table className="sdc-table w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-[#f2f2f2]">
               <th className="w-[48px] border border-black p-2 text-center font-semibold">

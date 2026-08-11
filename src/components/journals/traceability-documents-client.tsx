@@ -155,7 +155,7 @@ function TraceabilitySettingsDialog(props: {
                 value={activeState.title}
                 onChange={(e) => setState({ ...activeState, title: e.target.value })}
                 placeholder="Введите название документа"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px] tracking-[-0.02em]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px] tracking-[-0.02em]"
               />
             </div>
 
@@ -166,7 +166,7 @@ function TraceabilitySettingsDialog(props: {
                   type="date"
                   value={activeState.dateFrom}
                   onChange={(e) => setState({ ...activeState, dateFrom: toIsoDate(e.target.value) })}
-                  className="h-11 rounded-2xl border-[#d8dae6] px-7 pr-14 text-[15px] tracking-[-0.02em]"
+                  className="h-9 rounded-xl border-[#d8dae6] px-7 pr-14 text-[13.5px] tracking-[-0.02em]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-6 top-1/2 size-7 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -205,7 +205,7 @@ function TraceabilitySettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : props.submitLabel}
               </Button>
@@ -238,17 +238,17 @@ function TraceabilityActionsMenu(props: {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-4 shadow-xl sm:w-[320px]">
         <DropdownMenuItem
-          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
           onSelect={props.onSettings}
         >
           <Pencil className="mr-3 size-5 text-[#6f7282]" />
           Настройки
         </DropdownMenuItem>
-        <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={props.onPrint}>
+        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onPrint}>
           <Printer className="mr-3 size-5 text-[#6f7282]" />
           Печать
         </DropdownMenuItem>
-        <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={props.onArchiveToggle}>
+        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onArchiveToggle}>
           {isActive ? (
             <>
               <Archive className="mr-3 size-5 text-[#6f7282]" />
@@ -262,7 +262,7 @@ function TraceabilityActionsMenu(props: {
           )}
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
           onSelect={props.onDelete}
         >
           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
@@ -373,7 +373,7 @@ export function TraceabilityDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
@@ -406,7 +406,7 @@ export function TraceabilityDocumentsClient({
           <Button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="h-11 w-full rounded-2xl bg-[#5563ff] px-4 text-[15px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb] sm:w-auto"
+            className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb] sm:w-auto"
           >
             <Plus className="size-6" />
             Создать документ
@@ -492,7 +492,7 @@ export function TraceabilityDocumentsClient({
                   archiveTarget.status === "active" ? "closed" : "active"
                 )
               }
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {archiveTarget?.status === "active" ? "Закрыть" : "Восстановить"}
             </Button>
@@ -520,7 +520,7 @@ export function TraceabilityDocumentsClient({
             <Button
               type="button"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               Удалить
             </Button>

@@ -7,7 +7,6 @@ import { JournalClosedBanner } from "@/components/journals/journal-closed-banner
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { promptAsync } from "@/components/ui/prompt-async";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
@@ -60,6 +59,11 @@ import {
   type MedBookVaccinationType,
 } from "@/lib/med-book-document";
 import { getUserRoleLabel } from "@/lib/user-roles";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 type Employee = { id: string; name: string; role: string };
 type Row = {
@@ -97,11 +101,7 @@ type Props = {
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
  * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /** Человекочитаемые подсказки для промптов «тип прививки». */
 const VACCINATION_TYPES = Object.keys(
@@ -115,7 +115,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Общий вид триггера shadcn-селекта внутри форм журнала. */
 const SELECT_TRIGGER_CLASS =
-  "h-11 w-full rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
+  "h-9 w-full rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15";
 /** `<SelectItem value="">` в Radix запрещён — сентинел для «не выбрано». */
 const NONE_VALUE = "__none";
 
@@ -520,7 +520,7 @@ export function MedBookDocumentClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       <DocumentActionsBar
         backHref="/journals/med_books"
@@ -560,7 +560,7 @@ export function MedBookDocumentClient({
         <div className="flex flex-wrap gap-3">
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => {
               setDraft(emptyDraft());
               setAddOpen(true);
@@ -571,7 +571,7 @@ export function MedBookDocumentClient({
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => void addExamColumn()}
           >
             <Plus className="size-5" />
@@ -649,7 +649,7 @@ export function MedBookDocumentClient({
           </div>
         </div>
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1320px] border-collapse text-[14px] text-black">
+          <table className="min-w-[1320px] border-collapse text-[13px] text-black">
             <thead>
               <tr>
                 <th
@@ -681,7 +681,7 @@ export function MedBookDocumentClient({
                 {examColumns.map((column) => (
                   <th
                     key={column}
-                    className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}
                   >
                     {column}
                   </th>
@@ -694,7 +694,7 @@ export function MedBookDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center`}>
                     {index + 1}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-3 py-3 text-center`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                     <button
                       type="button"
                       className={`inline-flex items-center gap-2 ${isClosed ? "" : "hover:text-[#5566f6]"}`}
@@ -707,7 +707,7 @@ export function MedBookDocumentClient({
                     </button>
                   </td>
                   <td
-                    className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                    className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                     onClick={() => !isClosed && setEditId(row.id)}
                   >
                     {row.data.positionTitle}
@@ -719,7 +719,7 @@ export function MedBookDocumentClient({
                     return (
                       <td
                         key={column}
-                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => void editExam(row.id, column)}
                       >
                         {exam?.date ? (
@@ -753,22 +753,22 @@ export function MedBookDocumentClient({
           Список специалистов и исследований
         </h2>
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
+          <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
             <thead>
               <tr>
                 <th
                   colSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}
                 >
                   Список специалистов и исследований при получении/прохождении
                   медицинской книжки для работников пищевой отрасли
                 </th>
               </tr>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}>
                   Предварительные осмотры (при поступлении на работу)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[18px]`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}>
                   Периодические (1 раз в год)
                 </th>
               </tr>
@@ -788,7 +788,7 @@ export function MedBookDocumentClient({
           </table>
         </div>
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
+          <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
             <thead>
               <tr>
                 <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
@@ -828,7 +828,7 @@ export function MedBookDocumentClient({
           </h2>
           <div className="space-y-2">
             <div className={GRID_VIEWPORT_CLASS}>
-              <table className="min-w-[1320px] border-collapse text-[14px] text-black">
+              <table className="min-w-[1320px] border-collapse text-[13px] text-black">
                 <thead>
                   <tr>
                     <th
@@ -860,12 +860,12 @@ export function MedBookDocumentClient({
                     {vaccColumns.map((column) => (
                       <th
                         key={column}
-                        className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}
+                        className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}
                       >
                         {column}
                       </th>
                     ))}
-                    <th className={`${GRID_HEAD_CELL_CLASS} px-3 py-3`}>
+                    <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
                       Примечание
                     </th>
                   </tr>
@@ -877,13 +877,13 @@ export function MedBookDocumentClient({
                         {index + 1}
                       </td>
                       <td
-                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.name}
                       </td>
                       <td
-                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.positionTitle}
@@ -896,7 +896,7 @@ export function MedBookDocumentClient({
                         return (
                           <td
                             key={column}
-                            className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                             onClick={() => void editVacc(row.id, column)}
                           >
                             {vacc ? (
@@ -924,7 +924,7 @@ export function MedBookDocumentClient({
                         );
                       })}
                       <td
-                        className={`${GRID_CELL_CLASS} px-3 py-3 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.note || ""}
@@ -943,7 +943,7 @@ export function MedBookDocumentClient({
             Минздрава России от 06.12.2021 N 1122н.
           </p>
           <div className={GRID_VIEWPORT_CLASS}>
-            <table className="min-w-[980px] w-full border-collapse text-[14px] text-black">
+            <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
               <thead>
                 <tr>
                   <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
@@ -1017,7 +1017,7 @@ export function MedBookDocumentClient({
             <Input
               value={settingsTitle}
               onChange={(event) => setSettingsTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
@@ -1082,7 +1082,7 @@ export function MedBookDocumentClient({
               <Input
                 value={settingsTitle}
                 onChange={(event) => setSettingsTitle(event.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
               <label className="flex items-center gap-3 text-[16px] text-black">
                 <input
@@ -1098,7 +1098,7 @@ export function MedBookDocumentClient({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-5"
+                className="h-9 rounded-xl border-[#dcdfed] px-5"
                 onClick={() => void addVaccColumn()}
               >
                 Добавить прививку
@@ -1154,7 +1154,7 @@ export function MedBookDocumentClient({
                     positionTitle: event.target.value,
                   }))
                 }
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 placeholder="Должность"
               />
             </div>
@@ -1203,7 +1203,7 @@ export function MedBookDocumentClient({
                       birthDate: event.target.value,
                     }))
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 />
               </div>
               <div className="space-y-2">
@@ -1217,7 +1217,7 @@ export function MedBookDocumentClient({
                       hireDate: event.target.value,
                     }))
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 />
               </div>
             </div>
@@ -1237,7 +1237,7 @@ export function MedBookDocumentClient({
                       key={value}
                       type="button"
                       onClick={() => setDraft((current) => ({ ...current, gender: value }))}
-                      className={`flex h-11 items-center justify-center rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                         active
                           ? "border-[#5566f6] bg-[#5566f6] text-white"
                           : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
@@ -1261,7 +1261,7 @@ export function MedBookDocumentClient({
                   }))
                 }
                 placeholder="Введите номер мед. книжки"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
 
@@ -1276,7 +1276,7 @@ export function MedBookDocumentClient({
                   }))
                 }
                 placeholder="Примечание"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
 
@@ -1311,7 +1311,7 @@ export function MedBookDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setAddOpen(false)}
             >
               Отмена
@@ -1320,7 +1320,7 @@ export function MedBookDocumentClient({
               type="button"
               onClick={addEmployee}
               disabled={!draft.employeeId}
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
             >
               Добавить
             </Button>
@@ -1350,7 +1350,7 @@ export function MedBookDocumentClient({
                   onBlur={(event) =>
                     updateRow(editRow.id, { positionTitle: event.target.value })
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   placeholder="Должность"
                 />
               </div>
@@ -1366,7 +1366,7 @@ export function MedBookDocumentClient({
                         birthDate: event.target.value || null,
                       })
                     }
-                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                    className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1379,7 +1379,7 @@ export function MedBookDocumentClient({
                         hireDate: event.target.value || null,
                       })
                     }
-                    className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                    className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   />
                 </div>
               </div>
@@ -1393,7 +1393,7 @@ export function MedBookDocumentClient({
                       medBookNumber: event.target.value || null,
                     })
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   placeholder="Введите номер мед. книжки"
                 />
               </div>
@@ -1405,7 +1405,7 @@ export function MedBookDocumentClient({
                   onBlur={(event) =>
                     updateRow(editRow.id, { note: event.target.value || null })
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   placeholder="Примечание"
                 />
               </div>
@@ -1441,7 +1441,7 @@ export function MedBookDocumentClient({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-2xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff4d4f] shadow-none hover:bg-[#fff4f2] sm:w-auto"
+                className="h-9 w-full rounded-xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff4d4f] shadow-none hover:bg-[#fff4f2] sm:w-auto"
                 onClick={() => void deleteRow(editRow.id, editRow.name)}
               >
                 <Trash2 className="mr-2 size-4" />
@@ -1449,7 +1449,7 @@ export function MedBookDocumentClient({
               </Button>
               <Button
                 type="button"
-                className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+                className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                 onClick={() => setEditId(null)}
               >
                 Закрыть

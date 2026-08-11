@@ -67,11 +67,17 @@ import {
   JournalLegendBlock,
 } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_HEAD_CELL_PLAIN_CLASS,
+  CELL_FOCUS_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
@@ -171,16 +177,8 @@ const buildResponsibleState = (kind: CleaningResponsibleKind, responsible?: Clea
  * рамки, без скруглений и заливок. Поэтому каждый токен несёт пару
  * screen-класс + `print:`-override.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_HEAD_CELL_PLAIN_CLASS =
-  "border border-[#ececf4] bg-white print:border-black";
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 /** Focus-ring для интерактивных ячеек грида (A11y, п. B11). */
-const CELL_FOCUS_CLASS =
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 focus-visible:relative focus-visible:z-10";
 
 /** Человекочитаемые названия отметок — для aria-label ячеек. */
 const CLEANING_VALUE_LABELS: Record<string, string> = {
@@ -1385,7 +1383,7 @@ export function CleaningDocumentClient(props: Props) {
 
   return (
     <>
-      <div className="space-y-8">
+      <div className="space-y-5">
         <FocusTodayScroller />
         <div className="print:hidden">
           <DocumentActionsBar
@@ -1453,13 +1451,13 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         {/* Автозаполнение — типографика в один масштаб с тулбаром ниже
-            (text-[13px]/[14px], h-11), как в соседних журналах. */}
+            (text-[13px]/[14px], h-9), как в соседних журналах. */}
         <section className="rounded-2xl border border-[#ececf4] bg-[#f5f6ff] px-5 py-4 print:hidden">
           <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
             <div className="flex items-center gap-3"><Switch checked={config.autoFill.enabled} onCheckedChange={toggleAutoFill} disabled={props.status !== "active" || saving} className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]" /><span className="text-[14px] font-semibold text-[#0b1024]">Автоматически заполнять журнал</span></div>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div className="flex items-center gap-2.5"><Checkbox checked={config.autoFill.skipWeekends} onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))} disabled={props.status !== "active" || saving} className="size-5 rounded-md" /><span className="text-[13px] text-[#3c4053]">Не заполнять в выходные дни</span></div>
           </div>
@@ -1473,10 +1471,10 @@ export function CleaningDocumentClient(props: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild><Button className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl text-[14px]"
+                      className="h-9 rounded-xl text-[14px]"
                       onSelect={() => {
                         router.push("/settings/buildings");
                       }}
@@ -1484,11 +1482,11 @@ export function CleaningDocumentClient(props: Props) {
                       <Plus className="mr-3 size-4 text-[#5566f6]" />
                       Помещения в /settings/buildings
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="h-11 rounded-2xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за уборку</DropdownMenuItem>
-                    <DropdownMenuItem className="h-11 rounded-2xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за контроль</DropdownMenuItem>
+                    <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за уборку</DropdownMenuItem>
+                    <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за контроль</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {selection.length > 0 ? <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#ffd7d3] bg-[#fff4f2] px-4 text-[14px] text-[#a13a32] hover:bg-[#fff2f1]" onClick={() => { void deleteSelectedRows(); }}><Trash2 className="size-4" />Удалить</Button> : null}
+                {selection.length > 0 ? <Button type="button" variant="outline" className="h-9 rounded-xl border-[#ffd7d3] bg-[#fff4f2] px-3.5 text-[14px] text-[#a13a32] hover:bg-[#fff2f1]" onClick={() => { void deleteSelectedRows(); }}><Trash2 className="size-4" />Удалить</Button> : null}
               </div>
               {selection.length > 0 ? <div className="text-[14px] font-medium text-[#5566f6]">Выбрано: {selection.length}</div> : null}
             </div>
@@ -1513,21 +1511,21 @@ export function CleaningDocumentClient(props: Props) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[300px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      className="h-9 rounded-xl px-3 text-[14px]"
                       onSelect={() => applySchedulePlan("fill-empty")}
                       title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
                     >
                       Заполнить по плану
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      className="h-9 rounded-xl px-3 text-[14px]"
                       onSelect={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
                       title="Поставить «/» (не проводилась) на все выходные и праздники периода"
                     >
                       Отметить выходные «/»
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      className="h-9 rounded-xl px-3 text-[14px]"
                       onSelect={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
                       title="Очистить ячейки выходных и праздников периода"
                     >
@@ -1548,7 +1546,7 @@ export function CleaningDocumentClient(props: Props) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[320px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      className="h-9 rounded-xl px-3 text-[14px]"
                       onSelect={() => {
                         if (cellSelectMode) {
                           setCellSelectMode(false);
@@ -1562,7 +1560,7 @@ export function CleaningDocumentClient(props: Props) {
                       {cellSelectMode ? "Выключить выделение мышкой" : "Выделить мышкой"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-3 text-[14px]"
+                      className="h-9 rounded-xl px-3 text-[14px]"
                       onSelect={selectAllCells}
                       title="Выделить все ячейки матрицы"
                     >
@@ -1726,7 +1724,7 @@ export function CleaningDocumentClient(props: Props) {
                               }}
                               data-cell-key={cellKey(row.id, dateKey)}
                               disabled={props.status !== "active"}
-                              className={`flex h-11 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 select-none ${cellCls}`}
+                              className={`flex h-9 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 select-none ${cellCls}`}
                             >
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
                               <span className="text-[11px] leading-none">{cellVal || "—"}</span>
@@ -1816,7 +1814,7 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Официальный ХАССП-блок — общий компонент вместо самодельной
               таблицы с чёрными рамками (на экране — карточка дизайн-системы,
               в печати сам компонент возвращает бумажный вид). */}
@@ -1828,13 +1826,13 @@ export function CleaningDocumentClient(props: Props) {
             {config.documentTitle || CLEANING_PAGE_TITLE}
           </JournalDocumentTitle>
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
-          <table className="w-full border-collapse text-[14px] print:text-[11px]"><thead><tr><th className={`w-12 p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /></th><th className={`p-3 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`p-3 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Моющие и дезинфицирующие средства</th><th className={`p-3 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} />{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`p-2 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`w-12 p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /></th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} />{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`p-2 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
                 <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /></td>
-                <td className={`p-3 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
                   <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
@@ -1872,7 +1870,7 @@ export function CleaningDocumentClient(props: Props) {
                     ) : null}
                   </div>
                 </td>
-                <td className={`p-3 text-[#3c4053] ${GRID_CELL_CLASS}`}>{secondColumn}</td>
+                <td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
                   const dayKind = getCalendarDayKind(dateKey);
@@ -1939,7 +1937,7 @@ export function CleaningDocumentClient(props: Props) {
             {cleaningResponsibleList.length > 0 ? (
               <tr key="cleaning-group" className="bg-[#f8f9fc] print:bg-white">
                 <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`} />
-                <td className={`p-3 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
@@ -1956,7 +1954,7 @@ export function CleaningDocumentClient(props: Props) {
                     Ответственный за уборку
                   </button>
                 </td>
-                <td className={`p-3 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1.5 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {cleaningResponsibleList.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "—"}
@@ -2016,7 +2014,7 @@ export function CleaningDocumentClient(props: Props) {
             {controlResponsibleList.length > 0 ? (
               <tr key="control-group" className="bg-[#f8f9fc] print:bg-white">
                 <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`} />
-                <td className={`p-3 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
@@ -2033,7 +2031,7 @@ export function CleaningDocumentClient(props: Props) {
                     Ответственный за контроль
                   </button>
                 </td>
-                <td className={`p-3 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1.5 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {controlResponsibleList.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "—"}
@@ -2101,7 +2099,7 @@ export function CleaningDocumentClient(props: Props) {
           <CleaningDayColorLegend />
 
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[640px] sm:min-w-0">
-          <table className="w-full border-collapse text-[14px] print:text-[11px]"><thead><tr><th className={`p-3 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`p-3 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Текущая уборка</th><th className={`p-3 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`p-3 ${GRID_CELL_CLASS}`}>{room.name}</td><td className={`p-3 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.currentScope.join(", ")}</td><td className={`p-3 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Текущая уборка</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1.5 ${GRID_CELL_CLASS}`}>{room.name}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
           </div></div>
         </div>
         </div>
@@ -2187,7 +2185,7 @@ export function CleaningDocumentClient(props: Props) {
                         setResponsibleDialog((current) => current ? { ...current, title: value, userId: primaryUserId(props.users, value) } : current);
                       }}
                     >
-                      <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[14px]">
+                      <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]">
                         <SelectValue placeholder="— выберите —" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2203,7 +2201,7 @@ export function CleaningDocumentClient(props: Props) {
                         setResponsibleDialog((current) => current ? { ...current, userId: value } : current);
                       }}
                     >
-                      <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[14px]">
+                      <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]">
                         <SelectValue placeholder="— выберите —" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2219,14 +2217,14 @@ export function CleaningDocumentClient(props: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+                  className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
                   onClick={() => setResponsibleDialog(null)}
                 >
                   Отмена
                 </Button>
                 <Button
                   type="button"
-                  className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+                  className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                   onClick={submitResponsible}
                 >
                   {responsibleDialog.id ? "Сохранить" : "Добавить"}
@@ -2259,7 +2257,7 @@ export function CleaningDocumentClient(props: Props) {
               onChange={(event) =>
                 setSettingsState((current) => ({ ...current, title: event.target.value }))
               }
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="space-y-2">
@@ -2276,7 +2274,7 @@ export function CleaningDocumentClient(props: Props) {
                 }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -2294,7 +2292,7 @@ export function CleaningDocumentClient(props: Props) {
                 setSettingsState((current) => ({ ...current, cleaningUserId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -2320,7 +2318,7 @@ export function CleaningDocumentClient(props: Props) {
                 }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -2338,7 +2336,7 @@ export function CleaningDocumentClient(props: Props) {
                 setSettingsState((current) => ({ ...current, controlUserId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -2471,7 +2469,7 @@ export function CleaningDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setSaveAsTemplateOpen(false)}
               disabled={saveAsTemplateBusy}
             >
@@ -2479,7 +2477,7 @@ export function CleaningDocumentClient(props: Props) {
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={handleSaveAsTemplate}
               disabled={saveAsTemplateBusy}
             >
@@ -2782,7 +2780,7 @@ function RoomsModeCard(props: RoomsModeCardProps) {
           type="button"
           onClick={save}
           disabled={props.disabled || busy}
-          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c8cbe0]"
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c8cbe0]"
         >
           {busy ? "Сохраняем…" : "Сохранить настройки"}
         </button>

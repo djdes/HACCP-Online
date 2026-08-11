@@ -206,7 +206,7 @@ function SettingsDialog(props: {
                 value={active.title}
                 placeholder="Введите название документа"
                 onChange={(e) => setState({ ...active, title: e.target.value })}
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -216,7 +216,7 @@ function SettingsDialog(props: {
                   type="date"
                   value={active.dateFrom}
                   onChange={(e) => setState({ ...active, dateFrom: e.target.value })}
-                  className="h-11 rounded-2xl border-[#d8dae6] px-7 pr-14 text-[15px]"
+                  className="h-9 rounded-xl border-[#d8dae6] px-7 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-6 top-1/2 size-7 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -243,7 +243,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +261,7 @@ function SettingsDialog(props: {
                 value={active.defaultIssuerTitle}
                 onValueChange={(value) => setState({ ...active, defaultIssuerTitle: value })}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -278,7 +278,7 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -330,7 +330,7 @@ function DeleteDialog(props: {
             type="button"
             onClick={handleDelete}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+            className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -429,7 +429,7 @@ export function PpeIssuanceDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {PPE_ISSUANCE_DOCUMENT_TITLE}
@@ -519,14 +519,14 @@ export function PpeIssuanceDocumentsClient({
                   >
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsTarget(document)}
                       >
                         <Pencil className="mr-3 size-6 text-[#6f7282]" /> Настройки
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className={`h-11 rounded-2xl px-4 text-[15px] ${
+                      className={`h-9 rounded-xl px-3.5 text-[13.5px] ${
                         document.status === "active" ? "mb-2" : ""
                       }`}
                       onSelect={() =>
@@ -537,7 +537,7 @@ export function PpeIssuanceDocumentsClient({
                     </DropdownMenuItem>
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleteTarget(document)}
                       >
                         <Trash2 className="mr-3 size-6 text-[#ff3b30]" /> Удалить

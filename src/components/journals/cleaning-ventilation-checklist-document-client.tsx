@@ -229,7 +229,7 @@ function DocumentSettingsDialog(props: {
             onChange={(event) =>
               setState((current) => ({ ...current, title: event.target.value }))
             }
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -242,7 +242,7 @@ function DocumentSettingsDialog(props: {
             onChange={(event) =>
               setState((current) => ({ ...current, dateFrom: event.target.value }))
             }
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
         <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
@@ -284,7 +284,7 @@ function DocumentSettingsDialog(props: {
               })
             }
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -302,7 +302,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, mainResponsibleUserId: value }))
             }
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -351,7 +351,7 @@ function DocumentSettingsDialog(props: {
             <Input
               value={state.title}
               onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -363,7 +363,7 @@ function DocumentSettingsDialog(props: {
                 onChange={(event) =>
                   setState((current) => ({ ...current, dateFrom: event.target.value }))
                 }
-                className="h-11 rounded-2xl border-[#dcdfed] px-6 pr-14 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-6 pr-14 text-[13.5px]"
               />
               <CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6f7282]" />
             </div>
@@ -404,7 +404,7 @@ function DocumentSettingsDialog(props: {
                 })
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -420,7 +420,7 @@ function DocumentSettingsDialog(props: {
                 setState((current) => ({ ...current, mainResponsibleUserId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -436,7 +436,7 @@ function DocumentSettingsDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -506,7 +506,7 @@ function AddResponsibleDialog(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -517,7 +517,7 @@ function AddResponsibleDialog(props: {
           <div className="space-y-2">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -532,7 +532,7 @@ function AddResponsibleDialog(props: {
           <div className="flex justify-end pt-2">
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               disabled={!title || !userId}
               onClick={async () => {
                 await props.onAdd({ id: createId(), title, userId });
@@ -748,7 +748,7 @@ export function CleaningVentilationChecklistDocumentClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller />
       {selection.length > 0 ? (
         <div className="flex items-center gap-5 rounded-[22px] bg-white px-7 py-5 shadow-sm">
@@ -915,7 +915,7 @@ export function CleaningVentilationChecklistDocumentClient({
         </div>
 
         <div className="overflow-hidden rounded-[28px] border border-[#ececf4] print:border-black">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-collapse text-[13px] text-left">
             <tbody>
               <tr className="border-b border-[#ececf4] print:border-black">
                 <td className="w-[220px] border-r border-[#ececf4] print:border-black px-5 py-4 align-middle text-[18px] font-semibold">
@@ -942,7 +942,7 @@ export function CleaningVentilationChecklistDocumentClient({
             </tbody>
           </table>
 
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr className="border-b border-[#ececf4] print:border-black">
                 <td className="w-[180px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
@@ -1093,7 +1093,7 @@ export function CleaningVentilationChecklistDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#ececf4] print:border-black">
-          <table className="min-w-full border-collapse">
+          <table className="min-w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f8f9fc] print:bg-white">
                 <th className="w-[58px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">

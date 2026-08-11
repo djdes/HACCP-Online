@@ -113,7 +113,7 @@ function CreateDialog({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -125,7 +125,7 @@ function CreateDialog({
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex justify-end">
@@ -133,7 +133,7 @@ function CreateDialog({
               type="button"
               onClick={handleCreate}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -210,7 +210,7 @@ function SettingsDialog({
               id="complaint-settings-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -222,7 +222,7 @@ function SettingsDialog({
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex justify-end">
@@ -230,7 +230,7 @@ function SettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -288,7 +288,7 @@ function DeleteDialog({
             type="button"
             onClick={handleDelete}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -400,7 +400,7 @@ export function ComplaintDocumentsClient({
                   <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsDocument(document)}
                       >
                         <Settings2 className="mr-3 size-5 text-[#6f7282]" />
@@ -408,7 +408,7 @@ export function ComplaintDocumentsClient({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() =>
                         window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
                       }
@@ -418,7 +418,7 @@ export function ComplaintDocumentsClient({
                     </DropdownMenuItem>
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleteDocument(document)}
                       >
                         <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

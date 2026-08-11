@@ -128,7 +128,7 @@ function DocumentSettingsDialog(props: {
           <Input
             value={state.title}
             onChange={(e) => setState({ ...state, title: e.target.value })}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -140,7 +140,7 @@ function DocumentSettingsDialog(props: {
               type="date"
               value={state.documentDate}
               onChange={(e) => setState({ ...state, documentDate: toIsoDate(e.target.value) })}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -148,7 +148,7 @@ function DocumentSettingsDialog(props: {
               Год
             </Label>
             <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -180,7 +180,7 @@ function DocumentSettingsDialog(props: {
               });
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +205,7 @@ function DocumentSettingsDialog(props: {
               approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
             });
           }}>
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -247,7 +247,7 @@ function DocumentSettingsDialog(props: {
             <Input
               value={state.title}
               onChange={(e) => setState({ ...state, title: e.target.value })}
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -256,13 +256,13 @@ function DocumentSettingsDialog(props: {
               type="date"
               value={state.documentDate}
               onChange={(e) => setState({ ...state, documentDate: toIsoDate(e.target.value) })}
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
             <Label className="text-[14px] text-[#73738a]">Год</Label>
             <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -291,7 +291,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -314,7 +314,7 @@ function DocumentSettingsDialog(props: {
                 approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
               });
             }}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -332,7 +332,7 @@ function DocumentSettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -416,7 +416,7 @@ function ManageSectionsDialog(props: {
             </div>
           ))}
           <div className="flex justify-end pt-2">
-            <Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={() => props.onOpenChange(false)}>
+            <Button type="button" className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => props.onOpenChange(false)}>
               Закрыть
             </Button>
           </div>
@@ -461,13 +461,13 @@ function AddSectionDialog(props: {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={props.placeholder}
-            className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end">
             <Button
               type="button"
               disabled={submitting || !value.trim()}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -524,7 +524,7 @@ function AddRowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[14px] text-[#73738a]">Раздел</Label>
             <Select value={sectionId} onValueChange={setSectionId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -556,7 +556,7 @@ function AddRowDialog(props: {
             <Button
               type="button"
               disabled={submitting || !sectionId || !text.trim()}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -609,7 +609,7 @@ function CellValueDialog(props: {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Например: 29-05-2023 или X"
-            className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end gap-3">
             <Button
@@ -631,7 +631,7 @@ function CellValueDialog(props: {
             <Button
               type="button"
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -825,7 +825,7 @@ export function AuditPlanDocumentClient({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
       <div className="flex items-center justify-between print:hidden">
@@ -891,10 +891,10 @@ export function AuditPlanDocumentClient({
 
         {!readOnly && (
           <div className="flex gap-3 print:hidden">
-            <Button className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
+            <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
               <Plus className="size-5" /> Добавить
             </Button>
-            <Button className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]" onClick={() => setAddColumnOpen(true)}>
+            <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddColumnOpen(true)}>
               <Plus className="size-5" /> Добавить подразделение
             </Button>
           </div>
@@ -909,7 +909,7 @@ export function AuditPlanDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
+          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
             <thead>
               <tr>
                 <th rowSpan={3} className="w-14 border border-black/70 px-2 py-2">

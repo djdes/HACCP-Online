@@ -152,14 +152,14 @@ function AddEmployeeDialog({
             value={pick}
             onChange={setPick}
             disabled={availableUsers.length === 0}
-            triggerClassName="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+            triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || !pick.userId}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {isSubmitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -251,7 +251,7 @@ function FillFromStaffDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Должность</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -273,7 +273,7 @@ function FillFromStaffDialog({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || remainingCount === 0}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {isSubmitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -363,7 +363,7 @@ function JournalSettingsDialog({
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Введите название документа"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -382,7 +382,7 @@ function JournalSettingsDialog({
               }
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -395,7 +395,7 @@ function JournalSettingsDialog({
             Сотрудник
           </Label>
           <Select value={responsibleUser} onValueChange={setResponsibleUser}>
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -491,7 +491,7 @@ function JournalSettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -615,7 +615,7 @@ export function StaffJournalToolbar({
               type="button"
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               Настройки журнала
             </Button>
@@ -623,7 +623,7 @@ export function StaffJournalToolbar({
               documentId={documentId}
               title={title}
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               Закончить журнал
             </DocumentCloseButton>
@@ -659,14 +659,14 @@ export function StaffJournalToolbar({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-4 shadow-xl sm:min-w-[360px]">
                 <DropdownMenuItem
-                  className="h-11 rounded-2xl px-4 text-[18px] text-[#3848c7]"
+                  className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
                   onSelect={() => setAddOpen(true)}
                 >
                   <UserPlus className="mr-4 size-6 text-[#3848c7]" />
                   Добавить сотрудника
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="h-11 rounded-2xl px-4 text-[18px] text-[#3848c7]"
+                  className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
                   onSelect={() => setFillOpen(true)}
                 >
                   <Users className="mr-4 size-6 text-[#3848c7]" />

@@ -320,7 +320,7 @@ function TrackedDocumentClientImpl({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {status === "active" && selectedRowIds.length > 0 ? (
         <div className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}>
           <button
@@ -366,7 +366,7 @@ function TrackedDocumentClientImpl({
                   <Button
                     type="button"
                     disabled={isCreating || employees.length === 0}
-                    className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
+                    className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4d58f5] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
                   >
                     <Plus className="size-5" />
                     Добавить
@@ -408,7 +408,7 @@ function TrackedDocumentClientImpl({
                     toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
                   )
                 }
-                className="h-11 w-full rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
+                className="h-9 w-full rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
               >
                 <Trash2 className="size-5" />
                 Удалить ({selectedRowIds.length})
@@ -419,7 +419,7 @@ function TrackedDocumentClientImpl({
               type="button"
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="h-11 w-full rounded-2xl border-[#e6e9f5] px-4 text-[15px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
+              className="h-9 w-full rounded-xl border-[#e6e9f5] px-3.5 text-[13.5px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
             >
               <Settings2 className="size-5" />
               Настройки
@@ -431,7 +431,7 @@ function TrackedDocumentClientImpl({
               onClick={() =>
                 window.open(`/api/journal-documents/${documentId}/pdf`, "_blank")
               }
-              className="h-11 w-full rounded-2xl border-[#e6e9f5] px-4 text-[15px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
+              className="h-9 w-full rounded-xl border-[#e6e9f5] px-3.5 text-[13.5px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
             >
               <Printer className="size-5" />
               Печать
@@ -449,7 +449,7 @@ function TrackedDocumentClientImpl({
       </div>
 
       <div className={JOURNAL_TABLE_VIEWPORT_CLASS}>
-        <table className="min-w-[1200px] w-full border-collapse text-[15px]">
+        <table className="min-w-[1200px] w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-[#f7f8fd]">
               {status === "active" && (
@@ -692,14 +692,14 @@ function TrackedDocumentClientImpl({
                 type="date"
                 value={newDate}
                 onChange={(event) => setNewDate(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               />
             </div>
 
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
               <Select value={newEmployeeId} onValueChange={setNewEmployeeId}>
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите сотрудника" />
                 </SelectTrigger>
                 <SelectContent>
@@ -723,7 +723,7 @@ function TrackedDocumentClientImpl({
                   )
                 }
                 disabled={isCreating || !newDate || !newEmployeeId}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
               >
                 {isCreating ? "Создание..." : "Создать"}
               </Button>
@@ -759,7 +759,7 @@ function TrackedDocumentClientImpl({
               id="tracked-title-v2"
               value={titleInput}
               onChange={(event) => setTitleInput(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="space-y-2">
@@ -770,7 +770,7 @@ function TrackedDocumentClientImpl({
               value={responsibleUserIdInput}
               onValueChange={(value) => setResponsibleUserIdInput(value)}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -790,7 +790,7 @@ function TrackedDocumentClientImpl({
               value={responsibleTitleInput}
               onChange={(event) => setResponsibleTitleInput(event.target.value)}
               placeholder="Например: Технолог"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
         </JournalSettingsModal>
@@ -812,7 +812,7 @@ function TrackedDocumentClientImpl({
                   id="journal-title"
                   value={titleInput}
                   onChange={(event) => setTitleInput(event.target.value)}
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
 
@@ -823,7 +823,7 @@ function TrackedDocumentClientImpl({
                     value={responsibleUserIdInput}
                     onValueChange={(value) => setResponsibleUserIdInput(value)}
                   >
-                    <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                    <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                       <SelectValue placeholder="Выберите сотрудника" />
                     </SelectTrigger>
                     <SelectContent>
@@ -844,7 +844,7 @@ function TrackedDocumentClientImpl({
                     id="journal-responsible-title"
                     value={responsibleTitleInput}
                     onChange={(event) => setResponsibleTitleInput(event.target.value)}
-                    className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                    className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                     placeholder="Например: Технолог"
                   />
                 </div>
@@ -860,7 +860,7 @@ function TrackedDocumentClientImpl({
                       )
                     )
                   }
-                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+                  className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
                 >
                   Сохранить
                 </Button>

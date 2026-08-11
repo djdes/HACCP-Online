@@ -37,11 +37,15 @@ import {
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { promptAsync } from "@/components/ui/prompt-async";
 
 import { toast } from "sonner";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
   title: string;
@@ -60,11 +64,7 @@ type Props = {
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
  * белая шапка). Поэтому каждый токен несёт пару screen + `print:`.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /** Сколько строк максимум разрешаем добавить одной пачкой. */
 const BULK_ROWS_MAX = 50;
@@ -327,16 +327,16 @@ export function FinishedProductDocumentClient({
 
       <div className="space-y-5 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="w-full min-w-[640px] border-collapse sm:min-w-0">
+          <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
               <tr>
-                <td rowSpan={2} className={`w-[18%] ${GRID_CELL_CLASS} p-3 text-center font-semibold`}>{organizationName}</td>
-                <td className={`${GRID_CELL_CLASS} p-2 text-center`}>СИСТЕМА ХАССП</td>
+                <td rowSpan={2} className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{organizationName}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>СИСТЕМА ХАССП</td>
                 <td className={`w-[20%] ${GRID_CELL_CLASS} p-2`}>Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
               </tr>
               <tr>
-                <td className={`${GRID_CELL_CLASS} p-2 text-center text-sm uppercase italic`}>ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
-                <td className={`${GRID_CELL_CLASS} p-2`}>Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] uppercase italic`}>ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
               </tr>
             </tbody>
           </table>
@@ -347,17 +347,17 @@ export function FinishedProductDocumentClient({
         {!readOnly && <div className="flex flex-wrap gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] transition-colors hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="ml-1 size-5" /></Button>
+              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] transition-colors hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="ml-1 size-5" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[300px] rounded-[24px] border-0 p-3 shadow-xl">
-              <DropdownMenuItem className="mb-1 h-11 rounded-2xl px-4 text-[15px]" onSelect={() => setAddModalOpen(true)}>Добавить изделие</DropdownMenuItem>
-              <DropdownMenuItem className="mb-1 h-11 rounded-2xl px-4 text-[15px]" onSelect={() => void addSeveralRows()}>Добавить несколько изделий</DropdownMenuItem>
-              <DropdownMenuItem className="h-11 rounded-2xl px-4 text-[15px]" onSelect={() => { setBulkText(""); setBulkOpen(true); }}>Добавить списком</DropdownMenuItem>
+              <DropdownMenuItem className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => setAddModalOpen(true)}>Добавить изделие</DropdownMenuItem>
+              <DropdownMenuItem className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => void addSeveralRows()}>Добавить несколько изделий</DropdownMenuItem>
+              <DropdownMenuItem className="h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => { setBulkText(""); setBulkOpen(true); }}>Добавить списком</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button type="button" variant="outline" className="h-11 rounded-2xl border-0 bg-[#f5f6ff] px-4 text-[15px] text-[#3848c7] transition-colors hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
-          <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]" onClick={() => void removeSelectedRows()} disabled={selectedRows.length === 0}><Trash2 className="size-4" />Удалить выбранные{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}</Button>
-          <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]" onClick={() => saveConfig()} disabled={isSaving || isPending}><Save className="size-4" />{isSaving ? "Сохранение..." : "Сохранить"}</Button>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-0 bg-[#f5f6ff] px-3.5 text-[13.5px] text-[#3848c7] transition-colors hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]" onClick={() => void removeSelectedRows()} disabled={selectedRows.length === 0}><Trash2 className="size-4" />Удалить выбранные{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}</Button>
+          <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]" onClick={() => saveConfig()} disabled={isSaving || isPending}><Save className="size-4" />{isSaving ? "Сохранение..." : "Сохранить"}</Button>
         </div>}
 
         <div className="sm:hidden print:hidden">
@@ -369,17 +369,17 @@ export function FinishedProductDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1650px] w-full border-collapse text-sm">
+          <table className="min-w-[1650px] w-full border-collapse text-[13px]">
             <thead><tr>
-              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} /><th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Дата, время изготовления</th><th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Время снятия бракеража</th><th className={`${GRID_HEAD_CELL_CLASS} p-2`}>{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Органолептическая оценка</th>
-              {config.showProductTemp && <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>T°C внутри продукта</th>}
-              {config.showCorrectiveAction && <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Корректирующие действия</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Разрешение к реализации (время)</th>
-              {config.showCourierTime && <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Время передачи блюд курьеру</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} p-2`}>Ответственный исполнитель</th><th className={`${GRID_HEAD_CELL_CLASS} p-2`}>{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
+              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} /><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Дата, время изготовления</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Время снятия бракеража</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Органолептическая оценка</th>
+              {config.showProductTemp && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>T°C внутри продукта</th>}
+              {config.showCorrectiveAction && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Корректирующие действия</th>}
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Разрешение к реализации (время)</th>
+              {config.showCourierTime && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Время передачи блюд курьеру</th>}
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Ответственный исполнитель</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
             </tr></thead>
             <tbody>{config.rows.map((row) => <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-              <td className={`${GRID_CELL_CLASS} p-2 align-top`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 align-top`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
               <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.productionDateTime} onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
               <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.rejectionTime} onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
               <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.productName} onChange={(e) => updateRow(row.id, { productName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-items" /></td>
@@ -402,7 +402,7 @@ export function FinishedProductDocumentClient({
         <h3 className="text-[18px] font-semibold leading-tight sm:text-[24px]">Рекомендации по организации контроля за доброкачественностью готовой пищи</h3>
         {QUALITY_GUIDELINES.map((item) => <p key={item} className="text-[18px] leading-8">{item}</p>)}
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[900px] w-full border-collapse text-[18px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} p-3`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} p-3`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} p-3`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} p-3 text-center font-semibold`}>{group}</td><td className={`${GRID_CELL_CLASS} p-3`}>{name}</td><td className={`${GRID_CELL_CLASS} p-3 text-center font-semibold`}>{temperature}</td></tr>)}</tbody></table>
+          <table className="min-w-[900px] w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{group}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{name}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{temperature}</td></tr>)}</tbody></table>
         </div>
       </section>
 
@@ -417,29 +417,29 @@ export function FinishedProductDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время изготовления</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.productionDateTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(e.target.value, parseDateTime(prev.productionDateTime).time) }))} />
-                <Input type="time" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.productionDateTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(parseDateTime(prev.productionDateTime).date, e.target.value) }))} />
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(e.target.value, parseDateTime(prev.productionDateTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(parseDateTime(prev.productionDateTime).date, e.target.value) }))} />
               </div>
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Время снятия бракеража</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.rejectionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(e.target.value, parseDateTime(prev.rejectionTime).time) }))} />
-                <Input type="time" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.rejectionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(parseDateTime(prev.rejectionTime).date, e.target.value) }))} />
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(e.target.value, parseDateTime(prev.rejectionTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(parseDateTime(prev.rejectionTime).date, e.target.value) }))} />
               </div>
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Наименование изделия</Label>
-              <Input className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={draftRow.productName} onChange={(e) => setDraftRow((prev) => ({ ...prev, productName: e.target.value }))} list="finished-product-items" />
+              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productName} onChange={(e) => setDraftRow((prev) => ({ ...prev, productName: e.target.value }))} list="finished-product-items" />
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Органолептическая оценка</Label>
-              <Input className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={draftRow.organoleptic} onChange={(e) => setDraftRow((prev) => ({ ...prev, organoleptic: e.target.value }))} />
+              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.organoleptic} onChange={(e) => setDraftRow((prev) => ({ ...prev, organoleptic: e.target.value }))} />
             </div>
             {config.showProductTemp ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">T°C внутри продукта</Label>
-                <Input className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
               </div>
             ) : null}
             {config.showCorrectiveAction ? (
@@ -463,7 +463,7 @@ export function FinishedProductDocumentClient({
                       key={value}
                       type="button"
                       onClick={() => setDraftRow((prev) => ({ ...prev, releaseAllowed: value }))}
-                      className={`flex h-11 items-center justify-center rounded-2xl border px-4 text-[14px] font-medium transition-colors ${active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"}`}
+                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"}`}
                       style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
                     >
                       {label}
@@ -475,31 +475,31 @@ export function FinishedProductDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время разрешения</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.releasePermissionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(e.target.value, parseDateTime(prev.releasePermissionTime).time) }))} />
-                <Input type="time" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(e.target.value, parseDateTime(prev.releasePermissionTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
               </div>
             </div>
             {config.showCourierTime ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время передачи блюд курьеру</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
-                  <Input type="time" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
+                  <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
+                  <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
                 </div>
               </div>
             ) : null}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Ответственный исполнитель</Label>
-              <Input className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
+              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "Лицо, проводившее бракераж"}</Label>
-              <Input className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
+              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
             </div>
           </div>
           <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={() => setAddModalOpen(false)}>Отмена</Button>
-            <Button type="button" className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto" onClick={() => { void saveDraftRow(); }} disabled={isSaving}>
+            <Button type="button" variant="outline" className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={() => setAddModalOpen(false)}>Отмена</Button>
+            <Button type="button" className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto" onClick={() => { void saveDraftRow(); }} disabled={isSaving}>
               {isSaving ? "Сохранение…" : "Добавить запись"}
             </Button>
           </div>
@@ -594,14 +594,14 @@ export function FinishedProductDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none transition-colors hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none transition-colors hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setBulkOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
               onClick={addRowsFromText}
               disabled={bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length === 0}
             >

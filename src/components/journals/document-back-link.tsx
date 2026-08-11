@@ -15,6 +15,16 @@ type DocumentBackLinkProps = {
    * this prop.
    */
   documentId?: string;
+  /**
+   * Показывать ли саму кнопку «Назад».
+   *
+   * После появления хлебных крошек (`JournalBreadcrumbs`) навигация вверх
+   * живёт в них — как на эталоне lk.haccp-online.ru. Внутри дашборда
+   * шапки документов передают `showBack={false}` и оставляют только
+   * «Печать». Проп сохранён (а не выпилен), потому что компонент —
+   * общий и переиспользуется вне раздела журналов.
+   */
+  showBack?: boolean;
 };
 
 export function DocumentBackLink({
@@ -22,27 +32,32 @@ export function DocumentBackLink({
   label = "Назад",
   className,
   documentId,
+  showBack = true,
 }: DocumentBackLinkProps) {
   const showPrint = Boolean(documentId);
+  if (!showBack && !showPrint) return null;
+
   return (
     <div
       className={
         className ??
         (showPrint
-          ? "mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden"
-          : "mb-6")
+          ? "mb-5 flex flex-wrap items-center justify-between gap-2 print:hidden"
+          : "mb-5")
       }
     >
-      <Button
-        asChild
-        variant="ghost"
-        className="h-11 rounded-[14px] px-3 text-[15px] text-[#5566f6] hover:bg-[#eef1ff]"
-      >
-        <Link href={href}>
-          <ArrowLeft className="size-5" />
-          {label}
-        </Link>
-      </Button>
+      {showBack ? (
+        <Button
+          asChild
+          variant="ghost"
+          className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6] hover:bg-[#eef1ff]"
+        >
+          <Link href={href}>
+            <ArrowLeft className="size-4" />
+            {label}
+          </Link>
+        </Button>
+      ) : null}
       {showPrint ? (
         <Button
           type="button"
@@ -54,7 +69,7 @@ export function DocumentBackLink({
               "noopener,noreferrer"
             )
           }
-          className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+          className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
         >
           <Printer className="size-4" />
           Печать

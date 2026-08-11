@@ -46,7 +46,14 @@ export function JournalToolbar({
 }) {
   return (
     <div className="space-y-3 print:hidden">
-      <DocumentBackLink href={backHref} documentId={documentId} className="mb-0" />
+      {/* «Назад» больше не рендерим — вверх ведут хлебные крошки над
+          заголовком страницы. Здесь остаётся только «Печать» (серверный PDF). */}
+      <DocumentBackLink
+        href={backHref}
+        documentId={documentId}
+        showBack={false}
+        className="mb-0 flex flex-wrap items-center justify-end gap-2 print:hidden"
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">

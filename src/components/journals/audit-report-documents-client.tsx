@@ -87,22 +87,22 @@ function SettingsDialog({
         <div className="space-y-6 px-12 py-10">
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-            <Input value={state.title} onChange={(e) => setState({ ...state, title: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+            <Input value={state.title} onChange={(e) => setState({ ...state, title: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Дата аудита</Label>
-            <Input type="date" value={state.documentDate} onChange={(e) => setState({ ...state, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+            <Input type="date" value={state.documentDate} onChange={(e) => setState({ ...state, documentDate: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Основание проверки</Label>
-            <Input value={state.basisTitle} onChange={(e) => setState({ ...state, basisTitle: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+            <Input value={state.basisTitle} onChange={(e) => setState({ ...state, basisTitle: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Подразделение / объект аудита</Label>
-            <Input value={state.auditedObject} onChange={(e) => setState({ ...state, auditedObject: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+            <Input value={state.auditedObject} onChange={(e) => setState({ ...state, auditedObject: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
           </div>
           <div className="flex justify-end">
-            <Button type="button" disabled={submitting} onClick={async () => { setSubmitting(true); try { await onSubmit(state); onOpenChange(false); } finally { setSubmitting(false); } }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
+            <Button type="button" disabled={submitting} onClick={async () => { setSubmitting(true); try { await onSubmit(state); onOpenChange(false); } finally { setSubmitting(false); } }} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]">
               {submitting ? "Сохранение..." : submitLabel}
             </Button>
           </div>
@@ -229,15 +229,15 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                       {document.status === "active" && (
-                        <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={() => setSettingsDocument(document)}>
+                        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => setSettingsDocument(document)}>
                           <Settings2 className="mr-3 size-5 text-[#6f7282]" />Настройки
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={() => void openDocumentPdf(document.id).catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF"))}>
+                      <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => void openDocumentPdf(document.id).catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF"))}>
                         <Printer className="mr-3 size-5 text-[#6f7282]" />Печать
                       </DropdownMenuItem>
                       {document.status === "active" && (
-                        <DropdownMenuItem className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => setDeleteDocument(document)}>
+                        <DropdownMenuItem className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => setDeleteDocument(document)}>
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />Удалить
                         </DropdownMenuItem>
                       )}
@@ -265,7 +265,7 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
             <DialogTitle className="pr-10 text-[22px] font-medium text-black">{`Удалить документ "${deleteDocument?.title || AUDIT_REPORT_DOCUMENT_TITLE}"`}</DialogTitle>
           </DialogHeader>
           <div className="flex justify-end px-12 py-10">
-            <Button type="button" onClick={async () => { if (!deleteDocument) return; await deleteById(deleteDocument.id); setDeleteDocument(null); }} className="h-11 rounded-2xl bg-[#ff5e57] px-10 text-[18px] text-white hover:bg-[#ef4b44]">
+            <Button type="button" onClick={async () => { if (!deleteDocument) return; await deleteById(deleteDocument.id); setDeleteDocument(null); }} className="h-9 rounded-xl bg-[#ff5e57] px-10 text-[18px] text-white hover:bg-[#ef4b44]">
               Удалить
             </Button>
           </div>

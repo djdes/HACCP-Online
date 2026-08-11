@@ -67,13 +67,13 @@ function FindingDialog({
           <Textarea value={draft.correctionActions} onChange={(e) => setDraft({ ...draft, correctionActions: e.target.value })} placeholder="Коррекция, описание действий" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" />
           <Textarea value={draft.correctiveActions} onChange={(e) => setDraft({ ...draft, correctiveActions: e.target.value })} placeholder="Корректирующие действия" className="min-h-[120px] rounded-[18px] border-[#dfe1ec] px-5 py-4 text-[18px]" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-            <Input value={draft.responsibleName} onChange={(e) => setDraft({ ...draft, responsibleName: e.target.value })} placeholder="ФИО ответственного" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <Input value={draft.responsiblePosition} onChange={(e) => setDraft({ ...draft, responsiblePosition: e.target.value })} placeholder="Должность ответственного" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <Input type="date" value={draft.dueDatePlan} onChange={(e) => setDraft({ ...draft, dueDatePlan: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-            <Input type="date" value={draft.dueDateFact} onChange={(e) => setDraft({ ...draft, dueDateFact: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+            <Input value={draft.responsibleName} onChange={(e) => setDraft({ ...draft, responsibleName: e.target.value })} placeholder="ФИО ответственного" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+            <Input value={draft.responsiblePosition} onChange={(e) => setDraft({ ...draft, responsiblePosition: e.target.value })} placeholder="Должность ответственного" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+            <Input type="date" value={draft.dueDatePlan} onChange={(e) => setDraft({ ...draft, dueDatePlan: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+            <Input type="date" value={draft.dueDateFact} onChange={(e) => setDraft({ ...draft, dueDateFact: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
           </div>
           <div className="flex justify-end">
-            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
+            <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]">
               Сохранить
             </Button>
           </div>
@@ -147,7 +147,7 @@ export function AuditReportDocumentClient({
 
   return (
     <>
-      <div className="space-y-8">
+      <div className="space-y-5">
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/audit_report" documentId={documentId} />
         <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
@@ -204,7 +204,7 @@ export function AuditReportDocumentClient({
 
           {status === "active" && (
             <div className="print:hidden">
-              <Button type="button" onClick={() => { setEditingFinding(null); setFindingOpen(true); }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
+              <Button type="button" onClick={() => { setEditingFinding(null); setFindingOpen(true); }} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]">
                 <Plus className="size-5" />
                 Добавить несоответствие
               </Button>
@@ -309,7 +309,7 @@ export function AuditReportDocumentClient({
               <Input
                 value={documentTitle}
                 onChange={(e) => setDocumentTitle(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -319,13 +319,13 @@ export function AuditReportDocumentClient({
                   type="date"
                   value={config.documentDate}
                   onChange={(e) => setConfig({ ...config, documentDate: e.target.value })}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Тип проверки</Label>
                 <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                  <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -340,7 +340,7 @@ export function AuditReportDocumentClient({
               <Input
                 value={config.basisTitle}
                 onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -348,7 +348,7 @@ export function AuditReportDocumentClient({
               <Input
                 value={config.auditedObject}
                 onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -356,7 +356,7 @@ export function AuditReportDocumentClient({
               <Input
                 value={config.auditors.join(", ")}
                 onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
           </div>
@@ -370,23 +370,23 @@ export function AuditReportDocumentClient({
             <div className="space-y-5 px-12 py-10">
               <div className="space-y-3">
                 <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Input type="date" value={config.documentDate} onChange={(e) => setConfig({ ...config, documentDate: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
                 <Select value={config.auditType} onValueChange={(value: "planned" | "unplanned") => setConfig({ ...config, auditType: value })}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f5f6fb] px-4 text-[15px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f5f6fb] px-3.5 text-[13.5px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="planned">Плановая</SelectItem>
                     <SelectItem value="unplanned">Внеплановая</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} placeholder="Основание проверки" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} placeholder="Объект аудита" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-              <Input value={config.auditors.join(", ")} onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Аудиторы через запятую" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+              <Input value={config.basisTitle} onChange={(e) => setConfig({ ...config, basisTitle: e.target.value })} placeholder="Основание проверки" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+              <Input value={config.auditedObject} onChange={(e) => setConfig({ ...config, auditedObject: e.target.value })} placeholder="Объект аудита" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+              <Input value={config.auditors.join(", ")} onChange={(e) => setConfig({ ...config, auditors: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Аудиторы через запятую" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
               <div className="flex justify-end">
-                <Button type="button" onClick={async () => { await persist(documentTitle.trim() || AUDIT_REPORT_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]">
+                <Button type="button" onClick={async () => { await persist(documentTitle.trim() || AUDIT_REPORT_DOCUMENT_TITLE, config); setSettingsOpen(false); }} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]">
                   Сохранить
                 </Button>
               </div>

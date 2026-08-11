@@ -88,7 +88,7 @@ type Props = {
 
 /** Общий класс триггера селектов в диалогах уборки. */
 const CLEANING_TRIGGER_CLASS =
-  "h-11 rounded-2xl border-[#dfe1ec] bg-[#f1f2f8] px-4 text-[15px]";
+  "h-9 rounded-xl border-[#dfe1ec] bg-[#f1f2f8] px-3.5 text-[13.5px]";
 
 function pickFirstUserId(users: UserItem[], roleLabel: string) {
   return getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
@@ -162,7 +162,7 @@ function ConfirmDialog(props: {
                 setSubmitting(false);
               }
             }}
-            className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+            className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
           >
             {submitting ? "Сохранение..." : props.submitLabel}
           </Button>
@@ -210,7 +210,7 @@ function CreateDialog(props: {
               value={state.title}
               onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <PositionEmployeePicker
@@ -256,7 +256,7 @@ function CreateDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -307,7 +307,7 @@ function SettingsDialog(props: {
             <Input
               value={state.title}
               onChange={(event) => setState((current) => current ? { ...current, title: event.target.value } : current)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <PositionEmployeePicker
@@ -361,7 +361,7 @@ function SettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -535,7 +535,7 @@ export function CleaningDocumentsClient(props: Props) {
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
               <Link href={`/journals/${props.routeCode}/guide`}>
@@ -547,7 +547,7 @@ export function CleaningDocumentsClient(props: Props) {
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5] sm:w-auto"
+                className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4d58f5] sm:w-auto"
               >
                 <Plus className="size-6" />
                 Создать документ
@@ -640,7 +640,7 @@ export function CleaningDocumentsClient(props: Props) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setArchiveDocument(document)}
                       >
                         {document.status === "active" ? (
@@ -652,7 +652,7 @@ export function CleaningDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                       {document.status === "active" ? (
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setSettingsDocument(document)}
                         >
                           <Pencil className="mr-4 size-6 text-[#6f7282]" />
@@ -660,7 +660,7 @@ export function CleaningDocumentsClient(props: Props) {
                         </DropdownMenuItem>
                       ) : null}
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() =>
                           window.open(
                             `/api/journal-documents/${document.id}/pdf`,
@@ -674,7 +674,7 @@ export function CleaningDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                       {document.status === "active" ? (
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => setDeleteDocument(document)}
                         >
                           <Trash2 className="mr-4 size-6 text-[#ff3b30]" />

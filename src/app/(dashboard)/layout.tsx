@@ -4,6 +4,7 @@ import { AuthSessionProvider } from "@/components/layout/session-provider";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
 import { CompleteProfileNudge } from "@/components/dashboard/complete-profile-nudge";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { Toaster } from "@/components/ui/sonner";
 import {
   SiteThemeBootstrap,
@@ -112,7 +113,7 @@ export default async function DashboardLayout({
           />
         ) : null}
         <div
-          className="app-shell min-h-screen bg-gray-50"
+          className="app-shell flex min-h-screen flex-col bg-gray-50"
           data-app-theme={initialTheme}
           suppressHydrationWarning
         >
@@ -135,7 +136,11 @@ export default async function DashboardLayout({
             isRoot={session.user.isRoot === true}
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
           />
-          <main className="p-4 md:p-6">{children}</main>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+          {/* Футер дашборда — виден на каждой странице (требование
+              владельца: «наш футер на каждой странице»). `mt-auto`
+              прижимает его к низу на коротких экранах. */}
+          <DashboardFooter />
           {/* AI SanPiN/HACCP помощник — доступен management+ из любого
               экрана дашборда. Сотрудникам без полного доступа не
               нужен — они выполняют конкретные задачи, а не настраивают

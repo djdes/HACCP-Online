@@ -169,6 +169,7 @@ import {
 import { ComplaintDocumentClient } from "@/components/journals/complaint-document-client";
 import { COMPLAINT_REGISTER_TEMPLATE_CODE, normalizeComplaintConfig } from "@/lib/complaint-document";
 import { isIntegrationCryptoConfigured } from "@/lib/integration-crypto";
+import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -184,7 +185,69 @@ type TrackedField = {
   options: TrackedFieldOption[];
 };
 
-export default async function JournalDocumentPage({
+/**
+ * Публичная обёртка страницы документа.
+ *
+ * Внутренний `JournalDocumentBody` — это старый dispatcher на ~35
+ * return-веток (по одной на шаблон журнала). Вместо того чтобы
+ * оборачивать каждую ветку в крошки, оборачиваем dispatcher целиком:
+ * крошки рендерятся ДО него, из отдельного лёгкого запроса.
+ *
+ * `chrome: "mini"` — Mini App (`/mini/documents/[id]`) вызывает эту
+ * страницу как обычную async-функцию и передаёт этот флаг, чтобы НЕ
+ * получить крошки дашборда: у него своя навигация (MiniTopBar + MiniNav).
+ */
+export default async function JournalDocumentPage(props: {
+  params: Promise<{ code: string; docId: string }>;
+  searchParams: Promise<{ page?: string }>;
+  chrome?: "mini";
+}) {
+  if (props.chrome === "mini") {
+    return <JournalDocumentBody {...props} />;
+  }
+
+  const { code, docId } = await props.params;
+  const session = await requireAuth();
+  const activeOrgId = getActiveOrgId(session);
+
+  const [crumbDocument, crumbOrganization] = await Promise.all([
+    db.journalDocument.findUnique({
+      where: { id: docId },
+      select: {
+        title: true,
+        organizationId: true,
+        template: { select: { name: true } },
+      },
+    }),
+    db.organization.findUnique({
+      where: { id: activeOrgId },
+      select: { name: true },
+    }),
+  ]);
+
+  const showCrumbs =
+    Boolean(crumbDocument) && crumbDocument?.organizationId === activeOrgId;
+
+  return (
+    <>
+      {showCrumbs ? (
+        <JournalBreadcrumbs
+          items={[
+            { label: crumbOrganization?.name || ORG_NAME_FALLBACK, href: "/journals" },
+            {
+              label: crumbDocument?.template.name ?? "",
+              href: `/journals/${code}`,
+            },
+            { label: crumbDocument?.title ?? "" },
+          ]}
+        />
+      ) : null}
+      <JournalDocumentBody {...props} />
+    </>
+  );
+}
+
+async function JournalDocumentBody({
   params,
   searchParams,
 }: {

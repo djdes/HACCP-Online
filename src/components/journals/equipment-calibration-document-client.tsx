@@ -327,7 +327,7 @@ export function EquipmentCalibrationDocumentClient({
             variant="outline"
             onClick={() => window.print()}
             title="Распечатать журнал"
-            className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 shrink-0 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             <Printer className="size-4" />
             Печать
@@ -344,7 +344,7 @@ export function EquipmentCalibrationDocumentClient({
               setSettingsApproveEmployee(config.approveEmployee);
               setSettingsOpen(true);
             }}
-            className="h-11 shrink-0 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 shrink-0 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             Настройки журнала
           </Button>
@@ -377,7 +377,7 @@ export function EquipmentCalibrationDocumentClient({
       {/* HACCP block */}
       <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         {/* HACCP header table */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[13px]">
           <tbody>
             <tr>
               <td
@@ -451,7 +451,7 @@ export function EquipmentCalibrationDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1100px] border-collapse text-sm">
+          <table className="w-full min-w-[1100px] border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-10 border border-black p-1" rowSpan={2} />
@@ -593,37 +593,37 @@ export function EquipmentCalibrationDocumentClient({
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               placeholder="Введите наименование, тип, заводское обозначение СИ"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <Input
               value={draftNumber}
               onChange={(e) => setDraftNumber(e.target.value)}
               placeholder="Введите номер СИ"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <Input
               value={draftLocation}
               onChange={(e) => setDraftLocation(e.target.value)}
               placeholder="Введите место расположения СИ"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <Input
               value={draftPurpose}
               onChange={(e) => setDraftPurpose(e.target.value)}
               placeholder="Введите назначение (измеряемые параметры)"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <Input
               value={draftRange}
               onChange={(e) => setDraftRange(e.target.value)}
               placeholder="Введите предел (диапазон) измерений"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <Input
               value={draftInterval}
               onChange={(e) => setDraftInterval(e.target.value)}
               placeholder="Введите межповерочный интервал, месяцев"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
             <div className="space-y-1">
               <Label className="text-[14px] text-[#6f7282]">Дата последней поверки</Label>
@@ -631,7 +631,7 @@ export function EquipmentCalibrationDocumentClient({
                 type="date"
                 value={draftLastDate}
                 onChange={(e) => setDraftLastDate(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <Textarea
@@ -645,7 +645,7 @@ export function EquipmentCalibrationDocumentClient({
               <Button
                 onClick={saveDraftRow}
                 disabled={!draftName.trim()}
-                className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+                className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
               >
                 Добавить
               </Button>
@@ -675,7 +675,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -683,7 +683,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editNumber}
                 onChange={(e) => setEditNumber(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -691,7 +691,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editLocation}
                 onChange={(e) => setEditLocation(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -699,7 +699,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editPurpose}
                 onChange={(e) => setEditPurpose(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -707,7 +707,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editRange}
                 onChange={(e) => setEditRange(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -715,7 +715,7 @@ export function EquipmentCalibrationDocumentClient({
               <Input
                 value={editInterval}
                 onChange={(e) => setEditInterval(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -724,7 +724,7 @@ export function EquipmentCalibrationDocumentClient({
                 type="date"
                 value={editLastDate}
                 onChange={(e) => setEditLastDate(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-1">
@@ -739,7 +739,7 @@ export function EquipmentCalibrationDocumentClient({
             <div className="flex justify-end pt-1">
               <Button
                 onClick={saveEditRow}
-                className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+                className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
               >
                 Сохранить
               </Button>
@@ -767,7 +767,7 @@ export function EquipmentCalibrationDocumentClient({
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -779,7 +779,7 @@ export function EquipmentCalibrationDocumentClient({
                 type="date"
                 value={settingsDate}
                 onChange={(e) => setSettingsDate(e.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -790,7 +790,7 @@ export function EquipmentCalibrationDocumentClient({
                 value={String(settingsYear)}
                 onValueChange={(val) => setSettingsYear(Number(val))}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -814,7 +814,7 @@ export function EquipmentCalibrationDocumentClient({
                 setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -835,7 +835,7 @@ export function EquipmentCalibrationDocumentClient({
                 if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -867,7 +867,7 @@ export function EquipmentCalibrationDocumentClient({
                 <Input
                   value={settingsTitle}
                   onChange={(e) => setSettingsTitle(e.target.value)}
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
                 />
               </div>
               <div className="space-y-1">
@@ -876,7 +876,7 @@ export function EquipmentCalibrationDocumentClient({
                   type="date"
                   value={settingsDate}
                   onChange={(e) => setSettingsDate(e.target.value)}
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
                 />
               </div>
               <div className="space-y-1">
@@ -885,7 +885,7 @@ export function EquipmentCalibrationDocumentClient({
                   value={String(settingsYear)}
                   onValueChange={(val) => setSettingsYear(Number(val))}
                 >
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                  <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -906,7 +906,7 @@ export function EquipmentCalibrationDocumentClient({
                     setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
                   }}
                 >
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                  <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
@@ -925,7 +925,7 @@ export function EquipmentCalibrationDocumentClient({
                     if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
                   }}
                 >
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+                  <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
@@ -939,7 +939,7 @@ export function EquipmentCalibrationDocumentClient({
                 <Button
                   onClick={handleSaveSettings}
                   disabled={isSaving}
-                  className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+                  className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
                 >
                   {isSaving ? "Сохранение..." : "Сохранить"}
                 </Button>

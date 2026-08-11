@@ -167,7 +167,7 @@ function DocumentSettingsDialog(props: {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Введите название"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -178,7 +178,7 @@ function DocumentSettingsDialog(props: {
             type="date"
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -205,13 +205,13 @@ function DocumentSettingsDialog(props: {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Введите название документа"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Input
             type="date"
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end">
             <Button
@@ -348,7 +348,7 @@ function EntryDialog(props: {
               onChange={(event) =>
                 setEntry((current) => ({ ...current, performedDate: event.target.value }))
               }
-              className="mb-3 h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="mb-3 h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Select
@@ -361,7 +361,7 @@ function EntryDialog(props: {
                   }))
                 }
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Часы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,7 +383,7 @@ function EntryDialog(props: {
                   }))
                 }
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Минуты" />
                 </SelectTrigger>
                 <SelectContent>
@@ -404,7 +404,7 @@ function EntryDialog(props: {
               setEntry((current) => ({ ...current, event: event.target.value }))
             }
             placeholder="Введите мероприятие (вид, место)"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Input
             value={entry.areaOrVolume}
@@ -412,7 +412,7 @@ function EntryDialog(props: {
               setEntry((current) => ({ ...current, areaOrVolume: event.target.value }))
             }
             placeholder="Введите площадь и (или) объем"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Input
             value={entry.treatmentProduct}
@@ -420,7 +420,7 @@ function EntryDialog(props: {
               setEntry((current) => ({ ...current, treatmentProduct: event.target.value }))
             }
             placeholder="Введите средство обработки"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Textarea
             value={entry.note}
@@ -436,10 +436,10 @@ function EntryDialog(props: {
               setEntry((current) => ({ ...current, performedBy: event.target.value }))
             }
             placeholder="Введите кем проведено"
-            className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Select value={entry.acceptedRole} onValueChange={updateAcceptedRole}>
-            <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Должность принявшего работы" />
             </SelectTrigger>
             <SelectContent>
@@ -456,7 +456,7 @@ function EntryDialog(props: {
               setEntry((current) => ({ ...current, acceptedEmployeeId: value }))
             }
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
@@ -655,7 +655,7 @@ export function PestControlDocumentClient(props: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
@@ -723,7 +723,7 @@ export function PestControlDocumentClient(props: Props) {
         {!readOnly ? (
           <Button
             type="button"
-            className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] text-white hover:bg-[#4b57f3]"
+            className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] text-white hover:bg-[#4b57f3]"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-5" />
@@ -735,7 +735,7 @@ export function PestControlDocumentClient(props: Props) {
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             onClick={() => setCloseOpen(true)}
           >
             Закончить журнал
@@ -753,7 +753,7 @@ export function PestControlDocumentClient(props: Props) {
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView}>
-        <table className="min-w-full border-collapse border border-black bg-white text-[14px]">
+        <table className="min-w-full border-collapse border border-black bg-white text-[13px]">
           <thead>
             <tr className="bg-[#fafafa]">
               <th className="w-12 border border-black px-2 py-3 text-center">

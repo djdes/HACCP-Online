@@ -190,7 +190,7 @@ function EditTrackedDocumentDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -204,7 +204,7 @@ function EditTrackedDocumentDialog({
                 value={areaName}
                 onChange={(e) => setAreaName(e.target.value)}
                 placeholder="Введите наименование цеха/участка применения"
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               />
             </div>
           )}
@@ -218,7 +218,7 @@ function EditTrackedDocumentDialog({
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -231,7 +231,7 @@ function EditTrackedDocumentDialog({
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
               <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,7 +260,7 @@ function EditTrackedDocumentDialog({
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               />
             </div>
           )}
@@ -279,7 +279,7 @@ function EditTrackedDocumentDialog({
               <div className="space-y-3">
                 <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
                 <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                  <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
@@ -309,7 +309,7 @@ function EditTrackedDocumentDialog({
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -362,7 +362,7 @@ function TrackedDocumentsClientImpl({
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
               asChild
             >
               <Link href={`/journals/${templateCode}/guide`}>
@@ -375,7 +375,7 @@ function TrackedDocumentsClientImpl({
                 templateCode={templateCode}
                 templateName={templateName}
                 users={users}
-                triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+                triggerClassName="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className="size-4" />}
               />
@@ -452,7 +452,7 @@ function TrackedDocumentsClientImpl({
                     <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setEditingDocument(document)}
                         >
                           <Pencil className="mr-3 size-5 text-[#6f7282]" />
@@ -460,7 +460,7 @@ function TrackedDocumentsClientImpl({
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")}
                       >
                         <Printer className="mr-3 size-5 text-[#6f7282]" />
@@ -468,7 +468,7 @@ function TrackedDocumentsClientImpl({
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => handleDelete(document.id, document.title)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

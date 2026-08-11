@@ -121,7 +121,7 @@ export function EquipmentCleaningDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <JournalTopBar
         heading="Журнал мойки и дезинфекции оборудования"
         activeTab={activeTab}

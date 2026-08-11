@@ -58,14 +58,15 @@ import {
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import {
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 /**
  * Screen ↔ print duality (см. `cleaning-document-client.tsx`).
  * На экране — скруглённый viewport дизайн-системы; в печати wrapper
  * становится прозрачным, а рамки таблиц — чёрными («бумага» для РПН).
  */
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 type UserItem = { id: string; name: string; role: string };
 
@@ -166,7 +167,7 @@ function AddSubdivisionDialog(props: {
               }
               disabled={row.byCapacity}
               placeholder="Введите площадь объекта (кв.м)"
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -221,7 +222,7 @@ function AddSubdivisionDialog(props: {
                 })
               }
               placeholder="Введите кратность обработок в месяц"
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex justify-end pt-2">
@@ -237,7 +238,7 @@ function AddSubdivisionDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -310,7 +311,7 @@ function EditSubdivisionDialog(props: {
                   })
                 }
                 disabled={active.byCapacity}
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="flex items-center gap-3">
@@ -370,7 +371,7 @@ function EditSubdivisionDialog(props: {
                     frequencyPerMonth: Number(e.target.value) || 0,
                   })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <h3 className="pt-2 text-[18px] font-semibold">
@@ -385,7 +386,7 @@ function EditSubdivisionDialog(props: {
                 onChange={(e) =>
                   setRow({ ...active, disinfectantName: e.target.value })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -402,7 +403,7 @@ function EditSubdivisionDialog(props: {
                     concentration: Number(e.target.value) || 0,
                   })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -419,7 +420,7 @@ function EditSubdivisionDialog(props: {
                     solutionConsumptionPerSqm: Number(e.target.value) || 0,
                   })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -436,7 +437,7 @@ function EditSubdivisionDialog(props: {
                     solutionPerTreatment: Number(e.target.value) || 0,
                   })
                 }
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <h3 className="pt-2 text-[18px] font-semibold">
@@ -447,7 +448,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На одну обработку (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
+                <div className="h-9 rounded-xl border border-[#d8dae6] bg-[#f1f2f8] px-3.5 py-4 text-[13.5px]">
                   {formatNumber(computeNeedPerTreatment(active))}
                 </div>
               </div>
@@ -455,7 +456,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На один месяц (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
+                <div className="h-9 rounded-xl border border-[#d8dae6] bg-[#f1f2f8] px-3.5 py-4 text-[13.5px]">
                   {formatNumber(computeNeedPerMonth(active))}
                 </div>
               </div>
@@ -463,7 +464,7 @@ function EditSubdivisionDialog(props: {
                 <Label className="text-[14px] text-[#73738a]">
                   На один год (кг, л)
                 </Label>
-                <div className="h-11 rounded-2xl border border-[#d8dae6] bg-[#f1f2f8] px-4 py-4 text-[15px]">
+                <div className="h-9 rounded-xl border border-[#d8dae6] bg-[#f1f2f8] px-3.5 py-4 text-[13.5px]">
                   {formatNumber(computeNeedPerYear(active))}
                 </div>
               </div>
@@ -482,7 +483,7 @@ function EditSubdivisionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -544,7 +545,7 @@ function ReceiptDialog(props: {
                   onChange={(e) =>
                     setRow({ ...active, date: toIsoDate(e.target.value) })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
+                  className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -559,7 +560,7 @@ function ReceiptDialog(props: {
                   setRow({ ...active, disinfectantName: e.target.value })
                 }
                 placeholder="Введите наименование дез. средства"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -576,7 +577,7 @@ function ReceiptDialog(props: {
                   })
                 }
                 placeholder="Введите количество"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
               <div className="flex gap-6 pt-1">
                 {(["kg", "l", "bottle"] as MeasureUnit[]).map((u) => (
@@ -609,7 +610,7 @@ function ReceiptDialog(props: {
                       expiryDate: toIsoDate(e.target.value),
                     })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
+                  className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -631,7 +632,7 @@ function ReceiptDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -656,7 +657,7 @@ function ReceiptDialog(props: {
                   setRow({ ...active, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -685,7 +686,7 @@ function ReceiptDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -746,7 +747,7 @@ function ConsumptionDialog(props: {
                   setRow({ ...active, disinfectantName: e.target.value })
                 }
                 placeholder="Введите наименование дез. средства"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -763,7 +764,7 @@ function ConsumptionDialog(props: {
                   })
                 }
                 placeholder="Количество"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
               <div className="flex gap-6 pt-1">
                 {(["kg", "l", "bottle"] as MeasureUnit[]).map((u) => (
@@ -798,7 +799,7 @@ function ConsumptionDialog(props: {
                   })
                 }
                 placeholder="Количество"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
               <div className="flex gap-6 pt-1">
                 {(["kg", "l", "bottle"] as MeasureUnit[]).map((u) => (
@@ -833,7 +834,7 @@ function ConsumptionDialog(props: {
                   })
                 }
                 placeholder="Количество"
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
               <div className="flex gap-6 pt-1">
                 {(["kg", "l", "bottle"] as MeasureUnit[]).map((u) => (
@@ -871,7 +872,7 @@ function ConsumptionDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -896,7 +897,7 @@ function ConsumptionDialog(props: {
                   setRow({ ...active, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -925,7 +926,7 @@ function ConsumptionDialog(props: {
                     setSubmitting(false);
                   }
                 }}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -992,7 +993,7 @@ function DocumentSettingsDialog(props: {
           <Input
             value={state.title}
             onChange={(e) => setState({ ...state, title: e.target.value })}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -1011,7 +1012,7 @@ function DocumentSettingsDialog(props: {
               });
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -1046,7 +1047,7 @@ function DocumentSettingsDialog(props: {
               });
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -1096,7 +1097,7 @@ function DocumentSettingsDialog(props: {
               onChange={(e) =>
                 setState({ ...state, title: e.target.value })
               }
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -1116,7 +1117,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1141,7 +1142,7 @@ function DocumentSettingsDialog(props: {
                 setState({ ...state, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1161,7 +1162,7 @@ function DocumentSettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -1365,7 +1366,7 @@ export function DisinfectantDocumentClient({
     selectedConIds.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentPageHeader
         backHref="/journals/disinfectant_usage"
@@ -1377,13 +1378,13 @@ export function DisinfectantDocumentClient({
                 variant="outline"
                 onClick={() => window.print()}
                 title="Распечатать журнал"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
               >
                 <Printer className="size-4" /> Печать
               </Button>
               <Button
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings2 className="size-4" /> Настройки журнала
@@ -1463,7 +1464,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddSubOpen(true)}
           >
             <Plus className="size-5" /> Добавить подразделение
@@ -1657,7 +1658,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddRecOpen(true)}
           >
             <Plus className="size-5" /> Добавить поступление
@@ -1799,7 +1800,7 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             onClick={() => setAddConOpen(true)}
           >
             <Plus className="size-5" /> Добавить расход

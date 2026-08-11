@@ -51,7 +51,6 @@ import {
   MobileViewToggle,
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -61,15 +60,16 @@ import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 type EmployeeItem = {
   id: string;
@@ -234,11 +234,11 @@ function RoomDialog({
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Введите название помещения"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="text-[16px] font-medium text-black">Нормы условий</div>
 
             <div className="space-y-4">
@@ -253,7 +253,7 @@ function RoomDialog({
                   type="number"
                   value={temperatureMin}
                   onChange={(event) => setTemperatureMin(event.target.value)}
-                  className="h-11 w-[96px] rounded-2xl border-[#dcdfed] px-3 text-[15px]"
+                  className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
                   disabled={!temperatureEnabled}
                 />
                 <span className="text-[15px] text-[#6d7285]">°C</span>
@@ -261,7 +261,7 @@ function RoomDialog({
                   type="number"
                   value={temperatureMax}
                   onChange={(event) => setTemperatureMax(event.target.value)}
-                  className="h-11 w-[96px] rounded-2xl border-[#dcdfed] px-3 text-[15px]"
+                  className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
                   disabled={!temperatureEnabled}
                 />
                 <span className="text-[15px] text-[#6d7285]">°C</span>
@@ -278,7 +278,7 @@ function RoomDialog({
                   type="number"
                   value={humidityMin}
                   onChange={(event) => setHumidityMin(event.target.value)}
-                  className="h-11 w-[96px] rounded-2xl border-[#dcdfed] px-3 text-[15px]"
+                  className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
                   disabled={!humidityEnabled}
                 />
                 <span className="text-[15px] text-[#6d7285]">%</span>
@@ -286,7 +286,7 @@ function RoomDialog({
                   type="number"
                   value={humidityMax}
                   onChange={(event) => setHumidityMax(event.target.value)}
-                  className="h-11 w-[96px] rounded-2xl border-[#dcdfed] px-3 text-[15px]"
+                  className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
                   disabled={!humidityEnabled}
                 />
                 <span className="text-[15px] text-[#6d7285]">%</span>
@@ -303,7 +303,7 @@ function RoomDialog({
                   variant="outline"
                   onClick={handleDelete}
                   disabled={isSubmitting}
-                  className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                  className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
                 >
                   Удалить помещение
                 </Button>
@@ -314,7 +314,7 @@ function RoomDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || name.trim() === ""}
-              className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : initialRoom ? "Сохранить" : "Добавить"}
             </Button>
@@ -402,7 +402,7 @@ function ResponsibleDialog({
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
@@ -414,7 +414,7 @@ function ResponsibleDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
@@ -435,7 +435,7 @@ function ResponsibleDialog({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || !employeeId}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -519,7 +519,7 @@ function AddRowDialog({
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -537,7 +537,7 @@ function AddRowDialog({
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
@@ -549,7 +549,7 @@ function AddRowDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
@@ -570,7 +570,7 @@ function AddRowDialog({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || !date || !employeeId}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Создание..." : "Создать"}
             </Button>
@@ -682,7 +682,7 @@ function JournalSettingsDialog({
             id="climate-title-v2"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -702,7 +702,7 @@ function JournalSettingsDialog({
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -715,7 +715,7 @@ function JournalSettingsDialog({
               Сотрудник по умолчанию
             </Label>
             <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
@@ -743,7 +743,7 @@ function JournalSettingsDialog({
               type="time"
               value={timeOne}
               onChange={(event) => setTimeOne(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -758,7 +758,7 @@ function JournalSettingsDialog({
               type="time"
               value={timeTwo}
               onChange={(event) => setTimeTwo(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
         </div>
@@ -811,7 +811,7 @@ function JournalSettingsDialog({
                   }
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите должность" />
                 </SelectTrigger>
                 <SelectContent>
@@ -823,7 +823,7 @@ function JournalSettingsDialog({
             <div className="space-y-3">
               <Label className="text-[14px] text-[#6f7282]">Сотрудник по умолчанию</Label>
               <Select value={userId} onValueChange={setUserId}>
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите сотрудника" />
                 </SelectTrigger>
                 <SelectContent>
@@ -850,7 +850,7 @@ function JournalSettingsDialog({
                 type="time"
                 value={timeOne}
                 onChange={(event) => setTimeOne(event.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-3">
@@ -862,7 +862,7 @@ function JournalSettingsDialog({
                 type="time"
                 value={timeTwo}
                 onChange={(event) => setTimeTwo(event.target.value)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
           </div>
@@ -884,7 +884,7 @@ function JournalSettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || name.trim() === ""}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -1419,13 +1419,13 @@ export function ClimateDocumentClient({
               </div>
 
               <div className="-mx-4 overflow-x-auto rounded-[18px] bg-white p-4 sm:mx-0 sm:p-6">
-                <table className="min-w-[1080px] w-full border-collapse text-[16px]">
+                <table className="min-w-[1080px] w-full border-collapse text-[13px]">
                   <tbody>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-4 text-center font-semibold`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3 text-center font-semibold`}>
                         {organizationName}
                       </td>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-4 text-center text-[18px]`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px]`}>
                         СИСТЕМА ХАССП
                       </td>
                       <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3 align-top`}>
@@ -1437,7 +1437,7 @@ export function ClimateDocumentClient({
                       </td>
                     </tr>
                     <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-4 text-center italic`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center italic`}>
                         БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ
                       </td>
                     </tr>
@@ -1446,11 +1446,11 @@ export function ClimateDocumentClient({
                         Нормы условий
                       </td>
                       <td colSpan={2} className={`${GRID_CELL_CLASS} p-0`}>
-                        <table className="w-full border-collapse">
+                        <table className="w-full border-collapse text-[13px]">
                           <tbody>
                             {visibleRooms.map((room) => (
                               <tr key={room.id}>
-                                <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-4`}>
+                                <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3`}>
                                   <div className="flex items-center gap-3">
                                     <Checkbox checked />
                                     <span className="font-medium lowercase">{room.name}</span>
@@ -1468,12 +1468,12 @@ export function ClimateDocumentClient({
                                     )}
                                   </div>
                                 </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-4 text-center`}>
+                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-3 text-center`}>
                                   {room.temperature.enabled
                                     ? formatRange(room.temperature.min, room.temperature.max, "°C")
                                     : "—"}
                                 </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-4 text-center`}>
+                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-3 text-center`}>
                                   {room.humidity.enabled
                                     ? formatRange(room.humidity.min, room.humidity.max, "%")
                                     : "—"}
@@ -1489,7 +1489,7 @@ export function ClimateDocumentClient({
                                       setEditingRoom(null);
                                       setRoomDialogOpen(true);
                                     }}
-                                    className="flex h-11 w-full items-center justify-center gap-3 bg-[5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
+                                    className="flex h-10 w-full items-center justify-center gap-3 bg-[5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]"
                                   >
                                     <Plus className="size-6" />
                                     Добавить помещение
@@ -1502,8 +1502,8 @@ export function ClimateDocumentClient({
                       </td>
                     </tr>
                     <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-4 font-semibold`}>Частота контроля</td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-4 text-right`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-3 font-semibold`}>Частота контроля</td>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-3 text-right`}>
                         {getClimatePeriodicityText(config)}
                       </td>
                     </tr>
@@ -1519,7 +1519,7 @@ export function ClimateDocumentClient({
             <Button
               type="button"
               onClick={() => setRowDialogOpen(true)}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-7" />
               Добавить строку
@@ -1530,7 +1530,7 @@ export function ClimateDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={handleDeleteSelected}
-                className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
               >
                 <Trash2 className="size-6" />
                 Удалить выбранные
@@ -1595,10 +1595,10 @@ export function ClimateDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1280px] border-collapse text-[15px]">
+          <table className="min-w-[1280px] border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] p-2 text-center`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center`} rowSpan={4}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1609,13 +1609,13 @@ export function ClimateDocumentClient({
                     disabled={status !== "active" || rows.length === 0}
                   />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] p-2 text-center font-semibold`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] px-2 py-1.5 text-center font-semibold`} rowSpan={4}>
                   Дата
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`} colSpan={totalMeasurementColumns}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`} colSpan={totalMeasurementColumns}>
                   Точки контроля
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[260px] p-2 text-center font-semibold`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[260px] px-2 py-1.5 text-center font-semibold`} rowSpan={4}>
                   Фамилия ответственного лица
                 </th>
               </tr>
@@ -1623,7 +1623,7 @@ export function ClimateDocumentClient({
                 {visibleRooms.map((room) => (
                   <th
                     key={room.id}
-                    className={`${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
                     colSpan={config.controlTimes.length * getRoomMetricColumnCount(room)}
                   >
                     {room.name}
@@ -1635,7 +1635,7 @@ export function ClimateDocumentClient({
                   config.controlTimes.map((time) => (
                     <th
                       key={`${room.id}:${time}`}
-                      className={`${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
                       colSpan={getRoomMetricColumnCount(room)}
                     >
                       {time}
@@ -1649,7 +1649,7 @@ export function ClimateDocumentClient({
                     room.temperature.enabled ? (
                       <th
                         key={`${room.id}:${time}:temperature`}
-                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] p-2 text-center font-semibold`}
+                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold`}
                       >
                         T, °C
                       </th>
@@ -1657,7 +1657,7 @@ export function ClimateDocumentClient({
                     room.humidity.enabled ? (
                       <th
                         key={`${room.id}:${time}:humidity`}
-                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] p-2 text-center font-semibold`}
+                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold`}
                       >
                         ВВ, %
                       </th>
@@ -1672,7 +1672,7 @@ export function ClimateDocumentClient({
                 const isToday = row.date === new Date().toISOString().slice(0, 10);
                 return (
                   <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                       <Checkbox
                         checked={selectedRowIds.includes(row.id)}
                         onCheckedChange={(checked) =>
@@ -1685,7 +1685,7 @@ export function ClimateDocumentClient({
                         disabled={status !== "active"}
                       />
                     </td>
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{getClimateDateLabel(row.date)}</td>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{getClimateDateLabel(row.date)}</td>
                     {visibleRooms.flatMap((room) =>
                       config.controlTimes.flatMap((time) => [
                         room.temperature.enabled ? (
@@ -1760,7 +1760,7 @@ export function ClimateDocumentClient({
                         ) : null,
                       ])
                     )}
-                    <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                       <button
                         type="button"
                         disabled={status !== "active"}
@@ -1784,7 +1784,7 @@ export function ClimateDocumentClient({
                 <tr>
                   <td
                     colSpan={3 + totalMeasurementColumns}
-                    className={`${GRID_CELL_CLASS} px-4 py-10 text-center text-[15px] text-[#6f7282]`}
+                    className={`${GRID_CELL_CLASS} px-4 py-10 text-center text-[13px] text-[#6f7282]`}
                   >
                     Пока нет строк. Добавь первую запись вручную или включи автозаполнение.
                   </td>

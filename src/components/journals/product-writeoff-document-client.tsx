@@ -308,11 +308,11 @@ export function ProductWriteoffDocumentClient({
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="flex items-center justify-end gap-3 print:hidden">
-          <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]">
+          <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]">
             <Printer className="size-4" />
             Печать
           </Button>
-          <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
             Настройки журнала
           </Button>
         </div>
@@ -323,7 +323,7 @@ export function ProductWriteoffDocumentClient({
               documentId={documentId}
               title={title}
               variant="outline"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               Закончить журнал
             </DocumentCloseButton>
@@ -332,7 +332,7 @@ export function ProductWriteoffDocumentClient({
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto mt-8 min-w-[1100px] max-w-[1120px] space-y-8 print:mt-0 sm:min-w-0">
-          <table className="w-full border-collapse text-[16px]">
+          <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td rowSpan={2} className="w-[18%] border border-black p-4 text-center font-semibold">{organizationName}</td>
@@ -353,11 +353,11 @@ export function ProductWriteoffDocumentClient({
           <div className="flex gap-4 print:hidden">
             {!isClosed && (
               <>
-                <Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4957fb]" onClick={() => { setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" }); setRowDialogProductOptions(productOptions); }}>
+                <Button type="button" className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]" onClick={() => { setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" }); setRowDialogProductOptions(productOptions); }}>
                   <Plus className="size-5" />
                   Добавить
                 </Button>
-                <Button type="button" variant="outline" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>
+                <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>
                   Редактировать списки
                 </Button>
               </>
@@ -398,7 +398,7 @@ export function ProductWriteoffDocumentClient({
           ) : null}
 
           <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[640px] border-collapse text-[16px] sm:min-w-0">
+          <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <thead>
               <tr>
                 {!isClosed && <th className="w-[34px] border border-black p-2 print:hidden" />}
@@ -475,7 +475,7 @@ export function ProductWriteoffDocumentClient({
             <Input
               value={config.documentName}
               onChange={(event) => updateConfig({ documentName: event.target.value })}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -487,7 +487,7 @@ export function ProductWriteoffDocumentClient({
                 value={config.actNumber}
                 onChange={(event) => updateConfig({ actNumber: event.target.value })}
                 placeholder="Например: 1"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -498,7 +498,7 @@ export function ProductWriteoffDocumentClient({
                 type="date"
                 value={config.documentDate}
                 onChange={(event) => updateConfig({ documentDate: event.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
           </div>
@@ -522,22 +522,22 @@ export function ProductWriteoffDocumentClient({
             <div className="space-y-5 px-8 py-6">
               <div className="space-y-2">
                 <Label>Название документа</Label>
-                <Input value={config.documentName} onChange={(event) => updateConfig({ documentName: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Input value={config.documentName} onChange={(event) => updateConfig({ documentName: event.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label>№ акта</Label>
-                <Input value={config.actNumber} onChange={(event) => updateConfig({ actNumber: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Input value={config.actNumber} onChange={(event) => updateConfig({ actNumber: event.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label>Дата документа</Label>
-                <Input type="date" value={config.documentDate} onChange={(event) => updateConfig({ documentDate: event.target.value })} className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
+                <Input type="date" value={config.documentDate} onChange={(event) => updateConfig({ documentDate: event.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label>Комментарий</Label>
                 <Textarea value={config.comment} onChange={(event) => updateConfig({ comment: event.target.value })} className="min-h-[160px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]" />
               </div>
               <div className="flex justify-end">
-                <Button type="button" onClick={() => saveSettings().catch(() => undefined)} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
+                <Button type="button" onClick={() => saveSettings().catch(() => undefined)} disabled={saving} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]">
                   {saving ? "Сохранение..." : "Сохранить"}
                 </Button>
               </div>
@@ -561,15 +561,15 @@ export function ProductWriteoffDocumentClient({
           <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Наименование ТМЦ</Label>
-              <select value={rowDialog.row.productName} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productName: event.target.value } }))} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
+              <select value={rowDialog.row.productName} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productName: event.target.value } }))} className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]">
                 <option value="">Выберите из списка</option>
                 {Array.from(new Set(rowDialogProductOptions.length > 0 ? rowDialogProductOptions : productOptions)).map((item) => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>
               <div className="flex gap-2">
-                <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Добавить название новых ТМЦ" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
-                <Button type="button" className="h-11 rounded-2xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]" onClick={() => {
+                <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Добавить название новых ТМЦ" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
+                <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]" onClick={() => {
                   const item = rowDialog.newProductName.trim();
                   if (!item) return;
                   setRowDialogProductOptions((current) => (
@@ -587,17 +587,17 @@ export function ProductWriteoffDocumentClient({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">№ партии</Label>
-                <Input value={rowDialog.row.batchNumber} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, batchNumber: event.target.value } }))} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+                <Input value={rowDialog.row.batchNumber} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, batchNumber: event.target.value } }))} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Дата выработки</Label>
-                <Input value={rowDialog.row.productionDate} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productionDate: event.target.value } }))} placeholder="02.04.2025" className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+                <Input value={rowDialog.row.productionDate} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, productionDate: event.target.value } }))} placeholder="02.04.2025" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Количество (кг, шт)</Label>
-              <Input value={rowDialog.row.quantity} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, quantity: event.target.value } }))} className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]" />
+              <Input value={rowDialog.row.quantity} onChange={(event) => setRowDialog((prev) => ({ ...prev, row: { ...prev.row, quantity: event.target.value } }))} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
             </div>
 
             <div className="space-y-2">
@@ -615,7 +615,7 @@ export function ProductWriteoffDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setRowDialog({ open: false, index: null, row: emptyRow(), newProductName: "" })}
             >
               Отмена
@@ -624,7 +624,7 @@ export function ProductWriteoffDocumentClient({
               type="button"
               onClick={() => saveRow().catch(() => undefined)}
               disabled={saving}
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
             >
               {saving ? "Сохранение..." : rowDialog.index === null ? "Добавить" : "Сохранить"}
             </Button>
@@ -667,7 +667,7 @@ export function ProductWriteoffDocumentClient({
                       };
                     });
                   }}
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                 >
                   <option value="">— выберите —</option>
                   <PositionNativeOptions users={users} />
@@ -678,7 +678,7 @@ export function ProductWriteoffDocumentClient({
                 <select value={commissionDialog.member.employeeId} onChange={(event) => {
                   const user = users.find((item) => item.id === event.target.value);
                   setCommissionDialog((prev) => ({ ...prev, member: { ...prev.member, employeeId: event.target.value, employeeName: user?.name || "", role: user ? getUserRoleLabel(user.role) : prev.member.role } }));
-                }} className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]">
+                }} className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]">
                   <option value="">Выберите сотрудника</option>
                   {(commissionDialog.member.role
                     ? getUsersForRoleLabel(users, commissionDialog.member.role)
@@ -697,7 +697,7 @@ export function ProductWriteoffDocumentClient({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 w-full rounded-2xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff3b30] shadow-none hover:bg-[#fff4f2] sm:w-auto"
+                  className="h-9 w-full rounded-xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff3b30] shadow-none hover:bg-[#fff4f2] sm:w-auto"
                   onClick={() => deleteCommissionMember(commissionDialog.index ?? 0).catch(() => undefined)}
                 >
                   Удалить
@@ -708,7 +708,7 @@ export function ProductWriteoffDocumentClient({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+                className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
                 onClick={() => setCommissionDialog({ open: false, index: null, member: emptyCommissionMember() })}
               >
                 Отмена
@@ -717,7 +717,7 @@ export function ProductWriteoffDocumentClient({
                 type="button"
                 onClick={() => saveCommissionMember().catch(() => undefined)}
                 disabled={saving}
-                className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+                className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               >
                 {saving ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -757,8 +757,8 @@ export function ProductWriteoffDocumentClient({
             {!isClosed && (
               <>
                 <div className="flex gap-3">
-                  <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Введите наименование продукции" className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]" />
-                  <Button type="button" className="h-11 rounded-2xl bg-[#5563ff] px-5 text-[15px] text-white" onClick={() => {
+                  <Input value={rowDialog.newProductName} onChange={(event) => setRowDialog((prev) => ({ ...prev, newProductName: event.target.value }))} placeholder="Введите наименование продукции" className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+                  <Button type="button" className="h-9 rounded-xl bg-[#5563ff] px-5 text-[13.5px] text-white" onClick={() => {
                     const item = rowDialog.newProductName.trim();
                     if (!item) return;
                     setConfig((prev) => ({
@@ -782,7 +782,7 @@ export function ProductWriteoffDocumentClient({
             )}
 
             <div className="flex justify-end">
-              <Button type="button" onClick={() => persistConfig(config).then((ok) => ok && setListsOpen(false))} disabled={saving} className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]">
+              <Button type="button" onClick={() => persistConfig(config).then((ok) => ok && setListsOpen(false))} disabled={saving} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]">
                 {saving ? "Сохранение..." : "Закрыть"}
               </Button>
             </div>

@@ -170,7 +170,7 @@ function SettingsDialog(props: {
               <Input
                 value={activeState.title}
                 onChange={(e) => setState({ ...activeState, title: e.target.value })}
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -182,7 +182,7 @@ function SettingsDialog(props: {
                   onChange={(e) =>
                     setState({ ...activeState, documentDate: toIsoDate(e.target.value) })
                   }
-                  className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
+                  className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
               </div>
@@ -193,7 +193,7 @@ function SettingsDialog(props: {
                 value={activeState.year}
                 onValueChange={(v) => setState({ ...activeState, year: v })}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,7 +222,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -243,7 +243,7 @@ function SettingsDialog(props: {
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,7 +260,7 @@ function SettingsDialog(props: {
                 type="button"
                 disabled={submitting}
                 onClick={handleSubmit}
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+                className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -411,7 +411,7 @@ export function AuditPlanDocumentsClient({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {AUDIT_PLAN_HEADING}
@@ -513,7 +513,7 @@ export function AuditPlanDocumentsClient({
                   >
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsTarget(document)}
                       >
                         <Pencil className="mr-3 size-6 text-[#6f7282]" /> Настройки
@@ -521,14 +521,14 @@ export function AuditPlanDocumentsClient({
                     )}
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => copyDocument(document)}
                       >
                         <Copy className="mr-3 size-6 text-[#6f7282]" /> Сделать копию
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() =>
                         void openDocumentPdf(document.id).catch((error) =>
                           toast.error(
@@ -541,14 +541,14 @@ export function AuditPlanDocumentsClient({
                     </DropdownMenuItem>
                     {document.status === "active" ? (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setArchiveTarget(document)}
                       >
                         <BookOpenText className="mr-3 size-6 text-[#6f7282]" /> Отправить в закрытые
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => moveToStatus(document.id, "active")}
                       >
                         <BookOpenText className="mr-3 size-6 text-[#6f7282]" /> Вернуть в активные
@@ -556,7 +556,7 @@ export function AuditPlanDocumentsClient({
                     )}
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleteTarget(document)}
                       >
                         <Trash2 className="mr-3 size-6 text-[#ff3b30]" /> Удалить
@@ -613,7 +613,7 @@ export function AuditPlanDocumentsClient({
           </DialogHeader>
           <div className="flex justify-end px-8 py-6">
             <Button
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={() => archiveTarget && moveToStatus(archiveTarget.id, "closed")}
             >
               В архив
@@ -641,7 +641,7 @@ export function AuditPlanDocumentsClient({
           </DialogHeader>
           <div className="flex justify-end px-8 py-6">
             <Button
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
             >
               Удалить

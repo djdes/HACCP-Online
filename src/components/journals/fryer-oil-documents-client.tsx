@@ -134,7 +134,7 @@ function FryerOilSettingsDialog(props: {
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -144,7 +144,7 @@ function FryerOilSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -153,7 +153,7 @@ function FryerOilSettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -191,7 +191,7 @@ export function FryerOilDocumentsClient(props: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <JournalTopBar
         routeCode={routeCode}
         heading={pageTitle}

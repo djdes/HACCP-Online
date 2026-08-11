@@ -112,12 +112,12 @@ function RowDialog(props: {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input
                 type="date"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={row.startDate}
                 onChange={(e) => setValue("startDate", e.target.value)}
               />
               <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                 value={row.startHour}
                 onChange={(e) => setValue("startHour", e.target.value)}
               >
@@ -126,7 +126,7 @@ function RowDialog(props: {
                 ))}
               </select>
               <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                 value={row.startMinute}
                 onChange={(e) => setValue("startMinute", e.target.value)}
               >
@@ -140,7 +140,7 @@ function RowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Наименование оборудования</Label>
             <Input
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               value={row.equipmentName}
               onChange={(e) => setValue("equipmentName", e.target.value)}
             />
@@ -184,12 +184,12 @@ function RowDialog(props: {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input
                 type="date"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={row.endDate}
                 onChange={(e) => setValue("endDate", e.target.value)}
               />
               <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                 value={row.endHour}
                 onChange={(e) => setValue("endHour", e.target.value)}
               >
@@ -198,7 +198,7 @@ function RowDialog(props: {
                 ))}
               </select>
               <select
-                className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                 value={row.endMinute}
                 onChange={(e) => setValue("endMinute", e.target.value)}
               >
@@ -212,7 +212,7 @@ function RowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Часы простоя</Label>
             <Input
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               value={row.downtimeHours}
               onChange={(e) => setValue("downtimeHours", e.target.value)}
             />
@@ -221,7 +221,7 @@ function RowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">ФИО лица, ответственного за ремонт</Label>
             <Input
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               value={row.responsiblePerson}
               onChange={(e) => setValue("responsiblePerson", e.target.value)}
             />
@@ -232,14 +232,14 @@ function RowDialog(props: {
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+            className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
             onClick={() => props.onOpenChange(false)}
           >
             Отмена
           </Button>
           <Button
             type="button"
-            className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
             onClick={handleSave}
             disabled={isSubmitting}
           >
@@ -296,7 +296,7 @@ function SettingsDialog(props: {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -307,7 +307,7 @@ function SettingsDialog(props: {
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -573,7 +573,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               variant="outline"
               onClick={() => window.print()}
               title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               <Printer className="size-4" />
               Печать
@@ -582,7 +582,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               type="button"
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               <Settings2 className="size-4" />
               Настройки журнала
@@ -592,7 +592,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                 type="button"
                 variant="outline"
                 onClick={() => setFinishOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
                 Закончить журнал
               </Button>
@@ -602,7 +602,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
 
         {/* HACCP Header table */}
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
-          <table className="w-full border-collapse text-[15px]">
+          <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td
@@ -645,7 +645,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           <StickyActionBar>
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] hover:bg-[#4452ee]"
               onClick={() => {
                 setEditingRow(null);
                 setRowDialogOpen(true);
@@ -692,7 +692,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
 
         {/* Data table */}
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
-          <table className="min-w-[1600px] w-full border-collapse text-[14px]">
+          <table className="min-w-[1600px] w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[44px] border border-black p-2">

@@ -73,22 +73,22 @@ function ProductWriteoffActionsMenu(props: {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
-        <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={props.onEdit}>
+        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onEdit}>
           <Pencil className="mr-4 size-6 text-[#6f7282]" />
           Настройки
         </DropdownMenuItem>
-        <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={props.onPrint}>
+        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onPrint}>
           <Printer className="mr-4 size-6 text-[#6f7282]" />
           Печать
         </DropdownMenuItem>
         {props.isActive && (
-          <DropdownMenuItem className="mb-2 h-11 rounded-2xl px-4 text-[15px]" onSelect={props.onArchive}>
+          <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onArchive}>
             <Archive className="mr-4 size-6 text-[#6f7282]" />
             Отправить в закрытые
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
-          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
           onSelect={props.onDelete}
         >
           <Trash2 className="mr-4 size-6 text-[#ff3b30]" />
@@ -181,8 +181,8 @@ export function ProductWriteoffDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-8">
+    <div className="space-y-5">
+      <div className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>Акт забраковки</h1>
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
@@ -293,7 +293,7 @@ export function ProductWriteoffDocumentsClient({
                   onChange={(event) =>
                     setSettings((prev) => (prev ? { ...prev, documentName: event.target.value } : prev))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
               <div className="space-y-2">
@@ -303,7 +303,7 @@ export function ProductWriteoffDocumentsClient({
                   onChange={(event) =>
                     setSettings((prev) => (prev ? { ...prev, actNumber: event.target.value } : prev))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
               <div className="space-y-2">
@@ -314,7 +314,7 @@ export function ProductWriteoffDocumentsClient({
                   onChange={(event) =>
                     setSettings((prev) => (prev ? { ...prev, documentDate: event.target.value } : prev))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
               <div className="space-y-2">
@@ -332,7 +332,7 @@ export function ProductWriteoffDocumentsClient({
                   type="button"
                   onClick={saveSettings}
                   disabled={isSaving}
-                  className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+                  className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
                 >
                   {isSaving ? "Сохранение..." : "Сохранить"}
                 </Button>

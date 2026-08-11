@@ -135,7 +135,7 @@ function GlassListFormDialog(props: {
                 setState((prev) => ({ ...prev, documentName: event.target.value }))
               }
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -146,7 +146,7 @@ function GlassListFormDialog(props: {
                 setState((prev) => ({ ...prev, location: event.target.value }))
               }
               placeholder="Введите место расположения (участок)"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -157,7 +157,7 @@ function GlassListFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, documentDate: event.target.value }))
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -171,7 +171,7 @@ function GlassListFormDialog(props: {
                   responsibleUserId: "",
                 }))
               }
-              className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+              className="h-9 w-full rounded-xl border border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
             >
               <option value="">- Выберите значение -</option>
               <PositionNativeOptions users={props.users} />
@@ -184,7 +184,7 @@ function GlassListFormDialog(props: {
               onChange={(event) =>
                 setState((prev) => ({ ...prev, responsibleUserId: event.target.value }))
               }
-              className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
+              className="h-9 w-full rounded-xl border border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
             >
               <option value="">- Выберите значение -</option>
               {(state.responsibleTitle
@@ -210,7 +210,7 @@ function GlassListFormDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : props.submitLabel}
             </Button>
@@ -258,7 +258,7 @@ function ConfirmDialog(props: {
                 setSubmitting(false);
               }
             }}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
           >
             {submitting ? "Сохранение..." : props.submitLabel}
           </Button>
@@ -408,7 +408,7 @@ export function GlassListDocumentsClient(props: Props) {
             <Button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4d58f5] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4d58f5] sm:w-auto"
             >
               <Plus className="size-6" />
               Создать документ
@@ -493,21 +493,21 @@ export function GlassListDocumentsClient(props: Props) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsDocument(document)}
                       >
                         <Pencil className="mr-4 size-6 text-[#6f7282]" />
                         Настройки
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => copyDocument(document)}
                       >
                         <Copy className="mr-4 size-6 text-[#6f7282]" />
                         Сделать копию
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() =>
                           window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
                         }
@@ -517,7 +517,7 @@ export function GlassListDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setArchiveDocument(document)}
                         >
                           <Archive className="mr-4 size-6 text-[#6f7282]" />
@@ -525,7 +525,7 @@ export function GlassListDocumentsClient(props: Props) {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleteDocument(document)}
                       >
                         <Trash2 className="mr-4 size-6 text-[#ff3b30]" />

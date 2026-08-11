@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { cn } from "@/lib/utils";
 
 export type DocumentBarMenuItem = {
@@ -23,8 +22,12 @@ export type DocumentBarMenuItem = {
 };
 
 type Props = {
-  /** Куда ведёт «Назад» — обычно `/journals/<code>`. */
-  backHref: string;
+  /**
+   * Куда вёл «Назад» — обычно `/journals/<code>`. Кнопки больше нет
+   * (её роль выполняют хлебные крошки), но проп сохранён: его передают
+   * все 13 клиентов, и он остаётся частью контракта шапки.
+   */
+  backHref?: string;
   backLabel?: string;
   /** Документ, для которого открывается серверный PDF (единственная печать). */
   documentId?: string;
@@ -44,19 +47,23 @@ type Props = {
 };
 
 const ACTION_BUTTON_CLASS =
-  "h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]";
+  "h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]";
 
 /**
  * Единая шапка страницы документа для всех 13 обязательных журналов.
  *
- * Слева — «Назад». Справа — ровно два элемента: «Настройки журнала» и
- * меню «⋯» со вторичными действиями. Печать здесь ОДНА — серверный PDF.
+ * Справа — ровно два элемента: «Настройки журнала» и меню «⋯» со
+ * вторичными действиями. Печать здесь ОДНА — серверный PDF.
  * Первичные действия («Добавить», автозаполнение, «Карточки/Таблица»)
  * живут на теле страницы, а не в шапке.
+ *
+ * Кнопки «Назад» тут больше нет — навигацию вверх дают хлебные крошки
+ * (`JournalBreadcrumbs`), как на эталоне. `backHref` остаётся в пропсах:
+ * его передают все 13 клиентов, и он ещё нужен как fallback-цель.
+ * В Mini App этот компонент тоже рендерится, но там своя навигация
+ * (ссылка «К списку документов» + нижний MiniNav), так что потери нет.
  */
 export function DocumentActionsBar({
-  backHref,
-  backLabel,
   documentId,
   showPrint = true,
   onSettings,
@@ -73,11 +80,10 @@ export function DocumentActionsBar({
     <>
       <div
         className={cn(
-          "mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden",
+          "mb-5 flex flex-wrap items-center justify-end gap-2 print:hidden",
           className
         )}
       >
-        <DocumentBackLink href={backHref} label={backLabel} className="mb-0" />
         <div className="flex flex-wrap items-center gap-2">
           {onSettings ? (
             <Button
@@ -97,9 +103,9 @@ export function DocumentActionsBar({
                   type="button"
                   aria-label="Ещё действия"
                   title="Ещё действия"
-                  className="flex size-11 items-center justify-center rounded-2xl border border-[#dcdfed] bg-white text-[#3848c7] transition-colors hover:bg-[#f5f6ff]"
+                  className="flex size-9 items-center justify-center rounded-xl border border-[#dcdfed] bg-white text-[#3848c7] transition-colors hover:bg-[#f5f6ff]"
                 >
-                  <MoreHorizontal className="size-5" />
+                  <MoreHorizontal className="size-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -108,7 +114,7 @@ export function DocumentActionsBar({
               >
                 {hasPrint ? (
                   <DropdownMenuItem
-                    className="h-11 rounded-2xl px-3 text-[15px]"
+                    className="h-9 rounded-xl px-3 text-[13.5px]"
                     onSelect={() =>
                       window.open(
                         `/api/journal-documents/${documentId}/pdf`,
@@ -127,7 +133,7 @@ export function DocumentActionsBar({
                     disabled={item.disabled}
                     title={item.title}
                     className={cn(
-                      "h-11 rounded-2xl px-3 text-[15px]",
+                      "h-9 rounded-xl px-3 text-[13.5px]",
                       item.tone === "danger" &&
                         "text-[#a13a32] focus:bg-[#fff4f2] focus:text-[#a13a32]"
                     )}

@@ -240,7 +240,7 @@ function GlassControlSettingsDialog(props: {
           <Input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -252,7 +252,7 @@ function GlassControlSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -263,7 +263,7 @@ function GlassControlSettingsDialog(props: {
               value={controlFrequency}
               onChange={(event) => setControlFrequency(event.target.value)}
               placeholder="Например: 1 раз в смену"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
         </div>
@@ -283,7 +283,7 @@ function GlassControlSettingsDialog(props: {
               }
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -300,7 +300,7 @@ function GlassControlSettingsDialog(props: {
             Сотрудник
           </Label>
           <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -340,7 +340,7 @@ function GlassControlSettingsDialog(props: {
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -350,7 +350,7 @@ function GlassControlSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -359,7 +359,7 @@ function GlassControlSettingsDialog(props: {
             <Input
               value={controlFrequency}
               onChange={(event) => setControlFrequency(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -377,7 +377,7 @@ function GlassControlSettingsDialog(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -393,7 +393,7 @@ function GlassControlSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -414,7 +414,7 @@ function GlassControlSettingsDialog(props: {
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -477,7 +477,7 @@ function RowDialog(props: {
               onChange={(event) =>
                 setDraft((prev) => ({ ...prev, date: event.target.value }))
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -529,7 +529,7 @@ function RowDialog(props: {
               value={draftTitle}
               onValueChange={setDraftTitle}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -550,7 +550,7 @@ function RowDialog(props: {
                 setDraft((prev) => ({ ...prev, employeeId: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -588,7 +588,7 @@ function RowDialog(props: {
                       data: { ...prev.data, itemName: event.target.value },
                     }))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
                 <datalist id="glass-control-item-suggestions">
                   {Array.from(new Set(props.itemSuggestions)).map((item) => (
@@ -607,7 +607,7 @@ function RowDialog(props: {
                       data: { ...prev.data, quantity: event.target.value },
                     }))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
 
@@ -623,7 +623,7 @@ function RowDialog(props: {
                       data: { ...prev.data, damageInfo: event.target.value },
                     }))
                   }
-                  className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
                 />
               </div>
             </>
@@ -642,7 +642,7 @@ function RowDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -881,7 +881,7 @@ export function GlassControlDocumentClient(props: Props) {
             variant="outline"
             onClick={() => window.print()}
             title="Распечатать журнал"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             <Printer className="size-4" />
             Печать
@@ -889,7 +889,7 @@ export function GlassControlDocumentClient(props: Props) {
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             onClick={() => setSettingsOpen(true)}
             disabled={isClosed}
           >
@@ -917,7 +917,7 @@ export function GlassControlDocumentClient(props: Props) {
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto mt-10 min-w-[1100px] max-w-[1160px] space-y-8 print:mt-6 sm:min-w-0">
-          <table className="w-full border-collapse text-[16px]">
+          <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td rowSpan={2} className="w-[18%] border border-black p-4 text-center font-semibold">
@@ -957,7 +957,7 @@ export function GlassControlDocumentClient(props: Props) {
             {!isClosed && (
               <Button
                 type="button"
-                className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4957fb]"
+                className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]"
                 onClick={() =>
                   setRowDialog({
                     open: true,
@@ -975,7 +975,7 @@ export function GlassControlDocumentClient(props: Props) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
                 onClick={() => setCloseOpen(true)}
               >
                 Закончить журнал
@@ -1030,7 +1030,7 @@ export function GlassControlDocumentClient(props: Props) {
           ) : null}
 
           <MobileViewTableWrapper mobileView={mobileView}>
-          <table className="w-full border-collapse text-[16px]">
+          <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 {!isClosed && (
@@ -1161,7 +1161,7 @@ export function GlassControlDocumentClient(props: Props) {
             <Button
               type="button"
               onClick={() => void closeJournal()}
-              className="h-11 rounded-2xl bg-[#5863f8] px-4 text-[15px] font-medium text-white hover:bg-[#4b57f3]"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
               Закончить
             </Button>

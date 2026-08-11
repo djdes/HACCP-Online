@@ -27,7 +27,7 @@ export function ScanJournalDocumentClient({
   const imageUrl = `/api/journal-scans/${templateCode}?page=${currentPage}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
       <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
@@ -44,7 +44,7 @@ export function ScanJournalDocumentClient({
           variant="outline"
           onClick={() => window.print()}
           title="Распечатать страницу"
-          className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+          className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
         >
           <Printer className="size-4" />
           Печать

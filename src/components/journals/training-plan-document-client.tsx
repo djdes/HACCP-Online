@@ -151,7 +151,7 @@ function AddPositionDialog(props: {
           <div className="space-y-2">
             <Label className="text-[14px] text-[#73738a]">Должность</Label>
             <Select value={position || "__empty__"} onValueChange={(value) => setPosition(value === "__empty__" ? "" : value)}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -165,7 +165,7 @@ function AddPositionDialog(props: {
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -218,14 +218,14 @@ function AddTopicDialog(props: {
             value={topicName}
             onChange={(event) => setTopicName(event.target.value)}
             placeholder="Тема обучения"
-            className="h-11 rounded-2xl border-[#5566f6] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#5566f6] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -279,7 +279,7 @@ function DocumentSettingsDialog(props: {
             <Input
               value={state.title}
               onChange={(event) => setState({ ...state, title: event.target.value })}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -290,7 +290,7 @@ function DocumentSettingsDialog(props: {
                   type="date"
                   value={state.documentDate}
                   onChange={(event) => setState({ ...state, documentDate: toIsoDate(event.target.value) })}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 pr-12 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 pr-12 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6f7282]" />
               </div>
@@ -298,7 +298,7 @@ function DocumentSettingsDialog(props: {
             <div className="space-y-2">
               <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Год</Label>
               <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -326,7 +326,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
@@ -352,7 +352,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
@@ -395,7 +395,7 @@ function DocumentSettingsDialog(props: {
             <Input
               value={state.title}
               onChange={(event) => setState({ ...state, title: event.target.value })}
-              className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -405,7 +405,7 @@ function DocumentSettingsDialog(props: {
                 type="date"
                 value={state.documentDate}
                 onChange={(event) => setState({ ...state, documentDate: toIsoDate(event.target.value) })}
-                className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]"
+                className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
             </div>
@@ -413,7 +413,7 @@ function DocumentSettingsDialog(props: {
           <div className="space-y-2">
             <Label className="text-[14px] text-[#73738a]">Год</Label>
             <Select value={state.year} onValueChange={(value) => setState({ ...state, year: value })}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -442,7 +442,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -468,7 +468,7 @@ function DocumentSettingsDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f1f2f8] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -494,7 +494,7 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -671,7 +671,7 @@ export function TrainingPlanDocumentClient({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/training_plan" documentId={documentId} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -760,13 +760,13 @@ export function TrainingPlanDocumentClient({
         {!readOnly && (
           <div className="grid gap-4 md:grid-cols-2">
             <Button
-              className="h-11 w-full rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={() => setAddPositionOpen(true)}
             >
               <Plus className="size-5" /> Добавить должность
             </Button>
             <Button
-              className="h-11 w-full rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4554ff]"
+              className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
               onClick={() => setAddTopicOpen(true)}
             >
               <Plus className="size-5" /> Добавить тему обучения
@@ -783,7 +783,7 @@ export function TrainingPlanDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[14px]">
+          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
             <thead>
               <tr>
                 <th rowSpan={2} className="w-14 border border-black/70 px-2 py-2">

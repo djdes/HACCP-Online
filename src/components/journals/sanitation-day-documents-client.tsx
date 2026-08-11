@@ -99,7 +99,7 @@ type SettingsState = {
 
 /** Общий класс триггера селектов в диалоге настроек санитарного дня. */
 const SANITATION_TRIGGER_CLASS =
-  "h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]";
+  "h-9 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]";
 
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -184,7 +184,7 @@ function SettingsDialog(props: {
                 onChange={(event) =>
                   setState({ ...activeState, title: event.target.value })
                 }
-                className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px] tracking-[-0.02em]"
+                className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px] tracking-[-0.02em]"
               />
             </div>
 
@@ -202,7 +202,7 @@ function SettingsDialog(props: {
                       documentDate: toIsoDate(event.target.value),
                     })
                   }
-                  className="h-11 rounded-2xl border-[#dcdfed] px-5 pr-12 text-[16px] tracking-[-0.02em]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-5 pr-12 text-[16px] tracking-[-0.02em]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
               </div>
@@ -216,7 +216,7 @@ function SettingsDialog(props: {
                   setState({ ...activeState, year: value })
                 }
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,7 +279,7 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -446,7 +446,7 @@ export function SanitationDayDocumentsClient({
         users={users}
         createSlot={
           <Button
-            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-4" />
@@ -457,7 +457,7 @@ export function SanitationDayDocumentsClient({
 
       <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {documents.length === 0 ? (
           <EmptyDocumentsState />
         ) : null}
@@ -544,14 +544,14 @@ export function SanitationDayDocumentsClient({
                     {document.status === "active" ? (
                       <>
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setSettingsTarget(document)}
                         >
                           <Pencil className="mr-3 size-6 text-[#6f7282]" />
                           Настройки
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => cloneDocument(document.id)}
                         >
                           <Copy className="mr-3 size-6 text-[#6f7282]" />
@@ -561,7 +561,7 @@ export function SanitationDayDocumentsClient({
                     ) : null}
 
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-6 text-[#6f7282]" />
@@ -570,7 +570,7 @@ export function SanitationDayDocumentsClient({
 
                     {document.status === "closed" ? (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setStatus("active", { documentId: document.id })}
                       >
                         <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
@@ -579,14 +579,14 @@ export function SanitationDayDocumentsClient({
                     ) : (
                       <>
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setStatus("closed", { documentId: document.id })}
                         >
                           <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
                           Отправить в закрытые
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => handleDelete(document)}
                         >
                           <Trash2 className="mr-3 size-6 text-[#ff3b30]" />

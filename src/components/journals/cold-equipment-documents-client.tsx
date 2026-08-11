@@ -152,7 +152,7 @@ function EditDocumentDialog({
               id="cold-document-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -167,7 +167,7 @@ function EditDocumentDialog({
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
@@ -179,7 +179,7 @@ function EditDocumentDialog({
           <div className="space-y-3">
             <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
@@ -197,7 +197,7 @@ function EditDocumentDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || title.trim() === ""}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -247,7 +247,7 @@ export function ColdEquipmentDocumentsClient({
 
         <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {documents.length === 0 ? <EmptyDocumentsState /> : null}
 
           {documents.map((document) => {

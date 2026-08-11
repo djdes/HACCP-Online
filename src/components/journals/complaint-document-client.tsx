@@ -127,7 +127,7 @@ function ComplaintRowDialog({
               type="date"
               value={draft.values.receiptDate || ""}
               onChange={(event) => setValue("receiptDate", event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -136,7 +136,7 @@ function ComplaintRowDialog({
               value={draft.values.applicantName || ""}
               onChange={(event) => setValue("applicantName", event.target.value)}
               placeholder="Введите ФИО заявителя"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -145,7 +145,7 @@ function ComplaintRowDialog({
               value={draft.values.complaintReceiptForm || ""}
               onValueChange={(value) => setValue("complaintReceiptForm", value)}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -179,7 +179,7 @@ function ComplaintRowDialog({
               type="date"
               value={draft.values.decisionDate || ""}
               onChange={(event) => setValue("decisionDate", event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -195,7 +195,7 @@ function ComplaintRowDialog({
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : row ? "Сохранить" : "Добавить"}
             </Button>
@@ -262,7 +262,7 @@ function SettingsDialog({
           <Input
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -273,7 +273,7 @@ function SettingsDialog({
             type="date"
             value={draftDate}
             onChange={(event) => setDraftDate(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -294,7 +294,7 @@ function SettingsDialog({
             <Input
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -303,7 +303,7 @@ function SettingsDialog({
               type="date"
               value={draftDate}
               onChange={(event) => setDraftDate(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="flex justify-end">
@@ -311,7 +311,7 @@ function SettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -360,7 +360,7 @@ function FinishDialog({
             type="button"
             onClick={handleFinish}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
           >
             {submitting ? "Завершение..." : "Закончить"}
           </Button>
@@ -548,7 +548,7 @@ export function ComplaintDocumentClient({
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1200px] max-w-[1520px] border-collapse">
+          <table className="mx-auto min-w-[1200px] max-w-[1520px] border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td rowSpan={2} className="w-[240px] border border-black px-6 py-10 text-center text-[22px] font-medium">
@@ -590,7 +590,7 @@ export function ComplaintDocumentClient({
                 setEditingRow(null);
                 setRowDialogOpen(true);
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               <Plus className="size-5" />
               Добавить
@@ -602,7 +602,7 @@ export function ComplaintDocumentClient({
                 variant="outline"
                 onClick={() => window.print()}
                 title="Распечатать журнал"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
               >
                 <Printer className="size-4" />
                 Печать
@@ -611,7 +611,7 @@ export function ComplaintDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setSettingsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
                 Настройки журнала
               </Button>
@@ -619,7 +619,7 @@ export function ComplaintDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setFinishOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
                 Закончить журнал
               </Button>
@@ -636,7 +636,7 @@ export function ComplaintDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1520px] w-full border-collapse text-[16px]">
+          <table className="min-w-[1520px] w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[42px] border border-black p-2 text-center">

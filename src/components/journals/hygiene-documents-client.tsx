@@ -145,7 +145,7 @@ function EditDocumentDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
             />
           </div>
 
@@ -158,7 +158,7 @@ function EditDocumentDialog({
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -170,7 +170,7 @@ function EditDocumentDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ function EditDocumentDialog({
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -290,7 +290,7 @@ export function HygieneDocumentsClient({
 
         <JournalTabs activeTab={activeTab} templateCode={templateCode} />
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {documents.length === 0 && <EmptyDocumentsState />}
           {documents.map((document) => (
             <DocumentRow

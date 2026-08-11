@@ -221,7 +221,7 @@ function SettingsDialog(props: {
               <Input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
               />
             </div>
             <div className="space-y-2">
@@ -232,7 +232,7 @@ function SettingsDialog(props: {
                 type="date"
                 value={draft.dateFrom}
                 onChange={(e) => setDraft({ ...draft, dateFrom: normalizeIsoDate(e.target.value) })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -271,11 +271,11 @@ function SettingsDialog(props: {
         </DialogHeader>
         {draft && (
           <div className="space-y-5 px-8 py-6">
-            <div className="space-y-2"><Label className="text-[14px] text-[#7a7c8e]">Название документа</Label><Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div>
-            <div className="space-y-2"><Label className="text-[14px] text-[#7a7c8e]">Дата начала</Label><div className="relative"><Input type="date" value={draft.dateFrom} onChange={(e) => setDraft({ ...draft, dateFrom: normalizeIsoDate(e.target.value) })} className="h-11 rounded-2xl border-[#d8dae6] px-6 pr-14 text-[15px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
+            <div className="space-y-2"><Label className="text-[14px] text-[#7a7c8e]">Название документа</Label><Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div>
+            <div className="space-y-2"><Label className="text-[14px] text-[#7a7c8e]">Дата начала</Label><div className="relative"><Input type="date" value={draft.dateFrom} onChange={(e) => setDraft({ ...draft, dateFrom: normalizeIsoDate(e.target.value) })} className="h-10 rounded-xl border-[#d8dae6] px-6 pr-14 text-[13.5px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
             <div className="space-y-4 rounded-[28px] border border-[#e3e5f0] px-5 py-5"><div className="text-[20px] font-medium tracking-[-0.02em] text-black">Добавить поле</div><div className="flex items-center justify-between gap-4 rounded-[24px] bg-[#f7f8fd] px-5 py-4"><Label className="text-[18px] leading-tight text-black">T °C продукта после шоковой заморозки</Label><Switch checked={draft.showShockTempField} onCheckedChange={(checked) => setDraft({ ...draft, showShockTempField: checked })} /></div></div>
             <div className="space-y-4 rounded-[28px] border border-[#e3e5f0] px-5 py-5"><div className="text-[20px] font-medium tracking-[-0.02em] text-black">Добавить блок</div><div className="flex items-center justify-between gap-4 rounded-[24px] bg-[#f7f8fd] px-5 py-4"><Label className="text-[18px] leading-tight text-black">Отгружено</Label><Switch checked={draft.showShipmentBlock} onCheckedChange={(checked) => setDraft({ ...draft, showShipmentBlock: checked })} /></div></div>
-            <div className="flex justify-end pt-2"><Button type="button" onClick={save} disabled={loading} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
+            <div className="flex justify-end pt-2"><Button type="button" onClick={save} disabled={loading} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
           </div>
         )}
       </DialogContent>
@@ -361,7 +361,7 @@ function ListsDialog(props: {
           </section>
         </div>
 
-        <div className="flex justify-end px-8 pb-6"><Button type="button" onClick={save} disabled={loading} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
+        <div className="flex justify-end px-8 pb-6"><Button type="button" onClick={save} disabled={loading} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
       </DialogContent>
     </Dialog>
   );
@@ -455,21 +455,21 @@ function RowDialog(props: {
 
         {draft && (
           <div className="space-y-5 px-8 py-6">
-            <div className="space-y-2"><Label className="text-[16px] text-[#7a7c8e]">Дата</Label><div className="relative"><Input type="date" value={draft.date} onChange={(e) => setField("date", normalizeIsoDate(e.target.value))} className="h-11 rounded-2xl border-[#d8dae6] px-5 pr-14 text-[15px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
+            <div className="space-y-2"><Label className="text-[16px] text-[#7a7c8e]">Дата</Label><div className="relative"><Input type="date" value={draft.date} onChange={(e) => setField("date", normalizeIsoDate(e.target.value))} className="h-10 rounded-xl border-[#d8dae6] px-5 pr-14 text-[13.5px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
 
             <div className="space-y-3 rounded-[28px] border border-[#e3e5f0] px-4 py-4">
               <div className="text-[20px] font-semibold tracking-[-0.02em] text-black">Поступило</div>
               <div className="space-y-2">
                 <Label className="text-[15px] text-[#7a7c8e]">Наименование сырья</Label>
                 <Select value={draft.incomingRawMaterialName || "__empty__"} onValueChange={(value) => setField("incomingRawMaterialName", value === "__empty__" ? "" : value)}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-white px-4 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-white px-3.5 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
                   <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set(rawOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                 </Select>
-                <div className="flex items-center gap-2"><Input value={newRaw} onChange={(e) => setNewRaw(e.target.value)} placeholder="Добавить название нового сырья" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[16px]" /><Button type="button" onClick={() => addCustom("raw")} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
+                <div className="flex items-center gap-2"><Input value={newRaw} onChange={(e) => setNewRaw(e.target.value)} placeholder="Добавить название нового сырья" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[16px]" /><Button type="button" onClick={() => addCustom("raw")} className="h-10 rounded-xl bg-[#5563ff] px-3.5 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
               </div>
-              <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Номер партии ПФ</Label><Input value={draft.incomingBatchNumber} onChange={(e) => setField("incomingBatchNumber", e.target.value)} placeholder="Введите номер партии ПФ" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div>
-              <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Дата фасовки</Label><div className="relative"><Input type="date" value={draft.incomingPackagingDate} onChange={(e) => setField("incomingPackagingDate", normalizeIsoDate(e.target.value))} className="h-11 rounded-2xl border-[#d8dae6] px-4 pr-14 text-[15px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
-              <div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Кол-во, шт.</Label><Input value={draft.incomingQuantityPieces} onChange={(e) => setField("incomingQuantityPieces", e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div><div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Кол-во, кг.</Label><Input value={draft.incomingQuantityKg} onChange={(e) => setField("incomingQuantityKg", e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div></div>
+              <div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Номер партии ПФ</Label><Input value={draft.incomingBatchNumber} onChange={(e) => setField("incomingBatchNumber", e.target.value)} placeholder="Введите номер партии ПФ" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div>
+              <div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Дата фасовки</Label><div className="relative"><Input type="date" value={draft.incomingPackagingDate} onChange={(e) => setField("incomingPackagingDate", normalizeIsoDate(e.target.value))} className="h-10 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]" /><CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" /></div></div>
+              <div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Кол-во, шт.</Label><Input value={draft.incomingQuantityPieces} onChange={(e) => setField("incomingQuantityPieces", e.target.value)} inputMode="decimal" placeholder="0" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div><div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Кол-во, кг.</Label><Input value={draft.incomingQuantityKg} onChange={(e) => setField("incomingQuantityKg", e.target.value)} inputMode="decimal" placeholder="0" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div></div>
             </div>
 
             <div className="space-y-3 rounded-[28px] border border-[#e3e5f0] px-4 py-4">
@@ -477,19 +477,19 @@ function RowDialog(props: {
               <div className="space-y-2">
                 <Label className="text-[15px] text-[#7a7c8e]">Наименование ПФ</Label>
                 <Select value={draft.outgoingProductName || "__empty__"} onValueChange={(value) => setField("outgoingProductName", value === "__empty__" ? "" : value)}>
-                  <SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-white px-4 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-white px-3.5 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
                   <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set(productOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                 </Select>
-                <div className="flex items-center gap-2"><Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название нового ПФ" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[16px]" /><Button type="button" onClick={() => addCustom("product")} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
+                <div className="flex items-center gap-2"><Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название нового ПФ" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[16px]" /><Button type="button" onClick={() => addCustom("product")} className="h-10 rounded-xl bg-[#5563ff] px-3.5 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
               </div>
-              <div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Кол-во фасовок, шт.</Label><Input value={draft.outgoingQuantityPieces} onChange={(e) => setField("outgoingQuantityPieces", e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div><div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Кол-во фасовок, кг.</Label><Input value={draft.outgoingQuantityKg} onChange={(e) => setField("outgoingQuantityKg", e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div></div>
-              {props.config.showShockTempField && <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">T °C продукта после шоковой заморозки</Label><Input value={draft.outgoingShockTemp} onChange={(e) => setField("outgoingShockTemp", e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" /></div>}
+              <div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Кол-во фасовок, шт.</Label><Input value={draft.outgoingQuantityPieces} onChange={(e) => setField("outgoingQuantityPieces", e.target.value)} inputMode="decimal" placeholder="0" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div><div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Кол-во фасовок, кг.</Label><Input value={draft.outgoingQuantityKg} onChange={(e) => setField("outgoingQuantityKg", e.target.value)} inputMode="decimal" placeholder="0" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div></div>
+              {props.config.showShockTempField && <div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">T °C продукта после шоковой заморозки</Label><Input value={draft.outgoingShockTemp} onChange={(e) => setField("outgoingShockTemp", e.target.value)} inputMode="decimal" placeholder="0" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" /></div>}
             </div>
 
             <div className="space-y-2 rounded-[28px] border border-[#e3e5f0] px-4 py-4">
               <div className="text-[20px] font-semibold tracking-[-0.02em] text-black">Ответственный</div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Должность ответственного</Label><Select value={draft.responsibleRole || "__empty__"} onValueChange={(value) => setField("responsibleRole", value === "__empty__" ? "" : value)} disabled={employees.length > 0}><SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[15px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem><PositionSelectItems users={props.employees} /></SelectContent></Select></div>
+                <div className="space-y-2"><Label className="text-[13.5px] text-[#7a7c8e]">Должность ответственного</Label><Select value={draft.responsibleRole || "__empty__"} onValueChange={(value) => setField("responsibleRole", value === "__empty__" ? "" : value)} disabled={employees.length > 0}><SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f3f4fb] px-3.5 text-[13.5px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem><PositionSelectItems users={props.employees} /></SelectContent></Select></div>
                 <div className="space-y-2"><Label className="text-[15px] text-[#7a7c8e]">Сотрудник</Label>{employees.length > 0 ? <Select value={draft.responsibleEmployeeId || "__empty__"} onValueChange={(value) => {
                   if (value === "__empty__") {
                     setField("responsibleEmployeeId", "");
@@ -501,12 +501,12 @@ function RowDialog(props: {
                   setField("responsibleEmployeeId", value);
                   setField("responsibleEmployee", employee?.name || "");
                   setField("responsibleRole", employee ? getUserRoleLabel(employee.role) : draft.responsibleRole);
-                }}><SelectTrigger className="h-11 rounded-2xl border-[#d8dae6] bg-[#f3f4fb] px-4 text-[15px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{employees.map((employee) => <SelectItem key={employee.id} value={employee.id}>{buildStaffOptionLabel(employee)}</SelectItem>)}</SelectContent></Select> : <Input value={draft.responsibleEmployee} onChange={(e) => setField("responsibleEmployee", e.target.value)} placeholder="ФИО ответственного" className="h-11 rounded-2xl border-[#d8dae6] px-4 text-[15px]" />}</div>
+                }}><SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f3f4fb] px-3.5 text-[13.5px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger><SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{employees.map((employee) => <SelectItem key={employee.id} value={employee.id}>{buildStaffOptionLabel(employee)}</SelectItem>)}</SelectContent></Select> : <Input value={draft.responsibleEmployee} onChange={(e) => setField("responsibleEmployee", e.target.value)} placeholder="ФИО ответственного" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]" />}</div>
               </div>
             </div>
 
             {error && <div className="rounded-[20px] border border-[#ffd7d3] bg-[#fff4f2] px-4 py-3 text-[15px] text-[#d2453d]">{error}</div>}
-            <div className="flex justify-end pt-1"><Button type="button" onClick={save} disabled={loading} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
+            <div className="flex justify-end pt-1"><Button type="button" onClick={save} disabled={loading} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Сохранить"}</Button></div>
           </div>
         )}
       </DialogContent>
@@ -537,7 +537,7 @@ function ImportDialog(props: {
         <div className="space-y-5 px-8 py-6">
           <div className="rounded-[24px] border border-[#e6e9f5] bg-[#fbfbff] px-5 py-4 text-[15px] leading-7 text-[#505469]"><p>Список должен быть в Excel-файле на первом листе и начинаться с первой строки.</p><p className="mt-3">Столбцы должны быть в фиксированном порядке:</p><ol className="mt-2 space-y-1 pl-5">{TRACEABILITY_IMPORT_COLUMNS.map((column, index) => <li key={column}>{index + 1}-й столбец - {column}</li>)}</ol></div>
           <div className="space-y-2"><Button type="button" variant="outline" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" onClick={() => fileInputRef.current?.click()}><Upload className="size-4" />Выберите файл</Button><div className="text-[15px] text-[#6f7282]">{file ? file.name : "Файл не выбран"}</div><input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] ?? null); e.currentTarget.value = ""; }} /></div>
-          <div className="flex justify-end pt-2"><Button type="button" onClick={save} disabled={!file || loading} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4654ff]">{loading ? "Импорт..." : "Добавить"}</Button></div>
+          <div className="flex justify-end pt-2"><Button type="button" onClick={save} disabled={!file || loading} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4654ff]">{loading ? "Импорт..." : "Добавить"}</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -551,7 +551,7 @@ function FinishDialog(props: { open: boolean; onOpenChange: (open: boolean) => v
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
         <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Закончить журнал &quot;{props.title}&quot;</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
-        <div className="space-y-4 px-8 py-8"><div className="text-[17px] leading-7 text-[#505469]">Документ станет доступен только для чтения.</div><div className="flex justify-end"><Button type="button" onClick={finish} disabled={loading} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Закончить"}</Button></div></div>
+        <div className="space-y-4 px-8 py-8"><div className="text-[17px] leading-7 text-[#505469]">Документ станет доступен только для чтения.</div><div className="flex justify-end"><Button type="button" onClick={finish} disabled={loading} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4654ff]">{loading ? "Сохранение..." : "Закончить"}</Button></div></div>
       </DialogContent>
     </Dialog>
   );
@@ -741,13 +741,13 @@ export function TraceabilityDocumentClient(props: Props) {
       </div>
 
       <div className="overflow-hidden rounded-[18px] border border-black bg-white">
-        <table className="w-full border-collapse text-[15px]"><tbody><tr><td rowSpan={2} className="w-[220px] border border-black px-4 py-4 text-center font-semibold">{organizationName}</td><td className="border border-black px-4 py-4 text-center text-[18px]">СИСТЕМА ХАССП</td><td rowSpan={2} className="w-[220px] border border-black px-4 py-3 align-top"><div className="space-y-2 text-[17px] font-semibold"><div>Начат {formatDashDate(dateFrom)}</div><div>Окончен ________</div></div><div className="mt-4 text-center text-[16px]">СТР. 1 ИЗ 1</div></td></tr><tr><td className="border border-black px-4 py-4 text-center italic">ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ</td></tr></tbody></table>
+        <table className="w-full border-collapse text-[13px]"><tbody><tr><td rowSpan={2} className="w-[220px] border border-black px-4 py-4 text-center font-semibold">{organizationName}</td><td className="border border-black px-4 py-4 text-center text-[18px]">СИСТЕМА ХАССП</td><td rowSpan={2} className="w-[220px] border border-black px-4 py-3 align-top"><div className="space-y-2 text-[17px] font-semibold"><div>Начат {formatDashDate(dateFrom)}</div><div>Окончен ________</div></div><div className="mt-4 text-center text-[16px]">СТР. 1 ИЗ 1</div></td></tr><tr><td className="border border-black px-4 py-4 text-center italic">ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ</td></tr></tbody></table>
       </div>
 
       <div className="space-y-4">
         <div className="text-center text-[22px] font-semibold tracking-[-0.03em]">ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ</div>
         <div className="flex flex-wrap items-center gap-3 print:hidden">
-          {!isClosed && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" disabled={saving || isPending} className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"><Plus className="size-6" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"><DropdownMenuItem className="h-12 rounded-2xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}><Plus className="mr-2 size-4" />Добавить</DropdownMenuItem><DropdownMenuItem className="h-12 rounded-2xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}><Upload className="mr-2 size-4" />Добавить из файла</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+          {!isClosed && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" disabled={saving || isPending} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"><Plus className="size-6" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}><Plus className="mr-2 size-4" />Добавить</DropdownMenuItem><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}><Upload className="mr-2 size-4" />Добавить из файла</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
           {!isClosed && <button type="button" onClick={() => setListsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Редактировать списки</button>}
           <div className="flex-1" />
           <button type="button" onClick={() => window.print()} title="Распечатать журнал" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" />Печать</button>
@@ -766,7 +766,7 @@ export function TraceabilityDocumentClient(props: Props) {
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#1f1f1f] bg-white">
-          <table className="min-w-[980px] w-full border-collapse text-[14px] sm:min-w-[1480px]">
+          <table className="min-w-[980px] w-full border-collapse text-[13px] sm:min-w-[1480px]">
             <thead>
               <tr className="bg-[#efefef]">
                 {!isClosed && <th rowSpan={2} className="w-[44px] border border-black px-2 py-3 text-center"><Checkbox checked={allSelected} disabled={config.rows.length === 0} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} /></th>}

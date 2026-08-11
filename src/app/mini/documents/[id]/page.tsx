@@ -69,9 +69,12 @@ export default async function MiniDocumentPage({
         целом OK, но если станет мешать, добавим contrast-обвёртку.
       */}
       <div className="mini-document-host">
+        {/* `chrome="mini"` — без хлебных крошек дашборда: в Mini App
+            навигация своя (ссылка «К списку документов» выше + MiniNav). */}
         <SiteJournalDocumentPage
           params={Promise.resolve({ code, docId: id })}
           searchParams={Promise.resolve({})}
+          chrome="mini"
         />
       </div>
     </div>

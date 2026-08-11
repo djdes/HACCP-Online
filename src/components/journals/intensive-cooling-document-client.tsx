@@ -176,7 +176,7 @@ function RowDialog(props: {
                 type="date"
                 value={row.productionDate}
                 onChange={(event) => setValue("productionDate", event.target.value)}
-                className="h-11 rounded-2xl border-[#d7dbea] pr-12"
+                className="h-9 rounded-xl border-[#d7dbea] pr-12"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
@@ -185,7 +185,7 @@ function RowDialog(props: {
                 value={row.productionHour}
                 onValueChange={(value) => setValue("productionHour", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Часы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,7 +200,7 @@ function RowDialog(props: {
                 value={row.productionMinute}
                 onValueChange={(value) => setValue("productionMinute", value)}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                   <SelectValue placeholder="Минуты" />
                 </SelectTrigger>
                 <SelectContent>
@@ -218,7 +218,7 @@ function RowDialog(props: {
             list="intensive-cooling-dishes"
             value={row.dishName}
             onChange={(event) => setValue("dishName", event.target.value)}
-            className="h-11 rounded-2xl border-[#d7dbea]"
+            className="h-9 rounded-xl border-[#d7dbea]"
             placeholder="Введите наименование блюда"
           />
           <datalist id="intensive-cooling-dishes">
@@ -230,14 +230,14 @@ function RowDialog(props: {
           <Input
             value={row.startTemperature}
             onChange={(event) => setValue("startTemperature", event.target.value)}
-            className="h-11 rounded-2xl border-[#d7dbea]"
+            className="h-9 rounded-xl border-[#d7dbea]"
             placeholder="Введите температуру в начале процесса охлаждения, °C"
           />
 
           <Input
             value={row.endTemperature}
             onChange={(event) => setValue("endTemperature", event.target.value)}
-            className="h-11 rounded-2xl border-[#d7dbea]"
+            className="h-9 rounded-xl border-[#d7dbea]"
             placeholder="Введите температуру через 1 час, °C"
           />
 
@@ -278,7 +278,7 @@ function RowDialog(props: {
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                 <SelectValue placeholder="Лицо, проводившее контроль" />
               </SelectTrigger>
               <SelectContent>
@@ -306,7 +306,7 @@ function RowDialog(props: {
                 }));
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#d7dbea]">
+              <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                 <SelectValue placeholder="Сотрудник" />
               </SelectTrigger>
               <SelectContent>
@@ -332,7 +332,7 @@ function RowDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
             >
               {submitting
                 ? "Сохранение..."
@@ -494,7 +494,7 @@ function SettingsDialog(props: {
           <Input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -505,7 +505,7 @@ function SettingsDialog(props: {
             type="date"
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
       </JournalSettingsModal>
@@ -535,7 +535,7 @@ function SettingsDialog(props: {
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#d7dbea]"
+              className="h-9 rounded-xl border-[#d7dbea]"
             />
           </div>
           <div className="space-y-2">
@@ -545,7 +545,7 @@ function SettingsDialog(props: {
                 type="date"
                 value={dateFrom}
                 onChange={(event) => setDateFrom(event.target.value)}
-                className="h-11 rounded-2xl border-[#d7dbea] pr-12"
+                className="h-9 rounded-xl border-[#d7dbea] pr-12"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
@@ -555,7 +555,7 @@ function SettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -606,7 +606,7 @@ function FinishDialog(props: {
             type="button"
             onClick={handleConfirm}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee]"
+            className="h-9 rounded-xl bg-[#5563ff] px-8 text-[13.5px] text-white hover:bg-[#4452ee]"
           >
             {submitting ? "Завершение..." : "Закончить"}
           </Button>
@@ -739,7 +739,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
                 variant="outline"
                 onClick={() => window.print()}
                 title="Распечатать журнал"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
               >
                 <Printer className="size-4" />
                 Печать
@@ -748,7 +748,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
                   onClick={() => setSettingsOpen(true)}
                 >
                   <Settings2 className="size-4" />
@@ -766,7 +766,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1180px] border-collapse text-[16px]">
+          <table className="mx-auto min-w-[1180px] border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td
@@ -810,7 +810,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
           {isActive ? (
             <Button
               type="button"
-              className="h-11 rounded-2xl bg-[#5563ff] px-4 text-[15px] text-white hover:bg-[#4452ee]"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4452ee]"
               onClick={() => {
                 setEditingRow(null);
                 setRowDialogOpen(true);
@@ -826,7 +826,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-2xl border-[#edf0fb] bg-[#fafbff] px-4 text-[15px] text-[#5566f6]"
+              className="h-9 rounded-xl border-[#edf0fb] bg-[#fafbff] px-3.5 text-[13.5px] text-[#5566f6]"
               onClick={() => setFinishOpen(true)}
             >
               Закончить журнал
@@ -888,7 +888,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1650px] border-collapse text-[14px]">
+          <table className="w-full min-w-[1650px] border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[44px] border border-black p-2">

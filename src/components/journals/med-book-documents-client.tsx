@@ -117,7 +117,7 @@ function SettingsDialog({
               id="settings-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
             />
           </div>
           <div className="flex justify-end">
@@ -125,7 +125,7 @@ function SettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={saving || !title.trim()}
-              className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {saving ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -182,7 +182,7 @@ export function MedBookDocumentsClient({
               asChild
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff] sm:w-auto"
             >
               <Link href={firstDocumentLink}>
                 <BookOpenText className="size-4" />
@@ -195,7 +195,7 @@ export function MedBookDocumentsClient({
               users={users}
               triggerLabel="Создать документ"
               triggerIcon={<Plus className="size-4" />}
-              triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+              triggerClassName="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             />
           </>
         }
@@ -235,21 +235,21 @@ export function MedBookDocumentsClient({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl">
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => router.push(`/journals/${templateCode}/documents/${document.id}`)}
                     >
                       <ExternalLink className="mr-3 size-5 text-[#6f7282]" />
                       Открыть
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => setSettingsDoc(document)}
                     >
                       <Settings2 className="mr-3 size-5 text-[#6f7282]" />
                       Настройки
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-5 text-[#6f7282]" />
@@ -257,7 +257,7 @@ export function MedBookDocumentsClient({
                     </DropdownMenuItem>
                     {document.status === "active" ? (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => {
                           void setStatus("closed", { documentId: document.id });
                         }}
@@ -267,7 +267,7 @@ export function MedBookDocumentsClient({
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => {
                           void setStatus("active", { documentId: document.id });
                         }}
@@ -277,7 +277,7 @@ export function MedBookDocumentsClient({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                      className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                       onSelect={() => {
                         void handleDelete(document);
                       }}

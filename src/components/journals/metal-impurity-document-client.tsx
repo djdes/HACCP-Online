@@ -124,7 +124,7 @@ function AddableSelectField(props: {
     <div className="space-y-3">
       <Label className="text-[14px] text-[#73738a]">{props.label}</Label>
       <Select value={props.value} onValueChange={props.onValueChange}>
-        <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-white px-5 text-[16px]">
+        <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-white px-5 text-[16px]">
           <SelectValue placeholder={props.selectPlaceholder} />
         </SelectTrigger>
         <SelectContent>
@@ -140,7 +140,7 @@ function AddableSelectField(props: {
           value={props.addValue}
           placeholder={props.addPlaceholder}
           onChange={(event) => props.onAddValueChange(event.target.value)}
-          className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+          className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
         />
         <Button
           type="button"
@@ -250,7 +250,7 @@ function RowDialog({
                 type="date"
                 value={draft.date}
                 onChange={(event) => setDraft({ ...draft, date: event.target.value })}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 pr-12 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 pr-12 text-[16px]"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#767b90]" />
             </div>
@@ -301,7 +301,7 @@ function RowDialog({
               onChange={(event) =>
                 setDraft({ ...draft, consumedQuantityKg: event.target.value })
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
 
@@ -312,7 +312,7 @@ function RowDialog({
               onChange={(event) =>
                 setDraft({ ...draft, impurityQuantityG: event.target.value })
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
 
@@ -323,7 +323,7 @@ function RowDialog({
               onChange={(event) =>
                 setDraft({ ...draft, impurityCharacteristic: event.target.value })
               }
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
 
@@ -347,7 +347,7 @@ function RowDialog({
                 }));
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -375,7 +375,7 @@ function RowDialog({
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -414,7 +414,7 @@ function RowDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : row ? "Сохранить" : "Добавить"}
             </Button>
@@ -506,7 +506,7 @@ function SettingsDialog({
           <Input
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -519,7 +519,7 @@ function SettingsDialog({
             onChange={(event) =>
               setDraftConfig({ ...draftConfig, startDate: event.target.value })
             }
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
         <div className="space-y-2">
@@ -540,7 +540,7 @@ function SettingsDialog({
               });
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -571,7 +571,7 @@ function SettingsDialog({
               });
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -602,7 +602,7 @@ function SettingsDialog({
             <Input
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
             />
           </div>
           <div className="space-y-3">
@@ -614,7 +614,7 @@ function SettingsDialog({
                 onChange={(event) =>
                   setDraftConfig({ ...draftConfig, startDate: event.target.value })
                 }
-                className="h-11 rounded-2xl border-[#dfe1ec] px-5 pr-12 text-[16px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-5 pr-12 text-[16px]"
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#767b90]" />
             </div>
@@ -635,7 +635,7 @@ function SettingsDialog({
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -664,7 +664,7 @@ function SettingsDialog({
                 });
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -682,7 +682,7 @@ function SettingsDialog({
               type="button"
               disabled={submitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -747,7 +747,7 @@ function ListEditorSection({
             value={draftValue}
             onChange={(event) => onDraftChange(event.target.value)}
             placeholder={addPlaceholder}
-            className="h-11 rounded-2xl border-[#dfe1ec] px-5 text-[16px]"
+            className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
           />
           <Button
             type="button"
@@ -976,7 +976,7 @@ function ListsDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : "Закрыть"}
             </Button>
@@ -1247,7 +1247,7 @@ export function MetalImpurityDocumentClient({
               variant="outline"
               onClick={() => window.print()}
               title="Распечатать журнал"
-              className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
+              className="h-9 rounded-xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
             >
               <Printer className="size-4" />
               Печать
@@ -1257,7 +1257,7 @@ export function MetalImpurityDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setSettingsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
+                className="h-9 rounded-xl border-[#dcdfed] px-6 text-[16px] text-[#3848c7] shadow-none"
               >
                 Настройки журнала
               </Button>
@@ -1266,7 +1266,7 @@ export function MetalImpurityDocumentClient({
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1040px] max-w-[1250px] border-collapse">
+          <table className="mx-auto min-w-[1040px] max-w-[1250px] border-collapse text-[13px]">
             <tbody>
               <tr>
                 <td
@@ -1310,7 +1310,7 @@ export function MetalImpurityDocumentClient({
                   setEditingRow(null);
                   setRowDialogOpen(true);
                 }}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
               >
                 <Plus className="size-5" />
                 Добавить
@@ -1319,7 +1319,7 @@ export function MetalImpurityDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => setListsOpen(true)}
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
               >
                 Редактировать списки
               </Button>
@@ -1328,7 +1328,7 @@ export function MetalImpurityDocumentClient({
               type="button"
               variant="outline"
               onClick={() => setFinishOpen(true)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
             >
               Закончить журнал
             </Button>
@@ -1344,7 +1344,7 @@ export function MetalImpurityDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1540px] w-full border-collapse text-[15px]">
+          <table className="min-w-[1540px] w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f2f2f2]">
                 <th className="w-[42px] border border-black p-2 text-center print:hidden">
@@ -1509,7 +1509,7 @@ export function MetalImpurityDocumentClient({
                   toast.error(error instanceof Error ? error.message : "Ошибка закрытия")
                 )
               }
-              className="h-11 rounded-2xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-8 text-[16px] text-white hover:bg-[#4b57ff]"
             >
               Закончить
             </Button>

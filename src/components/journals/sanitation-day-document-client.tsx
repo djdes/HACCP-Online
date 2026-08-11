@@ -50,7 +50,6 @@ import {
   MobileViewToggle,
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -59,15 +58,16 @@ import {
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 type UserItem = {
   id: string;
@@ -200,7 +200,7 @@ function RoomDialog(props: {
                 }))
               }
               placeholder="Введите название помещения"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -223,7 +223,7 @@ function RoomDialog(props: {
                       }))
                     }
                   >
-                    <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+                    <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                       <SelectValue placeholder="--" />
                     </SelectTrigger>
                     <SelectContent>
@@ -261,7 +261,7 @@ function RoomDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : props.submitText}
             </Button>
@@ -319,7 +319,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, title: event.target.value }))
             }
             placeholder="Название документа"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -336,7 +336,7 @@ function DocumentSettingsDialog(props: {
                   documentDate: toIsoDate(event.target.value),
                 }))
               }
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">
@@ -349,7 +349,7 @@ function DocumentSettingsDialog(props: {
                 setState((current) => ({ ...current, year: value }))
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -381,7 +381,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -413,7 +413,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -442,7 +442,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -476,7 +476,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -524,7 +524,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, title: event.target.value }))
             }
             placeholder="Название документа"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
 
           <div className="relative">
@@ -537,7 +537,7 @@ function DocumentSettingsDialog(props: {
                   documentDate: toIsoDate(event.target.value),
                 }))
               }
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 pr-14 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 pr-14 text-[13.5px]"
             />
             <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282]" />
           </div>
@@ -548,7 +548,7 @@ function DocumentSettingsDialog(props: {
               setState((current) => ({ ...current, year: value }))
             }
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -575,7 +575,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder='Должность "Утверждаю"' />
             </SelectTrigger>
             <SelectContent>
@@ -605,7 +605,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
@@ -630,7 +630,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Должность ответственного" />
             </SelectTrigger>
             <SelectContent>
@@ -660,7 +660,7 @@ function DocumentSettingsDialog(props: {
               }));
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
@@ -686,7 +686,7 @@ function DocumentSettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -836,7 +836,7 @@ export function SanitationDayDocumentClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       <DocumentActionsBar
         backHref={journalHref}
@@ -854,26 +854,26 @@ export function SanitationDayDocumentClient({
 
       <section className="space-y-6 overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
-        <table className="w-full min-w-[560px] border-collapse sm:min-w-0">
+        <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <tr>
               <td
                 rowSpan={2}
-                className={`${GRID_CELL_CLASS} w-[18%] p-3 text-center text-[26px] font-semibold`}
+                className={`${GRID_CELL_CLASS} w-[18%] px-2 py-1.5 text-center text-[13px] font-semibold`}
               >
                 {organizationName}
               </td>
-              <td className={`${GRID_CELL_CLASS} p-2 text-center text-[15px]`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px]`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className={`${GRID_CELL_CLASS} w-[22%] p-2 text-center text-[15px]`}>
+              <td className={`${GRID_CELL_CLASS} w-[22%] px-2 py-1.5 text-center text-[13px]`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
             <tr>
               <td
                 colSpan={2}
-                className={`${GRID_CELL_CLASS} p-2 text-center text-[18px] italic uppercase`}
+                className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] italic uppercase`}
               >
                 ГРАФИК И УЧЕТ ГЕНЕРАЛЬНЫХ УБОРОК
               </td>
@@ -924,7 +924,7 @@ export function SanitationDayDocumentClient({
                 });
                 setRoomDialogOpen(true);
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-5" />
               Добавить помещение

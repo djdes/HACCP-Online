@@ -1,11 +1,17 @@
-import JournalCodeHeader from "./journal-code-header";
 import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide";
 
 /**
- * Shared layout for the `/journals/<code>` subtree. The JournalCodeHeader
- * client component decides whether to render a "Назад" back-link: it only
- * shows on the per-journal main list page (`/journals/<code>`), not on
- * `/journals/<code>/documents/<docId>` which has its own top bar.
+ * Shared layout for the `/journals/<code>` subtree.
+ *
+ * Фон раздела — белый, во всю ширину `<main>` (эталон lk.haccp-online.ru:
+ * страница и документ одного цвета, без «серой рамки» вокруг бумаги).
+ * `-m-4 p-4` / `md:-m-6 md:p-6` компенсируют padding `<main>` из
+ * `(dashboard)/layout.tsx`. `bg-white` намеренно — в тёмной теме он
+ * автоматически мапится в `--app-surface` (см. `app-theme.css`).
+ *
+ * Навигация вверх — хлебные крошки (`JournalBreadcrumbs`), которые
+ * рендерятся серверно на самих страницах; отдельной кнопки «Назад»
+ * больше нет.
  *
  * `JournalDocGuideOverlay` рендерит floating-кнопку «Как заполнять» —
  * сама компонента детектит по URL, что мы на странице документа, и
@@ -13,10 +19,11 @@ import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide"
  */
 export default function JournalCodeLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-4">
-      <JournalCodeHeader />
-      {children}
-      <JournalDocGuideOverlay />
+    <div className="-m-4 min-h-full bg-white p-4 md:-m-6 md:p-6">
+      <div className="mx-auto max-w-[1760px] space-y-5">
+        {children}
+        <JournalDocGuideOverlay />
+      </div>
     </div>
   );
 }

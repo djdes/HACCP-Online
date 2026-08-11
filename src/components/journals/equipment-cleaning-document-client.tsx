@@ -365,7 +365,7 @@ export function EquipmentCleaningDocumentClient({
             variant="outline"
             onClick={() => window.print()}
             title="Распечатать журнал"
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             <Printer className="size-4" />Печать
           </Button>
@@ -373,7 +373,7 @@ export function EquipmentCleaningDocumentClient({
             type="button"
             variant="outline"
             onClick={() => setSettingsOpen(true)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             Настройки журнала
           </Button>
@@ -382,7 +382,7 @@ export function EquipmentCleaningDocumentClient({
 
       <div className="space-y-6 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
-        <table className="w-full min-w-[640px] border-collapse sm:min-w-0">
+        <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <tr>
               <td rowSpan={2} className="w-[18%] border border-black p-3 text-center text-[18px] font-semibold sm:text-[26px]">
@@ -419,7 +419,7 @@ export function EquipmentCleaningDocumentClient({
             type="button"
             onClick={openCreateRow}
             disabled={status !== "active"}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4d58f5]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4d58f5]"
           >
             <Plus className="size-5" />
             Добавить
@@ -429,7 +429,7 @@ export function EquipmentCleaningDocumentClient({
             variant="outline"
             onClick={() => setCloseOpen(true)}
             disabled={status !== "active"}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
           >
             Закончить журнал
           </Button>
@@ -444,7 +444,7 @@ export function EquipmentCleaningDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1380px] border-collapse text-[16px]">
+          <table className="w-full min-w-[1380px] border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f7f7fb]">
                 <th className="w-[48px] border border-black p-2 text-center">
@@ -540,12 +540,12 @@ export function EquipmentCleaningDocumentClient({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
                 <Input
                   type="date"
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draft.data.washDate}
                   onChange={(e) => updateDraft({ washDate: e.target.value })}
                 />
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draftTime.hour}
                   onChange={(e) => updateDraft({ washTime: mergeTime(e.target.value, draftTime.minute) })}
                 >
@@ -554,7 +554,7 @@ export function EquipmentCleaningDocumentClient({
                   ))}
                 </select>
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draftTime.minute}
                   onChange={(e) => updateDraft({ washTime: mergeTime(draftTime.hour, e.target.value) })}
                 >
@@ -569,7 +569,7 @@ export function EquipmentCleaningDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">Наименование оборудования</Label>
               <Input
                 list="equipment-cleaning-options"
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draft.data.equipmentName}
                 onChange={(e) => updateDraft({ equipmentName: e.target.value })}
                 placeholder="Введите наименование оборудования"
@@ -584,7 +584,7 @@ export function EquipmentCleaningDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Наименование моющего раствора</Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draft.data.detergentName}
                 onChange={(e) => updateDraft({ detergentName: e.target.value })}
                 placeholder="Введите наименование моющего раствора"
@@ -594,7 +594,7 @@ export function EquipmentCleaningDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Концентрация моющего раствора, %</Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draft.data.detergentConcentration}
                 onChange={(e) => updateDraft({ detergentConcentration: e.target.value })}
                 placeholder="Введите концентрацию моющего раствора, %"
@@ -604,7 +604,7 @@ export function EquipmentCleaningDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Наименование дезинфицирующего раствора</Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draft.data.disinfectantName}
                 onChange={(e) => updateDraft({ disinfectantName: e.target.value })}
                 placeholder="Введите наименование дезинфицирующего раствора"
@@ -614,7 +614,7 @@ export function EquipmentCleaningDocumentClient({
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Концентрация дезинфицирующего раствора, %</Label>
               <Input
-                className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={draft.data.disinfectantConcentration}
                 onChange={(e) => updateDraft({ disinfectantConcentration: e.target.value })}
                 placeholder="Введите концентрацию дезинфицирующего раствора, %"
@@ -625,7 +625,7 @@ export function EquipmentCleaningDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Ополаскивание, °C</Label>
                 <Input
-                  className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draft.data.rinseTemperature || ""}
                   onChange={(e) => updateDraft({ rinseTemperature: e.target.value })}
                   placeholder="Введите температуру ополаскивания"
@@ -651,7 +651,7 @@ export function EquipmentCleaningDocumentClient({
                         key={value}
                         type="button"
                         onClick={() => updateDraft({ rinseResult: value })}
-                        className={`flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors ${
+                        className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
                           active
                             ? "border-transparent text-white"
                             : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
@@ -672,7 +672,7 @@ export function EquipmentCleaningDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Мойщик</Label>
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draft.data.washerPosition}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -694,7 +694,7 @@ export function EquipmentCleaningDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draft.data.washerUserId || ""}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -724,7 +724,7 @@ export function EquipmentCleaningDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Должность лица, проводившего контроль</Label>
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draft.data.controllerPosition}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -746,7 +746,7 @@ export function EquipmentCleaningDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
                 <select
-                  className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024]"
+                  className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
                   value={draft.data.controllerUserId || ""}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -777,14 +777,14 @@ export function EquipmentCleaningDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-2xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+              className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
               onClick={() => setRowModalOpen(false)}
             >
               Отмена
             </Button>
             <Button
               type="button"
-              className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+              className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={saveRow}
               disabled={isSaving}
             >
@@ -814,7 +814,7 @@ export function EquipmentCleaningDocumentClient({
             <Input
               value={settingsTitle}
               onChange={(e) => setSettingsTitle(e.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
           <div className="space-y-2">
@@ -825,7 +825,7 @@ export function EquipmentCleaningDocumentClient({
               type="date"
               value={settingsDateFrom}
               onChange={(e) => setSettingsDateFrom(e.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-2">

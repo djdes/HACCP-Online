@@ -124,7 +124,7 @@ function SettingsDialog(props: {
               <Input
                 value={activeState.title}
                 onChange={(event) => setState({ ...activeState, title: event.target.value })}
-                className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[16px]"
+                className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px]"
               />
             </div>
             <div className="space-y-2">
@@ -134,7 +134,7 @@ function SettingsDialog(props: {
                   type="date"
                   value={activeState.dateFrom}
                   onChange={(event) => setState({ ...activeState, dateFrom: event.target.value })}
-                  className="h-11 rounded-2xl border-[#dcdfed] px-5 pr-12 text-[16px]"
+                  className="h-9 rounded-xl border-[#dcdfed] px-5 pr-12 text-[16px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
               </div>
@@ -153,7 +153,7 @@ function SettingsDialog(props: {
                   }
                 }}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -256,7 +256,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         users={users}
         createSlot={
           <Button
-            className="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-4" />
@@ -267,7 +267,7 @@ export function CleaningVentilationChecklistDocumentsClient({
 
       <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {documents.length === 0 ? <EmptyDocumentsState /> : null}
 
         {documents.map((document) => {
@@ -304,21 +304,21 @@ export function CleaningVentilationChecklistDocumentsClient({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => setSettingsTarget(document)}
                     >
                       <Settings2 className="mr-3 size-5 text-[#6f7282]" />
                       Настройки
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-3 size-5 text-[#6f7282]" />
                       Печать
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() =>
                         setStatus(document.status === "active" ? "closed" : "active", {
                           documentId: document.id,
@@ -329,7 +329,7 @@ export function CleaningVentilationChecklistDocumentsClient({
                       {document.status === "active" ? "Закрыть" : "Вернуть в активные"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                      className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                       onSelect={() => handleDelete(document)}
                     >
                       <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

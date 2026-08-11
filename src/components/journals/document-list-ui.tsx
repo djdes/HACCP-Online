@@ -48,7 +48,7 @@ export function JournalTopBar(props: {
       <div className={JOURNAL_LIST_ACTIONS_CLASS}>
         <Button
           variant="outline"
-          className="h-11 w-full rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
+          className="h-9 w-full rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
           asChild
         >
           <Link href={`/journals/${props.routeCode ?? props.templateCode}/guide`}>
@@ -62,7 +62,7 @@ export function JournalTopBar(props: {
             templateCode={props.templateCode}
             templateName={props.templateName}
             users={props.users}
-            triggerClassName="h-11 w-full rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+            triggerClassName="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
             triggerLabel="Создать документ"
             triggerIcon={<Plus className="size-4" />}
           />
@@ -109,7 +109,9 @@ export function JournalTabs(props: {
 
 export function EmptyDocumentsState({ label }: { label?: string } = {}) {
   return (
-    <div className="rounded-2xl border border-[#ececf4] bg-white px-6 py-10 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+    // На белом фоне раздела сплошная рамка + ring читались как «рамка ради
+    // рамки» — оставили только пунктир, как в design-system empty state.
+    <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-9 text-center">
       <div className="text-[15px] font-medium text-[#6f7282]">
         {label ?? "Документов пока нет"}
       </div>
@@ -134,53 +136,53 @@ export function DocumentActionsMenu(props: {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
+          className="flex size-8 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
         >
-          <Ellipsis className="size-8 text-[#5566f6]" />
+          <Ellipsis className="size-5 text-[#5566f6]" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
         className={
           md
-            ? "w-[320px] rounded-[28px] border-0 p-6 shadow-xl"
-            : "w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
+            ? "w-[300px] rounded-[22px] border-0 p-3 shadow-xl"
+            : "w-[260px] rounded-[20px] border-0 p-3 shadow-xl"
         }
       >
         {props.onEdit && (
           <DropdownMenuItem
             className={
               md
-                ? "mb-3 h-11 rounded-2xl px-4 text-[15px]"
-                : "mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                ? "mb-3 h-9 rounded-xl px-3.5 text-[13.5px]"
+                : "mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
             }
             onSelect={props.onEdit}
           >
-            <Pencil className={md ? "mr-4 size-7 text-[#6f7282]" : "mr-3 size-5 text-[#6f7282]"} />
+            <Pencil className={md ? "mr-3 size-4 text-[#6f7282]" : "mr-3 size-4 text-[#6f7282]"} />
             Настройки
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
           className={
             md
-              ? `${hasDelete ? "mb-3 " : ""}h-11 rounded-2xl px-4 text-[15px]`
-              : `${hasDelete ? "mb-2 " : ""}h-11 rounded-2xl px-4 text-[15px]`
+              ? `${hasDelete ? "mb-3 " : ""}h-9 rounded-xl px-3.5 text-[13.5px]`
+              : `${hasDelete ? "mb-2 " : ""}h-9 rounded-xl px-3.5 text-[13.5px]`
           }
           onSelect={props.onPrint}
         >
-          <Printer className={md ? "mr-4 size-7 text-[#6f7282]" : "mr-3 size-5 text-[#6f7282]"} />
+          <Printer className={md ? "mr-3 size-4 text-[#6f7282]" : "mr-3 size-4 text-[#6f7282]"} />
           Печать
         </DropdownMenuItem>
         {props.onDelete && (
           <DropdownMenuItem
             className={
               md
-                ? "h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
-                : "h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                ? "h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
+                : "h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
             }
             onSelect={props.onDelete}
           >
-            <Trash2 className={md ? "mr-4 size-7 text-[#ff3b30]" : "mr-3 size-5 text-[#ff3b30]"} />
+            <Trash2 className={md ? "mr-3 size-4 text-[#ff3b30]" : "mr-3 size-4 text-[#ff3b30]"} />
             Удалить
           </DropdownMenuItem>
         )}

@@ -10,7 +10,6 @@ import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { JournalLegendBlock } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   HYGIENE_REGISTER_LEGEND,
@@ -29,6 +28,11 @@ import {
 } from "@/lib/hygiene-document";
 
 import { toast } from "sonner";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
   routeCode?: string;
@@ -56,10 +60,6 @@ type Props = {
  * ПРИ ПЕЧАТИ (Ctrl+P) инспектор РПН/СЭС ждёт «бумагу» — чёрные рамки
  * без заливок. Поэтому каждый токен несёт пару screen + `print:`.
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 const STATUS_CYCLE: Array<HygieneStatus | null> = [
   null,
@@ -91,27 +91,27 @@ function HygieneHeader({
   organizationLabel: string;
 }) {
   return (
-    <table className="hygiene-header w-full border-collapse overflow-hidden rounded-2xl print:rounded-none">
+    <table className="hygiene-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
       <tbody>
         <tr>
           <td
             rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[22px] font-semibold`}
+            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[15px] font-semibold`}
           >
             {organizationLabel}
           </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-8 py-4 text-center text-[18px] uppercase`}>
+          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-8 py-8 text-center text-[18px] uppercase`}
+            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className={`${GRID_CELL_CLASS} px-8 py-4 text-center text-[17px] italic uppercase`}>
+          <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] italic uppercase`}>
             ГИГИЕНИЧЕСКИЙ ЖУРНАЛ
           </td>
         </tr>
@@ -453,7 +453,7 @@ export function HygieneDocumentClient({
               type="button"
               variant="outline"
               onClick={() => setSelectedEmployeeIds([])}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             >
               Выбрано: {selectedCount}
               <X className="size-4" />
@@ -463,7 +463,7 @@ export function HygieneDocumentClient({
               variant="outline"
               onClick={handleDeleteSelected}
               disabled={isDeleting}
-              className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+              className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
             >
               {isDeleting ? "Удаление..." : "Удалить"}
             </Button>
@@ -644,7 +644,7 @@ export function HygieneDocumentClient({
               {documentTitle}
             </div>
 
-            <table className="hygiene-grid w-full border-collapse text-[15px]">
+            <table className="hygiene-grid w-full border-collapse text-[13px]">
               <thead>
                 <tr>
                   <th
@@ -680,7 +680,7 @@ export function HygieneDocumentClient({
                     Должность
                   </th>
                   <th
-                    className={`${GRID_HEAD_CELL_CLASS} p-2 text-center text-[16px] font-semibold`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
                     colSpan={dateKeys.length}
                   >
                     Месяц {monthLabel}
@@ -703,7 +703,7 @@ export function HygieneDocumentClient({
                 {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
@@ -714,11 +714,11 @@ export function HygieneDocumentClient({
                           />
                         ) : null}
                       </td>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                         {employee.name ? employee.number : ""}
                       </td>
-                      <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{employee.name || ""}</td>
-                      <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{employee.name || ""}</td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                         {employee.position || ""}
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -730,7 +730,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
-                            className={`${GRID_CELL_CLASS} p-2 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -744,7 +744,7 @@ export function HygieneDocumentClient({
                       })}
                     </tr>
                     <tr>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                         Температура сотрудника более 37°C?
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -755,7 +755,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
-                            className={`${GRID_CELL_CLASS} p-2 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -772,15 +772,15 @@ export function HygieneDocumentClient({
                 ))}
 
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center align-middle`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
                     <HygieneCheckbox />
                   </td>
-                  <td colSpan={2} className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                     Должность ответственного за контроль
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>{responsibleLabel}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
-                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} p-2`} />
+                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
                   ))}
                 </tr>
               </tbody>

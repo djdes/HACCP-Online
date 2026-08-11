@@ -120,14 +120,14 @@ function EditDocumentDialog(props: {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Введите название документа"
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
           <div className="space-y-3">
             <Label className="text-[14px] text-[#6f7282]">Добавлять пустых строк при печати</Label>
             <Select value={emptyRows} onValueChange={setEmptyRows}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+              <SelectTrigger className="h-10 w-full rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -145,7 +145,7 @@ function EditDocumentDialog(props: {
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -219,7 +219,7 @@ export function HealthDocumentsClient(props: Props) {
 
         <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {props.documents.length === 0 && <EmptyDocumentsState />}
           {props.documents.map((document) => (
             <HealthDocumentRow

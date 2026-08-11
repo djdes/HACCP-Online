@@ -61,22 +61,22 @@ import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-but
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
 import { useMobileView } from "@/lib/use-mobile-view";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+  GRID_VIEWPORT_CLASS,
+} from "@/components/journals/journal-grid";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
  */
-const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
-const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
-const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 type EmployeeItem = {
   id: string;
@@ -240,7 +240,7 @@ function EquipmentDialog({
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Например: Холодильная камера"
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -254,7 +254,7 @@ function EquipmentDialog({
                 type="number"
                 value={min}
                 onChange={(event) => setMin(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-3">
@@ -266,7 +266,7 @@ function EquipmentDialog({
                 type="number"
                 value={max}
                 onChange={(event) => setMax(event.target.value)}
-                className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
               />
             </div>
           </div>
@@ -279,7 +279,7 @@ function EquipmentDialog({
                   variant="outline"
                   onClick={handleDelete}
                   disabled={isSubmitting}
-                  className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                  className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
                 >
                   Удалить строку
                 </Button>
@@ -290,7 +290,7 @@ function EquipmentDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting || name.trim() === ""}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : initialItem ? "Сохранить" : "Добавить"}
             </Button>
@@ -387,7 +387,7 @@ function JournalSettingsDialog({
             id="cold-journal-title-v2"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </div>
         <div className="space-y-2">
@@ -406,7 +406,7 @@ function JournalSettingsDialog({
               }
             }}
           >
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -419,7 +419,7 @@ function JournalSettingsDialog({
             Сотрудник
           </Label>
           <Select value={userId} onValueChange={setUserId}>
-            <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-white text-[15px]">
+            <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
@@ -901,7 +901,7 @@ export function ColdEquipmentDocumentClient({
                 checked={checkedAutoFill}
                 onCheckedChange={handleAutoFillChange}
                 disabled={status !== "active" || isSwitching}
-                className="h-11 w-18 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                className="h-10 w-18 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
               />
               <span className="text-[22px] font-medium text-black">
                 Автоматически заполнять журнал
@@ -981,7 +981,7 @@ export function ColdEquipmentDocumentClient({
                 setEditingEquipment(null);
                 setEquipmentDialogOpen(true);
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-6" />
               Добавить ХО
@@ -993,7 +993,7 @@ export function ColdEquipmentDocumentClient({
                 variant="outline"
                 onClick={handleDeleteSelectedEquipment}
                 disabled={isDeleting}
-                className="h-11 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2] disabled:opacity-60"
+                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] disabled:opacity-60"
               >
                 <Trash2 className="size-6" />
                 {isDeleting ? "Удаление..." : `Удалить выбранные (${selectedEquipmentIds.length})`}
@@ -1160,10 +1160,10 @@ export function ColdEquipmentDocumentClient({
           </div>
         </div>
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1900px] border-collapse text-[16px]">
+          <table className="min-w-[1900px] border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] p-3 text-center`} rowSpan={2}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] px-2 py-1.5 text-center`} rowSpan={2}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1175,13 +1175,13 @@ export function ColdEquipmentDocumentClient({
                   />
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] p-3 text-center text-[22px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] px-2 py-1.5 text-center text-[13px] font-semibold`}
                   rowSpan={2}
                 >
                   Номер ХК
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} p-3 text-center text-[22px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
                   colSpan={dateKeys.length}
                 >
                   Месяц{" "}
@@ -1196,7 +1196,7 @@ export function ColdEquipmentDocumentClient({
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`${GRID_HEAD_CELL_CLASS} w-[66px] p-2 text-center font-semibold ${
+                    className={`${GRID_HEAD_CELL_CLASS} w-[66px] px-2 py-1.5 text-center font-semibold ${
                       isWeekend(dateKey) ? "bg-[#eceffd]" : ""
                     }`}
                   >
@@ -1211,9 +1211,9 @@ export function ColdEquipmentDocumentClient({
 
             <tbody>
               <tr>
-                <td className={`${GRID_CELL_CLASS} p-2`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
                 <td
-                  className={`${GRID_CELL_CLASS} p-3 text-center text-[20px] font-semibold`}
+                  className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
                   colSpan={dateKeys.length + 1}
                 >
                   Температура °C
@@ -1222,7 +1222,7 @@ export function ColdEquipmentDocumentClient({
 
               {config.equipment.map((item) => (
                 <tr key={item.id}>
-                  <td className={`${GRID_CELL_CLASS} p-2 text-center`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
                     <Checkbox
                       checked={selectedEquipmentIds.includes(item.id)}
                       onCheckedChange={(checked) =>
@@ -1236,7 +1236,7 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className={`${GRID_CELL_CLASS} px-4 py-4 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                     <div className="text-[18px] font-medium">{item.name}</div>
                     <div className="mt-1 text-[13px] text-[#6f7282]">{formatRange(item.min, item.max)}</div>
                   </td>
@@ -1260,7 +1260,7 @@ export function ColdEquipmentDocumentClient({
                             onBlur={(event) =>
                               handleTemperatureBlur(dateKey, item.id, event.target.value)
                             }
-                            className="h-11 min-w-[58px] border-0 px-1 text-center text-[16px] shadow-none focus-visible:ring-1"
+                            className="h-9 min-w-[58px] border-0 px-1 text-center text-[16px] shadow-none focus-visible:ring-1"
                           />
                         ) : (
                           <span className="text-[16px]">{value ?? ""}</span>
@@ -1272,8 +1272,8 @@ export function ColdEquipmentDocumentClient({
               ))}
 
               <tr>
-                <td className={`${GRID_CELL_CLASS} p-2 text-center`} />
-                <td className={`${GRID_CELL_CLASS} px-4 py-4 align-top`}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
                   <div className="text-[18px] font-medium">Ответственный за снятие показателей</div>
                   <div className="mt-2 space-y-1 text-[13px] text-[#6f7282]">
                     {responsibleCodes.items.map((item) => (
@@ -1289,7 +1289,7 @@ export function ColdEquipmentDocumentClient({
                   return (
                     <td
                       key={`responsible:${dateKey}`}
-                      className={`${GRID_CELL_CLASS} p-2 text-center text-[15px] font-medium ${
+                      className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-medium ${
                         isWeekend(dateKey) ? "bg-[#fafbff]" : ""
                       }`}
                     >

@@ -174,7 +174,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] leading-none"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] leading-none"
             />
           </div>
 
@@ -183,7 +183,7 @@ function UvRuntimeSettingsDialog(props: {
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -193,7 +193,7 @@ function UvRuntimeSettingsDialog(props: {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
 
@@ -206,7 +206,7 @@ function UvRuntimeSettingsDialog(props: {
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -238,7 +238,7 @@ function UvRuntimeSettingsDialog(props: {
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-11 rounded-2xl border-[#dcdfed] bg-[#fafbff] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +259,7 @@ function UvRuntimeSettingsDialog(props: {
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -318,7 +318,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
 
       <JournalTabs activeTab={props.activeTab} templateCode={routeCode} />
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {props.documents.length === 0 && (
           <EmptyDocumentsState />
         )}
@@ -367,7 +367,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                   <DropdownMenuContent align="end" className="w-[260px] rounded-[20px] border border-[#eceef5] p-3 shadow-lg">
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() =>
                           setEditing({
                             id: document.id,
@@ -384,7 +384,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
-                      className="h-11 rounded-2xl px-4 text-[15px]"
+                      className="h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() => openPdf({ documentId: document.id })}
                     >
                       <Printer className="mr-2 size-4 text-[#6f7282]" />
@@ -392,7 +392,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                     </DropdownMenuItem>
                     {document.status === "closed" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => handleReactivate(document.id, resolvedTitle)}
                       >
                         <RotateCcw className="mr-2 size-4 text-[#6f7282]" />
@@ -401,7 +401,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                     )}
                     {document.status === "active" && (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => handleDelete(document, resolvedTitle)}
                       >
                         <Trash2 className="mr-2 size-4 text-[#ff3b30]" />

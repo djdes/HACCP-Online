@@ -196,7 +196,7 @@ function DocumentDialog({
               value={state.title}
               placeholder="Введите название документа"
               onChange={(event) => setState({ ...state, title: event.target.value })}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -205,7 +205,7 @@ function DocumentDialog({
               type="date"
               value={state.startDate}
               onChange={(event) => setState({ ...state, startDate: event.target.value })}
-              className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
           <div className="space-y-3">
@@ -224,7 +224,7 @@ function DocumentDialog({
                 })
               }
             >
-              <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+              <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
@@ -250,7 +250,7 @@ function DocumentDialog({
                   });
                 }}
               >
-                <SelectTrigger className="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]">
+                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
@@ -277,7 +277,7 @@ function DocumentDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
             >
               {submitting ? "Сохранение..." : submitLabel}
             </Button>
@@ -322,7 +322,7 @@ function DeleteDialog({
                 setSubmitting(false);
               }
             }}
-            className="h-11 rounded-2xl bg-[#5566f6] px-4 text-[15px] text-white hover:bg-[#4b57ff]"
+            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -540,7 +540,7 @@ export function MetalImpurityDocumentsClient({
                     >
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                           onSelect={() => setSettingsDocument(document)}
                         >
                           <Settings2 className="mr-3 size-5 text-[#6f7282]" />
@@ -548,7 +548,7 @@ export function MetalImpurityDocumentsClient({
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() =>
                           void openDocumentPdf(document.id).catch((error) =>
                             toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF")
@@ -560,7 +560,7 @@ export function MetalImpurityDocumentsClient({
                       </DropdownMenuItem>
                       {document.status === "active" && (
                         <DropdownMenuItem
-                          className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                           onSelect={() => setDeleteDocument(document)}
                         >
                           <Trash2 className="mr-3 size-5 text-[#ff3b30]" />

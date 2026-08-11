@@ -124,7 +124,7 @@ function SettingsDialog(props: {
                 onChange={(event) =>
                   setState({ ...activeState, title: event.target.value })
                 }
-                className="h-11 rounded-2xl border-[#d7dbea] px-4 text-[15px]"
+                className="h-9 rounded-xl border-[#d7dbea] px-3.5 text-[13.5px]"
               />
             </div>
             <div className="space-y-2">
@@ -136,7 +136,7 @@ function SettingsDialog(props: {
                   onChange={(event) =>
                     setState({ ...activeState, dateFrom: event.target.value })
                   }
-                  className="h-11 rounded-2xl border-[#d7dbea] px-4 text-[15px]"
+                  className="h-9 rounded-xl border-[#d7dbea] px-3.5 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7387]" />
               </div>
@@ -146,7 +146,7 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-11 rounded-2xl bg-[#5563ff] px-10 text-[15px] text-white hover:bg-[#4452ee]"
+                className="h-9 rounded-xl bg-[#5563ff] px-10 text-[13.5px] text-white hover:bg-[#4452ee]"
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
@@ -198,7 +198,7 @@ function DeleteDialog(props: {
             type="button"
             onClick={handleDelete}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-[#5563ff] px-10 text-[15px] text-white hover:bg-[#4452ee]"
+            className="h-9 rounded-xl bg-[#5563ff] px-10 text-[13.5px] text-white hover:bg-[#4452ee]"
           >
             {submitting ? "Удаление..." : "Удалить"}
           </Button>
@@ -279,7 +279,7 @@ export function AccidentDocumentsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>
           {ACCIDENT_DOCUMENT_HEADING}
@@ -369,7 +369,7 @@ export function AccidentDocumentsClient({
                   >
                     {document.status === "active" ? (
                       <DropdownMenuItem
-                        className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                         onSelect={() => setSettingsTarget(document)}
                       >
                         <Pencil className="mr-3 size-6 text-[#6f7282]" />
@@ -377,7 +377,7 @@ export function AccidentDocumentsClient({
                       </DropdownMenuItem>
                     ) : null}
                     <DropdownMenuItem
-                      className="mb-2 h-11 rounded-2xl px-4 text-[15px]"
+                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
                       onSelect={() =>
                         window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
                       }
@@ -387,7 +387,7 @@ export function AccidentDocumentsClient({
                     </DropdownMenuItem>
                     {document.status === "active" ? (
                       <DropdownMenuItem
-                        className="h-11 rounded-2xl px-4 text-[15px] text-[#ff3b30] focus:text-[#ff3b30]"
+                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
                         onSelect={() => setDeleteTarget(document)}
                       >
                         <Trash2 className="mr-3 size-6 text-[#ff3b30]" />

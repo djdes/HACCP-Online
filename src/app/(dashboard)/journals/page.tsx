@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
+import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { PageGuide } from "@/components/ui/page-guide";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -37,7 +39,7 @@ export default async function JournalsPage() {
     }),
     db.organization.findUnique({
       where: { id: getActiveOrgId(session) },
-      select: { disabledJournalCodes: true },
+      select: { name: true, disabledJournalCodes: true },
     }),
   ]);
 
@@ -90,6 +92,12 @@ export default async function JournalsPage() {
 
   return (
     <div className="space-y-5">
+      <JournalBreadcrumbs
+        items={[
+          { label: organization?.name || ORG_NAME_FALLBACK, href: "/journals" },
+          { label: "Журналы" },
+        ]}
+      />
       <PageGuide
         storageKey="journals-list"
         title="Как работать с журналами"

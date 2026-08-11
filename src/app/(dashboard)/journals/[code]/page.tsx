@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
 import { HealthDocumentsClient } from "@/components/journals/health-documents-client";
 import { TodayPendingBanner } from "@/components/journals/today-pending-banner";
+import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { getTemplateTodaySummary } from "@/lib/today-compliance";
 import {
   buildDateKeys,
@@ -1321,7 +1323,7 @@ export default async function JournalDocumentsPage({
   // at the setting instead so they can re-enable it.
   const orgSettings = await db.organization.findUnique({
     where: { id: getActiveOrgId(session) },
-    select: { disabledJournalCodes: true },
+    select: { name: true, disabledJournalCodes: true },
   });
   const disabledCodes = Array.isArray(orgSettings?.disabledJournalCodes)
     ? (orgSettings?.disabledJournalCodes as string[])
@@ -1376,9 +1378,23 @@ export default async function JournalDocumentsPage({
       noActiveDocument={todaySummary.noActiveDocument}
     />
   );
+  /**
+   * Крошки «<Организация> › <Журнал>». Единственная точка вставки на всю
+   * страницу: у файла ~40 return-веток, но все они идут через `withBanner`,
+   * поэтому дублировать разметку не нужно.
+   */
+  const breadcrumbs = (
+    <JournalBreadcrumbs
+      items={[
+        { label: orgSettings?.name || ORG_NAME_FALLBACK, href: "/journals" },
+        { label: template.name },
+      ]}
+    />
+  );
   function withBanner(children: React.ReactNode) {
     return (
       <div className="space-y-5">
+        {breadcrumbs}
         {todayBanner}
         {children}
       </div>
