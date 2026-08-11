@@ -3,6 +3,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -520,11 +527,12 @@ export function MedBookDocumentClient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className={DOC_BODY_STACK_CLASS}>
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       <DocumentActionsBar
         backHref="/journals/med_books"
         documentId={documentId}
+        heading={<h1 className={DOC_HEADING_CLASS}>{docTitle}</h1>}
         onSettings={() => setSettingsOpen(true)}
         menuItems={[
           isClosed
@@ -544,39 +552,9 @@ export function MedBookDocumentClient({
               },
         ]}
       />
-      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-3">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {docTitle}
-          </h1>
-        </div>
-      </div>
-
       {isClosed ? (
-        <JournalClosedBanner hint="Верните журнал в активные, чтобы менять даты осмотров, исследований и прививок." />
-      ) : null}
-
-      {!isClosed ? (
-        <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
-            onClick={() => {
-              setDraft(emptyDraft());
-              setAddOpen(true);
-            }}
-          >
-            <Plus className="size-5" />
-            Добавить сотрудника
-          </Button>
-          <Button
-            type="button"
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
-            onClick={() => void addExamColumn()}
-          >
-            <Plus className="size-5" />
-            Добавить исследование
-          </Button>
+        <div className="mb-5">
+          <JournalClosedBanner hint="Верните журнал в активные, чтобы менять даты осмотров, исследований и прививок." />
         </div>
       ) : null}
 
@@ -637,17 +615,43 @@ export function MedBookDocumentClient({
         ) : null}
 
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-        <div className="mb-4 print:mb-2">
+        <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал учёта медицинских книжек сотрудников"
           />
-          <div className="mt-3">
-            <JournalDocumentTitle>
-              Медицинские книжки
-            </JournalDocumentTitle>
-          </div>
         </div>
+        <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
+          Медицинские книжки
+        </JournalDocumentTitle>
+
+        {/* «Добавить сотрудника» / «Добавить исследование» — слева
+            непосредственно над таблицей, как на эталоне. Раньше кнопки
+            стояли в шапке страницы, выше бумажной шапки. */}
+        {!isClosed ? (
+          <div className={DOC_ADD_ROW_CLASS}>
+            <Button
+              type="button"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => {
+                setDraft(emptyDraft());
+                setAddOpen(true);
+              }}
+            >
+              <Plus className="size-5" />
+              Добавить сотрудника
+            </Button>
+            <Button
+              type="button"
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => void addExamColumn()}
+            >
+              <Plus className="size-5" />
+              Добавить исследование
+            </Button>
+          </div>
+        ) : null}
+
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1320px] border-collapse text-[13px] text-black">
             <thead>

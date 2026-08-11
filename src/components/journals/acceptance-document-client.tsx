@@ -13,6 +13,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
@@ -1644,7 +1652,7 @@ export function AcceptanceDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
-      <div className="mx-auto max-w-[1860px] space-y-6 px-4 py-4 sm:px-6 sm:py-6">
+      <div className={`${DOC_BODY_STACK_CLASS} mx-auto max-w-[1860px] px-4 py-4 sm:px-6 sm:py-6`}>
         {/* Selection bar */}
         {selectedRowIds.length > 0 && !isClosed && (
           <div className="flex items-center gap-3">
@@ -1666,6 +1674,7 @@ export function AcceptanceDocumentClient(props: Props) {
         <DocumentActionsBar
           backHref={`/journals/${routeCode}`}
           documentId={props.documentId}
+          heading={<h1 className={DOC_HEADING_CLASS}>{documentTitle}</h1>}
           onSettings={() => setSettingsOpen(true)}
           menuItems={
             !isClosed
@@ -1681,18 +1690,15 @@ export function AcceptanceDocumentClient(props: Props) {
           }
         />
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-5">
-            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">{documentTitle}</h1>
-            <label className="flex items-center gap-4 rounded-[18px] bg-[#f3f4fe] px-5 py-4 text-[16px]">
-              <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
-              <span>Сортировать по сроку годности</span>
-            </label>
-          </div>
-        </div>
+        {/* Полоса настроек журнала — на месте полосы автозаполнения эталона:
+            между строкой заголовка и бумажной шапкой, во всю ширину. */}
+        <label className={`${DOC_AUTOFILL_STRIP_CLASS} flex items-center gap-4 text-[16px]`}>
+          <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
+          <span>Сортировать по сроку годности</span>
+        </label>
 
         {/* HACCP header */}
-        <div className={GRID_VIEWPORT_CLASS}>
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
         <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <tr>
@@ -1721,15 +1727,17 @@ export function AcceptanceDocumentClient(props: Props) {
         </table>
         </div>
 
-        <div className="text-center text-[16px] font-semibold leading-tight sm:text-[20px]">{journalHeaderTitle}</div>
+        <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[16px] font-semibold leading-tight sm:text-[20px]`}>{journalHeaderTitle}</div>
 
         {isClosed ? (
-          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова регистрировать поставки и входной контроль." />
+          <div className="mb-5">
+            <JournalClosedBanner hint="Верните журнал в активные, чтобы снова регистрировать поставки и входной контроль." />
+          </div>
         ) : null}
 
         {/* Toolbar */}
         {!isClosed && (
-          <div className="flex flex-wrap items-center gap-3">
+          <div className={DOC_ADD_ROW_CLASS}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-6 text-[16px]">

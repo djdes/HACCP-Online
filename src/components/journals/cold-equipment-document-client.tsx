@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import {
   JournalDocumentHeader,
@@ -847,6 +852,36 @@ export function ColdEquipmentDocumentClient({
     });
   }
 
+  const equipmentAddBar =
+    status === "active" ? (
+          <div className="sticky top-0 z-30 -mx-4 mb-3 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur print:hidden md:-mx-6 md:px-6">
+            <Button
+              type="button"
+              onClick={() => {
+                setEditingEquipment(null);
+                setEquipmentDialogOpen(true);
+              }}
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+            >
+              <Plus className="size-6" />
+              Добавить ХО
+            </Button>
+
+            {selectedEquipmentIds.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDeleteSelectedEquipment}
+                disabled={isDeleting}
+                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] disabled:opacity-60"
+              >
+                <Trash2 className="size-6" />
+                {isDeleting ? "Удаление..." : `Удалить выбранные (${selectedEquipmentIds.length})`}
+              </Button>
+            ) : null}
+          </div>
+    ) : null;
+
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller />
@@ -854,6 +889,7 @@ export function ColdEquipmentDocumentClient({
         <DocumentActionsBar
           backHref="/journals/cold_equipment_control"
           documentId={documentId}
+          heading={<h1 className={DOC_HEADING_CLASS}>{documentTitle}</h1>}
           onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
           menuItems={
             status === "active"
@@ -880,14 +916,6 @@ export function ColdEquipmentDocumentClient({
         >
           {copyYesterday.dialog}
         </DocumentActionsBar>
-        <div className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-[1260px]">
-            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-              {documentTitle}
-            </h1>
-          </div>
-        </div>
-
         {status !== "active" ? (
           <div className="mb-8">
             <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать показания." />
@@ -973,33 +1001,11 @@ export function ColdEquipmentDocumentClient({
           ) : null}
         </div>
 
-        {status === "active" ? (
-          <div className="sticky top-0 z-30 -mx-4 mb-6 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingEquipment(null);
-                setEquipmentDialogOpen(true);
-              }}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
-            >
-              <Plus className="size-6" />
-              Добавить ХО
-            </Button>
-
-            {selectedEquipmentIds.length > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeleteSelectedEquipment}
-                disabled={isDeleting}
-                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] disabled:opacity-60"
-              >
-                <Trash2 className="size-6" />
-                {isDeleting ? "Удаление..." : `Удалить выбранные (${selectedEquipmentIds.length})`}
-              </Button>
-            ) : null}
-          </div>
+        {/* Кнопка «Добавить ХО» переехала под КАПС-заголовок, вплотную
+            над таблицу — как на эталоне. В mobile-cards ветке она
+            рендерится тем же узлом выше карточек. */}
+        {mobileView === "cards" ? (
+          <div className="sm:hidden print:hidden">{equipmentAddBar}</div>
         ) : null}
 
         {/* Mobile-only view toggle. Cards = accordion per equipment with
@@ -1148,17 +1154,18 @@ export function ColdEquipmentDocumentClient({
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-        <div className="mb-4 print:mb-2">
+        <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал контроля температурного режима холодильного и морозильного оборудования"
           />
-          <div className="mt-3">
-            <JournalDocumentTitle>
-              Журнал контроля температурного режима
-            </JournalDocumentTitle>
-          </div>
         </div>
+        <div className={DOC_CAPS_TITLE_CLASS}>
+          <JournalDocumentTitle>
+            Журнал контроля температурного режима
+          </JournalDocumentTitle>
+        </div>
+        {mobileView === "cards" ? null : equipmentAddBar}
         <div className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1900px] border-collapse text-[13px]">
             <thead>

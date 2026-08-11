@@ -42,6 +42,13 @@ import {
   type SanitationMonthKey,
 } from "@/lib/sanitation-day-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
@@ -841,19 +848,16 @@ export function SanitationDayDocumentClient({
       <DocumentActionsBar
         backHref={journalHref}
         documentId={documentId}
+        heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
         onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
       />
-
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024] print:hidden">
-        {title}
-      </h1>
 
       {readOnly ? (
         <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать план и факт уборок." />
       ) : null}
 
-      <section className="space-y-6 overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
+      <section className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0`}>
+        <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <tr>
@@ -882,7 +886,7 @@ export function SanitationDayDocumentClient({
         </table>
         </div>
 
-        <div className="flex justify-end">
+        <div className={`${DOC_PAPER_HEADER_CLASS} flex justify-end`}>
           <div className="w-full max-w-[320px] pr-2 text-right text-[13px] leading-snug">
             <div className="font-semibold">УТВЕРЖДАЮ</div>
             <div>{normalized.approveRole}</div>
@@ -895,12 +899,12 @@ export function SanitationDayDocumentClient({
           </div>
         </div>
 
-        <h2 className="text-center text-[28px] font-semibold">
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[28px] font-semibold`}>
           График и учет генеральных уборок на предприятии в {normalized.year} г.
         </h2>
 
         {!readOnly ? (
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className={`${DOC_ADD_ROW_CLASS} justify-between`}>
             <Button
               type="button"
               onClick={() => {

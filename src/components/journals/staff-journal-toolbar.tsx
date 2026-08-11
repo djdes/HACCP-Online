@@ -26,6 +26,13 @@ import {
   useDocumentCloseAction,
 } from "@/components/journals/document-close-button";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_TITLE_ROW_CLASS,
+} from "@/components/journals/journal-responsive";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import {
   getHygienePositionLabel,
@@ -522,8 +529,6 @@ export function StaffJournalToolbar({
 }: Props) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [fillOpen, setFillOpen] = useState(false);
   const [checked, setChecked] = useState(autoFill);
   const [isSwitching, setIsSwitching] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
@@ -562,15 +567,19 @@ export function StaffJournalToolbar({
     }
   }
 
+  const headingNode = !hideHeading ? (
+    <h1 className={DOC_HEADING_CLASS}>{heading}</h1>
+  ) : null;
+
   return (
     <>
-      <div className="space-y-8">
+      <div className={DOC_BODY_STACK_CLASS}>
         {showHeaderActions && routeCode ? (
           <DocumentActionsBar
-            className="mb-0"
             backHref={`/journals/${routeCode}`}
             documentId={documentId}
             showPrint={!hidePrint}
+            heading={headingNode}
             onSettings={
               status === "active"
                 ? () => (onSettingsClick ? onSettingsClick() : setSettingsOpen(true))
@@ -603,13 +612,13 @@ export function StaffJournalToolbar({
           </DocumentActionsBar>
         ) : null}
 
-        <div className="flex items-start justify-between gap-6">
-          {!hideHeading ? (
-            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{heading}</h1>
-          ) : (
-            <div />
-          )}
-          {!showHeaderActions && status === "active" && (
+        {/* Fallback-раскладка для вызовов без `showHeaderActions`: у них нет
+            <DocumentActionsBar>, поэтому H1 и кнопки рендерятся здесь — но в
+            том же каноническом порядке «заголовок слева, действия справа». */}
+        {!showHeaderActions ? (
+          <div className={DOC_TITLE_ROW_CLASS}>
+            {headingNode ?? <div />}
+            {status === "active" && (
             <>
             <Button
               type="button"
@@ -628,54 +637,29 @@ export function StaffJournalToolbar({
               Закончить журнал
             </DocumentCloseButton>
             </>
-          )}
-        </div>
-
-        {status === "active" && (
-          <>
-            {!hideAutoFill && (
-              <div className="rounded-[22px] bg-[#f3f4fe] px-6 py-5">
-                <div className="flex items-center gap-4">
-                  <Switch
-                    checked={checked}
-                    onCheckedChange={handleAutoFill}
-                    disabled={isSwitching}
-                    className="h-10 w-16 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
-                  />
-                  <span className="text-[20px] font-medium text-black">
-                    Автоматически заполнять журнал
-                  </span>
-                </div>
-              </div>
             )}
+          </div>
+        ) : null}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="h-[58px] w-fit rounded-2xl bg-[#5566f6] px-8 text-[18px] text-white hover:bg-[#4b57ff]">
-                  <Plus className="size-7" />
-                  Добавить
-                  <ChevronDown className="size-6" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-4 shadow-xl sm:min-w-[360px]">
-                <DropdownMenuItem
-                  className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
-                  onSelect={() => setAddOpen(true)}
-                >
-                  <UserPlus className="mr-4 size-6 text-[#3848c7]" />
-                  Добавить сотрудника
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
-                  onSelect={() => setFillOpen(true)}
-                >
-                  <Users className="mr-4 size-6 text-[#3848c7]" />
-                  Заполнить из списка сотрудников
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
+        {/* Полоса автозаполнения — сразу под строкой заголовка, как на
+            эталоне (крошки → H1 → полоса → бумажная шапка). Кнопка
+            «Добавить» здесь больше НЕ рендерится: её место — над таблицей
+            (<StaffJournalAddButton>, см. hygiene/health-document-client). */}
+        {status === "active" && !hideAutoFill ? (
+          <div className={DOC_AUTOFILL_STRIP_CLASS}>
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={checked}
+                onCheckedChange={handleAutoFill}
+                disabled={isSwitching}
+                className="h-10 w-16 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+              />
+              <span className="text-[20px] font-medium text-black">
+                Автоматически заполнять журнал
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <JournalSettingsDialog
@@ -688,6 +672,68 @@ export function StaffJournalToolbar({
         users={users}
         useV2={useV2}
       />
+
+    </>
+  );
+}
+
+/**
+ * Кнопка «Добавить ▾» гигиенического журнала / журнала здоровья.
+ *
+ * Раньше жила внутри <StaffJournalToolbar>, то есть в шапке страницы —
+ * ВЫШЕ бумажной ХАССП-шапки. На эталоне (cleaning-04-grid.png) «Добавить»
+ * стоит слева непосредственно НАД таблицей, под КАПС-заголовком, поэтому
+ * кнопка вынесена в отдельный компонент со своим состоянием и диалогами:
+ * host-клиент рендерит её ровно там, где нужно. Действия и диалоги
+ * прежние — переехало только место рендера.
+ */
+export function StaffJournalAddButton({
+  documentId,
+  title,
+  status,
+  users,
+  includedEmployeeIds,
+  className,
+}: {
+  documentId: string;
+  title: string;
+  status: string;
+  users: UserItem[];
+  includedEmployeeIds: string[];
+  className?: string;
+}) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [fillOpen, setFillOpen] = useState(false);
+
+  if (status !== "active") return null;
+
+  return (
+    <div className={className ?? DOC_ADD_ROW_CLASS}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="h-[58px] w-fit rounded-2xl bg-[#5566f6] px-8 text-[18px] text-white hover:bg-[#4b57ff]">
+            <Plus className="size-7" />
+            Добавить
+            <ChevronDown className="size-6" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-4 shadow-xl sm:min-w-[360px]">
+          <DropdownMenuItem
+            className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
+            onSelect={() => setAddOpen(true)}
+          >
+            <UserPlus className="mr-4 size-6 text-[#3848c7]" />
+            Добавить сотрудника
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
+            onSelect={() => setFillOpen(true)}
+          >
+            <Users className="mr-4 size-6 text-[#3848c7]" />
+            Заполнить из списка сотрудников
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AddEmployeeDialog
         open={addOpen}
@@ -705,6 +751,6 @@ export function StaffJournalToolbar({
         users={users}
         includedEmployeeIds={includedEmployeeIds}
       />
-    </>
+    </div>
   );
 }

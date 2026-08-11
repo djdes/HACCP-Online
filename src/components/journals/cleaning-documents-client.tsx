@@ -38,6 +38,9 @@ import {
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
+  JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_TAB_RAIL_CLASS,
+  JOURNAL_TAB_VIEWPORT_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
@@ -527,7 +530,7 @@ export function CleaningDocumentsClient(props: Props) {
 
   return (
     <>
-      <div className="space-y-10">
+      <div className={JOURNAL_LIST_STACK_CLASS}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {CLEANING_PAGE_TITLE}
@@ -556,28 +559,32 @@ export function CleaningDocumentsClient(props: Props) {
           </div>
         </div>
 
+        {/* Вкладки — та же вёрстка и типографика, что у <JournalTabs>
+            остальных 12 журналов (14px/600, pb-5, gap-8/sm:gap-12). */}
         <div className="border-b border-[#d9dce8]">
-          <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
-            <Link
-              href={`/journals/${props.routeCode}`}
-              className={`relative pb-6 ${
-                props.activeTab === "active"
-                  ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#8a8ea4]"
-              }`}
-            >
-              Активные
-            </Link>
-            <Link
-              href={`/journals/${props.routeCode}?tab=closed`}
-              className={`relative pb-6 ${
-                props.activeTab === "closed"
-                  ? "font-semibold text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
-                  : "text-[#8a8ea4]"
-              }`}
-            >
-              Закрытые
-            </Link>
+          <div className={JOURNAL_TAB_VIEWPORT_CLASS}>
+            <div className={JOURNAL_TAB_RAIL_CLASS}>
+              <Link
+                href={`/journals/${props.routeCode}`}
+                className={`relative pb-5 ${
+                  props.activeTab === "active"
+                    ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
+                    : "text-[#6f7282]"
+                }`}
+              >
+                Активные
+              </Link>
+              <Link
+                href={`/journals/${props.routeCode}?tab=closed`}
+                className={`relative pb-5 ${
+                  props.activeTab === "closed"
+                    ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
+                    : "text-[#6f7282]"
+                }`}
+              >
+                Закрытые
+              </Link>
+            </div>
           </div>
         </div>
 

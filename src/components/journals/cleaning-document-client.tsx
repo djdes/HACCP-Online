@@ -59,6 +59,15 @@ import {
 } from "@/lib/weekday-mask";
 import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_AUTOFILL_STRIP_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_EXTRA_BLOCK_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_LEGEND_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
@@ -1381,88 +1390,8 @@ export function CleaningDocumentClient(props: Props) {
   const controlUsers = getUsersForRoleLabel(props.users, settingsState.controlRole);
   const responsibleUsers = responsibleDialog ? getUsersForRoleLabel(props.users, responsibleDialog.title) : [];
 
-  return (
+  const cleaningAddToolbar = (
     <>
-      <div className="space-y-5">
-        <FocusTodayScroller />
-        <div className="print:hidden">
-          <DocumentActionsBar
-            className="mb-0 flex flex-wrap items-center justify-between gap-3"
-            backHref="/journals/cleaning"
-            documentId={props.documentId}
-            onSettings={() => setSettingsOpen(true)}
-            menuItems={[
-              ...(props.hasTasksFlowIntegration
-                ? [
-                    {
-                      key: "tf-sync",
-                      label: tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow",
-                      icon: (
-                        <RefreshCw
-                          className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
-                        />
-                      ),
-                      title: "Подтянуть отметки выполнения из TasksFlow",
-                      onSelect: () => void syncFromTasksFlow(),
-                      disabled: tasksFlowSyncing,
-                    },
-                    {
-                      key: "tf-cleanup",
-                      label: cleanupCompletedRunning ? "Чищу…" : "Очистить TF архив",
-                      icon: <Trash2 className="size-4" />,
-                      title:
-                        "Удалить выполненные задачи из TasksFlow (compliance-история сохранится в журнале)",
-                      onSelect: () => void cleanupCompletedTasks(),
-                      disabled: cleanupCompletedRunning,
-                      tone: "danger" as const,
-                    },
-                  ]
-                : []),
-              {
-                key: "save-as-template",
-                label: "Сохранить как шаблон",
-                icon: <Save className="size-4" />,
-                title:
-                  "Сохранить помещения, ответственных и шаги уборки как шаблон по умолчанию для новых журналов уборки",
-                onSelect: () => setSaveAsTemplateOpen(true),
-              },
-              ...(props.status === "active"
-                ? [
-                    {
-                      key: "close-journal",
-                      label: "Закончить журнал",
-                      icon: <Archive className="size-4" />,
-                      onSelect: () => void closeAction.closeDocument(),
-                      disabled: closeAction.isClosing,
-                    },
-                  ]
-                : []),
-            ]}
-          />
-        </div>
-
-        <div className="flex items-start justify-between gap-6 print:hidden">
-          <div><h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{config.documentTitle || CLEANING_PAGE_TITLE}</h1><p className="mt-2 text-[15px] text-[#6f7282]">{getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</p></div>
-          {saving ? <div className="text-[14px] text-[#6f7282]">Сохранение...</div> : null}
-        </div>
-
-        {props.status !== "active" ? (
-          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки, помещения и ответственных." />
-        ) : null}
-
-        {/* Автозаполнение — типографика в один масштаб с тулбаром ниже
-            (text-[13px]/[14px], h-9), как в соседних журналах. */}
-        <section className="rounded-2xl border border-[#ececf4] bg-[#f5f6ff] px-5 py-4 print:hidden">
-          <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
-            <div className="flex items-center gap-3"><Switch checked={config.autoFill.enabled} onCheckedChange={toggleAutoFill} disabled={props.status !== "active" || saving} className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]" /><span className="text-[14px] font-semibold text-[#0b1024]">Автоматически заполнять журнал</span></div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
-            </div>
-            <div className="flex items-center gap-2.5"><Checkbox checked={config.autoFill.skipWeekends} onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))} disabled={props.status !== "active" || saving} className="size-5 rounded-md" /><span className="text-[13px] text-[#3c4053]">Не заполнять в выходные дни</span></div>
-          </div>
-        </section>
-
         {/* Sticky под dashboard-хедером (он `sticky top-0 z-30 h-14`).
             top-14 чтобы не перекрывать хедер; z-20 чтобы хедер всегда был выше
             (без этого dropdown-trigger перекрывался невидимыми элементами хедера
@@ -1618,7 +1547,11 @@ export function CleaningDocumentClient(props: Props) {
               </div>
             ) : null}
           </div>
+    </>
+  );
 
+  const cleaningRaceStrip = (
+    <>
         {props.buildings && props.buildings.length > 0 ? (
           <div className="print:hidden">
           <CleaningRaceModeStrip
@@ -1650,6 +1583,107 @@ export function CleaningDocumentClient(props: Props) {
           />
           </div>
         ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <div className="space-y-5">
+        <FocusTodayScroller />
+        <div className="print:hidden">
+          <DocumentActionsBar
+            backHref="/journals/cleaning"
+            documentId={props.documentId}
+            heading={
+              <div>
+                <h1 className={DOC_HEADING_CLASS}>
+                  {config.documentTitle || CLEANING_PAGE_TITLE}
+                </h1>
+                <p className="mt-2 text-[15px] text-[#6f7282]">
+                  {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}
+                  {saving ? " · Сохранение..." : ""}
+                </p>
+              </div>
+            }
+            onSettings={() => setSettingsOpen(true)}
+            menuItems={[
+              ...(props.hasTasksFlowIntegration
+                ? [
+                    {
+                      key: "tf-sync",
+                      label: tasksFlowSyncing ? "Обновляю…" : "Обновить из TasksFlow",
+                      icon: (
+                        <RefreshCw
+                          className={`size-4 ${tasksFlowSyncing ? "animate-spin" : ""}`}
+                        />
+                      ),
+                      title: "Подтянуть отметки выполнения из TasksFlow",
+                      onSelect: () => void syncFromTasksFlow(),
+                      disabled: tasksFlowSyncing,
+                    },
+                    {
+                      key: "tf-cleanup",
+                      label: cleanupCompletedRunning ? "Чищу…" : "Очистить TF архив",
+                      icon: <Trash2 className="size-4" />,
+                      title:
+                        "Удалить выполненные задачи из TasksFlow (compliance-история сохранится в журнале)",
+                      onSelect: () => void cleanupCompletedTasks(),
+                      disabled: cleanupCompletedRunning,
+                      tone: "danger" as const,
+                    },
+                  ]
+                : []),
+              {
+                key: "save-as-template",
+                label: "Сохранить как шаблон",
+                icon: <Save className="size-4" />,
+                title:
+                  "Сохранить помещения, ответственных и шаги уборки как шаблон по умолчанию для новых журналов уборки",
+                onSelect: () => setSaveAsTemplateOpen(true),
+              },
+              ...(props.status === "active"
+                ? [
+                    {
+                      key: "close-journal",
+                      label: "Закончить журнал",
+                      icon: <Archive className="size-4" />,
+                      onSelect: () => void closeAction.closeDocument(),
+                      disabled: closeAction.isClosing,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
+
+        {props.status !== "active" ? (
+          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки, помещения и ответственных." />
+        ) : null}
+
+        {/* Автозаполнение — типографика в один масштаб с тулбаром ниже
+            (text-[13px]/[14px], h-9), как в соседних журналах. */}
+        <section className={`${DOC_AUTOFILL_STRIP_CLASS} border border-[#ececf4] bg-[#f5f6ff]`}>
+          <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
+            <div className="flex items-center gap-3"><Switch checked={config.autoFill.enabled} onCheckedChange={toggleAutoFill} disabled={props.status !== "active" || saving} className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]" /><span className="text-[14px] font-semibold text-[#0b1024]">Автоматически заполнять журнал</span></div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <div className="flex items-center gap-2.5"><Checkbox checked={config.autoFill.skipWeekends} onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))} disabled={props.status !== "active" || saving} className="size-5 rounded-md" /><span className="text-[13px] text-[#3c4053]">Не заполнять в выходные дни</span></div>
+          </div>
+        </section>
+
+        {/* Тулбар «Добавить»/«Заполнение»/«Выделение» и race-strip уборки
+            переехали ПОД бумажную шапку и КАПС-заголовок, вплотную над
+            таблицу — как на эталоне (cleaning-07-grid-with-room.png).
+            В mobile-cards ветке те же узлы рендерятся выше карточек. */}
+        {mobileView === "cards" ? (
+          <div className="sm:hidden print:hidden">
+            {cleaningAddToolbar}
+            {cleaningRaceStrip}
+          </div>
+        ) : null}
+
 
         <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
 
@@ -1814,17 +1848,25 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
-        <div className="space-y-5">
+        <div className={DOC_BODY_STACK_CLASS}>
           {/* Официальный ХАССП-блок — общий компонент вместо самодельной
               таблицы с чёрными рамками (на экране — карточка дизайн-системы,
               в печати сам компонент возвращает бумажный вид). */}
-          <JournalDocumentHeader
-            orgName={props.organizationName}
-            title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
-          />
-          <JournalDocumentTitle>
+          <div className={DOC_PAPER_HEADER_CLASS}>
+            <JournalDocumentHeader
+              orgName={props.organizationName}
+              title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
+            />
+          </div>
+          <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
             {config.documentTitle || CLEANING_PAGE_TITLE}
           </JournalDocumentTitle>
+          {mobileView === "cards" ? null : (
+            <>
+              {cleaningAddToolbar}
+              {cleaningRaceStrip}
+            </>
+          )}
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
           <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`w-12 p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /></th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} /><th className={`p-2 ${GRID_HEAD_CELL_PLAIN_CLASS}`} />{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`p-2 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
@@ -2094,11 +2136,14 @@ export function CleaningDocumentClient(props: Props) {
           {/* Условные обозначения — общий <JournalLegendBlock> вместо
               самодельного блока с regex-заменами латиницы на кириллицу. */}
           <JournalLegendBlock
+            className={DOC_LEGEND_CLASS}
             items={Array.from(new Set(config.legend)).map(parseLegendItem)}
           />
-          <CleaningDayColorLegend />
+          <div className="mt-3">
+            <CleaningDayColorLegend />
+          </div>
 
-          <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[640px] sm:min-w-0">
+          <div className={`${DOC_EXTRA_BLOCK_CLASS} ${GRID_VIEWPORT_CLASS}`}><div className="min-w-[640px] sm:min-w-0">
           <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Текущая уборка</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1.5 ${GRID_CELL_CLASS}`}>{room.name}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
           </div></div>
         </div>

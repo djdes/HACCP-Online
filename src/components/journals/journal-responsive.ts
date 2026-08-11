@@ -6,6 +6,15 @@
 export const JOURNAL_LIST_HEADING_CLASS =
   "w-full text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] text-[#0b1024] sm:max-w-[70%]";
 
+/**
+ * Ритм страницы СПИСКА документов журнала (эталон: hygiene-grid.png).
+ *
+ * Порядок: крошки → строка «H1 слева + Инструкция/Создать документ справа»
+ * → вкладки «Активные/Закрытые» → карточки документов. Один шаг 32px
+ * между всеми тремя блоками — на всех 13 журналах одинаково.
+ */
+export const JOURNAL_LIST_STACK_CLASS = "space-y-8";
+
 export const JOURNAL_LIST_ACTIONS_CLASS =
   "flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center";
 
@@ -90,3 +99,67 @@ export const REGISTER_DOCUMENT_SUMMARY_ROW_CLASS =
 
 export const REGISTER_DOCUMENT_SUMMARY_STATS_CLASS =
   "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4";
+
+/* ------------------------------------------------------------------ *
+ * Канонический вертикальный ритм страницы документа
+ * ------------------------------------------------------------------ *
+ *
+ * Замерен по эталону lk.haccp-online.ru
+ * (docs/reference/haccp-online/screenshots/cleaning-04-grid.png,
+ *  cleaning-07-grid-with-room.png, fryer_oil-grid.png).
+ *
+ * Порядок блоков на странице документа — один для всех 13 обязательных
+ * журналов:
+ *
+ *   1. хлебные крошки            (рендерятся страницей, не клиентом)
+ *   2. H1 слева + «Настройки журнала» / «⋯» справа  → DOC_TITLE_ROW_CLASS
+ *   3. полоса «Автоматически заполнять журнал»      → DOC_AUTOFILL_STRIP_CLASS
+ *   4. бумажная ХАССП-шапка                          → DOC_PAPER_HEADER_CLASS
+ *   5. центрированный КАПС-заголовок                 → DOC_CAPS_TITLE_CLASS
+ *   6. «Добавить» + доп. тулбары слева над таблицей  → DOC_ADD_ROW_CLASS
+ *   7. основная таблица
+ *   8. «Условные обозначения»                        → DOC_LEGEND_CLASS
+ *   9. дополнительные таблицы / приложения           → DOC_EXTRA_BLOCK_CLASS
+ *
+ * Ритм эталона: крошки→H1 12, H1→полоса 20, полоса→шапка 40,
+ * шапка→капс 28, капс→«Добавить» 20, «Добавить»→таблица 12,
+ * таблица→легенда 24, легенда→вторая таблица 32.
+ *
+ * ВАЖНО: держим ритм в этих трёх-четырёх константах, а не голыми
+ * числами в 13 файлах — иначе разнобой возвращается на следующей правке.
+ */
+
+/**
+ * Корневая обёртка тела документа. Ритм задают сами блоки (mb-*),
+ * поэтому общего `space-y-*` тут намеренно нет: blanket-отступ
+ * перебивал бы канон.
+ */
+export const DOC_BODY_STACK_CLASS = "print:space-y-0";
+
+/** H1 страницы документа — та же типографика, что у H1 списка (32px/700). */
+export const DOC_HEADING_CLASS =
+  "text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]";
+
+/** Строка заголовка: H1 слева, действия справа. 20px до следующего блока. */
+export const DOC_TITLE_ROW_CLASS =
+  "mb-5 flex flex-wrap items-start justify-between gap-4 print:hidden";
+
+/** Полоса автозаполнения во всю ширину контейнера. 40px до бумажной шапки. */
+export const DOC_AUTOFILL_STRIP_CLASS =
+  "mb-10 rounded-[22px] bg-[#f3f4fe] px-4 py-3.5 print:hidden sm:px-6 sm:py-4";
+
+/** Бумажная ХАССП-шапка. 28px до КАПС-заголовка. */
+export const DOC_PAPER_HEADER_CLASS = "mb-7";
+
+/** Центрированный КАПС-заголовок документа. 20px до «Добавить». */
+export const DOC_CAPS_TITLE_CLASS = "mb-5";
+
+/** Строка «Добавить» и доп. тулбаров слева над таблицей. 12px до таблицы. */
+export const DOC_ADD_ROW_CLASS =
+  "mb-3 flex flex-wrap items-center gap-3 print:hidden";
+
+/** «Условные обозначения» под таблицей. 24px сверху. */
+export const DOC_LEGEND_CLASS = "mt-6";
+
+/** Дополнительные таблицы и приложения под легендой. 32px сверху. */
+export const DOC_EXTRA_BLOCK_CLASS = "mt-8";

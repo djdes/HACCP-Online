@@ -42,6 +42,7 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { DOC_HEADING_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
@@ -1351,6 +1352,7 @@ export function ClimateDocumentClient({
         <DocumentActionsBar
           backHref="/journals/climate_control"
           documentId={documentId}
+          heading={<h1 className={DOC_HEADING_CLASS}>{documentTitle}</h1>}
           onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
           menuItems={
             status === "active"
@@ -1366,14 +1368,6 @@ export function ClimateDocumentClient({
               : []
           }
         />
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <div>
-            <h1 className="mt-2 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-              {documentTitle}
-            </h1>
-          </div>
-        </div>
-
         {status !== "active" ? (
           <div className="mb-8">
             <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать строки." />

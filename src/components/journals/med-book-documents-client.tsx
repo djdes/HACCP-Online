@@ -39,7 +39,8 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
-import { JOURNAL_CARD_TITLE_CLASS } from "@/components/journals/journal-responsive";
+import {
+  JOURNAL_LIST_STACK_CLASS, JOURNAL_CARD_TITLE_CLASS } from "@/components/journals/journal-responsive";
 
 type MedBookListDocument = {
   id: string;
@@ -169,7 +170,7 @@ export function MedBookDocumentsClient({
   }
 
   return (
-    <div className="space-y-8 sm:space-y-14">
+    <div className={JOURNAL_LIST_STACK_CLASS}>
       <JournalTopBar
         heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
         activeTab={activeTab}

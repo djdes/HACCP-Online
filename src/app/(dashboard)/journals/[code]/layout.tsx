@@ -27,7 +27,9 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
       {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
           скроллятся внутри собственного viewport-контейнера
           (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}
-      <div className="mx-auto max-w-[1296px] space-y-5">
+      {/* space-y-3 — шаг «хлебные крошки → H1» эталона (12px). Дальше
+          ритм страницы задают токены DOC_* из journal-responsive.ts. */}
+      <div className="mx-auto max-w-[1296px] space-y-3">
         {children}
         <JournalDocGuideOverlay />
       </div>

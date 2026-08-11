@@ -19,6 +19,7 @@ import { normalizeFinishedProductDocumentConfig } from "@/lib/finished-product-d
 import { toast } from "sonner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
+  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
@@ -138,7 +139,7 @@ export function FinishedProductDocumentsClient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className={JOURNAL_LIST_STACK_CLASS}>
       <JournalTopBar
         heading={
           activeTab === "closed"

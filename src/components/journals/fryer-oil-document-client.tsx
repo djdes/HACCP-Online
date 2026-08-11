@@ -13,6 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_EXTRA_BLOCK_CLASS,
+  DOC_HEADING_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -537,10 +544,11 @@ export function FryerOilDocumentClient(props: Props) {
             : undefined
         }
       />
-      <div className="mx-auto max-w-[1880px] space-y-8 px-6 py-8">
+      <div className={`${DOC_BODY_STACK_CLASS} mx-auto max-w-[1880px] px-6 py-8`}>
         <DocumentActionsBar
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}
+          heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
           onSettings={() => setSettingsOpen(true)}
           menuItems={
             isActive
@@ -556,12 +564,10 @@ export function FryerOilDocumentClient(props: Props) {
               : []
           }
         />
-        <div className="flex flex-wrap items-start justify-between gap-6 print:hidden">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">{title}</h1>
-        </div>
-
         {!isActive ? (
-          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи об использовании фритюрных жиров." />
+          <div className="mb-5">
+            <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи об использовании фритюрных жиров." />
+          </div>
         ) : null}
 
         <div className={GRID_VIEWPORT_CLASS}>
@@ -571,8 +577,9 @@ export function FryerOilDocumentClient(props: Props) {
               <div className="grid grid-rows-[55px_55px]"><div className="flex items-center justify-center border-b border-[#ececf4] print:border-black text-[20px] uppercase">Система ХАССП</div><div className="flex items-center justify-center text-[18px] italic uppercase">Журнал учета использования фритюрных жиров</div></div>
               <div className="grid grid-rows-[55px_55px] border-l border-[#ececf4] print:border-black"><div className="space-y-1 border-b border-[#ececf4] print:border-black px-6 py-3 text-[18px]"><div className="flex items-center justify-between"><span>Начат</span><span>{formatDateRu(dateFrom)}</span></div><div className="flex items-center justify-between"><span>Окончен</span><span>__________</span></div></div><div className="flex items-center justify-center text-[18px] uppercase">Стр. 1 из 1</div></div>
             </div>
-            <div className="py-10 text-center text-[26px] font-semibold uppercase">Журнал учета использования фритюрных жиров</div>
-            {isActive ? <div className="mb-5 flex flex-wrap items-center gap-3 print:hidden"><Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-10 rounded-xl border-[#ffd7d3] px-3.5 text-[#ff3b30]" onClick={() => void confirmDeleteEntries()}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
+            {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
+            <div className={`mt-7 ${DOC_CAPS_TITLE_CLASS} text-center text-[26px] font-semibold uppercase`}>Журнал учета использования фритюрных жиров</div>
+            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-10 rounded-xl border-[#ffd7d3] px-3.5 text-[#ff3b30]" onClick={() => void confirmDeleteEntries()}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
             <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
             {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
             <MobileViewTableWrapper mobileView={mobileView}>
@@ -581,7 +588,9 @@ export function FryerOilDocumentClient(props: Props) {
               <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282]`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center print:hidden`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1.5`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>
-            <Appendix />
+            <div className={DOC_EXTRA_BLOCK_CLASS}>
+              <Appendix />
+            </div>
           </div>
         </div>
       </div>

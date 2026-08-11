@@ -12,6 +12,14 @@ import {
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_EXTRA_BLOCK_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -298,9 +306,10 @@ export function FinishedProductDocumentClient({
       />
       <div className="rounded-[28px] bg-white px-4 py-5 shadow-sm sm:px-8 sm:py-7">
         <DocumentActionsBar
-          className="mb-0 flex flex-wrap items-center justify-between gap-3 print:hidden"
+          className="mb-0"
           backHref="/journals/finished_product"
           documentId={documentId}
+          heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
           onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
           menuItems={
             !readOnly
@@ -316,17 +325,14 @@ export function FinishedProductDocumentClient({
               : []
           }
         />
-        <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
-        </div>
       </div>
 
       {readOnly ? (
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража." />
       ) : null}
 
-      <div className="space-y-5 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        <div className={GRID_VIEWPORT_CLASS}>
+      <div className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6`}>
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
               <tr>
@@ -342,9 +348,9 @@ export function FinishedProductDocumentClient({
           </table>
         </div>
 
-        <h2 className="text-center text-[20px] font-semibold uppercase leading-tight sm:text-[30px]">Журнал бракеража готовой пищевой продукции</h2>
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[20px] font-semibold uppercase leading-tight sm:text-[30px]`}>Журнал бракеража готовой пищевой продукции</h2>
 
-        {!readOnly && <div className="flex flex-wrap gap-3">
+        {!readOnly && <div className={DOC_ADD_ROW_CLASS}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] transition-colors hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="ml-1 size-5" /></Button>
@@ -395,7 +401,7 @@ export function FinishedProductDocumentClient({
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>
         </MobileViewTableWrapper>
-        <div className="text-[18px] underline">{config.footerNote}</div>
+        <div className={`${DOC_EXTRA_BLOCK_CLASS} text-[18px] underline`}>{config.footerNote}</div>
       </div>
 
       <section className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">

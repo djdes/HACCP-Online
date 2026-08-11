@@ -40,6 +40,7 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
+  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
@@ -246,7 +247,7 @@ export function CleaningVentilationChecklistDocumentsClient({
   }
 
   return (
-    <div className="space-y-8 sm:space-y-14">
+    <div className={JOURNAL_LIST_STACK_CLASS}>
       <JournalTopBar
         routeCode={routeCode}
         heading={`${CLEANING_VENTILATION_CHECKLIST_TITLE}${activeTab === "closed" ? " (закрытые)" : ""}`}

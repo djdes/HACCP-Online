@@ -48,6 +48,14 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -1181,7 +1189,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const todayFocusRowIndex = rows.findIndex((row) => row.date === todayKey);
 
   return (
-    <div className="space-y-4">
+    <div className={DOC_BODY_STACK_CLASS}>
       <FocusTodayScroller
         onCreate={
           props.status === "active" ? () => setAddRowOpen(true) : undefined
@@ -1190,6 +1198,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       <DocumentActionsBar
         backHref={`/journals/${props.routeCode}`}
         documentId={props.documentId}
+        heading={
+          <h1 className={DOC_HEADING_CLASS}>
+            Журнал учета работы УФ бактерицидной установки
+          </h1>
+        }
         onSettings={props.status === "active" ? () => setSettingsOpen(true) : undefined}
         menuItems={
           props.status === "active"
@@ -1205,21 +1218,19 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         }
       />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-          Журнал учета работы УФ бактерицидной установки
-        </h1>
-      </div>
-
       {props.status !== "active" ? (
-        <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки времени." />
+        <div className="mb-5">
+          <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки времени." />
+        </div>
       ) : null}
 
-      {/* Auto-fill toggle */}
+      {/* Полоса автозаполнения — сразу под строкой заголовка (эталон). */}
       {props.status === "active" && (
-        <div className="flex items-center gap-3 print:hidden">
-          <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
-          <span className="text-[14px] text-black">Автоматически заполнять журнал</span>
+        <div className={DOC_AUTOFILL_STRIP_CLASS}>
+          <div className="flex items-center gap-3">
+            <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
+            <span className="text-[14px] text-black">Автоматически заполнять журнал</span>
+          </div>
         </div>
       )}
 
@@ -1271,25 +1282,30 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         </div>
       </div>
 
+      {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
+          По эталону (uv_lamp_runtime-grid.png) он стоит НАД справочными
+          таблицами спецификации и наработки, а не под ними. */}
+      <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
+        <JournalDocumentHeader
+          orgName={props.organizationName}
+          title="Журнал учета работы УФ бактерицидной установки"
+        />
+      </div>
+      <div className={DOC_CAPS_TITLE_CLASS}>
+        <JournalDocumentTitle>
+          Журнал учета работы УФ бактерицидной установки
+        </JournalDocumentTitle>
+      </div>
+
       {/* Specification table */}
-      <SpecificationTable config={config} onEdit={() => setSpecEditOpen(true)} />
+      <div className="mb-5">
+        <SpecificationTable config={config} onEdit={() => setSpecEditOpen(true)} />
+      </div>
 
       {/* Monthly summary */}
-      <MonthlySummaryTable monthlyData={monthlyData} />
-
-      {/* Add button */}
-      {props.status === "active" && (
-        <div className="flex items-center justify-between print:hidden">
-          <Button
-            type="button"
-            onClick={() => setAddRowOpen(true)}
-            className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
-          >
-            <Plus className="mr-1 size-4" />
-            Добавить
-          </Button>
-        </div>
-      )}
+      <div className="mb-5">
+        <MonthlySummaryTable monthlyData={monthlyData} />
+      </div>
 
       <div className="sm:hidden print:hidden">
         <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
@@ -1349,18 +1365,20 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         />
       ) : null}
 
-      {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-      <div className="mb-4 print:mb-2">
-        <JournalDocumentHeader
-          orgName={props.organizationName}
-          title="Журнал учета работы УФ бактерицидной установки"
-        />
-        <div className="mt-3">
-          <JournalDocumentTitle>
-            Журнал учета работы УФ бактерицидной установки
-          </JournalDocumentTitle>
+      {/* «Добавить» — слева непосредственно над таблицей (эталон).
+          Раньше кнопка стояла выше mobile-переключателя и карточек. */}
+      {props.status === "active" && (
+        <div className={DOC_ADD_ROW_CLASS}>
+          <Button
+            type="button"
+            onClick={() => setAddRowOpen(true)}
+            className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+          >
+            <Plus className="mr-1 size-4" />
+            Добавить
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* Data table */}
       <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[12px] border border-[#eceef5] bg-white print:rounded-none print:border-[#ccc]">

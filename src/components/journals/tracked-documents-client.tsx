@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import {
+  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
@@ -356,7 +357,7 @@ function TrackedDocumentsClientImpl({
 
   return (
     <>
-      <div className="space-y-10">
+      <div className={JOURNAL_LIST_STACK_CLASS}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>{heading}</h1>
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
@@ -388,9 +389,9 @@ function TrackedDocumentsClientImpl({
             <div className={JOURNAL_TAB_RAIL_CLASS}>
             <Link
               href={`/journals/${templateCode}`}
-              className={`relative pb-4 ${
+              className={`relative pb-5 ${
                 activeTab === "active"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
+                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
                   : "text-[#6f7282]"
               }`}
             >
@@ -398,9 +399,9 @@ function TrackedDocumentsClientImpl({
             </Link>
             <Link
               href={`/journals/${templateCode}?tab=closed`}
-              className={`relative pb-4 ${
+              className={`relative pb-5 ${
                 activeTab === "closed"
-                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[2px] after:w-full after:bg-[#5566f6]"
+                  ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
                   : "text-[#6f7282]"
               }`}
             >

@@ -20,7 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
+import {
+  StaffJournalAddButton,
+  StaffJournalToolbar,
+} from "@/components/journals/staff-journal-toolbar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_EXTRA_BLOCK_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -338,7 +347,10 @@ export function HealthDocumentClient(props: Props) {
       `}</style>
 
       <div className="health-sheet mx-auto max-w-[1720px] px-4 py-4 sm:px-8 sm:py-6">
-        <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
+        {/* Нижний отступ этого блока задаёт полоса автозаполнения внутри
+            <StaffJournalToolbar> (DOC_AUTOFILL_STRIP_CLASS, 40px до бумажной
+            шапки) — свой mb здесь удваивал бы канон. */}
+        <div className="screen-only space-y-4">
           <StaffJournalToolbar
             documentId={documentId}
             heading="Журнал Здоровья"
@@ -516,13 +528,28 @@ export function HealthDocumentClient(props: Props) {
         >
         <div className={GRID_VIEWPORT_CLASS}>
         <div className="mx-auto min-w-[1100px] max-w-[1860px] px-8 py-6 sm:min-w-0">
-          <div className="mb-10">
+          <div className={DOC_PAPER_HEADER_CLASS}>
             <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
           </div>
 
-          <div className="health-title mb-8 text-center text-[34px] font-bold uppercase">
+          <div
+            className={`health-title ${DOC_CAPS_TITLE_CLASS} text-center text-[34px] font-bold uppercase`}
+          >
             {documentTitle}
           </div>
+
+          {/* «Добавить» — слева непосредственно над таблицей (эталон).
+              Раньше кнопка жила в шапке страницы, выше бумажной шапки.
+              `sticky left-0` держит её у левого края при горизонтальном
+              скролле широкого листа. */}
+          <StaffJournalAddButton
+            documentId={documentId}
+            title={documentTitle}
+            status={status}
+            users={employees}
+            includedEmployeeIds={includedEmployeeIds}
+            className={`${DOC_ADD_ROW_CLASS} sticky left-0 w-fit`}
+          />
 
           <table className="health-grid w-full border-collapse text-[13px]">
             <thead>
@@ -654,7 +681,7 @@ export function HealthDocumentClient(props: Props) {
             </tbody>
           </table>
 
-          <div className="health-notes mt-12 space-y-7 text-[16px] leading-7">
+          <div className={`health-notes ${DOC_EXTRA_BLOCK_CLASS} space-y-7 text-[16px] leading-7`}>
             {HEALTH_REGISTER_NOTES.map((note) => (
               <p key={note}>{note}</p>
             ))}

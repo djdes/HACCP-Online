@@ -37,6 +37,7 @@ import { useJournalDocumentActions } from "@/components/journals/use-journal-doc
 
 import { toast } from "sonner";
 import {
+  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
@@ -279,7 +280,7 @@ export function HygieneDocumentsClient({
 
   return (
     <>
-      <div className="space-y-8 sm:space-y-14">
+      <div className={JOURNAL_LIST_STACK_CLASS}>
         <JournalTopBar
           heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
           activeTab={activeTab}

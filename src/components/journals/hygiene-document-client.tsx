@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StaffJournalToolbar } from "@/components/journals/staff-journal-toolbar";
+import {
+  StaffJournalAddButton,
+  StaffJournalToolbar,
+} from "@/components/journals/staff-journal-toolbar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_LEGEND_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { JournalLegendBlock } from "@/components/journals/journal-document-header";
@@ -426,7 +435,10 @@ export function HygieneDocumentClient({
         would force the toolbar off-screen. Pulling it up into normal
         document flow keeps the toolbar tap-friendly regardless of view.
       */}
-      <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
+      {/* Нижний отступ этого блока задаёт полоса автозаполнения внутри
+            <StaffJournalToolbar> (DOC_AUTOFILL_STRIP_CLASS, 40px до бумажной
+            шапки) — свой mb здесь удваивал бы канон. */}
+        <div className="screen-only space-y-4">
         <StaffJournalToolbar
           documentId={documentId}
           heading="Гигиенический журнал"
@@ -636,13 +648,27 @@ export function HygieneDocumentClient({
 
         <div className="hygiene-page">
           <div className="mx-auto max-w-[1380px]">
-            <div className="mb-10">
+            <div className={DOC_PAPER_HEADER_CLASS}>
               <HygieneHeader pageLabel="СТР. 1 ИЗ 1" organizationLabel={organizationLabel} />
             </div>
 
-            <div className="hygiene-title mb-8 text-center text-[34px] font-bold uppercase">
+            <div
+              className={`hygiene-title ${DOC_CAPS_TITLE_CLASS} text-center text-[34px] font-bold uppercase`}
+            >
               {documentTitle}
             </div>
+
+            {/* «Добавить» — слева непосредственно над таблицей, как на
+                эталоне. `sticky left-0` держит кнопку у левого края, если
+                широкий лист (min-w-[1100px]) скроллится по горизонтали. */}
+            <StaffJournalAddButton
+              documentId={documentId}
+              title={documentTitle}
+              status={status}
+              users={employees}
+              includedEmployeeIds={includedEmployeeIds}
+              className={`${DOC_ADD_ROW_CLASS} sticky left-0 w-fit`}
+            />
 
             <table className="hygiene-grid w-full border-collapse text-[13px]">
               <thead>
@@ -786,15 +812,11 @@ export function HygieneDocumentClient({
               </tbody>
             </table>
 
-            <div className="hygiene-notes mt-8 text-[16px] leading-7">
-              <div className="font-semibold">В журнал регистрируются результаты:</div>
-              {HYGIENE_REGISTER_NOTES.map((note) => (
-                <div key={note}>- {note}</div>
-              ))}
-            </div>
-
-            {/* Условные обозначения: карточка — на экране, курсивный блок ниже — в печати */}
-            <div className="mt-6 print:hidden">
+            {/* Условные обозначения: карточка — на экране, курсивный блок ниже — в печати.
+                По эталону легенда идёт сразу под таблицей, а справочные
+                блоки («В журнал регистрируются результаты», напоминание) —
+                ниже неё. */}
+            <div className={`${DOC_LEGEND_CLASS} print:hidden`}>
               <JournalLegendBlock
                 items={[
                   { symbol: "Зд", description: "здоров (допущен к работе)" },
@@ -805,6 +827,13 @@ export function HygieneDocumentClient({
                   { symbol: "—", description: "сотрудник не выходил на смену" },
                 ]}
               />
+            </div>
+
+            <div className="hygiene-notes mt-8 text-[16px] leading-7">
+              <div className="font-semibold">В журнал регистрируются результаты:</div>
+              {HYGIENE_REGISTER_NOTES.map((note) => (
+                <div key={note}>- {note}</div>
+              ))}
             </div>
 
             <div className="hygiene-reminder mt-8 text-[16px] font-semibold leading-7">

@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DOC_TITLE_ROW_CLASS } from "@/components/journals/journal-responsive";
 import { cn } from "@/lib/utils";
 
 export type DocumentBarMenuItem = {
@@ -33,6 +34,13 @@ type Props = {
   documentId?: string;
   /** Скрыть пункт «Печать» — если печать на этой странице не нужна вообще. */
   showPrint?: boolean;
+  /**
+   * Заголовок страницы (H1) и всё, что живёт под ним (период документа,
+   * индикатор «Сохранение…»). На эталоне заголовок стоит СЛЕВА в одной
+   * строке с «Настройками журнала», поэтому шапка принимает его слотом,
+   * а не рендерится отдельным блоком над/под собой.
+   */
+  heading?: ReactNode;
   /** Открыть диалог «Настройки журнала». Не передан — кнопки нет. */
   onSettings?: () => void;
   settingsLabel?: string;
@@ -66,6 +74,7 @@ const ACTION_BUTTON_CLASS =
 export function DocumentActionsBar({
   documentId,
   showPrint = true,
+  heading,
   onSettings,
   settingsLabel = "Настройки журнала",
   menuItems = [],
@@ -80,10 +89,13 @@ export function DocumentActionsBar({
     <>
       <div
         className={cn(
-          "mb-5 flex flex-wrap items-center justify-end gap-2 print:hidden",
+          heading
+            ? DOC_TITLE_ROW_CLASS
+            : "mb-5 flex flex-wrap items-center justify-end gap-2 print:hidden",
           className
         )}
       >
+        {heading ? <div className="min-w-0 flex-1">{heading}</div> : null}
         <div className="flex flex-wrap items-center gap-2">
           {onSettings ? (
             <Button

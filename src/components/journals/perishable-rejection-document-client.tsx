@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { Archive, ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_BODY_STACK_CLASS,
+  DOC_CAPS_TITLE_CLASS,
+  DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
+} from "@/components/journals/journal-responsive";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -529,6 +536,7 @@ export function PerishableRejectionDocumentClient({
       <DocumentActionsBar
         backHref="/journals/perishable_rejection"
         documentId={documentId}
+        heading={<h1 className={DOC_HEADING_CLASS}>{settingsTitle}</h1>}
         onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
         menuItems={
           !readOnly
@@ -544,21 +552,13 @@ export function PerishableRejectionDocumentClient({
             : []
         }
       />
-      <div className="flex items-center justify-between gap-4 print:hidden">
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {settingsTitle}
-          </h1>
-        </div>
-      </div>
-
       {readOnly ? (
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
       ) : null}
 
-      <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
+      <div className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6`}>
         {/* HACCP header table */}
-        <table className="w-full border-collapse text-[13px]">
+        <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
           <tbody>
             <tr>
               <td
@@ -586,12 +586,12 @@ export function PerishableRejectionDocumentClient({
           </tbody>
         </table>
 
-        <h2 className="text-center text-[36px] font-semibold">
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[36px] font-semibold`}>
           ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ
         </h2>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-3">
+        <div className={DOC_ADD_ROW_CLASS}>
           {!readOnly && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

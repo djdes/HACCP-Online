@@ -43,6 +43,10 @@ import {
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DOC_ADD_ROW_CLASS,
+  DOC_HEADING_CLASS,
+} from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -780,6 +784,7 @@ export function CleaningVentilationChecklistDocumentClient({
           className="mb-0"
           backHref={`/journals/${routeCode}`}
           documentId={documentId}
+          heading={<h1 className={`${DOC_HEADING_CLASS} max-w-[980px]`}>{docTitle}</h1>}
           onSettings={isActive ? () => setSettingsOpen(true) : undefined}
           menuItems={
             isActive
@@ -799,12 +804,6 @@ export function CleaningVentilationChecklistDocumentClient({
         >
           {copyYesterday.dialog}
         </DocumentActionsBar>
-
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <h1 className="max-w-[980px] text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {docTitle}
-          </h1>
-        </div>
 
         {!isActive ? (
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки." />
@@ -1029,23 +1028,6 @@ export function CleaningVentilationChecklistDocumentClient({
           </table>
         </div>
 
-        <div className="flex justify-end">
-          {isActive ? (
-            <Button
-              type="button"
-              onClick={() => {
-                addManualDate().catch((error) =>
-                  toast.error(error instanceof Error ? error.message : "Не удалось добавить дату")
-                );
-              }}
-              className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4a5bf0]"
-            >
-              <Plus className="mr-2 size-5" />
-              Добавить
-            </Button>
-          ) : null}
-        </div>
-
         <div className="sm:hidden print:hidden">
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>
@@ -1091,6 +1073,25 @@ export function CleaningVentilationChecklistDocumentClient({
             emptyLabel="Журнал пока пуст."
           />
         ) : null}
+
+        {/* «Добавить» — слева непосредственно над таблицей (эталон).
+            Раньше кнопка стояла справа и выше mobile-переключателя. */}
+        <div className={DOC_ADD_ROW_CLASS}>
+          {isActive ? (
+            <Button
+              type="button"
+              onClick={() => {
+                addManualDate().catch((error) =>
+                  toast.error(error instanceof Error ? error.message : "Не удалось добавить дату")
+                );
+              }}
+              className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4a5bf0]"
+            >
+              <Plus className="mr-2 size-5" />
+              Добавить
+            </Button>
+          ) : null}
+        </div>
 
         <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#ececf4] print:border-black">
           <table className="min-w-full border-collapse text-[13px]">

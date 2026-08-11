@@ -19,6 +19,7 @@ import { useJournalDocumentActions } from "@/components/journals/use-journal-doc
 import { normalizePerishableRejectionConfig } from "@/lib/perishable-rejection-document";
 import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
 import {
+  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
@@ -102,7 +103,7 @@ export function PerishableRejectionDocumentsClient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className={JOURNAL_LIST_STACK_CLASS}>
       <JournalTopBar
         heading={getJournalDocumentHeading(templateCode, activeTab === "closed")}
         activeTab={activeTab}
