@@ -1683,7 +1683,7 @@ export function AcceptanceDocumentClient(props: Props) {
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-5">
-            <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">{documentTitle}</h1>
+            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">{documentTitle}</h1>
             <label className="flex items-center gap-4 rounded-[18px] bg-[#f3f4fe] px-5 py-4 text-[16px]">
               <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
               <span>Сортировать по сроку годности</span>
@@ -1752,7 +1752,7 @@ export function AcceptanceDocumentClient(props: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setEditListsOpen(true)}>
+            <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setEditListsOpen(true)}>
               Редактировать списки
             </Button>
 

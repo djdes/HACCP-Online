@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
 import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
 import { YandexMetrika } from "@/components/layout/yandex-metrika";
@@ -7,6 +8,21 @@ import "./globals.css";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+/**
+ * Manrope — шрифт эталона (lk.haccp-online.ru). Подключаем как CSS-переменную
+ * и НЕ ставим его на <body>: лендинг и публичные страницы должны остаться на
+ * текущем системном стеке. Переменную потребляет только `.app-shell`
+ * (см. `app-theme.css`), то есть дашборд и /root.
+ *
+ * `cyrillic` в subsets обязателен — весь UI русский.
+ */
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wesetup.ru"),
@@ -88,7 +104,7 @@ export default function RootLayout({
         />
         <meta name="apple-mobile-web-app-title" content="WeSetup" />
       </head>
-      <body className="antialiased overflow-x-clip">
+      <body className={`${manrope.variable} antialiased overflow-x-clip`}>
         {children}
         <ServiceWorkerRegister />
         <BuildVersionWatcher />

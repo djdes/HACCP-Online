@@ -83,7 +83,7 @@ export default async function EquipmentSettingsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageGuide
         title="Как настроить оборудование"
         storageKey="settings-equipment-v1"
@@ -112,7 +112,7 @@ export default async function EquipmentSettingsPage() {
               <Wrench className="size-5" />
             </div>
             <div>
-              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
                 Оборудование
               </h1>
               <p className="mt-0.5 text-[14px] text-[#6f7282]">
@@ -125,7 +125,7 @@ export default async function EquipmentSettingsPage() {
           {canManage && equipment.length > 0 ? (
             <Link
               href="/settings/equipment/qr-sheet"
-              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#3848c7] hover:bg-[#f5f6ff]"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               title="Распечатать QR-наклейки для быстрой записи температуры с телефона"
             >
               <QrCode className="size-4" />

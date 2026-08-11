@@ -26,11 +26,11 @@ export default async function SanpinReferencePage() {
   await requireAuth();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <div className="flex items-center gap-2">
           <BookOpen className="size-6 text-primary" />
-          <h1 className="text-2xl font-bold">Справочник СанПиН</h1>
+          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">Справочник СанПиН</h1>
         </div>
         <p className="mt-1 text-muted-foreground">
           Основные нормативы для пищевых производств (СанПиН 2.3/2.4.3590-20, ГОСТ Р 51705.1-2024, ТР ТС 021/2011)

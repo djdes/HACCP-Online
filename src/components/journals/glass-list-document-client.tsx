@@ -183,14 +183,14 @@ export function GlassListDocumentClient({
             variant="outline"
             onClick={() => window.print()}
             title="Распечатать журнал"
-            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
           >
             <Printer className="size-4" />Печать
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
             onClick={() => setSettingsOpen(true)}
             disabled={isClosed}
           >
@@ -204,14 +204,14 @@ export function GlassListDocumentClient({
               documentId={documentId}
               title={title}
               variant="outline"
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
             >
               Закончить журнал
             </DocumentCloseButton>
           </div>
         ) : null}
 
-        <h1 className="mb-10 text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
+        <h1 className="mb-10 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto min-w-[1100px] max-w-[1300px] space-y-8 sm:min-w-0">

@@ -75,7 +75,7 @@ export default async function ComplianceAuditPage() {
               <ShieldCheck className="size-3.5" />
               Готовность к проверке РПН
             </div>
-            <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024] sm:text-[36px]">
+            <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] text-[#0b1024] sm:text-[clamp(1.75rem,2vw+1rem,2rem)]">
               {GRADE_LABEL[report.grade].label}
             </h1>
             <p className="mt-2 text-[14px] text-[#3c4053]">

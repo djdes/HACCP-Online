@@ -41,7 +41,7 @@ export function ExperimentalClient({ initialExperimentalUiV2 }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="flex items-start gap-4">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">

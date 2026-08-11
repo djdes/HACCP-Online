@@ -1,5 +1,10 @@
+/**
+ * H1 списка журнала. Масштаб эталона lk.haccp-online.ru: 32px/700
+ * (docs/reference/haccp-online/typography.json → listPage.h1). clamp
+ * оставлен ради узких экранов, верхняя граница — ровно 2rem = 32px.
+ */
 export const JOURNAL_LIST_HEADING_CLASS =
-  "w-full text-[clamp(1.375rem,1.1vw+1rem,1.625rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024] sm:max-w-[70%]";
+  "w-full text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] text-[#0b1024] sm:max-w-[70%]";
 
 export const JOURNAL_LIST_ACTIONS_CLASS =
   "flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center";
@@ -7,8 +12,9 @@ export const JOURNAL_LIST_ACTIONS_CLASS =
 export const JOURNAL_TAB_VIEWPORT_CLASS =
   "overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
+/** Вкладки эталона — 14px/600 на всех брейкпоинтах. */
 export const JOURNAL_TAB_RAIL_CLASS =
-  "flex min-w-max gap-8 text-[13.5px] sm:gap-12 sm:text-[14.5px]";
+  "flex min-w-max gap-8 text-[14px] font-semibold sm:gap-12";
 
 export const JOURNAL_LIST_CARD_CLASS =
   "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-5 sm:py-3.5";
@@ -66,8 +72,9 @@ export const JOURNAL_DIALOG_BODY_CLASS =
 
 export const JOURNAL_DIALOG_GRID_CLASS = "grid gap-4 sm:gap-6 md:grid-cols-2";
 
+/** Ширина контента — 1296px, контейнер эталона (listPage.container.w). */
 export const REGISTER_DOCUMENT_PAGE_CLASS =
-  "mx-auto max-w-[1760px] px-4 py-2 sm:px-6 sm:py-3 lg:px-8";
+  "mx-auto max-w-[1296px] px-4 py-2 sm:px-6 sm:py-3 lg:px-8";
 
 export const REGISTER_DOCUMENT_HEADER_CLASS =
   "mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5";

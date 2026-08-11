@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function JournalDocumentLoading() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-live="polite">
+    <div className="space-y-5" aria-busy="true" aria-live="polite">
       <span className="sr-only">Загружаем документ…</span>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

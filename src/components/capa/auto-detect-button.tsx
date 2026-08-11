@@ -68,7 +68,7 @@ export function CapaAutoDetectButton() {
       onClick={run}
       disabled={busy}
       title="Найти оборудование с температурой вне нормы три дня подряд и открыть CAPA."
-      className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#3848c7] transition-colors hover:bg-[#f5f6ff] disabled:opacity-60"
+      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09] disabled:opacity-60"
     >
       {busy ? (
         <Loader2 className="size-4 animate-spin" />

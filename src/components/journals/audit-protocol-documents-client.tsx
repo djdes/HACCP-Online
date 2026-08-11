@@ -251,7 +251,7 @@ export function AuditProtocolDocumentsClient({
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-12 w-full rounded-xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none sm:w-auto"
+              className="h-10 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] shadow-none sm:w-auto"
               asChild
             >
               <Link href="/sanpin">

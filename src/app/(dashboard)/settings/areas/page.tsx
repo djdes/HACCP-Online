@@ -33,7 +33,7 @@ export default async function AreasSettingsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -49,7 +49,7 @@ export default async function AreasSettingsPage() {
               <Building2 className="size-5" />
             </div>
             <div>
-              <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
                 Цеха и участки
               </h1>
               <p className="mt-0.5 text-[14px] text-[#6f7282]">

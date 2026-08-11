@@ -546,7 +546,7 @@ export function MedBookDocumentClient({
       />
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
-          <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             {docTitle}
           </h1>
         </div>
@@ -1061,7 +1061,7 @@ export function MedBookDocumentClient({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-2xl border-[#dcdfed] px-4 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
                 onClick={() => void addVaccColumn()}
               >
                 + Добавить прививку

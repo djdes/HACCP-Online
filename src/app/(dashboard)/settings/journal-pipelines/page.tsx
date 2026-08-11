@@ -148,7 +148,7 @@ export default async function JournalPipelinesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
@@ -167,7 +167,7 @@ export default async function JournalPipelinesPage() {
               <ListChecks className="size-6" />
             </div>
             <div>
-              <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                 Настройки журналов
               </h1>
               <p className="mt-2 max-w-[640px] text-[15px] text-white/70">

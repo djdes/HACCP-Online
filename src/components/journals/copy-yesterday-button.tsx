@@ -144,7 +144,7 @@ export function CopyYesterdayButton({ documentId }: { documentId: string }) {
         onClick={() => run(false)}
         disabled={busy}
         title="Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось."
-        className="h-11 rounded-2xl border-[#dcdfed] px-4 text-[15px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+        className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[15px] text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
       >
         {busy ? (
           <Loader2 className="size-4 animate-spin" />

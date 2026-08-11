@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function JournalCodeLoading() {
   return (
-    <div className="space-y-8 sm:space-y-14" aria-busy="true" aria-live="polite">
+    <div className="space-y-5 sm:space-y-14" aria-busy="true" aria-live="polite">
       <span className="sr-only">Загружаем документы журнала…</span>
 
       <div className="flex flex-wrap items-start justify-between gap-4">

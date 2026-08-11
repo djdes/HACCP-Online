@@ -31,7 +31,7 @@ export default async function TasksFlowSettingsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageGuide
         title="Как подключить TasksFlow"
         storageKey="settings-tasksflow-v1"

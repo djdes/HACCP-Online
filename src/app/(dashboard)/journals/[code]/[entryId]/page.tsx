@@ -126,7 +126,7 @@ export default async function EntryDetailPage({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Link
         href={`/journals/${resolvedCode}`}
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
@@ -146,7 +146,7 @@ export default async function EntryDetailPage({
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               \u0417\u0430\u043f\u0438\u0441\u044c
             </div>
-            <h1 className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.02em] sm:text-[28px]">
+            <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] sm:text-[clamp(1.75rem,2vw+1rem,2rem)]">
               {entry.template.name}
             </h1>
             <p className="mt-1.5 text-[14px] text-white/70">

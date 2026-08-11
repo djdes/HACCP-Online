@@ -362,7 +362,7 @@ function TrackedDocumentsClientImpl({
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
             <Button
               variant="outline"
-              className="h-9 w-full rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] sm:w-auto"
+              className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
               asChild
             >
               <Link href={`/journals/${templateCode}/guide`}>

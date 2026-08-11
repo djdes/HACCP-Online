@@ -28,3 +28,15 @@ test("journal responsive tokens keep mobile-first stacking and tighter shells", 
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /px-4/);
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /sm:px-6/);
 });
+
+test("journal tokens follow the haccp-online reference typography", () => {
+  // H1 эталона — 32px/700 (docs/reference/haccp-online/typography.json).
+  assert.match(JOURNAL_LIST_HEADING_CLASS, /text-\[clamp\(1\.75rem,2vw\+1rem,2rem\)\]/);
+  assert.match(JOURNAL_LIST_HEADING_CLASS, /font-bold/);
+  // Вкладки эталона — 14px/600, один размер на всех брейкпоинтах.
+  assert.match(JOURNAL_TAB_RAIL_CLASS, /text-\[14px\]/);
+  assert.match(JOURNAL_TAB_RAIL_CLASS, /font-semibold/);
+  assert.doesNotMatch(JOURNAL_TAB_RAIL_CLASS, /sm:text-/);
+  // Контент центрируется по контейнеру эталона — 1296px.
+  assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /max-w-\[1296px\]/);
+});

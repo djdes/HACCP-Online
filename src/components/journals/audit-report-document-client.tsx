@@ -173,7 +173,7 @@ export function AuditReportDocumentClient({
           )}
         </div>
 
-        <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024] print:hidden">{documentTitle}</h1>
+        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024] print:hidden">{documentTitle}</h1>
 
         <section className="space-y-6 rounded-[18px] border border-[#dadde9] bg-white p-4 print:border-0 sm:p-8 print:p-0">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_120px] border border-black/70">

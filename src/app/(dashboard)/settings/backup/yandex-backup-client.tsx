@@ -116,7 +116,7 @@ export function YandexBackupClient({ initialState, recentLogs }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {state.connected ? (
         <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
           <div className="flex items-start gap-3">

@@ -801,7 +801,7 @@ export function CleaningVentilationChecklistDocumentClient({
         </DocumentActionsBar>
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <h1 className="max-w-[980px] text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="max-w-[980px] text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             {docTitle}
           </h1>
         </div>

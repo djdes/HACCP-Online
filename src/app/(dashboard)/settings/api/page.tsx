@@ -17,9 +17,9 @@ export default async function ExternalApiSettingsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">API интеграций</h1>
+        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">API интеграций</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Ключ для внешнего приложения сотрудников и сенсоров. Передайте интегратору.
         </p>

@@ -140,10 +140,10 @@ export default async function ReportsPage() {
   const mailtoHref = `mailto:?subject=${subj}&body=${body}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             Отчёты
           </h1>
           <p className="mt-1.5 text-[14px] text-[#6f7282]">

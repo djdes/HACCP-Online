@@ -377,7 +377,7 @@ export function TasksFlowSettingsClient({
                 <Plug className="size-6" />
               </div>
               <div>
-                <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                   TasksFlow
                 </h1>
                 <p className="mt-2 max-w-[560px] text-[15px] text-white/70">
@@ -572,7 +572,7 @@ export function TasksFlowSettingsClient({
                       href={integration.baseUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                      className="inline-flex h-10 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                     >
                       Открыть TasksFlow
                       <ExternalLink className="size-3.5" />

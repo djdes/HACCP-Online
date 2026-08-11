@@ -139,7 +139,7 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {initial.length === 0 && !adding ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
           <Building2 className="mx-auto mb-3 size-8 text-[#9b9fb3]" />

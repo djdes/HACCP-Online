@@ -29,7 +29,7 @@ export function QrSheetClient({
   }
 
   return (
-    <div className="space-y-6 print:space-y-0">
+    <div className="space-y-5 print:space-y-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <Link
@@ -39,7 +39,7 @@ export function QrSheetClient({
             <ArrowLeft className="size-4" />
             К списку оборудования
           </Link>
-          <h1 className="mt-2 text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <h1 className="mt-2 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             QR-коды для оборудования
           </h1>
           <p className="mt-1.5 text-[13px] text-[#6f7282]">

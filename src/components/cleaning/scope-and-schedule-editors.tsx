@@ -369,7 +369,7 @@ export function ScopeListEditor(props: ScopeListEditorProps) {
       <button
         type="button"
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6] hover:bg-[#f5f6ff]"
+        className="inline-flex items-center gap-1.5 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 py-2 text-[14px] font-semibold text-[#5566f6] transition-colors hover:border-[#5566f6] hover:bg-[#5566f6]/[0.09]"
       >
         <Plus className="size-4" />
         {props.addLabel ?? "Добавить шаг"}

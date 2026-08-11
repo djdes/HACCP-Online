@@ -1378,13 +1378,13 @@ export function DisinfectantDocumentClient({
                 variant="outline"
                 onClick={() => window.print()}
                 title="Распечатать журнал"
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff] print:hidden"
+                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
               >
                 <Printer className="size-4" /> Печать
               </Button>
               <Button
                 variant="outline"
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings2 className="size-4" /> Настройки журнала
@@ -1394,7 +1394,7 @@ export function DisinfectantDocumentClient({
         }
       />
 
-      <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
         {title}
       </h1>
 

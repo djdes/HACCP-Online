@@ -239,7 +239,7 @@ export function TaskFillHelperModal({
                   href={`/journals/${journalCode}/guide`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 >
                   Открыть полную инструкцию
                 </a>

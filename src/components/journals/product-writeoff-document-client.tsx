@@ -308,11 +308,11 @@ export function ProductWriteoffDocumentClient({
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="flex items-center justify-end gap-3 print:hidden">
-          <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]">
+          <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]">
             <Printer className="size-4" />
             Печать
           </Button>
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
+          <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
             Настройки журнала
           </Button>
         </div>
@@ -323,7 +323,7 @@ export function ProductWriteoffDocumentClient({
               documentId={documentId}
               title={title}
               variant="outline"
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
             >
               Закончить журнал
             </DocumentCloseButton>
@@ -357,7 +357,7 @@ export function ProductWriteoffDocumentClient({
                   <Plus className="size-5" />
                   Добавить
                 </Button>
-                <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]" onClick={() => setListsOpen(true)}>
+                <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>
                   Редактировать списки
                 </Button>
               </>

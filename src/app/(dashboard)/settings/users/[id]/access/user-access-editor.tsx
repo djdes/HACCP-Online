@@ -106,7 +106,7 @@ export function UserAccessEditor({ userId, catalog, initialAccess }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Button
           type="button"

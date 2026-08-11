@@ -11,8 +11,8 @@ export default async function NewCapaPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Новый CAPA</h1>
+    <div className="space-y-5">
+      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">Новый CAPA</h1>
       <CapaForm users={users} />
     </div>
   );

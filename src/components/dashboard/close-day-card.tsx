@@ -125,7 +125,7 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
           </button>
           <Link
             href="/dashboard/catch-up"
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-none"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09] sm:flex-none"
           >
             <Wand2 className="size-4" />
             Догнать пропуски

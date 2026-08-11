@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function JournalsLoading() {
   return (
-    <div className="space-y-8" aria-busy="true" aria-live="polite">
+    <div className="space-y-5" aria-busy="true" aria-live="polite">
       <span className="sr-only">Загружаем журналы…</span>
 
       <div className="space-y-3">

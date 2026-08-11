@@ -13,7 +13,7 @@ export default async function OnboardingTemplatePage() {
   if (!hasCapability(session.user, "admin.full")) redirect("/settings");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <Link
           href="/settings"
@@ -35,7 +35,7 @@ export default async function OnboardingTemplatePage() {
               <Sparkles className="size-6" />
             </span>
             <div>
-              <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
                 Шаблоны заведений
               </h1>
               <p className="mt-2 max-w-[680px] text-[14px] text-white/70">

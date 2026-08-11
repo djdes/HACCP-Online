@@ -203,7 +203,7 @@ export function GuideTreeEditorClient({
                 <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50">
                   Гайд для сотрудника (beta)
                 </div>
-                <h1 className="mt-1 text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+                <h1 className="mt-1 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                   {journalName}
                 </h1>
                 <p className="mt-2 max-w-[640px] text-[14px] text-white/70">

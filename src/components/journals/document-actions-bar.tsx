@@ -47,7 +47,7 @@ type Props = {
 };
 
 const ACTION_BUTTON_CLASS =
-  "h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none transition-colors hover:bg-[#f5f6ff]";
+  "h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors hover:bg-[#5566f6]/[0.09]";
 
 /**
  * Единая шапка страницы документа для всех 13 обязательных журналов.
@@ -103,7 +103,7 @@ export function DocumentActionsBar({
                   type="button"
                   aria-label="Ещё действия"
                   title="Ещё действия"
-                  className="flex size-9 items-center justify-center rounded-xl border border-[#dcdfed] bg-white text-[#3848c7] transition-colors hover:bg-[#f5f6ff]"
+                  className="flex size-9 items-center justify-center rounded-lg border-0 bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09]"
                 >
                   <MoreHorizontal className="size-4" />
                 </button>

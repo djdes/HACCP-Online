@@ -185,7 +185,7 @@ export function VerificationsClient() {
               <ShieldCheck className="size-6" />
             </div>
             <div>
-              <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                 Проверка задач
               </h1>
               <p className="mt-2 max-w-[640px] text-[15px] text-white/70">

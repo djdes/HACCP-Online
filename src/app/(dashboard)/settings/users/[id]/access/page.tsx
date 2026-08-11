@@ -47,7 +47,7 @@ export default async function UserJournalAccessPage({ params }: PageProps) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Link
         href="/settings/users"
         className="inline-flex h-11 items-center gap-2 rounded-2xl px-3 text-[15px] text-[#5566f6] hover:bg-[#eef1ff]"
@@ -57,7 +57,7 @@ export default async function UserJournalAccessPage({ params }: PageProps) {
       </Link>
 
       <div>
-        <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.03em] text-black">
+        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.03em] text-black">
           Доступ к журналам
         </h1>
         <p className="mt-2 text-[15px] text-[#6f7282]">

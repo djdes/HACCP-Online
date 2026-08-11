@@ -55,7 +55,7 @@ export function ApiTokenManager({ initialToken }: { initialToken: string | null 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {token ? (
         <div className="space-y-3 rounded-xl border bg-muted/40 px-4 py-3">
           <div className="flex items-center gap-3">

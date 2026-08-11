@@ -20,8 +20,8 @@ export default async function SubscriptionPage() {
   const price = calculatePerEmployeePrice(employees);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Управление подпиской</h1>
+    <div className="space-y-5">
+      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">Управление подпиской</h1>
 
       {/* Per-employee pricing card — расчёт по числу активных сотрудников.
           До 5 чел — бесплатно (free tier), после — 100/80/60 ₽/чел. */}

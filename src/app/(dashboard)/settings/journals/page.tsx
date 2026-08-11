@@ -79,7 +79,7 @@ export default async function JournalsSettingsPage() {
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageGuide
         title="Как настроить активные журналы"
         storageKey="settings-journals-v1"

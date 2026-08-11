@@ -72,7 +72,7 @@ export default async function AutoJournalsPage() {
     }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <Link
           href="/settings"
@@ -86,7 +86,7 @@ export default async function AutoJournalsPage() {
             <Sparkles className="size-5" />
           </span>
           <div>
-            <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
               Автосоздание журналов
             </h1>
             <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">

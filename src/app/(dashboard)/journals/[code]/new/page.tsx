@@ -167,7 +167,7 @@ export default async function NewJournalEntryPage({
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               Новая запись
             </div>
-            <h1 className="mt-3 text-[24px] font-semibold leading-tight tracking-[-0.02em] sm:text-[28px]">
+            <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] sm:text-[clamp(1.75rem,2vw+1rem,2rem)]">
               {template.name}
             </h1>
             {template.description ? (

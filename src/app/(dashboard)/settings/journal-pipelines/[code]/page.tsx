@@ -28,7 +28,7 @@ export default async function JournalPipelineEditorPage({
   // конфликты). Показываем плашку с deeplink'ом.
   if (code === "cleaning") {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="rounded-3xl border border-[#ffe9b0] bg-[#fff8eb] p-6">
           <div className="flex items-start gap-4">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff4e6] text-[#a16d32]">

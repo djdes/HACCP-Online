@@ -660,7 +660,7 @@ export function PestControlDocumentClient(props: Props) {
         <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
-        <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           {props.title || PEST_CONTROL_DOCUMENT_TITLE}
         </h1>
         <div className="flex flex-wrap gap-2">
@@ -669,7 +669,7 @@ export function PestControlDocumentClient(props: Props) {
             variant="outline"
             onClick={() => window.print()}
             title="Распечатать журнал"
-            className="h-12 rounded-xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
           >
             <Printer className="size-4" />
             Печать
@@ -678,7 +678,7 @@ export function PestControlDocumentClient(props: Props) {
             <Button
               type="button"
               variant="outline"
-              className="h-12 rounded-xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+              className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
               onClick={() => setSettingsOpen(true)}
             >
               Настройки журнала
@@ -735,7 +735,7 @@ export function PestControlDocumentClient(props: Props) {
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3848c7] shadow-none hover:bg-[#f5f6ff]"
+            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
             onClick={() => setCloseOpen(true)}
           >
             Закончить журнал

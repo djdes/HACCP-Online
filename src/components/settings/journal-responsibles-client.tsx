@@ -2180,7 +2180,7 @@ export function JournalResponsiblesClient({
                                   onClick={() =>
                                     togglePosition(j.code, p.id)
                                   }
-                                  className="inline-flex items-center gap-1 rounded-full border border-[#dcdfed] bg-[#fafbff] px-2.5 py-1 text-[12px] text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+                                  className="inline-flex items-center gap-1 rounded-lg border-0 bg-[#5566f6]/[0.04] px-2.5 py-1 text-[12px] text-[#3c4053] hover:bg-[#5566f6]/[0.09] hover:text-[#3848c7]"
                                 >
                                   <Plus className="size-3" />
                                   {p.name}

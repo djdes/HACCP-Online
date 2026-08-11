@@ -295,7 +295,7 @@ export function PositionStaffVisibilityClient({ positions, employees }: Props) {
           type="button"
           onClick={() => pushToTasksflow(true)}
           disabled={syncing}
-          className="ml-auto inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60 dark:border-white/15 dark:bg-white/5 dark:text-[#c4b5fd] dark:hover:bg-white/10"
+          className="ml-auto inline-flex h-10 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09] disabled:opacity-60 dark:border-white/15 dark:/5 dark:text-[#c4b5fd] dark:hover:/10"
         >
           {syncing ? <Loader2 className="size-4 animate-spin" /> : null}
           Синхронизировать TasksFlow

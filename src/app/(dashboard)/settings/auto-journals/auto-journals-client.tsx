@@ -292,7 +292,7 @@ export function AutoJournalsClient({ items }: Props) {
               variant="outline"
               onClick={runNow}
               disabled={running || dirty || neededCount === 0}
-              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7]"
+              className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6]"
               title={
                 dirty
                   ? "Сначала сохраните список"

@@ -19,6 +19,15 @@
  * LIGHT — это default, оверрайдов нет (совпадает с текущим дизайном).
  * ================================================================== */
 
+/* Шрифт эталона. Объявлен на :root (а не на `.app-shell`), чтобы
+   Radix-порталы — они рендерятся в <body> вне шелла — тоже могли его
+   прочитать. Применяется он ТОЛЬКО там, где ниже явно указан
+   `font-family: var(--app-font)`, поэтому лендинг не затронут. */
+:root {
+  --app-font: var(--font-manrope), "Manrope", "Segoe UI", "Helvetica Neue",
+    Arial, sans-serif;
+}
+
 .app-shell {
   /* Canonical tokens — одинаковые имена в обеих темах, меняются значения */
   --app-bg: #fafbff;
@@ -44,6 +53,44 @@
   --app-hero: #0b1024;
   --app-scrim: rgba(11, 16, 36, 0.04);
   color-scheme: light;
+
+  /* ── Типографика эталона (lk.haccp-online.ru, замеры 1440×900) ──────
+   * Manrope везде, body 16px/400. Переменная --font-manrope приходит из
+   * next/font (см. src/app/layout.tsx, класс на <body>). Лендинг её не
+   * использует — область действия ровно `.app-shell`.
+   *
+   * Ширина контента: 1296px — контейнер списка на эталоне. */
+  --app-content-max: 1296px;
+
+  font-family: var(--app-font);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Наследование внутрь: у shadcn-компонентов и portal-контента (Dialog,
+   DropdownMenu, Popover, Toast) собственный корень вне `.app-shell`,
+   поэтому дополнительно закрепляем шрифт на слоях Radix-порталов. */
+.app-shell,
+.app-shell input,
+.app-shell textarea,
+.app-shell select,
+.app-shell button,
+body:has(.app-shell) [data-slot="dialog-content"],
+body:has(.app-shell) [data-slot="popover-content"],
+body:has(.app-shell) [data-slot="dropdown-menu-content"],
+body:has(.app-shell) [data-radix-popper-content-wrapper],
+body:has(.app-shell) [data-sonner-toaster] {
+  font-family: var(--app-font, inherit);
+}
+
+/* ── Заголовки страниц: 32px/700 как на эталоне ────────────────────────
+ * Точечно НЕ переопределяем размер (страницы задают его сами clamp-ом),
+ * фиксируем только вес и line-height, чтобы не было разнобоя
+ * semibold/medium между разделами. */
+.app-shell main h1 {
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 /* ====================================================================
@@ -420,6 +467,29 @@ body:has(.app-shell[data-app-theme="dark"]) {
 .app-shell[data-app-theme="dark"] .hover\:bg-\[\#bd392f\]:hover,
 .app-shell[data-app-theme="dark"] .hover\:bg-\[\#e0342a\]:hover {
   background-color: #a06b62;
+}
+
+/* --- TINTED BUTTONS (вторичные кнопки эталона) ----------------------
+ * Светлая тема: подложка `bg-[#5566f6]/[0.04]` + текст `#5566f6`.
+ * На тёмном фоне 4% индиго почти не читается как поверхность, а сам
+ * #5566f6 на тёмном контрастирует хуже, чем нужно. Поднимаем плотность
+ * подложки и берём осветлённый индиго (--app-indigo = #7081f8), чтобы
+ * кнопка оставалась видимой и текст не «проваливался». */
+.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\]\/\[0\.04\] {
+  background-color: rgba(112, 129, 248, 0.14);
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#5566f6\]\/\[0\.09\]:hover,
+.app-shell[data-app-theme="dark"] .group-hover\/nav\:bg-\[\#5566f6\]\/\[0\.09\],
+.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\]\/\[0\.09\] {
+  background-color: rgba(112, 129, 248, 0.22);
+}
+/* Заливка primary-кнопки на тёмном — чуть светлее, чтобы белый текст
+   не давил контрастом 1:1 с фоном страницы. */
+.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\] {
+  background-color: var(--app-indigo);
+}
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#4a5bf0\]:hover {
+  background-color: var(--app-indigo-hover);
 }
 
 /* --- BORDERS ------------------------------------------------------- */

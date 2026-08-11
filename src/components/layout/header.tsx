@@ -214,7 +214,8 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
-      <div className="flex h-14 items-center gap-2 px-3 md:gap-4 md:px-6">
+      {/* Высота шапки — 72px, как на эталоне (замер: headerBar h=73px). */}
+      <div className="mx-auto flex h-[72px] w-full max-w-[1296px] items-center gap-2 px-3 md:gap-4 md:px-6">
         <Link
           href={homeHref}
           className="shrink-0 flex items-center gap-2"
@@ -266,10 +267,10 @@ export function Header({
               href={homeHref}
               title={homeTooltip}
               className={cn(
-                "relative z-10 flex min-w-0 max-w-[280px] items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "relative z-10 flex min-w-0 max-w-[280px] items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200",
                 pathname === homeHref
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground group-hover/nav:bg-accent group-hover/nav:text-accent-foreground group-focus-within/nav:bg-accent group-focus-within/nav:text-accent-foreground"
+                  ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                  : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09] group-hover/nav:bg-[#5566f6]/[0.09] group-focus-within/nav:bg-[#5566f6]/[0.09]"
               )}
             >
               <HomeIcon className="size-4 shrink-0" />
@@ -299,7 +300,7 @@ export function Header({
                       className={cn(
                         "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive
-                          ? "bg-primary/10 text-primary"
+                          ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none"
                       )}
                     >
@@ -321,11 +322,11 @@ export function Header({
               href={STAFF_NAV_ITEM.href}
               title={STAFF_NAV_ITEM.label}
               className={cn(
-                "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                "ml-1 hidden items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200 lg:flex",
                 pathname === STAFF_NAV_ITEM.href ||
                   pathname.startsWith(STAFF_NAV_ITEM.href + "/")
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                  : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               )}
             >
               <STAFF_NAV_ITEM.icon className="size-4 shrink-0" />
@@ -339,10 +340,10 @@ export function Header({
                 href="/control-board"
                 title="Контрольная доска"
                 className={cn(
-                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                  "ml-1 hidden items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200 lg:flex",
                   pathname === "/control-board"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                    : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
                 <ShieldCheck className="size-4 shrink-0" />
@@ -352,10 +353,10 @@ export function Header({
                 href="/journals-progress"
                 title="Прогресс журналов сегодня"
                 className={cn(
-                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                  "ml-1 hidden items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200 lg:flex",
                   pathname === "/journals-progress"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                    : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
                 <ClipboardList className="size-4 shrink-0" />
@@ -365,10 +366,10 @@ export function Header({
                 href="/team"
                 title="Моя команда"
                 className={cn(
-                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                  "ml-1 hidden items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200 lg:flex",
                   pathname === "/team"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                    : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
                 <Users className="size-4 shrink-0" />
@@ -378,10 +379,10 @@ export function Header({
                 href="/verifications"
                 title="Проверка задач"
                 className={cn(
-                  "ml-1 hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors lg:flex",
+                  "ml-1 hidden items-center gap-2 h-10 rounded-lg px-3 text-[14px] font-semibold transition-colors duration-200 lg:flex",
                   pathname === "/verifications"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-[#5566f6]/[0.09] text-[#5566f6]"
+                    : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
                 <ClipboardList className="size-4 shrink-0" />
@@ -494,7 +495,7 @@ export function Header({
               aria-label="Панель платформы"
               title="Панель платформы"
               className={cn(
-                "hidden h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#3848c7] transition-colors md:inline-flex hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]",
+                "hidden h-9 items-center gap-1.5 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] transition-colors md:inline-flex hover:bg-[#5566f6]/[0.09]",
                 pathname.startsWith("/root") &&
                   "border-[#5566f6]/40 bg-[#f5f6ff]"
               )}

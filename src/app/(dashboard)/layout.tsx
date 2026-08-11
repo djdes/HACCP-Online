@@ -136,7 +136,12 @@ export default async function DashboardLayout({
             isRoot={session.user.isRoot === true}
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
           />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          {/* Контент по центру, 1296px — контейнер эталона
+              (docs/reference/haccp-online/typography.json → listPage.container).
+              Вертикальный ритм: 24px сверху, как на эталоне. */}
+          <main className="flex-1 p-4 md:p-6">
+            <div className="mx-auto w-full max-w-[1296px]">{children}</div>
+          </main>
           {/* Футер дашборда — виден на каждой странице (требование
               владельца: «наш футер на каждой странице»). `mt-auto`
               прижимает его к низу на коротких экранах. */}

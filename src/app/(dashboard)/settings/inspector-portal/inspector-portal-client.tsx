@@ -89,13 +89,13 @@ export function InspectorPortalClient({ initialTokens }: Props) {
   const [certOpen, setCertOpen] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button
           type="button"
           variant="outline"
           onClick={() => setCertOpen(true)}
-          className="h-11 rounded-2xl border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#3848c7] hover:bg-[#f5f6ff]"
+          className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
         >
           🏆 Сертификат соответствия
         </Button>

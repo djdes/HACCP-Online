@@ -8,10 +8,10 @@ export default async function AuditPage() {
   await requireRole(["owner"]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Журнал действий</h1>
+          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">Журнал действий</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             События Wesetup и TasksFlow в одном месте. Раздельно по
             системам — П-17 единой архитектуры (TF аудит хранится в TF,

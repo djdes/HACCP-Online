@@ -20,7 +20,10 @@ import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide"
 export default function JournalCodeLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="-m-4 min-h-full bg-white p-4 md:-m-6 md:p-6">
-      <div className="mx-auto max-w-[1760px] space-y-5">
+      {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
+          скроллятся внутри собственного viewport-контейнера
+          (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}
+      <div className="mx-auto max-w-[1296px] space-y-5">
         {children}
         <JournalDocGuideOverlay />
       </div>

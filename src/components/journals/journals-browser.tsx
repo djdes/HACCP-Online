@@ -279,7 +279,7 @@ export function JournalsBrowser({
                 <NotebookPen className="size-6" />
               </div>
               <div>
-                <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                   Журналы
                 </h1>
                 <p className="mt-1 max-w-[540px] text-[15px] text-white/70">

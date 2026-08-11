@@ -51,7 +51,7 @@ export default async function StaffHierarchyPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <Link
           href="/settings"
@@ -65,7 +65,7 @@ export default async function StaffHierarchyPage() {
             <Network className="size-5 text-[#f59e0b]" />
           </div>
           <div>
-            <h1 className="text-[20px] font-semibold text-[#0b1024]">
+            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold text-[#0b1024]">
               Иерархия управления
             </h1>
             <p className="text-[13px] text-[#6f7282]">

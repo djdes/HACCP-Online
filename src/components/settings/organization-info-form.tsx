@@ -507,7 +507,7 @@ export function OrganizationInfoForm({
         <div className="mt-3">
           <a
             href="/settings/subscription"
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] text-[#3848c7] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
           >
             Управление подпиской →
           </a>

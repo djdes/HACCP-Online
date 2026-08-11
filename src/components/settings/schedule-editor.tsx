@@ -68,7 +68,7 @@ const STATUS_COLOR: Record<ShiftStatus, string> = {
   scheduled:
     "bg-[#ecfdf5] border-[#7cf5c0] text-[#136b2a] font-semibold",
   off: "bg-[#f5f6ff] border-[#dcdfed] text-[#6f7282]",
-  vacation: "bg-[#eef1ff] border-[#dcdfed] text-[#3848c7]",
+  vacation: "bg-[#eef1ff] border-0 bg-[#5566f6]/[0.04] text-[#5566f6]",
   sick: "bg-[#fff4f2] border-[#ffd2cd] text-[#a13a32]",
 };
 

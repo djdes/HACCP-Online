@@ -44,9 +44,9 @@ export default async function JournalPeriodsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           Периоды журналов
         </h1>
         <p className="mt-1.5 max-w-[680px] text-[14px] leading-[1.6] text-[#6f7282]">

@@ -397,7 +397,7 @@ export default async function SettingsPage() {
     ]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
@@ -420,7 +420,7 @@ export default async function SettingsPage() {
               <Settings2 className="size-6" />
             </div>
             <div>
-              <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                 Настройки
               </h1>
               <p className="mt-1 text-[15px] text-white/70">

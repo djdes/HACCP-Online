@@ -327,7 +327,7 @@ export default async function DashboardPage() {
   const greeting = timeBasedGreeting(now.getHours());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Persist для DashboardSection (collapsible-блоки): inline-script
           читает localStorage и настраивает initial open state. */}
       <DashboardSectionPersistScript />
@@ -365,7 +365,7 @@ export default async function DashboardPage() {
                 <Hand className="size-6" />
               </div>
               <div>
-                <h1 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
+                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
                   {greeting}
                   {greetingName ? `, ${greetingName}` : ""}
                 </h1>

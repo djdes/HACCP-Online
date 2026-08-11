@@ -42,7 +42,7 @@ export default async function CompetenciesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <div className="flex items-center gap-2 text-[#5566f6]">
           <GraduationCap className="size-5" />
@@ -50,7 +50,7 @@ export default async function CompetenciesPage() {
             Матрица компетенций
           </span>
         </div>
-        <h1 className="mt-2 text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <h1 className="mt-2 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           Обучение персонала
         </h1>
         <p className="mt-1.5 text-[14px] text-[#6f7282]">

@@ -240,7 +240,7 @@ export function PhoneBindingClient(props: Props) {
               variant="outline"
               onClick={() => setEditing(true)}
               disabled={busy}
-              className="h-11 rounded-2xl border-[#dcdfed] px-5 text-[14px] text-[#3848c7]"
+              className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6]"
             >
               <Pencil className="size-4" />
               Изменить
@@ -299,7 +299,7 @@ export function PhoneBindingClient(props: Props) {
             {props.hasIntegration ? (
               <Link
                 href="/settings/integrations/tasksflow"
-                className="inline-flex items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#3848c7] hover:bg-[#f5f6ff]"
+                className="inline-flex items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 py-2 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               >
                 <ExternalLink className="size-4" />
                 Настройки TasksFlow
@@ -318,7 +318,7 @@ export function PhoneBindingClient(props: Props) {
               className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[13px] font-medium ${
                 props.telegramLinked
                   ? "border-[#c8f0d5] bg-[#effaf1] text-[#136b2a]"
-                  : "border-[#dcdfed] bg-white text-[#3848c7] hover:bg-[#f5f6ff]"
+                  : "border-0 bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               }`}
             >
               <ExternalLink className="size-4" />

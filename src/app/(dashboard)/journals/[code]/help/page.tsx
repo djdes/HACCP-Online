@@ -36,7 +36,7 @@ export default async function JournalHelpPage({
   void getActiveOrgId; // helpers may be needed in future
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <Link
           href={`/journals/${code}`}
@@ -50,7 +50,7 @@ export default async function JournalHelpPage({
             <BookOpen className="size-6" />
           </span>
           <div>
-            <h1 className="text-[clamp(1.5rem,1.5vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
               {template.name}
             </h1>
             <p className="mt-1 text-[13px] text-[#6f7282]">

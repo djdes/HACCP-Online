@@ -763,7 +763,7 @@ export function TaskFillClient({
                     type="button"
                     onClick={fillFromYesterday}
                     disabled={yesterdayBusy || submitting}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] font-medium text-[#3848c7] transition-all hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] transition-all hover:bg-[#5566f6]/[0.09] disabled:opacity-60"
                   >
                     {yesterdayBusy ? (
                       <Loader2 className="size-4 animate-spin" />

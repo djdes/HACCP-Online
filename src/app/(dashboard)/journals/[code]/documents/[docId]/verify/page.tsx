@@ -102,7 +102,7 @@ export default async function VerifyDocumentPage({
               <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
                 Проверка журнала
               </div>
-              <h1 className="mt-1 text-[clamp(1.4rem,1.6vw+1rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+              <h1 className="mt-1 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
                 {doc.template.name}
               </h1>
               <div className="mt-1 text-[13px] text-[#6f7282]">{doc.title}</div>
