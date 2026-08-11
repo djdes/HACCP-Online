@@ -1372,9 +1372,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           <Button
             type="button"
             onClick={() => setAddRowOpen(true)}
-            className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
+            className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
           >
-            <Plus className="mr-1 size-4" />
+            <Plus className="size-5" strokeWidth={2.5} />
             Добавить
           </Button>
         </div>

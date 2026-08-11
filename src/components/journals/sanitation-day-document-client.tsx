@@ -928,9 +928,9 @@ export function SanitationDayDocumentClient({
                 });
                 setRoomDialogOpen(true);
               }}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
-              <Plus className="size-5" />
+              <Plus className="size-5" strokeWidth={2.5} />
               Добавить помещение
             </Button>
 

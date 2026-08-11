@@ -1740,8 +1740,8 @@ export function AcceptanceDocumentClient(props: Props) {
           <div className={DOC_ADD_ROW_CLASS}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-6 text-[16px]">
-                  <Plus className="size-5" /> Добавить <ChevronDown className="size-4" />
+                <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]">
+                  <Plus className="size-5" strokeWidth={2.5} /> Добавить <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[300px] rounded-2xl border-0 p-2 shadow-xl">

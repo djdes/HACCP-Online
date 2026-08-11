@@ -711,10 +711,10 @@ export function StaffJournalAddButton({
     <div className={className ?? DOC_ADD_ROW_CLASS}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-[58px] w-fit rounded-2xl bg-[#5566f6] px-8 text-[18px] text-white hover:bg-[#4b57ff]">
-            <Plus className="size-7" />
+          <Button className="h-11 w-fit gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]">
+            <Plus className="size-5" strokeWidth={2.5} />
             Добавить
-            <ChevronDown className="size-6" />
+            <ChevronDown className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-4 shadow-xl sm:min-w-[360px]">

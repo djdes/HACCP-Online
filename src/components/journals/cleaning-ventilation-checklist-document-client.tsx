@@ -1085,9 +1085,9 @@ export function CleaningVentilationChecklistDocumentClient({
                   toast.error(error instanceof Error ? error.message : "Не удалось добавить дату")
                 );
               }}
-              className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
-              <Plus className="mr-2 size-5" />
+              <Plus className="size-5" strokeWidth={2.5} />
               Добавить
             </Button>
           ) : null}

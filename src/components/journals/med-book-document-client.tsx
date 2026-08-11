@@ -632,21 +632,21 @@ export function MedBookDocumentClient({
           <div className={DOC_ADD_ROW_CLASS}>
             <Button
               type="button"
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
               onClick={() => {
                 setDraft(emptyDraft());
                 setAddOpen(true);
               }}
             >
-              <Plus className="size-5" />
+              <Plus className="size-5" strokeWidth={2.5} />
               Добавить сотрудника
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
               onClick={() => void addExamColumn()}
             >
-              <Plus className="size-5" />
+              <Plus className="size-5" strokeWidth={2.5} />
               Добавить исследование
             </Button>
           </div>

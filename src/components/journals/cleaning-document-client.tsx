@@ -1400,7 +1400,7 @@ export function CleaningDocumentClient(props: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button className="h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] text-white hover:bg-[#4a5bf0]"><Plus className="size-5" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild><Button className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
                     <DropdownMenuItem
                       className="h-9 rounded-xl text-[14px]"

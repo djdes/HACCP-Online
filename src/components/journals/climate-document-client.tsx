@@ -247,7 +247,7 @@ function RoomDialog({
                 <Switch
                   checked={temperatureEnabled}
                   onCheckedChange={setTemperatureEnabled}
-                  className="h-8 w-14 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                  className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
                 />
                 <div className="text-[15px] text-black">Температура (T)</div>
                 <Input
@@ -272,7 +272,7 @@ function RoomDialog({
                 <Switch
                   checked={humidityEnabled}
                   onCheckedChange={setHumidityEnabled}
-                  className="h-8 w-14 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                  className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
                 />
                 <div className="text-[15px] text-black">Влажность воздуха (ВВ)</div>
                 <Input
@@ -1381,7 +1381,7 @@ export function ClimateDocumentClient({
                 checked={checkedAutoFill}
                 onCheckedChange={handleAutoFillChange}
                 disabled={status !== "active" || isSwitching}
-                className="h-10 w-16 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
               />
               <span className="min-w-0 text-[14px] font-medium leading-tight text-black sm:text-[20px]">
                 Автоматически заполнять журнал
@@ -1513,9 +1513,9 @@ export function ClimateDocumentClient({
             <Button
               type="button"
               onClick={() => setRowDialogOpen(true)}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
-              <Plus className="size-7" />
+              <Plus className="size-5" strokeWidth={2.5} />
               Добавить строку
             </Button>
 

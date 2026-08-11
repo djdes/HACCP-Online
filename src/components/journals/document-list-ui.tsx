@@ -62,9 +62,9 @@ export function JournalTopBar(props: {
             templateCode={props.templateCode}
             templateName={props.templateName}
             users={props.users}
-            triggerClassName="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+            triggerClassName="h-11 w-full gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0] sm:w-auto"
             triggerLabel="Создать документ"
-            triggerIcon={<Plus className="size-4" />}
+            triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
           />
         )}
       </div>
