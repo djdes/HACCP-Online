@@ -78,11 +78,17 @@ export function FeedbackDialog({
         <Button
           type="button"
           className={cn(
-            "h-9 gap-2 rounded-xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_8px_20px_-12px_rgba(85,102,246,0.6)] transition-colors hover:bg-[#4a5bf0]",
+            // Единственный primary-контрол в правом кластере шапки:
+            // та же геометрия (h-10 / rounded-lg / size-5 иконка), что и у
+            // tinted-кнопок рядом, но со сплошной индиго-заливкой.
+            "h-10 w-10 shrink-0 gap-2 rounded-lg bg-[#5566f6] px-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-12px_rgba(85,102,246,0.6)] transition-colors duration-200 hover:bg-[#4a5bf0]",
+            // До sm подпись скрыта — тогда кнопка должна быть квадратом
+            // 40×40, как остальные иконко-кнопки шапки.
+            "max-sm:px-0 sm:w-auto",
             triggerClassName
           )}
         >
-          <MessageCircleMore className="size-4" />
+          <MessageCircleMore className="size-5" />
           <span className="hidden sm:inline">Обратная связь</span>
         </Button>
       </DialogTrigger>

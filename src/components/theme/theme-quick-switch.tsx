@@ -36,11 +36,11 @@ export function ThemeQuickSwitch({ className }: { className?: string }) {
           aria-label="Тема оформления"
           title="Тема оформления"
           className={cn(
-            "hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]",
+            "hidden size-10 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#5566f6]/[0.09]",
             className
           )}
         >
-          <TriggerIcon className="size-4" />
+          <TriggerIcon className="size-5" />
         </button>
       </PopoverTrigger>
       <PopoverContent

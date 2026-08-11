@@ -273,11 +273,11 @@ export function Header({
                   : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09] group-hover/nav:bg-[#5566f6]/[0.09] group-focus-within/nav:bg-[#5566f6]/[0.09]"
               )}
             >
-              <HomeIcon className="size-4 shrink-0" />
+              <HomeIcon className="size-5 shrink-0" />
               <span className="truncate">{homeLabel}</span>
               {visibleSecondaryNavItems.length > 0 ? (
                 <ChevronDown
-                  className="size-3.5 shrink-0 opacity-60 transition-transform duration-150 group-hover/nav:rotate-180 group-focus-within/nav:rotate-180"
+                  className="size-4 shrink-0 opacity-60 transition-transform duration-150 group-hover/nav:rotate-180 group-focus-within/nav:rotate-180"
                   aria-hidden
                 />
               ) : null}
@@ -329,7 +329,7 @@ export function Header({
                   : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               )}
             >
-              <STAFF_NAV_ITEM.icon className="size-4 shrink-0" />
+              <STAFF_NAV_ITEM.icon className="size-5 shrink-0" />
               <span className="truncate">{STAFF_NAV_ITEM.label}</span>
             </Link>
           ) : null}
@@ -346,7 +346,7 @@ export function Header({
                     : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
-                <ShieldCheck className="size-4 shrink-0" />
+                <ShieldCheck className="size-5 shrink-0" />
                 <span className="truncate">Доска</span>
               </Link>
               <Link
@@ -359,7 +359,7 @@ export function Header({
                     : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
-                <ClipboardList className="size-4 shrink-0" />
+                <ClipboardList className="size-5 shrink-0" />
                 <span className="truncate">Прогресс</span>
               </Link>
               <Link
@@ -372,7 +372,7 @@ export function Header({
                     : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
-                <Users className="size-4 shrink-0" />
+                <Users className="size-5 shrink-0" />
                 <span className="truncate">Команда</span>
               </Link>
               <Link
@@ -385,7 +385,7 @@ export function Header({
                     : "bg-[#5566f6]/[0.04] text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
                 )}
               >
-                <ClipboardList className="size-4 shrink-0" />
+                <ClipboardList className="size-5 shrink-0" />
                 <span className="truncate">Проверка</span>
               </Link>
             </>
@@ -397,7 +397,11 @@ export function Header({
         <div className="flex-1 md:hidden" />
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 shrink-0 rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:hidden hover:bg-[#5566f6]/[0.09] hover:text-[#5566f6]"
+            >
               <Menu className="size-5" />
               <span className="sr-only">Меню</span>
             </Button>
@@ -495,12 +499,11 @@ export function Header({
               aria-label="Панель платформы"
               title="Панель платформы"
               className={cn(
-                "hidden h-9 items-center gap-1.5 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] transition-colors md:inline-flex hover:bg-[#5566f6]/[0.09]",
-                pathname.startsWith("/root") &&
-                  "border-[#5566f6]/40 bg-[#f5f6ff]"
+                "hidden h-10 shrink-0 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#5566f6]/[0.09]",
+                pathname.startsWith("/root") && "bg-[#5566f6]/[0.09]"
               )}
             >
-              <ShieldCheck className="size-4" />
+              <ShieldCheck className="size-5" />
               Панель платформы
             </Link>
           ) : null}
@@ -511,12 +514,12 @@ export function Header({
               aria-label="Настройки"
               title="Настройки"
               className={cn(
-                "hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]",
+                "hidden size-10 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#5566f6]/[0.09]",
                 (pathname === "/settings" || pathname.startsWith("/settings/")) &&
-                  "border-[#dcdfed] bg-[#f5f6ff] text-[#5566f6]"
+                  "bg-[#5566f6]/[0.09]"
               )}
             >
-              <Settings className="size-4" />
+              <Settings className="size-5" />
             </Link>
           ) : null}
 
@@ -525,20 +528,24 @@ export function Header({
             onClick={handleLogout}
             aria-label="Выйти"
             title="Выйти"
-            className="hidden size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors md:inline-flex hover:border-[#ffd2cd] hover:bg-[#fff4f2] hover:text-[#d2453d]"
+            className="hidden size-10 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#fff4f2] hover:text-[#d2453d]"
           >
-            <LogOut className="size-4" />
+            <LogOut className="size-5" />
           </button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-9 w-9 rounded-full"
+                className="relative size-10 shrink-0 rounded-full p-0"
                 aria-label="Профиль"
               >
-                <Avatar>
-                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                {/* Аватар остаётся кругом (это аватар), но размер
+                    согласован с остальными контролами шапки — size-10. */}
+                <Avatar size="lg">
+                  <AvatarFallback className="bg-[#5566f6]/[0.09] text-[13px] font-semibold text-[#5566f6]">
+                    {getInitials(userName)}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

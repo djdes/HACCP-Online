@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 /**
  * Хлебные крошки раздела журналов: «<Организация> › <Журнал> › <Документ>».
@@ -30,16 +31,17 @@ export function JournalBreadcrumbs({
   return (
     <nav
       aria-label="Хлебные крошки"
-      className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[1.4] print:hidden ${className}`}
+      className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] font-medium leading-[1.4] print:hidden ${className}`}
     >
       {visible.map((item, index) => {
         const isLast = index === visible.length - 1;
         return (
-          <span key={`${item.label}-${index}`} className="flex items-center gap-x-2">
+          <span key={`${item.label}-${index}`} className="flex items-center gap-x-1.5">
             {index > 0 ? (
-              <span aria-hidden className="text-[#c1c5d6]">
-                ›
-              </span>
+              <ChevronRight
+                aria-hidden
+                className="size-4 shrink-0 self-center text-[#9b9fb3]"
+              />
             ) : null}
             {isLast || !item.href ? (
               <span

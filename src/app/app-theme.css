@@ -221,6 +221,12 @@ body:has(.app-shell[data-app-theme="dark"]) {
 .app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\] {
   background-color: rgba(219, 165, 156, 0.06);
 }
+/* Тот же rosé-hint, но чуть плотнее, для hover-состояния (кнопка «Выйти»
+   в шапке кабинета). Отдельный класс — Tailwind генерирует его сам по
+   себе, `.bg-[#fff4f2]` выше его не покрывает. */
+.app-shell[data-app-theme="dark"] .hover\:bg-\[\#fff4f2\]:hover {
+  background-color: rgba(219, 165, 156, 0.16);
+}
 /* — иконочный фон status (warn) */
 .app-shell[data-app-theme="dark"] .bg-\[\#ffe2de\],
 .app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\],
@@ -488,6 +494,25 @@ body:has(.app-shell[data-app-theme="dark"]) {
 }
 .app-shell[data-app-theme="dark"] .hover\:bg-\[\#4a5bf0\]:hover {
   background-color: var(--app-indigo-hover);
+}
+/* Групповые варианты tinted-подложки (шапка кабинета: hover по контейнеру
+   раскрывает вложенную кнопку). Селекторы отдельные — Tailwind генерирует
+   для каждого варианта свой класс, поэтому `.bg-[#5566f6]/[0.09]` выше их
+   не покрывает. */
+.app-shell[data-app-theme="dark"] .group-focus-within\/nav\:bg-\[\#5566f6\]\/\[0\.09\] {
+  background-color: rgba(112, 129, 248, 0.22);
+}
+
+/* --- SWITCH (тумблеры-слайдеры) -------------------------------------
+   `Switch` красится через data-варианты (`data-[state=checked]:bg-…`),
+   а это отдельные Tailwind-классы — общий `.bg-[#5566f6]` их не ловит. */
+.app-shell[data-app-theme="dark"]
+  .data-\[state\=checked\]\:bg-\[\#5566f6\][data-state="checked"] {
+  background-color: var(--app-indigo);
+}
+.app-shell[data-app-theme="dark"]
+  .data-\[state\=unchecked\]\:bg-\[\#dcdfed\][data-state="unchecked"] {
+  background-color: var(--app-border-strong);
 }
 
 /* --- BORDERS ------------------------------------------------------- */

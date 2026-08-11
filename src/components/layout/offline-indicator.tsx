@@ -22,9 +22,9 @@ export function OfflineIndicator() {
       <span
         aria-label="В сети"
         title="В сети, очередь пуста"
-        className="hidden items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 text-[11px] font-medium text-[#116b2a] lg:inline-flex"
+        className="hidden h-10 items-center gap-1.5 rounded-lg bg-[#ecfdf5] px-3 text-[13px] font-semibold text-[#116b2a] lg:inline-flex"
       >
-        <Cloud className="size-3" />
+        <Cloud className="size-4" />
         В сети
       </span>
     );
@@ -47,18 +47,18 @@ export function OfflineIndicator() {
           : "Нет интернета. Записи сохраняются локально и отправятся, когда сеть вернётся."
       }
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+        "inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold transition-colors duration-200",
         online
           ? "bg-[#fff8eb] text-[#b25f00] hover:bg-[#fff4d9]"
           : "bg-[#fff4f2] text-[#a13a32] hover:bg-[#ffe9e4]"
       )}
     >
       {busy ? (
-        <RefreshCw className="size-3 animate-spin" />
+        <RefreshCw className="size-4 animate-spin" />
       ) : online ? (
-        <Cloud className="size-3" />
+        <Cloud className="size-4" />
       ) : (
-        <CloudOff className="size-3" />
+        <CloudOff className="size-4" />
       )}
       {label}
     </button>

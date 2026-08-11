@@ -320,9 +320,9 @@ export function NotificationsBell() {
         type="button"
         aria-label="Уведомления"
         onClick={() => (open ? closePanel() : openPanel())}
-        className="relative inline-flex size-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors hover:border-[#dcdfed] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+        className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09]"
       >
-        <Bell className="size-4" />
+        <Bell className="size-5" />
         {headerCount > 0 && (
           <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-[#ff3b30] px-1 text-[10px] font-semibold text-white">
             {headerCount > 99 ? "99+" : headerCount}
