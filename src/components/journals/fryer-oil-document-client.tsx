@@ -544,7 +544,7 @@ export function FryerOilDocumentClient(props: Props) {
             : undefined
         }
       />
-      <div className={`${DOC_BODY_STACK_CLASS} mx-auto max-w-[1880px] px-6 py-8`}>
+      <div className={`${DOC_BODY_STACK_CLASS} py-8`}>
         <DocumentActionsBar
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}

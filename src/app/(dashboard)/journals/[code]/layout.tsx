@@ -23,13 +23,17 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
     // 1296px, поэтому выходим из контейнера через w-screen + центрирование —
     // белый фон тянется от края до края, как на эталоне (body имеет
     // overflow-x-clip, поэтому скроллбар не появляется).
-    <div className="relative left-1/2 -my-4 w-screen -translate-x-1/2 bg-white px-4 py-4 md:-my-6 md:px-6 md:py-6">
+    <div className="relative left-1/2 -my-4 w-screen -translate-x-1/2 bg-white py-4 md:-my-6 md:py-6">
       {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
           скроллятся внутри собственного viewport-контейнера
           (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}
       {/* space-y-3 — шаг «хлебные крошки → H1» эталона (12px). Дальше
           ритм страницы задают токены DOC_* из journal-responsive.ts. */}
-      <div className="mx-auto max-w-[1296px] space-y-3">
+      {/* px-4 md:px-6 — ВНУТРИ коробки 1296px, один в один как в <Header>
+          и в контейнере (dashboard)/layout.tsx. Раньше padding стоял на
+          full-bleed обёртке (снаружи коробки) и сдвигал весь раздел
+          журналов на 24px влево относительно шапки. */}
+      <div className="mx-auto w-full max-w-[1296px] space-y-3 px-4 md:px-6">
         {children}
         <JournalDocGuideOverlay />
       </div>

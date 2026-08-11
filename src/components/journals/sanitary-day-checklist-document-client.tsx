@@ -870,7 +870,7 @@ export function SanitaryDayChecklistDocumentClient({
         }
       `}</style>
 
-      <div className="sdc-sheet mx-auto max-w-[960px] px-4 py-4 sm:px-8 sm:py-6">
+      <div className="sdc-sheet max-w-[960px] py-4 sm:py-6">
         {/* ─── Toolbar (screen only) ─── */}
         <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">

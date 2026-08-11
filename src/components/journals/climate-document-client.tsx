@@ -1348,7 +1348,7 @@ export function ClimateDocumentClient({
           status === "active" ? () => setRowDialogOpen(true) : undefined
         }
       />
-      <div className="mx-auto max-w-[1840px] px-4 py-4 sm:px-6 sm:py-8">
+      <div className="py-4 sm:py-8">
         <DocumentActionsBar
           backHref="/journals/climate_control"
           documentId={documentId}

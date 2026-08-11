@@ -550,7 +550,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
 
   return (
     <div className="bg-white text-black">
-      <div className="mx-auto max-w-[1860px] space-y-6 px-4 py-4 sm:px-6 sm:py-6">
+      <div className="space-y-6 py-4 sm:py-6">
         {/* Скроллер из ?focus=today: для event-driven журнала
            «история поломок» нет «сегодня» — поэтому селектор —
            самая свежая запись, либо если записей нет — пустой

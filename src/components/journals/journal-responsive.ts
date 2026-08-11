@@ -51,18 +51,30 @@ export const JOURNAL_CARD_VALUE_CLASS =
 export const JOURNAL_CARD_SECTION_CLASS =
   "border-t border-[#e6e6f0] pt-3 sm:flex sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-10 sm:pt-0";
 
+/**
+ * Полоса «выбрано N строк». На мобильном разливается до краёв экрана
+ * (`-mx-4 px-4` компенсируют px-4 контейнера страницы), на sm+ идёт ровно
+ * от левой линии контейнера — своих горизонтальных отступов у неё больше
+ * нет (раньше `sm:-mx-6 lg:-mx-8` компенсировали padding оболочки
+ * документа, которого теперь нет).
+ */
 export const JOURNAL_DOCUMENT_SELECTION_BAR_CLASS =
-  "sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8";
+  "sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:px-0";
 
 /**
  * Оболочка документа. Раньше несла border + shadow — на сером фоне это
  * читалось как «лист бумаги». Теперь фон раздела журналов сам белый
  * (см. `journals/[code]/layout.tsx`), поэтому рамка вокруг белого на
  * белом была бы «рамкой ради рамки» — убрана, как на эталоне.
- * Горизонтальные отступы сохранены (mobile-first контракт, см. тест).
+ *
+ * Горизонтальные отступы тоже убраны: на белом фоне это прозрачная
+ * обёртка, а её `px-4 sm:px-6 lg:px-8` были ВТОРЫМ слоем padding'а поверх
+ * контейнера страницы и сдвигали H1 документа правее хлебных крошек.
+ * Горизонтальную геометрию задаёт ровно один контейнер — страница.
+ * Остались только вертикальные отступы.
  */
 export const JOURNAL_DOCUMENT_SHELL_CLASS =
-  "rounded-[20px] bg-white px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5";
+  "rounded-[20px] bg-white py-3 sm:py-4 lg:py-5";
 
 export const JOURNAL_DOCUMENT_HEADER_CLASS =
   "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5";

@@ -138,9 +138,17 @@ export default async function DashboardLayout({
           />
           {/* Контент по центру, 1296px — контейнер эталона
               (docs/reference/haccp-online/typography.json → listPage.container).
-              Вертикальный ритм: 24px сверху, как на эталоне. */}
-          <main className="flex-1 p-4 md:p-6">
-            <div className="mx-auto w-full max-w-[1296px]">{children}</div>
+              Вертикальный ритм: 24px сверху, как на эталоне.
+
+              ВАЖНО: горизонтальные паддинги живут ВНУТРИ коробки 1296px
+              (px-4 md:px-6), ровно как в <Header>. Раньше padding был на
+              <main> (снаружи коробки), из-за чего левая граница контента
+              оказывалась на 24px левее левой границы шапки. Единственное
+              место, где задаётся горизонтальная геометрия страницы. */}
+          <main className="flex-1 py-4 md:py-6">
+            <div className="mx-auto w-full max-w-[1296px] px-4 md:px-6">
+              {children}
+            </div>
           </main>
           {/* Футер дашборда — виден на каждой странице (требование
               владельца: «наш футер на каждой странице»). `mt-auto`

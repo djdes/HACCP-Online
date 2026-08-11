@@ -28,12 +28,26 @@ test("journal responsive tokens keep mobile-first stacking and tighter shells", 
   assert.match(JOURNAL_TAB_RAIL_CLASS, /min-w-max/);
   assert.match(JOURNAL_LIST_CARD_CLASS, /grid-cols-1/);
   assert.match(JOURNAL_LIST_CARD_CLASS, /sm:grid-cols-/);
+  // Полоса выделения: на мобильном бликует до краёв экрана, на sm+ идёт
+  // ровно от левой линии контейнера страницы (своих отступов нет).
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /-mx-4/);
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sm:-mx-6/);
-  assert.match(JOURNAL_DOCUMENT_SHELL_CLASS, /px-4/);
-  assert.match(JOURNAL_DOCUMENT_SHELL_CLASS, /sm:px-6/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sm:mx-0/);
+  assert.doesNotMatch(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sm:-mx-6/);
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /px-4/);
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /sm:px-6/);
+});
+
+test("page-level horizontal geometry is declared exactly once", () => {
+  // Оболочка документа — прозрачная обёртка на белом фоне раздела.
+  // Горизонтальные паддинги задаёт контейнер страницы (max-w-[1296px]
+  // px-4 md:px-6 в (dashboard)/layout.tsx и journals/[code]/layout.tsx),
+  // поэтому у оболочки их быть не должно — иначе H1 документа уезжает
+  // правее хлебных крошек.
+  assert.doesNotMatch(JOURNAL_DOCUMENT_SHELL_CLASS, /(^|\s|:)px-\d/);
+  assert.doesNotMatch(JOURNAL_DOCUMENT_SHELL_CLASS, /(^|\s|:)-?mx-\d/);
+  // Вертикальный ритм оболочки при этом сохраняется.
+  assert.match(JOURNAL_DOCUMENT_SHELL_CLASS, /\bpy-3\b/);
+  assert.match(JOURNAL_DOCUMENT_SHELL_CLASS, /sm:py-4/);
 });
 
 test("journal tokens follow the haccp-online reference typography", () => {

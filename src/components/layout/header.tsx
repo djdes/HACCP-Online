@@ -215,7 +215,11 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 border-b bg-white">
       {/* Высота шапки — 72px, как на эталоне (замер: headerBar h=73px). */}
-      <div className="mx-auto flex h-[72px] w-full max-w-[1296px] items-center gap-2 px-3 md:gap-4 md:px-6">
+      {/* Горизонтальная геометрия шапки ДОЛЖНА совпадать с контейнером
+          контента ((dashboard)/layout.tsx): max-w-[1296px] + px-4 md:px-6
+          внутри этой же коробки. Любое расхождение сразу читается как
+          «шапка одной ширины, страница другой». */}
+      <div className="mx-auto flex h-[72px] w-full max-w-[1296px] items-center gap-2 px-4 md:gap-4 md:px-6">
         <Link
           href={homeHref}
           className="shrink-0 flex items-center gap-2"

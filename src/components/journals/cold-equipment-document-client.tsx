@@ -885,7 +885,7 @@ export function ColdEquipmentDocumentClient({
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller />
-      <div className="mx-auto max-w-[1880px] px-6 py-8">
+      <div className="py-8">
         <DocumentActionsBar
           backHref="/journals/cold_equipment_control"
           documentId={documentId}

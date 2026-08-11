@@ -346,7 +346,7 @@ export function HealthDocumentClient(props: Props) {
         }
       `}</style>
 
-      <div className="health-sheet mx-auto max-w-[1720px] px-4 py-4 sm:px-8 sm:py-6">
+      <div className="health-sheet py-4 sm:py-6">
         {/* Нижний отступ этого блока задаёт полоса автозаполнения внутри
             <StaffJournalToolbar> (DOC_AUTOFILL_STRIP_CLASS, 40px до бумажной
             шапки) — свой mb здесь удваивал бы канон. */}
@@ -527,7 +527,7 @@ export function HealthDocumentClient(props: Props) {
           }`}
         >
         <div className={GRID_VIEWPORT_CLASS}>
-        <div className="mx-auto min-w-[1100px] max-w-[1860px] px-8 py-6 sm:min-w-0">
+        <div className="min-w-[1100px] py-6 sm:min-w-0">
           <div className={DOC_PAPER_HEADER_CLASS}>
             <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
           </div>

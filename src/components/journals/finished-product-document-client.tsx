@@ -304,7 +304,7 @@ export function FinishedProductDocumentClient({
       <FocusTodayScroller
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
-      <div className="rounded-[28px] bg-white px-4 py-5 shadow-sm sm:px-8 sm:py-7">
+      <div className="rounded-[28px] bg-white py-5 shadow-sm sm:py-7">
         <DocumentActionsBar
           className="mb-0"
           backHref="/journals/finished_product"

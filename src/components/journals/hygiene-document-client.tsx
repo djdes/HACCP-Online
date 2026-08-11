@@ -644,10 +644,10 @@ export function HygieneDocumentClient({
         }`}
       >
       <div className={GRID_VIEWPORT_CLASS}>
-        <div className="hygiene-sheet mx-auto min-w-[1100px] max-w-[1720px] px-8 py-6 sm:min-w-0">
+        <div className="hygiene-sheet min-w-[1100px] py-6 sm:min-w-0">
 
         <div className="hygiene-page">
-          <div className="mx-auto max-w-[1380px]">
+          <div>
             <div className={DOC_PAPER_HEADER_CLASS}>
               <HygieneHeader pageLabel="СТР. 1 ИЗ 1" organizationLabel={organizationLabel} />
             </div>
