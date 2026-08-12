@@ -473,6 +473,48 @@ body:has(.app-shell[data-app-theme="dark"]) {
   background-color: #a06b62;
 }
 
+/* --- БАННЕР «Перейти к сегодня» / «Открыть за сегодня» --------------
+ * `TodayPendingBanner` на списках документов журнала. В светлой теме
+ * это почти белая розовая (или мятная) плашка с насыщенным текстом.
+ * В тёмной теме подложка оставалась светлой, а текст уходил в
+ * приглушённый rosé/sage — контраст падал до нечитаемого.
+ *
+ * Правим ТОЧЕЧНО по `data-today-banner` на самом баннере: глобальные
+ * danger/warn-токены (--app-warn-*, .text-[#d2453d] и т.д.) не трогаем,
+ * чтобы не поехали остальные пилюли и кнопки. */
+.app-shell[data-app-theme="dark"] [data-today-banner="pending"] {
+  background-color: rgba(219, 165, 156, 0.12);
+  border-color: rgba(219, 165, 156, 0.34);
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .bg-\[\#ffe1dc\] {
+  background-color: rgba(219, 165, 156, 0.2);
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .text-\[\#d2453d\],
+.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .text-\[\#d2453d\]\/85 {
+  color: #f0c9c1;
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] {
+  background-color: rgba(155, 200, 176, 0.12);
+  border-color: rgba(155, 200, 176, 0.34);
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .bg-\[\#d9f4e1\] {
+  background-color: rgba(155, 200, 176, 0.2);
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .text-\[\#136b2a\],
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .text-\[\#136b2a\]\/80 {
+  color: #c3e3d1;
+}
+/* Кнопки внутри баннера — заливка остаётся плотной, текст белый. */
+.app-shell[data-app-theme="dark"] [data-today-banner] a {
+  color: #fff;
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] a {
+  background-color: #5e8a71;
+}
+.app-shell[data-app-theme="dark"] [data-today-banner="filled"] a:hover {
+  background-color: #517a63;
+}
+
 /* --- TINTED BUTTONS (вторичные кнопки эталона) ----------------------
  * Светлая тема: подложка `bg-[#5566f6]/[0.04]` + текст `#5566f6`.
  * На тёмном фоне 4% индиго почти не читается как поверхность, а сам

@@ -12,6 +12,10 @@ export type UvSpecification = {
   commissioningDate: string;
   minIntervalBetweenSessions: string;
   controlFrequency: string;
+  /** Типовое время включения установки — база для автозаполнения. */
+  autoFillStartTime: string;
+  /** Типовая длительность одного сеанса, минут — база для автозаполнения. */
+  autoFillDurationMinutes: number;
 };
 
 export type UvRuntimeDocumentConfig = {
@@ -25,6 +29,11 @@ export type UvRuntimeEntryData = {
   endTime: string;
 };
 
+/** Типовое время включения установки по умолчанию (начало смены). */
+export const UV_AUTOFILL_DEFAULT_START_TIME = "09:00";
+/** Типовая длительность сеанса по умолчанию, минут. */
+export const UV_AUTOFILL_DEFAULT_DURATION_MINUTES = 60;
+
 export function defaultUvSpecification(): UvSpecification {
   return {
     disinfectionAir: true,
@@ -36,6 +45,8 @@ export function defaultUvSpecification(): UvSpecification {
     commissioningDate: "",
     minIntervalBetweenSessions: "",
     controlFrequency: "1 раз(а) в смену",
+    autoFillStartTime: UV_AUTOFILL_DEFAULT_START_TIME,
+    autoFillDurationMinutes: UV_AUTOFILL_DEFAULT_DURATION_MINUTES,
   };
 }
 
@@ -56,7 +67,51 @@ export function normalizeUvSpecification(value: unknown): UvSpecification {
     commissioningDate: typeof item.commissioningDate === "string" ? item.commissioningDate : "",
     minIntervalBetweenSessions: typeof item.minIntervalBetweenSessions === "string" ? item.minIntervalBetweenSessions : "",
     controlFrequency: typeof item.controlFrequency === "string" && item.controlFrequency.trim() ? item.controlFrequency.trim() : defaults.controlFrequency,
+    autoFillStartTime: isTimeString(item.autoFillStartTime) ? (item.autoFillStartTime as string) : defaults.autoFillStartTime,
+    autoFillDurationMinutes:
+      typeof item.autoFillDurationMinutes === "number" &&
+      item.autoFillDurationMinutes > 0 &&
+      item.autoFillDurationMinutes <= 24 * 60
+        ? Math.round(item.autoFillDurationMinutes)
+        : defaults.autoFillDurationMinutes,
   };
+}
+
+function isTimeString(value: unknown): boolean {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+/**
+ * Автозаполнение сегодняшнего сеанса УФ-установки.
+ *
+ * Осмысленное значение берём из спецификации установки: типовое время
+ * включения + типовая длительность сеанса. Ручные строки не трогаем —
+ * заполняем только пустые (см. вызовы в API-роуте и в cron'е).
+ */
+export function buildUvRuntimeAutoFillEntryData(
+  spec: UvSpecification
+): UvRuntimeEntryData {
+  const startTime = isTimeString(spec.autoFillStartTime)
+    ? spec.autoFillStartTime
+    : UV_AUTOFILL_DEFAULT_START_TIME;
+  const duration =
+    spec.autoFillDurationMinutes > 0
+      ? Math.round(spec.autoFillDurationMinutes)
+      : UV_AUTOFILL_DEFAULT_DURATION_MINUTES;
+
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const endMinutes = (hours * 60 + minutes + duration) % (24 * 60);
+
+  return {
+    startTime,
+    endTime: `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(
+      endMinutes % 60
+    ).padStart(2, "0")}`,
+  };
+}
+
+export function isUvRuntimeEntryDataEmpty(data: UvRuntimeEntryData): boolean {
+  return !data.startTime && !data.endTime;
 }
 
 export function normalizeUvRuntimeDocumentConfig(value: unknown): UvRuntimeDocumentConfig {

@@ -581,7 +581,10 @@ export function CleaningVentilationChecklistDocumentClient({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  // По умолчанию панель автозаполнения свёрнута в тонкую полосу
+  // (тумблер + резюме + «Настроить»): настройки меняют редко, а места
+  // раскрытая панель занимала больше, чем сам чек-лист.
+  const [panelOpen, setPanelOpen] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
   const isActive = status === "active";
   const { mobileView, switchMobileView } = useMobileView("cleaning_ventilation_checklist");
@@ -594,6 +597,28 @@ export function CleaningVentilationChecklistDocumentClient({
       ),
     [config]
   );
+
+  // Краткое резюме для свёрнутой полосы автозаполнения.
+  const autoFillSummary = useMemo(() => {
+    const count = activeProcedures.length;
+    const lastDigit = count % 10;
+    const teens = count % 100 > 10 && count % 100 < 20;
+    const word =
+      !teens && lastDigit === 1
+        ? "процедура"
+        : !teens && lastDigit >= 2 && lastDigit <= 4
+          ? "процедуры"
+          : "процедур";
+
+    const times = Array.from(
+      new Set(activeProcedures.flatMap((item) => item.times).filter(Boolean))
+    ).sort();
+
+    const parts = [`${count} ${word}`];
+    if (times.length > 0) parts.push(`время: ${times.join(", ")}`);
+    parts.push(config.skipWeekends ? "выходные пропускаются" : "включая выходные");
+    return parts.join(" · ");
+  }, [activeProcedures, config.skipWeekends]);
 
   const rows = useMemo(
     () =>
@@ -810,9 +835,10 @@ export function CleaningVentilationChecklistDocumentClient({
         ) : null}
 
         <div className="rounded-[28px] bg-[#f4f5fe] px-6 py-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <label className="flex items-center gap-4 text-[22px] font-semibold text-black">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
               <Checkbox
+                id="cleaning-ventilation-autofill"
                 checked={config.autoFillEnabled}
                 disabled={!isActive}
                 onCheckedChange={(checked) => {
@@ -822,13 +848,29 @@ export function CleaningVentilationChecklistDocumentClient({
                 }}
                 className="size-7 rounded-[10px]"
               />
-              Автоматически заполнять чек-лист
-            </label>
-            <button type="button" onClick={() => setPanelOpen((current) => !current)}>
+              <div className="min-w-0">
+                <label
+                  htmlFor="cleaning-ventilation-autofill"
+                  className="block cursor-pointer text-[18px] font-semibold text-black"
+                >
+                  Автоматически заполнять чек-лист
+                </label>
+                <div className="mt-0.5 truncate text-[14px] text-[#6f7282]">
+                  {autoFillSummary}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPanelOpen((current) => !current)}
+              className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-2xl bg-[#5566f6]/[0.04] px-4 text-[14px] font-medium text-[#5566f6] transition-colors duration-150 hover:bg-[#5566f6]/[0.09] sm:self-auto"
+              title={panelOpen ? "Свернуть настройки автозаполнения" : "Показать время и ответственных"}
+            >
+              {panelOpen ? "Свернуть" : "Настроить"}
               {panelOpen ? (
-                <ChevronUp className="size-7 text-[#5566f6]" />
+                <ChevronUp className="size-5" />
               ) : (
-                <ChevronDown className="size-7 text-[#5566f6]" />
+                <ChevronDown className="size-5" />
               )}
             </button>
           </div>

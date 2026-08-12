@@ -33,7 +33,10 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
           и в контейнере (dashboard)/layout.tsx. Раньше padding стоял на
           full-bleed обёртке (снаружи коробки) и сдвигал весь раздел
           журналов на 24px влево относительно шапки. */}
-      <div className="mx-auto w-full max-w-[1296px] space-y-3 px-4 md:px-6">
+      {/* pb-24 — запас под плавающую кнопку «Как заполнять»: без него
+          она накрывала последние строки широких таблиц документа и
+          последняя дата не выскроллировалась. */}
+      <div className="mx-auto w-full max-w-[1296px] space-y-3 px-4 pb-24 md:px-6">
         {children}
         <JournalDocGuideOverlay />
       </div>

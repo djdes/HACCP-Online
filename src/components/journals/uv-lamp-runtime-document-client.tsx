@@ -42,6 +42,8 @@ import {
   normalizeUvRuntimeDocumentConfig,
   normalizeUvRuntimeEntryData,
   toIsoDate,
+  UV_AUTOFILL_DEFAULT_DURATION_MINUTES,
+  UV_AUTOFILL_DEFAULT_START_TIME,
   type UvRuntimeDocumentConfig,
   type UvRuntimeEntryData,
   type UvSpecification,
@@ -171,6 +173,10 @@ function UvSpecEditDialog(props: {
   const [commDate, setCommDate] = useState(props.spec.commissioningDate);
   const [minInterval, setMinInterval] = useState(props.spec.minIntervalBetweenSessions);
   const [frequency, setFrequency] = useState(props.spec.controlFrequency);
+  const [autoStart, setAutoStart] = useState(props.spec.autoFillStartTime);
+  const [autoDuration, setAutoDuration] = useState(
+    String(props.spec.autoFillDurationMinutes)
+  );
 
   useEffect(() => {
     if (!props.open) return;
@@ -183,6 +189,8 @@ function UvSpecEditDialog(props: {
     setCommDate(props.spec.commissioningDate);
     setMinInterval(props.spec.minIntervalBetweenSessions);
     setFrequency(props.spec.controlFrequency);
+    setAutoStart(props.spec.autoFillStartTime);
+    setAutoDuration(String(props.spec.autoFillDurationMinutes));
   }, [props.open, props.spec]);
 
   return (
@@ -323,6 +331,32 @@ function UvSpecEditDialog(props: {
             <div className="text-[13px] text-[#999]">*частота включений</div>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-[16px] text-[#6f7282]">Типовое время включения</Label>
+              <Input
+                type="time"
+                value={autoStart}
+                onChange={(e) => setAutoStart(e.target.value)}
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[16px]"
+              />
+              <div className="text-[13px] text-[#999]">*используется при автозаполнении</div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-[16px] text-[#6f7282]">Типовая длительность сеанса, минут</Label>
+              <Input
+                type="number"
+                min={1}
+                max={1440}
+                value={autoDuration}
+                onChange={(e) => setAutoDuration(e.target.value)}
+                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[16px]"
+              />
+              <div className="text-[13px] text-[#999]">*используется при автозаполнении</div>
+            </div>
+          </div>
+
           <div className="flex justify-end pt-1">
             <Button
               type="button"
@@ -340,6 +374,13 @@ function UvSpecEditDialog(props: {
                     commissioningDate: commDate,
                     minIntervalBetweenSessions: minInterval.trim(),
                     controlFrequency: frequency,
+                    autoFillStartTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(autoStart)
+                      ? autoStart
+                      : UV_AUTOFILL_DEFAULT_START_TIME,
+                    autoFillDurationMinutes: Math.min(
+                      1440,
+                      Math.max(1, parseInt(autoDuration, 10) || UV_AUTOFILL_DEFAULT_DURATION_MINUTES)
+                    ),
                   });
                   props.onOpenChange(false);
                 } finally {
@@ -1180,6 +1221,24 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       setAutoFill(!value);
       toast.error("Не удалось сохранить настройку автозаполнения");
       return;
+    }
+
+    if (value) {
+      // Сразу проставляем типовой сеанс работы установки в пустые дни —
+      // дальше это же делает ежедневный cron /api/cron/auto-fill-journals.
+      const autoFillResponse = await fetch(
+        `/api/journal-documents/${props.documentId}/uv-runtime`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "apply_auto_fill" }),
+        }
+      );
+
+      if (!autoFillResponse.ok) {
+        const result = await autoFillResponse.json().catch(() => null);
+        toast.error(result?.error || "Не удалось применить автозаполнение");
+      }
     }
 
     router.refresh();

@@ -75,7 +75,10 @@ export function TodayPendingBanner({
       ? `${templateName} заполнен за сегодняшнее число${greenDetail}. Можно открыть документ, чтобы проверить или дополнить записи.`
       : `${templateName} уже заполнялся за сегодняшнее число${greenDetail}. Можно открыть документ, чтобы продолжить.`;
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4">
+      <div
+        data-today-banner="filled"
+        className="flex flex-col gap-3 rounded-2xl border border-[#c8f0d5] bg-[#ecfdf5] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4"
+      >
         <div className="flex min-w-0 items-start gap-3 sm:flex-1">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#d9f4e1] text-[#136b2a]">
             <CheckCircle2 className="size-5" />
@@ -114,7 +117,10 @@ export function TodayPendingBanner({
         : "За сегодня журнал ещё не начинали заполнять. Откройте документ и внесите первую запись за сегодня — блок исчезнет после любой строки с сегодняшней датой.";
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4">
+    <div
+      data-today-banner="pending"
+      className="flex flex-col gap-3 rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] px-4 py-3 sm:flex-row sm:items-center sm:px-5 sm:py-4"
+    >
       <div className="flex min-w-0 items-start gap-3 sm:flex-1">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ffe1dc] text-[#d2453d]">
           <AlertCircle className="size-5" />

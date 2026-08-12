@@ -107,6 +107,7 @@ docs/                    — этот файл и архитектурные п�
 
 | Дата | SHA | Что |
 |---|---|---|
+| 2026-08-12 | — | Ежедневное автозаполнение журналов — `/api/cron/auto-fill-journals` дозаполняет СЕГОДНЯШНИЙ день во всех active-документах с `autoFill=true`: `hygiene`/`health_check` (общий helper `src/lib/staff-journal-autofill.ts`, он же за action `apply_auto_fill`), `climate_control`, `cold_equipment_control`, `uv_lamp_runtime`. Только пустые значения, идемпотентно. Графики `StaffWorkOffDay`/`StaffVacation`/`StaffSickLeave` проставляют «В»/«Отп»/«Б/л» ТОЛЬКО в гигиеническом журнале. INFRA NEXT: внешний cron 05:00 MSK ежедневно (после `auto-create-journals` в 04:00) |
 | 2026-04-26 | `ec1ef75` | Tuya auto-pull cron — `/api/cron/tuya-pull` пишет t°/влажность с датчиков в `cold_equipment_control` и `climate_control` без юзера |
 | 2026-04-26 | `6ba17c8` | Inspector portal — `InspectorToken` модель, `/inspector/<token>` read-only с TTL и one-click PDF, `/settings/inspector-portal` UI |
 | 2026-04-26 | `3cb8af3` | Setup-wizard расширение — `/api/onboarding/apply` теперь применяет `disabledJournalCodes` + `autoJournalCodes` + опциональная смена `Organization.type`; UI получил селектор типа |

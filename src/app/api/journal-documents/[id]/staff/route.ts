@@ -6,8 +6,8 @@ import { db } from "@/lib/db";
 import {
   buildDateKeys,
   getDefaultEntryDataForTemplate,
-  isEntryDataEmpty,
 } from "@/lib/hygiene-document";
+import { applyStaffJournalAutoFill } from "@/lib/staff-journal-autofill";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
 type StaffAction =
@@ -75,32 +75,18 @@ export async function POST(
   const defaultData = getDefaultEntryDataForTemplate(document.template.code);
 
   if (action === "apply_auto_fill") {
-    const allRows = users.flatMap((user) =>
-      dateKeys.map((dateKey) => ({
-        documentId,
-        employeeId: user.id,
-        date: new Date(dateKey),
-        data: defaultData,
-      }))
-    );
-
-    const created = await db.journalDocumentEntry.createMany({
-      data: allRows,
-      skipDuplicates: true,
+    // Общая логика с ежедневным cron'ом (/api/cron/auto-fill-journals):
+    // тот же helper, разница только в наборе дат (здесь — весь период
+    // документа, в cron — сегодняшний день).
+    const result = await applyStaffJournalAutoFill(db, {
+      documentId,
+      templateCode: document.template.code,
+      employeeIds: users.map((user) => user.id),
+      dateKeys,
+      entries: document.entries,
     });
 
-    const rowsToUpdate = document.entries.filter((entry) => isEntryDataEmpty(entry.data));
-
-    await Promise.all(
-      rowsToUpdate.map((entry) =>
-        db.journalDocumentEntry.update({
-          where: { id: entry.id },
-          data: { data: defaultData },
-        })
-      )
-    );
-
-    return NextResponse.json({ updated: rowsToUpdate.length, created: created.count });
+    return NextResponse.json({ updated: result.updated, created: result.created });
   }
 
   let targetUserIds: string[] = [];
