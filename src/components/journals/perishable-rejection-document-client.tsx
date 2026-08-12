@@ -585,7 +585,7 @@ export function PerishableRejectionDocumentClient({
           </tbody>
         </table>
 
-        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[36px] font-semibold`}>
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[13px] font-bold uppercase leading-tight sm:text-[14px]`}>
           ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ
         </h2>
 
@@ -668,16 +668,38 @@ export function PerishableRejectionDocumentClient({
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>
 
+        {/* Карточки — только на телефоне. Раньше обёртки `sm:hidden` не
+            было, и на десктопе «Записей пока нет.» висело над таблицей. */}
         {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />
+          <div className="sm:hidden print:hidden">
+            <RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />
+          </div>
         ) : null}
 
         {/* Main data table */}
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[2200px] w-full border-collapse text-[13px]">
+          {/* Паттерн N4 (finished_product): `table-fixed` + colgroup в
+              процентах. Раньше стоял `min-w-[2200px]` без фиксированной
+              раскладки — колонки расползались, «Примечание» уезжало из
+              контейнера. Скролл живёт ВНУТРИ viewport-обёртки. */}
+          <table className="w-full min-w-[1600px] table-fixed border-collapse text-[12.5px]">
+            <colgroup>
+              <col style={{ width: "36px" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "5%" }} />
+            </colgroup>
             <thead>
               <tr>
-                <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} />
+                <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 leading-tight`} />
                 <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Дата, время поступления пищ. продукции
                 </th>
@@ -706,6 +728,16 @@ export function PerishableRejectionDocumentClient({
               </tr>
             </thead>
             <tbody>
+              {config.rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={12}
+                    className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[13px] leading-tight text-[#6f7282]`}
+                  >
+                    Записей пока нет. Нажмите «Добавить», чтобы создать первую строку.
+                  </td>
+                </tr>
+              ) : null}
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
@@ -728,7 +760,7 @@ export function PerishableRejectionDocumentClient({
                           arrivalTime: time,
                         });
                       }}
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -738,7 +770,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { productName: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -748,7 +780,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { productionDate: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -762,7 +794,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { manufacturer: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -776,7 +808,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { packaging: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -788,7 +820,7 @@ export function PerishableRejectionDocumentClient({
                           documentNumber: e.target.value,
                         })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -807,7 +839,7 @@ export function PerishableRejectionDocumentClient({
                             : "compliant",
                         })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -817,7 +849,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { expiryDate: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -832,7 +864,7 @@ export function PerishableRejectionDocumentClient({
                           actualSaleTime: time,
                         });
                       }}
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -844,7 +876,7 @@ export function PerishableRejectionDocumentClient({
                           responsiblePerson: e.target.value,
                         })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
@@ -854,7 +886,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { note: e.target.value })
                       }
-                      className="border-0 shadow-none"
+                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>

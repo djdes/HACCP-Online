@@ -399,10 +399,10 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
 function Appendix() {
   return (
     <div className="space-y-5 pt-8">
-      <div className="text-[18px]">Приложение. Методика определения качества фритюрного жира.</div>
-      <table className="w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Показатели качества</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
-      <table className="w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Качество фритюра</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.label}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.score}</td></tr>)}</tbody></table>
-      <div className="text-[15px] leading-7">Пример расчета среднего балла: {QUALITY_ASSESSMENT_TABLE.formulaExample}</div>
+      <div className="text-[15px] font-semibold">Приложение. Методика определения качества фритюрного жира.</div>
+      <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-[18%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Показатели качества</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
+      <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-1/2" /><col className="w-1/2" /></colgroup><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Качество фритюра</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.label}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.score}</td></tr>)}</tbody></table>
+      <div className="text-[13px] leading-6">Пример расчета среднего балла: {QUALITY_ASSESSMENT_TABLE.formulaExample}</div>
     </div>
   );
 }
@@ -581,11 +581,11 @@ export function FryerOilDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <div className={GRID_VIEWPORT_CLASS}>
-          <div className="min-w-[1400px]">
+        <div>
+          <div>
             {/* Бумажная шапка — общие строки в той же сетке, что и таблица
                 ниже (раньше была самодельная grid-вёрстка без части рамок). */}
-            <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
+            <table className={`${DOC_PAPER_HEADER_CLASS} w-full table-fixed border-collapse text-[13px]`}>
               <tbody>
                 <JournalPaperHeaderRows
                   orgName={props.organizationName}
@@ -599,7 +599,7 @@ export function FryerOilDocumentClient(props: Props) {
               </tbody>
             </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
-            <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[26px] font-semibold uppercase`}>Журнал учета использования фритюрных жиров</div>
+            <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
             {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
@@ -611,9 +611,27 @@ export function FryerOilDocumentClient(props: Props) {
             ) : null}
             <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
             {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
-            <MobileViewTableWrapper mobileView={mobileView}>
-            <table className="w-full border-collapse text-[13px]">
-              <thead><tr>{isActive ? <th rowSpan={2} className={`w-[52px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Утилизированный, кг</th></tr></thead>
+            {/* Горизонтальный скролл — ТОЛЬКО у журнальной таблицы.
+                Раньше в 1400-px контейнер были завёрнуты и шапка, и
+                кнопки, и приложение: чтобы нажать «Добавить», приходилось
+                скроллить страницу вбок. `table-fixed` + `colgroup`
+                держат 11 колонок в ~1250px (паттерн finished_product). */}
+            <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
+            <table className="w-full min-w-[1250px] table-fixed border-collapse text-[13px]">
+              <colgroup>
+                {isActive ? <col className="w-[40px]" /> : null}
+                <col className="w-[150px]" />
+                <col className="w-[110px]" />
+                <col className="w-[150px]" />
+                <col className="w-[120px]" />
+                <col className="w-[100px]" />
+                <col className="w-[110px]" />
+                <col className="w-[150px]" />
+                <col className="w-[90px]" />
+                <col className="w-[90px]" />
+                <col className="w-[140px]" />
+              </colgroup>
+              <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Утилизированный, кг</th></tr></thead>
               <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>

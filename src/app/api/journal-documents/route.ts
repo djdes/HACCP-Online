@@ -52,7 +52,7 @@ import {
 } from "@/lib/ppe-issuance-document";
 import {
   SANITATION_DAY_TEMPLATE_CODE,
-  getSanitationDayDefaultConfig,
+  buildSanitationDayConfigFromAreas,
   normalizeSanitationDayConfig,
 } from "@/lib/sanitation-day-document";
 import {
@@ -510,7 +510,24 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === PPE_ISSUANCE_TEMPLATE_CODE
       ? getPpeIssuanceDefaultConfig(allUsers)
       : resolvedTemplateCode === SANITATION_DAY_TEMPLATE_CODE
-      ? getSanitationDayDefaultConfig(new Date(dateFrom))
+      ? // «График и учет генеральных уборок» — годовой бланк. Строки
+        // берём из помещений организации (раньше подставлялись
+        // демо-строки дефолта), а должность/ФИО ответственного из
+        // диалога создания кладём в блок «УТВЕРЖДАЮ» (`approve*`).
+        // rows из body уважаем только если они непустые: диалог
+        // присылает лишь approve*/responsible*, и наивный merge обнулил
+        // бы список помещений.
+        (() => {
+          const base = buildSanitationDayConfigFromAreas(allAreas, new Date(dateFrom));
+          const provided = (rawConfig || {}) as Record<string, unknown>;
+          const providedRows =
+            Array.isArray(provided.rows) && provided.rows.length > 0;
+          return {
+            ...base,
+            ...provided,
+            rows: providedRows ? provided.rows : base.rows,
+          };
+        })()
       : resolvedTemplateCode === TRAINING_PLAN_TEMPLATE_CODE
       ? getTrainingPlanDefaultConfig()
       : resolvedTemplateCode === BREAKDOWN_HISTORY_TEMPLATE_CODE

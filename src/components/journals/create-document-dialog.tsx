@@ -196,6 +196,14 @@ export function CreateDocumentDialog({
   const isStaffTrainingJournal = templateCode === STAFF_TRAINING_TEMPLATE_CODE;
   const isEquipmentMaintenanceJournal = templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE;
   const isEquipmentCalibrationJournal = templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE;
+  /**
+   * «График и учет генеральных уборок» — ГОДОВОЙ документ (см.
+   * `YEARLY_JOURNAL_CODES` в `journal-period.ts`): период всегда
+   * 1 января — 31 декабря. Поэтому «Дата окончания» в диалоге не нужна,
+   * а должность + ФИО ответственного из каскада уходят в блок
+   * «УТВЕРЖДАЮ» бланка (`approveRole` / `approveEmployee`).
+   */
+  const isGeneralCleaningJournal = templateCode === "general_cleaning";
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
   /**
    * Поле «Название документа» есть ВЕЗДЕ и всегда первое (эталон
@@ -316,6 +324,19 @@ export function CreateDocumentDialog({
             ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom }
             : isEquipmentCalibrationJournal
             ? { year: Number(dateFrom.slice(0, 4)), documentDate: dateFrom, rows: [], approveRole: responsibleTitle || "Управляющий", approveEmployee: "" }
+            : isGeneralCleaningJournal
+            ? {
+                year: Number(dateFrom.slice(0, 4)),
+                documentDate: dateFrom,
+                approveRole: responsibleTitle || "Управляющий",
+                approveEmployeeId: selectedResponsibleUser || null,
+                approveEmployee:
+                  users.find((user) => user.id === selectedResponsibleUser)?.name || "",
+                responsibleRole: responsibleTitle || "Управляющий",
+                responsibleEmployeeId: selectedResponsibleUser || null,
+                responsibleEmployee:
+                  users.find((user) => user.id === selectedResponsibleUser)?.name || "",
+              }
             : isStaffTrainingJournal
             ? { showSignatureField: medBookIncludeVaccinations }
             : isMedBookJournal
@@ -410,7 +431,8 @@ export function CreateDocumentDialog({
     !isEquipmentCalibrationJournal &&
     !isCleaningJournal &&
     !isEquipmentCleaningJournal;
-  const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
+  const showDateTo =
+    !isClimateJournal && !isColdEquipmentJournal && !isGeneralCleaningJournal;
   /**
    * Период у «штатных» журналов (гигиена, здоровье, контроль гигиены рук)
    * считается автоматически на 15 дней — поля даты у них нет. Раньше на

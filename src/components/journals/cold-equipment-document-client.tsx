@@ -75,8 +75,10 @@ import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import {
+  GRID_BORDER_CLASS,
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
+  GRID_SERVICE_LABEL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 
@@ -601,6 +603,12 @@ export function ColdEquipmentDocumentClient({
   }, []);
 
   const dateKeys = useMemo(() => buildDateKeys(dateFrom, dateTo), [dateFrom, dateTo]);
+  /**
+   * Раньше ширина таблицы была прибита гвоздями (`min-w-[1900px]`), из-за
+   * чего у месяца из 15 дней колонки растягивались вдвое против эталона.
+   * Считаем от состава: 40 (чекбокс) + 300 (наименование) + 48 × дни.
+   */
+  const gridMinWidth = 340 + dateKeys.length * 48;
   const rowByDate = useMemo(
     () =>
       Object.fromEntries(
@@ -859,7 +867,7 @@ export function ColdEquipmentDocumentClient({
               className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-5" strokeWidth={2.5} />
-              Добавить ХО
+              Добавить
             </Button>
 
           </div>
@@ -1015,7 +1023,7 @@ export function ColdEquipmentDocumentClient({
             {config.equipment.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
                 Добавьте единицу холодильного оборудования через кнопку
-                «Добавить ХО» сверху.
+                «Добавить» сверху.
               </div>
             ) : null}
             {config.equipment.map((item) => {
@@ -1149,7 +1157,7 @@ export function ColdEquipmentDocumentClient({
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
-          <div className="min-w-[1900px] print:min-w-0">
+          <div style={{ minWidth: gridMinWidth }} className="print:!min-w-0">
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал контроля температурного режима холодильного и морозильного оборудования"
@@ -1167,10 +1175,10 @@ export function ColdEquipmentDocumentClient({
         {mobileView === "cards" ? null : equipmentAddBar}
         {selectionBar}
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1900px] border-collapse text-[13px]">
+          <table style={{ minWidth: gridMinWidth }} className="border-collapse text-[13px] print:!min-w-0">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] px-2 py-1.5 text-center leading-tight`} rowSpan={2}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[40px] px-1 py-1 text-center leading-tight`} rowSpan={2}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1182,10 +1190,10 @@ export function ColdEquipmentDocumentClient({
                   />
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} min-w-[300px] px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   rowSpan={2}
                 >
-                  Номер ХК
+                  Наименование или номер ХК
                 </th>
                 <th
                   className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
@@ -1203,12 +1211,12 @@ export function ColdEquipmentDocumentClient({
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`${GRID_HEAD_CELL_CLASS} w-[66px] px-2 py-1.5 text-center font-semibold ${
+                    className={`${GRID_HEAD_CELL_CLASS} w-[48px] px-1 py-1 text-center font-semibold ${
                       isWeekend(dateKey) ? "bg-[#eceffd]" : ""
                     } leading-tight`}
                   >
-                    <div className="text-[18px]">{getDayNumber(dateKey)}</div>
-                    <div className="text-[13px] font-normal uppercase text-[#666]">
+                    <div className="text-[13px]">{getDayNumber(dateKey)}</div>
+                    <div className="text-[11px] font-normal uppercase text-[#666]">
                       {getWeekdayShort(dateKey)}
                     </div>
                   </th>
@@ -1243,9 +1251,13 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    <div className="text-[18px] font-medium">{item.name}</div>
-                    <div className="mt-1 text-[13px] text-[#6f7282]">{formatRange(item.min, item.max)}</div>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`}>
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="text-[13px] font-medium">{item.name}</span>
+                      <span className="text-[12px] text-[#6f7282]">
+                        {formatRange(item.min, item.max)}
+                      </span>
+                    </div>
                   </td>
 
                   {dateKeys.map((dateKey) => {
@@ -1267,10 +1279,10 @@ export function ColdEquipmentDocumentClient({
                             onBlur={(event) =>
                               handleTemperatureBlur(dateKey, item.id, event.target.value)
                             }
-                            className="h-9 min-w-[58px] border-0 px-1 text-center text-[16px] shadow-none focus-visible:ring-1"
+                            className="h-7 min-w-[44px] border-0 px-1 text-center text-[13px] shadow-none focus-visible:ring-1"
                           />
                         ) : (
-                          <span className="text-[16px]">{value ?? ""}</span>
+                          <span className="text-[13px]">{value ?? ""}</span>
                         )}
                       </td>
                     );
@@ -1280,12 +1292,25 @@ export function ColdEquipmentDocumentClient({
 
               <tr>
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
-                <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                  <div className="text-[18px] font-medium">Ответственный за снятие показателей</div>
-                  <div className="mt-2 space-y-1 text-[13px] text-[#6f7282]">
-                    {responsibleCodes.items.map((item) => (
-                      <div key={item.employeeId}>{item.label}</div>
-                    ))}
+                {/* Эталон делит эту строку на две ячейки: слева оранжевая
+                    служебная метка, справа расшифровка кода «С1 - ФИО»,
+                    который стоит в ячейках дней. */}
+                <td className={`${GRID_CELL_CLASS} p-0 align-middle leading-tight`}>
+                  <div className="flex items-stretch">
+                    <div className="flex w-[150px] shrink-0 items-center justify-center px-2 py-1 text-center">
+                      <span className={GRID_SERVICE_LABEL_CLASS}>
+                        Ответственный за снятие показателей
+                      </span>
+                    </div>
+                    <div className={`flex-1 border-l ${GRID_BORDER_CLASS} px-3 py-1 text-[13px]`}>
+                      {responsibleCodes.items.length > 0 ? (
+                        responsibleCodes.items.map((item) => (
+                          <div key={item.employeeId}>{item.label}</div>
+                        ))
+                      ) : (
+                        <span className="text-[#9b9fb3]">Не назначен</span>
+                      )}
+                    </div>
                   </div>
                 </td>
 

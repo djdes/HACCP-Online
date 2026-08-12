@@ -74,3 +74,25 @@ export const GRID_HEAD_PAD_CLASS = "px-2 py-1.5 leading-tight";
  * попасть пальцем, но не выше строки данных соседних журналов.
  */
 export const GRID_CELL_BUTTON_CLASS = "h-8 min-h-8";
+
+/**
+ * Кнопка-ячейка внутри «бумажной» таблицы («+ Добавить помещение»,
+ * «+ Добавить частоту контроля», «+ Добавить»). На эталоне
+ * (lk.haccp-online.ru) это широкая ячейка во всю ширину своей колонки,
+ * а не мелкая ссылка сбоку — попасть по ней можно не целясь.
+ *
+ * Токены: заливка `#eef0ff`, текст `#5566f6` (см. фазу N5,
+ * `cleaning-ventilation-checklist-document-client.tsx`, где приём
+ * появился первым). Никогда не печатается — на бумаге кнопок нет.
+ */
+export const GRID_ADD_CELL_CLASS =
+  "flex w-full items-center justify-center gap-2 bg-[#eef0ff] px-4 py-2 text-[13.5px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#e2e6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden";
+
+/**
+ * Оранжевая служебная метка внутри таблицы («Ответственный за снятие
+ * показателей»). Эталон выделяет её именно цветом текста, без заливки —
+ * это подпись к строке, а не заголовок колонки. В печати остаётся
+ * читаемой (оранжевый превращается в чёрный правилом `print:text-black`).
+ */
+export const GRID_SERVICE_LABEL_CLASS =
+  "text-[12px] font-semibold leading-tight text-[#e07b00] print:text-black";

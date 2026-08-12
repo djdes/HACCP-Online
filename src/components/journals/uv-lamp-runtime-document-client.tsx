@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Plus } from "lucide-react";
-import {
-  JournalDocumentHeader,
-  JournalDocumentTitle,
-} from "@/components/journals/journal-document-header";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { CELL_FOCUS_CLASS } from "@/components/journals/journal-grid";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -44,6 +42,7 @@ import {
   toIsoDate,
   UV_AUTOFILL_DEFAULT_DURATION_MINUTES,
   UV_AUTOFILL_DEFAULT_START_TIME,
+  UV_LAMP_RUNTIME_PAGE_TITLE,
   type UvRuntimeDocumentConfig,
   type UvRuntimeEntryData,
   type UvSpecification,
@@ -853,77 +852,133 @@ function AddRowDialog(props: {
 
 /* ─── Specification Display Table ─── */
 
-function SpecificationTable({ config, onEdit }: { config: UvRuntimeDocumentConfig; onEdit: () => void }) {
+/**
+ * Незаполненная обязательная ячейка спецификации.
+ *
+ * Эталон (uv_lamp_runtime-grid.png) подсвечивает пустые обязательные поля
+ * розовым — инспектор сразу видит, что бланк недооформлен. Клик по ячейке
+ * открывает диалог спецификации, поэтому «дозаполнить» можно прямо
+ * отсюда, не идя в настройки. В печати заливки нет — бумага белая.
+ */
+const UV_SPEC_EMPTY_CELL_CLASS =
+  "bg-[#fdf0f0] shadow-[inset_0_0_0_1px_#f8d7da] print:bg-white print:shadow-none";
+
+function SpecValueCell({
+  value,
+  onEdit,
+  editable,
+}: {
+  /** Готовая к показу строка; пустая ⇒ ячейка считается незаполненной. */
+  value: string;
+  onEdit: () => void;
+  editable: boolean;
+}) {
+  const filled = value.trim() !== "" && value.trim() !== "—";
+
+  return (
+    <td
+      className={`border border-[#ccc] p-0 text-center leading-tight ${
+        filled ? "" : UV_SPEC_EMPTY_CELL_CLASS
+      }`}
+    >
+      {editable ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          title={filled ? "Изменить значение спецификации" : "Заполнить обязательное поле спецификации"}
+          className={`${CELL_FOCUS_CLASS} h-full w-full px-3 py-1 text-center transition-colors duration-150 hover:bg-[#eef0ff]`}
+        >
+          {filled ? value : <span className="text-[#c05b5b]">Заполнить</span>}
+        </button>
+      ) : (
+        <span className="block px-3 py-1">{filled ? value : "—"}</span>
+      )}
+    </td>
+  );
+}
+
+function SpecificationTable({
+  config,
+  onEdit,
+  editable,
+}: {
+  config: UvRuntimeDocumentConfig;
+  onEdit: () => void;
+  editable: boolean;
+}) {
   const spec = config.spec;
 
   return (
     <div className="uv-spec-section">
-      <div className="mb-3 text-center text-[14px] font-bold">
-        Спецификация ультрафиолетовой бактерицидной установки
-      </div>
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
       <table className="w-full min-w-[640px] border-collapse text-[13px] text-[12px] sm:min-w-0">
         <tbody>
+          {/* Заголовок — строка внутри таблицы (как на эталоне), а не
+              отдельная подпись сверху: так он печатается вместе с бланком. */}
+          <tr>
+            <td
+              colSpan={4}
+              className="border border-[#ccc] bg-[#f0f0f0] px-3 py-1.5 text-center text-[13px] font-bold leading-tight print:bg-white"
+            >
+              Спецификация ультрафиолетовой бактерицидной установки
+            </td>
+          </tr>
           <tr>
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Объект обеззараживания (воздух или поверхность, или то и другое)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {getDisinfectionObjectLabel(spec)}
-            </td>
+            <SpecValueCell value={getDisinfectionObjectLabel(spec)} onEdit={onEdit} editable={editable} />
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Ресурс рабочего времени (срок замены отработавших ламп), часов
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {spec.lampLifetimeHours}
-            </td>
+            <SpecValueCell
+              value={spec.lampLifetimeHours ? String(spec.lampLifetimeHours) : ""}
+              onEdit={onEdit}
+              editable={editable}
+            />
           </tr>
           <tr>
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Вид микроорганизма (санитарно-показательный или иной)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {spec.microorganismType}
-            </td>
+            <SpecValueCell value={spec.microorganismType} onEdit={onEdit} editable={editable} />
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Дата ввода установки в эксплуатацию
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {spec.commissioningDate ? formatRuDateDash(spec.commissioningDate) : "—"}
-            </td>
+            <SpecValueCell
+              value={spec.commissioningDate ? formatRuDateDash(spec.commissioningDate) : ""}
+              onEdit={onEdit}
+              editable={editable}
+            />
           </tr>
           <tr>
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Режим облучения (непрерывный или повторно-кратковременный)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {getRadiationModeLabel(spec.radiationMode)}
-            </td>
+            <SpecValueCell value={getRadiationModeLabel(spec.radiationMode)} onEdit={onEdit} editable={editable} />
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Минимальный интервал между сеансами (для повторно-кратковременной)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {spec.minIntervalBetweenSessions || "—"}
-            </td>
+            <SpecValueCell value={spec.minIntervalBetweenSessions} onEdit={onEdit} editable={editable} />
           </tr>
           <tr>
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Условия обеззараживания (в присутствии и отсутствии людей)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {getDisinfectionConditionLabel(spec.disinfectionCondition)}
-            </td>
+            <SpecValueCell
+              value={getDisinfectionConditionLabel(spec.disinfectionCondition)}
+              onEdit={onEdit}
+              editable={editable}
+            />
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Частота контроля работы установки (частота включений)
             </td>
-            <td className="border border-[#ccc] px-3 py-1 text-center leading-tight">
-              {spec.controlFrequency}
-            </td>
+            <SpecValueCell value={spec.controlFrequency} onEdit={onEdit} editable={editable} />
           </tr>
         </tbody>
       </table>
       </div>
-      <div className="mt-2 flex justify-end print:hidden">
+      <div className={`mt-2 flex justify-end print:hidden ${editable ? "" : "hidden"}`}>
         <button
           type="button"
           onClick={onEdit}
@@ -938,21 +993,36 @@ function SpecificationTable({ config, onEdit }: { config: UvRuntimeDocumentConfi
 
 /* ─── Monthly Summary Table ─── */
 
-function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; hours: number; remaining: number }[] }) {
-  if (monthlyData.length === 0) return null;
+/**
+ * Эталон печатает бланк наработки по месяцам ВСЕГДА — с шестью пустыми
+ * строками, которые заполняются от руки, если данных ещё нет. Раньше мы
+ * прятали таблицу при `monthlyData.length === 0`, и в новом журнале блок
+ * просто отсутствовал.
+ */
+const UV_MONTHLY_MIN_ROWS = 6;
 
-  const half = Math.ceil(monthlyData.length / 2);
+function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; hours: number; remaining: number }[] }) {
+  const half = Math.max(
+    UV_MONTHLY_MIN_ROWS,
+    Math.ceil(monthlyData.length / 2)
+  );
   const leftCol = monthlyData.slice(0, half);
   const rightCol = monthlyData.slice(half);
+  const rowIndexes = Array.from({ length: half }, (_, index) => index);
 
   return (
     <div className="uv-monthly-section">
-      <div className="mb-3 text-center text-[14px] font-bold leading-tight">
-        Суммарное количество отработанных часов бактерицидной установкой по месяцам
-      </div>
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
       <table className="w-full min-w-[720px] border-collapse text-[13px] text-[12px] sm:min-w-0">
         <thead>
+          <tr>
+            <th
+              colSpan={6}
+              className="border border-[#ccc] bg-[#f0f0f0] px-3 py-1.5 text-center text-[13px] font-bold leading-tight print:bg-white"
+            >
+              Суммарное количество отработанных часов бактерицидной установкой по месяцам
+            </th>
+          </tr>
           <tr className="bg-[#f0f0f0]">
             <th className="border border-[#ccc] px-3 py-1 text-left font-semibold leading-tight">Месяц, год</th>
             <th className="border border-[#ccc] px-3 py-1 text-center font-semibold leading-tight">Количество часов</th>
@@ -963,26 +1033,19 @@ function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; ho
           </tr>
         </thead>
         <tbody>
-          {leftCol.map((left, i) => {
-            const right = rightCol[i];
+          {rowIndexes.map((index) => {
+            const left = leftCol[index];
+            const right = rightCol[index];
+            const cell = "border border-[#ccc] px-3 py-1 leading-tight";
+            const num = `${cell} text-center`;
             return (
-              <tr key={left.month}>
-                <td className="border border-[#ccc] px-3 py-1.5 leading-tight">{formatMonthLabel(left.month)}</td>
-                <td className="border border-[#ccc] px-3 py-1.5 text-center leading-tight">{left.hours.toFixed(2).replace(".", ",")}</td>
-                <td className="border border-[#ccc] px-3 py-1.5 text-center leading-tight">{left.remaining.toFixed(2).replace(".", ",")}</td>
-                {right ? (
-                  <>
-                    <td className="border border-[#ccc] px-3 py-1.5 leading-tight">{formatMonthLabel(right.month)}</td>
-                    <td className="border border-[#ccc] px-3 py-1.5 text-center leading-tight">{right.hours.toFixed(2).replace(".", ",")}</td>
-                    <td className="border border-[#ccc] px-3 py-1.5 text-center leading-tight">{right.remaining.toFixed(2).replace(".", ",")}</td>
-                  </>
-                ) : (
-                  <>
-                    <td className="border border-[#ccc] px-3 py-1.5 leading-tight" />
-                    <td className="border border-[#ccc] px-3 py-1.5 leading-tight" />
-                    <td className="border border-[#ccc] px-3 py-1.5 leading-tight" />
-                  </>
-                )}
+              <tr key={left?.month || `empty-${index}`}>
+                <td className={cell}>{left ? formatMonthLabel(left.month) : ""}</td>
+                <td className={num}>{left ? left.hours.toFixed(2).replace(".", ",") : ""}</td>
+                <td className={num}>{left ? left.remaining.toFixed(2).replace(".", ",") : ""}</td>
+                <td className={cell}>{right ? formatMonthLabel(right.month) : ""}</td>
+                <td className={num}>{right ? right.hours.toFixed(2).replace(".", ",") : ""}</td>
+                <td className={num}>{right ? right.remaining.toFixed(2).replace(".", ",") : ""}</td>
               </tr>
             );
           })}
@@ -1326,15 +1389,32 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           controlPeriodicity={props.controlPeriodicity}
         />
       </div>
-      <div className={DOC_CAPS_TITLE_CLASS}>
-        <JournalDocumentTitle>
-          Журнал учета работы УФ бактерицидной установки
-        </JournalDocumentTitle>
+      {/* Шапка бланка по эталону: номер установки, название журнала и
+          линия «наименование цеха / участка применения». Раньше здесь
+          стоял только КАПС-заголовок, а номер установки и участок
+          применения жили лишь в print-only блоке. */}
+      <div className={`${DOC_CAPS_TITLE_CLASS} text-center`}>
+        <div className="text-[15px] font-bold uppercase leading-tight text-black">
+          Бактерицидная установка №{config.lampNumber}
+        </div>
+        <div className="mt-4 text-[14px] font-bold leading-tight text-black">
+          {UV_LAMP_RUNTIME_PAGE_TITLE}
+        </div>
+        <div className="mx-auto mt-1 w-fit min-w-[280px] max-w-full border-b border-[#333] px-4 pb-0.5 text-[13px] leading-tight text-black print:border-black">
+          {config.areaName || " "}
+        </div>
+        <div className="mt-1 text-[11px] leading-tight text-[#e07b00] print:text-black">
+          (наименование цеха / участка применения)
+        </div>
       </div>
 
       {/* Specification table */}
       <div className="mb-5">
-        <SpecificationTable config={config} onEdit={() => setSpecEditOpen(true)} />
+        <SpecificationTable
+          config={config}
+          onEdit={() => setSpecEditOpen(true)}
+          editable={props.status === "active"}
+        />
       </div>
 
       {/* Monthly summary */}

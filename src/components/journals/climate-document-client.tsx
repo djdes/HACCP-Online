@@ -68,8 +68,10 @@ import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import {
+  GRID_ADD_CELL_CLASS,
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
+  GRID_SERVICE_LABEL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
@@ -1439,12 +1441,30 @@ export function ClimateDocumentClient({
                       sideCellClass="w-[220px]"
                     />
                     <tr>
-                      <td rowSpan={status === "active" ? 2 : 1} className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold leading-tight`}>
+                      {/* rowSpan здесь был `status === "active" ? 2 : 1`,
+                          из-за чего в активном документе строка «Частота
+                          контроля» съезжала на колонку вправо (лишняя
+                          ячейка в ряду). Метка занимает ровно свою строку. */}
+                      <td className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold leading-tight`}>
                         Нормы условий
                       </td>
                       <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
                         <table className="w-full border-collapse text-[13px]">
                           <tbody>
+                            {/* Служебная строка-шапка норм: без неё две
+                                правые колонки читались как безымянные
+                                диапазоны. Эталон подписывает их. */}
+                            <tr>
+                              <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
+                                Помещение
+                              </td>
+                              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
+                                Температура °C
+                              </td>
+                              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
+                                Влажность, %
+                              </td>
+                            </tr>
                             {visibleRooms.map((room) => (
                               <tr key={room.id}>
                                 <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 leading-tight`}>
@@ -1486,9 +1506,10 @@ export function ClimateDocumentClient({
                                       setEditingRoom(null);
                                       setRoomDialogOpen(true);
                                     }}
-                                    className="flex h-10 w-full items-center justify-center gap-3 bg-[5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]"
+                                    title="Добавить помещение с нормами температуры и влажности"
+                                    className={GRID_ADD_CELL_CLASS}
                                   >
-                                    <Plus className="size-6" />
+                                    <Plus className="size-4" strokeWidth={2.5} />
                                     Добавить помещение
                                   </button>
                                 </td>
@@ -1500,8 +1521,50 @@ export function ClimateDocumentClient({
                     </tr>
                     <tr>
                       <td className={`${GRID_CELL_CLASS} px-4 py-2 font-semibold leading-tight`}>Частота контроля</td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 text-right leading-tight`}>
-                        {getClimatePeriodicityText(config)}
+                      {config.controlTimes.length === 0 && status === "active" ? (
+                        <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
+                          <button
+                            type="button"
+                            onClick={() => setSettingsOpen(true)}
+                            title="Задать время замеров — сколько раз в смену снимаются показатели"
+                            className={GRID_ADD_CELL_CLASS}
+                          >
+                            <Plus className="size-4" strokeWidth={2.5} />
+                            Добавить частоту контроля
+                          </button>
+                        </td>
+                      ) : (
+                        <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 text-right leading-tight`}>
+                          {getClimatePeriodicityText(config)}
+                        </td>
+                      )}
+                    </tr>
+                    {/* Кто снимает показатели — служебная строка бланка.
+                        Эталон помечает подпись оранжевым и печатает код
+                        сотрудника (С1), который потом стоит в ячейках. */}
+                    <tr>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-2 leading-tight`}>
+                        <span className={GRID_SERVICE_LABEL_CLASS}>
+                          Ответственный за снятие показателей
+                        </span>
+                      </td>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 leading-tight`}>
+                        {defaultResponsibleUserId &&
+                        employeeMap[defaultResponsibleUserId] ? (
+                          `С1 - ${employeeMap[defaultResponsibleUserId].name}`
+                        ) : status === "active" ? (
+                          <button
+                            type="button"
+                            onClick={() => setSettingsOpen(true)}
+                            title="Назначить сотрудника, который снимает показатели"
+                            className={GRID_ADD_CELL_CLASS}
+                          >
+                            <Plus className="size-4" strokeWidth={2.5} />
+                            Добавить ответственного
+                          </button>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   </tbody>

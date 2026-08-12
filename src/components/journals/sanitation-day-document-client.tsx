@@ -70,6 +70,7 @@ import { PositionSelectItems } from "@/components/shared/position-select";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
+  GRID_SERVICE_LABEL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
@@ -154,12 +155,14 @@ function toIsoDate(value: string) {
 function toViewDateLabel(dateKey: string) {
   const [year, month, day] = dateKey.split("-");
   if (!year || !month || !day) return dateKey;
-  return `« ${day} » ${new Date(`${year}-${month}-01`).toLocaleDateString(
-    "ru-RU",
-    {
-      month: "long",
-    },
-  )} ${year} г.`;
+  // `toLocaleDateString({ month: "long" })` без дня даёт именительный
+  // падеж («январь»), а бланк требует родительный («января»). Просим
+  // локаль отформатировать дату целиком с днём — тогда падеж верный —
+  // и забираем из результата только название месяца.
+  const monthName = new Date(`${year}-${month}-${day}T00:00:00`)
+    .toLocaleDateString("ru-RU", { day: "numeric", month: "long" })
+    .replace(/^\d+\s+/, "");
+  return `« ${day} » ${monthName} ${year} г.`;
 }
 
 function displayMonthValue(value: string) {
@@ -882,7 +885,7 @@ export function SanitationDayDocumentClient({
           </div>
         </div>
 
-        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[28px] font-semibold`}>
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold`}>
           График и учет генеральных уборок на предприятии в {normalized.year} г.
         </h2>
 
@@ -997,7 +1000,7 @@ export function SanitationDayDocumentClient({
           ) : null}
 
           <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className={`min-w-full border-collapse ${GRID_CELL_CLASS} bg-white text-[14px] leading-tight`}>
+          <table className={`min-w-full border-collapse ${GRID_CELL_CLASS} bg-white text-[13px] leading-tight`}>
             <thead>
               <tr>
                 <th
@@ -1019,13 +1022,13 @@ export function SanitationDayDocumentClient({
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[360px] px-3 py-1.5 leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[240px] px-3 py-1.5 leading-tight`}
                 >
                   Помещение
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-3 py-1.5 leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[90px] px-2 py-1.5 leading-tight`}
                 >
                   Вид
                 </th>
@@ -1037,7 +1040,7 @@ export function SanitationDayDocumentClient({
                 {SANITATION_MONTHS.map((month) => (
                   <th
                     key={month.key}
-                    className={`${GRID_HEAD_CELL_CLASS} w-[90px] px-2 py-1.5 leading-tight`}
+                    className={`${GRID_HEAD_CELL_CLASS} w-[60px] px-1 py-1.5 leading-tight`}
                   >
                     {month.short}
                   </th>
@@ -1106,7 +1109,7 @@ export function SanitationDayDocumentClient({
                                 "plan",
                               );
                             }}
-                            className="h-10 rounded-lg border-0 bg-transparent px-1 text-center text-[14px]"
+                            className="h-7 rounded-lg border-0 bg-transparent px-1 text-center text-[13px]"
                           />
                         )}
                       </td>
@@ -1137,7 +1140,7 @@ export function SanitationDayDocumentClient({
                                 "fact",
                               );
                             }}
-                            className="h-10 rounded-lg border-0 bg-transparent px-1 text-center text-[14px]"
+                            className="h-7 rounded-lg border-0 bg-transparent px-1 text-center text-[13px]"
                           />
                         )}
                       </td>
@@ -1150,11 +1153,13 @@ export function SanitationDayDocumentClient({
                   colSpan={3}
                   className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}
                 >
-                  Ответственный:{" "}
-                  {getSanitationApproveLabel(
-                    normalized.responsibleRole,
-                    normalized.responsibleEmployee,
-                  )}
+                  <span className={GRID_SERVICE_LABEL_CLASS}>
+                    Ответственный:{" "}
+                    {getSanitationApproveLabel(
+                      normalized.responsibleRole,
+                      normalized.responsibleEmployee,
+                    )}
+                  </span>
                 </td>
                 <td
                   colSpan={12}
