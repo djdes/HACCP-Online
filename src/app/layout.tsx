@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
 import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
 import { YandexMetrika } from "@/components/layout/yandex-metrika";
@@ -15,11 +15,14 @@ export const revalidate = 0;
  * текущем системном стеке. Переменную потребляет только `.app-shell`
  * (см. `app-theme.css`), то есть дашборд и /root.
  *
- * `cyrillic` в subsets обязателен — весь UI русский.
+ * Self-hosted (next/font/local): прод-сервер не имеет доступа к
+ * fonts.gstatic.com, и next/font/google валил сборку («Failed to fetch
+ * Manrope from Google Fonts»). Вариативный TTF (латиница + кириллица,
+ * веса 200–800) лежит в репозитории — сборка не зависит от сети.
  */
-const manrope = Manrope({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700", "800"],
+const manrope = localFont({
+  src: "./fonts/manrope-variable.ttf",
+  weight: "200 800",
   variable: "--font-manrope",
   display: "swap",
 });
