@@ -19,7 +19,12 @@ import {
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -376,9 +381,14 @@ export function FinishedProductDocumentClient({
             </DropdownMenuContent>
           </DropdownMenu>
           <Button type="button" variant="outline" className="h-9 rounded-xl border-0 bg-[#f5f6ff] px-3.5 text-[13.5px] text-[#3848c7] transition-colors hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]" onClick={() => void removeSelectedRows()} disabled={selectedRows.length === 0}><Trash2 className="size-4" />Удалить выбранные{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}</Button>
           <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]" onClick={() => saveConfig()} disabled={isSaving || isPending}><Save className="size-4" />{isSaving ? "Сохранение..." : "Сохранить"}</Button>
         </div>}
+        <JournalSelectionBar
+          count={selectedRows.length}
+          onClear={() => setSelectedRows([])}
+          onDelete={() => void removeSelectedRows()}
+          hint="Строки журнала будут удалены без возможности отмены"
+        />
 
         <div className="sm:hidden print:hidden">
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
@@ -429,9 +439,9 @@ export function FinishedProductDocumentClient({
       </section>
 
       <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавление новой строки
             </DialogTitle>
           </DialogHeader>
@@ -590,9 +600,9 @@ export function FinishedProductDocumentClient({
 
       {/* «Добавить списком» — многострочная вставка вместо window.prompt. */}
       <Dialog open={readOnly ? false : bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавить изделия списком
             </DialogTitle>
           </DialogHeader>
@@ -634,10 +644,23 @@ export function FinishedProductDocumentClient({
       </Dialog>
 
       <Dialog open={readOnly ? false : catalogOpen} onOpenChange={setCatalogOpen}>
-        <DialogContent className="sm:max-w-[640px]"><DialogHeader><DialogTitle>Список изделий</DialogTitle></DialogHeader><div className="space-y-4">
-          {Array.from(new Set(config.itemsCatalog)).map((item) => <div key={item} className="flex items-center gap-2 rounded-lg border p-2"><div className="flex-1">{item}</div><Button type="button" variant="ghost" onClick={() => setConfig((prev) => ({ ...prev, itemsCatalog: prev.itemsCatalog.filter((catalogItem) => catalogItem !== item) }))}><Trash2 className="size-4" /></Button></div>)}
-          <div className="flex gap-2"><Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Введите название нового изделия" /><Button onClick={() => { if (!newItemName.trim()) return; setConfig((prev) => ({ ...prev, itemsCatalog: Array.from(new Set([...prev.itemsCatalog, newItemName.trim()])) })); setNewItemName(""); }}><Plus className="size-4" /></Button></div>
-        </div></DialogContent>
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Список изделий</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-5">
+            <p className="text-[13px] text-[#6f7282]">
+              Эти изделия появятся в выпадающем списке при добавлении строки журнала.
+            </p>
+            {Array.from(new Set(config.itemsCatalog)).length === 0 ? (
+              <p className="rounded-[14px] bg-[#f6f7fb] px-4 py-3 text-[13px] text-[#6f7282]">
+                Список пуст. Введите название изделия ниже и нажмите «+».
+              </p>
+            ) : null}
+            {Array.from(new Set(config.itemsCatalog)).map((item) => <div key={item} className="flex items-center gap-2 rounded-xl border border-[#e6e6f0] px-3 py-2"><div className="flex-1 text-[14px]">{item}</div><Button type="button" variant="ghost" title="Удалить изделие из списка" onClick={() => setConfig((prev) => ({ ...prev, itemsCatalog: prev.itemsCatalog.filter((catalogItem) => catalogItem !== item) }))}><Trash2 className="size-4" /></Button></div>)}
+            <div className="flex gap-2"><Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Введите название нового изделия" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" /><Button className="h-10 rounded-lg bg-[#5566f6] px-4 text-white hover:bg-[#4a5bf0]" title="Добавить изделие в список" onClick={() => { if (!newItemName.trim()) return; setConfig((prev) => ({ ...prev, itemsCatalog: Array.from(new Set([...prev.itemsCatalog, newItemName.trim()])) })); setNewItemName(""); }}><Plus className="size-4" /></Button></div>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   );

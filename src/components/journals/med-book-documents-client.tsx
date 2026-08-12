@@ -40,7 +40,12 @@ import {
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
 import {
-  JOURNAL_LIST_STACK_CLASS, JOURNAL_CARD_TITLE_CLASS } from "@/components/journals/journal-responsive";
+  JOURNAL_CARD_TITLE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
+} from "@/components/journals/journal-responsive";
 
 type MedBookListDocument = {
   id: string;
@@ -103,15 +108,15 @@ function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="border-b border-[#ececf4] px-8 py-6">
-          <DialogTitle className="text-[20px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-3">
-            <Label htmlFor="settings-title" className="text-[14px] text-[#6f7282]">
+            <Label htmlFor="settings-title" className="text-[13px] font-medium text-[#3c4053]">
               Название документа
             </Label>
             <Input

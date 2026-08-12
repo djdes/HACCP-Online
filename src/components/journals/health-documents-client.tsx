@@ -29,12 +29,15 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 
 type HealthListDocument = {
@@ -106,9 +109,9 @@ function EditDocumentDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
         </DialogHeader>
@@ -126,7 +129,7 @@ function EditDocumentDialog(props: {
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Добавлять пустых строк при печати</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Добавлять пустых строк при печати</Label>
             <Select value={emptyRows} onValueChange={setEmptyRows}>
               <SelectTrigger className="h-10 w-full rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue />

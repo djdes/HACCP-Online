@@ -19,11 +19,14 @@ import { normalizeFinishedProductDocumentConfig } from "@/lib/finished-product-d
 import { toast } from "sonner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 type JournalListDocument = {
   id: string;
@@ -184,9 +187,9 @@ export function FinishedProductDocumentsClient({
       </div>
 
       <Dialog open={!!editingDocument} onOpenChange={(open) => !open && setEditingDocument(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[22px] font-medium text-black">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
           </DialogHeader>

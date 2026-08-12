@@ -12,7 +12,6 @@ import {
   Plus,
   Printer,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -39,15 +38,18 @@ import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import {
-  JOURNAL_LIST_STACK_CLASS,
-  JOURNAL_TAB_RAIL_CLASS,
-  JOURNAL_TAB_VIEWPORT_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_TAB_RAIL_CLASS,
+  JOURNAL_TAB_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
@@ -150,22 +152,15 @@ function ConfirmDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-start justify-between gap-6">
-            <DialogTitle className="text-[22px] font-semibold leading-[1.2] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               {props.title}
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-black hover:bg-black/5"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-7" />
-            </button>
           </div>
         </DialogHeader>
-        <div className="flex justify-end px-5 py-6 sm:px-10 sm:py-8">
+        <div className="flex justify-end px-6 py-5">
           <Button
             type="button"
             disabled={submitting}
@@ -204,29 +199,22 @@ function CreateDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Создание документа
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-black hover:bg-black/5"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-7" />
-            </button>
           </div>
         </DialogHeader>
         {props.users.length === 0 ? (
-          <div className="px-5 py-6 sm:px-10 sm:py-8">
+          <div className="px-6 py-5">
             <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
           </div>
         ) : (
-        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Введите название документа</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Введите название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
@@ -315,24 +303,17 @@ function SettingsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-black hover:bg-black/5"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-7" />
-            </button>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#73738a]">Название документа</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState((current) => current ? { ...current, title: event.target.value } : current)}

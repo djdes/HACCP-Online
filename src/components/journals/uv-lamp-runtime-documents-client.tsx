@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ellipsis, Pencil, Printer, RotateCcw, Trash2, X } from "lucide-react";
+import { Ellipsis, Pencil, Printer, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,12 +46,15 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -155,23 +158,16 @@ function UvRuntimeSettingsDialog(props: {
         props.onOpenChange(open);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
 
         <div className="space-y-4 px-7 py-6">
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Бактерицидная установка №</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Бактерицидная установка №</Label>
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
@@ -180,7 +176,7 @@ function UvRuntimeSettingsDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Наименование цеха/участка применения</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Наименование цеха/участка применения</Label>
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
@@ -189,7 +185,7 @@ function UvRuntimeSettingsDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <Input
               type="date"
               value={dateFrom}
@@ -199,7 +195,7 @@ function UvRuntimeSettingsDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -237,7 +233,7 @@ function UvRuntimeSettingsDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />

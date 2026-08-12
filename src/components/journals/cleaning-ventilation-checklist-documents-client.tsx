@@ -10,7 +10,6 @@ import {
   Printer,
   Settings2,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,12 +44,15 @@ import {
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -109,25 +111,18 @@ function SettingsDialog(props: {
         props.onOpenChange(value);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               {props.title}
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-[#0b1024]"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-8" />
-            </button>
           </div>
         </DialogHeader>
         {activeState ? (
-          <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
+          <div className="space-y-5 px-6 py-5">
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">Название документа</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
               <Input
                 value={activeState.title}
                 onChange={(event) => setState({ ...activeState, title: event.target.value })}
@@ -135,7 +130,7 @@ function SettingsDialog(props: {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[15px] text-[#6f7282]">Дата начала</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
               <div className="relative">
                 <Input
                   type="date"

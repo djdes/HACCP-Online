@@ -8,7 +8,11 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import {
   JournalDocumentHeader,
@@ -21,8 +25,6 @@ import {
   Copy,
   Pencil,
   Plus,
-  Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -227,23 +229,16 @@ function EquipmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[36px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[760px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-12 py-10">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             {initialItem ? "Редактирование оборудования" : "Добавление оборудования"}
           </DialogTitle>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="rounded-full p-2 text-black transition hover:bg-[#fafbff]"
-          >
-            <X className="size-9" />
-          </button>
         </DialogHeader>
 
-        <div className="space-y-7 px-12 py-10">
+        <div className="space-y-7 px-6 py-5">
           <div className="space-y-3">
-            <Label htmlFor="equipment-name" className="text-[14px] text-[#6f7282]">
+            <Label htmlFor="equipment-name" className="text-[13px] font-medium text-[#3c4053]">
               Наименование
             </Label>
             <Input
@@ -257,7 +252,7 @@ function EquipmentDialog({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
-              <Label htmlFor="equipment-min" className="text-[14px] text-[#6f7282]">
+              <Label htmlFor="equipment-min" className="text-[13px] font-medium text-[#3c4053]">
                 Температура от
               </Label>
               <Input
@@ -269,7 +264,7 @@ function EquipmentDialog({
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="equipment-max" className="text-[14px] text-[#6f7282]">
+              <Label htmlFor="equipment-max" className="text-[13px] font-medium text-[#3c4053]">
                 Температура до
               </Label>
               <Input
@@ -459,23 +454,16 @@ function JournalSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[38px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[980px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-16 py-12">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="rounded-full p-2 text-black transition hover:bg-[#fafbff]"
-          >
-            <X className="size-10" />
-          </button>
         </DialogHeader>
 
-        <div className="space-y-8 px-16 py-12">
+        <div className="space-y-8 px-6 py-5">
           <div className="space-y-3">
-            <Label htmlFor="journal-title" className="text-[15px] text-[#6f7282]">
+            <Label htmlFor="journal-title" className="text-[13px] font-medium text-[#3c4053]">
               Название журнала
             </Label>
             <Input
@@ -487,7 +475,7 @@ function JournalSettingsDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#6f7282]">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
               Должность ответственного за снятие показателей
             </Label>
             <Select
@@ -512,7 +500,7 @@ function JournalSettingsDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={userId} onValueChange={setUserId}>
               <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#fafbff] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите сотрудника" />
@@ -530,7 +518,7 @@ function JournalSettingsDialog({
             </Select>
           </div>
 
-          <div className="flex items-center gap-4 rounded-[26px] border border-[#dfe1ec] px-8 py-6">
+          <div className="flex items-center gap-4 rounded-[26px] border border-[#dfe1ec] px-6 py-5">
             <Checkbox
               id="skip-weekends"
               checked={skipWeekends}
@@ -549,7 +537,7 @@ function JournalSettingsDialog({
               type="button"
               onClick={handleSave}
               disabled={isSubmitting}
-              className="h-20 rounded-[24px] bg-[#5566f6] px-12 text-[15px] text-white hover:bg-[#4a5bf0]"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -874,19 +862,18 @@ export function ColdEquipmentDocumentClient({
               Добавить ХО
             </Button>
 
-            {selectedEquipmentIds.length > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeleteSelectedEquipment}
-                disabled={isDeleting}
-                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] disabled:opacity-60"
-              >
-                <Trash2 className="size-6" />
-                {isDeleting ? "Удаление..." : `Удалить выбранные (${selectedEquipmentIds.length})`}
-              </Button>
-            ) : null}
           </div>
+    ) : null;
+
+  const selectionBar =
+    status === "active" ? (
+      <JournalSelectionBar
+        count={selectedEquipmentIds.length}
+        onClear={() => setSelectedEquipmentIds([])}
+        onDelete={handleDeleteSelectedEquipment}
+        deleting={isDeleting}
+        hint="Оборудование будет удалено вместе с замерами температуры"
+      />
     ) : null;
 
   return (
@@ -1174,6 +1161,7 @@ export function ColdEquipmentDocumentClient({
           </JournalDocumentTitle>
         </div>
         {mobileView === "cards" ? null : equipmentAddBar}
+        {selectionBar}
         <div className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1900px] border-collapse text-[13px]">
             <thead>

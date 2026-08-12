@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
+import { Archive, ChevronDown, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
@@ -11,7 +11,12 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -660,16 +665,6 @@ export function PerishableRejectionDocumentClient({
           </Button>
           <Button
             type="button"
-            variant="outline"
-            className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] text-[#3c4053] shadow-none transition-colors hover:bg-[#fafbff]"
-            onClick={() => void removeSelectedRows()}
-            disabled={readOnly || selectedRows.length === 0}
-          >
-            <Trash2 className="size-4" />
-            Удалить выбранные{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
-          </Button>
-          <Button
-            type="button"
             className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
             onClick={() => saveConfig()}
             disabled={readOnly || isSaving || isPending}
@@ -678,6 +673,15 @@ export function PerishableRejectionDocumentClient({
             {isSaving ? "Сохранение..." : "Сохранить"}
           </Button>
         </div>
+
+        {!readOnly ? (
+          <JournalSelectionBar
+            count={selectedRows.length}
+            onClear={() => setSelectedRows([])}
+            onDelete={() => void removeSelectedRows()}
+            hint="Строки бракеража будут удалены без возможности отмены"
+          />
+        ) : null}
 
         {/* View toggle */}
         <div className="sm:hidden print:hidden">
@@ -884,9 +888,9 @@ export function PerishableRejectionDocumentClient({
       {/* Add Row Dialog — design-system shape: padded header, body
        * sections, bottom-stuck footer with secondary + primary buttons. */}
       <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавление новой строки
             </DialogTitle>
           </DialogHeader>
@@ -1408,9 +1412,9 @@ export function PerishableRejectionDocumentClient({
 
       {/* «Добавить списком» — многострочная вставка вместо window.prompt. */}
       <Dialog open={readOnly ? false : bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавить изделия списком
             </DialogTitle>
           </DialogHeader>
@@ -1455,16 +1459,13 @@ export function PerishableRejectionDocumentClient({
 
       {/* Edit Lists Dialog */}
       <Dialog open={readOnly ? false : listModalOpen} onOpenChange={setListModalOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[760px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Редактировать список изделий
-              <button type="button" onClick={() => setListModalOpen(false)}>
-                <X className="size-5" />
-              </button>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5">
+          <div className="space-y-5 px-6 py-5">
             {/* Section tabs */}
             <div className="flex gap-2 border-b pb-2">
               {(
@@ -1733,15 +1734,15 @@ export function PerishableRejectionDocumentClient({
 
       {/* Настройки журнала — название документа и дата начала. */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[22px] font-medium text-black">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 px-6 py-5">
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
               <Input
                 value={settingsTitle}
                 onChange={(event) => setSettingsTitle(event.target.value)}
@@ -1749,7 +1750,7 @@ export function PerishableRejectionDocumentClient({
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
               <Input
                 type="date"
                 value={settingsDateFrom}

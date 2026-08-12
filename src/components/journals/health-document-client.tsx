@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,7 +29,11 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -392,27 +396,14 @@ export function HealthDocumentClient(props: Props) {
             <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки сотрудников." />
           ) : null}
 
-          {isActive && selectedCount > 0 && (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedEmployeeIds([])}
-                className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-              >
-                Выбрано: {selectedCount}
-                <X className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeleteSelected}
-                disabled={isDeleting}
-                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
-              >
-                {isDeleting ? "Удаление..." : "Удалить"}
-              </Button>
-            </div>
+          {isActive && (
+            <JournalSelectionBar
+              count={selectedCount}
+              onClear={() => setSelectedEmployeeIds([])}
+              onDelete={handleDeleteSelected}
+              deleting={isDeleting}
+              hint="Сотрудники будут удалены из журнала вместе с отметками"
+            />
           )}
 
           {/* Mobile-only view toggle. Cards = accordion per employee (a
@@ -712,9 +703,9 @@ export function HealthDocumentClient(props: Props) {
       </div>
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[520px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[22px] font-medium text-black">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
           </DialogHeader>

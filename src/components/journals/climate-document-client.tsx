@@ -8,7 +8,6 @@ import {
   ChevronUp,
   Pencil,
   Plus,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,7 +41,14 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
-import { DOC_HEADING_CLASS } from "@/components/journals/journal-responsive";
+import {
+  DOC_HEADING_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
+} from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
@@ -225,9 +231,9 @@ function RoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-        <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle className="text-[24px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             {initialRoom ? "Редактирование помещения" : "Добавление нового помещения"}
           </DialogTitle>
         </DialogHeader>
@@ -388,16 +394,16 @@ function ResponsibleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Редактирование ответственного лица
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-7 px-12 py-10">
+        <div className="space-y-7 px-6 py-5">
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -420,7 +426,7 @@ function ResponsibleDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
@@ -510,16 +516,16 @@ function AddRowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Добавление новой строки
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-7 px-12 py-10">
+        <div className="space-y-7 px-6 py-5">
           <div className="space-y-3">
-            <Label htmlFor="row-date" className="text-[14px] text-[#6f7282]">
+            <Label htmlFor="row-date" className="text-[13px] font-medium text-[#3c4053]">
               Дата
             </Label>
             <Input
@@ -532,7 +538,7 @@ function AddRowDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -555,7 +561,7 @@ function AddRowDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
@@ -784,14 +790,14 @@ function JournalSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[860px]">
-        <DialogHeader className="border-b px-14 py-12">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-14 py-12">
+        <div className="space-y-8 px-6 py-5">
           <div className="space-y-3">
             <Label htmlFor="journal-title" className="sr-only">
               Название журнала
@@ -806,7 +812,7 @@ function JournalSettingsDialog({
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
-              <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
               <Select
                 value={position}
                 onValueChange={(value) => {
@@ -829,7 +835,7 @@ function JournalSettingsDialog({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[14px] text-[#6f7282]">Сотрудник по умолчанию</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник по умолчанию</Label>
               <Select value={userId} onValueChange={setUserId}>
                 <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите сотрудника" />
@@ -850,7 +856,7 @@ function JournalSettingsDialog({
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
-              <Label htmlFor="time-one" className="text-[14px] text-[#6f7282]">
+              <Label htmlFor="time-one" className="text-[13px] font-medium text-[#3c4053]">
                 Время контроля 1
               </Label>
               <Input
@@ -862,7 +868,7 @@ function JournalSettingsDialog({
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="time-two" className="text-[14px] text-[#6f7282]">
+              <Label htmlFor="time-two" className="text-[13px] font-medium text-[#3c4053]">
                 Время контроля 2
               </Label>
               <Input
@@ -875,7 +881,7 @@ function JournalSettingsDialog({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 rounded-3xl border border-[#dcdfed] px-8 py-6">
+          <div className="flex items-center gap-4 rounded-3xl border border-[#dcdfed] px-6 py-5">
             <Checkbox
               id="skip-weekends"
               checked={skipWeekends}
@@ -1533,19 +1539,17 @@ export function ClimateDocumentClient({
               Добавить строку
             </Button>
 
-            {selectedRowIds.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeleteSelected}
-                className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
-              >
-                <Trash2 className="size-6" />
-                Удалить выбранные
-              </Button>
-            )}
           </StickyActionBar>
         )}
+
+        {status === "active" ? (
+          <JournalSelectionBar
+            count={selectedRowIds.length}
+            onClear={() => setSelectedRowIds([])}
+            onDelete={handleDeleteSelected}
+            hint="Строки замеров будут удалены без возможности отмены"
+          />
+        ) : null}
 
         <div className="sm:hidden print:hidden">
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />

@@ -9,6 +9,12 @@ import {
   DOC_LEGEND_CLASS,
   DOC_PAPER_HEADER_CLASS,
   DOC_TITLE_ROW_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_LABEL_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_DOCUMENT_SHELL_CLASS,
   JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
@@ -80,4 +86,37 @@ test("document rhythm tokens follow the canonical block order spacing", () => {
   // Таблица → легенда: 24px. Легенда → доп. таблица: 32px.
   assert.match(DOC_LEGEND_CLASS, /\bmt-6\b/);
   assert.match(DOC_EXTRA_BLOCK_CLASS, /\bmt-8\b/);
+});
+
+test("dialog grid keeps exactly two widths and one typography scale", () => {
+  // Эталон (cleaning-02b-filled-dialog.png, cleaning-05-add-room-dialog.png):
+  // компактное окно, шапка с линией, заголовок ~18px, поля с подписью сверху.
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /sm:max-w-\[560px\]/);
+  assert.match(JOURNAL_DIALOG_CONTENT_WIDE_CLASS, /sm:max-w-\[640px\]/);
+  // Оба размера — одна и та же оболочка, различие только в ширине.
+  assert.equal(
+    JOURNAL_DIALOG_CONTENT_CLASS.replace("sm:max-w-[560px]", ""),
+    JOURNAL_DIALOG_CONTENT_WIDE_CLASS.replace("sm:max-w-[640px]", ""),
+  );
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /\bp-0\b/);
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /max-h-\[92vh\]/);
+  // Шапка: px-6 py-4 + нижняя линия, заголовок 18px/600, тело px-6 py-5.
+  assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpx-6\b/);
+  assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpy-4\b/);
+  assert.match(JOURNAL_DIALOG_HEADER_CLASS, /border-b/);
+  assert.match(JOURNAL_DIALOG_TITLE_CLASS, /text-\[18px\]/);
+  assert.match(JOURNAL_DIALOG_TITLE_CLASS, /font-semibold/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpx-6\b/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpy-5\b/);
+  assert.match(JOURNAL_DIALOG_LABEL_CLASS, /text-\[13px\]/);
+});
+
+test("selection bar sticks under the app header and never prints", () => {
+  // Шапка кабинета — 72px (typography.json → headerBar.h ≈ 73), поэтому
+  // sticky top-0 уезжал ПОД неё. z-30 держит полосу поверх таблицы.
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sticky/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /top-\[72px\]/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bz-30\b/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /backdrop-blur/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /print:hidden/);
 });

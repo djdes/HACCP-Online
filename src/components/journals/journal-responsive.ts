@@ -59,7 +59,7 @@ export const JOURNAL_CARD_SECTION_CLASS =
  * документа, которого теперь нет).
  */
 export const JOURNAL_DOCUMENT_SELECTION_BAR_CLASS =
-  "sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:px-0";
+  "sticky top-[72px] z-30 -mx-4 mb-3 flex flex-wrap items-center gap-3 border-y border-[#dcdfed] bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(40,45,86,0.08)] backdrop-blur print:hidden sm:mx-0 sm:rounded-[14px] sm:border sm:px-4";
 
 /**
  * Оболочка документа. Раньше несла border + shadow — на сером фоне это
@@ -85,13 +85,44 @@ export const JOURNAL_DOCUMENT_ACTIONS_CLASS =
 export const JOURNAL_TABLE_VIEWPORT_CLASS =
   "-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[14px] bg-white";
 
+/* ------------------------------------------------------------------ *
+ * Единая сетка модальных окон журналов
+ * ------------------------------------------------------------------ *
+ *
+ * Эталон lk.haccp-online.ru (cleaning-02b-filled-dialog.png,
+ * cleaning-05-add-room-dialog.png, staff-05-add-employee-form.png):
+ * окно компактное (~480-560px), шапка с нижней линией, заголовок ~18-20px,
+ * поля с подписью НАД инпутом, кнопка действия справа внизу.
+ *
+ * До этой правки в 13 журналах жили ширины 480/520/560/620/640/720/760/
+ * 840/860/900/970/980, заголовки 18/20/22/24/42px и паддинги
+ * px-6…px-18 — то есть каждый диалог был «свой». Держим ровно два
+ * размера: обычный (560) и широкий, под редакторы таблиц/списков (640).
+ */
+export const JOURNAL_DIALOG_CONTENT_CLASS =
+  "w-[calc(100vw-2rem)] max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[560px]";
+
+export const JOURNAL_DIALOG_CONTENT_WIDE_CLASS =
+  "w-[calc(100vw-2rem)] max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[640px]";
+
+/** Шапка окна: подпись слева, крестик справа, нижняя линия. */
 export const JOURNAL_DIALOG_HEADER_CLASS =
-  "border-b px-5 py-5 sm:px-8 sm:py-7 lg:px-12 lg:py-10";
+  "flex flex-row items-center justify-between gap-4 border-b border-[#ececf4] px-6 py-4";
 
-export const JOURNAL_DIALOG_BODY_CLASS =
-  "space-y-6 px-5 py-5 sm:px-8 sm:py-7 lg:px-12 lg:py-10";
+/** Заголовок окна — 18px/600, один размер во всех журналах. */
+export const JOURNAL_DIALOG_TITLE_CLASS =
+  "text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]";
 
-export const JOURNAL_DIALOG_GRID_CLASS = "grid gap-4 sm:gap-6 md:grid-cols-2";
+export const JOURNAL_DIALOG_BODY_CLASS = "space-y-5 px-6 py-5";
+
+/** Подвал окна: действие справа внизу, как на эталоне. */
+export const JOURNAL_DIALOG_FOOTER_CLASS =
+  "flex flex-wrap items-center justify-end gap-2 border-t border-[#ececf4] px-6 py-4";
+
+/** Подпись поля НАД инпутом — 13px/500. */
+export const JOURNAL_DIALOG_LABEL_CLASS = "text-[13px] font-medium text-[#3c4053]";
+
+export const JOURNAL_DIALOG_GRID_CLASS = "grid gap-4 sm:gap-5 md:grid-cols-2";
 
 /** Ширина контента — 1296px, контейнер эталона (listPage.container.w). */
 export const REGISTER_DOCUMENT_PAGE_CLASS =

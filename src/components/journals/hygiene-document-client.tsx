@@ -2,8 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   StaffJournalAddButton,
@@ -15,6 +14,7 @@ import {
   DOC_LEGEND_CLASS,
   DOC_PAPER_HEADER_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
@@ -591,27 +591,14 @@ export function HygieneDocumentClient({
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки сотрудников." />
         ) : null}
 
-        {isActive && selectedCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSelectedEmployeeIds([])}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            >
-              Выбрано: {selectedCount}
-              <X className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDeleteSelected}
-              disabled={isDeleting}
-              className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
-            >
-              {isDeleting ? "Удаление..." : "Удалить"}
-            </Button>
-          </div>
+        {isActive ? (
+          <JournalSelectionBar
+            count={selectedCount}
+            onClear={() => setSelectedEmployeeIds([])}
+            onDelete={handleDeleteSelected}
+            deleting={isDeleting}
+            hint="Сотрудники будут удалены из журнала вместе с отметками"
+          />
         ) : null}
 
         {/* Mobile-only view toggle. Cards is the default — vertical list

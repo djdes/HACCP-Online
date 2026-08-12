@@ -7,8 +7,6 @@ import {
   CalendarDays,
   Pencil,
   Plus,
-  Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +46,11 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
@@ -184,25 +186,18 @@ function RoomDialog(props: {
         props.onOpenChange(value);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-8 py-6">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               {props.title}
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-8" />
-            </button>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 px-8 py-6">
+        <div className="space-y-4 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
               Название помещения
             </Label>
             <Input
@@ -222,7 +217,7 @@ function RoomDialog(props: {
             <>
               {SANITATION_MONTHS.map((month) => (
                 <div key={month.key} className="space-y-2">
-                  <Label className="text-[14px] text-[#6f7282]">
+                  <Label className="text-[13px] font-medium text-[#3c4053]">
                     {MONTH_FIELD_LABELS[month.key]}
                   </Label>
                   <Select
@@ -515,23 +510,16 @@ function DocumentSettingsDialog(props: {
         props.onOpenChange(value);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-8 py-6">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[42px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-8" />
-            </button>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 px-8 py-6">
+        <div className="space-y-4 px-6 py-5">
           <Input
             value={state.title}
             onChange={(event) =>
@@ -918,6 +906,7 @@ export function SanitationDayDocumentClient({
         </h2>
 
         {!readOnly ? (
+          <>
           <div className={`${DOC_ADD_ROW_CLASS} justify-between`}>
             <Button
               type="button"
@@ -948,43 +937,40 @@ export function SanitationDayDocumentClient({
               Добавить помещение
             </Button>
 
-            {selectedRowIds.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={selectedRowIds.length !== 1}
-                  onClick={() => {
-                    const target = selectedRows[0];
-                    if (!target) return;
-                    setRoomDialogState({
-                      id: target.id,
-                      name: target.roomName,
-                      plan: { ...target.plan },
-                    });
-                    setRoomDialogOpen(true);
-                  }}
-                  className="rounded-2xl border-[#dcdfed] px-5 py-3 text-[18px] text-[#5566f6]"
-                >
-                  <Pencil className="size-5" />
-                  Редактировать
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    deleteSelectedRows().catch((error) =>
-                      toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
-                    );
-                  }}
-                  className="rounded-2xl border-[#ffd8d4] px-5 py-3 text-[18px] text-[#ff6b5f] hover:bg-[#fff5f4]"
-                >
-                  <Trash2 className="size-5" />
-                  Удалить
-                </Button>
-              </div>
-            ) : null}
           </div>
+
+          <JournalSelectionBar
+            count={selectedRowIds.length}
+            onClear={() => setSelectedRowIds([])}
+            onDelete={() => {
+              deleteSelectedRows().catch((error) =>
+                toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
+              );
+            }}
+            hint="Помещения будут удалены вместе с планом генеральных уборок"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              disabled={selectedRowIds.length !== 1}
+              title="Выберите ровно одно помещение, чтобы изменить его план"
+              onClick={() => {
+                const target = selectedRows[0];
+                if (!target) return;
+                setRoomDialogState({
+                  id: target.id,
+                  name: target.roomName,
+                  plan: { ...target.plan },
+                });
+                setRoomDialogOpen(true);
+              }}
+              className="h-10 gap-1.5 rounded-xl border-[#dcdfed] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors duration-150 hover:bg-[#f3f4fe] hover:text-[#5566f6]"
+            >
+              <Pencil className="size-4" />
+              Редактировать
+            </Button>
+          </JournalSelectionBar>
+          </>
         ) : null}
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

@@ -29,11 +29,14 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
@@ -135,13 +138,13 @@ function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-12 py-10">
-          <DialogTitle className="text-[22px] font-medium text-black">{title}</DialogTitle>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>{title}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-12 py-10">
+        <div className="space-y-6 px-6 py-5">
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Название документа</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState({ ...state, title: event.target.value })}
@@ -150,7 +153,7 @@ function SettingsDialog({
             />
           </div>
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#73738a]">Дата начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <Input
               type="date"
               value={state.startDate}

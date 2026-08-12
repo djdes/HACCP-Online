@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,12 +30,15 @@ import {
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -130,23 +132,16 @@ function EditDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[38px] border-0 p-0 shadow-[0_40px_140px_rgba(40,45,86,0.18)] sm:max-w-[970px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#dcdfed] px-18 py-12">
-          <DialogTitle className="text-[22px] font-medium text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="rounded-full p-2 text-black transition hover:bg-[#fafbff]"
-          >
-            <X className="size-10" />
-          </button>
         </DialogHeader>
 
-        <div className="space-y-10 px-18 py-12">
+        <div className="space-y-10 px-6 py-5">
           <div className="space-y-3">
-            <Label htmlFor="cold-document-title" className="text-[15px] text-[#6f7282]">
+            <Label htmlFor="cold-document-title" className="text-[13px] font-medium text-[#3c4053]">
               Название документа
             </Label>
             <Input
@@ -158,7 +153,7 @@ function EditDocumentDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#6f7282]">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
               Должность ответственного за снятие показателей
             </Label>
             <Select
@@ -178,7 +173,7 @@ function EditDocumentDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[15px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />

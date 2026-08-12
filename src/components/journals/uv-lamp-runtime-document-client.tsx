@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus, Trash2, X } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 import {
   JournalDocumentHeader,
   JournalDocumentTitle,
@@ -57,7 +57,11 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -201,18 +205,11 @@ function UvSpecEditDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Редактирование
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
 
         <div className="space-y-5 px-7 py-6">
@@ -231,7 +228,7 @@ function UvSpecEditDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Вид микроорганизма</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Вид микроорганизма</Label>
             <Input
               value={microorganism}
               onChange={(e) => setMicroorganism(e.target.value)}
@@ -292,7 +289,7 @@ function UvSpecEditDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Ресурс рабочего времени лампы, часов</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Ресурс рабочего времени лампы, часов</Label>
             <Input
               type="number"
               value={lampHours}
@@ -303,7 +300,7 @@ function UvSpecEditDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата ввода установки в эксплуатацию</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата ввода установки в эксплуатацию</Label>
             <Input
               type="date"
               value={commDate}
@@ -313,7 +310,7 @@ function UvSpecEditDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Введите минимальный интервал между сеансами</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Введите минимальный интервал между сеансами</Label>
             <Input
               value={minInterval}
               onChange={(e) => setMinInterval(e.target.value)}
@@ -323,7 +320,7 @@ function UvSpecEditDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Частота контроля работы установки</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Частота контроля работы установки</Label>
             <Select value={frequency} onValueChange={setFrequency}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[16px]">
                 <SelectValue />
@@ -339,7 +336,7 @@ function UvSpecEditDialog(props: {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label className="text-[16px] text-[#6f7282]">Типовое время включения</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Типовое время включения</Label>
               <Input
                 type="time"
                 value={autoStart}
@@ -350,7 +347,7 @@ function UvSpecEditDialog(props: {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-[16px] text-[#6f7282]">Типовая длительность сеанса, минут</Label>
+              <Label className="text-[13px] font-medium text-[#3c4053]">Типовая длительность сеанса, минут</Label>
               <Input
                 type="number"
                 min={1}
@@ -558,23 +555,16 @@ function UvRuntimeSettingsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Настройки журнала
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
 
         <div className="space-y-4 px-7 py-6">
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Бактерицидная установка №</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Бактерицидная установка №</Label>
             <Input
               value={lampNumber}
               onChange={(event) => setLampNumber(event.target.value)}
@@ -582,7 +572,7 @@ function UvRuntimeSettingsDialog(props: {
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Наименование цеха/участка применения</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Наименование цеха/участка применения</Label>
             <Input
               value={areaName}
               onChange={(event) => setAreaName(event.target.value)}
@@ -590,7 +580,7 @@ function UvRuntimeSettingsDialog(props: {
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <Input
               type="date"
               value={dateFrom}
@@ -599,7 +589,7 @@ function UvRuntimeSettingsDialog(props: {
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select value={responsibleTitle} onValueChange={(value) => {
               const candidates = getUsersForRoleLabel(props.users, value);
               if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
@@ -638,7 +628,7 @@ function UvRuntimeSettingsDialog(props: {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -700,23 +690,16 @@ function AddRowDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Добавление новой строки
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
 
         <div className="space-y-5 px-7 py-6">
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Дата</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата</Label>
             <Input
               type="date"
               value={date}
@@ -729,7 +712,7 @@ function AddRowDialog(props: {
             <div className="mb-2 text-[16px] font-medium text-black">Время включения</div>
             <div className="flex gap-3">
               <div className="flex-1 space-y-1">
-                <Label className="text-[14px] text-[#6f7282]">Часы</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">Часы</Label>
                 <Select value={startHour} onValueChange={setStartHour}>
                   <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                     <SelectValue />
@@ -742,7 +725,7 @@ function AddRowDialog(props: {
                 </Select>
               </div>
               <div className="flex-1 space-y-1">
-                <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">Минуты</Label>
                 <Select value={startMin} onValueChange={setStartMin}>
                   <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                     <SelectValue />
@@ -761,7 +744,7 @@ function AddRowDialog(props: {
             <div className="mb-2 text-[16px] font-medium text-black">Время выключения</div>
             <div className="flex gap-3">
               <div className="flex-1 space-y-1">
-                <Label className="text-[14px] text-[#6f7282]">Часы</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">Часы</Label>
                 <Select value={endHour} onValueChange={setEndHour}>
                   <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                     <SelectValue />
@@ -774,7 +757,7 @@ function AddRowDialog(props: {
                 </Select>
               </div>
               <div className="flex-1 space-y-1">
-                <Label className="text-[14px] text-[#6f7282]">Минуты</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">Минуты</Label>
                 <Select value={endMin} onValueChange={setEndMin}>
                   <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                     <SelectValue />
@@ -790,7 +773,7 @@ function AddRowDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select value={responsibleTitle} onValueChange={(value) => {
               const candidates = getUsersForRoleLabel(props.users, value);
               if (employeeId && !candidates.some((u) => u.id === employeeId)) {
@@ -829,7 +812,7 @@ function AddRowDialog(props: {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -1301,32 +1284,16 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
       {/* Toolbar row */}
       <div className="flex flex-wrap items-center gap-3 print:hidden">
-        {selectedRowIds.length > 0 && (
-          <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-            <div className="flex items-center gap-2 text-[14px]">
-              <button
-                type="button"
-                onClick={() => setSelectedRowIds([])}
-                className="text-[#6f7282] hover:text-black"
-              >
-                <X className="size-4" />
-              </button>
-              <span>Выбранно: {selectedRowIds.length}</span>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]"
-              onClick={() => {
-                deleteSelectedRows().catch(() => toast.error("Ошибка удаления"));
-              }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Удалить
-            </Button>
-          </div>
-        )}
       </div>
+
+      <JournalSelectionBar
+        count={selectedRowIds.length}
+        onClear={() => setSelectedRowIds([])}
+        onDelete={() => {
+          deleteSelectedRows().catch(() => toast.error("Ошибка удаления"));
+        }}
+        hint="Записи наработки будут удалены без возможности отмены"
+      />
 
       {/* Print header */}
       <div className="uv-print-header hidden print:block">

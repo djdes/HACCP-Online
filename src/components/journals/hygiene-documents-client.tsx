@@ -37,12 +37,15 @@ import { useJournalDocumentActions } from "@/components/journals/use-journal-doc
 
 import { toast } from "sonner";
 import {
-  JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -138,12 +141,12 @@ function EditDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[32px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
-          <DialogTitle className="text-[22px] font-medium text-black">Настройки журнала</DialogTitle>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Настройки журнала</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-10 py-8">
+        <div className="space-y-8 px-6 py-5">
           <div className="space-y-3">
             <Label htmlFor="edit-doc-title" className="sr-only">
               Название документа
@@ -158,7 +161,7 @@ function EditDocumentDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -176,7 +179,7 @@ function EditDocumentDialog({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />

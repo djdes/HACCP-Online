@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Upload,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
@@ -20,7 +19,12 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
@@ -305,9 +309,9 @@ function RowDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-        <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             {isEdit ? "Редактирование строки" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
@@ -362,7 +366,7 @@ function RowDialog(props: {
             </div>
             <div className="flex gap-2">
               <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название новой продукции" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
-              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("product")}>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addInlineOption("product")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -385,7 +389,7 @@ function RowDialog(props: {
             </Select>
             <div className="flex gap-2">
               <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Добавить название нового производителя" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
-              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("manufacturer")}>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addInlineOption("manufacturer")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -408,7 +412,7 @@ function RowDialog(props: {
             </Select>
             <div className="flex gap-2">
               <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Добавить название нового поставщика" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
-              <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-5 text-white hover:bg-[#4a5bf0]" onClick={() => addInlineOption("supplier")}>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addInlineOption("supplier")}>
                 <Plus className="size-5" />
               </Button>
             </div>
@@ -638,12 +642,11 @@ function EditListsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={(open) => { if (!open) handleClose(); else props.onOpenChange(true); }}>
-      <DialogContent className="max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="text-[24px] font-semibold text-black">Редактировать список</DialogTitle>
-          <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={handleClose}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Редактировать список</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-8 py-6">
+        <div className="space-y-6 px-6 py-5">
           {/* Продукция */}
           <div className="space-y-2">
             <div className="text-[16px] font-semibold">Продукция</div>
@@ -655,7 +658,7 @@ function EditListsDialog(props: {
             ))}
             <div className="flex gap-2">
               <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Введите название нового изделия" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(products, setProducts, newProduct, setNewProduct)}><Plus className="size-5" /></Button>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(products, setProducts, newProduct, setNewProduct)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
@@ -670,7 +673,7 @@ function EditListsDialog(props: {
             ))}
             <div className="flex gap-2">
               <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Введите название нового производителя" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(manufacturers, setManufacturers, newManufacturer, setNewManufacturer)}><Plus className="size-5" /></Button>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(manufacturers, setManufacturers, newManufacturer, setNewManufacturer)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
@@ -685,7 +688,7 @@ function EditListsDialog(props: {
             ))}
             <div className="flex gap-2">
               <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Введите название нового поставщика" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-12 rounded-xl bg-[#5566f6] px-4" onClick={() => addItem(suppliers, setSuppliers, newSupplier, setNewSupplier)}><Plus className="size-5" /></Button>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(suppliers, setSuppliers, newSupplier, setNewSupplier)}><Plus className="size-5" /></Button>
             </div>
           </div>
 
@@ -781,7 +784,7 @@ function EditableListSection(props: {
         />
         <Button
           type="button"
-          className="h-12 rounded-xl bg-[#5566f6] px-4"
+          className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
           onClick={() => upsertValue(draft)}
         >
           <Plus className="size-5" />
@@ -871,12 +874,11 @@ function IncomingControlEditListsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={(open) => { if (!open) handleClose(); else props.onOpenChange(true); }}>
-      <DialogContent className="max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[900px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="text-[24px] font-semibold text-black">Редактировать список изделий</DialogTitle>
-          <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={handleClose}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Редактировать список изделий</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-8 py-6">
+        <div className="space-y-6 px-6 py-5">
           <EditableListSection
             title="Продукция"
             items={products}
@@ -1082,18 +1084,17 @@ function SettingsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="text-[24px] font-semibold text-black">Настройки журнала</DialogTitle>
-          <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Настройки журнала</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 px-8 py-6">
+        <div className="space-y-4 px-6 py-5">
           <div className="space-y-1">
-            <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-1">
-            <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
           <div className="space-y-2">
@@ -1108,7 +1109,7 @@ function SettingsDialog(props: {
             </label>
           </div>
           <div className="space-y-1">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={
                 responsibleTitle ||
@@ -1126,7 +1127,7 @@ function SettingsDialog(props: {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={responsibleUserId} onValueChange={(v) => {
               setResponsibleUserId(v);
               const user = props.users.find((u) => u.id === v);
@@ -1184,20 +1185,13 @@ function ImportRowsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[760px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Добавление списка изделий из файла в формате Excel
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
-        <div className="space-y-5 px-8 py-6 text-[16px] text-black">
+        <div className="space-y-5 px-6 py-5 text-[16px] text-black">
           <div className="space-y-3 leading-7 text-[#333]">
             <p>Список должен быть в файле Excel, на первом листе и начинаться с первой строки.</p>
             <p>Столбцы должны быть в следующем формате:</p>
@@ -1265,13 +1259,13 @@ function ImportRowsDialog(props: {
           ) : null}
 
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <div className="flex h-14 items-center rounded-2xl border border-[#dcdfed] bg-[#f3f4fb] px-5 text-[16px]">
               {props.responsibleTitle || "—"}
             </div>
           </div>
           <div className="space-y-3">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <div className="flex h-14 items-center rounded-2xl border border-[#dcdfed] bg-[#f3f4fb] px-5 text-[16px]">
               {props.users.find((user) => user.id === props.responsibleUserId)?.name || "—"}
             </div>
@@ -1331,22 +1325,15 @@ function AddMultipleRowsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[520px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="pr-10 text-[24px] font-semibold text-black">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             Добавить несколько строк
           </DialogTitle>
-          <button
-            type="button"
-            className="rounded-md p-1 text-black/80 hover:bg-black/5"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X className="size-6" />
-          </button>
         </DialogHeader>
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Количество строк</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Количество строк</Label>
             <Input
               type="number"
               min={1}
@@ -1380,12 +1367,11 @@ function AddMultipleRowsDialog(props: {
 function IikoDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-          <DialogTitle className="text-[20px] font-semibold text-black">Добавление списка из Iiko (Приходные накладные)</DialogTitle>
-          <button type="button" className="rounded-md p-1 text-black/80 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Добавление списка из Iiko (Приходные накладные)</DialogTitle>
         </DialogHeader>
-        <div className="px-8 py-6 text-[15px] text-[#555]">
+        <div className="px-6 py-5 text-[15px] text-[#555]">
           Для настройки синхронизации с Iiko обратитесь к разработчикам сервиса WeSetup.
         </div>
       </DialogContent>
@@ -1660,16 +1646,15 @@ export function AcceptanceDocumentClient(props: Props) {
   return (
     <div className="bg-white text-black">
       <div className={`${DOC_BODY_STACK_CLASS} py-4 sm:py-6`}>
-        {/* Selection bar */}
-        {selectedRowIds.length > 0 && !isClosed && (
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setSelectedRowIds([])} className="text-[#6f7282] hover:text-black"><X className="size-4" /></button>
-            <span className="text-[14px]">Выбрано: {selectedRowIds.length}</span>
-            <Button type="button" variant="ghost" className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => void handleDeleteSelected()}>
-              <span className="mr-1">🗑</span> Удалить
-            </Button>
-          </div>
-        )}
+        {/* Полоса действий над выделенными строками — общая для 13 журналов */}
+        {!isClosed ? (
+          <JournalSelectionBar
+            count={selectedRowIds.length}
+            onClear={() => setSelectedRowIds([])}
+            onDelete={() => void handleDeleteSelected()}
+            hint="Записи приёмки будут удалены без возможности отмены"
+          />
+        ) : null}
 
         {errorMessage ? (
           <div className="whitespace-pre-line rounded-2xl bg-[#fff2f1] px-5 py-4 text-[14px] text-[#d43a2f]">

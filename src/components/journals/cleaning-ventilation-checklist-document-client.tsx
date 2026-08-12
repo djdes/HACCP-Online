@@ -10,7 +10,6 @@ import {
   Copy,
   Plus,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,7 +45,11 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_HEADING_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -340,24 +343,17 @@ function DocumentSettingsDialog(props: {
         props.onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[840px]">
-        <DialogHeader className="border-b px-8 py-7">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Настройки журнала
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-[#0b1024]"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-7" />
-            </button>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-8 py-7">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Название документа</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
             <Input
               value={state.title}
               onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
@@ -365,7 +361,7 @@ function DocumentSettingsDialog(props: {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Дата начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <div className="relative">
               <Input
                 type="date"
@@ -395,7 +391,7 @@ function DocumentSettingsDialog(props: {
             </p>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={state.mainResponsibleTitle}
               onValueChange={(value) =>
@@ -423,7 +419,7 @@ function DocumentSettingsDialog(props: {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select
               value={state.mainResponsibleUserId}
               onValueChange={(value) =>
@@ -486,24 +482,17 @@ function AddResponsibleDialog(props: {
         props.onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[840px]">
-        <DialogHeader className="border-b px-8 py-7">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавление ответственного лица
             </DialogTitle>
-            <button
-              type="button"
-              className="rounded-xl p-2 text-[#0b1024]"
-              onClick={() => props.onOpenChange(false)}
-            >
-              <X className="size-7" />
-            </button>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-8 py-7">
+        <div className="space-y-5 px-6 py-5">
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Должность ответственного</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={title}
               onValueChange={(value) => {
@@ -525,7 +514,7 @@ function AddResponsibleDialog(props: {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select value={userId} onValueChange={setUserId}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -786,30 +775,16 @@ export function CleaningVentilationChecklistDocumentClient({
   return (
     <div className="space-y-5">
       <FocusTodayScroller />
-      {selection.length > 0 ? (
-        <div className="flex items-center gap-5 rounded-[22px] bg-white px-7 py-5 shadow-sm">
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-2xl bg-[#f5f6ff] px-6 py-4 text-[18px] text-[#5566f6]"
-            onClick={() => setSelection([])}
-          >
-            <X className="size-5" />
-            Выбранно: {selection.length}
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-2xl bg-[#fff1ef] px-6 py-4 text-[18px] text-[#ff3b30]"
-            onClick={() => {
-              clearSelectedRows().catch((error) =>
-                toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
-              );
-            }}
-          >
-            <Trash2 className="size-5" />
-            Удалить
-          </button>
-        </div>
-      ) : null}
+      <JournalSelectionBar
+        count={selection.length}
+        onClear={() => setSelection([])}
+        onDelete={() => {
+          clearSelectedRows().catch((error) =>
+            toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
+          );
+        }}
+        hint="Отметки в выбранных строках будут очищены"
+      />
 
       <div className="space-y-6 overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
         <DocumentActionsBar

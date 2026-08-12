@@ -71,7 +71,12 @@ import {
   DOC_HEADING_CLASS,
   DOC_LEGEND_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
@@ -1573,10 +1578,16 @@ export function CleaningDocumentClient(props: Props) {
                     <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за контроль</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {selection.length > 0 ? <Button type="button" variant="outline" className="h-9 rounded-xl border-[#ffd7d3] bg-[#fff4f2] px-3.5 text-[14px] text-[#a13a32] hover:bg-[#fff2f1]" onClick={() => { void deleteSelectedRows(); }}><Trash2 className="size-4" />Удалить</Button> : null}
               </div>
-              {selection.length > 0 ? <div className="text-[14px] font-medium text-[#5566f6]">Выбрано: {selection.length}</div> : null}
             </div>
+            <JournalSelectionBar
+              count={selection.length}
+              onClear={() => setSelection([])}
+              onDelete={() => {
+                void deleteSelectedRows();
+              }}
+              hint="Строки уборки будут удалены без возможности отмены"
+            />
             {/* Bulk-cell toolbar (выходные / выделение / bulk-set) — sticky
                 ВМЕСТЕ с add-toolbar выше, чтобы быть всегда видимым над
                 таблицей при scroll'е по дате. Доступен и в pairs-mode, и
@@ -2341,9 +2352,9 @@ export function CleaningDocumentClient(props: Props) {
           только тонкая полоска с переключателем + сводкой. */}
       {props.buildings && props.buildings.length > 0 ? (
         <Dialog open={raceConfigOpen} onOpenChange={setRaceConfigOpen}>
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[760px]">
-            <DialogHeader className="border-b px-6 py-5">
-              <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+            <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+              <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
                 Настроить race-режим
               </DialogTitle>
             </DialogHeader>
@@ -2366,9 +2377,9 @@ export function CleaningDocumentClient(props: Props) {
       ) : null}
 
       <Dialog open={!!responsibleDialog} onOpenChange={(open) => !open && setResponsibleDialog(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавление ответственного лица
             </DialogTitle>
           </DialogHeader>
@@ -2642,9 +2653,9 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         </JournalSettingsModal>
       <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[520px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Сохранить как шаблон по умолчанию
             </DialogTitle>
           </DialogHeader>

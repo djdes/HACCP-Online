@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Archive, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +19,12 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -139,9 +144,9 @@ function EntryDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-        <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
             {props.initialEntry ? "Редактирование записи" : "Добавление новой строки"}
           </DialogTitle>
         </DialogHeader>
@@ -289,10 +294,9 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
   const tabs: Array<[keyof FryerOilSelectLists, string]> = [["fatTypes", "Вид жира"], ["equipmentTypes", "Оборудование"], ["productTypes", "Вид продукции"]];
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[620px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[22px] font-semibold">Редактировать списки</DialogTitle>
-          <button type="button" className="rounded-md p-1 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Редактировать списки</DialogTitle>
         </DialogHeader>
         <div className="px-7 py-6">
           <Tabs defaultValue="fatTypes">
@@ -309,7 +313,7 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
               </TabsContent>
             ))}
           </Tabs>
-          <div className="mt-6 flex justify-end"><Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-7 text-white" onClick={() => { void props.onSave(lists); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="mt-6 flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave(lists); props.onOpenChange(false); }}>Сохранить</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -375,16 +379,15 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
-        <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
-          <DialogTitle className="text-[22px] font-semibold">Настройки журнала</DialogTitle>
-          <button type="button" className="rounded-md p-1 hover:bg-black/5" onClick={() => props.onOpenChange(false)}><X className="size-6" /></button>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Настройки журнала</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 px-7 py-6">
           <div className="space-y-1"><Label>Название документа</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-10 rounded-xl" /></div>
           <div className="space-y-1"><Label>Дата начала</Label><Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl" /></div>
           <div className="space-y-1"><Label>Статус документа</Label><Select value={status} onValueChange={(v: "active" | "closed") => setStatus(v)}><SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Активный</SelectItem><SelectItem value="closed">Закрытый</SelectItem></SelectContent></Select></div>
-          <div className="flex justify-end"><Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-7 text-white" onClick={() => { void props.onSave({ title, dateFrom, status }); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave({ title, dateFrom, status }); props.onOpenChange(false); }}>Сохранить</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -597,7 +600,15 @@ export function FryerOilDocumentClient(props: Props) {
             ) : null}
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
             <div className={`mt-7 ${DOC_CAPS_TITLE_CLASS} text-center text-[26px] font-semibold uppercase`}>Журнал учета использования фритюрных жиров</div>
-            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button>{selectedIds.length > 0 ? <Button type="button" variant="outline" className="h-10 rounded-xl border-[#ffd7d3] px-3.5 text-[#ff3b30]" onClick={() => void confirmDeleteEntries()}><Trash2 className="size-5" />Удалить</Button> : null}</div> : null}
+            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
+            {isActive ? (
+              <JournalSelectionBar
+                count={selectedIds.length}
+                onClear={() => setSelectedIds([])}
+                onDelete={() => void confirmDeleteEntries()}
+                hint="Записи о фритюрном жире будут удалены без возможности отмены"
+              />
+            ) : null}
             <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
             {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
             <MobileViewTableWrapper mobileView={mobileView}>

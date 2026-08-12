@@ -9,7 +9,12 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -186,6 +191,11 @@ export function MedBookDocumentClient({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  /**
+   * Выделение строк чекбоксами — как на эталоне (med_books-grid.png: первая
+   * узкая колонка с чекбоксом в шапке и в каждой строке).
+   */
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
 
   const editRow = rows.find((row) => row.id === editId) ?? null;
@@ -499,6 +509,28 @@ export function MedBookDocumentClient({
     if (!confirmed) return;
     await saveRows(rows.filter((row) => row.id !== rowId));
     setEditId(null);
+    setSelectedRowIds((current) => current.filter((id) => id !== rowId));
+  }
+
+  /** Удалить все выделенные строки сотрудников одним действием. */
+  async function deleteSelectedRows() {
+    const ids = selectedRowIds;
+    if (ids.length === 0) return;
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description: `Будет удалено строк сотрудников: ${ids.length}.`,
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Отметок об осмотрах в каждой строке: ${examColumns.length}`, tone: "warn" },
+        { label: `Отметок о прививках в каждой строке: ${vaccColumns.length}`, tone: "warn" },
+        { label: "Восстановить данные будет нельзя", tone: "warn" },
+      ],
+    });
+    if (!confirmed) return;
+    await saveRows(rows.filter((row) => !ids.includes(row.id)));
+    setSelectedRowIds([]);
+    setEditId(null);
   }
 
   async function onPhoto(files: FileList | null, target: "add" | "edit") {
@@ -660,10 +692,34 @@ export function MedBookDocumentClient({
           </div>
         ) : null}
 
+        {!isClosed ? (
+          <JournalSelectionBar
+            count={selectedRowIds.length}
+            onClear={() => setSelectedRowIds([])}
+            onDelete={() => void deleteSelectedRows()}
+            hint="Строки сотрудников исчезнут вместе с отметками об осмотрах и прививках"
+          />
+        ) : null}
+
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1320px] border-collapse text-[13px] text-black">
             <thead>
               <tr>
+                <th
+                  rowSpan={2}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-4 text-center leading-tight print:hidden`}
+                >
+                  <Checkbox
+                    aria-label="Выделить все строки"
+                    title="Выделить все строки"
+                    disabled={isClosed || rows.length === 0}
+                    checked={rows.length > 0 && selectedRowIds.length === rows.length}
+                    onCheckedChange={(checked) =>
+                      setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
+                    }
+                    className="size-4"
+                  />
+                </th>
                 <th
                   rowSpan={2}
                   className={`${GRID_HEAD_CELL_CLASS} px-2 py-4 leading-tight`}
@@ -703,6 +759,21 @@ export function MedBookDocumentClient({
             <tbody>
               {rows.map((row, index) => (
                 <tr key={row.id}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
+                    <Checkbox
+                      aria-label={`Выделить строку «${row.name || "без имени"}»`}
+                      disabled={isClosed}
+                      checked={selectedRowIds.includes(row.id)}
+                      onCheckedChange={(checked) =>
+                        setSelectedRowIds((current) =>
+                          checked === true
+                            ? [...new Set([...current, row.id])]
+                            : current.filter((id) => id !== row.id),
+                        )
+                      }
+                      className="size-4"
+                    />
+                  </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {index + 1}
                   </td>
@@ -1083,13 +1154,13 @@ export function MedBookDocumentClient({
         </JournalSettingsModal>
       ) : (
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
-            <DialogHeader className="border-b border-[#e5e7f0] px-8 py-6">
-              <DialogTitle className="text-[20px] font-medium text-black">
+          <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+            <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+              <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
                 Настройки журнала
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-5 px-8 py-6">
+            <div className="space-y-5 px-6 py-5">
               <Label>Название документа</Label>
               <Input
                 value={settingsTitle}
@@ -1119,7 +1190,7 @@ export function MedBookDocumentClient({
                 <Button
                   type="button"
                   disabled={saving || !settingsTitle.trim()}
-                  className="h-12 rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white"
+                  className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
                   onClick={async () => {
                     try {
                       await sync(rows, settingsTitle.trim(), {
@@ -1148,9 +1219,9 @@ export function MedBookDocumentClient({
       )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавление новой строки
             </DialogTitle>
           </DialogHeader>
@@ -1347,9 +1418,9 @@ export function MedBookDocumentClient({
             if (!value) setEditId(null);
           }}
         >
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
-            <DialogHeader className="border-b px-6 py-5">
-              <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+          <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+            <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+              <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
                 Редактирование строки
               </DialogTitle>
             </DialogHeader>
