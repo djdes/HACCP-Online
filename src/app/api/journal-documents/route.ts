@@ -96,6 +96,7 @@ import {
 } from "@/lib/journal-staff-binding";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -710,6 +711,25 @@ export async function POST(request: Request) {
       verifierUserId: prefilled.verifierUserId,
       createdById: session.user.id,
     },
+  });
+
+  // Сид строк — как в cron-пути (ensureActiveDocument). Без него
+  // созданный вручную гигиенический документ открывался пустым
+  // («Записей нет»), тогда как на эталоне сразу видны строки
+  // сотрудников. Логика PER_DAY / PER_EMPLOYEE_PER_DAY внутри
+  // seedEntriesForDocument; для остальных журналов — no-op.
+  await seedEntriesForDocument({
+    documentId: doc.id,
+    journalCode: resolvedTemplateCode,
+    organizationId: getActiveOrgId(session),
+    dateFrom: doc.dateFrom,
+    dateTo: doc.dateTo,
+    responsibleUserId: finalResponsibleUserId ?? null,
+  }).catch((err) => {
+    console.warn(
+      `[journal-documents] seedEntries failed for ${resolvedTemplateCode}`,
+      err
+    );
   });
 
   return NextResponse.json({ document: doc }, { status: 201 });

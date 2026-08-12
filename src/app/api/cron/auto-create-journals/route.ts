@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
 import {
+  closeExpiredDocuments,
   ensureActiveDocument,
   ensureNextPeriodDocument,
 } from "@/lib/journal-auto-create";
@@ -12,7 +13,12 @@ export const dynamic = "force-dynamic";
 /**
  * GET/POST /api/cron/auto-create-journals?secret=$CRON_SECRET
  *
- * Раз в день дёргаем для каждой org с непустым `autoJournalCodes`:
+ * Раз в день для каждой org:
+ *   0. closeExpiredDocuments — закрывает active-документы прошлых
+ *      периодов, у которых уже есть документ-преемник (perpetual/
+ *      yearly не трогаем). Выполняется для всех org.
+ *
+ * Далее — для каждой org с непустым `autoJournalCodes`:
  *   1. ensureActiveDocument — гарантирует что есть документ на текущий
  *      период (если cron упал вчера 1-го числа — догоняет сегодня).
  *   2. ensureNextPeriodDocument — за 7 дней до конца текущего создаёт
@@ -32,10 +38,26 @@ async function handle(request: Request) {
 
   let totalCurrentCreated = 0;
   let totalNextCreated = 0;
+  let totalClosed = 0;
   let orgsTouched = 0;
   const errors: string[] = [];
 
   for (const org of orgs) {
+    // Догоняющий шаг: документы прошлых периодов, у которых уже есть
+    // преемник, переводим в «закрытые» — иначе они висят active до
+    // авто-архива (365 дней). Делаем для ВСЕХ орг, даже без
+    // autoJournalCodes: документы могли создаваться вручную.
+    try {
+      const closedRes = await closeExpiredDocuments(db, {
+        organizationId: org.id,
+      });
+      totalClosed += closedRes.closed;
+    } catch (err) {
+      errors.push(
+        `org=${org.id} close-expired: ${(err as Error).message ?? "ошибка"}`
+      );
+    }
+
     const codes = Array.isArray(org.autoJournalCodes)
       ? (org.autoJournalCodes as string[]).filter(
           (c): c is string => typeof c === "string"
@@ -71,6 +93,7 @@ async function handle(request: Request) {
     organizationsProcessed: orgsTouched,
     currentDocumentsCreated: totalCurrentCreated,
     nextPeriodDocumentsCreated: totalNextCreated,
+    expiredDocumentsClosed: totalClosed,
     errors: errors.slice(0, 10),
   });
 }

@@ -56,6 +56,7 @@ import {
   HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
+import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import {
   getTrackedDocumentCreateMode,
@@ -375,6 +376,32 @@ export function CreateDocumentDialog({
     !isCleaningJournal &&
     !isEquipmentCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
+  // Онбординг-гейт: без сотрудников создавать документ нечему —
+  // не будет ни ответственного, ни строк. Показываем инструкцию.
+  const hasNoEmployees = users.length === 0;
+
+  if (hasNoEmployees) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button className={cn(triggerClassName)}>
+            {triggerIcon || <Plus className="size-4" />}
+            {triggerLabel}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
+          <DialogHeader className="border-b px-6 py-5">
+            <DialogTitle className="text-[20px] font-medium text-black">
+              Создание документа
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-5">
+            <CreateDocumentEmptyState onNavigate={() => setOpen(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

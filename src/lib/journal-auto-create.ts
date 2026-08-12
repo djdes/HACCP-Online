@@ -17,6 +17,9 @@ import type { PrismaClient } from "@prisma/client";
 import {
   parseJournalPeriodsJson,
   resolveJournalPeriod,
+  resolveJournalPeriodKind,
+  type JournalPeriodKind,
+  type JournalPeriodOverrideMap,
 } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
@@ -75,6 +78,114 @@ function preplanCleaningConfig(
   // Нормализуем чтобы гарантировать структуру (rooms[], matrix etc.).
   const normalized = normalizeCleaningDocumentConfig(config) as CleaningDocumentConfig;
   return applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty");
+}
+
+/**
+ * Периоды, документы которых НЕ закрываем автоматически:
+ *   • perpetual — open-ended журнал (дезсредства, чек-лист сан-дня),
+ *     dateTo = 2099-12-31, он и не истекает;
+ *   • yearly — медкнижки, график генеральных уборок и пр. Такие
+ *     документы менеджер закрывает вручную, автозакрытие по календарю
+ *     ломало бы работу с прошлогодними записями.
+ */
+const NON_CLOSING_PERIOD_KINDS = new Set<JournalPeriodKind>([
+  "perpetual",
+  "yearly",
+]);
+
+function isAutoClosablePeriod(
+  templateCode: string,
+  overrides: JournalPeriodOverrideMap
+): boolean {
+  const override = overrides[templateCode];
+  const kind: JournalPeriodKind = override
+    ? override.kind
+    : resolveJournalPeriodKind(templateCode);
+  return !NON_CLOSING_PERIOD_KINDS.has(kind);
+}
+
+function startOfUtcDay(now: Date): Date {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+}
+
+async function loadPeriodOverrides(
+  db: PrismaClient,
+  organizationId: string
+): Promise<JournalPeriodOverrideMap> {
+  const orgRow = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { journalPeriods: true },
+  });
+  return parseJournalPeriodsJson(orgRow?.journalPeriods ?? null);
+}
+
+/**
+ * Догоняющий шаг: закрывает active-документы организации, чей период
+ * уже истёк (dateTo < сегодня) И у которых есть документ-преемник
+ * (тот же шаблон, dateFrom > dateTo текущего). Без преемника документ
+ * не трогаем — иначе журнал остался бы совсем без активного документа.
+ *
+ * Статус `closed` — тот же, что ставит кнопка «Отправить в закрытые»
+ * (DocumentCloseButton), новых статусов не вводим. Идемпотентно:
+ * повторный вызов не находит active-документов и ничего не делает.
+ */
+export async function closeExpiredDocuments(
+  db: PrismaClient,
+  args: {
+    organizationId: string;
+    /** Ограничить одним шаблоном (используется после look-ahead create). */
+    templateId?: string;
+    now?: Date;
+    overrides?: JournalPeriodOverrideMap;
+  }
+): Promise<{ closed: number; documentIds: string[] }> {
+  const todayUtcStart = startOfUtcDay(args.now ?? new Date());
+  const expired = await db.journalDocument.findMany({
+    where: {
+      organizationId: args.organizationId,
+      status: "active",
+      dateTo: { lt: todayUtcStart },
+      ...(args.templateId ? { templateId: args.templateId } : {}),
+    },
+    select: {
+      id: true,
+      templateId: true,
+      dateTo: true,
+      template: { select: { code: true } },
+    },
+  });
+  if (expired.length === 0) return { closed: 0, documentIds: [] };
+
+  const overrides =
+    args.overrides ?? (await loadPeriodOverrides(db, args.organizationId));
+  const closedIds: string[] = [];
+
+  for (const doc of expired) {
+    const code = doc.template?.code;
+    if (!code) continue;
+    if (!isAutoClosablePeriod(code, overrides)) continue;
+
+    const successor = await db.journalDocument.findFirst({
+      where: {
+        organizationId: args.organizationId,
+        templateId: doc.templateId,
+        dateFrom: { gt: doc.dateTo },
+        id: { not: doc.id },
+      },
+      select: { id: true },
+    });
+    if (!successor) continue;
+
+    const res = await db.journalDocument.updateMany({
+      where: { id: doc.id, status: "active" },
+      data: { status: "closed" },
+    });
+    if (res.count > 0) closedIds.push(doc.id);
+  }
+
+  return { closed: closedIds.length, documentIds: closedIds };
 }
 
 export type CreateReport = {
@@ -395,6 +506,24 @@ export async function ensureNextPeriodDocument(
       err
     );
   });
+
+  // Преемник создан — все документы этого шаблона, чей период уже
+  // истёк (dateTo < сегодня), переводим в «закрытые». Тот же переход,
+  // что и у кнопки «Отправить в закрытые» (DocumentCloseButton).
+  // Perpetual/yearly отфильтровываются внутри.
+  await closeExpiredDocuments(db, {
+    organizationId: args.organizationId,
+    templateId: template.id,
+    now,
+    overrides: nextOverrides,
+  }).catch((err) => {
+    console.warn(
+      `[journal-auto-create:next] closeExpired failed for ${args.templateCode}`,
+      err
+    );
+    return { closed: 0, documentIds: [] };
+  });
+
   return {
     code: args.templateCode,
     name: template.name,

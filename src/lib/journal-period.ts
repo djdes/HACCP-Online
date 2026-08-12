@@ -113,6 +113,10 @@ export const YEARLY_JOURNAL_CODES = new Set<string>([
  *   • Журнал здоровья       — «Апрель с 1 по 15»
  *   • Контроль температурного режима холодильного оборудования —
  *     «Апрель с 1 по 15»
+ *   • Журнал уборки — «Август с 1 по 15» (crawl-pass2 эталона).
+ *     UI-кнопка «Создать документ» уже давала полумесяц
+ *     (`getCleaningCreatePeriodBounds`), а auto-create/bulk-create
+ *     делали месячный — расхождение убрано.
  *
  * Если день месяца ≤15 → период (1, 15). Если ≥16 → период (16, last).
  */
@@ -120,6 +124,7 @@ export const HALF_MONTHLY_JOURNAL_CODES = new Set<string>([
   "hygiene",
   "health_check",
   "cold_equipment_control",
+  "cleaning",
 ]);
 
 /**

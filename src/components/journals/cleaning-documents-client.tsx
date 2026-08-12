@@ -37,6 +37,7 @@ import {
 } from "@/lib/cleaning-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_TAB_RAIL_CLASS,
@@ -206,6 +207,11 @@ function CreateDialog(props: {
             </button>
           </div>
         </DialogHeader>
+        {props.users.length === 0 ? (
+          <div className="px-5 py-6 sm:px-10 sm:py-8">
+            <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
+          </div>
+        ) : (
         <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
           <div className="space-y-2">
             <Label className="text-[16px] text-[#73738a]">Введите название документа</Label>
@@ -265,6 +271,7 @@ function CreateDialog(props: {
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );

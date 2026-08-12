@@ -63,6 +63,7 @@ import {
   JOURNAL_CARD_VALUE_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
+import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 type UserItem = {
   id: string;
   name: string;
@@ -133,6 +134,8 @@ function SettingsDialog(props: {
   onSubmit: (value: SettingsState) => Promise<void>;
   submitText: string;
   title: string;
+  /** Онбординг-гейт: только для диалога создания документа. */
+  showEmptyState?: boolean;
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -174,7 +177,11 @@ function SettingsDialog(props: {
           </div>
         </DialogHeader>
 
-        {activeState ? (
+        {props.showEmptyState && props.users.length === 0 ? (
+          <div className="px-5 py-6 sm:px-10 sm:py-8">
+            <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
+          </div>
+        ) : activeState ? (
           <div className="space-y-5 px-5 py-6 sm:px-10 sm:py-8">
             <div className="space-y-2">
               <Label className="text-[15px] text-[#6f7282]">
@@ -611,6 +618,7 @@ export function SanitationDayDocumentsClient({
         onSubmit={createDocument}
         submitText="Создать"
         title="Создание документа"
+        showEmptyState
       />
 
       <SettingsDialog
