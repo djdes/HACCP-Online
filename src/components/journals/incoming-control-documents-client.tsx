@@ -5,8 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ellipsis, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -34,8 +38,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -143,48 +151,41 @@ function SettingsDialog({
         <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>{title}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 px-6 py-5">
-          <div className="space-y-3">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
-            <Input
-              value={state.title}
-              onChange={(event) => setState({ ...state, title: event.target.value })}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-              placeholder="Введите название документа"
-            />
-          </div>
-          <div className="space-y-3">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
-            <Input
-              type="date"
-              value={state.startDate}
-              onChange={(event) => setState({ ...state, startDate: event.target.value })}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            />
-          </div>
-          <div className="space-y-4">
-            <div className="text-[18px] font-semibold text-black">Название поля</div>
-            <label className="flex items-center gap-3 text-[18px] text-black">
-              <input
-                type="radio"
-                name="incoming-control-expiry-label"
-                checked={state.expiryFieldLabel === "expiry_deadline"}
-                onChange={() => setState({ ...state, expiryFieldLabel: "expiry_deadline" })}
-                className="size-5 accent-[#5566f6]"
-              />
-              &quot;Предельный срок реализации&quot;
-            </label>
-            <label className="flex items-center gap-3 text-[18px] text-black">
-              <input
-                type="radio"
-                name="incoming-control-expiry-label"
-                checked={state.expiryFieldLabel === "shelf_life"}
-                onChange={() => setState({ ...state, expiryFieldLabel: "shelf_life" })}
-                className="size-5 accent-[#5566f6]"
-              />
-              &quot;Срок годности&quot;
-            </label>
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            label="Название документа"
+            value={state.title}
+            onChange={(value) => setState({ ...state, title: value })}
+          />
+          <DateField
+            label="Дата начала"
+            value={state.startDate}
+            onChange={(value) => setState({ ...state, startDate: value })}
+          />
+          <FloatingLabelField label="Колонка срока">
+            <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="radio"
+                  name="incoming-control-expiry-label"
+                  checked={state.expiryFieldLabel === "expiry_deadline"}
+                  onChange={() => setState({ ...state, expiryFieldLabel: "expiry_deadline" })}
+                  className="size-4 accent-[#5566f6]"
+                />
+                Предельный срок реализации
+              </label>
+              <label className="flex items-center gap-2.5">
+                <input
+                  type="radio"
+                  name="incoming-control-expiry-label"
+                  checked={state.expiryFieldLabel === "shelf_life"}
+                  onChange={() => setState({ ...state, expiryFieldLabel: "shelf_life" })}
+                  className="size-4 accent-[#5566f6]"
+                />
+                Срок годности
+              </label>
+            </div>
+          </FloatingLabelField>
           <PositionEmployeePicker
             users={users}
             value={{
@@ -199,9 +200,8 @@ function SettingsDialog({
               }))
             }
             positionLabel="Должность ответственного"
-            employeeLabel="Ответственный сотрудник"
-            labelClassName="text-[14px] text-[#73738a]"
-            triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
+            employeeLabel="Ответственный"
+            variant="floating"
           />
           <ControlPeriodicityField
             value={state.controlPeriodicity}
@@ -209,7 +209,7 @@ function SettingsDialog({
               setState((current) => ({ ...current, controlPeriodicity: value }))
             }
           />
-          <div className="flex justify-end">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               disabled={submitting}
@@ -222,7 +222,7 @@ function SettingsDialog({
                   setSubmitting(false);
                 }
               }}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {submitting ? "Сохранение..." : submitLabel}
             </Button>

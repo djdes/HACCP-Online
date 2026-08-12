@@ -530,7 +530,6 @@ function JournalSettingsDialog({
         <ControlPeriodicityField
           value={periodicity}
           onChange={setPeriodicity}
-          labelClassName="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
         />
       </JournalSettingsModal>
     );
@@ -600,7 +599,6 @@ function JournalSettingsDialog({
           <ControlPeriodicityField
             value={periodicity}
             onChange={setPeriodicity}
-            labelClassName="text-[16px] text-[#73738a]"
           />
           <div className="flex justify-end">
             <Button

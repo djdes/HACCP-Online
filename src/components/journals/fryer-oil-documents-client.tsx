@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+} from "@/components/journals/journal-dialog-field";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +31,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -124,32 +131,21 @@ function FryerOilSettingsDialog(props: {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            />
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            label="Название документа"
+            value={title}
+            onChange={setTitle}
+          />
 
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            />
-          </div>
+          <DateField label="Дата начала" value={dateFrom} onChange={setDateFrom} />
 
-          <div className="flex justify-end pt-1">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>

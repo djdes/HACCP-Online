@@ -12,7 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
 import { Label } from "@/components/ui/label";
 import { normalizeFinishedProductDocumentConfig } from "@/lib/finished-product-document";
 
@@ -23,8 +28,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -200,34 +209,35 @@ export function FinishedProductDocumentsClient({
               Настройки журнала
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 px-6 py-5">
-            <div className="space-y-2">
-              <Label>Название документа</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Дата начала</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-            <div className="space-y-2 rounded-xl border p-3">
-              <Label>Название поля</Label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={fieldNameMode === "dish"}
-                  onChange={() => setFieldNameMode("dish")}
-                />
-                Наименование блюд (изделий)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={fieldNameMode === "semi"}
-                  onChange={() => setFieldNameMode("semi")}
-                />
-                Наименование полуфабриката
-              </label>
-            </div>
+          <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+            <FloatingInputField
+              label="Название документа"
+              value={title}
+              onChange={setTitle}
+            />
+            <DateField label="Дата начала" value={dateFrom} onChange={setDateFrom} />
+            <FloatingLabelField label="Колонка наименования">
+              <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    checked={fieldNameMode === "dish"}
+                    onChange={() => setFieldNameMode("dish")}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  Наименование блюд (изделий)
+                </label>
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    checked={fieldNameMode === "semi"}
+                    onChange={() => setFieldNameMode("semi")}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  Наименование полуфабриката
+                </label>
+              </div>
+            </FloatingLabelField>
             <div className="space-y-2 rounded-xl border p-3">
               <Label>Добавить поля</Label>
               <label className="flex items-center gap-2 text-sm">
@@ -250,32 +260,40 @@ export function FinishedProductDocumentsClient({
                 Время передачи блюд курьеру
               </label>
             </div>
-            <div className="space-y-2 rounded-xl border p-3">
-              <Label>Название поля</Label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={inspectorMode === "inspector_name"}
-                  onChange={() => setInspectorMode("inspector_name")}
-                />
-                ФИО лица, проводившего бракераж
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={inspectorMode === "commission_signatures"}
-                  onChange={() => setInspectorMode("commission_signatures")}
-                />
-                Подписи членов бракеражной комиссии
-              </label>
-            </div>
-            <Input
+            <FloatingLabelField label="Кто подписывает">
+              <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    checked={inspectorMode === "inspector_name"}
+                    onChange={() => setInspectorMode("inspector_name")}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  ФИО лица, проводившего бракераж
+                </label>
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    checked={inspectorMode === "commission_signatures"}
+                    onChange={() => setInspectorMode("commission_signatures")}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  Подписи членов бракеражной комиссии
+                </label>
+              </div>
+            </FloatingLabelField>
+            <FloatingInputField
+              label="Примечание"
               value={footerNote}
-              onChange={(e) => setFooterNote(e.target.value)}
-              placeholder="Примечание после таблицы"
+              onChange={setFooterNote}
+              placeholder="Печатается под таблицей"
             />
-            <div className="flex justify-end">
-              <Button onClick={saveSettings} disabled={isSaving}>
+            <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
+              <Button
+                onClick={saveSettings}
+                disabled={isSaving}
+                className={JOURNAL_DIALOG_SUBMIT_CLASS}
+              >
                 {isSaving ? "Сохранение..." : "Сохранить"}
               </Button>
             </div>

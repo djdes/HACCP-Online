@@ -5,8 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ellipsis, Pencil, Printer, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
 import {
   Dialog,
   DialogContent,
@@ -50,8 +54,13 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
@@ -165,37 +174,22 @@ function UvRuntimeSettingsDialog(props: {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 px-7 py-6">
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Бактерицидная установка №</Label>
-            <Input
-              value={lampNumber}
-              onChange={(event) => setLampNumber(event.target.value)}
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] leading-none"
-            />
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            label="Бактерицидная установка №"
+            value={lampNumber}
+            onChange={setLampNumber}
+          />
 
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Наименование цеха/участка применения</Label>
-            <Input
-              value={areaName}
-              onChange={(event) => setAreaName(event.target.value)}
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-            />
-          </div>
+          <FloatingInputField
+            label="Наименование цеха/участка применения"
+            value={areaName}
+            onChange={setAreaName}
+          />
 
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-            />
-          </div>
+          <DateField label="Дата начала" value={dateFrom} onChange={setDateFrom} />
 
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
+          <FloatingLabelField label="Должность ответственного">
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -203,8 +197,8 @@ function UvRuntimeSettingsDialog(props: {
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="- Выберите значение -">- Выберите значение -</SelectItem>
@@ -230,13 +224,12 @@ function UvRuntimeSettingsDialog(props: {
                 )}
               </SelectContent>
             </Select>
-          </div>
+          </FloatingLabelField>
 
-          <div className="space-y-1">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
+          <FloatingLabelField label="Ответственный">
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
                 {(responsibleTitle
@@ -249,14 +242,14 @@ function UvRuntimeSettingsDialog(props: {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FloatingLabelField>
 
-          <div className="flex justify-end pt-1">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               onClick={handleSave}
               disabled={submitting}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>

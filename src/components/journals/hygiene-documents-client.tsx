@@ -16,8 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
 import {
   Select,
   SelectContent,
@@ -41,8 +44,13 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
@@ -146,22 +154,15 @@ function EditDocumentDialog({
           <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Настройки журнала</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 px-6 py-5">
-          <div className="space-y-3">
-            <Label htmlFor="edit-doc-title" className="sr-only">
-              Название документа
-            </Label>
-            <Input
-              id="edit-doc-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Введите название документа"
-              className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-            />
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            id="edit-doc-title"
+            label="Название документа"
+            value={title}
+            onChange={setTitle}
+          />
 
-          <div className="space-y-3">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
+          <FloatingLabelField label="Должность ответственного">
             <Select
               value={responsibleTitle}
               onValueChange={(value) => {
@@ -169,20 +170,19 @@ function EditDocumentDialog({
                 setResponsibleUserId("");
               }}
             >
-              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
                 <PositionSelectItems users={users} />
               </SelectContent>
             </Select>
-          </div>
+          </FloatingLabelField>
 
-          <div className="space-y-3">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
+          <FloatingLabelField label="Ответственный">
             <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
-                <SelectValue placeholder="- Выберите значение -" />
+              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
                 {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId }) : users).map((user) => (
@@ -192,20 +192,19 @@ function EditDocumentDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FloatingLabelField>
 
           <ControlPeriodicityField
             value={periodicity}
             onChange={setPeriodicity}
-            labelClassName="text-[14px] text-[#6f7282]"
           />
 
-          <div className="flex justify-end pt-2">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               disabled={isSubmitting}
               onClick={handleSave}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>

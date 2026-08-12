@@ -11,8 +11,11 @@ import {
 } from "@/components/journals/document-list-ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+} from "@/components/journals/journal-dialog-field";
 
 import { toast } from "sonner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
@@ -23,8 +26,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -151,29 +158,18 @@ export function PerishableRejectionDocumentsClient({
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Настройки журнала</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-              />
-            </div>
-            <div className="flex justify-end">
+          <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+            <FloatingInputField
+              label="Название документа"
+              value={title}
+              onChange={setTitle}
+            />
+            <DateField label="Дата начала" value={dateFrom} onChange={setDateFrom} />
+            <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
               <Button
                 onClick={saveSettings}
                 disabled={isSaving}
-                className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+                className={JOURNAL_DIALOG_SUBMIT_CLASS}
               >
                 {isSaving ? "Сохранение..." : "Сохранить"}
               </Button>

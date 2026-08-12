@@ -12,7 +12,12 @@ import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
+  JOURNAL_DIALOG_FIELD_CLASS,
+  JOURNAL_DIALOG_FIELD_CONTROL_CLASS,
+  JOURNAL_DIALOG_FIELD_LABEL_CLASS,
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_HINT_CLASS,
   JOURNAL_DIALOG_LABEL_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_DOCUMENT_SHELL_CLASS,
@@ -130,3 +135,21 @@ test("selection bar sticks under the app header and never prints", () => {
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /backdrop-blur/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /bg-white\/95/);
 });
+
+test("dialog fields are one full-width column with floating labels", () => {
+  // Эталон cleaning-02b / climate_control-create-fail: рамка поля во всю
+  // ширину окна, подпись мелким кеглем ВНУТРИ рамки сверху.
+  assert.match(JOURNAL_DIALOG_FIELD_CLASS, /\bw-full\b/);
+  assert.match(JOURNAL_DIALOG_FIELD_CLASS, /rounded-\[14px\]/);
+  assert.match(JOURNAL_DIALOG_FIELD_LABEL_CLASS, /text-\[11\.5px\]/);
+  // Контролы внутри рамки своей рамки/фона не имеют — иначе рамка в рамке.
+  assert.match(JOURNAL_DIALOG_FIELD_CONTROL_CLASS, /border-0/);
+  assert.match(JOURNAL_DIALOG_FIELD_CONTROL_CLASS, /bg-transparent/);
+  // Главный фикс селектов: `SelectTrigger` по умолчанию `w-fit` и
+  // схлопывался в пустую пилюлю ~50px — здесь он всегда во всю ширину.
+  assert.match(JOURNAL_DIALOG_FIELD_TRIGGER_CLASS, /\bw-full\b/);
+  assert.doesNotMatch(JOURNAL_DIALOG_FIELD_TRIGGER_CLASS, /\bw-fit\b/);
+  // Подсказка «нет сотрудников на должности» — заметная, не серый микротекст.
+  assert.match(JOURNAL_DIALOG_HINT_CLASS, /bg-\[#fff8e8\]/);
+});
+

@@ -11,6 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { FloatingLabelField } from "@/components/journals/journal-dialog-field";
+import {
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
+  JOURNAL_DIALOG_HINT_CLASS,
+} from "@/components/journals/journal-responsive";
 import {
   getPositionLabelsGrouped,
   getUserPositionLabel,
@@ -137,6 +142,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   emptyEmployeeHint = "На этой должности пока нет сотрудников — добавьте их в «Настройки → Сотрудники».",
   triggerClassName,
   labelClassName,
+  variant = "stacked",
 }: {
   users: T[];
   /**
@@ -160,6 +166,12 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   emptyEmployeeHint?: string;
   triggerClassName?: string;
   labelClassName?: string;
+  /**
+   * `floating` — эталонный вид диалогов журналов: подпись внутри рамки
+   * поля, селект на всю ширину. `stacked` — старый «Label над селектом»,
+   * оставлен для экранов вне диалогов (настройки, распределение).
+   */
+  variant?: "stacked" | "floating";
 }) {
   const availableEmployees = useMemo(() => {
     if (!value.positionTitle) return [];
@@ -170,6 +182,78 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
 
   const positionValue = value.positionTitle || "__empty__";
   const userValue = value.userId || "__empty__";
+  const floating = variant === "floating";
+  const resolvedTriggerClassName = floating
+    ? JOURNAL_DIALOG_FIELD_TRIGGER_CLASS
+    : triggerClassName;
+
+  if (floating) {
+    return (
+      <>
+        <FloatingLabelField label={positionLabel}>
+          <Select
+            value={positionValue}
+            onValueChange={(v) => {
+              const nextTitle = v === "__empty__" ? "" : v;
+              const stillValid =
+                !value.userId ||
+                (nextTitle
+                  ? users.some(
+                      (u) =>
+                        u.id === value.userId &&
+                        getUserPositionLabel(u) === nextTitle
+                    )
+                  : false);
+              onChange({
+                positionTitle: nextTitle,
+                userId: stillValid ? value.userId : "",
+              });
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger className={resolvedTriggerClassName}>
+              <SelectValue placeholder={emptyPositionPlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">{emptyPositionPlaceholder}</SelectItem>
+              <PositionSelectItems users={positionUsers ?? users} />
+            </SelectContent>
+          </Select>
+        </FloatingLabelField>
+
+        {value.positionTitle ? (
+          <FloatingLabelField
+            label={employeeLabel}
+            className={CASCADE_REVEAL_CLASS}
+            hint={availableEmployees.length === 0 ? emptyEmployeeHint : undefined}
+          >
+            <Select
+              value={userValue}
+              onValueChange={(v) => {
+                onChange({
+                  positionTitle: value.positionTitle,
+                  userId: v === "__empty__" ? "" : v,
+                });
+              }}
+              disabled={disabled || availableEmployees.length === 0}
+            >
+              <SelectTrigger className={resolvedTriggerClassName}>
+                <SelectValue placeholder={emptyEmployeePlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__empty__">{emptyEmployeePlaceholder}</SelectItem>
+                {availableEmployees.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FloatingLabelField>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -235,7 +319,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
             </SelectContent>
           </Select>
           {availableEmployees.length === 0 ? (
-            <div className="text-[13px] text-[#9b9fb3]">{emptyEmployeeHint}</div>
+            <div className={JOURNAL_DIALOG_HINT_CLASS}>{emptyEmployeeHint}</div>
           ) : null}
         </div>
       ) : null}

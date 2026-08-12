@@ -28,8 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { FloatingInputField } from "@/components/journals/journal-dialog-field";
 
 import { toast } from "sonner";
 import {
@@ -41,8 +41,12 @@ import { useJournalDocumentActions } from "@/components/journals/use-journal-doc
 import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
 import {
   JOURNAL_CARD_TITLE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -114,24 +118,19 @@ function SettingsDialog({
             Настройки журнала
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 px-6 py-5">
-          <div className="space-y-3">
-            <Label htmlFor="settings-title" className="text-[13px] font-medium text-[#3c4053]">
-              Название документа
-            </Label>
-            <Input
-              id="settings-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-            />
-          </div>
-          <div className="flex justify-end">
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            id="settings-title"
+            label="Название документа"
+            value={title}
+            onChange={setTitle}
+          />
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               onClick={handleSave}
               disabled={saving || !title.trim()}
-              className="h-10 rounded-xl bg-[#5566f6] px-6 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {saving ? "Сохранение..." : "Сохранить"}
             </Button>

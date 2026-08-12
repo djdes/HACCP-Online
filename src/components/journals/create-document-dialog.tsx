@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +13,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
+import {
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
+  JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_ERROR_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
+  JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
+  JOURNAL_DIALOG_TITLE_CLASS,
+} from "@/components/journals/journal-responsive";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   getColdEquipmentCreatePeriodBounds,
@@ -52,7 +64,6 @@ import {
   getHygieneCreatePeriodBounds,
   getHygieneDocumentTitle,
   getHygienePositionLabel,
-  getStaffJournalResponsibleTitleOptions,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
@@ -186,16 +197,12 @@ export function CreateDocumentDialog({
   const isEquipmentMaintenanceJournal = templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE;
   const isEquipmentCalibrationJournal = templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE;
   const trackedCreateMode = getTrackedDocumentCreateMode(templateCode);
-  const usesFixedDocumentTitle = isClimateJournal || isColdEquipmentJournal;
+  /**
+   * Поле «Название документа» есть ВЕЗДЕ и всегда первое (эталон
+   * cleaning-02b): раньше climate_control и cold_equipment_control
+   * открывались вообще без него и владелец не понимал, что создаётся.
+   */
   const showDateFields = !isColdEquipmentJournal;
-
-  const responsibleTitleOptions = useMemo(
-    () =>
-      isStaffJournal || isSourceStyleTrackedJournal || isCleaningJournal
-        ? getStaffJournalResponsibleTitleOptions(users)
-        : [],
-    [isStaffJournal, isSourceStyleTrackedJournal, isCleaningJournal, users]
-  );
 
   const [title, setTitle] = useState(
     templateCode === "hygiene"
@@ -233,9 +240,13 @@ export function CreateDocumentDialog({
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
   const [responsibleUserId, setResponsibleUserId] = useState("");
-  const [responsibleTitle, setResponsibleTitle] = useState(
-    isStaffJournal || isSourceStyleTrackedJournal || isCleaningJournal ? responsibleTitleOptions[0] || "" : ""
-  );
+  /**
+   * Должность НЕ предзаполняем: раньше сюда падала первая должность из
+   * списка (в uv_lamp_runtime это был «Кондитер»), и владелец создавал
+   * документ на случайного человека, не заметив подстановки.
+   * Дефолт селекта — «Выберите должность».
+   */
+  const [responsibleTitle, setResponsibleTitle] = useState("");
   const [trackedAreaName, setTrackedAreaName] = useState("");
   const [trackedLampNumber, setTrackedLampNumber] = useState("1");
   const [fpFieldNameMode, setFpFieldNameMode] = useState<"dish" | "semi">("dish");
@@ -367,15 +378,32 @@ export function CreateDocumentDialog({
     }
   }
 
-  const isCompactSourceModal = isStaffJournal || isSourceStyleTrackedJournal || isMedBookJournal || isPerishableRejectionJournal || isProductWriteoffJournal || isStaffTrainingJournal || isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal || isCleaningJournal || isEquipmentCleaningJournal;
   /**
-   * Каскад «Должность → Сотрудник» в компактной модалке. Журналы, у которых
-   * ответственный задаётся не при создании (медкнижки, списания, обучение,
-   * ТО/поверка, уборка оборудования), картинку не показывают.
+   * Компактный (source-style) набор полей. Раньше флаг заодно менял
+   * ширину/паддинги/кегль заголовка — теперь геометрия у всех диалогов
+   * ОДНА (JOURNAL_DIALOG_* токены), флаг отвечает только за состав полей.
+   */
+  const isCompactSourceModal =
+    isStaffJournal ||
+    isSourceStyleTrackedJournal ||
+    isMedBookJournal ||
+    isPerishableRejectionJournal ||
+    isProductWriteoffJournal ||
+    isStaffTrainingJournal ||
+    isEquipmentMaintenanceJournal ||
+    isEquipmentCalibrationJournal ||
+    isCleaningJournal ||
+    isEquipmentCleaningJournal;
+  /**
+   * Каскад «Должность → Сотрудник». Журналы, у которых ответственный
+   * задаётся не при создании (медкнижки, списания, обучение, ТО/поверка,
+   * уборка оборудования), каскад не показывают.
+   *
+   * perishable_rejection каскад ПОКАЗЫВАЕТ: в карточке списка и в шапке
+   * документа есть «Ответственный», а задать его было негде.
    */
   const showResponsiblePicker =
     !isMedBookJournal &&
-    !isPerishableRejectionJournal &&
     !isProductWriteoffJournal &&
     !isStaffTrainingJournal &&
     !isEquipmentMaintenanceJournal &&
@@ -383,26 +411,46 @@ export function CreateDocumentDialog({
     !isCleaningJournal &&
     !isEquipmentCleaningJournal;
   const showDateTo = !isClimateJournal && !isColdEquipmentJournal;
+  /**
+   * Период у «штатных» журналов (гигиена, здоровье, контроль гигиены рук)
+   * считается автоматически на 15 дней — поля даты у них нет. Раньше на
+   * это место вставлялась серая плашка-объяснялка; на эталоне её нет,
+   * и она только удлиняла окно.
+   */
+  const usesAutoPeriod = isStaffJournal || trackedCreateMode === "staff";
+  const showCompactDateFrom =
+    !usesAutoPeriod && !isMedBookJournal && !isCleaningJournal;
   // Онбординг-гейт: без сотрудников создавать документ нечему —
   // не будет ни ответственного, ни строк. Показываем инструкцию.
   const hasNoEmployees = users.length === 0;
 
+  const trigger = (
+    <DialogTrigger asChild>
+      <Button className={cn(triggerClassName)}>
+        {triggerIcon || <Plus className="size-4" />}
+        {triggerLabel}
+      </Button>
+    </DialogTrigger>
+  );
+
+  const header = (
+    <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+      {/* Заголовок ВСЕГДА короткий: название журнала и так предзаполнено
+          в первом поле, а «Создать документ: <длинное имя>» ломалось
+          на 2-3 строки. */}
+      <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
+        Создание документа
+      </DialogTitle>
+    </DialogHeader>
+  );
+
   if (hasNoEmployees) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className={cn(triggerClassName)}>
-            {triggerIcon || <Plus className="size-4" />}
-            {triggerLabel}
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle className="text-[20px] font-medium text-black">
-              Создание документа
-            </DialogTitle>
-          </DialogHeader>
-          <div className="px-6 py-5">
+        {trigger}
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+          {header}
+          <div className={JOURNAL_DIALOG_BODY_CLASS}>
             <CreateDocumentEmptyState onNavigate={() => setOpen(false)} />
           </div>
         </DialogContent>
@@ -410,487 +458,334 @@ export function CreateDocumentDialog({
     );
   }
 
+  const responsiblePicker = (
+    <PositionEmployeePicker
+      users={users}
+      value={{ positionTitle: responsibleTitle, userId: responsibleUserId }}
+      onChange={(next) => {
+        setResponsibleTitle(next.positionTitle);
+        setResponsibleUserId(next.userId);
+      }}
+      positionLabel="Должность ответственного"
+      employeeLabel="Ответственный"
+      variant="floating"
+    />
+  );
+
+  const periodicityAndSubmit = (
+    <>
+      <ControlPeriodicityField
+        value={controlPeriodicity}
+        onChange={setControlPeriodicity}
+      />
+
+      {/* Единственное действие — «Создать» справа внизу. Кнопки «Отмена»
+          нет: окно закрывается крестиком и Escape. */}
+      <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className={JOURNAL_DIALOG_SUBMIT_CLASS}
+        >
+          {isSubmitting ? "Создание..." : "Создать"}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className={cn(triggerClassName)}>
-          {triggerIcon || <Plus className="size-4" />}
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
-      <DialogContent
-        className={cn(
-          "w-[calc(100vw-2rem)] max-w-[560px] rounded-[24px] border-0 p-0",
-          isCompactSourceModal && "max-w-[620px] rounded-[28px]"
-        )}
-      >
-        <DialogHeader className={cn("border-b px-6 py-5", isCompactSourceModal && "px-8 py-6")}>
-          <DialogTitle className={cn("text-[20px] font-medium text-black", isCompactSourceModal && "text-[24px]")}>
-            {isCompactSourceModal ? "Создание документа" : `Создать документ: ${templateName}`}
-          </DialogTitle>
-        </DialogHeader>
+      {trigger}
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        {header}
 
         <form
           onSubmit={handleSubmit}
-          className={cn("space-y-4 px-6 py-5", isCompactSourceModal && "space-y-5 px-8 py-6")}
+          className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}
         >
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+          {error && <p className={JOURNAL_DIALOG_ERROR_CLASS}>{error}</p>}
 
           {isCompactSourceModal ? (
             <>
               {trackedCreateMode === "uv" ? (
                 <>
-                  <div className="space-y-1">
-                    <Label htmlFor="uv-lamp-number" className="text-[16px] text-[#6f7282]">
-                      Бактерицидная установка №
-                    </Label>
-                    <Input
-                      id="uv-lamp-number"
-                      value={trackedLampNumber}
-                      onChange={(e) => setTrackedLampNumber(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="tracked-area-name" className="sr-only">
-                      Наименование цеха или участка
-                    </Label>
-                    <Input
-                      id="tracked-area-name"
-                      value={trackedAreaName}
-                      onChange={(e) => setTrackedAreaName(e.target.value)}
-                      placeholder="Введите наименование цеха/участка применения"
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <Label htmlFor="doc-title" className="sr-only">
-                    Название документа
-                  </Label>
-                  <Input
-                    id="doc-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Введите название документа"
-                    className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
+                  <FloatingInputField
+                    id="uv-lamp-number"
+                    label="Бактерицидная установка №"
+                    value={trackedLampNumber}
+                    onChange={setTrackedLampNumber}
                     required
                   />
-                </div>
+                  <FloatingInputField
+                    id="tracked-area-name"
+                    label="Наименование цеха/участка применения"
+                    value={trackedAreaName}
+                    onChange={setTrackedAreaName}
+                  />
+                </>
+              ) : (
+                <FloatingInputField
+                  id="doc-title"
+                  label="Название документа"
+                  value={title}
+                  onChange={setTitle}
+                  required
+                />
               )}
 
               {isMedBookJournal && (
-                <label className="flex items-center gap-3 text-[16px]">
-                  <input
-                    type="checkbox"
+                <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
+                  <Checkbox
                     checked={medBookIncludeVaccinations}
-                    onChange={(e) => setMedBookIncludeVaccinations(e.target.checked)}
-                    className="size-5 rounded accent-[#5566f6]"
+                    onCheckedChange={(checked) =>
+                      setMedBookIncludeVaccinations(checked === true)
+                    }
                   />
-                  включить &quot;Прививки&quot;
+                  Включить раздел «Прививки»
                 </label>
               )}
 
-              {isEquipmentCleaningJournal && (
-                <>
-                  <div className="space-y-3">
-                    <Label htmlFor="equipment-cleaning-date-from" className="text-[14px] text-[#73738a]">
-                      Дата начала
-                    </Label>
-                    <Input
-                      id="equipment-cleaning-date-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => {
-                        setDateFrom(e.target.value);
-                        setDateTo(e.target.value);
-                      }}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="text-[18px] font-semibold text-black">Название поля</div>
-                    <div className="flex flex-col gap-3 text-[18px] text-black sm:flex-row sm:gap-8">
-                      {(Object.keys(EQUIPMENT_CLEANING_VARIANT_LABELS) as EquipmentCleaningFieldVariant[]).map((variant) => (
-                        <label key={variant} className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            checked={equipmentCleaningVariant === variant}
-                            onChange={() => setEquipmentCleaningVariant(variant)}
-                            className="size-5 accent-[#5566f6]"
-                          />
-                          {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </>
+              {showCompactDateFrom && (
+                <DateField
+                  id="compact-date-from"
+                  label="Дата начала"
+                  value={dateFrom}
+                  onChange={(value) => {
+                    setDateFrom(value);
+                    if (isEquipmentCleaningJournal) setDateTo(value);
+                  }}
+                />
               )}
 
-              {isPerishableRejectionJournal && (
-                <div className="space-y-3">
-                  <Label htmlFor="perishable-date-from" className="text-[14px] text-[#73738a]">
-                    Дата начала
-                  </Label>
-                  <Input
-                    id="perishable-date-from"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                    required
-                  />
-                </div>
+              {(isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal) && (
+                <FloatingLabelField label="Год" htmlFor="doc-year">
+                  <select
+                    id="doc-year"
+                    value={dateFrom.slice(0, 4)}
+                    onChange={(e) => setDateFrom(`${e.target.value}-01-01`)}
+                    className="h-7 w-full border-0 bg-transparent p-0 text-[15px] text-[#0b1024] outline-none"
+                  >
+                    {Array.from({ length: 10 }, (_, i) =>
+                      String(new Date().getFullYear() - 3 + i)
+                    ).map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </FloatingLabelField>
+              )}
+
+              {isEquipmentCleaningJournal && (
+                <FloatingLabelField label="Колонка контроля">
+                  <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                    {(
+                      Object.keys(
+                        EQUIPMENT_CLEANING_VARIANT_LABELS
+                      ) as EquipmentCleaningFieldVariant[]
+                    ).map((variant) => (
+                      <label key={variant} className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          checked={equipmentCleaningVariant === variant}
+                          onChange={() => setEquipmentCleaningVariant(variant)}
+                          className="size-4 accent-[#5566f6]"
+                        />
+                        {EQUIPMENT_CLEANING_VARIANT_LABELS[variant]}
+                      </label>
+                    ))}
+                  </div>
+                </FloatingLabelField>
               )}
 
               {isProductWriteoffJournal && (
                 <>
-                  <div className="space-y-3">
-                    <Label htmlFor="product-writeoff-act-number" className="text-[14px] text-[#73738a]">
-                      № акта
-                    </Label>
-                    <Input
-                      id="product-writeoff-act-number"
-                      value={productWriteoffActNumber}
-                      onChange={(e) => setProductWriteoffActNumber(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="product-writeoff-date" className="text-[14px] text-[#73738a]">
-                      Дата документа
-                    </Label>
-                    <Input
-                      id="product-writeoff-date"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="product-writeoff-comment" className="text-[14px] text-[#73738a]">
-                      Комментарий
-                    </Label>
-                    <Textarea
-                      id="product-writeoff-comment"
-                      value={productWriteoffComment}
-                      onChange={(e) => setProductWriteoffComment(e.target.value)}
-                      className="min-h-[150px] rounded-2xl border-[#dfe1ec] px-5 py-4 text-[18px]"
-                    />
-                  </div>
+                  <FloatingInputField
+                    id="product-writeoff-act-number"
+                    label="№ акта"
+                    value={productWriteoffActNumber}
+                    onChange={setProductWriteoffActNumber}
+                    required
+                  />
+                  <FloatingInputField
+                    id="product-writeoff-comment"
+                    label="Комментарий"
+                    value={productWriteoffComment}
+                    onChange={setProductWriteoffComment}
+                  />
                 </>
               )}
 
               {isStaffTrainingJournal && (
-                <>
-                  <div className="space-y-3">
-                    <Label htmlFor="training-date-from" className="text-[14px] text-[#73738a]">
-                      Дата начала
-                    </Label>
-                    <Input
-                      id="training-date-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                      required
-                    />
-                  </div>
-                  <label className="flex items-center gap-3 text-[16px]">
-                    <input
-                      type="checkbox"
-                      checked={medBookIncludeVaccinations}
-                      onChange={(e) => setMedBookIncludeVaccinations(e.target.checked)}
-                      className="size-5 rounded accent-[#5566f6]"
-                    />
-                    Добавить поле &quot;Подпись инструктируемого&quot;
-                  </label>
-                </>
-              )}
-
-              {(isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal) && (
-                <>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Дата документа</Label>
-                    <Input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[14px] text-[#73738a]">Год</Label>
-                    <select
-                      value={dateFrom.slice(0, 4)}
-                      onChange={(e) => setDateFrom(`${e.target.value}-01-01`)}
-                      className="h-11 w-full rounded-2xl border border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[18px]"
-                    >
-                      {Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - 3 + i)).map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {showResponsiblePicker && (
-                <PositionEmployeePicker
-                  users={users}
-                  value={{ positionTitle: responsibleTitle, userId: responsibleUserId }}
-                  onChange={(next) => {
-                    setResponsibleTitle(next.positionTitle);
-                    setResponsibleUserId(next.userId);
-                  }}
-                  positionLabel="Должность ответственного"
-                  employeeLabel="Ответственный"
-                  labelClassName="text-[14px] text-[#73738a]"
-                  triggerClassName="h-11 rounded-2xl border-[#dfe1ec] bg-[#f3f4fb] px-4 text-[15px]"
-                />
-              )}
-
-              {showResponsiblePicker && (isStaffJournal || trackedCreateMode === "staff" ? (
-                <div className="space-y-2">
-                  <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[13px] leading-[1.4] text-[#6f7282]">
-                    Период документа задаётся автоматически — 15 дней.
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Label htmlFor="tracked-date-from" className="text-[14px] text-[#73738a]">
-                    {trackedCreateMode === "uv" || isAcceptanceJournal
-                      ? "Дата начала"
-                      : "Дата документа"}
-                  </Label>
-                  <Input
-                    id="tracked-date-from"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-11 rounded-2xl border-[#dfe1ec] px-4 text-[15px]"
-                    required
+                <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
+                  <Checkbox
+                    checked={medBookIncludeVaccinations}
+                    onCheckedChange={(checked) =>
+                      setMedBookIncludeVaccinations(checked === true)
+                    }
                   />
-                </div>
-              ))}
+                  Добавить поле «Подпись инструктируемого»
+                </label>
+              )}
+
+              {showResponsiblePicker && responsiblePicker}
 
               {isAcceptanceJournal && (
-                <div className="space-y-3">
-                  <Label className="text-[14px] text-[#73738a]">Добавить поля</Label>
-                  <label className="flex items-center gap-3 text-[15px]">
-                    <Checkbox
-                      checked={fpShowCorrectiveAction}
-                      onCheckedChange={(checked) => setFpShowCorrectiveAction(checked === true)}
-                    />
-                    &quot;Соответствие внешнего вида упаковки, маркировки требованиям НД&quot;
-                  </label>
-                </div>
+                <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
+                  <Checkbox
+                    checked={fpShowCorrectiveAction}
+                    onCheckedChange={(checked) =>
+                      setFpShowCorrectiveAction(checked === true)
+                    }
+                  />
+                  Добавить «Соответствие внешнего вида упаковки, маркировки
+                  требованиям НД»
+                </label>
               )}
 
-              <ControlPeriodicityField
-                value={controlPeriodicity}
-                onChange={setControlPeriodicity}
-              />
-
-              <div className="hidden">
-                {(isStaffJournal || trackedCreateMode === "staff") && (
-                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-                )}
-                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-11 rounded-2xl bg-[#5566f6] px-6 text-[15px] text-white hover:bg-[#4b57ff]"
-                >
-                  {isSubmitting ? "Создание..." : "Создать"}
-                </Button>
-              </div>
+              {periodicityAndSubmit}
             </>
           ) : (
             <>
-              {!usesFixedDocumentTitle && (
-                <div className="space-y-2">
-                  <Label htmlFor="doc-title-main">Название документа</Label>
-                  <Input
-                    id="doc-title-main"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Введите название документа"
+              <FloatingInputField
+                id="doc-title-main"
+                label="Название документа"
+                value={title}
+                onChange={setTitle}
+                required
+              />
+
+              {showDateFields && (
+                <>
+                  <DateField
+                    id="doc-from"
+                    label="Дата начала"
+                    value={dateFrom}
+                    onChange={setDateFrom}
                   />
-                </div>
-              )}
-
-              {showDateFields ? (
-                <div className={cn("grid gap-4", showDateTo ? "grid-cols-2" : "grid-cols-1")}>
-                  <div className="space-y-2">
-                    <Label htmlFor="doc-from">Дата начала</Label>
-                    <Input
-                      id="doc-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      required
-                    />
-                  </div>
                   {showDateTo && (
-                    <div className="space-y-2">
-                      <Label htmlFor="doc-to">Дата окончания</Label>
-                      <Input
-                        id="doc-to"
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        required
-                      />
-                    </div>
+                    <DateField
+                      id="doc-to"
+                      label="Дата окончания"
+                      value={dateTo}
+                      onChange={setDateTo}
+                    />
                   )}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[#dfe1ec] px-4 py-3 text-sm text-muted-foreground">
-                  Период документа автоматически задается на 15 дней.
-                </div>
+                </>
               )}
 
-              {!isCleaningJournal && (
-                <PositionEmployeePicker
-                  users={users}
-                  value={{ positionTitle: responsibleTitle, userId: responsibleUserId }}
-                  onChange={(next) => {
-                    setResponsibleTitle(next.positionTitle);
-                    setResponsibleUserId(next.userId);
-                  }}
-                  positionLabel="Должность ответственного"
-                  employeeLabel="Ответственный"
-                />
-              )}
+              {!isCleaningJournal && responsiblePicker}
 
               {isCleaningJournal && (
-                <div className="rounded-xl border border-[#dfe1ec] px-4 py-3 text-sm text-muted-foreground">
-                  Ответственных за уборку и контроль можно настроить внутри документа.
-                </div>
+                <p className="text-[13px] leading-[1.4] text-[#6f7282]">
+                  Ответственных за уборку и контроль можно настроить внутри
+                  документа.
+                </p>
               )}
 
               {templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE && (
                 <>
-                  <div className="space-y-2 rounded-xl border border-[#dfe1ec] p-4">
-                    <Label>Название поля</Label>
-                    <div className="space-y-2 text-sm">
-                      <label className="flex items-center gap-2">
+                  {/* Раньше обе радиогруппы назывались «Название поля» —
+                      различить их было нельзя. */}
+                  <FloatingLabelField label="Колонка наименования">
+                    <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                      <label className="flex items-center gap-2.5">
                         <input
                           type="radio"
                           checked={fpFieldNameMode === "dish"}
                           onChange={() => setFpFieldNameMode("dish")}
+                          className="size-4 accent-[#5566f6]"
                         />
                         Наименование блюд (изделий)
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5">
                         <input
                           type="radio"
                           checked={fpFieldNameMode === "semi"}
                           onChange={() => setFpFieldNameMode("semi")}
+                          className="size-4 accent-[#5566f6]"
                         />
                         Наименование полуфабриката
                       </label>
                     </div>
-                  </div>
+                  </FloatingLabelField>
 
-                  <div className="space-y-2 rounded-xl border border-[#dfe1ec] p-4">
-                    <Label>Добавить поля</Label>
-                    <div className="space-y-2 text-sm">
-                      <label className="flex items-center gap-2">
+                  <FloatingLabelField label="Добавить поля">
+                    <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                      <label className="flex items-center gap-2.5">
                         <Checkbox
                           checked={fpShowProductTemp}
-                          onCheckedChange={(checked) => setFpShowProductTemp(checked === true)}
+                          onCheckedChange={(checked) =>
+                            setFpShowProductTemp(checked === true)
+                          }
                         />
                         Т°С внутри продукта и корректирующие действия
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5">
                         <Checkbox
                           checked={fpShowCorrectiveAction}
-                          onCheckedChange={(checked) => setFpShowCorrectiveAction(checked === true)}
+                          onCheckedChange={(checked) =>
+                            setFpShowCorrectiveAction(checked === true)
+                          }
                         />
                         Примечание
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5">
                         <Checkbox
                           checked={fpShowOxygenLevel}
-                          onCheckedChange={(checked) => setFpShowOxygenLevel(checked === true)}
+                          onCheckedChange={(checked) =>
+                            setFpShowOxygenLevel(checked === true)
+                          }
                         />
                         Остаточный уровень кислорода, % об.
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5">
                         <Checkbox
                           checked={fpShowCourierTime}
-                          onCheckedChange={(checked) => setFpShowCourierTime(checked === true)}
+                          onCheckedChange={(checked) =>
+                            setFpShowCourierTime(checked === true)
+                          }
                         />
                         Время передачи блюд курьеру
                       </label>
                     </div>
-                  </div>
+                  </FloatingLabelField>
 
-                  <div className="space-y-2 rounded-xl border border-[#dfe1ec] p-4">
-                    <Label>Название поля</Label>
-                    <div className="space-y-2 text-sm">
-                      <label className="flex items-center gap-2">
+                  <FloatingLabelField label="Кто подписывает">
+                    <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                      <label className="flex items-center gap-2.5">
                         <input
                           type="radio"
                           checked={fpInspectorMode === "inspector_name"}
                           onChange={() => setFpInspectorMode("inspector_name")}
+                          className="size-4 accent-[#5566f6]"
                         />
                         ФИО лица, проводившего бракераж
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5">
                         <input
                           type="radio"
                           checked={fpInspectorMode === "commission_signatures"}
-                          onChange={() => setFpInspectorMode("commission_signatures")}
+                          onChange={() =>
+                            setFpInspectorMode("commission_signatures")
+                          }
+                          className="size-4 accent-[#5566f6]"
                         />
                         Подписи членов бракеражной комиссии
                       </label>
                     </div>
-                  </div>
+                  </FloatingLabelField>
 
-                  <div className="space-y-2">
-                    <Input
-                      value={fpFooterNote}
-                      onChange={(e) => setFpFooterNote(e.target.value)}
-                      placeholder="Примечание: (внизу, после таблицы)"
-                    />
-                  </div>
+                  <FloatingInputField
+                    label="Примечание"
+                    value={fpFooterNote}
+                    onChange={setFpFooterNote}
+                    placeholder="Печатается под таблицей"
+                  />
                 </>
               )}
 
-              <ControlPeriodicityField
-                value={controlPeriodicity}
-                onChange={setControlPeriodicity}
-              />
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  disabled={isSubmitting}
-                  className="h-10 rounded-xl px-4"
-                >
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="h-10 rounded-xl px-4">
-                  {isSubmitting ? "Создание..." : "Создать"}
-                </Button>
-              </div>
+              {periodicityAndSubmit}
             </>
           )}
         </form>

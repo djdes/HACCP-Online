@@ -138,8 +138,73 @@ export const JOURNAL_DIALOG_BODY_CLASS = "space-y-5 px-6 py-5";
 export const JOURNAL_DIALOG_FOOTER_CLASS =
   "flex flex-wrap items-center justify-end gap-2 border-t border-[#ececf4] px-6 py-4";
 
-/** Подпись поля НАД инпутом — 13px/500. */
+/** Подпись поля НАД инпутом — 13px/500. Legacy: новые поля используют
+ * floating label внутри рамки (JOURNAL_DIALOG_FIELD_*). */
 export const JOURNAL_DIALOG_LABEL_CLASS = "text-[13px] font-medium text-[#3c4053]";
+
+/* ------------------------------------------------------------------ *
+ * Поле диалога: floating label ВНУТРИ рамки
+ * ------------------------------------------------------------------ *
+ *
+ * Эталон lk.haccp-online.ru (cleaning-02-create-dialog.png,
+ * cleaning-02b-filled-dialog.png, climate_control-create-fail.png,
+ * hygiene-create-fail.png): у каждого поля рамка одной ширины (full-width),
+ * подпись мелким кеглем прижата к верхнему краю рамки и НЕ исчезает при
+ * заполнении, значение — 15px под ней.
+ *
+ * До этой правки в диалогах жили три разных манеры: «Label над инпутом»,
+ * «плейсхолдер вместо подписи» и «Label + тот же текст плейсхолдером»,
+ * а селекты рендерились `w-fit`-пилюлями по ширине контента (50-190px)
+ * рядом с full-width textarea — правый край формы был рваным.
+ *
+ * Компоненты, которые эти токены собирают: `journal-dialog-field.tsx`.
+ */
+
+/** Рамка поля. Всегда full-width — одна колонка на весь диалог. */
+export const JOURNAL_DIALOG_FIELD_CLASS =
+  "w-full rounded-[14px] border border-[#dfe1ec] bg-white px-3.5 pt-1.5 pb-2 transition-colors duration-150 focus-within:border-[#5566f6] focus-within:ring-4 focus-within:ring-[#5566f6]/15";
+
+/** Та же рамка в состоянии ошибки — как на hygiene-create-fail.png. */
+export const JOURNAL_DIALOG_FIELD_INVALID_CLASS =
+  "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15";
+
+/** Floating label внутри рамки — 11.5px, всегда виден. */
+export const JOURNAL_DIALOG_FIELD_LABEL_CLASS =
+  "block text-[11.5px] leading-[1.35] font-normal text-[#8a8fa3]";
+
+/** Инпут внутри рамки: своей рамки/фона/тени нет — их даёт контейнер. */
+export const JOURNAL_DIALOG_FIELD_CONTROL_CLASS =
+  "h-7 w-full min-w-0 rounded-none border-0 bg-transparent p-0 text-[15px] leading-[1.5] text-[#0b1024] shadow-none outline-none placeholder:text-[#9b9fb3] focus-visible:border-0 focus-visible:ring-0 disabled:opacity-60 md:text-[15px]";
+
+/** Textarea внутри рамки (периодичность контроля, примечания). */
+export const JOURNAL_DIALOG_FIELD_TEXTAREA_CLASS =
+  "min-h-[68px] w-full resize-none rounded-none border-0 bg-transparent p-0 text-[15px] leading-[1.45] text-[#0b1024] shadow-none outline-none placeholder:text-[#9b9fb3] focus-visible:border-0 focus-visible:ring-0 md:text-[15px]";
+
+/**
+ * SelectTrigger внутри рамки. `w-full` вместо дефолтного `w-fit` —
+ * именно `w-fit` схлопывал «Должность ответственного за уборку» в пустую
+ * пилюлю ~50px, когда предзаполненного значения не было в списке опций.
+ */
+export const JOURNAL_DIALOG_FIELD_TRIGGER_CLASS =
+  "h-7 w-full justify-between rounded-none border-0 bg-transparent p-0 text-[15px] text-[#0b1024] shadow-none focus-visible:ring-0 data-[size=default]:h-7 data-[size=sm]:h-7 data-[placeholder]:text-[#9b9fb3] [&>span]:truncate";
+
+/** Заметный (amber) хинт под полем — «сотрудников на должности нет». */
+export const JOURNAL_DIALOG_HINT_CLASS =
+  "mt-2 rounded-xl border border-[#f2d9a0] bg-[#fff8e8] px-3.5 py-2.5 text-[12.5px] leading-[1.4] text-[#8a6212]";
+
+/** Текст ошибки под полем — как «Поле не заполнено» на эталоне. */
+export const JOURNAL_DIALOG_ERROR_CLASS =
+  "mt-1.5 text-[12.5px] leading-[1.35] text-[#e5484d]";
+
+/** Единственная кнопка действия справа внизу («Создать» / «Сохранить»). */
+export const JOURNAL_DIALOG_SUBMIT_CLASS =
+  "h-10 rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors duration-150 hover:bg-[#4a5bf0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15";
+
+/** Ряд с кнопкой действия: всегда справа, всегда одна кнопка. */
+export const JOURNAL_DIALOG_ACTIONS_CLASS = "flex justify-end pt-1";
+
+/** Вертикальный ритм колонки полей внутри диалога. */
+export const JOURNAL_DIALOG_FIELDS_CLASS = "space-y-4";
 
 export const JOURNAL_DIALOG_GRID_CLASS = "grid gap-4 sm:gap-5 md:grid-cols-2";
 

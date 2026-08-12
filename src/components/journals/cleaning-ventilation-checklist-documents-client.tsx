@@ -12,8 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +38,10 @@ import {
   JournalTopBar,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import {
+  DateField,
+  FloatingInputField,
+} from "@/components/journals/journal-dialog-field";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
 import {
   getDefaultControlPeriodicity,
@@ -49,8 +52,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
@@ -121,35 +128,27 @@ function SettingsDialog(props: {
           </div>
         </DialogHeader>
         {activeState ? (
-          <div className="space-y-5 px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
-              <Input
-                value={activeState.title}
-                onChange={(event) => setState({ ...activeState, title: event.target.value })}
-                className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  value={activeState.dateFrom}
-                  onChange={(event) => setState({ ...activeState, dateFrom: event.target.value })}
-                  className="h-9 rounded-xl border-[#dcdfed] px-5 pr-12 text-[16px]"
-                />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
-              </div>
-            </div>
+          <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+            <FloatingInputField
+              label="Название документа"
+              value={activeState.title}
+              onChange={(value) => setState({ ...activeState, title: value })}
+            />
+            {/* Чек-лист вентиляции — одиночный документ на день, поэтому
+                подпись «Дата проведения», а не «Дата начала». Контрол —
+                общий DateField (ДД.ММ.ГГГГ + русский календарь). */}
+            <DateField
+              label="Дата проведения"
+              value={activeState.dateFrom}
+              onChange={(value) => setState({ ...activeState, dateFrom: value })}
+            />
             <ControlPeriodicityField
               value={activeState.controlPeriodicity}
               onChange={(value) =>
                 setState({ ...activeState, controlPeriodicity: value })
               }
-              labelClassName="text-[15px] text-[#6f7282]"
             />
-            <div className="flex justify-end pt-3">
+            <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
               <Button
                 type="button"
                 onClick={async () => {
@@ -163,7 +162,7 @@ function SettingsDialog(props: {
                   }
                 }}
                 disabled={submitting}
-                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+                className={JOURNAL_DIALOG_SUBMIT_CLASS}
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>

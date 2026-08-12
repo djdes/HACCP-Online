@@ -21,8 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   applyCleaningAutoFillToConfig,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
@@ -45,8 +43,12 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
@@ -55,6 +57,8 @@ import {
   JOURNAL_TAB_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
+import { FloatingInputField } from "@/components/journals/journal-dialog-field";
+import { cn } from "@/lib/utils";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
 import {
   getDefaultControlPeriodicity,
@@ -102,10 +106,6 @@ type Props = {
   documents: DocumentItem[];
 };
 
-/** Общий класс триггера селектов в диалогах уборки. */
-const CLEANING_TRIGGER_CLASS =
-  "h-9 rounded-xl border-[#dfe1ec] bg-[#f1f2f8] px-3.5 text-[13.5px]";
-
 function pickFirstUserId(users: UserItem[], roleLabel: string) {
   return getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
 }
@@ -114,16 +114,22 @@ function getUserName(users: UserItem[], userId: string) {
   return users.find((user) => user.id === userId)?.name || "";
 }
 
-function buildCreateState(users: UserItem[]): CreateState {
-  const baseConfig = defaultCleaningDocumentConfig(users);
-  const cleaningRole = baseConfig.cleaningResponsibles[0]?.title || "";
-  const controlRole = baseConfig.controlResponsibles[0]?.title || "";
+function buildCreateState(_users: UserItem[]): CreateState {
   return {
-    title: "",
-    cleaningRole,
+    // Первое поле диалога всегда предзаполнено дефолтным названием.
+    title: CLEANING_DOCUMENT_TITLE,
+    /**
+     * Должности НЕ предзаполняем. Раньше сюда падал первый ответственный
+     * из `defaultCleaningDocumentConfig`, и если такой должности не было
+     * среди опций селекта, `<SelectValue>` рендерил ПУСТО — а дефолтный
+     * `w-fit` у `SelectTrigger` схлопывал его в пустую пилюлю ~50px.
+     * Теперь значение всегда одно из опций («Выберите должность»),
+     * а сам триггер full-width (JOURNAL_DIALOG_FIELD_TRIGGER_CLASS).
+     */
+    cleaningRole: "",
     // Сотрудника пользователь выбирает осознанно — без авто-подстановки.
     cleaningUserId: "",
-    controlRole,
+    controlRole: "",
     controlUserId: "",
     controlPeriodicity: getDefaultControlPeriodicity(CLEANING_DOCUMENT_TEMPLATE_CODE),
   };
@@ -215,16 +221,12 @@ function CreateDialog(props: {
             <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
           </div>
         ) : (
-        <div className="space-y-5 px-6 py-5">
-          <div className="space-y-2">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Введите название документа</Label>
-            <Input
-              value={state.title}
-              onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Введите название документа"
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            />
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            label="Название документа"
+            value={state.title}
+            onChange={(value) => setState((current) => ({ ...current, title: value }))}
+          />
           <PositionEmployeePicker
             users={props.users}
             value={{ positionTitle: state.cleaningRole, userId: state.cleaningUserId }}
@@ -236,9 +238,8 @@ function CreateDialog(props: {
               }))
             }
             positionLabel="Должность ответственного за уборку"
-            employeeLabel="Сотрудник, ответственный за уборку"
-            labelClassName="text-[16px] text-[#73738a]"
-            triggerClassName={CLEANING_TRIGGER_CLASS}
+            employeeLabel="Ответственный за уборку"
+            variant="floating"
           />
           <PositionEmployeePicker
             users={props.users}
@@ -251,18 +252,16 @@ function CreateDialog(props: {
               }))
             }
             positionLabel="Должность ответственного за контроль"
-            employeeLabel="Сотрудник, ответственный за контроль"
-            labelClassName="text-[16px] text-[#73738a]"
-            triggerClassName={CLEANING_TRIGGER_CLASS}
+            employeeLabel="Ответственный за контроль"
+            variant="floating"
           />
           <ControlPeriodicityField
             value={state.controlPeriodicity}
             onChange={(value) =>
               setState((current) => ({ ...current, controlPeriodicity: value }))
             }
-            labelClassName="text-[16px] text-[#73738a]"
           />
-          <div className="flex justify-end pt-2">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               disabled={submitting}
@@ -275,7 +274,7 @@ function CreateDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {submitting ? "Создание..." : "Создать"}
             </Button>
@@ -314,15 +313,14 @@ function SettingsDialog(props: {
             </DialogTitle>
           </div>
         </DialogHeader>
-        <div className="space-y-5 px-6 py-5">
-          <div className="space-y-2">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Название документа</Label>
-            <Input
-              value={state.title}
-              onChange={(event) => setState((current) => current ? { ...current, title: event.target.value } : current)}
-              className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-            />
-          </div>
+        <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+          <FloatingInputField
+            label="Название документа"
+            value={state.title}
+            onChange={(value) =>
+              setState((current) => (current ? { ...current, title: value } : current))
+            }
+          />
           <PositionEmployeePicker
             users={props.users}
             value={{ positionTitle: state.cleaningRole, userId: state.cleaningUserId }}
@@ -338,9 +336,8 @@ function SettingsDialog(props: {
               )
             }
             positionLabel="Должность ответственного за уборку"
-            employeeLabel="Сотрудник, ответственный за уборку"
-            labelClassName="text-[16px] text-[#73738a]"
-            triggerClassName={CLEANING_TRIGGER_CLASS}
+            employeeLabel="Ответственный за уборку"
+            variant="floating"
           />
           <PositionEmployeePicker
             users={props.users}
@@ -357,9 +354,8 @@ function SettingsDialog(props: {
               )
             }
             positionLabel="Должность ответственного за контроль"
-            employeeLabel="Сотрудник, ответственный за контроль"
-            labelClassName="text-[16px] text-[#73738a]"
-            triggerClassName={CLEANING_TRIGGER_CLASS}
+            employeeLabel="Ответственный за контроль"
+            variant="floating"
           />
           <ControlPeriodicityField
             value={state.controlPeriodicity}
@@ -368,9 +364,8 @@ function SettingsDialog(props: {
                 current ? { ...current, controlPeriodicity: value } : current
               )
             }
-            labelClassName="text-[16px] text-[#73738a]"
           />
-          <div className="flex justify-end pt-2">
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"
               disabled={submitting}
@@ -383,7 +378,7 @@ function SettingsDialog(props: {
                   setSubmitting(false);
                 }
               }}
-              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
             >
               {submitting ? "Сохранение..." : "Сохранить"}
             </Button>

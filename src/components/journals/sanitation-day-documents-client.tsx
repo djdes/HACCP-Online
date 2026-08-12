@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
-  CalendarDays,
   Copy,
   Ellipsis,
   Pencil,
@@ -14,8 +13,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  DateField,
+  FloatingInputField,
+  FloatingLabelField,
+} from "@/components/journals/journal-dialog-field";
 import {
   Dialog,
   DialogContent,
@@ -61,8 +64,13 @@ import {
   JOURNAL_CARD_SECTION_CLASS,
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
+  JOURNAL_DIALOG_ACTIONS_CLASS,
+  JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
+  JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
+  JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
@@ -108,10 +116,6 @@ type SettingsState = {
   responsibleEmployee: string;
   controlPeriodicity: string;
 };
-
-/** Общий класс триггера селектов в диалоге настроек санитарного дня. */
-const SANITATION_TRIGGER_CLASS =
-  "h-9 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]";
 
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -189,49 +193,29 @@ function SettingsDialog(props: {
             <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
           </div>
         ) : activeState ? (
-          <div className="space-y-5 px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">
-                Название документа
-              </Label>
-              <Input
-                value={activeState.title}
-                onChange={(event) =>
-                  setState({ ...activeState, title: event.target.value })
-                }
-                className="h-9 rounded-xl border-[#dcdfed] px-5 text-[16px] tracking-[-0.02em]"
-              />
-            </div>
+          <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
+            <FloatingInputField
+              label="Название документа"
+              value={activeState.title}
+              onChange={(value) => setState({ ...activeState, title: value })}
+            />
 
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">
-                Дата документа
-              </Label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  value={activeState.documentDate}
-                  onChange={(event) =>
-                    setState({
-                      ...activeState,
-                      documentDate: toIsoDate(event.target.value),
-                    })
-                  }
-                  className="h-9 rounded-xl border-[#dcdfed] px-5 pr-12 text-[16px] tracking-[-0.02em]"
-                />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
-              </div>
-            </div>
+            <DateField
+              label="Дата начала"
+              value={activeState.documentDate}
+              onChange={(value) =>
+                setState({ ...activeState, documentDate: toIsoDate(value) })
+              }
+            />
 
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Год</Label>
+            <FloatingLabelField label="Год">
               <Select
                 value={activeState.year}
                 onValueChange={(value) =>
                   setState({ ...activeState, year: value })
                 }
               >
-                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-5 text-[16px]">
+                <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -245,7 +229,7 @@ function SettingsDialog(props: {
                   })}
                 </SelectContent>
               </Select>
-            </div>
+            </FloatingLabelField>
 
             <PositionEmployeePicker
               users={props.users}
@@ -263,9 +247,8 @@ function SettingsDialog(props: {
                 })
               }
               positionLabel={'Должность «Утверждаю»'}
-              employeeLabel={'Сотрудник «Утверждаю»'}
-              labelClassName="text-[15px] text-[#6f7282]"
-              triggerClassName={SANITATION_TRIGGER_CLASS}
+              employeeLabel={'Утверждающий'}
+              variant="floating"
             />
 
             <PositionEmployeePicker
@@ -284,9 +267,8 @@ function SettingsDialog(props: {
                 })
               }
               positionLabel="Должность ответственного"
-              employeeLabel="Ответственный сотрудник"
-              labelClassName="text-[15px] text-[#6f7282]"
-              triggerClassName={SANITATION_TRIGGER_CLASS}
+              employeeLabel="Ответственный"
+              variant="floating"
             />
 
             <ControlPeriodicityField
@@ -294,15 +276,14 @@ function SettingsDialog(props: {
               onChange={(value) =>
                 setState({ ...activeState, controlPeriodicity: value })
               }
-              labelClassName="text-[15px] text-[#6f7282]"
             />
 
-            <div className="flex justify-end pt-3">
+            <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
               <Button
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
+                className={JOURNAL_DIALOG_SUBMIT_CLASS}
               >
                 {submitting ? "Сохранение..." : props.submitText}
               </Button>
