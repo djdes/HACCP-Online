@@ -32,6 +32,7 @@ import {
   formatMonthLabel,
   getDayNumber,
   getHygieneDefaultResponsibleTitle,
+  getHygienePositionLabel,
   getStatusMeta,
   normalizeHygieneEntryData,
   toDateKey,
@@ -294,7 +295,17 @@ export function HygieneDocumentClient({
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
-  const rosterUsers = employees.filter((employee) => includedEmployeeIds.includes(employee.id));
+  // Строки сетки = сотрудники, у которых есть entries документа. Если
+  // пересечение пустое (документ создан до посева строк, либо посев не
+  // нашёл ни одного сотрудника по JobPositionJournalAccess, либо все
+  // employeeId из entries больше не активны) — падаем на весь активный
+  // ростер организации. Без этого fallback'а сетка рисовала 7 безымянных
+  // строк-заглушек: «№ п/п», «Ф.И.О.» и «Должность» пустые у всех строк,
+  // а чекбокс выделения не рендерился вовсе (он привязан к employee.name).
+  const matchedRosterUsers = employees.filter((employee) =>
+    includedEmployeeIds.includes(employee.id)
+  );
+  const rosterUsers = matchedRosterUsers.length > 0 ? matchedRosterUsers : employees;
   const printableEmployees = buildHygieneExampleEmployees(
     rosterUsers,
     Math.max(rosterUsers.length, 7)
@@ -857,7 +868,9 @@ export function HygieneDocumentClient({
                       </td>
                       <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{employee.name || ""}</td>
                       <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
-                        {employee.position || ""}
+                        {employee.name
+                          ? employee.position || getHygienePositionLabel("operator")
+                          : ""}
                       </td>
                       {dateKeys.map((dateKey) => {
                         const key = makeCellKey(employee.id, dateKey);

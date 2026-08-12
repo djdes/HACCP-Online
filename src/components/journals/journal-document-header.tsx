@@ -262,11 +262,38 @@ export function JournalLegendBlock({
   title = "Условные обозначения",
   items,
   className = "",
+  variant = "card",
 }: {
   title?: string;
   items: Array<{ symbol: string; description: string }>;
   className?: string;
+  /**
+   * `card` — блок в белой карточке (журналы, где легенда стоит особняком).
+   * `plain` — как на эталоне журнала уборки (cleaning-07-grid-with-room.png):
+   * курсивный текст во всю ширину таблицы, подчёркнутый заголовок, без рамки
+   * и скруглений — часть «бумаги», а не элемент интерфейса.
+   */
+  variant?: "card" | "plain";
 }) {
+  if (variant === "plain") {
+    return (
+      <div
+        className={`w-full text-[12.5px] italic leading-[1.6] text-[#0b1024] sm:text-[13px] ${className}`}
+      >
+        <div className="mb-1 font-semibold underline underline-offset-2">
+          {title}:
+        </div>
+        {items.map((item, idx) => (
+          <div key={idx}>
+            {item.symbol ? `${item.symbol} - ` : ""}
+            {item.description}
+            {idx === items.length - 1 ? "" : ";"}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`mx-auto w-full max-w-[820px] rounded-2xl border border-[#ececf4] bg-white p-4 text-[12.5px] leading-relaxed text-[#3c4053] sm:p-5 sm:text-[13px] print:rounded-none print:border-black ${className}`}

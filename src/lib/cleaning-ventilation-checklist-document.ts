@@ -28,6 +28,16 @@ export type CleaningVentilationChecklistConfig = {
   hiddenDates: string[];
   responsibles: CleaningVentilationResponsible[];
   procedures: CleaningVentilationProcedureConfig[];
+  /**
+   * Дополнительные строки блока «Периодичность» внутри таблицы. Базовые
+   * строки считаются от процедур (`getCleaningVentilationPeriodicityLines`),
+   * а сюда управляющая дописывает свои — кнопкой-ячейкой «+ Добавить
+   * периодичность» на эталоне (cleaning_ventilation_checklist-grid.png).
+   *
+   * Опционально в типе: конфиги, собранные вне normalize (TF-адаптер), не
+   * знают о поле — normalize всегда возвращает массив, читатели берут `?? []`.
+   */
+  extraPeriodicityLines?: string[];
 };
 
 export type CleaningVentilationChecklistEntryData = {
@@ -140,6 +150,7 @@ export function getDefaultCleaningVentilationConfig(
     ventilationEnabled: true,
     customDates: [],
     hiddenDates: [],
+    extraPeriodicityLines: [],
     responsibles: defaultResponsibles,
     procedures: [
       {
@@ -259,6 +270,13 @@ export function normalizeCleaningVentilationConfig(
       ? record.hiddenDates.filter(
           (item): item is string => typeof item === "string" && item.length > 0
         )
+      : [],
+    extraPeriodicityLines: Array.isArray(record.extraPeriodicityLines)
+      ? record.extraPeriodicityLines
+          .filter(
+            (item): item is string => typeof item === "string" && item.trim().length > 0
+          )
+          .map((item) => item.trim())
       : [],
     responsibles: Array.isArray(record.responsibles)
       ? record.responsibles

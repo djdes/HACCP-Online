@@ -157,12 +157,25 @@ data: { _autoSeeded: true } as never,
       select: { id: true },
     });
 
-    if (employees.length === 0) {
+    // Fallback: должности в JobPositionJournalAccess настроены, но ни у
+    // одного активного сотрудника нет такого jobPositionId (частый случай —
+    // доступ выдан по должности, а у людей jobPositionId ещё null). Раньше
+    // мы молча сидели 0 строк, и гигиенический журнал открывался с 7
+    // безымянными строками-заглушками. Сидим весь активный ростер.
+    const seedEmployees =
+      employees.length > 0 || allowedPositionIds.length === 0
+        ? employees
+        : await db.user.findMany({
+            where: { organizationId, isActive: true, archivedAt: null },
+            select: { id: true },
+          });
+
+    if (seedEmployees.length === 0) {
       return { created: 0, skipped: dates.length };
     }
 
     const rows = [];
-    for (const emp of employees) {
+    for (const emp of seedEmployees) {
       for (const date of dates) {
         rows.push({
           documentId,

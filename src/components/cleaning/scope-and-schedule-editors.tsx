@@ -189,6 +189,8 @@ type ScopeListEditorProps =
       placeholder?: string;
       addLabel?: string;
       emptyHint?: string;
+      /** Список примеров-чипов над композером (эталон cleaning-05). */
+      examples?: string[];
       roomRequirePhoto?: undefined;
     }
   | {
@@ -198,6 +200,8 @@ type ScopeListEditorProps =
       placeholder?: string;
       addLabel?: string;
       emptyHint?: string;
+      /** Список примеров-чипов над композером (эталон cleaning-05). */
+      examples?: string[];
       /** Master-toggle помещения; используется для fallback в effective-state. */
       roomRequirePhoto: boolean;
     };
@@ -251,6 +255,7 @@ export function ScopeListEditor(props: ScopeListEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.value]);
 
+  const [draft, setDraft] = useState("");
   const inputRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -276,6 +281,20 @@ export function ScopeListEditor(props: ScopeListEditorProps) {
   }
   function remove(uid: string) {
     pushChange(items.filter((it) => it.uid !== uid));
+  }
+  /**
+   * Добавление названного шага — композер «инпут + квадратная синяя
+   * кнопка +» и клик по чипу-примеру (эталон cleaning-05-add-room-dialog).
+   */
+  function addNamed(rawText: string) {
+    const text = rawText.trim();
+    if (!text) return;
+    if (items.some((it) => it.text.trim().toLowerCase() === text.toLowerCase())) {
+      setDraft("");
+      return;
+    }
+    pushChange([...items, { uid: nextScopeUid(), text }]);
+    setDraft("");
   }
   function add() {
     const newItem: ScopeListItem = { uid: nextScopeUid(), text: "" };
@@ -366,14 +385,59 @@ export function ScopeListEditor(props: ScopeListEditorProps) {
           </SortableContext>
         </DndContext>
       )}
-      <button
-        type="button"
-        onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 py-2 text-[14px] font-semibold text-[#5566f6] transition-colors hover:border-[#5566f6] hover:bg-[#5566f6]/[0.09]"
-      >
-        <Plus className="size-4" />
-        {props.addLabel ?? "Добавить шаг"}
-      </button>
+      {props.examples && props.examples.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="text-[12px] font-medium text-[#6f7282]">Пример:</div>
+          <div className="flex flex-wrap gap-1.5">
+            {props.examples.map((example) => {
+              const already = items.some(
+                (it) => it.text.trim().toLowerCase() === example.toLowerCase(),
+              );
+              return (
+                <button
+                  key={example}
+                  type="button"
+                  disabled={already}
+                  onClick={() => addNamed(example)}
+                  title={already ? "Уже добавлено" : `Добавить «${example}»`}
+                  className={`rounded-full border px-3 py-1 text-[12px] transition-colors duration-150 ${
+                    already
+                      ? "cursor-default border-[#ececf4] bg-[#f5f6ff] text-[#9b9fb3]"
+                      : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#5566f6] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+                  }`}
+                >
+                  {example}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+      {/* Композер как на эталоне: инпут «Введите название нового предмета»
+          + квадратная синяя кнопка «+» справа. */}
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            addNamed(draft);
+          }}
+          placeholder="Введите название нового предмета"
+          aria-label={props.addLabel ?? "Добавить шаг"}
+          className="h-10 flex-1 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[14px]"
+        />
+        <button
+          type="button"
+          onClick={() => (draft.trim() ? addNamed(draft) : add())}
+          aria-label={props.addLabel ?? "Добавить шаг"}
+          title={props.addLabel ?? "Добавить шаг"}
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5566f6] text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+        >
+          <Plus className="size-5" strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -93,6 +93,30 @@ type Props = {
   onSaved?: (snapshot: RoomEditorSavedSnapshot) => void;
 };
 
+/**
+ * Примеры-чипы под списком шагов — состав как на эталоне
+ * (cleaning-05-add-room-dialog.png). Клик добавляет предмет в список.
+ */
+const CURRENT_SCOPE_EXAMPLES = [
+  "Производственные столы",
+  "Холодильное/морозильное оборудование",
+  "Производственный инвентарь",
+  "Пол",
+  "Моечные ванны",
+  "Полки",
+  "Измельчители (мясорубки, блендеры и т.д.)",
+  "Двери",
+];
+
+const GENERAL_SCOPE_EXAMPLES = [
+  "Стены",
+  "Стоки",
+  "Вентиляционные зонты",
+  "Стеллажи",
+  "Окна",
+  "Радиаторы отопления",
+];
+
 export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [kind, setKind] = useState(initial?.kind ?? "other");
@@ -280,7 +304,7 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <Label className="text-[13px] font-semibold text-[#0b1024]">
-                      Текущая уборка
+                      Предмет текущей уборки
                     </Label>
                     <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
                       Пошаговый чек-лист — каждый шаг станет подзадачей в TasksFlow.
@@ -295,6 +319,7 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                   value={currentScope}
                   onChange={setCurrentScope}
                   roomRequirePhoto={requirePhoto}
+                  examples={CURRENT_SCOPE_EXAMPLES}
                   placeholder="Например: Протереть рабочие поверхности"
                   addLabel="Добавить шаг текущей уборки"
                   emptyHint="Шагов текущей уборки пока нет — добавьте первый шаг ниже."
@@ -358,7 +383,7 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <Label className="text-[13px] font-semibold text-[#0b1024]">
-                      Генеральная уборка
+                      Предмет генеральной уборки (в дополнение к текущей)
                     </Label>
                     <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
                       Подробный список — что моется/дезинфицируется в день генеральной.
@@ -373,6 +398,7 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                   value={generalScope}
                   onChange={setGeneralScope}
                   roomRequirePhoto={requirePhoto}
+                  examples={GENERAL_SCOPE_EXAMPLES}
                   placeholder="Например: Демонтировать съёмные части и промыть"
                   addLabel="Добавить шаг генеральной уборки"
                   emptyHint="Шагов генеральной уборки пока нет — добавьте первый шаг ниже."

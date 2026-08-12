@@ -33,8 +33,11 @@ import {
   createCleaningRoomRow,
   deleteCleaningResponsibleRow,
   deleteCleaningRoomRow,
+  CLEANING_NOT_PERFORMED_DISPLAY,
+  displayLegendLine,
   displayMatrixValue,
   fillPastDaysNotPerformed,
+  getCleaningGridMonthLabel,
   getCleaningPeriodLabel,
   isAutoSignatureValue,
   markAutoSignature,
@@ -379,7 +382,12 @@ export function CleaningDocumentClient(props: Props) {
   function openRoomEditorFromRow(roomId: string) {
     const dbRoom = dbRoomById.get(roomId);
     if (!dbRoom) {
-      toast.error("Помещение не найдено в /settings/buildings");
+      // Строка есть в документе (config.rooms), но помещения нет в Room БД —
+      // редактор шагов уборки пишет именно в Room, поэтому объясняем, что
+      // делать, вместо глухого «не найдено».
+      toast.error(
+        "Это помещение есть только в документе. Заведите его в «Настройки → Помещения», чтобы редактировать состав уборки.",
+      );
       return;
     }
     setRoomEditor({
@@ -718,33 +726,53 @@ export function CleaningDocumentClient(props: Props) {
     // как 2 отдельных <tr>/<div> ПОСЛЕ rows.map(...) в JSX, по образцу
     // haccp-online.ru: одна группированная строка с multi-line списком
     // «С1 - Имя / С2 - Имя» в первой колонке вместо N отдельных строк.
+    //
+    // 2026-08-12: источником списка строк были ТОЛЬКО Room из БД
+    // (`props.buildings`). Если у орги помещения живут в документе
+    // (`config.rooms` — их же видит нижняя сводная таблица «Наименование
+    // помещения | Текущая уборка | Генеральная уборка»), а Buildings пуст,
+    // основная сетка рендерила ноль строк помещений: оставались только две
+    // строки ответственных. Теперь список — ОБЪЕДИНЕНИЕ обоих источников:
+    // порядок задаёт документ, недостающие помещения добираются из БД,
+    // а содержимое строки берётся из Room БД (source of truth), с откатом
+    // на данные документа для помещений, которых в Buildings нет.
     const allBuildingRoomIds = Array.from(dbRoomById.keys());
     const selectedIds = config.selectedRoomIds ?? [];
-    const roomIds =
+    const dbRoomIds =
       selectedIds.length > 0
         ? selectedIds.filter((id) => dbRoomById.has(id))
         : allBuildingRoomIds;
+    const configRoomById = new Map(config.rooms.map((room) => [room.id, room]));
+    const roomIds = [
+      ...config.rooms.map((room) => room.id),
+      ...dbRoomIds.filter((id) => !configRoomById.has(id)),
+    ];
     return roomIds.map((roomId) => {
-      const dbRoom = dbRoomById.get(roomId)!;
+      const dbRoom = dbRoomById.get(roomId);
+      const cfgRoom = configRoomById.get(roomId);
       const room: CleaningRoomItem = {
         id: roomId,
-        areaId: null,
-        name: dbRoom.name,
-        detergent: dbRoom.detergent ?? "",
-        currentScope: Array.isArray(dbRoom.currentScope)
+        areaId: cfgRoom?.areaId ?? null,
+        name: dbRoom?.name ?? cfgRoom?.name ?? "Помещение",
+        detergent: dbRoom?.detergent ?? cfgRoom?.detergent ?? "",
+        currentScope: Array.isArray(dbRoom?.currentScope)
           ? (dbRoom.currentScope as string[])
-          : [],
-        generalScope: Array.isArray(dbRoom.generalScope)
+          : (cfgRoom?.currentScope ?? []),
+        generalScope: Array.isArray(dbRoom?.generalScope)
           ? (dbRoom.generalScope as string[])
-          : [],
+          : (cfgRoom?.generalScope ?? []),
         currentDays:
-          typeof dbRoom.currentDays === "number" ? dbRoom.currentDays : 127,
+          typeof dbRoom?.currentDays === "number"
+            ? dbRoom.currentDays
+            : (cfgRoom?.currentDays ?? 127),
         generalDays:
-          typeof dbRoom.generalDays === "number" ? dbRoom.generalDays : 0,
+          typeof dbRoom?.generalDays === "number"
+            ? dbRoom.generalDays
+            : (cfgRoom?.generalDays ?? 0),
       };
       return { id: roomId, kind: "room" as const, room };
     });
-  }, [config.selectedRoomIds, dbRoomById]);
+  }, [config.rooms, config.selectedRoomIds, dbRoomById]);
 
   // Псевдо-rowId для manual signature ответственного. matrix хранит их
   // как обычные строки — patchDocument сам их сохраняет/читает.
@@ -1501,6 +1529,18 @@ export function CleaningDocumentClient(props: Props) {
         if (nextConfig.rooms.some((item) => item.id === rowId)) nextConfig = deleteCleaningRoomRow(nextConfig, rowId);
         else if (nextConfig.cleaningResponsibles.some((item) => item.id === rowId)) nextConfig = deleteCleaningResponsibleRow(nextConfig, "cleaning", rowId);
         else if (nextConfig.controlResponsibles.some((item) => item.id === rowId)) nextConfig = deleteCleaningResponsibleRow(nextConfig, "control", rowId);
+        else if (rowId.startsWith("selected-cleaner-")) {
+          // rooms-mode: строка уборщика собирается из selectedCleanerUserIds,
+          // а не из cleaningResponsibles — без этой ветки удаление выделенной
+          // строки молча ничего не делало.
+          const userId = rowId.slice("selected-cleaner-".length);
+          nextConfig = {
+            ...nextConfig,
+            selectedCleanerUserIds: (nextConfig.selectedCleanerUserIds ?? []).filter(
+              (id) => id !== userId,
+            ),
+          };
+        }
       }
       setSelection([]);
       await patchDocument(nextConfig);
@@ -1549,8 +1589,6 @@ export function CleaningDocumentClient(props: Props) {
     await patchDocument(nextConfig);
   }
 
-  const cleaningUsers = getUsersForRoleLabel(props.users, settingsState.cleaningRole);
-  const controlUsers = getUsersForRoleLabel(props.users, settingsState.controlRole);
   const responsibleUsers = responsibleDialog ? getUsersForRoleLabel(props.users, responsibleDialog.title) : [];
 
   const cleaningAddToolbar = (
@@ -1829,16 +1867,22 @@ export function CleaningDocumentClient(props: Props) {
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки, помещения и ответственных." />
         ) : null}
 
-        {/* Автозаполнение — типографика в один масштаб с тулбаром ниже
-            (text-[13px]/[14px], h-9), как в соседних журналах. */}
+        {/* Полоса автозаполнения — как на эталоне (cleaning-04-grid.png,
+            cleaning-12-autofill-on.png): в полосе ТОЛЬКО тумблер. Селекты
+            «Ответственный за уборку/контроль» и чекбокс «Не заполнять в
+            выходные» переехали в «Настройки документа» (cleaning-11) —
+            их меняют раз в месяц, а место в полосе они занимали всегда. */}
         <section className={`${DOC_AUTOFILL_STRIP_CLASS} border border-[#ececf4] bg-[#f5f6ff]`}>
-          <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
-            <div className="flex items-center gap-3"><Switch checked={config.autoFill.enabled} onCheckedChange={toggleAutoFill} disabled={props.status !== "active" || saving} className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]" /><span className="text-[14px] font-semibold text-[#0b1024]">Автоматически заполнять журнал</span></div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за уборку</Label><Select value={settingsState.cleaningUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ cleaningUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{cleaningUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1.5"><Label className="text-[12px] font-medium text-[#6f7282]">Ответственный за контроль</Label><Select value={settingsState.controlUserId} disabled={props.status !== "active" || saving} onValueChange={(value) => updateSettings({ controlUserId: value })}><SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger><SelectContent>{controlUsers.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
-            </div>
-            <div className="flex items-center gap-2.5"><Checkbox checked={config.autoFill.skipWeekends} onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))} disabled={props.status !== "active" || saving} className="size-5 rounded-md" /><span className="text-[13px] text-[#3c4053]">Не заполнять в выходные дни</span></div>
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={config.autoFill.enabled}
+              onCheckedChange={toggleAutoFill}
+              disabled={props.status !== "active" || saving}
+              className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]"
+            />
+            <span className="text-[14px] font-semibold text-[#0b1024]">
+              Автоматически заполнять журнал
+            </span>
           </div>
         </section>
 
@@ -2045,7 +2089,7 @@ export function CleaningDocumentClient(props: Props) {
             </>
           )}
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-4" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-4" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
@@ -2155,7 +2199,30 @@ export function CleaningDocumentClient(props: Props) {
                 день (выводим коды С1/С2/К1 из реальных completions). */}
             {cleaningResponsibleList.length > 0 ? (
               <tr key="cleaning-group" className="bg-[#f8f9fc] print:bg-white">
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`} />
+                {/* Чекбокс есть у строки помещения и у «Ответственного за
+                    уборку» — как на эталоне (cleaning-07-grid-with-room.png);
+                    у «Ответственного за контроль» его нет. Отмечает сразу всех
+                    уборщиков строки: дальше — обычная JournalSelectionBar. */}
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
+                  <Checkbox
+                    checked={
+                      cleaningResponsibleList.length > 0 &&
+                      cleaningResponsibleList.every((resp) =>
+                        selection.includes(resp.id),
+                      )
+                    }
+                    disabled={props.status !== "active"}
+                    onCheckedChange={(checked) => {
+                      const ids = cleaningResponsibleList.map((resp) => resp.id);
+                      setSelection((current) =>
+                        Boolean(checked)
+                          ? [...new Set([...current, ...ids])]
+                          : current.filter((id) => !ids.includes(id)),
+                      );
+                    }}
+                    className="size-4"
+                  />
+                </td>
                 <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
@@ -2314,7 +2381,10 @@ export function CleaningDocumentClient(props: Props) {
               самодельного блока с regex-заменами латиницы на кириллицу. */}
           <JournalLegendBlock
             className={DOC_LEGEND_CLASS}
-            items={Array.from(new Set(config.legend)).map(parseLegendItem)}
+            variant="plain"
+            items={Array.from(new Set(config.legend))
+              .map(displayLegendLine)
+              .map(parseLegendItem)}
           />
           <div className="mt-3">
             <CleaningDayColorLegend />
@@ -2565,6 +2635,26 @@ export function CleaningDocumentClient(props: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Переехало из полосы автозаполнения (эталон держит в полосе
+              только тумблер). Сохраняется сразу — как и раньше. */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3.5 transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]">
+            <Checkbox
+              checked={config.autoFill.skipWeekends}
+              onCheckedChange={(checked) => toggleSkipWeekends(Boolean(checked))}
+              disabled={props.status !== "active" || saving}
+              className="mt-0.5 size-5 rounded-md"
+            />
+            <span className="flex-1">
+              <span className="block text-[13.5px] font-semibold text-[#0b1024]">
+                Не заполнять в выходные дни
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-[1.5] text-[#6f7282]">
+                Автозаполнение пропустит выходные и праздники производственного
+                календаря — в этих днях останется «{CLEANING_NOT_PERFORMED_DISPLAY}».
+              </span>
+            </span>
+          </label>
 
           {/* Pipeline mode — определяет, как сотрудник видит подзадачи в TasksFlow.
               Раньше всегда был perRoom (у каждой комнаты свой scope). Теперь

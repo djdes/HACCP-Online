@@ -316,8 +316,16 @@ export const CLEANING_SCOPE_OPTIONS = Array.from(
   new Set(DEFAULT_ROOM_BLUEPRINTS.flatMap((item) => [...item.currentScope, ...item.generalScope]))
 );
 
+/**
+ * Обозначение «уборка не проводилась». В matrix хранится односимвольный
+ * "/" (менять сторадж нельзя — на него завязаны TF-override sync, autoFill
+ * и planRoomMonth), а показываем и в ячейке, и в легенде «/-/» как на
+ * эталоне (cleaning-07-grid-with-room.png).
+ */
+export const CLEANING_NOT_PERFORMED_DISPLAY = "/-/";
+
 export const CLEANING_LEGEND = [
-  "/ — Уборка не проводилась",
+  `${CLEANING_NOT_PERFORMED_DISPLAY} — Уборка не проводилась`,
   "Т — Текущая",
   "Г — Генеральная; при генеральной уборке выполняется уборка поверхностей, указанных в текущей уборке, а также промываются стены за оборудованием, вентиляционные зонты при наличии и т.д.",
 ] as const;
@@ -347,7 +355,19 @@ export function displayMatrixValue(value: string): string {
   if (value === "T") return "Т";
   if (value === "G") return "Г";
   if (value === CLEANING_EMPTY_SENTINEL) return "";
+  if (value === "/") return CLEANING_NOT_PERFORMED_DISPLAY;
   return value;
+}
+
+/**
+ * Легенда документа хранится строками в config.legend, поэтому у старых
+ * документов там лежит «/ — Уборка не проводилась». Мигрировать данные
+ * не нужно — правим только ОТОБРАЖЕНИЕ.
+ */
+export function displayLegendLine(line: string): string {
+  return line.startsWith("/ ")
+    ? `${CLEANING_NOT_PERFORMED_DISPLAY}${line.slice(1)}`
+    : line;
 }
 
 export const ACTIVITY_LABELS: Record<CleaningActivityType, string> = {
@@ -1396,6 +1416,32 @@ export function getCleaningPeriodLabel(dateFrom: Date | string, dateTo: Date | s
   }
 
   return formatMonthLabel(dateFrom, dateTo);
+}
+
+/**
+ * Подпись группы колонок-дней в сетке: «Август 2026 г.» (эталон
+ * cleaning-07-grid-with-room.png). Диапазон полумесяца не дублируем —
+ * он и так виден по номерам колонок. В СПИСКЕ документов остаётся
+ * `getCleaningPeriodLabel` с «с 1 по 15», иначе два полумесячных
+ * документа в списке выглядели бы одинаково.
+ */
+export function getCleaningGridMonthLabel(
+  dateFrom: Date | string,
+  dateTo: Date | string
+) {
+  const from = typeof dateFrom === "string" ? new Date(`${dateFrom}T00:00:00`) : dateFrom;
+  const to = typeof dateTo === "string" ? new Date(`${dateTo}T00:00:00`) : dateTo;
+
+  if (Number.isNaN(from.getTime())) return getCleaningPeriodLabel(dateFrom, dateTo);
+  if (
+    Number.isNaN(to.getTime()) ||
+    from.getMonth() !== to.getMonth() ||
+    from.getFullYear() !== to.getFullYear()
+  ) {
+    return getCleaningPeriodLabel(dateFrom, dateTo);
+  }
+
+  return `${RU_MONTHS[from.getMonth()]} ${from.getFullYear()} г.`;
 }
 
 export function getCleaningFilePrefix() {
