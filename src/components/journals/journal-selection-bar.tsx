@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,9 +48,17 @@ export function JournalSelectionBar({
   hint,
   children,
 }: Props) {
-  if (count <= 0) return null;
+  // Портал обязателен: страницы журналов лежат в full-bleed обёртке с
+  // `-translate-x-1/2`, а transform у предка превращает `position: fixed`
+  // в «прибит к контейнеру» — полоса уезжала при скролле. Рендерим в body.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
 
-  return (
+  if (count <= 0 || !portalTarget) return null;
+
+  return createPortal(
     <div className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}>
       <div className={JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS}>
         <div
@@ -90,6 +99,7 @@ export function JournalSelectionBar({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 }

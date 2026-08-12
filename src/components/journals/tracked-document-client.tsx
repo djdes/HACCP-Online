@@ -39,10 +39,10 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DOCUMENT_ACTIONS_CLASS,
   JOURNAL_DOCUMENT_HEADER_CLASS,
-  JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
   JOURNAL_DOCUMENT_SHELL_CLASS,
   JOURNAL_TABLE_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { PestControlDocumentClient } from "@/components/journals/pest-control-document-client";
 import {
   isPestControlDocumentFields,
@@ -321,29 +321,16 @@ function TrackedDocumentClientImpl({
 
   return (
     <div className="space-y-5">
-      {status === "active" && selectedRowIds.length > 0 ? (
-        <div className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-2 text-[15px] text-[#5563ff]"
-            onClick={() => setSelectedRowIds([])}
-          >
-            Сбросить выбор ({selectedRowIds.length})
-          </button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              removeSelectedEntries().catch((error) =>
-                toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
-              )
-            }
-            className="h-10 rounded-2xl border-[#ffd7d3] px-5 text-[15px] text-[#ff3b30] hover:bg-[#fff3f2]"
-          >
-            <Trash2 className="size-4" />
-            Удалить выбранные ({selectedRowIds.length})
-          </Button>
-        </div>
+      {status === "active" ? (
+        <JournalSelectionBar
+          count={selectedRowIds.length}
+          onClear={() => setSelectedRowIds([])}
+          onDelete={() =>
+            removeSelectedEntries().catch((error) =>
+              toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
+            )
+          }
+        />
       ) : null}
 
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
