@@ -34,9 +34,13 @@ import {
   deleteCleaningResponsibleRow,
   deleteCleaningRoomRow,
   displayMatrixValue,
+  fillPastDaysNotPerformed,
   getCleaningPeriodLabel,
+  isAutoSignatureValue,
+  markAutoSignature,
   normalizeCleaningDocumentConfig,
   setCleaningMatrixValue,
+  stripAutoSignatureMarker,
   toggleCleaningMatrixValue,
   type CleaningDocumentConfig,
   type CleaningMatrixValue,
@@ -744,7 +748,10 @@ export function CleaningDocumentClient(props: Props) {
   //      (раньше через cellValue, но cellValue для room-rows больше не
   //      возвращает С-коды — только Т/Г/«/», см. cellValue выше).
   function cleaningCodeForDay(dateKey: string): string {
-    const manual = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
+    const stored = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
+    // Автоподпись хранится как «auto:С1» — снимаем маркер, дальше
+    // логика та же, что для ручной подписи (включая stale-фильтр).
+    const manual = stored === undefined ? undefined : stripAutoSignatureMarker(stored);
     if (manual !== undefined) {
       // Пустая строка ИЛИ sentinel «—» = явная очистка владельца —
       // пропускаем дальше (signature row не должна светить sentinel,
@@ -773,7 +780,8 @@ export function CleaningDocumentClient(props: Props) {
   //   2. Иначе: коды контролёров (К1/К2) в дни где была хоть одна реальная
   //      completion в комнатах. Без completions — пусто (нечего проверять).
   function controlCodeForDay(dateKey: string): string {
-    const manual = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
+    const stored = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
+    const manual = stored === undefined ? undefined : stripAutoSignatureMarker(stored);
     if (manual !== undefined) {
       // Пустая строка ИЛИ sentinel «—» = явная очистка владельца.
       if (manual === "" || manual === "—") return "";
@@ -852,10 +860,144 @@ export function CleaningDocumentClient(props: Props) {
     } else {
       nextRowMap[dateKey] = next;
     }
+    // Пишем БЕЗ auto-маркера: подпись, которую менеджер поставил
+    // кликом, считается ручной и автоснятием больше не трогается.
     await patchDocument({
       ...config,
       matrix: { ...config.matrix, [rowId]: nextRowMap },
     });
+  }
+
+  /**
+   * Сохранение состава помещений журнала (race-config). Новым строкам
+   * достраиваем прошлое: сперва план по маскам Т/Г, затем «/» на все
+   * оставшиеся прошедшие дни — как на эталоне, чтобы добавленное в
+   * середине периода помещение не оставляло пустой хвост.
+   *
+   * Уже существующие строки не трогаем — их прошлое остаётся как есть.
+   */
+  async function saveRoomsSelection(patch: {
+    cleaningMode: "pairs" | "rooms";
+    selectedRoomIds: string[];
+    selectedCleanerUserIds: string[];
+  }) {
+    const previousIds = new Set(config.selectedRoomIds ?? []);
+    const addedIds = patch.selectedRoomIds.filter((id) => !previousIds.has(id));
+    let nextConfig: CleaningDocumentConfig = {
+      ...config,
+      cleaningMode: patch.cleaningMode,
+      selectedRoomIds: patch.selectedRoomIds,
+      selectedCleanerUserIds: patch.selectedCleanerUserIds,
+    };
+    if (addedIds.length > 0) {
+      const todayKey = toDateKey(new Date());
+      const pastKeys = dayKeys.filter((key) => key < todayKey);
+      if (pastKeys.length > 0) {
+        const planned = applyRoomScheduleToMatrix(
+          {
+            ...nextConfig,
+            cleaningMode: "rooms",
+            selectedRoomIds: addedIds,
+            rooms: nextConfig.rooms.filter((room) => addedIds.includes(room.id)),
+          },
+          pastKeys,
+          "fill-empty",
+          dbScheduleMap,
+        );
+        nextConfig = {
+          ...nextConfig,
+          matrix: planned.matrix,
+          marks: planned.matrix,
+        };
+      }
+      nextConfig = fillPastDaysNotPerformed(nextConfig, dayKeys, {
+        todayKey,
+        roomIds: addedIds,
+      });
+    }
+    await patchDocument(nextConfig);
+  }
+
+  /** Есть ли в этот день хоть одна TF-completion (kind="cleaning_room"). */
+  function hasCompletionOnDay(dateKey: string): boolean {
+    return props.initialEntries.some((e) => {
+      const d = e.data as Record<string, unknown> | null;
+      return d?.kind === "cleaning_room" && d?.dateKey === dateKey;
+    });
+  }
+
+  /**
+   * Автоподпись ответственных при РУЧНОМ заполнении матрицы.
+   *
+   * Как на эталоне: как только в дне появилась хоть одна отметка Т/Г,
+   * в строках «Ответственный за уборку» и «Ответственный за контроль»
+   * появляется код С1 соответствующего ответственного. Когда все
+   * отметки дня сняты («/», пусто, sentinel) — автоподпись снимается.
+   *
+   * Приоритеты:
+   *   • TF-completion важнее: если в день есть completion — ничего не
+   *     трогаем, подпись считается по completions (cleaningCodeForDay).
+   *   • Ручная подпись (значение без auto-маркера, включая sentinel «—»)
+   *     не перетирается и не снимается — это осознанный выбор менеджера.
+   *   • Идемпотентно: повторный вызов на тех же данных не меняет config.
+   */
+  function applyAutoSignatures(
+    cfg: CleaningDocumentConfig,
+    dateKeys: string[],
+  ): CleaningDocumentConfig {
+    const cleaningCode = cleaningResponsibleList[0]?.code ?? "";
+    const controlCode = controlResponsibleList[0]?.code ?? "";
+    const roomIds = rows.map((r) => r.id);
+    if (roomIds.length === 0) return cfg;
+
+    const cleaningRow = { ...(cfg.matrix[CLEANING_SIGNATURE_ROW_ID] ?? {}) };
+    const controlRow = { ...(cfg.matrix[CONTROL_SIGNATURE_ROW_ID] ?? {}) };
+    let changed = false;
+
+    function applyOne(
+      row: Record<string, CleaningMatrixValue>,
+      dateKey: string,
+      performed: boolean,
+      code: string,
+    ): boolean {
+      const current = row[dateKey];
+      if (performed) {
+        if (!code) return false;
+        const want = markAutoSignature(code);
+        if (current === undefined) {
+          row[dateKey] = want;
+          return true;
+        }
+        if (isAutoSignatureValue(current) && current !== want) {
+          row[dateKey] = want;
+          return true;
+        }
+        return false;
+      }
+      if (current !== undefined && isAutoSignatureValue(current)) {
+        delete row[dateKey];
+        return true;
+      }
+      return false;
+    }
+
+    for (const dateKey of dateKeys) {
+      if (hasCompletionOnDay(dateKey)) continue;
+      const performed = roomIds.some((id) => {
+        const value = cfg.matrix[id]?.[dateKey];
+        return value === "T" || value === "G";
+      });
+      if (applyOne(cleaningRow, dateKey, performed, cleaningCode)) changed = true;
+      if (applyOne(controlRow, dateKey, performed, controlCode)) changed = true;
+    }
+    if (!changed) return cfg;
+
+    const nextMatrix = { ...cfg.matrix };
+    if (Object.keys(cleaningRow).length > 0) nextMatrix[CLEANING_SIGNATURE_ROW_ID] = cleaningRow;
+    else delete nextMatrix[CLEANING_SIGNATURE_ROW_ID];
+    if (Object.keys(controlRow).length > 0) nextMatrix[CONTROL_SIGNATURE_ROW_ID] = controlRow;
+    else delete nextMatrix[CONTROL_SIGNATURE_ROW_ID];
+    return { ...cfg, matrix: nextMatrix, marks: nextMatrix };
   }
 
   // Синкаем refs для rect-drag-select. Без этого applyRectToSelection
@@ -1210,9 +1352,15 @@ export function CleaningDocumentClient(props: Props) {
     // toggleCleaningMatrixValue("—") = "T" (delete sentinel, начать заново).
     const visualValue = cellValue(row, dateKey);
     const nextValue = toggleCleaningMatrixValue(visualValue);
-    await patchDocument(
-      setCleaningMatrixValue({ config, rowId: row.id, dateKey, value: nextValue }),
-    );
+    const nextConfig = setCleaningMatrixValue({
+      config,
+      rowId: row.id,
+      dateKey,
+      value: nextValue,
+    });
+    // Ручное Т/Г → автоподпись ответственных за этот день; полная
+    // очистка дня → автоподпись снимается.
+    await patchDocument(applyAutoSignatures(nextConfig, [dateKey]));
   }
 
   /**
@@ -1251,7 +1399,7 @@ export function CleaningDocumentClient(props: Props) {
       }
     }
     try {
-      await patchDocument(nextConfig);
+      await patchDocument(applyAutoSignatures(nextConfig, offDays));
       const action = value === "/" ? "помечены «Не проводилась»" : value === "" ? "очищены" : "обновлены";
       toast.success(
         `Выходных и праздников: ${offDays.length} дн. × ${roomIds.length} помещ. = ${cellsUpdated} ячеек ${action}`,
@@ -1284,12 +1432,14 @@ export function CleaningDocumentClient(props: Props) {
     // очистке некоторые дни не очищаются».
     const storedValue = value === "" ? "—" : value;
     let nextConfig = config;
+    const touchedDateKeys = new Set<string>();
     for (const k of selectedCells) {
       const [rowId, dateKey] = k.split("::");
       if (!rowId || !dateKey) continue;
       // responsible-rows используют свой code как значение, не T/G/«/».
       // Bulk-edit предназначен для room-rows; для responsible пропустим.
       if (!allowedRoomIds.has(rowId)) continue;
+      touchedDateKeys.add(dateKey);
       nextConfig = setCleaningMatrixValue({
         config: nextConfig,
         rowId,
@@ -1298,7 +1448,9 @@ export function CleaningDocumentClient(props: Props) {
       });
     }
     try {
-      await patchDocument(nextConfig);
+      await patchDocument(
+        applyAutoSignatures(nextConfig, Array.from(touchedDateKeys)),
+      );
       const labelMap: Record<CleaningMatrixValue, string> = {
         "": "очищены",
         T: "помечены «Текущая»",
@@ -2197,12 +2349,7 @@ export function CleaningDocumentClient(props: Props) {
                 selectedRoomIds={config.selectedRoomIds ?? []}
                 selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
                 onSave={async (patch) => {
-                  await patchDocument({
-                    ...config,
-                    cleaningMode: patch.cleaningMode,
-                    selectedRoomIds: patch.selectedRoomIds,
-                    selectedCleanerUserIds: patch.selectedCleanerUserIds,
-                  });
+                  await saveRoomsSelection(patch);
                   setRaceConfigOpen(false);
                 }}
               />

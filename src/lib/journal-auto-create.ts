@@ -26,11 +26,12 @@ import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 import {
   applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  fillPastDaysNotPerformed,
   normalizeCleaningDocumentConfig,
   stripPeriodSpecificCleaningFields,
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
-import { buildDateKeys } from "@/lib/hygiene-document";
+import { buildDateKeys, toDateKey } from "@/lib/hygiene-document";
 
 /**
  * Возвращает config самого свежего предыдущего JournalDocument
@@ -64,6 +65,11 @@ async function fetchPreviousDocConfigForReuse(
  * (CleaningRoomItem.currentDays/generalDays) к matrix нового документа,
  * чтобы матрица была размечена «по плану» с самого создания.
  *
+ * Затем прошедшие дни периода, оставшиеся без плановой отметки,
+ * помечаются «/» («уборка не проводилась») — как на эталоне. Актуально
+ * для догоняющего создания (документ создан не 1-го числа): дни с
+ * начала периода до вчера не остаются пустыми.
+ *
  * Возвращает config как-есть для других журналов (no-op).
  */
 function preplanCleaningConfig(
@@ -71,13 +77,17 @@ function preplanCleaningConfig(
   config: unknown,
   dateFrom: Date,
   dateTo: Date,
+  now?: Date,
 ): unknown {
   if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return config;
   if (!config || typeof config !== "object") return config;
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   // Нормализуем чтобы гарантировать структуру (rooms[], matrix etc.).
   const normalized = normalizeCleaningDocumentConfig(config) as CleaningDocumentConfig;
-  return applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty");
+  const planned = applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty");
+  return fillPastDaysNotPerformed(planned, dateKeys, {
+    todayKey: toDateKey(now ?? new Date()),
+  });
 }
 
 /**
@@ -278,6 +288,7 @@ export async function ensureActiveDocument(
     prefill.config,
     period.dateFrom,
     period.dateTo,
+    now,
   );
   const doc = await db.journalDocument.create({
     data: {
@@ -473,6 +484,7 @@ export async function ensureNextPeriodDocument(
     prefillNext.config,
     nextPeriod.dateFrom,
     nextPeriod.dateTo,
+    now,
   );
   const doc = await db.journalDocument.create({
     data: {

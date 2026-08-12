@@ -1769,6 +1769,136 @@ export function applyRoomScheduleToMatrix(
   return syncCompatibilityFields(next);
 }
 
+/**
+ * Псевдо-rowId для подписей ответственных в matrix. Живут в той же
+ * matrix, что и room-строки, но никогда не участвуют в плане/TF-синке.
+ */
+export const CLEANING_SIGNATURE_ROW_ID = "__cleaning_signature__";
+export const CONTROL_SIGNATURE_ROW_ID = "__control_signature__";
+
+/**
+ * Маркер АВТОМАТИЧЕСКОЙ подписи. Значение в matrix хранится как
+ * `auto:С1` — визуально это тот же «С1», но по префиксу мы отличаем
+ * подпись, проставленную системой при ручном заполнении Т/Г, от
+ * подписи, которую менеджер поставил кликом сам.
+ *
+ * Правила:
+ *   • читатели (cleaningCodeForDay/controlCodeForDay) снимают префикс
+ *     и работают с чистым кодом — отображение не меняется;
+ *   • автоснятие подписи (когда день полностью очищен) трогает ТОЛЬКО
+ *     значения с префиксом;
+ *   • клик менеджера по подписи всегда пишет значение БЕЗ префикса —
+ *     то есть подпись «становится ручной» и больше не снимается.
+ *
+ * Legacy-совместимость: старые конфиги хранят подпись без префикса,
+ * `stripAutoSignatureMarker` для них — no-op, а автоснятие их не
+ * трогает (трактуются как ручные).
+ */
+export const CLEANING_AUTO_SIGNATURE_PREFIX = "auto:";
+
+export function isAutoSignatureValue(value: unknown): boolean {
+  return (
+    typeof value === "string" && value.startsWith(CLEANING_AUTO_SIGNATURE_PREFIX)
+  );
+}
+
+export function markAutoSignature(code: string): string {
+  return `${CLEANING_AUTO_SIGNATURE_PREFIX}${code}`;
+}
+
+export function stripAutoSignatureMarker(value: string): string {
+  return isAutoSignatureValue(value)
+    ? value.slice(CLEANING_AUTO_SIGNATURE_PREFIX.length)
+    : value;
+}
+
+/**
+ * Список room-id'ов, для которых имеет смысл план/матрица: строки из
+ * `config.rooms` плюс (в rooms-режиме) `selectedRoomIds`, у которых нет
+ * своей записи в `config.rooms`. Та же логика, что в
+ * `applyRoomScheduleToMatrix` — вынесена, чтобы «/» за прошедшие дни
+ * ставился ровно по тем же строкам.
+ */
+function collectMatrixRoomIds(config: CleaningDocumentConfig): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const room of config.rooms) {
+    if (room.id && !seen.has(room.id)) {
+      seen.add(room.id);
+      ids.push(room.id);
+    }
+  }
+  if (config.cleaningMode === "rooms" && Array.isArray(config.selectedRoomIds)) {
+    for (const id of config.selectedRoomIds) {
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+    }
+  }
+  return ids;
+}
+
+/**
+ * Проставляет «/» («уборка не проводилась») во все ПРОШЕДШИЕ дни
+ * периода, у которых нет плановой отметки.
+ *
+ * Как на эталоне haccp-online: строка помещения, добавленная в середине
+ * периода, не оставляет за собой «дыру» — дни до сегодняшнего явно
+ * помечаются «уборка не проводилась».
+ *
+ * Правила:
+ *   • трогаем только дни СТРОГО меньше `todayKey` — сегодня и будущее
+ *     остаются как есть;
+ *   • пишем только в ПУСТЫЕ ячейки (нет значения или пустая строка).
+ *     Плановые Т/Г, ручные отметки и sentinel «—» (явная очистка
+ *     менеджером) не перетираются;
+ *   • строки подписей (`__cleaning_signature__` и др.) не трогаются —
+ *     обходим только room-строки;
+ *   • идемпотентно: повторный вызов ничего не меняет.
+ *
+ * `options.roomIds` ограничивает применение подмножеством помещений
+ * (используется при добавлении новых строк, чтобы не влиять на уже
+ * существующие).
+ */
+export function fillPastDaysNotPerformed(
+  config: CleaningDocumentConfig,
+  dateKeys: string[],
+  options: { todayKey?: string; roomIds?: string[] } = {},
+): CleaningDocumentConfig {
+  const todayKey = options.todayKey || toDateKey(new Date());
+  const pastKeys = dateKeys.filter((key) => key && key < todayKey);
+  if (pastKeys.length === 0) return config;
+
+  // Явный список помещений (добавление новых строк) имеет приоритет;
+  // иначе берём все room-строки матрицы.
+  const roomIds = (options.roomIds ?? collectMatrixRoomIds(config)).filter(
+    Boolean,
+  );
+  if (roomIds.length === 0) return config;
+
+  const next = cloneConfig(config);
+  let changed = false;
+  for (const roomId of roomIds) {
+    const row = { ...(next.matrix[roomId] ?? {}) };
+    let rowChanged = false;
+    for (const dateKey of pastKeys) {
+      const existing = row[dateKey];
+      if (existing === undefined || existing === "") {
+        row[dateKey] = "/";
+        rowChanged = true;
+      }
+    }
+    if (rowChanged) {
+      next.matrix[roomId] = row;
+      changed = true;
+    }
+  }
+  if (!changed) return config;
+  next.marks = next.matrix;
+  return syncCompatibilityFields(next);
+}
+
 export function deleteCleaningRows(config: CleaningDocumentConfig, rowIds: string[]) {
   const rowIdSet = new Set(rowIds);
   const next = cloneConfig(config);
