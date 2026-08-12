@@ -100,6 +100,12 @@ type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
@@ -558,6 +564,7 @@ export function ColdEquipmentDocumentClient({
   documentId,
   title,
   organizationName,
+  controlPeriodicity = "",
   dateFrom,
   dateTo,
   responsibleTitle,
@@ -1158,6 +1165,7 @@ export function ColdEquipmentDocumentClient({
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал контроля температурного режима холодильного и морозильного оборудования"
+            controlPeriodicity={controlPeriodicity}
           />
         </div>
         <div className={DOC_CAPS_TITLE_CLASS}>
@@ -1170,7 +1178,7 @@ export function ColdEquipmentDocumentClient({
           <table className="min-w-[1900px] border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] px-2 py-1.5 text-center`} rowSpan={2}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[52px] px-2 py-1.5 text-center leading-tight`} rowSpan={2}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1182,13 +1190,13 @@ export function ColdEquipmentDocumentClient({
                   />
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] px-2 py-1.5 text-center text-[13px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} min-w-[420px] px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   Номер ХК
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length}
                 >
                   Месяц{" "}
@@ -1205,7 +1213,7 @@ export function ColdEquipmentDocumentClient({
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
                     className={`${GRID_HEAD_CELL_CLASS} w-[66px] px-2 py-1.5 text-center font-semibold ${
                       isWeekend(dateKey) ? "bg-[#eceffd]" : ""
-                    }`}
+                    } leading-tight`}
                   >
                     <div className="text-[18px]">{getDayNumber(dateKey)}</div>
                     <div className="text-[13px] font-normal uppercase text-[#666]">
@@ -1218,9 +1226,9 @@ export function ColdEquipmentDocumentClient({
 
             <tbody>
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
                 <td
-                  className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
+                  className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length + 1}
                 >
                   Температура °C
@@ -1229,7 +1237,7 @@ export function ColdEquipmentDocumentClient({
 
               {config.equipment.map((item) => (
                 <tr key={item.id}>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     <Checkbox
                       checked={selectedEquipmentIds.includes(item.id)}
                       onCheckedChange={(checked) =>
@@ -1243,7 +1251,7 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     <div className="text-[18px] font-medium">{item.name}</div>
                     <div className="mt-1 text-[13px] text-[#6f7282]">{formatRange(item.min, item.max)}</div>
                   </td>
@@ -1257,7 +1265,7 @@ export function ColdEquipmentDocumentClient({
                         key={`${item.id}:${dateKey}`}
                         className={`${GRID_CELL_CLASS} p-1 text-center ${
                           isWeekend(dateKey) ? "bg-[#fafbff]" : ""
-                        }`}
+                        } leading-tight`}
                       >
                         {status === "active" ? (
                           <Input
@@ -1279,8 +1287,8 @@ export function ColdEquipmentDocumentClient({
               ))}
 
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
-                <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                   <div className="text-[18px] font-medium">Ответственный за снятие показателей</div>
                   <div className="mt-2 space-y-1 text-[13px] text-[#6f7282]">
                     {responsibleCodes.items.map((item) => (
@@ -1296,9 +1304,9 @@ export function ColdEquipmentDocumentClient({
                   return (
                     <td
                       key={`responsible:${dateKey}`}
-                      className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-medium ${
+                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium ${
                         isWeekend(dateKey) ? "bg-[#fafbff]" : ""
-                      }`}
+                      } leading-tight`}
                     >
                       {employeeId ? responsibleCodes.codeMap[employeeId] || "" : ""}
                     </td>

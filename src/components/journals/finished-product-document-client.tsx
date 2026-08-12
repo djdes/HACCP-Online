@@ -54,10 +54,17 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   status: string;
@@ -128,6 +135,7 @@ export function FinishedProductDocumentClient({
   documentId,
   title,
   organizationName,
+  controlPeriodicity = "",
   dateFrom,
   dateTo,
   status,
@@ -336,14 +344,20 @@ export function FinishedProductDocumentClient({
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
               <tr>
-                <td rowSpan={2} className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{organizationName}</td>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>СИСТЕМА ХАССП</td>
-                <td className={`w-[20%] ${GRID_CELL_CLASS} p-2`}>Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
+                <td rowSpan={2} className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{organizationName}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>СИСТЕМА ХАССП</td>
+                <td className={`w-[20%] ${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
               </tr>
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] uppercase italic`}>ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] uppercase italic leading-tight`}>ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
               </tr>
+              <JournalPeriodicityHeaderRow
+                text={controlPeriodicity}
+                labelClass={GRID_HEAD_CELL_CLASS}
+                valueClass={GRID_CELL_CLASS}
+                valueColSpan={2}
+              />
             </tbody>
           </table>
         </div>
@@ -377,25 +391,25 @@ export function FinishedProductDocumentClient({
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[1650px] w-full border-collapse text-[13px]">
             <thead><tr>
-              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} /><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Дата, время изготовления</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Время снятия бракеража</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Органолептическая оценка</th>
-              {config.showProductTemp && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>T°C внутри продукта</th>}
-              {config.showCorrectiveAction && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Корректирующие действия</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Разрешение к реализации (время)</th>
-              {config.showCourierTime && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Время передачи блюд курьеру</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Ответственный исполнитель</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
+              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} /><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата, время изготовления</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время снятия бракеража</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка</th>
+              {config.showProductTemp && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>T°C внутри продукта</th>}
+              {config.showCorrectiveAction && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Корректирующие действия</th>}
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Разрешение к реализации (время)</th>
+              {config.showCourierTime && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время передачи блюд курьеру</th>}
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Ответственный исполнитель</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
             </tr></thead>
             <tbody>{config.rows.map((row) => <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 align-top`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.productionDateTime} onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.rejectionTime} onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.productName} onChange={(e) => updateRow(row.id, { productName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-items" /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.organoleptic} onChange={(e) => updateRow(row.id, { organoleptic: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              {config.showProductTemp && <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.productTemp} onChange={(e) => updateRow(row.id, { productTemp: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              {config.showCorrectiveAction && <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.correctiveAction} onChange={(e) => updateRow(row.id, { correctiveAction: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.releasePermissionTime} onChange={(e) => updateRow(row.id, { releasePermissionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              {config.showCourierTime && <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.courierTransferTime} onChange={(e) => updateRow(row.id, { courierTransferTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.responsiblePerson} onChange={(e) => updateRow(row.id, { responsiblePerson: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top`}><Input value={row.inspectorName} onChange={(e) => updateRow(row.id, { inspectorName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productionDateTime} onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.rejectionTime} onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productName} onChange={(e) => updateRow(row.id, { productName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-items" /></td>
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.organoleptic} onChange={(e) => updateRow(row.id, { organoleptic: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
+              {config.showProductTemp && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productTemp} onChange={(e) => updateRow(row.id, { productTemp: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
+              {config.showCorrectiveAction && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.correctiveAction} onChange={(e) => updateRow(row.id, { correctiveAction: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.releasePermissionTime} onChange={(e) => updateRow(row.id, { releasePermissionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
+              {config.showCourierTime && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.courierTransferTime} onChange={(e) => updateRow(row.id, { courierTransferTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.responsiblePerson} onChange={(e) => updateRow(row.id, { responsiblePerson: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
+              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.inspectorName} onChange={(e) => updateRow(row.id, { inspectorName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
             </tr>)}</tbody>
           </table>
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
@@ -410,7 +424,7 @@ export function FinishedProductDocumentClient({
         <h3 className="text-[18px] font-semibold leading-tight sm:text-[24px]">Рекомендации по организации контроля за доброкачественностью готовой пищи</h3>
         {QUALITY_GUIDELINES.map((item) => <p key={item} className="text-[18px] leading-8">{item}</p>)}
         <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[900px] w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{group}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{name}</td><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}>{temperature}</td></tr>)}</tbody></table>
+          <table className="min-w-[900px] w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{group}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{name}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{temperature}</td></tr>)}</tbody></table>
         </div>
       </section>
 

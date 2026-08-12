@@ -89,6 +89,12 @@ type Props = {
   routeCode: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   status: string;
   dateFrom: string;
   users: UserItem[];
@@ -557,6 +563,7 @@ export function CleaningVentilationChecklistDocumentClient({
   routeCode,
   title,
   organizationName,
+  controlPeriodicity = "",
   status,
   dateFrom,
   users,
@@ -959,37 +966,50 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className="w-full border-collapse text-[13px] text-left">
             <tbody>
               <tr className="border-b border-[#ececf4] print:border-black">
-                <td className="w-[220px] border-r border-[#ececf4] print:border-black px-5 py-4 align-middle text-[18px] font-semibold">
+                <td className="w-[220px] border-r border-[#ececf4] print:border-black px-5 py-2 align-middle text-[18px] font-semibold leading-tight">
                   {organizationName || 'ООО "Тест"'}
                 </td>
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-center text-[18px]">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 text-center text-[18px] leading-tight">
                   СИСТЕМА ХАССП
                 </td>
-                <td className="w-[250px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[15px] leading-6">
+                <td className="w-[250px] border-r border-[#ececf4] print:border-black px-5 py-2 text-[15px] leading-6">
                   Начат {formatRuDate(dateFrom)}
                   <br />
                   Окончен __________
                 </td>
-                <td className="w-[120px] px-5 py-4 text-center text-[16px]">СТР. 1 ИЗ 1</td>
+                <td className="w-[120px] px-5 py-2 text-center text-[16px] leading-tight">СТР. 1 ИЗ 1</td>
               </tr>
               <tr className="border-b border-[#ececf4] print:border-black">
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-center text-[18px] italic">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 leading-tight" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 text-center text-[18px] italic leading-tight">
                   {CLEANING_VENTILATION_CHECKLIST_TITLE.toUpperCase()}
                 </td>
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
-                <td className="px-5 py-4" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 leading-tight" />
+                <td className="px-5 py-2 leading-tight" />
               </tr>
+              {controlPeriodicity.trim() ? (
+                <tr className="border-b border-[#ececf4] print:border-black">
+                  <td className="border-r border-[#ececf4] px-5 py-2.5 text-center text-[13px] font-semibold print:border-black leading-tight">
+                    Периодичность контроля
+                  </td>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-2.5 text-[13px] leading-[1.4]"
+                  >
+                    {controlPeriodicity.trim()}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
 
           <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr className="border-b border-[#ececf4] print:border-black">
-                <td className="w-[180px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
+                <td className="w-[180px] border-r border-[#ececf4] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
                   Процедура
                 </td>
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-[15px] leading-6">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 text-[15px] leading-6">
                   {getCleaningVentilationDescriptionLines()
                     .filter(
                       (item) =>
@@ -1003,22 +1023,22 @@ export function CleaningVentilationChecklistDocumentClient({
                       </div>
                     ))}
                 </td>
-                <td className="w-[210px] border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
+                <td className="w-[210px] border-r border-[#ececf4] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
                   Периодичность
                 </td>
-                <td className="w-[260px] px-5 py-4 text-[15px] leading-6">
+                <td className="w-[260px] px-5 py-2 text-[15px] leading-6">
                   {getCleaningVentilationPeriodicityLines(config.ventilationEnabled).map((line) => (
                     <div key={line}>{line}</div>
                   ))}
                 </td>
               </tr>
               <tr>
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4" />
-                <td className="border-r border-[#ececf4] print:border-black px-5 py-4 text-[16px] font-semibold">
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 leading-tight" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 leading-tight" />
+                <td className="border-r border-[#ececf4] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
                   Ответственные лица
                 </td>
-                <td className="space-y-3 px-5 py-4 text-[15px] leading-6">
+                <td className="space-y-3 px-5 py-2 text-[15px] leading-6">
                   {config.responsibles.length > 0 ? (
                     config.responsibles.map((responsible) => {
                       const user = userMap[responsible.userId];
@@ -1139,7 +1159,7 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className="min-w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f8f9fc] print:bg-white">
-                <th className="w-[58px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[58px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black leading-tight">
                   <div className="flex justify-center">
                     <Checkbox
                       checked={rows.length > 0 && selection.length === rows.length}
@@ -1151,22 +1171,22 @@ export function CleaningVentilationChecklistDocumentClient({
                     />
                   </div>
                 </th>
-                <th className="w-[140px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="w-[140px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black leading-tight">
                   Дата
                 </th>
-                <th className="w-[240px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="w-[240px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black leading-tight">
                   Процедура
                 </th>
-                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black leading-tight">
                   Время 1
                 </th>
-                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black leading-tight">
                   Время 2
                 </th>
-                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black">
+                <th className="w-[160px] border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-center text-[15px] font-semibold text-black leading-tight">
                   Время 3
                 </th>
-                <th className="border-b border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black">
+                <th className="border-b border-[#ececf4] print:border-black px-4 py-4 text-left text-[15px] font-semibold text-black leading-tight">
                   ФИО ответственного лица
                 </th>
               </tr>
@@ -1187,7 +1207,7 @@ export function CleaningVentilationChecklistDocumentClient({
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}
-                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top"
+                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top leading-tight"
                         >
                           <div className="flex justify-center">
                             <Checkbox
@@ -1208,18 +1228,18 @@ export function CleaningVentilationChecklistDocumentClient({
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}
-                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top text-[16px] text-black"
+                          className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 align-top text-[16px] text-black leading-tight"
                         >
                           {formatRuDate(row.dateKey)}
                         </td>
                       ) : null}
-                      <td className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black">
+                      <td className="border-b border-r border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black leading-tight">
                         {procedure.label}
                       </td>
                       {[0, 1, 2].map((timeIndex) => (
                         <td
                           key={`${row.dateKey}-${procedure.id}-${timeIndex}`}
-                          className="border-b border-r border-[#ececf4] print:border-black px-3 py-3"
+                          className="border-b border-r border-[#ececf4] print:border-black px-3 py-1 leading-tight"
                         >
                           <TimeSelect
                             value={procedure.times[timeIndex] || "00:00"}
@@ -1237,7 +1257,7 @@ export function CleaningVentilationChecklistDocumentClient({
                           />
                         </td>
                       ))}
-                      <td className="border-b border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black">
+                      <td className="border-b border-[#ececf4] print:border-black px-4 py-4 text-[16px] text-black leading-tight">
                         {responsibleName}
                       </td>
                     </tr>

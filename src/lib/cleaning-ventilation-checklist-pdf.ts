@@ -28,7 +28,9 @@ function ensureUnicodeFont(doc: jsPDF): string {
   doc.addFont("journal-unicode.ttf", "JournalUnicode", "italic");
   return "JournalUnicode";
 }
+import { readControlPeriodicity } from "@/lib/control-periodicity";
 import {
+  CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE,
   buildChecklistDateKeys,
   getCleaningVentilationDescriptionLines,
   getCleaningVentilationPeriodicityLines,
@@ -60,6 +62,10 @@ export function drawCleaningVentilationChecklistPdf(
   }
 ) {
   const config = normalizeCleaningVentilationConfig(params.config, params.users);
+  const controlPeriodicity = readControlPeriodicity(
+    params.config,
+    CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
+  );
   const dateFromIso = params.dateFrom.toISOString().slice(0, 10);
   const existingDates = params.entries.map((entry) => entry.date.toISOString().slice(0, 10));
   const dateKeys = buildChecklistDateKeys(
@@ -102,6 +108,16 @@ export function drawCleaningVentilationChecklistPdf(
         { content: "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ", styles: { fontStyle: "italic" } },
         { content: "" },
       ],
+      // Строка «Периодичность контроля» — тот же ряд, что на экране и на
+      // эталоне. Пустое значение (владелец стёр текст) строку не печатает.
+      ...(controlPeriodicity
+        ? [
+            [
+              { content: "Периодичность контроля", styles: { fontStyle: "bold" as const } },
+              { content: controlPeriodicity, colSpan: 3 },
+            ],
+          ]
+        : []),
     ],
   });
 

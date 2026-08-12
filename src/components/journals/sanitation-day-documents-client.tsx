@@ -39,6 +39,7 @@ import {
 import {
   SANITATION_DAY_DOCUMENT_TITLE,
   SANITATION_DAY_HEADING,
+  SANITATION_DAY_TEMPLATE_CODE,
   createEmptySanitationRow,
   getSanitationApproveLabel,
   getSanitationDayDefaultConfig,
@@ -64,6 +65,11 @@ import {
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import {
+  getDefaultControlPeriodicity,
+  readControlPeriodicity,
+} from "@/lib/control-periodicity";
 type UserItem = {
   id: string;
   name: string;
@@ -97,6 +103,7 @@ type SettingsState = {
   responsibleRole: string;
   responsibleEmployeeId: string;
   responsibleEmployee: string;
+  controlPeriodicity: string;
 };
 
 /** Общий класс триггера селектов в диалоге настроек санитарного дня. */
@@ -123,6 +130,10 @@ function toUiState(document: SanitationDocumentItem): SettingsState {
     responsibleRole: normalized.responsibleRole,
     responsibleEmployeeId: normalized.responsibleEmployeeId || "",
     responsibleEmployee: normalized.responsibleEmployee,
+    controlPeriodicity: readControlPeriodicity(
+      document.config,
+      SANITATION_DAY_TEMPLATE_CODE
+    ),
   };
 }
 
@@ -282,6 +293,14 @@ function SettingsDialog(props: {
               triggerClassName={SANITATION_TRIGGER_CLASS}
             />
 
+            <ControlPeriodicityField
+              value={activeState.controlPeriodicity}
+              onChange={(value) =>
+                setState({ ...activeState, controlPeriodicity: value })
+              }
+              labelClassName="text-[15px] text-[#6f7282]"
+            />
+
             <div className="flex justify-end pt-3">
               <Button
                 type="button"
@@ -338,6 +357,7 @@ export function SanitationDayDocumentsClient({
         dateTo: payload.documentDate,
         responsibleTitle: payload.responsibleRole,
         config,
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
 
@@ -377,6 +397,7 @@ export function SanitationDayDocumentsClient({
         dateTo: payload.documentDate,
         responsibleTitle: payload.responsibleRole,
         config,
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
 
@@ -440,6 +461,7 @@ export function SanitationDayDocumentsClient({
       responsibleRole: cfg.responsibleRole,
       responsibleEmployeeId: cfg.responsibleEmployeeId || "",
       responsibleEmployee: cfg.responsibleEmployee,
+      controlPeriodicity: getDefaultControlPeriodicity(SANITATION_DAY_TEMPLATE_CODE),
     };
   }, []);
 

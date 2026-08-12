@@ -11,6 +11,7 @@ import { HealthDocumentsClient } from "@/components/journals/health-documents-cl
 import { TodayPendingBanner } from "@/components/journals/today-pending-banner";
 import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { readControlPeriodicity } from "@/lib/control-periodicity";
 import { getTemplateTodaySummary } from "@/lib/today-compliance";
 import {
   buildDateKeys,
@@ -1442,6 +1443,7 @@ export default async function JournalDocumentsPage({
         responsibleUserId: document.responsibleUserId,
         periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
         printEmptyRows: typeof config.printEmptyRows === "number" ? config.printEmptyRows : 0,
+        controlPeriodicity: readControlPeriodicity(document.config, resolvedCode),
       };
     });
 

@@ -33,6 +33,14 @@ type Props = {
     startedAt?: Date | string | null;
     finishedAt?: Date | string | null;
   };
+  /**
+   * «Периодичность контроля» — вторая строка шапки, как на эталоне
+   * (lk.haccp-online.ru): слева подпись, справа текст на всю ширину.
+   * Значение приходит из `JournalDocument.config.controlPeriodicity`
+   * (см. `src/lib/control-periodicity.ts`). Пустая строка / undefined —
+   * строка не рендерится, старые документы выглядят как раньше.
+   */
+  controlPeriodicity?: string | null;
   /** Доп. css-класс для wrapper. */
   className?: string;
 };
@@ -53,13 +61,15 @@ export function JournalDocumentHeader({
   title,
   pageInfo = "СТР 1 ИЗ 1",
   dateMode,
+  controlPeriodicity,
   className = "",
 }: Props) {
   const showDateMode = Boolean(dateMode);
+  const periodicityText = (controlPeriodicity ?? "").trim();
 
   return (
     <div
-      className={`mx-auto w-full max-w-[820px] rounded-2xl border border-[#0b1024]/15 bg-white print:rounded-none print:border print:border-black ${className}`}
+      className={`mx-auto w-full max-w-[820px] divide-y divide-[#0b1024]/15 rounded-2xl border border-[#0b1024]/15 bg-white print:divide-black print:rounded-none print:border print:border-black ${className}`}
     >
       <div className="grid grid-cols-[1fr_2fr_0.9fr] divide-x divide-[#0b1024]/15 text-[12.5px] leading-tight text-[#0b1024] sm:text-[13px] print:divide-black">
         {/* Левая колонка — название организации */}
@@ -101,7 +111,57 @@ export function JournalDocumentHeader({
           )}
         </div>
       </div>
+
+      {/* Вторая строка шапки — «Периодичность контроля | <текст>».
+          На эталоне она идёт сразу под «орг / СИСТЕМА ХАССП / СТР 1 ИЗ 1». */}
+      {periodicityText ? (
+        <div className="grid grid-cols-[1fr_2.9fr] divide-x divide-[#0b1024]/15 text-[12.5px] leading-tight text-[#0b1024] sm:text-[13px] print:divide-black">
+          <div className="flex items-center justify-center px-3 py-2 text-center font-medium sm:px-4">
+            Периодичность контроля
+          </div>
+          <div className="px-3 py-2 leading-[1.4] sm:px-4">{periodicityText}</div>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+/**
+ * Та же строка «Периодичность контроля», но как `<tr>` — для журналов,
+ * чья бумажная шапка собрана собственной `<table>` (гигиена, здоровье,
+ * климат, бракераж, приёмка, вентиляция, генеральные уборки).
+ *
+ * `labelClass` / `valueClass` принимают GRID-токены хоста
+ * (`GRID_CELL_CLASS` и т.п.), поэтому строка наследует и экранный стиль,
+ * и `print:border-black`.
+ */
+export function JournalPeriodicityHeaderRow({
+  text,
+  labelClass = "",
+  valueClass = "",
+  valueColSpan = 2,
+}: {
+  text?: string | null;
+  labelClass?: string;
+  valueClass?: string;
+  /** Сколько колонок занимает ячейка со значением (обычно «средняя + правая»). */
+  valueColSpan?: number;
+}) {
+  const value = (text ?? "").trim();
+  if (!value) return null;
+
+  return (
+    <tr>
+      <td className={`px-3 py-2 text-center text-[12.5px] font-semibold ${labelClass}`}>
+        Периодичность контроля
+      </td>
+      <td
+        colSpan={valueColSpan}
+        className={`px-3 py-2 text-[12.5px] leading-[1.4] ${valueClass}`}
+      >
+        {value}
+      </td>
+    </tr>
   );
 }
 

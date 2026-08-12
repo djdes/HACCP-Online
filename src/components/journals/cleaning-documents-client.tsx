@@ -50,6 +50,11 @@ import {
   JOURNAL_LIST_HEADING_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import {
+  getDefaultControlPeriodicity,
+  readControlPeriodicity,
+} from "@/lib/control-periodicity";
 
 type UserItem = {
   id: string;
@@ -72,6 +77,7 @@ type CreateState = {
   cleaningUserId: string;
   controlRole: string;
   controlUserId: string;
+  controlPeriodicity: string;
 };
 
 type SettingsState = {
@@ -80,6 +86,7 @@ type SettingsState = {
   cleaningUserId: string;
   controlRole: string;
   controlUserId: string;
+  controlPeriodicity: string;
 };
 
 type Props = {
@@ -113,6 +120,7 @@ function buildCreateState(users: UserItem[]): CreateState {
     cleaningUserId: "",
     controlRole,
     controlUserId: "",
+    controlPeriodicity: getDefaultControlPeriodicity(CLEANING_DOCUMENT_TEMPLATE_CODE),
   };
 }
 
@@ -124,6 +132,10 @@ function buildSettingsState(document: DocumentItem, users: UserItem[]): Settings
     cleaningUserId: config.cleaningResponsibles[0]?.userId || "",
     controlRole: config.controlResponsibles[0]?.title || "",
     controlUserId: config.controlResponsibles[0]?.userId || "",
+    controlPeriodicity: readControlPeriodicity(
+      document.config,
+      CLEANING_DOCUMENT_TEMPLATE_CODE
+    ),
   };
 }
 
@@ -252,6 +264,13 @@ function CreateDialog(props: {
             labelClassName="text-[16px] text-[#73738a]"
             triggerClassName={CLEANING_TRIGGER_CLASS}
           />
+          <ControlPeriodicityField
+            value={state.controlPeriodicity}
+            onChange={(value) =>
+              setState((current) => ({ ...current, controlPeriodicity: value }))
+            }
+            labelClassName="text-[16px] text-[#73738a]"
+          />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
@@ -358,6 +377,15 @@ function SettingsDialog(props: {
             labelClassName="text-[16px] text-[#73738a]"
             triggerClassName={CLEANING_TRIGGER_CLASS}
           />
+          <ControlPeriodicityField
+            value={state.controlPeriodicity}
+            onChange={(value) =>
+              setState((current) =>
+                current ? { ...current, controlPeriodicity: value } : current
+              )
+            }
+            labelClassName="text-[16px] text-[#73738a]"
+          />
           <div className="flex justify-end pt-2">
             <Button
               type="button"
@@ -439,6 +467,7 @@ export function CleaningDocumentsClient(props: Props) {
         responsibleTitle: state.controlRole || null,
         responsibleUserId: controlUserId || null,
         config: filledConfig,
+        controlPeriodicity: state.controlPeriodicity,
       }),
     });
 
@@ -497,6 +526,7 @@ export function CleaningDocumentsClient(props: Props) {
         responsibleTitle: state.controlRole || null,
         responsibleUserId: state.controlUserId || null,
         config: nextConfig,
+        controlPeriodicity: state.controlPeriodicity,
       }),
     });
 

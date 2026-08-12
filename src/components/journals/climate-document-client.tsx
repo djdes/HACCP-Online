@@ -66,6 +66,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
@@ -89,6 +90,12 @@ type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
@@ -900,6 +907,7 @@ export function ClimateDocumentClient({
   documentId,
   title,
   organizationName,
+  controlPeriodicity = "",
   dateFrom,
   dateTo,
   responsibleTitle,
@@ -1416,13 +1424,13 @@ export function ClimateDocumentClient({
                 <table className="min-w-[1080px] w-full border-collapse text-[13px]">
                   <tbody>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3 text-center font-semibold`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 text-center font-semibold leading-tight`}>
                         {organizationName}
                       </td>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px]`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] leading-tight`}>
                         СИСТЕМА ХАССП
                       </td>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3 align-top`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 align-top leading-tight`}>
                         <div className="space-y-2 text-[17px] font-semibold">
                           <div>Начат {getClimateDateLabel(dateFrom)}</div>
                           <div>Окончен {status === "closed" ? getClimateDateLabel(dateTo) : "__________"}</div>
@@ -1431,20 +1439,26 @@ export function ClimateDocumentClient({
                       </td>
                     </tr>
                     <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center italic`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic leading-tight`}>
                         БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ
                       </td>
                     </tr>
+                    <JournalPeriodicityHeaderRow
+                      text={controlPeriodicity}
+                      labelClass={GRID_HEAD_CELL_CLASS}
+                      valueClass={GRID_CELL_CLASS}
+                      valueColSpan={2}
+                    />
                     <tr>
-                      <td rowSpan={status === "active" ? 2 : 1} className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold`}>
+                      <td rowSpan={status === "active" ? 2 : 1} className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold leading-tight`}>
                         Нормы условий
                       </td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} p-0`}>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
                         <table className="w-full border-collapse text-[13px]">
                           <tbody>
                             {visibleRooms.map((room) => (
                               <tr key={room.id}>
-                                <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-3`}>
+                                <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 leading-tight`}>
                                   <div className="flex items-center gap-3">
                                     <Checkbox checked />
                                     <span className="font-medium lowercase">{room.name}</span>
@@ -1462,12 +1476,12 @@ export function ClimateDocumentClient({
                                     )}
                                   </div>
                                 </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-3 text-center`}>
+                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
                                   {room.temperature.enabled
                                     ? formatRange(room.temperature.min, room.temperature.max, "°C")
                                     : "—"}
                                 </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-3 text-center`}>
+                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
                                   {room.humidity.enabled
                                     ? formatRange(room.humidity.min, room.humidity.max, "%")
                                     : "—"}
@@ -1476,7 +1490,7 @@ export function ClimateDocumentClient({
                             ))}
                             {status === "active" && (
                               <tr>
-                                <td colSpan={3} className={`${GRID_CELL_CLASS} p-0`}>
+                                <td colSpan={3} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1496,8 +1510,8 @@ export function ClimateDocumentClient({
                       </td>
                     </tr>
                     <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-3 font-semibold`}>Частота контроля</td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-3 text-right`}>
+                      <td className={`${GRID_CELL_CLASS} px-4 py-2 font-semibold leading-tight`}>Частота контроля</td>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 text-right leading-tight`}>
                         {getClimatePeriodicityText(config)}
                       </td>
                     </tr>
@@ -1592,7 +1606,7 @@ export function ClimateDocumentClient({
           <table className="min-w-[1280px] border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center leading-tight`} rowSpan={4}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1603,13 +1617,13 @@ export function ClimateDocumentClient({
                     disabled={status !== "active" || rows.length === 0}
                   />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] px-2 py-1.5 text-center font-semibold`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] px-2 py-1.5 text-center font-semibold leading-tight`} rowSpan={4}>
                   Дата
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`} colSpan={totalMeasurementColumns}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`} colSpan={totalMeasurementColumns}>
                   Точки контроля
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[260px] px-2 py-1.5 text-center font-semibold`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[260px] px-2 py-1.5 text-center font-semibold leading-tight`} rowSpan={4}>
                   Фамилия ответственного лица
                 </th>
               </tr>
@@ -1617,7 +1631,7 @@ export function ClimateDocumentClient({
                 {visibleRooms.map((room) => (
                   <th
                     key={room.id}
-                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     colSpan={config.controlTimes.length * getRoomMetricColumnCount(room)}
                   >
                     {room.name}
@@ -1629,7 +1643,7 @@ export function ClimateDocumentClient({
                   config.controlTimes.map((time) => (
                     <th
                       key={`${room.id}:${time}`}
-                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                       colSpan={getRoomMetricColumnCount(room)}
                     >
                       {time}
@@ -1643,7 +1657,7 @@ export function ClimateDocumentClient({
                     room.temperature.enabled ? (
                       <th
                         key={`${room.id}:${time}:temperature`}
-                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold`}
+                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold leading-tight`}
                       >
                         T, °C
                       </th>
@@ -1651,7 +1665,7 @@ export function ClimateDocumentClient({
                     room.humidity.enabled ? (
                       <th
                         key={`${room.id}:${time}:humidity`}
-                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold`}
+                        className={`${GRID_HEAD_CELL_CLASS} w-[110px] px-2 py-1.5 text-center font-semibold leading-tight`}
                       >
                         ВВ, %
                       </th>
@@ -1666,7 +1680,7 @@ export function ClimateDocumentClient({
                 const isToday = row.date === new Date().toISOString().slice(0, 10);
                 return (
                   <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                       <Checkbox
                         checked={selectedRowIds.includes(row.id)}
                         onCheckedChange={(checked) =>
@@ -1679,13 +1693,13 @@ export function ClimateDocumentClient({
                         disabled={status !== "active"}
                       />
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{getClimateDateLabel(row.date)}</td>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{getClimateDateLabel(row.date)}</td>
                     {visibleRooms.flatMap((room) =>
                       config.controlTimes.flatMap((time) => [
                         room.temperature.enabled ? (
                           <td
                             key={`${row.id}:${room.id}:${time}:temperature`}
-                            className={`${GRID_CELL_CLASS} p-1 text-center`}
+                            className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                           >
                             {status === "active" ? (
                               <Input
@@ -1720,7 +1734,7 @@ export function ClimateDocumentClient({
                         room.humidity.enabled ? (
                           <td
                             key={`${row.id}:${room.id}:${time}:humidity`}
-                            className={`${GRID_CELL_CLASS} p-1 text-center`}
+                            className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                           >
                             {status === "active" ? (
                               <Input
@@ -1754,7 +1768,7 @@ export function ClimateDocumentClient({
                         ) : null,
                       ])
                     )}
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                       <button
                         type="button"
                         disabled={status !== "active"}
@@ -1778,7 +1792,7 @@ export function ClimateDocumentClient({
                 <tr>
                   <td
                     colSpan={3 + totalMeasurementColumns}
-                    className={`${GRID_CELL_CLASS} px-4 py-10 text-center text-[13px] text-[#6f7282]`}
+                    className={`${GRID_CELL_CLASS} px-4 py-10 text-center text-[13px] text-[#6f7282] leading-tight`}
                   >
                     Пока нет строк. Добавь первую запись вручную или включи автозаполнение.
                   </td>

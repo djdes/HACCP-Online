@@ -39,6 +39,11 @@ import {
   JournalTopBar,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import {
+  getDefaultControlPeriodicity,
+  readControlPeriodicity,
+} from "@/lib/control-periodicity";
 import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
@@ -72,6 +77,7 @@ type Props = {
 type SettingsState = {
   title: string;
   dateFrom: string;
+  controlPeriodicity: string;
 };
 
 function getDefaultDate() {
@@ -140,6 +146,13 @@ function SettingsDialog(props: {
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6f7282] sm:right-6 sm:size-8" />
               </div>
             </div>
+            <ControlPeriodicityField
+              value={activeState.controlPeriodicity}
+              onChange={(value) =>
+                setState({ ...activeState, controlPeriodicity: value })
+              }
+              labelClassName="text-[15px] text-[#6f7282]"
+            />
             <div className="flex justify-end pt-3">
               <Button
                 type="button"
@@ -182,8 +195,9 @@ export function CleaningVentilationChecklistDocumentsClient({
     () => ({
       title: CLEANING_VENTILATION_CHECKLIST_TITLE,
       dateFrom: getDefaultDate(),
+      controlPeriodicity: getDefaultControlPeriodicity(templateCode),
     }),
-    []
+    [templateCode]
   );
 
   async function createDocument(payload: SettingsState) {
@@ -197,6 +211,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         dateFrom: payload.dateFrom,
         dateTo: payload.dateFrom,
         config,
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
 
@@ -222,6 +237,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         dateFrom: payload.dateFrom,
         dateTo: payload.dateFrom,
         config: current.config ?? getDefaultCleaningVentilationConfig(users),
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
 
@@ -363,6 +379,10 @@ export function CleaningVentilationChecklistDocumentsClient({
             ? {
                 title: settingsTarget.title || CLEANING_VENTILATION_CHECKLIST_TITLE,
                 dateFrom: settingsTarget.dateFrom || getDefaultDate(),
+                controlPeriodicity: readControlPeriodicity(
+                  settingsTarget.config,
+                  templateCode
+                ),
               }
             : null
         }

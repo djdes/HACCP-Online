@@ -98,6 +98,12 @@ type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   status: string;
   dateFrom: string;
   dateTo: string;
@@ -2008,6 +2014,7 @@ export function CleaningDocumentClient(props: Props) {
             <JournalDocumentHeader
               orgName={props.organizationName}
               title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
+              controlPeriodicity={props.controlPeriodicity}
             />
           </div>
           <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
@@ -2020,13 +2027,13 @@ export function CleaningDocumentClient(props: Props) {
             </>
           )}
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 p-2 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-5" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`p-2 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-4" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningPeriodLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
-                <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-5" /></td>
-                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" /></td>
+                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
@@ -2064,7 +2071,7 @@ export function CleaningDocumentClient(props: Props) {
                     ) : null}
                   </div>
                 </td>
-                <td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{secondColumn}</td>
+                <td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
                   const dayKind = getCalendarDayKind(dateKey);
@@ -2091,7 +2098,7 @@ export function CleaningDocumentClient(props: Props) {
                       role={interactive ? "button" : undefined}
                       tabIndex={interactive ? 0 : undefined}
                       aria-label={`${title}, ${formatDayAriaLabel(dateKey)}: ${valueLabel}`}
-                      className={`p-2 text-center text-[14px] select-none ${GRID_CELL_CLASS} ${interactive ? `cursor-pointer hover:bg-[#f5f6ff] ${CELL_FOCUS_CLASS}` : ""} ${dayBg} ${isSelected ? "outline outline-2 outline-offset-[-2px] outline-[#5566f6] !bg-[#eef1ff]" : ""}`}
+                      className={`h-8 px-2 py-1 text-center text-[13px] leading-tight select-none ${GRID_CELL_CLASS} ${interactive ? `cursor-pointer hover:bg-[#f5f6ff] ${CELL_FOCUS_CLASS}` : ""} ${dayBg} ${isSelected ? "outline outline-2 outline-offset-[-2px] outline-[#5566f6] !bg-[#eef1ff]" : ""}`}
                       onClick={() => {
                         // Если только что был drag — onClick после mouseup
                         // тоже срабатывает. Защищаемся: если в режиме
@@ -2130,8 +2137,8 @@ export function CleaningDocumentClient(props: Props) {
                 день (выводим коды С1/С2/К1 из реальных completions). */}
             {cleaningResponsibleList.length > 0 ? (
               <tr key="cleaning-group" className="bg-[#f8f9fc] print:bg-white">
-                <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`} />
-                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`} />
+                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
@@ -2148,7 +2155,7 @@ export function CleaningDocumentClient(props: Props) {
                     Ответственный за уборку
                   </button>
                 </td>
-                <td className={`px-2 py-1.5 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {cleaningResponsibleList.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "—"}
@@ -2197,7 +2204,7 @@ export function CleaningDocumentClient(props: Props) {
                           cleaningCodes,
                         );
                       }}
-                      className={`p-2 text-center text-[13px] select-none ${GRID_CELL_CLASS} ${dayBg} ${interactive ? `cursor-pointer hover:bg-[#eef1ff] ${CELL_FOCUS_CLASS}` : ""}`}
+                      className={`h-8 px-2 py-1 text-center text-[13px] leading-tight select-none ${GRID_CELL_CLASS} ${dayBg} ${interactive ? `cursor-pointer hover:bg-[#eef1ff] ${CELL_FOCUS_CLASS}` : ""}`}
                     >
                       {code}
                     </td>
@@ -2207,8 +2214,8 @@ export function CleaningDocumentClient(props: Props) {
             ) : null}
             {controlResponsibleList.length > 0 ? (
               <tr key="control-group" className="bg-[#f8f9fc] print:bg-white">
-                <td className={`p-2 text-center ${GRID_CELL_CLASS} print:hidden`} />
-                <td className={`px-2 py-1.5 align-middle ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`} />
+                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
@@ -2225,7 +2232,7 @@ export function CleaningDocumentClient(props: Props) {
                     Ответственный за контроль
                   </button>
                 </td>
-                <td className={`px-2 py-1.5 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
+                <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {controlResponsibleList.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "—"}
@@ -2296,7 +2303,7 @@ export function CleaningDocumentClient(props: Props) {
           </div>
 
           <div className={`${DOC_EXTRA_BLOCK_CLASS} ${GRID_VIEWPORT_CLASS}`}><div className="min-w-[640px] sm:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Наименование помещения</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Текущая уборка</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS}`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1.5 ${GRID_CELL_CLASS}`}>{room.name}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1.5 text-[#3c4053] ${GRID_CELL_CLASS}`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Текущая уборка</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1 ${GRID_CELL_CLASS} leading-tight`}>{room.name}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
           </div></div>
         </div>
         </div>

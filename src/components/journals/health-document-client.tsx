@@ -49,6 +49,7 @@ import {
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 import { toast } from "sonner";
 import {
   GRID_CELL_CLASS,
@@ -59,6 +60,12 @@ type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
@@ -87,7 +94,7 @@ function HealthCheckbox(props: {
     <Checkbox
       checked={props.checked}
       onCheckedChange={(value) => props.onCheckedChange?.(value === true)}
-      className="mx-auto h-5 w-5 rounded-[5px] border-[#c8ccda] data-[state=checked]:border-[#5566f6] data-[state=checked]:bg-[#5566f6]"
+      className="mx-auto size-4 rounded-[4px] border-[#c8ccda] data-[state=checked]:border-[#5566f6] data-[state=checked]:bg-[#5566f6]"
     />
   );
 }
@@ -95,9 +102,11 @@ function HealthCheckbox(props: {
 function HealthHeader({
   organizationLabel,
   pageLabel,
+  controlPeriodicity,
 }: {
   organizationLabel: string;
   pageLabel: string;
+  controlPeriodicity?: string;
 }) {
   return (
     <table className="health-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
@@ -105,25 +114,30 @@ function HealthHeader({
         <tr>
           <td
             rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[15px] font-semibold`}
+            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[15px] font-semibold leading-tight`}
           >
             {organizationLabel}
           </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}>
+          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}
+            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] italic uppercase`}>
+          <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] italic uppercase leading-tight`}>
             ЖУРНАЛ ЗДОРОВЬЯ
           </td>
         </tr>
+        <JournalPeriodicityHeaderRow
+          text={controlPeriodicity}
+          labelClass={GRID_HEAD_CELL_CLASS}
+          valueClass={GRID_CELL_CLASS}
+        />
       </tbody>
     </table>
   );
@@ -164,6 +178,7 @@ export function HealthDocumentClient(props: Props) {
     documentId,
     title,
     organizationName,
+    controlPeriodicity = "",
     dateFrom,
     dateTo,
     status,
@@ -529,7 +544,11 @@ export function HealthDocumentClient(props: Props) {
         <div className={GRID_VIEWPORT_CLASS}>
         <div className="min-w-[1100px] py-6 sm:min-w-0">
           <div className={DOC_PAPER_HEADER_CLASS}>
-            <HealthHeader organizationLabel={organizationLabel} pageLabel="СТР. 1 ИЗ 1" />
+            <HealthHeader
+              organizationLabel={organizationLabel}
+              pageLabel="СТР. 1 ИЗ 1"
+              controlPeriodicity={controlPeriodicity}
+            />
           </div>
 
           <div
@@ -555,7 +574,7 @@ export function HealthDocumentClient(props: Props) {
             <thead>
               <tr>
                 <th
-                  className={`w-[42px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                  className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   <HealthCheckbox
@@ -569,7 +588,7 @@ export function HealthDocumentClient(props: Props) {
                   />
                 </th>
                 <th
-                  className={`w-[72px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                  className={`w-[72px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   №
@@ -577,25 +596,25 @@ export function HealthDocumentClient(props: Props) {
                   п/п
                 </th>
                 <th
-                  className={`w-[230px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                  className={`w-[230px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   Ф.И.О. работника
                 </th>
                 <th
-                  className={`w-[270px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                  className={`w-[270px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   Должность
                 </th>
                 <th
-                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length}
                 >
                   Месяц {monthLabel}
                 </th>
                 <th
-                  className={`w-[200px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                  className={`w-[200px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   Принятые меры
@@ -606,7 +625,7 @@ export function HealthDocumentClient(props: Props) {
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`w-[58px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`w-[58px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   >
                     <div>{getDayNumber(dateKey)}</div>
                     <div>{getWeekdayShort(dateKey)}.</div>
@@ -621,7 +640,7 @@ export function HealthDocumentClient(props: Props) {
 
                 return (
                   <tr key={employee.id}>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                       {employee.name ? (
                         <HealthCheckbox
                           checked={selectedEmployeeIds.includes(employee.id)}
@@ -632,13 +651,13 @@ export function HealthDocumentClient(props: Props) {
                         />
                       ) : null}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                       {employee.name ? employee.number : ""}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                       {employee.name || ""}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                       {employee.name
                         ? employee.position || getHygienePositionLabel("operator")
                         : ""}
@@ -649,13 +668,13 @@ export function HealthDocumentClient(props: Props) {
                       return (
                         <td
                           key={`${employee.id}:${dateKey}`}
-                          className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}
+                          className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}
                         >
                           {data?.signed ? "+" : ""}
                         </td>
                       );
                     })}
-                    <td className={`${GRID_CELL_CLASS} px-3 py-2 align-middle`}>
+                    <td className={`${GRID_CELL_CLASS} px-3 py-1 align-middle leading-tight`}>
                       <div className="space-y-1 text-left text-[14px] leading-5">
                         {measures.map((item) => (
                           <div key={`${employee.id}:${item}`}>{item}</div>
@@ -667,16 +686,16 @@ export function HealthDocumentClient(props: Props) {
               })}
 
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                   <HealthCheckbox />
                 </td>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
                 {dateKeys.map((dateKey) => (
-                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
+                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
                 ))}
-                <td className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
               </tr>
             </tbody>
           </table>

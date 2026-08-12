@@ -81,6 +81,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 
 type User = { id: string; name: string; role: string };
 
@@ -89,6 +90,12 @@ type Props = {
   routeCode: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   status: string;
@@ -1704,14 +1711,14 @@ export function AcceptanceDocumentClient(props: Props) {
             <tr>
               <td
                 rowSpan={2}
-                className={`w-[220px] ${GRID_CELL_CLASS} px-4 py-3 text-center font-semibold`}
+                className={`w-[220px] ${GRID_CELL_CLASS} px-4 py-2 text-center font-semibold leading-tight`}
               >
                 {organizationLabel}
               </td>
-              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center`}>
+              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center leading-tight`}>
                 СИСТЕМА ХАССП
               </td>
-              <td rowSpan={2} className={`w-[200px] ${GRID_CELL_CLASS} px-3 py-2`}>
+              <td rowSpan={2} className={`w-[200px] ${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>
                 <div className="text-sm font-semibold">
                   Начат {formatAcceptanceDateDash(dateFrom)}
                 </div>
@@ -1719,10 +1726,16 @@ export function AcceptanceDocumentClient(props: Props) {
               </td>
             </tr>
             <tr>
-              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic`}>
+              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic leading-tight`}>
                 {journalHeaderTitle}
               </td>
             </tr>
+            <JournalPeriodicityHeaderRow
+              text={props.controlPeriodicity}
+              labelClass={GRID_HEAD_CELL_CLASS}
+              valueClass={GRID_CELL_CLASS}
+              valueColSpan={2}
+            />
           </tbody>
         </table>
         </div>
@@ -1780,29 +1793,29 @@ export function AcceptanceDocumentClient(props: Props) {
           <table className="min-w-[960px] w-full border-collapse text-[13px] sm:min-w-[1400px]">
             <thead>
               <tr>
-                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} p-2`}>
+                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   <Checkbox checked={allSelected} onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])} disabled={displayedRows.length === 0 || isClosed} />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>
                   {isProductAcceptance
                     ? "Дата, время поступления продукции, товара"
                     : "Дата, время поступления"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>
                   {isProductAcceptance ? "Наименование продукции" : "Наименование"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Производитель</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Условия транспортировки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Производитель</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Условия транспортировки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>
                   {isProductAcceptance
                     ? "Соответствие упаковки, маркировки, гигиенические требования, наличие и правильность оформления товаросопроводительной документации"
                     : "Соответствие упаковки, маркировки и товаросопроводительной документации"}
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Результаты органолептической оценки доброкачественности</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Примечания</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center`}>Ответственный</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Результаты органолептической оценки доброкачественности</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>{getExpiryFieldDisplayLabel(config.expiryFieldLabel)}</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Примечания</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>Ответственный</th>
               </tr>
             </thead>
             <tbody>
@@ -1816,36 +1829,36 @@ export function AcceptanceDocumentClient(props: Props) {
                     setRowDialogOpen(true);
                   }}
                 >
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`} onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} onClick={(event) => event.stopPropagation()}>
                     <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(c) => setSelectedRowIds((cur) => c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id))} disabled={isClosed} />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center whitespace-pre-line`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center whitespace-pre-line leading-tight`}>
                     {formatAcceptanceDateDash(row.deliveryDate)}
                     {row.deliveryHour ? `\n${row.deliveryHour}:${row.deliveryMinute || "00"}` : ""}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     <div className="text-left hover:text-[#5566f6]">
                       {row.productName || "—"}
                     </div>
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{row.manufacturer || "—"}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{row.supplier || "—"}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{TRANSPORT_LABELS[row.transportCondition]}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center whitespace-pre-line`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.manufacturer || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.supplier || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{TRANSPORT_LABELS[row.transportCondition]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{COMPLIANCE_LABELS[row.packagingCompliance]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{ORGANOLEPTIC_LABELS[row.organolepticResult]}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center whitespace-pre-line leading-tight`}>
                     {formatAcceptanceDateDash(row.expiryDate)}
                     {row.expiryHour ? `\n${row.expiryHour}:${row.expiryMinute || "00"}` : ""}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{row.note || ""}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5`}>{getResponsibleLabel(row, props.users)}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{row.note || ""}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{getResponsibleLabel(row, props.users)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a]`}>Строк пока нет</td></tr>
+                <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a] leading-tight`}>Строк пока нет</td></tr>
               )}
               {/* Empty row at bottom */}
-              <tr><td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1.5`} /></tr>
+              <tr><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} /></tr>
             </tbody>
           </table>
         </MobileViewTableWrapper>

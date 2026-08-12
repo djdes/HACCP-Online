@@ -17,7 +17,10 @@ import {
 } from "@/components/journals/journal-responsive";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
-import { JournalLegendBlock } from "@/components/journals/journal-document-header";
+import {
+  JournalLegendBlock,
+  JournalPeriodicityHeaderRow,
+} from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -47,6 +50,12 @@ type Props = {
   routeCode?: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   dateTo: string;
   responsibleTitle: string | null;
@@ -87,7 +96,7 @@ function HygieneCheckbox(props: {
     <Checkbox
       checked={props.checked}
       onCheckedChange={(value) => props.onCheckedChange?.(value === true)}
-      className="mx-auto h-5 w-5 rounded-[5px] border-[#c8ccda]"
+      className="mx-auto size-4 rounded-[4px] border-[#c8ccda]"
     />
   );
 }
@@ -95,9 +104,11 @@ function HygieneCheckbox(props: {
 function HygieneHeader({
   pageLabel,
   organizationLabel,
+  controlPeriodicity,
 }: {
   pageLabel: string;
   organizationLabel: string;
+  controlPeriodicity?: string;
 }) {
   return (
     <table className="hygiene-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
@@ -105,29 +116,64 @@ function HygieneHeader({
         <tr>
           <td
             rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[15px] font-semibold`}
+            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[15px] font-semibold leading-tight`}
           >
             {organizationLabel}
           </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}>
+          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}>
             СИСТЕМА ХАССП
           </td>
           <td
             rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] uppercase`}
+            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}
           >
             {pageLabel}
           </td>
         </tr>
         <tr>
-          <td className={`${GRID_CELL_CLASS} px-4 py-3 text-center text-[13px] italic uppercase`}>
+          <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] italic uppercase leading-tight`}>
             ГИГИЕНИЧЕСКИЙ ЖУРНАЛ
           </td>
         </tr>
+        <JournalPeriodicityHeaderRow
+          text={controlPeriodicity}
+          labelClass={GRID_HEAD_CELL_CLASS}
+          valueClass={GRID_CELL_CLASS}
+        />
       </tbody>
     </table>
   );
 }
+
+/**
+ * ПКМ-меню по ячейке гигиенического журнала.
+ *
+ * ЛКМ остаётся тап-циклом (Зд. → В → Б/л → От → Отп → пусто) — это быстрый
+ * путь для ежедневной рутины. Но чтобы поставить «Отп» одним движением
+ * (а не пятью кликами), нужен прямой выбор — как диалог «Редактирование
+ * ячейки» на эталоне lk.haccp-online.ru. Правая кнопка открывает список
+ * всех вариантов прямо у курсора.
+ *
+ * Меню рендерится ОДИН раз на документ (не по ячейке на ячейку): в сетке
+ * до 31 дня × N сотрудников это тысячи ячеек, и Radix-триггер на каждой
+ * стоил бы заметного времени монтирования.
+ */
+type HygieneCellMenu = {
+  x: number;
+  y: number;
+  employeeId: string;
+  dateKey: string;
+  kind: "status" | "temperature";
+};
+
+const HYGIENE_TEMPERATURE_OPTIONS: Array<{
+  value: boolean;
+  code: string;
+  label: string;
+}> = [
+  { value: false, code: "нет", label: "температура в норме" },
+  { value: true, code: "да", label: "температура выше 37°C" },
+];
 
 function makeCellKey(employeeId: string, dateKey: string) {
   return `${employeeId}:${dateKey}`;
@@ -188,6 +234,7 @@ export function HygieneDocumentClient({
   routeCode,
   title,
   organizationName,
+  controlPeriodicity = "",
   dateFrom,
   dateTo,
   responsibleTitle,
@@ -205,6 +252,7 @@ export function HygieneDocumentClient({
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
+  const [cellMenu, setCellMenu] = useState<HygieneCellMenu | null>(null);
   // Mobile-only view preference: 'cards' (default) vs 'table' (horizontal
   // scroll of the full sheet). Общий хук `useMobileView` — тот же, что в
   // cleaning / disinfectant, ключ `journal-mobile-view:hygiene`. Desktop и
@@ -217,6 +265,29 @@ export function HygieneDocumentClient({
   useEffect(() => {
     setEntryMap(buildEntryMap(initialEntries));
   }, [initialEntries]);
+
+  // Закрытие ПКМ-меню: клик где угодно, Escape, скролл листа. Слушатели
+  // вешаем только пока меню открыто — на закрытом документе их нет вообще.
+  useEffect(() => {
+    if (!cellMenu) return;
+
+    const close = () => setCellMenu(null);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+
+    window.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [cellMenu]);
 
   // Миграция со старого ключа "hygiene-mobile-view" (до перехода на общий
   // useMobileView). Читаем один раз: если нового ключа ещё нет, а старый
@@ -340,6 +411,67 @@ export function HygieneDocumentClient({
           };
 
     await persistEntry(employeeId, dateKey, nextData);
+  }
+
+  /**
+   * Открыть ПКМ-меню. `preventDefault` вызываем ТОЛЬКО на интерактивных
+   * ячейках активного документа: в закрытом журнале и в пустых
+   * строках-заглушках должно остаться нативное меню браузера.
+   */
+  function openCellMenu(
+    event: React.MouseEvent,
+    employeeId: string,
+    dateKey: string,
+    kind: HygieneCellMenu["kind"],
+    interactive: boolean
+  ) {
+    if (!isActive || !interactive) return;
+    event.preventDefault();
+    event.stopPropagation();
+    // Клампим по правому краю ещё при открытии — меню шириной ~250px у
+    // ячейки 31-го числа иначе уезжало бы за пределы окна.
+    const MENU_WIDTH = 256;
+    setCellMenu({
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - MENU_WIDTH - 8)),
+      y: event.clientY,
+      employeeId,
+      dateKey,
+      kind,
+    });
+  }
+
+  /** Запись значения из меню — той же логикой, что и `handleStatusClick`. */
+  async function applyMenuStatus(menu: HygieneCellMenu, next: HygieneStatus | null) {
+    const key = makeCellKey(menu.employeeId, menu.dateKey);
+    const current = normalizeHygieneEntryData(entryMap[key]);
+    await persistEntry(
+      menu.employeeId,
+      menu.dateKey,
+      buildEntryForStatus(next, current)
+    );
+  }
+
+  async function applyMenuTemperature(
+    menu: HygieneCellMenu,
+    next: boolean | null
+  ) {
+    const key = makeCellKey(menu.employeeId, menu.dateKey);
+    const current = normalizeHygieneEntryData(entryMap[key]);
+
+    if (next === null) {
+      // «Очистить» на строке температуры — снимаем только отметку T°,
+      // статус сотрудника за этот день трогать нельзя.
+      await persistEntry(menu.employeeId, menu.dateKey, {
+        ...current,
+        temperatureAbove37: null,
+      });
+      return;
+    }
+
+    await persistEntry(menu.employeeId, menu.dateKey, {
+      status: current.status ?? "healthy",
+      temperatureAbove37: next,
+    });
   }
 
   return (
@@ -649,7 +781,11 @@ export function HygieneDocumentClient({
         <div className="hygiene-page">
           <div>
             <div className={DOC_PAPER_HEADER_CLASS}>
-              <HygieneHeader pageLabel="СТР. 1 ИЗ 1" organizationLabel={organizationLabel} />
+              <HygieneHeader
+                pageLabel="СТР. 1 ИЗ 1"
+                organizationLabel={organizationLabel}
+                controlPeriodicity={controlPeriodicity}
+              />
             </div>
 
             <div
@@ -674,7 +810,7 @@ export function HygieneDocumentClient({
               <thead>
                 <tr>
                   <th
-                    className={`w-[42px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     rowSpan={2}
                   >
                     <HygieneCheckbox
@@ -688,25 +824,25 @@ export function HygieneDocumentClient({
                     />
                   </th>
                   <th
-                    className={`w-[72px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`w-[72px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     rowSpan={2}
                   >
                     № п/п
                   </th>
                   <th
-                    className={`w-[230px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`w-[230px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     rowSpan={2}
                   >
                     Ф.И.О. работника
                   </th>
                   <th
-                    className={`w-[290px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                    className={`w-[290px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     rowSpan={2}
                   >
                     Должность
                   </th>
                   <th
-                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                     colSpan={dateKeys.length}
                   >
                     Месяц {monthLabel}
@@ -717,7 +853,7 @@ export function HygieneDocumentClient({
                     <th
                       key={dateKey}
                       data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                      className={`w-[58px] ${GRID_HEAD_CELL_CLASS} p-2 text-center font-semibold`}
+                      className={`w-[58px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     >
                       {getDayNumber(dateKey)}
                     </th>
@@ -729,7 +865,7 @@ export function HygieneDocumentClient({
                 {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
@@ -740,11 +876,11 @@ export function HygieneDocumentClient({
                           />
                         ) : null}
                       </td>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                         {employee.name ? employee.number : ""}
                       </td>
-                      <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{employee.name || ""}</td>
-                      <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{employee.name || ""}</td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                         {employee.position || ""}
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -756,13 +892,22 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
-                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} h-8 px-2 py-1 text-center align-middle leading-tight ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
                               if (!employee.name) return;
                               handleStatusClick(employee.id, dateKey).catch(() => {});
                             }}
+                            onContextMenu={(event) =>
+                              openCellMenu(
+                                event,
+                                employee.id,
+                                dateKey,
+                                "status",
+                                Boolean(employee.name)
+                              )
+                            }
                           >
                             {statusMeta?.code || ""}
                           </td>
@@ -770,7 +915,7 @@ export function HygieneDocumentClient({
                       })}
                     </tr>
                     <tr>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                         Температура сотрудника более 37°C?
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -781,13 +926,22 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
-                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle ${
+                            className={`${GRID_CELL_CLASS} h-8 px-2 py-1 text-center align-middle leading-tight ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
                               if (!employee.name) return;
                               handleTemperatureClick(employee.id, dateKey).catch(() => {});
                             }}
+                            onContextMenu={(event) =>
+                              openCellMenu(
+                                event,
+                                employee.id,
+                                dateKey,
+                                "temperature",
+                                Boolean(employee.name)
+                              )
+                            }
                           >
                             {getTemperatureLabel(entry)}
                           </td>
@@ -798,15 +952,15 @@ export function HygieneDocumentClient({
                 ))}
 
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center align-middle`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
                     <HygieneCheckbox />
                   </td>
-                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     Должность ответственного за контроль
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>{responsibleLabel}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
-                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1.5`} />
+                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
                   ))}
                 </tr>
               </tbody>
@@ -862,6 +1016,75 @@ export function HygieneDocumentClient({
       </div>
       </div>
       </div>
+
+      {/* ПКМ-меню ячейки — аналог диалога «Редактирование ячейки» эталона.
+          Позиционируется у курсора (position: fixed), поэтому не зависит от
+          горизонтального скролла широкого листа. В печати скрыто. */}
+      {cellMenu ? (
+        <div
+          role="menu"
+          className="fixed z-50 min-w-[240px] rounded-2xl border border-[#ececf4] bg-white p-1.5 shadow-[0_18px_48px_-16px_rgba(11,16,36,0.35)] print:hidden"
+          style={{ left: cellMenu.x, top: cellMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          {cellMenu.kind === "status" ? (
+            <>
+              {HYGIENE_STATUS_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const menu = cellMenu;
+                    setCellMenu(null);
+                    applyMenuStatus(menu, option.value).catch(() => {});
+                  }}
+                  className="flex w-full items-baseline gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]"
+                >
+                  <span className="min-w-[34px] font-semibold">{option.code}</span>
+                  <span className="text-[#6f7282]">— {option.label}</span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {HYGIENE_TEMPERATURE_OPTIONS.map((option) => (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const menu = cellMenu;
+                    setCellMenu(null);
+                    applyMenuTemperature(menu, option.value).catch(() => {});
+                  }}
+                  className="flex w-full items-baseline gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]"
+                >
+                  <span className="min-w-[34px] font-semibold">{option.code}</span>
+                  <span className="text-[#6f7282]">— {option.label}</span>
+                </button>
+              ))}
+            </>
+          )}
+          <div className="my-1 h-px bg-[#ececf4]" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const menu = cellMenu;
+              setCellMenu(null);
+              (menu.kind === "status"
+                ? applyMenuStatus(menu, null)
+                : applyMenuTemperature(menu, null)
+              ).catch(() => {});
+            }}
+            className="w-full rounded-xl px-3 py-2 text-left text-[13.5px] text-[#ff3b30] transition-colors duration-150 hover:bg-[#fff3f2]"
+          >
+            Очистить
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

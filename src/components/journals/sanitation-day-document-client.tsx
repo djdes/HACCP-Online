@@ -70,6 +70,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
@@ -86,6 +87,12 @@ type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   status: string;
   users: UserItem[];
   config: unknown;
@@ -708,6 +715,7 @@ export function SanitationDayDocumentClient({
   documentId,
   title,
   organizationName,
+  controlPeriodicity = "",
   status,
   users,
   config,
@@ -863,25 +871,31 @@ export function SanitationDayDocumentClient({
             <tr>
               <td
                 rowSpan={2}
-                className={`${GRID_CELL_CLASS} w-[18%] px-2 py-1.5 text-center text-[13px] font-semibold`}
+                className={`${GRID_CELL_CLASS} w-[18%] px-2 py-1 text-center text-[13px] font-semibold leading-tight`}
               >
                 {organizationName}
               </td>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px]`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] leading-tight`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className={`${GRID_CELL_CLASS} w-[22%] px-2 py-1.5 text-center text-[13px]`}>
+              <td className={`${GRID_CELL_CLASS} w-[22%] px-2 py-1 text-center text-[13px] leading-tight`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
             <tr>
               <td
                 colSpan={2}
-                className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] italic uppercase`}
+                className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] italic uppercase leading-tight`}
               >
                 ГРАФИК И УЧЕТ ГЕНЕРАЛЬНЫХ УБОРОК
               </td>
             </tr>
+            <JournalPeriodicityHeaderRow
+              text={controlPeriodicity}
+              labelClass={GRID_HEAD_CELL_CLASS}
+              valueClass={GRID_CELL_CLASS}
+              valueColSpan={2}
+            />
           </tbody>
         </table>
         </div>
@@ -1016,12 +1030,12 @@ export function SanitationDayDocumentClient({
           ) : null}
 
           <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className={`min-w-full border-collapse ${GRID_CELL_CLASS} bg-white text-[14px]`}>
+          <table className={`min-w-full border-collapse ${GRID_CELL_CLASS} bg-white text-[14px] leading-tight`}>
             <thead>
               <tr>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[54px] px-2 py-2`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[54px] px-2 py-1.5 leading-tight`}
                 >
                   {!readOnly ? (
                     <div className="flex items-center justify-center">
@@ -1038,17 +1052,17 @@ export function SanitationDayDocumentClient({
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[360px] px-3 py-2`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[360px] px-3 py-1.5 leading-tight`}
                 >
                   Помещение
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-3 py-2`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-3 py-1.5 leading-tight`}
                 >
                   Вид
                 </th>
-                <th colSpan={12} className={`${GRID_HEAD_CELL_CLASS} px-3 py-2`}>
+                <th colSpan={12} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>
                   График
                 </th>
               </tr>
@@ -1056,7 +1070,7 @@ export function SanitationDayDocumentClient({
                 {SANITATION_MONTHS.map((month) => (
                   <th
                     key={month.key}
-                    className={`${GRID_HEAD_CELL_CLASS} w-[90px] px-2 py-2`}
+                    className={`${GRID_HEAD_CELL_CLASS} w-[90px] px-2 py-1.5 leading-tight`}
                   >
                     {month.short}
                   </th>
@@ -1069,7 +1083,7 @@ export function SanitationDayDocumentClient({
                   <tr>
                     <td
                       rowSpan={2}
-                      className={`${GRID_CELL_CLASS} px-2 py-2 align-middle`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`}
                     >
                       {!readOnly ? (
                         <div className="flex items-center justify-center">
@@ -1088,7 +1102,7 @@ export function SanitationDayDocumentClient({
                     </td>
                     <td
                       rowSpan={2}
-                      className={`${GRID_CELL_CLASS} px-3 py-2 text-center align-middle ${readOnly ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                      className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle ${readOnly ? "" : "cursor-pointer hover:bg-[#f5f6ff]"} leading-tight`}
                       onClick={() => {
                         if (readOnly) return;
                         setRoomDialogState({
@@ -1101,13 +1115,13 @@ export function SanitationDayDocumentClient({
                     >
                       {row.roomName}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>
                       План
                     </td>
                     {SANITATION_MONTHS.map((month) => (
                       <td
                         key={`${row.id}-plan-${month.key}`}
-                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
                       >
                         {readOnly ? (
                           displayMonthValue(row.plan[month.key])
@@ -1132,13 +1146,13 @@ export function SanitationDayDocumentClient({
                     ))}
                   </tr>
                   <tr>
-                    <td className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}>
+                    <td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>
                       Факт
                     </td>
                     {SANITATION_MONTHS.map((month) => (
                       <td
                         key={`${row.id}-fact-${month.key}`}
-                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
                       >
                         {readOnly ? (
                           displayMonthValue(row.fact[month.key])
@@ -1167,7 +1181,7 @@ export function SanitationDayDocumentClient({
               <tr>
                 <td
                   colSpan={3}
-                  className={`${GRID_CELL_CLASS} px-3 py-2 text-center`}
+                  className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}
                 >
                   Ответственный:{" "}
                   {getSanitationApproveLabel(
@@ -1177,7 +1191,7 @@ export function SanitationDayDocumentClient({
                 </td>
                 <td
                   colSpan={12}
-                  className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[#6f7282]`}
+                  className={`${GRID_CELL_CLASS} px-3 py-1 text-center text-[#6f7282] leading-tight`}
                 >
                   Отметки по месяцам указаны в таблице выше.
                 </td>

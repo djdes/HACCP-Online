@@ -37,9 +37,8 @@ import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-but
 import {
   getHygienePositionLabel,
   getStaffJournalResponsibleTitleOptions,
-  HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { getUserPositionLabel, getUsersForRoleLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import {
@@ -47,6 +46,7 @@ import {
   PositionSelectItems,
 } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
 type UserItem = {
   id: string;
   name: string;
@@ -65,6 +65,11 @@ type Props = {
   includedEmployeeIds: string[];
   routeCode?: string;
   organizationName?: string;
+  /**
+   * Текст «Периодичность контроля» из `config.controlPeriodicity`
+   * (или дефолт шаблона). Редактируется в «Настройках журнала».
+   */
+  controlPeriodicity?: string;
   showHeaderActions?: boolean;
   hideHeading?: boolean;
   hidePrint?: boolean;
@@ -109,10 +114,30 @@ function AddEmployeeDialog({
     userId: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * Кандидаты = сотрудники организации, которых ЕЩЁ НЕТ в документе.
+   * Раньше в каскад «Должность → Сотрудник» передавался тот же список,
+   * но должности строились по нему же, поэтому при полностью заполненном
+   * журнале выбор должности «просто не работал»: должность выбиралась,
+   * а список сотрудников был пуст без единого слова объяснения.
+   */
   const availableUsers = useMemo(
     () => users.filter((user) => !includedEmployeeIds.includes(user.id)),
     [includedEmployeeIds, users]
   );
+  const allAlreadyAdded = users.length > 0 && availableUsers.length === 0;
+  /**
+   * Есть ли ещё кандидаты на ВЫБРАННОЙ должности. Нужен отдельно от
+   * `availableUsers`, потому что должности берутся из полного списка
+   * `users` — иначе после добавления последнего повара сама должность
+   * «Повар» исчезала бы из селекта, и владелец думал, что её удалили.
+   */
+  const positionHasCandidates = useMemo(() => {
+    if (!pick.positionTitle) return true;
+    return availableUsers.some(
+      (user) => getUserPositionLabel(user) === pick.positionTitle
+    );
+  }, [availableUsers, pick.positionTitle]);
 
   useEffect(() => {
     if (!open) return;
@@ -151,26 +176,62 @@ function AddEmployeeDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 px-5 py-6 sm:px-10 sm:py-8">
-          <p className="text-[18px] text-black">
-            Выберите соответствующую должность и сотрудника.
-          </p>
-          <PositionEmployeePicker
-            users={availableUsers}
-            value={pick}
-            onChange={setPick}
-            disabled={availableUsers.length === 0}
-            triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
-          />
-          <div className="flex justify-end pt-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !pick.userId}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
-            >
-              {isSubmitting ? "Добавление..." : "Добавить"}
-            </Button>
-          </div>
+          {allAlreadyAdded ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-5 py-4">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Все сотрудники уже добавлены в журнал
+                </div>
+                <p className="mt-1.5 text-[13.5px] leading-[1.45] text-[#6f7282]">
+                  В документе уже {users.length}{" "}
+                  {users.length === 1 ? "строка" : "строк"} — по одной на каждого
+                  активного сотрудника организации. Чтобы добавить кого-то ещё,
+                  сначала заведите сотрудника в «Настройки → Сотрудники».
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
+                >
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-[15px] text-[#3c4053]">
+                Выберите соответствующую должность и сотрудника.
+              </p>
+              <PositionEmployeePicker
+                users={availableUsers}
+                positionUsers={users}
+                value={pick}
+                onChange={setPick}
+                disabled={availableUsers.length === 0}
+                emptyEmployeeHint="Все сотрудники этой должности уже в журнале — выберите другую должность."
+                triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
+              />
+              {!positionHasCandidates ? (
+                <div className="rounded-xl border border-[#ffe6c9] bg-[#fff8ee] px-4 py-3 text-[13px] leading-[1.45] text-[#8a5a12]">
+                  Все сотрудники этой должности уже в журнале — выберите другую
+                  должность.
+                </div>
+              ) : null}
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !pick.userId}
+                  className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors duration-150 hover:bg-[#4b57ff]"
+                >
+                  {isSubmitting ? "Добавление..." : "Добавить"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -196,6 +257,22 @@ function FillFromStaffDialog({
   const [category, setCategory] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * Счётчик «сколько ещё не в журнале» по каждой категории. Раньше пункты
+   * были просто «Руководство — Повар», и владелец не понимал, почему кнопка
+   * «Добавить» ничего не делает: все кандидаты уже были в документе.
+   */
+  const remainingByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    const pending = users.filter((user) => !includedEmployeeIds.includes(user.id));
+    map.set("all", pending.length);
+    pending.forEach((user) => {
+      const key = `role:${user.role}`;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [includedEmployeeIds, users]);
+
   const roleOptions = useMemo(() => {
     const roles = [...new Set(users.map((user) => user.role))];
     const items = [{ value: "all", label: "Добавить всех" }];
@@ -208,8 +285,11 @@ function FillFromStaffDialog({
       });
     });
 
-    return items;
-  }, [users]);
+    return items.map((item) => ({
+      ...item,
+      label: `${item.label} (${remainingByCategory.get(item.value) ?? 0})`,
+    }));
+  }, [remainingByCategory, users]);
 
   const remainingCount = useMemo(() => {
     if (category === "all") {
@@ -271,8 +351,22 @@ function FillFromStaffDialog({
             </Select>
           </div>
 
-          {remainingCount === 0 && (
-            <div className="text-[16px] text-[#ff3b30]">Все сотрудники внесены в список.</div>
+          {remainingCount > 0 ? (
+            <div className="rounded-xl border border-[#e2e6ff] bg-[#f7f8ff] px-4 py-3 text-[13.5px] leading-[1.45] text-[#3848c7]">
+              Будет добавлено: {remainingCount}{" "}
+              {remainingCount === 1
+                ? "новый сотрудник"
+                : remainingCount < 5
+                  ? "новых сотрудника"
+                  : "новых сотрудников"}
+              . Уже добавленные строки не дублируются.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-[#ffe6c9] bg-[#fff8ee] px-4 py-3 text-[13.5px] leading-[1.45] text-[#8a5a12]">
+              {category === "all"
+                ? "Все сотрудники организации уже в журнале — добавлять некого."
+                : "Все сотрудники этой должности уже в журнале — выберите другую категорию."}
+            </div>
           )}
 
           <div className="flex justify-end pt-2">
@@ -280,7 +374,12 @@ function FillFromStaffDialog({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || remainingCount === 0}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
+              title={
+                remainingCount === 0
+                  ? "Нет сотрудников для добавления — все уже в журнале"
+                  : undefined
+              }
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors duration-150 hover:bg-[#4b57ff] disabled:opacity-50"
             >
               {isSubmitting ? "Добавление..." : "Добавить"}
             </Button>
@@ -299,6 +398,7 @@ function JournalSettingsDialog({
   responsibleTitle,
   responsibleUserId,
   users,
+  controlPeriodicity = "",
   useV2 = false,
 }: {
   open: boolean;
@@ -308,12 +408,14 @@ function JournalSettingsDialog({
   responsibleTitle: string | null;
   responsibleUserId: string | null;
   users: UserItem[];
+  controlPeriodicity?: string;
   useV2?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState(title);
   const [responsible, setResponsible] = useState(responsibleTitle || "");
   const [responsibleUser, setResponsibleUser] = useState(responsibleUserId || "");
+  const [periodicity, setPeriodicity] = useState(controlPeriodicity);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const options = useMemo(() => getStaffJournalResponsibleTitleOptions(users), [users]);
 
@@ -322,7 +424,15 @@ function JournalSettingsDialog({
     setName(title);
     setResponsible(responsibleTitle || options[0] || "");
     setResponsibleUser(responsibleUserId || "");
-  }, [open, options, responsibleTitle, responsibleUserId, title]);
+    setPeriodicity(controlPeriodicity);
+  }, [
+    controlPeriodicity,
+    open,
+    options,
+    responsibleTitle,
+    responsibleUserId,
+    title,
+  ]);
 
   async function handleSave() {
     setIsSubmitting(true);
@@ -334,6 +444,7 @@ function JournalSettingsDialog({
           title: name.trim(),
           responsibleTitle: responsible,
           responsibleUserId: responsibleUser || null,
+          controlPeriodicity: periodicity,
         }),
       });
 
@@ -416,14 +527,11 @@ function JournalSettingsDialog({
             </SelectContent>
           </Select>
         </div>
-        <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-            Периодичность контроля
-          </div>
-          <div className="mt-1.5 text-[14px] leading-[1.55] text-[#0b1024]">
-            {HYGIENE_PERIODICITY_TEXT}
-          </div>
-        </div>
+        <ControlPeriodicityField
+          value={periodicity}
+          onChange={setPeriodicity}
+          labelClassName="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+        />
       </JournalSettingsModal>
     );
   }
@@ -489,10 +597,11 @@ function JournalSettingsDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
-            <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
-            <div className="text-[15px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
-          </div>
+          <ControlPeriodicityField
+            value={periodicity}
+            onChange={setPeriodicity}
+            labelClassName="text-[16px] text-[#73738a]"
+          />
           <div className="flex justify-end">
             <Button
               type="button"
@@ -520,6 +629,7 @@ export function StaffJournalToolbar({
   users,
   includedEmployeeIds,
   routeCode,
+  controlPeriodicity = "",
   showHeaderActions = false,
   hideHeading = false,
   hidePrint = false,
@@ -670,6 +780,7 @@ export function StaffJournalToolbar({
         responsibleTitle={responsibleTitle}
         responsibleUserId={responsibleUserId}
         users={users}
+        controlPeriodicity={controlPeriodicity}
         useV2={useV2}
       />
 
@@ -717,19 +828,25 @@ export function StaffJournalAddButton({
             <ChevronDown className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-4 shadow-xl sm:min-w-[360px]">
+        {/* Размеры пунктов — как в остальных журналах (text-[14px] / py-2).
+            Раньше здесь стояли text-[18px] + size-6 иконки в p-4 контейнере:
+            дропдаун выглядел «огромным» на фоне соседних меню. */}
+        <DropdownMenuContent
+          align="start"
+          className="max-w-[calc(100vw-1rem)] rounded-2xl border-0 p-1.5 shadow-xl sm:min-w-[280px]"
+        >
           <DropdownMenuItem
-            className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
+            className="rounded-xl px-3 py-2 text-[14px] text-[#3848c7]"
             onSelect={() => setAddOpen(true)}
           >
-            <UserPlus className="mr-4 size-6 text-[#3848c7]" />
+            <UserPlus className="mr-2.5 size-4 text-[#3848c7]" />
             Добавить сотрудника
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="h-9 rounded-xl px-3.5 text-[18px] text-[#3848c7]"
+            className="rounded-xl px-3 py-2 text-[14px] text-[#3848c7]"
             onSelect={() => setFillOpen(true)}
           >
-            <Users className="mr-4 size-6 text-[#3848c7]" />
+            <Users className="mr-2.5 size-4 text-[#3848c7]" />
             Заполнить из списка сотрудников
           </DropdownMenuItem>
         </DropdownMenuContent>

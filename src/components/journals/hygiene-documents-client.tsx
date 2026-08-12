@@ -27,11 +27,11 @@ import {
 } from "@/components/ui/select";
 import {
   getStaffJournalResponsibleTitleOptions,
-  HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import { getDefaultControlPeriodicity } from "@/lib/control-periodicity";
 import {
   getJournalDocumentHeading,
-  isStaffDocumentTemplate,
 } from "@/lib/journal-document-helpers";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 
@@ -53,6 +53,8 @@ type JournalListDocument = {
   responsibleTitle: string | null;
   responsibleUserId: string | null;
   periodLabel: string;
+  /** Текст «Периодичность контроля» документа (config.controlPeriodicity). */
+  controlPeriodicity?: string;
 };
 
 type UserProp = {
@@ -90,6 +92,7 @@ function EditDocumentDialog({
   const [title, setTitle] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [responsibleUserId, setResponsibleUserId] = useState("");
+  const [periodicity, setPeriodicity] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -97,7 +100,10 @@ function EditDocumentDialog({
     setTitle(document.title);
     setResponsibleTitle(document.responsibleTitle || responsibleOptions[0] || "");
     setResponsibleUserId(document.responsibleUserId || "");
-  }, [document, open, responsibleOptions]);
+    setPeriodicity(
+      document.controlPeriodicity ?? getDefaultControlPeriodicity(templateCode)
+    );
+  }, [document, open, responsibleOptions, templateCode]);
 
   async function handleSave() {
     if (!document) return;
@@ -111,6 +117,7 @@ function EditDocumentDialog({
           title: title.trim(),
           responsibleTitle,
           responsibleUserId: responsibleUserId || null,
+          controlPeriodicity: periodicity,
         }),
       });
       if (!response.ok) {
@@ -184,12 +191,11 @@ function EditDocumentDialog({
             </Select>
           </div>
 
-          {isStaffDocumentTemplate(templateCode) && templateCode !== "health_check" && (
-            <div className="space-y-2 rounded-3xl border border-[#ececf4] px-6 py-5">
-              <div className="text-[14px] text-[#6f7282]">Периодичность контроля</div>
-              <div className="text-[15px] leading-[1.35] text-black">{HYGIENE_PERIODICITY_TEXT}</div>
-            </div>
-          )}
+          <ControlPeriodicityField
+            value={periodicity}
+            onChange={setPeriodicity}
+            labelClassName="text-[14px] text-[#6f7282]"
+          />
 
           <div className="flex justify-end pt-2">
             <Button

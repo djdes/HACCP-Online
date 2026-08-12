@@ -30,6 +30,7 @@ import { AcceptanceDocumentClient } from "@/components/journals/acceptance-docum
 import { SanitationDayDocumentClient } from "@/components/journals/sanitation-day-document-client";
 import { HealthDocumentClient } from "@/components/journals/health-document-client";
 import { HygieneDocumentClient } from "@/components/journals/hygiene-document-client";
+import { readControlPeriodicity } from "@/lib/control-periodicity";
 import {
   getHygieneDemoTeamUsers,
   normalizeHealthEntryData,
@@ -351,10 +352,19 @@ async function JournalDocumentBody({
     );
   }
 
+  // «Периодичность контроля» — общий для всех 13 обязательных журналов текст
+  // второй строки бумажной шапки. Читается из config документа, back-compat
+  // fallback — дефолт шаблона (см. src/lib/control-periodicity.ts).
+  const controlPeriodicity = readControlPeriodicity(
+    document.config,
+    document.template.code
+  );
+
   if (document.template.code === "hygiene") {
     return (
       <HygieneDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         routeCode={code}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
@@ -380,6 +390,7 @@ async function JournalDocumentBody({
     return (
       <HealthDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
@@ -478,6 +489,7 @@ async function JournalDocumentBody({
     return (
       <MedBookDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         templateCode={code}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
@@ -495,6 +507,7 @@ async function JournalDocumentBody({
     return (
       <PerishableRejectionDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
@@ -641,6 +654,7 @@ async function JournalDocumentBody({
     return (
       <ColdEquipmentDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
@@ -666,6 +680,7 @@ async function JournalDocumentBody({
     return (
       <SanitationDayDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
@@ -809,6 +824,7 @@ async function JournalDocumentBody({
     return (
       <AcceptanceDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         routeCode={code}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
@@ -846,6 +862,7 @@ async function JournalDocumentBody({
       return (
         <FryerOilDocumentClient
           documentId={document.id}
+          controlPeriodicity={controlPeriodicity}
           title={document.title || "Журнал учета использования фритюрных жиров"}
           organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
@@ -869,6 +886,7 @@ async function JournalDocumentBody({
         <UvLampRuntimeDocumentClient
           key={`${document.id}:${document.updatedAt.toISOString()}:${document.entries.length}:${document.status}:${document.dateFrom.toISOString()}:${document.dateTo.toISOString()}`}
           documentId={document.id}
+          controlPeriodicity={controlPeriodicity}
           routeCode={code}
           title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}
           organizationName={organization?.name || ORG_NAME_FALLBACK}
@@ -894,6 +912,7 @@ async function JournalDocumentBody({
       return (
         <CleaningVentilationChecklistDocumentClient
           documentId={document.id}
+          controlPeriodicity={controlPeriodicity}
           title={document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}
           organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
@@ -997,6 +1016,7 @@ async function JournalDocumentBody({
     return (
       <ClimateDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
@@ -1048,6 +1068,7 @@ async function JournalDocumentBody({
     return (
       <CleaningDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}
@@ -1111,6 +1132,7 @@ async function JournalDocumentBody({
     return (
       <FinishedProductDocumentClient
         documentId={document.id}
+        controlPeriodicity={controlPeriodicity}
         title={document.title}
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         dateFrom={toDateKey(document.dateFrom)}

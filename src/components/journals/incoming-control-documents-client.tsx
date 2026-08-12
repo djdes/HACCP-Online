@@ -36,6 +36,11 @@ import {
   JOURNAL_CARD_VALUE_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import {
+  getDefaultControlPeriodicity,
+  readControlPeriodicity,
+} from "@/lib/control-periodicity";
 
 type User = { id: string; name: string; role: string };
 
@@ -64,6 +69,7 @@ type DialogState = {
   expiryFieldLabel: AcceptanceDocumentConfig["expiryFieldLabel"];
   responsibleTitle: string;
   responsibleUserId: string;
+  controlPeriodicity: string;
 };
 
 function formatRuDate(value: string) {
@@ -97,6 +103,7 @@ function getDefaultDialogState(
     expiryFieldLabel: config.expiryFieldLabel,
     responsibleTitle: config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
     responsibleUserId: config.defaultResponsibleUserId || users[0]?.id || "",
+    controlPeriodicity: getDefaultControlPeriodicity(templateCode),
   };
 }
 
@@ -192,6 +199,12 @@ function SettingsDialog({
             labelClassName="text-[14px] text-[#73738a]"
             triggerClassName="h-9 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]"
           />
+          <ControlPeriodicityField
+            value={state.controlPeriodicity}
+            onChange={(value) =>
+              setState((current) => ({ ...current, controlPeriodicity: value }))
+            }
+          />
           <div className="flex justify-end">
             <Button
               type="button"
@@ -279,6 +292,7 @@ export function IncomingControlDocumentsClient({
         responsibleTitle: payload.responsibleTitle,
         responsibleUserId,
         config,
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
     const result = await response.json().catch(() => null);
@@ -305,6 +319,7 @@ export function IncomingControlDocumentsClient({
           defaultResponsibleTitle: payload.responsibleTitle || null,
           defaultResponsibleUserId: payload.responsibleUserId || null,
         },
+        controlPeriodicity: payload.controlPeriodicity,
       }),
     });
     if (!response.ok) {
@@ -477,6 +492,10 @@ export function IncomingControlDocumentsClient({
                       config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
                     responsibleUserId:
                       config.defaultResponsibleUserId || users[0]?.id || "",
+                    controlPeriodicity: readControlPeriodicity(
+                      settingsDocument.config,
+                      templateCode
+                    ),
                   };
                 })(),
               }

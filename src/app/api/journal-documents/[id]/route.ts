@@ -28,6 +28,10 @@ import {
   normalizeJournalDocumentStaffState,
   normalizeJournalStaffBoundConfig,
 } from "@/lib/journal-staff-binding";
+import {
+  CONTROL_PERIODICITY_CONFIG_KEY,
+  sanitizeControlPeriodicity,
+} from "@/lib/control-periodicity";
 import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
@@ -135,6 +139,7 @@ export async function PATCH(
       "responsibleTitle",
       "responsibleUserId",
       "config",
+      "controlPeriodicity",
       "dateFrom",
       "dateTo",
     ].some((key) => body[key] !== undefined)
@@ -280,6 +285,58 @@ export async function PATCH(
   if (body.status !== undefined) data.status = body.status;
   if (body.autoFill !== undefined) data.autoFill = body.autoFill;
   if (body.config !== undefined && data.config === undefined) data.config = body.config;
+
+  // «Периодичность контроля» живёт в config.controlPeriodicity, но НЕ проходит
+  // через per-journal нормализаторы: почти каждый из них собирает свежий
+  // объект и выкинул бы незнакомый ключ. Поэтому здесь два независимых шага.
+  //
+  //   1. carry-over: клиент прислал `config` без ключа (обычное сохранение
+  //      строки/матрицы) — переносим ранее сохранённое значение, иначе
+  //      каждое редактирование документа стирало бы шапку.
+  //   2. explicit: пришло top-level `controlPeriodicity` (модалка «Настройки
+  //      журнала») — оно перебивает всё.
+  //
+  // Обратная совместимость: если ключа нет ни там, ни там — ничего не пишем,
+  // а на чтении `readControlPeriodicity()` вернёт дефолт шаблона.
+  {
+    const previousConfig =
+      doc.config && typeof doc.config === "object" && !Array.isArray(doc.config)
+        ? (doc.config as Record<string, unknown>)
+        : null;
+    const previousPeriodicity = previousConfig?.[CONTROL_PERIODICITY_CONFIG_KEY];
+
+    if (
+      data.config !== undefined &&
+      data.config &&
+      typeof data.config === "object" &&
+      !Array.isArray(data.config) &&
+      typeof previousPeriodicity === "string" &&
+      (data.config as Record<string, unknown>)[CONTROL_PERIODICITY_CONFIG_KEY] === undefined
+    ) {
+      data.config = {
+        ...(data.config as Record<string, unknown>),
+        [CONTROL_PERIODICITY_CONFIG_KEY]: previousPeriodicity,
+      };
+    }
+
+    if (body.controlPeriodicity !== undefined) {
+      const baseConfigForPeriodicity =
+        data.config !== undefined &&
+        data.config &&
+        typeof data.config === "object" &&
+        !Array.isArray(data.config)
+          ? (data.config as Record<string, unknown>)
+          : previousConfig ?? {};
+
+      data.config = {
+        ...baseConfigForPeriodicity,
+        [CONTROL_PERIODICITY_CONFIG_KEY]: sanitizeControlPeriodicity(
+          body.controlPeriodicity
+        ),
+      };
+    }
+  }
+
   if (body.dateFrom !== undefined) data.dateFrom = nextDateFrom;
   if (body.dateTo !== undefined) data.dateTo = nextDateTo;
 

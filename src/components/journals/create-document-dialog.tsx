@@ -53,9 +53,10 @@ import {
   getHygieneDocumentTitle,
   getHygienePositionLabel,
   getStaffJournalResponsibleTitleOptions,
-  HYGIENE_PERIODICITY_TEXT,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
+import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
+import { getDefaultControlPeriodicity } from "@/lib/control-periodicity";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import {
@@ -252,6 +253,11 @@ export function CreateDocumentDialog({
   const [equipmentCleaningVariant, setEquipmentCleaningVariant] =
     useState<EquipmentCleaningFieldVariant>("rinse_temperature");
   const [cleaningVentilation] = useState(true);
+  // «Периодичность контроля» — редактируемая с самого создания (эталон
+  // печатает её в шапке документа). Дефолт берём из реестра по коду журнала.
+  const [controlPeriodicity, setControlPeriodicity] = useState(() =>
+    getDefaultControlPeriodicity(templateCode)
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -284,6 +290,7 @@ export function CreateDocumentDialog({
           dateTo,
           responsibleUserId: selectedResponsibleUser || undefined,
           responsibleTitle: responsibleTitle || undefined,
+          controlPeriodicity,
           config: isCleaningJournal
             ? {
                 ...defaultCleaningDocumentConfig(users),
@@ -653,12 +660,9 @@ export function CreateDocumentDialog({
               )}
 
               {showResponsiblePicker && (isStaffJournal || trackedCreateMode === "staff" ? (
-                <div className="space-y-2 rounded-2xl border border-[#dfe1ec] px-5 py-4">
-                  <div className="text-[18px] text-[#73738a]">Периодичность контроля</div>
-                  <div className="text-[15px] leading-[1.35] text-black">
-                    {templateCode === "health_check"
-                      ? "Документ создается автоматически на период 15 дней."
-                      : HYGIENE_PERIODICITY_TEXT}
+                <div className="space-y-2">
+                  <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[13px] leading-[1.4] text-[#6f7282]">
+                    Период документа задаётся автоматически — 15 дней.
                   </div>
                 </div>
               ) : (
@@ -691,6 +695,11 @@ export function CreateDocumentDialog({
                   </label>
                 </div>
               )}
+
+              <ControlPeriodicityField
+                value={controlPeriodicity}
+                onChange={setControlPeriodicity}
+              />
 
               <div className="hidden">
                 {(isStaffJournal || trackedCreateMode === "staff") && (
@@ -862,6 +871,11 @@ export function CreateDocumentDialog({
                   </div>
                 </>
               )}
+
+              <ControlPeriodicityField
+                value={controlPeriodicity}
+                onChange={setControlPeriodicity}
+              />
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button

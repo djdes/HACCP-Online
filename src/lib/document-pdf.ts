@@ -225,6 +225,7 @@ import {
   normalizeHygieneEntryData,
   toDateKey,
 } from "@/lib/hygiene-document";
+import { readControlPeriodicity } from "@/lib/control-periodicity";
 import {
   EQUIPMENT_CLEANING_DOCUMENT_TITLE,
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
@@ -526,13 +527,31 @@ function drawMedBookPdf(doc: jsPDF, params: {
   }
 }
 
+/**
+ * Текст «Периодичность контроля» текущего рендера PDF.
+ *
+ * `drawJournalHeader` вызывается из ~16 узкоспециализированных
+ * `draw<Journal>Pdf`-функций, каждая со своим params-контрактом; тащить
+ * новое поле через все шестнадцать — большой диффузный диф ради одной
+ * строки. Значение выставляется синхронно в `generateJournalDocumentPdf`
+ * ПОСЛЕ всех `await` и сбрасывается в `finally`, поэтому параллельные
+ * запросы не пересекаются: вся отрисовка jsPDF синхронна.
+ */
+let activeControlPeriodicity = "";
+
 function drawJournalHeader(doc: jsPDF, params: {
   organizationName: string;
   pageLabel: string;
   journalLabel: string;
   withPeriodicity: boolean;
 }) {
-  const { organizationName, pageLabel, journalLabel, withPeriodicity } = params;
+  const { organizationName, pageLabel, journalLabel } = params;
+  // Back-compat: у документов без сохранённого текста гигиена/здоровье
+  // печатают прежнюю жёстко зашитую формулировку.
+  const periodicityText =
+    activeControlPeriodicity.trim() ||
+    (params.withPeriodicity ? HYGIENE_REGISTER_PERIODICITY.join(" ") : "");
+  const withPeriodicity = Boolean(periodicityText);
   const pageWidth = doc.internal.pageSize.getWidth();
   const x = 24;
   const y = 28;
@@ -586,10 +605,7 @@ function drawJournalHeader(doc: jsPDF, params: {
     drawCenteredText(doc, "Периодичность контроля", x + 3, y + topHeight + secondHeight, leftWidth - 6, periodicityHeight, leftWidth - 10);
 
     doc.setFont("JournalUnicode", "normal");
-    const lines = [
-      HYGIENE_REGISTER_PERIODICITY[0],
-      HYGIENE_REGISTER_PERIODICITY[1],
-    ];
+    const lines = [periodicityText];
     let cursorY = y + topHeight + secondHeight + 6;
     lines.forEach((line) => {
       const wrapped = doc.splitTextToSize(line, middleWidth + rightWidth - 10) as string[];
@@ -4885,6 +4901,12 @@ export async function generateJournalDocumentPdf(params: {
       (entry.data as Record<string, unknown>) || {};
   });
 
+  // Ставим ДО первой отрисовки и ПОСЛЕ всех await — дальше идёт только
+  // синхронный jsPDF, поэтому параллельные генерации не пересекаются.
+  // Каждый вызов перезаписывает значение первым делом, так что исключение
+  // в середине отрисовки не «протекает» в следующий PDF.
+  activeControlPeriodicity = readControlPeriodicity(document.config, templateCode);
+
   if (templateCode === "hygiene") {
     drawHygienePdf(doc, {
       organizationName,
@@ -5278,6 +5300,8 @@ export async function generateJournalDocumentPdf(params: {
   } else {
     throw new Error(`PDF шаблон не поддерживается для кода: ${templateCode}`);
   }
+
+  activeControlPeriodicity = "";
 
   const buffer = Buffer.from(doc.output("arraybuffer"));
   const prefix =

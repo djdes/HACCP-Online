@@ -65,11 +65,18 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
 
 type Props = {
   documentId: string;
   title: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   dateFrom: string;
   status: string;
   initialConfig: PerishableRejectionConfig;
@@ -130,6 +137,7 @@ export function PerishableRejectionDocumentClient({
   documentId,
   title,
   organizationName,
+  controlPeriodicity = "",
   dateFrom,
   status,
   initialConfig,
@@ -563,26 +571,32 @@ export function PerishableRejectionDocumentClient({
             <tr>
               <td
                 rowSpan={2}
-                className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1.5 text-center font-semibold`}
+                className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}
               >
                 {organizationName}
               </td>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                 СИСТЕМА ХАССП
               </td>
-              <td className={`w-[20%] ${GRID_CELL_CLASS} p-2 text-[13px] font-medium`}>
+              <td className={`w-[20%] ${GRID_CELL_CLASS} px-2 py-1 text-[13px] font-medium leading-tight`}>
                 Начат&nbsp;&nbsp;{new Date(dateFrom).toLocaleDateString("ru-RU")}
                 <div className="mt-2 font-normal">Окончен&nbsp;__________</div>
               </td>
             </tr>
             <tr>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px] uppercase italic`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] uppercase italic leading-tight`}>
                 ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ
               </td>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center text-[13px]`}>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] leading-tight`}>
                 СТР. 1 ИЗ 1
               </td>
             </tr>
+            <JournalPeriodicityHeaderRow
+              text={controlPeriodicity}
+              labelClass={GRID_HEAD_CELL_CLASS}
+              valueClass={GRID_CELL_CLASS}
+              valueColSpan={2}
+            />
           </tbody>
         </table>
 
@@ -679,38 +693,38 @@ export function PerishableRejectionDocumentClient({
           <table className="min-w-[2200px] w-full border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-2`} />
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} />
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Дата, время поступления пищ. продукции
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Наименование</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Дата выработки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Изготовитель/поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Наименование</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата выработки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Изготовитель/поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Номер документа, подтверждающего безопасность
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Результаты органолептической оценки
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Условия хранения, конечный срок реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Дата, время фактической реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Ответственное лицо (ФИО, должность)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>Примечание</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Примечание</th>
               </tr>
             </thead>
             <tbody>
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) =>
@@ -719,7 +733,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={`${row.arrivalDate} ${row.arrivalTime}`}
                       onChange={(e) => {
@@ -734,7 +748,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={row.productName}
                       onChange={(e) =>
@@ -744,7 +758,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={row.productionDate}
                       onChange={(e) =>
@@ -754,7 +768,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={
                         [row.manufacturer, row.supplier]
@@ -768,7 +782,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={
                         [row.packaging, row.quantity]
@@ -782,7 +796,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={row.documentNumber}
                       onChange={(e) =>
@@ -794,7 +808,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={
                         ORGANOLEPTIC_LABELS[row.organolepticResult] ||
@@ -813,7 +827,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
                       onChange={(e) =>
@@ -823,7 +837,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={`${row.actualSaleDate} ${row.actualSaleTime}`}
                       onChange={(e) => {
@@ -838,7 +852,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={row.responsiblePerson}
                       onChange={(e) =>
@@ -850,7 +864,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
                     <Input
                       value={row.note}
                       onChange={(e) =>

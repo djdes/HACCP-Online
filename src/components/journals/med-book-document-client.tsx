@@ -94,6 +94,12 @@ type Props = {
   title: string;
   templateCode: string;
   organizationName: string;
+  /**
+   * «Периодичность контроля» — вторая строка бумажной шапки документа
+   * (`config.controlPeriodicity`, дефолт — из реестра шаблонов).
+   * Пустая строка ⇒ строка в шапке не рендерится.
+   */
+  controlPeriodicity?: string;
   status: string;
   config: MedBookDocumentConfig;
   employees: Employee[];
@@ -155,6 +161,7 @@ export function MedBookDocumentClient({
   title,
   templateCode,
   organizationName,
+  controlPeriodicity = "",
   status,
   config,
   employees,
@@ -619,6 +626,7 @@ export function MedBookDocumentClient({
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал учёта медицинских книжек сотрудников"
+            controlPeriodicity={controlPeriodicity}
           />
         </div>
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
@@ -658,25 +666,25 @@ export function MedBookDocumentClient({
               <tr>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-4`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-4 leading-tight`}
                 >
                   № п/п
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                 >
                   Ф.И.О. сотрудника
                 </th>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                 >
                   Должность
                 </th>
                 <th
                   colSpan={examColumns.length}
-                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                 >
                   Наименование специалиста / исследования
                 </th>
@@ -685,7 +693,7 @@ export function MedBookDocumentClient({
                 {examColumns.map((column) => (
                   <th
                     key={column}
-                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}
+                    className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}
                   >
                     {column}
                   </th>
@@ -695,10 +703,10 @@ export function MedBookDocumentClient({
             <tbody>
               {rows.map((row, index) => (
                 <tr key={row.id}>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {index + 1}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     <button
                       type="button"
                       className={`inline-flex items-center gap-2 ${isClosed ? "" : "hover:text-[#5566f6]"}`}
@@ -711,7 +719,7 @@ export function MedBookDocumentClient({
                     </button>
                   </td>
                   <td
-                    className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${cellBg(!row.data.positionTitle)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                     onClick={() => !isClosed && setEditId(row.id)}
                   >
                     {row.data.positionTitle}
@@ -723,7 +731,7 @@ export function MedBookDocumentClient({
                     return (
                       <td
                         key={column}
-                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${cellBg(!exam?.date || expired || soon)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                         onClick={() => void editExam(row.id, column)}
                       >
                         {exam?.date ? (
@@ -762,17 +770,17 @@ export function MedBookDocumentClient({
               <tr>
                 <th
                   colSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}
+                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}
                 >
                   Список специалистов и исследований при получении/прохождении
                   медицинской книжки для работников пищевой отрасли
                 </th>
               </tr>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}>
                   Предварительные осмотры (при поступлении на работу)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3 text-[13px]`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}>
                   Периодические (1 раз в год)
                 </th>
               </tr>
@@ -780,10 +788,10 @@ export function MedBookDocumentClient({
             <tbody>
               {MED_BOOK_PRELIMINARY_PERIODIC_ROWS.map((row) => (
                 <tr key={row.preliminary}>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     {row.preliminary}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     {row.periodic}
                   </td>
                 </tr>
@@ -795,13 +803,13 @@ export function MedBookDocumentClient({
           <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
                   Наименование специалиста / исследования
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
                   Периодичность
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
                   Примечание
                 </th>
               </tr>
@@ -809,13 +817,13 @@ export function MedBookDocumentClient({
             <tbody>
               {EXAMINATION_REFERENCE_DATA.map((item) => (
                 <tr key={item.name}>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     {item.name}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     {item.periodicity}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                     {item.note || "—"}
                   </td>
                 </tr>
@@ -837,25 +845,25 @@ export function MedBookDocumentClient({
                   <tr>
                     <th
                       rowSpan={2}
-                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-4`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-2 py-4 leading-tight`}
                     >
                       № п/п
                     </th>
                     <th
                       rowSpan={2}
-                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                     >
                       Ф.И.О. сотрудника
                     </th>
                     <th
                       rowSpan={2}
-                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                     >
                       Должность
                     </th>
                     <th
                       colSpan={vaccColumns.length + 1}
-                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4`}
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                     >
                       Наименование прививки:
                     </th>
@@ -864,12 +872,12 @@ export function MedBookDocumentClient({
                     {vaccColumns.map((column) => (
                       <th
                         key={column}
-                        className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}
+                        className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}
                       >
                         {column}
                       </th>
                     ))}
-                    <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5`}>
+                    <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                       Примечание
                     </th>
                   </tr>
@@ -877,17 +885,17 @@ export function MedBookDocumentClient({
                 <tbody>
                   {rows.map((row, index) => (
                     <tr key={row.id}>
-                      <td className={`${GRID_CELL_CLASS} px-2 py-3 text-center`}>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                         {index + 1}
                       </td>
                       <td
-                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.name}
                       </td>
                       <td
-                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.positionTitle}
@@ -900,7 +908,7 @@ export function MedBookDocumentClient({
                         return (
                           <td
                             key={column}
-                            className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                            className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${cellBg(!vacc || expired)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                             onClick={() => void editVacc(row.id, column)}
                           >
                             {vacc ? (
@@ -928,7 +936,7 @@ export function MedBookDocumentClient({
                         );
                       })}
                       <td
-                        className={`${GRID_CELL_CLASS} px-2 py-1.5 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"}`}
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.note || ""}
@@ -950,10 +958,10 @@ export function MedBookDocumentClient({
             <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
               <thead>
                 <tr>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
                     Наименование прививок
                   </th>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-3`}>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
                     Периодичность
                   </th>
                 </tr>
@@ -961,10 +969,10 @@ export function MedBookDocumentClient({
               <tbody>
                 {VACCINATION_REFERENCE_DATA.map((item) => (
                   <tr key={item.name}>
-                    <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                    <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                       {item.name}
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-4 py-3 align-top`}>
+                    <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
                       {item.periodicity}
                     </td>
                   </tr>

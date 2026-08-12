@@ -39,4 +39,22 @@ export const CELL_FOCUS_CLASS =
  * где раньше стояли хардкод `text-[14px] p-3`.
  */
 export const GRID_TEXT_CLASS = "text-[13px]";
-export const GRID_CELL_PAD_CLASS = "px-2 py-1.5";
+
+/**
+ * Вертикальный ритм строк. Эталон (lk.haccp-online.ru) держит строку данных
+ * в ~34-38px: `text-[13px]` × `leading-tight` (≈18px) + 2×4px паддинга +
+ * рамки. Наш прежний `py-1.5` без `leading-tight` давал ~44-48px, и владелец
+ * справедливо называл таблицы «массивными».
+ *
+ * Данные — `py-1`, шапка — `py-1.5` (заголовки часто в две строки, им нужен
+ * воздух). `print:` не трогаем: печатная сетка задаётся отдельными
+ * `@media print` правилами внутри клиентов.
+ */
+export const GRID_CELL_PAD_CLASS = "px-2 py-1 leading-tight";
+export const GRID_HEAD_PAD_CLASS = "px-2 py-1.5 leading-tight";
+
+/**
+ * Высота интерактивной ячейки-кнопки (уборка, гигиена): достаточно, чтобы
+ * попасть пальцем, но не выше строки данных соседних журналов.
+ */
+export const GRID_CELL_BUTTON_CLASS = "h-8 min-h-8";

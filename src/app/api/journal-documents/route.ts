@@ -9,6 +9,10 @@ import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
 } from "@/lib/cold-equipment-document";
 import {
+  CONTROL_PERIODICITY_CONFIG_KEY,
+  sanitizeControlPeriodicity,
+} from "@/lib/control-periodicity";
+import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
   buildClimateConfigFromAreas,
   getDefaultClimateDocumentConfig,
@@ -694,9 +698,23 @@ export async function POST(request: Request) {
   // body fields сохранил, slot-user'ов из настроек проставил поверх.
   // Раньше при наличии rawConfig мы оставляли normalizedDocumentState.config
   // (PRE-патчер), и слот-пользователи терялись.
-  const finalConfig =
+  const baseFinalConfig =
     prefilled.config ??
     (normalizedDocumentState.config as Record<string, unknown> | undefined);
+
+  // «Периодичность контроля» приходит отдельным top-level полем, а не внутри
+  // `config`: per-journal нормализаторы собирают свежий объект и выкинули бы
+  // незнакомый ключ. Пустая строка — валидное значение (владелец убрал строку
+  // из бумажной шапки), поэтому проверяем именно `!== undefined`.
+  const finalConfig =
+    body.controlPeriodicity !== undefined
+      ? {
+          ...(baseFinalConfig ?? {}),
+          [CONTROL_PERIODICITY_CONFIG_KEY]: sanitizeControlPeriodicity(
+            body.controlPeriodicity
+          ),
+        }
+      : baseFinalConfig;
 
   const doc = await db.journalDocument.create({
     data: {

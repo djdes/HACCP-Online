@@ -126,6 +126,7 @@ export const CASCADE_REVEAL_CLASS =
  */
 export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   users,
+  positionUsers,
   value,
   onChange,
   disabled,
@@ -133,10 +134,22 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   employeeLabel = "Сотрудник",
   emptyPositionPlaceholder = POSITION_PLACEHOLDER,
   emptyEmployeePlaceholder = EMPLOYEE_PLACEHOLDER,
+  emptyEmployeeHint = "На этой должности пока нет сотрудников — добавьте их в «Настройки → Сотрудники».",
   triggerClassName,
   labelClassName,
 }: {
   users: T[];
+  /**
+   * Источник СПИСКА ДОЛЖНОСТЕЙ, когда он шире списка кандидатов.
+   *
+   * Нужен там, где `users` уже отфильтрован (например «Добавить
+   * сотрудника» в журнале показывает только тех, кого ещё нет в
+   * документе): без этого должность, у которой все сотрудники уже
+   * добавлены, просто исчезала из селекта — и владелец решал, что
+   * должность пропала. Теперь должности показываем все, а «кандидатов
+   * не осталось» объясняет `emptyEmployeeHint`.
+   */
+  positionUsers?: UserLike[];
   value: { positionTitle: string; userId: string };
   onChange: (next: { positionTitle: string; userId: string }) => void;
   disabled?: boolean;
@@ -144,6 +157,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   employeeLabel?: string;
   emptyPositionPlaceholder?: string;
   emptyEmployeePlaceholder?: string;
+  emptyEmployeeHint?: string;
   triggerClassName?: string;
   labelClassName?: string;
 }) {
@@ -188,7 +202,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__empty__">{emptyPositionPlaceholder}</SelectItem>
-            <PositionSelectItems users={users} />
+            <PositionSelectItems users={positionUsers ?? users} />
           </SelectContent>
         </Select>
       </div>
@@ -221,9 +235,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
             </SelectContent>
           </Select>
           {availableEmployees.length === 0 ? (
-            <div className="text-[13px] text-[#9b9fb3]">
-              На этой должности пока нет сотрудников — добавьте их в «Настройки → Сотрудники».
-            </div>
+            <div className="text-[13px] text-[#9b9fb3]">{emptyEmployeeHint}</div>
           ) : null}
         </div>
       ) : null}
