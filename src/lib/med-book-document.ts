@@ -175,6 +175,34 @@ export function emptyMedBookEntry(positionTitle: string): MedBookEntryData {
   };
 }
 
+/**
+ * Перенос ключей `examinations` / `vaccinations` после правки справочника
+ * колонок (диалоги «Список специалистов и исследований» / «Список прививок»).
+ *
+ * Данные ячеек лежат в объекте, где ключ — название колонки. Поэтому
+ * переименование колонки без миграции ключей стирало бы уже проставленные
+ * даты. Здесь ключи переносятся (`renames`), а удалённые — выбрасываются.
+ */
+export function remapMedBookColumnKeys<T>(
+  map: Record<string, T>,
+  renames: { from: string; to: string }[],
+  removed: string[]
+): Record<string, T> {
+  const result: Record<string, T> = { ...map };
+
+  for (const { from, to } of renames) {
+    if (!(from in result)) continue;
+    result[to] = result[from];
+    delete result[from];
+  }
+
+  for (const name of removed) {
+    delete result[name];
+  }
+
+  return result;
+}
+
 export function isExaminationExpired(exam: MedBookExamination): boolean {
   if (!exam.expiryDate) return false;
   return exam.expiryDate < new Date().toISOString().slice(0, 10);
