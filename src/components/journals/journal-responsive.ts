@@ -275,6 +275,18 @@ export const DOC_TITLE_ROW_CLASS =
 export const DOC_AUTOFILL_STRIP_CLASS =
   "mb-10 rounded-[22px] bg-[#f3f4fe] px-4 py-3.5 print:hidden sm:px-6 sm:py-4";
 
+/**
+ * Полоса фильтра/сортировки НАД бумажной шапкой — вариант эталона
+ * lk.haccp-online.ru (incoming_control-grid.png): не скруглённая карточка
+ * с отступами, а лента во всю ширину карточки документа.
+ *
+ * `-mx-4 md:-mx-6` вычитает горизонтальный padding контейнера страницы
+ * (`journals/[code]/layout.tsx`), `px-*` возвращает его контенту — поэтому
+ * заливка идёт от края до края, а текст остаётся на левой линии документа.
+ */
+export const DOC_FILTER_STRIP_CLASS =
+  "-mx-4 mb-10 bg-[#f3f4fe] px-4 py-3.5 print:hidden md:-mx-6 md:px-6 md:py-4";
+
 /** Бумажная ХАССП-шапка. 28px до КАПС-заголовка. */
 export const DOC_PAPER_HEADER_CLASS = "mb-7";
 

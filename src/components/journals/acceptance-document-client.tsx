@@ -15,6 +15,7 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
+  DOC_FILTER_STRIP_CLASS,
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
@@ -54,8 +55,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ACCEPTANCE_DECISION_FULL_LABELS,
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
+  INCOMING_CONTROL_COLUMNS,
   createAcceptanceRow,
+  getIncomingControlRowValues,
   normalizeAcceptanceDocumentConfig,
   formatAcceptanceDateDash,
   getAcceptanceDocumentTitle,
@@ -67,6 +71,9 @@ import {
   type AcceptanceDocumentConfig,
   type AcceptanceRow,
 } from "@/lib/acceptance-document";
+import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { Switch } from "@/components/ui/switch";
+import { DateField } from "@/components/journals/journal-dialog-field";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
@@ -607,6 +614,433 @@ function RowDialog(props: {
   );
 }
 
+/* ─── Row Dialog v2 · «Приемка и входной контроль продукции» ─── */
+
+/**
+ * Форма строки для `incoming_control` — ровно 11 колонок эталона
+ * (docs/reference/haccp-online/screenshots/incoming_control-grid.png).
+ *
+ * Пишет только v2-ключи строки; legacy-поля (`transportCondition` и др.)
+ * не трогает — они остаются такими, какими пришли, чтобы старые записи
+ * не «переписывались» при редактировании.
+ */
+function IncomingControlRowDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  users: User[];
+  config: AcceptanceDocumentConfig;
+  initialRow: AcceptanceRow | null;
+  onSave: (
+    row: AcceptanceRow,
+    addToLists: { products: string[]; manufacturers: string[]; suppliers: string[] }
+  ) => Promise<void>;
+}) {
+  const [row, setRow] = useState<AcceptanceRow>(() => createAcceptanceRow());
+  const [newProduct, setNewProduct] = useState("");
+  const [newPartner, setNewPartner] = useState("");
+  const [productOptions, setProductOptions] = useState<string[]>([]);
+  const [partnerOptions, setPartnerOptions] = useState<string[]>([]);
+  const [addedProducts, setAddedProducts] = useState<string[]>([]);
+  const [addedPartners, setAddedPartners] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setRow(
+      props.initialRow ||
+        createAcceptanceRow({
+          responsibleUserId: props.config.defaultResponsibleUserId || "",
+          responsibleTitle: props.config.defaultResponsibleTitle || "",
+          deliveryDate: new Date().toISOString().slice(0, 10),
+          shelfLifeDate: "",
+          manufacturerSupplier: "",
+          accompanyingDocs: "",
+          batchInfo: "",
+          productTemperature: "",
+          documentCompliance: "",
+          acceptanceDecision: "accept",
+          correctiveActions: "",
+        })
+    );
+    setNewProduct("");
+    setNewPartner("");
+    setProductOptions(props.config.products);
+    setPartnerOptions([
+      ...new Set([...props.config.manufacturers, ...props.config.suppliers]),
+    ]);
+    setAddedProducts([]);
+    setAddedPartners([]);
+  }, [
+    props.config.defaultResponsibleUserId,
+    props.config.defaultResponsibleTitle,
+    props.config.manufacturers,
+    props.config.products,
+    props.config.suppliers,
+    props.initialRow,
+    props.open,
+  ]);
+
+  function setValue<K extends keyof AcceptanceRow>(key: K, value: AcceptanceRow[K]) {
+    setRow((current) => ({ ...current, [key]: value }));
+  }
+
+  function appendUnique(list: string[], value: string) {
+    const normalized = value.trim();
+    if (!normalized) return list;
+    if (list.some((item) => item.toLowerCase() === normalized.toLowerCase())) return list;
+    return [...list, normalized];
+  }
+
+  async function handleSave() {
+    setIsSubmitting(true);
+    try {
+      const products = appendUnique(addedProducts, newProduct.trim());
+      const partners = appendUnique(addedPartners, newPartner.trim());
+      const finalRow: AcceptanceRow = { ...row };
+      if (newProduct.trim() && !finalRow.productName) finalRow.productName = newProduct.trim();
+      if (newPartner.trim() && !finalRow.manufacturerSupplier) {
+        finalRow.manufacturerSupplier = newPartner.trim();
+      }
+      // Зеркалим в legacy-поля: «Годен до» → expiryDate (cron сроков
+      // годности), корректирующие действия → note (карточки, mini).
+      finalRow.expiryDate = finalRow.shelfLifeDate;
+      finalRow.note = finalRow.correctiveActions;
+      await props.onSave(finalRow, {
+        products,
+        // Объединённая колонка — новые контрагенты кладём в справочник
+        // производителей, он же питает подсказки этой формы.
+        manufacturers: partners,
+        suppliers: [],
+      });
+      props.onOpenChange(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const isEdit = !!props.initialRow;
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
+            {isEdit ? "Редактирование строки" : "Добавление новой строки"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DateField
+              label="Дата поставки"
+              value={row.deliveryDate}
+              onChange={(value) => setValue("deliveryDate", value)}
+            />
+            <DateField
+              label="Годен до"
+              value={row.shelfLifeDate}
+              onChange={(value) => setValue("shelfLifeDate", value)}
+            />
+          </div>
+
+          {/* Наименование продукции */}
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">Наименование продукции</Label>
+            <div className="flex flex-col gap-2">
+              {Array.from(new Set(productOptions)).map((item) => {
+                const active = row.productName === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setValue("productName", item)}
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-[14px] transition-colors duration-150 ${
+                      active
+                        ? "border-[#5566f6] bg-[#f5f6ff] text-[#0b1024]"
+                        : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#fafbff]"
+                    }`}
+                  >
+                    <span className="font-medium">{item}</span>
+                    <span
+                      className={`flex size-5 items-center justify-center rounded-full border-2 ${active ? "border-[#5566f6]" : "border-[#c7ccea]"}`}
+                    >
+                      {active ? <span className="size-2 rounded-full bg-[#5566f6]" /> : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newProduct}
+                onChange={(e) => setNewProduct(e.target.value)}
+                placeholder="Добавить название новой продукции"
+                className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+              />
+              <Button
+                type="button"
+                className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+                onClick={() => {
+                  const value = newProduct.trim();
+                  if (!value) return;
+                  setProductOptions((current) => appendUnique(current, value));
+                  setAddedProducts((current) => appendUnique(current, value));
+                  setValue("productName", value);
+                  setNewProduct("");
+                }}
+              >
+                <Plus className="size-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Производитель/поставщик — ОДНА колонка */}
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">Производитель/поставщик</Label>
+            <Select
+              value={toNone(row.manufacturerSupplier)}
+              onValueChange={(value) => setValue("manufacturerSupplier", fromNone(value))}
+            >
+              <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                <SelectValue placeholder="Выберите из списка или добавьте нового" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Выберите из списка или добавьте нового</SelectItem>
+                {Array.from(new Set(partnerOptions)).map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Input
+                value={newPartner}
+                onChange={(e) => setNewPartner(e.target.value)}
+                placeholder="Добавить производителя/поставщика"
+                className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+              />
+              <Button
+                type="button"
+                className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+                onClick={() => {
+                  const value = newPartner.trim();
+                  if (!value) return;
+                  setPartnerOptions((current) => appendUnique(current, value));
+                  setAddedPartners((current) => appendUnique(current, value));
+                  setValue("manufacturerSupplier", value);
+                  setNewPartner("");
+                }}
+              >
+                <Plus className="size-5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              ТТН, документы соответствия
+            </Label>
+            <Textarea
+              value={row.accompanyingDocs}
+              onChange={(e) => setValue("accompanyingDocs", e.target.value)}
+              placeholder="Например: ТТН №1245 от 10.08.2026, декларация о соответствии"
+              rows={2}
+              className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Объем, номер партии, дата пр-ва
+            </Label>
+            <Textarea
+              value={row.batchInfo}
+              onChange={(e) => setValue("batchInfo", e.target.value)}
+              placeholder="Например: 20 кг, партия 45-А, дата пр-ва 08.08.2026"
+              rows={2}
+              className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Внутр-яя темп-ра продукта (для скоропортящихся и замороженных)
+            </Label>
+            <Input
+              value={row.productTemperature}
+              onChange={(e) => setValue("productTemperature", e.target.value)}
+              placeholder="Например: +2 °C"
+              className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+            />
+          </div>
+
+          {/* Соответствие товара сопроводительной документации */}
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Соответствие товара сопроводительной документации
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["Соответствует", "#136b2a", "#ecfdf5"],
+                  ["Не соответствует", "#d2453d", "#fff4f2"],
+                ] as const
+              ).map(([label, fg, bg]) => {
+                const active = row.documentCompliance === label;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setValue("documentCompliance", label)}
+                    className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors duration-150 ${
+                      active
+                        ? "border-transparent text-white"
+                        : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                    }`}
+                    style={
+                      active
+                        ? { backgroundColor: fg, color: "white" }
+                        : { backgroundColor: bg, color: fg, borderColor: bg }
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <Textarea
+              value={row.documentCompliance}
+              onChange={(e) => setValue("documentCompliance", e.target.value)}
+              placeholder="Соответствует / расхождения по документам"
+              rows={2}
+              className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Принять/Отклонить, П/О
+              </Label>
+              <Select
+                value={toNone(row.acceptanceDecision)}
+                onValueChange={(value) =>
+                  setValue(
+                    "acceptanceDecision",
+                    fromNone(value) as AcceptanceRow["acceptanceDecision"]
+                  )
+                }
+              >
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  <SelectItem value="accept">{ACCEPTANCE_DECISION_FULL_LABELS.accept}</SelectItem>
+                  <SelectItem value="reject">{ACCEPTANCE_DECISION_FULL_LABELS.reject}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Корректирующие действия для забракованного товара
+            </Label>
+            <Textarea
+              value={row.correctiveActions}
+              onChange={(e) => setValue("correctiveActions", e.target.value)}
+              placeholder="Например: возврат поставщику по акту №12"
+              rows={3}
+              className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
+            />
+          </div>
+
+          {/* Ответственный — должность + сотрудник, как в остальных журналах */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
+              <Select
+                value={toNone(row.responsibleTitle)}
+                onValueChange={(value) => {
+                  const v = fromNone(value);
+                  const candidates = getUsersForRoleLabel(props.users, v);
+                  const stillValid = candidates.some((u) => u.id === row.responsibleUserId);
+                  setValue("responsibleTitle", v);
+                  if (!stillValid) {
+                    setValue("responsibleUserId", candidates[0]?.id || "");
+                  } else if (!row.responsibleUserId && candidates[0]) {
+                    setValue("responsibleUserId", candidates[0].id);
+                  }
+                }}
+              >
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  <PositionSelectItems users={props.users} />
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Ответственный</Label>
+              <Select
+                value={toNone(row.responsibleUserId)}
+                onValueChange={(value) => {
+                  const v = fromNone(value);
+                  setValue("responsibleUserId", v);
+                  if (!row.responsibleTitle) {
+                    const user = props.users.find((u) => u.id === v);
+                    if (user) setValue("responsibleTitle", getUserRoleLabel(user.role));
+                  }
+                }}
+              >
+                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
+                  <SelectValue placeholder="— выберите —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
+                  {(row.responsibleTitle
+                    ? getUsersForRoleLabel(props.users, row.responsibleTitle, {
+                        keepUserId: row.responsibleUserId,
+                      })
+                    : props.users
+                  ).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
+            onClick={() => props.onOpenChange(false)}
+          >
+            Отмена
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={isSubmitting}
+            className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors duration-150 hover:bg-[#4a5bf0] sm:w-auto"
+          >
+            {isSubmitting ? "Сохранение..." : isEdit ? "Сохранить" : "Добавить"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ─── Edit Lists Dialog ─── */
 
 function EditListsDialog(props: {
@@ -917,6 +1351,12 @@ function SettingsDialog(props: {
   config: AcceptanceDocumentConfig;
   onSave: (params: { title: string; dateFrom: string; config: AcceptanceDocumentConfig }) => Promise<void>;
   useV2?: boolean;
+  /**
+   * Выбор подписи колонки срока относился к таблице контроля СЫРЬЯ.
+   * В приёмке продукции колонка называется «Годен до» всегда — группу
+   * там не показываем.
+   */
+  showExpiryLabelChoice?: boolean;
 }) {
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
@@ -976,6 +1416,7 @@ function SettingsDialog(props: {
           className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
         />
       </div>
+      {props.showExpiryLabelChoice === false ? null : (
       <div className="space-y-2">
         <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
           Название поля для срока
@@ -1003,6 +1444,7 @@ function SettingsDialog(props: {
           <span className="text-[14px] text-[#0b1024]">«Срок годности»</span>
         </label>
       </div>
+      )}
       <div className="space-y-2">
         <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
           Должность ответственного
@@ -1097,6 +1539,7 @@ function SettingsDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата начала</Label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-5 text-[16px]" />
           </div>
+          {props.showExpiryLabelChoice === false ? null : (
           <div className="space-y-2">
             <div className="text-[14px] font-semibold">Название поля</div>
             <label className="flex items-center gap-2 text-[15px]">
@@ -1108,6 +1551,7 @@ function SettingsDialog(props: {
               &quot;Срок годности&quot;
             </label>
           </div>
+          )}
           <div className="space-y-1">
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
@@ -1405,14 +1849,20 @@ export function AcceptanceDocumentClient(props: Props) {
 
   const rows = config.rows;
   const routeCode = props.routeCode;
-  const isProductAcceptance = routeCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
+  // routeCode может прийти алиасом источника (`acceptance1journal`), поэтому
+  // тип журнала определяем по разрешённому коду шаблона, а не по URL-сегменту.
+  const isProductAcceptance =
+    resolveJournalCodeAlias(routeCode) === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
   const isClosed = props.status === "closed";
   const responsibleTitle = config.defaultResponsibleTitle || "";
   const responsibleUserId = config.defaultResponsibleUserId || "";
+  // Сортировка — по колонке «Годен до» (v2) / «Предельный срок реализации»
+  // (legacy). `shelfLifeDate` зеркалит `expiryDate`, поэтому одна формула.
   const displayedRows = useMemo(() => {
     if (!sortByExpiry) return rows;
-    return [...rows].sort((a, b) => (a.expiryDate || "").localeCompare(b.expiryDate || ""));
+    const key = (row: AcceptanceRow) => row.shelfLifeDate || row.expiryDate || "";
+    return [...rows].sort((a, b) => key(a).localeCompare(key(b)));
   }, [rows, sortByExpiry]);
   const { mobileView, switchMobileView } = useMobileView(routeCode);
 
@@ -1439,7 +1889,22 @@ export function AcceptanceDocumentClient(props: Props) {
         className="size-5"
       />
     ) : null,
-    fields: [
+    fields: isProductAcceptance
+      ? (() => {
+          const values = getIncomingControlRowValues(row);
+          return [
+            { label: "Годен до", value: values.shelfLifeDate, hideIfEmpty: true },
+            { label: "Производитель/поставщик", value: values.manufacturerSupplier, hideIfEmpty: true },
+            { label: "ТТН, документы соответствия", value: values.accompanyingDocs, hideIfEmpty: true },
+            { label: "Объем, номер партии, дата пр-ва", value: values.batchInfo, hideIfEmpty: true },
+            { label: "Внутр-яя темп-ра продукта", value: values.productTemperature, hideIfEmpty: true },
+            { label: "Соответствие сопр. документации", value: values.documentCompliance, hideIfEmpty: true },
+            { label: "Принять/Отклонить", value: values.acceptanceDecision, hideIfEmpty: true },
+            { label: "Корректирующие действия", value: values.correctiveActions, hideIfEmpty: true },
+            { label: "Ответственный", value: getResponsibleLabel(row, props.users), hideIfEmpty: true },
+          ];
+        })()
+      : [
       { label: "Производитель", value: row.manufacturer, hideIfEmpty: true },
       { label: "Поставщик", value: row.supplier, hideIfEmpty: true },
       {
@@ -1683,11 +2148,28 @@ export function AcceptanceDocumentClient(props: Props) {
         />
 
         {/* Полоса настроек журнала — на месте полосы автозаполнения эталона:
-            между строкой заголовка и бумажной шапкой, во всю ширину. */}
-        <label className={`${DOC_AUTOFILL_STRIP_CLASS} flex items-center gap-4 text-[16px]`}>
-          <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
-          <span>Сортировать по сроку годности</span>
-        </label>
+            между строкой заголовка и бумажной шапкой, во всю ширину.
+            Для incoming_control эталон рисует её лентой без скруглений
+            и с тумблером (incoming_control-grid.png). */}
+        {isProductAcceptance ? (
+          // Radix Switch — это <button>, поэтому обёртка <label> его бы не
+          // переключала по клику на текст: вешаем подпись на htmlFor.
+          <div className={`${DOC_FILTER_STRIP_CLASS} flex items-center gap-4 text-[16px]`}>
+            <Switch
+              id="acceptance-sort-by-expiry"
+              checked={sortByExpiry}
+              onCheckedChange={(checked) => setSortByExpiry(checked === true)}
+            />
+            <label htmlFor="acceptance-sort-by-expiry" className="cursor-pointer select-none">
+              Сортировать по сроку годности
+            </label>
+          </div>
+        ) : (
+          <label className={`${DOC_AUTOFILL_STRIP_CLASS} flex cursor-pointer items-center gap-4 text-[16px]`}>
+            <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
+            <span>Сортировать по сроку годности</span>
+          </label>
+        )}
 
         {/* HACCP header */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
@@ -1739,7 +2221,21 @@ export function AcceptanceDocumentClient(props: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setEditListsOpen(true)}>
+            {/* Эталон держит рядом со сплит-кнопкой ОТДЕЛЬНУЮ обычную
+                «+ Добавить» — добавление одной строки в один клик,
+                без раскрытия меню. */}
+            <Button
+              type="button"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+              onClick={() => {
+                setEditingRow(null);
+                setRowDialogOpen(true);
+              }}
+            >
+              <Plus className="size-5" strokeWidth={2.5} /> Добавить
+            </Button>
+
+            <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors duration-150 hover:bg-[#5566f6]/[0.09]" onClick={() => setEditListsOpen(true)}>
               Редактировать списки
             </Button>
 
@@ -1754,7 +2250,107 @@ export function AcceptanceDocumentClient(props: Props) {
           <RecordCardsView items={cardItems} emptyLabel="Поставок пока не зарегистрировано." />
         ) : null}
 
-        {/* Data table */}
+        {/* Data table — v2 (11 колонок эталона) для приёмки продукции */}
+        {isProductAcceptance ? (
+          <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
+            {/*
+              `table-fixed` + colgroup в процентах: 11 колонок помещаются в
+              1248px контента на 1440px без горизонтального выезда страницы.
+              `min-w-[1120px]` включает скролл ВНУТРИ viewport-контейнера на
+              узких экранах — страница по горизонтали не едет.
+            */}
+            <table className="w-full min-w-[1120px] table-fixed border-collapse text-[12.5px]">
+              <colgroup>
+                <col className="w-[36px]" />
+                <col className="w-[7%]" />
+                <col className="w-[10%]" />
+                <col className="w-[6.5%]" />
+                <col className="w-[10%]" />
+                <col className="w-[9%]" />
+                <col className="w-[8%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[6.5%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])}
+                      disabled={displayedRows.length === 0 || isClosed}
+                    />
+                  </th>
+                  {INCOMING_CONTROL_COLUMNS.map((column) => (
+                    <th
+                      key={column}
+                      className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center text-[11.5px] font-semibold leading-[1.25]`}
+                    >
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayedRows.map((row) => {
+                  const values = getIncomingControlRowValues(row);
+                  return (
+                    <tr
+                      key={row.id}
+                      className={!isClosed ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}
+                      onClick={() => {
+                        if (isClosed) return;
+                        setEditingRow(row);
+                        setRowDialogOpen(true);
+                      }}
+                    >
+                      <td
+                        className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedRowIds.includes(row.id)}
+                          onCheckedChange={(c) =>
+                            setSelectedRowIds((cur) =>
+                              c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id)
+                            )
+                          }
+                          disabled={isClosed}
+                        />
+                      </td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.deliveryDate}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.productName}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.shelfLifeDate}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.manufacturerSupplier}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.accompanyingDocs}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.batchInfo}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.productTemperature}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.documentCompliance}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center font-semibold leading-tight`}>{values.acceptanceDecision}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.correctiveActions}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{getResponsibleLabel(row, props.users)}</td>
+                    </tr>
+                  );
+                })}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className={`${GRID_CELL_CLASS} p-8 text-center leading-tight text-[#80849a]`}>
+                      Строк пока нет
+                    </td>
+                  </tr>
+                )}
+                <tr>
+                  <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>
+                    <Checkbox disabled />
+                  </td>
+                  <td colSpan={11} className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`} />
+                </tr>
+              </tbody>
+            </table>
+          </MobileViewTableWrapper>
+        ) : (
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           <table className="min-w-[960px] w-full border-collapse text-[13px] sm:min-w-[1400px]">
             <thead>
@@ -1828,9 +2424,10 @@ export function AcceptanceDocumentClient(props: Props) {
             </tbody>
           </table>
         </MobileViewTableWrapper>
+        )}
       </div>
 
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} useV2={props.useV2} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} useV2={props.useV2} showExpiryLabelChoice={!isProductAcceptance} />
       {editListsOpen && (
         <IncomingControlEditListsDialog
           key={`${config.products.join("|")}::${config.manufacturers.join("|")}::${config.suppliers.join("|")}`}
@@ -1844,7 +2441,18 @@ export function AcceptanceDocumentClient(props: Props) {
           }}
         />
       )}
-      <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
+      {isProductAcceptance ? (
+        <IncomingControlRowDialog
+          open={rowDialogOpen}
+          onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }}
+          users={props.users}
+          config={config}
+          initialRow={editingRow}
+          onSave={handleSaveRow}
+        />
+      ) : (
+        <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
+      )}
       <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} onFileSelect={handleImportFile} />
       <AddMultipleRowsDialog open={bulkAddOpen} onOpenChange={setBulkAddOpen} onSubmit={addMultipleRows} />
       <IikoDialog open={iikoOpen} onOpenChange={setIikoOpen} />

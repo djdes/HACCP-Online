@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
   getAcceptanceDocumentTitle,
   getAcceptancePageTitle,
   buildAcceptanceDocumentConfigFromData,
@@ -126,6 +127,7 @@ function SettingsDialog({
   submitLabel,
   initial,
   users,
+  showExpiryLabelChoice,
   onSubmit,
 }: {
   open: boolean;
@@ -134,6 +136,13 @@ function SettingsDialog({
   submitLabel: string;
   initial: DialogState;
   users: User[];
+  /**
+   * Выбор подписи колонки срока имеет смысл только для журнала входного
+   * контроля СЫРЬЯ. В журнале приёмки продукции колонка называется
+   * «Годен до» всегда — группу там не показываем (эталон
+   * incoming_control-grid.png).
+   */
+  showExpiryLabelChoice: boolean;
   onSubmit: (value: DialogState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
@@ -162,30 +171,32 @@ function SettingsDialog({
             value={state.startDate}
             onChange={(value) => setState({ ...state, startDate: value })}
           />
-          <FloatingLabelField label="Колонка срока">
-            <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
-              <label className="flex items-center gap-2.5">
-                <input
-                  type="radio"
-                  name="incoming-control-expiry-label"
-                  checked={state.expiryFieldLabel === "expiry_deadline"}
-                  onChange={() => setState({ ...state, expiryFieldLabel: "expiry_deadline" })}
-                  className="size-4 accent-[#5566f6]"
-                />
-                Предельный срок реализации
-              </label>
-              <label className="flex items-center gap-2.5">
-                <input
-                  type="radio"
-                  name="incoming-control-expiry-label"
-                  checked={state.expiryFieldLabel === "shelf_life"}
-                  onChange={() => setState({ ...state, expiryFieldLabel: "shelf_life" })}
-                  className="size-4 accent-[#5566f6]"
-                />
-                Срок годности
-              </label>
-            </div>
-          </FloatingLabelField>
+          {showExpiryLabelChoice ? (
+            <FloatingLabelField label="Колонка срока">
+              <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    name="incoming-control-expiry-label"
+                    checked={state.expiryFieldLabel === "expiry_deadline"}
+                    onChange={() => setState({ ...state, expiryFieldLabel: "expiry_deadline" })}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  Предельный срок реализации
+                </label>
+                <label className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    name="incoming-control-expiry-label"
+                    checked={state.expiryFieldLabel === "shelf_life"}
+                    onChange={() => setState({ ...state, expiryFieldLabel: "shelf_life" })}
+                    className="size-4 accent-[#5566f6]"
+                  />
+                  Срок годности
+                </label>
+              </div>
+            </FloatingLabelField>
+          ) : null}
           <PositionEmployeePicker
             users={users}
             value={{
@@ -250,6 +261,7 @@ export function IncomingControlDocumentsClient({
   const { deleteDocument, openPdf } = useJournalDocumentActions();
   const defaultDocumentTitle = getAcceptanceDocumentTitle(templateCode);
   const pageTitle = getAcceptancePageTitle(templateCode);
+  const isProductAcceptance = templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
   const createState = useMemo(
     () =>
       getDefaultDialogState(
@@ -483,6 +495,7 @@ export function IncomingControlDocumentsClient({
         submitLabel="Создать"
         initial={createState}
         users={users}
+        showExpiryLabelChoice={!isProductAcceptance}
         onSubmit={createDocument}
       />
 
@@ -516,6 +529,7 @@ export function IncomingControlDocumentsClient({
             : createState
         }
         users={users}
+        showExpiryLabelChoice={!isProductAcceptance}
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveSettings(settingsDocument, value);

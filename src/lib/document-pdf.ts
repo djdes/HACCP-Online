@@ -130,7 +130,10 @@ import {
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODES,
+  INCOMING_CONTROL_COLUMNS,
+  PRODUCT_ACCEPTANCE_DOCUMENT_TITLE,
   getAcceptanceDocumentTitle,
+  getIncomingControlRowValues,
   normalizeAcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
 import {
@@ -2027,6 +2030,97 @@ function formatTraceabilityDateRu(dateKey: string) {
   const [y, m, d] = dateKey.split("-");
   if (!y || !m || !d) return dateKey;
   return `${d}-${m}-${y}`;
+}
+
+/**
+ * PDF журнала ПРИЁМКИ И ВХОДНОГО КОНТРОЛЯ ПРОДУКЦИИ (`incoming_control`) —
+ * 11 колонок эталона, тот же состав, что на экране.
+ */
+function drawIncomingControlPdf(doc: jsPDF, params: {
+  organizationName: string;
+  title: string;
+  dateFrom: Date | string;
+  config: ReturnType<typeof normalizeAcceptanceDocumentConfig>;
+  users: { id: string; name: string; role: string }[];
+}) {
+  const cfg = params.config;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const centerX = pageWidth / 2;
+  const journalLabel = (params.title || PRODUCT_ACCEPTANCE_DOCUMENT_TITLE).toUpperCase();
+
+  drawTitle(doc, params.title || PRODUCT_ACCEPTANCE_DOCUMENT_TITLE);
+  drawJournalHeader(doc, {
+    organizationName: params.organizationName,
+    pageLabel: "СТР. 1 ИЗ 1",
+    journalLabel,
+    withPeriodicity: false,
+  });
+
+  const dateFromStr = params.dateFrom instanceof Date
+    ? formatAcceptanceDateRu(params.dateFrom.toISOString().slice(0, 10))
+    : formatAcceptanceDateRu(String(params.dateFrom).slice(0, 10));
+
+  const headerRight = pageWidth - 24;
+  doc.setFont("JournalUnicode", "normal");
+  doc.setFontSize(9);
+  doc.text(`Начат  ${dateFromStr}`, headerRight, 54, { align: "right" });
+  doc.text("Окончен ________", headerRight, 60, { align: "right" });
+
+  doc.setFont("JournalUnicode", "bold");
+  doc.setFontSize(11);
+  doc.text(journalLabel, centerX, 70, { align: "center" });
+
+  const head: RowInput[] = [
+    INCOMING_CONTROL_COLUMNS.map((column) => centerCell(column)),
+  ];
+
+  const userMap = new Map(params.users.map((u) => [u.id, u.name]));
+  const body: RowInput[] = cfg.rows.map((row) => {
+    const values = getIncomingControlRowValues(row);
+    return [
+      centerCell(values.deliveryDate),
+      centerCell(values.productName),
+      centerCell(values.shelfLifeDate),
+      centerCell(values.manufacturerSupplier),
+      centerCell(values.accompanyingDocs),
+      centerCell(values.batchInfo),
+      centerCell(values.productTemperature),
+      centerCell(values.documentCompliance),
+      centerCell(values.acceptanceDecision),
+      centerCell(values.correctiveActions),
+      centerCell(userMap.get(row.responsibleUserId) || ""),
+    ] as CellDef[];
+  });
+
+  autoTable(doc, {
+    startY: 76,
+    margin: { left: 14, right: 14 },
+    head,
+    body: ensurePdfBodyRows(body, INCOMING_CONTROL_COLUMNS.length),
+    theme: "grid",
+    styles: {
+      font: "JournalUnicode",
+      fontSize: 6,
+      cellPadding: 1,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      textColor: [0, 0, 0],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      lineWidth: 0.2,
+      fontStyle: "bold",
+      fontSize: 5.5,
+    },
+    bodyStyles: { lineWidth: 0.2 },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      2: { cellWidth: 20 },
+      8: { cellWidth: 14 },
+    },
+  });
 }
 
 function drawAcceptancePdf(doc: jsPDF, params: {
@@ -5137,6 +5231,14 @@ export async function generateJournalDocumentPdf(params: {
       organizationName,
       title: document.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
       config: equipmentCalibrationConfig,
+    });
+  } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
+    drawIncomingControlPdf(doc, {
+      organizationName,
+      title: document.title || getAcceptanceDocumentTitle(templateCode),
+      dateFrom: document.dateFrom,
+      config: normalizeAcceptanceDocumentConfig(reconciledConfig, users),
+      users,
     });
   } else if ((ACCEPTANCE_DOCUMENT_TEMPLATE_CODES as readonly string[]).includes(templateCode)) {
     drawAcceptancePdf(doc, {

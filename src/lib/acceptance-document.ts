@@ -40,6 +40,28 @@ export function getAcceptanceDocumentTitle(templateCode: string) {
   return ACCEPTANCE_DOCUMENT_TITLE;
 }
 
+/**
+ * Строка приёмки.
+ *
+ * ДВЕ СХЕМЫ В ОДНОМ ТИПЕ.
+ *
+ * • «legacy» поля (`manufacturer`, `supplier`, `transportCondition`,
+ *   `packagingCompliance`, `organolepticResult`, `expiryDate`, `note`) —
+ *   таблица журнала ВХОДНОГО КОНТРОЛЯ СЫРЬЯ (`incoming_raw_materials_control`).
+ *   Там они остаются рабочими колонками.
+ *
+ * • «v2» поля (`shelfLifeDate`, `manufacturerSupplier`, `accompanyingDocs`,
+ *   `batchInfo`, `productTemperature`, `documentCompliance`,
+ *   `acceptanceDecision`, `correctiveActions`) — таблица журнала ПРИЁМКИ И
+ *   ВХОДНОГО КОНТРОЛЯ ПРОДУКЦИИ (`incoming_control`), приведённая к эталону
+ *   lk.haccp-online.ru (11 колонок).
+ *
+ * Оба набора живут в одном JSON — миграций Prisma не требуется. Старые записи
+ * читаются в новую таблицу через маппинг в `createAcceptanceRow` (см. ниже),
+ * новые записи пишутся сразу в v2-ключи и дублируют `expiryDate`/`note`,
+ * чтобы сторонние потребители (cron сроков годности, карточки, mini) не
+ * потеряли данные.
+ */
 export type AcceptanceRow = {
   id: string;
   deliveryDate: string;
@@ -57,6 +79,22 @@ export type AcceptanceRow = {
   note: string;
   responsibleTitle: string;
   responsibleUserId: string;
+  /** v2 · «Годен до». Fallback — legacy `expiryDate`. */
+  shelfLifeDate: string;
+  /** v2 · «Производитель/поставщик» одной колонкой. Fallback — `manufacturer / supplier`. */
+  manufacturerSupplier: string;
+  /** v2 · «ТТН, документы соответствия». */
+  accompanyingDocs: string;
+  /** v2 · «Объем, номер партии, дата пр-ва». */
+  batchInfo: string;
+  /** v2 · «Внутр-яя темп-ра продукта (для скоропортящихся и замороженных)». */
+  productTemperature: string;
+  /** v2 · «Соответствие товара сопроводительной документации». Fallback — свод legacy-оценок. */
+  documentCompliance: string;
+  /** v2 · «Принять/Отклонить, П/О». Fallback — вывод из legacy-оценок. */
+  acceptanceDecision: "" | "accept" | "reject";
+  /** v2 · «Корректирующие действия для забракованного товара». Fallback — legacy `note`. */
+  correctiveActions: string;
 };
 
 export type AcceptanceDocumentConfig = {
@@ -113,28 +151,131 @@ function normalizeOrganoleptic(value: unknown): "satisfactory" | "unsatisfactory
   return "satisfactory";
 }
 
+/**
+ * Ключи, по наличию которых строка опознаётся как «старая» (записанная по
+ * таблице контроля сырья). Только для таких строк v2-колонки достраиваются
+ * из legacy-оценок — у новых пустых строк они остаются пустыми.
+ */
+const LEGACY_INDICATOR_KEYS = [
+  "transportCondition",
+  "packagingCompliance",
+  "organolepticResult",
+  "decision",
+] as const;
+
+/** Свод legacy-оценок в текст колонки «Соответствие товара сопр. документации». */
+export function composeLegacyComplianceSummary(row: {
+  packagingCompliance: AcceptanceRow["packagingCompliance"];
+  transportCondition: AcceptanceRow["transportCondition"];
+  organolepticResult: AcceptanceRow["organolepticResult"];
+}) {
+  return [
+    `Упаковка, маркировка, документы: ${COMPLIANCE_LABELS[row.packagingCompliance]}`,
+    `Транспортировка: ${TRANSPORT_LABELS[row.transportCondition]}`,
+    `Органолептика: ${ORGANOLEPTIC_LABELS[row.organolepticResult]}`,
+  ].join("; ");
+}
+
 export function createAcceptanceRow(
   overrides?: Partial<AcceptanceRow>
 ): AcceptanceRow {
   const today = new Date().toISOString().slice(0, 10);
+  const raw = (overrides || {}) as Record<string, unknown>;
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
+
+  const manufacturer = normalizeText(overrides?.manufacturer);
+  const supplier = normalizeText(overrides?.supplier);
+  const transportCondition = normalizeTransport(overrides?.transportCondition);
+  const packagingCompliance = normalizeCompliance(overrides?.packagingCompliance);
+  const organolepticResult = normalizeOrganoleptic(
+    overrides?.organolepticResult || raw.decision
+  );
+  const note = normalizeText(overrides?.note) || normalizeText(raw.correctiveAction);
+  const hasLegacyIndicators = LEGACY_INDICATOR_KEYS.some((key) => has(key));
+
+  // «Годен до» ↔ «Предельный срок реализации» — зеркалим в обе стороны,
+  // чтобы cron сроков годности и карточки продолжали видеть expiryDate.
+  const shelfLifeDate = has("shelfLifeDate")
+    ? normalizeText(raw.shelfLifeDate)
+    : normalizeText(overrides?.expiryDate);
+  const expiryDate = normalizeText(overrides?.expiryDate) || shelfLifeDate;
+
+  const manufacturerSupplier = has("manufacturerSupplier")
+    ? normalizeText(raw.manufacturerSupplier)
+    : [manufacturer, supplier].filter(Boolean).join(" / ");
+
+  const documentCompliance = has("documentCompliance")
+    ? normalizeText(raw.documentCompliance)
+    : hasLegacyIndicators
+      ? composeLegacyComplianceSummary({
+          packagingCompliance,
+          transportCondition,
+          organolepticResult,
+        })
+      : "";
+
+  const correctiveActions = has("correctiveActions")
+    ? normalizeText(raw.correctiveActions)
+    : note;
+
+  const acceptanceDecision = normalizeAcceptanceDecision({
+    explicit: has("acceptanceDecision") ? raw.acceptanceDecision : undefined,
+    hasExplicitKey: has("acceptanceDecision"),
+    legacyDecision: raw.decision,
+    hasLegacyIndicators,
+    transportCondition,
+    packagingCompliance,
+    organolepticResult,
+  });
+
   return {
     id: overrides?.id || createId("acceptance-row"),
-    deliveryDate: normalizeText(overrides?.deliveryDate) || normalizeText((overrides as Record<string, unknown>)?.dateSupply) || today,
+    deliveryDate:
+      normalizeText(overrides?.deliveryDate) || normalizeText(raw.dateSupply) || today,
     deliveryHour: normalizeText(overrides?.deliveryHour),
     deliveryMinute: normalizeText(overrides?.deliveryMinute),
     productName: normalizeText(overrides?.productName),
-    manufacturer: normalizeText(overrides?.manufacturer),
-    supplier: normalizeText(overrides?.supplier),
-    transportCondition: normalizeTransport(overrides?.transportCondition),
-    packagingCompliance: normalizeCompliance(overrides?.packagingCompliance),
-    organolepticResult: normalizeOrganoleptic(overrides?.organolepticResult || (overrides as Record<string, unknown>)?.decision),
-    expiryDate: normalizeText(overrides?.expiryDate),
+    manufacturer,
+    supplier,
+    transportCondition,
+    packagingCompliance,
+    organolepticResult,
+    expiryDate,
     expiryHour: normalizeText(overrides?.expiryHour),
     expiryMinute: normalizeText(overrides?.expiryMinute),
-    note: normalizeText(overrides?.note) || normalizeText((overrides as Record<string, unknown>)?.correctiveAction),
+    note: note || correctiveActions,
     responsibleTitle: normalizeText(overrides?.responsibleTitle),
     responsibleUserId: normalizeText(overrides?.responsibleUserId),
+    shelfLifeDate,
+    manufacturerSupplier,
+    accompanyingDocs: normalizeText(raw.accompanyingDocs),
+    batchInfo: normalizeText(raw.batchInfo),
+    productTemperature: normalizeText(raw.productTemperature),
+    documentCompliance,
+    acceptanceDecision,
+    correctiveActions,
   };
+}
+
+function normalizeAcceptanceDecision(params: {
+  explicit: unknown;
+  hasExplicitKey: boolean;
+  legacyDecision: unknown;
+  hasLegacyIndicators: boolean;
+  transportCondition: AcceptanceRow["transportCondition"];
+  packagingCompliance: AcceptanceRow["packagingCompliance"];
+  organolepticResult: AcceptanceRow["organolepticResult"];
+}): AcceptanceRow["acceptanceDecision"] {
+  if (params.explicit === "accept" || params.explicit === "reject") return params.explicit;
+  if (params.hasExplicitKey) return "";
+  if (params.legacyDecision === "reject") return "reject";
+  if (params.legacyDecision === "accept") return "accept";
+  if (!params.hasLegacyIndicators) return "";
+  return params.packagingCompliance === "non_compliant" ||
+    params.organolepticResult === "unsatisfactory" ||
+    params.transportCondition === "unsatisfactory"
+    ? "reject"
+    : "accept";
 }
 
 function normalizeStringList(value: unknown) {
@@ -346,4 +487,57 @@ export const ORGANOLEPTIC_LABELS = {
 
 export function getExpiryFieldDisplayLabel(mode: AcceptanceDocumentConfig["expiryFieldLabel"]): string {
   return mode === "shelf_life" ? "Срок годности" : "Предельный срок реализации (дата, час)";
+}
+
+/* ------------------------------------------------------------------ *
+ * v2 · «Журнал приемки и входного контроля продукции» (incoming_control)
+ * ------------------------------------------------------------------ */
+
+/** Подписи колонки «Принять/Отклонить, П/О». */
+export const ACCEPTANCE_DECISION_LABELS = {
+  accept: "П",
+  reject: "О",
+  "": "",
+} as const;
+
+/** Развёрнутые подписи для формы и карточек. */
+export const ACCEPTANCE_DECISION_FULL_LABELS = {
+  accept: "П — Принять",
+  reject: "О — Отклонить",
+} as const;
+
+/**
+ * Заголовки 11 колонок эталона incoming_control-grid.png.
+ * Один источник для экрана, печати и PDF.
+ */
+export const INCOMING_CONTROL_COLUMNS = [
+  "Дата поставки",
+  "Наименование продукции",
+  "Годен до",
+  "Производитель/поставщик",
+  "ТТН, документы соответствия",
+  "Объем, номер партии, дата пр-ва",
+  "Внутр-яя темп-ра продукта (для скоропортящихся и замороженных продуктов)",
+  "Соответствие товара сопроводительной документации",
+  "Принять/Отклонить, П/О",
+  "Корректирующие действия для забракованного товара",
+  "Ответственный",
+] as const;
+
+/** Значения 10 колонок строки (без «Ответственный» — он резолвится по users). */
+export function getIncomingControlRowValues(row: AcceptanceRow) {
+  return {
+    deliveryDate: formatAcceptanceDateDash(row.deliveryDate),
+    productName: row.productName,
+    shelfLifeDate: formatAcceptanceDateDash(row.shelfLifeDate || row.expiryDate),
+    manufacturerSupplier:
+      row.manufacturerSupplier ||
+      [row.manufacturer, row.supplier].filter(Boolean).join(" / "),
+    accompanyingDocs: row.accompanyingDocs,
+    batchInfo: row.batchInfo,
+    productTemperature: row.productTemperature,
+    documentCompliance: row.documentCompliance,
+    acceptanceDecision: ACCEPTANCE_DECISION_LABELS[row.acceptanceDecision] || "",
+    correctiveActions: row.correctiveActions || row.note,
+  };
 }
