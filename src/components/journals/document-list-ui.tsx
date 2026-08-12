@@ -25,6 +25,13 @@ export function JournalTopBar(props: {
   users: { id: string; name: string; role: string }[];
   compact?: boolean;
   /**
+   * Сколько документов уже есть на активной вкладке. Пока их ноль, кнопка
+   * «Создать документ» в шапке не показывается — единственная точка входа
+   * находится внутри карточки пустого состояния (эталон: fryer_oil-list.png,
+   * cold_equipment_control-list.png). `undefined` ⇒ старое поведение.
+   */
+  documentCount?: number;
+  /**
    * Код журнала в URL (`/journals/<code>`). Нужен «Инструкции», чтобы
    * открыть пожурнальный гайд, а не общий /sanpin. По умолчанию совпадает
    * с `templateCode`; передавайте явно там, где route ≠ template.
@@ -56,8 +63,8 @@ export function JournalTopBar(props: {
             Инструкция
           </Link>
         </Button>
-        {props.activeTab === "active" && props.createSlot}
-        {props.activeTab === "active" && !props.createSlot && (
+        {props.activeTab === "active" && props.documentCount !== 0 && props.createSlot}
+        {props.activeTab === "active" && props.documentCount !== 0 && !props.createSlot && (
           <CreateDocumentDialog
             templateCode={props.templateCode}
             templateName={props.templateName}
@@ -107,20 +114,72 @@ export function JournalTabs(props: {
   );
 }
 
-export function EmptyDocumentsState({ label }: { label?: string } = {}) {
+/**
+ * Пустое состояние списка документов — как на эталоне
+ * (fryer_oil-list.png, cold_equipment_control-list.png): серая карточка по
+ * центру, заголовок «Документ ещё не создан», пояснение и большая
+ * primary-кнопка «Создать документ» ВНУТРИ карточки.
+ *
+ * Кнопка приходит слотом (`action`), поэтому открывает ровно тот же диалог
+ * создания, что и кнопка в шапке страницы: у части журналов это общий
+ * `<CreateDocumentDialog>`, у части — свой `createSlot`. Пока документов
+ * нет, кнопка в шапке скрыта (см. `JournalTopBar.documentCount`) — точка
+ * входа ровно одна.
+ *
+ * Онбординг-гейт «Шаг 1 / Шаг 2» (нет сотрудников) живёт внутри самого
+ * диалога (`CreateDocumentEmptyState`) и остаётся приоритетнее: карточка
+ * лишь открывает диалог, а он уже показывает инструкцию.
+ */
+export function EmptyDocumentsState({
+  label,
+  description,
+  action,
+  templateCode,
+  templateName,
+  users,
+}: {
+  label?: string;
+  description?: string;
+  /**
+   * Готовая кнопка (журналы со своим диалогом создания). Если не передана,
+   * но заданы `templateCode`/`templateName`/`users` — рисуем общий
+   * `<CreateDocumentDialog>`, тот же самый, что стоял бы в шапке.
+   */
+  action?: React.ReactNode;
+  templateCode?: string;
+  templateName?: string;
+  users?: { id: string; name: string; role: string }[];
+} = {}) {
+  const button =
+    action ??
+    (templateCode && templateName && users ? (
+      <CreateDocumentDialog
+        templateCode={templateCode}
+        templateName={templateName}
+        users={users}
+        triggerClassName={EMPTY_STATE_CREATE_BUTTON_CLASS}
+        triggerLabel="Создать документ"
+        triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
+      />
+    ) : null);
+
   return (
-    // На белом фоне раздела сплошная рамка + ring читались как «рамка ради
-    // рамки» — оставили только пунктир, как в design-system empty state.
-    <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-9 text-center">
-      <div className="text-[15px] font-medium text-[#6f7282]">
-        {label ?? "Документов пока нет"}
+    <div className="rounded-2xl bg-[#f6f7fa] px-6 py-12 text-center sm:px-10 sm:py-14">
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[#0b1024] sm:text-[26px]">
+        {label ?? "Документ ещё не создан"}
       </div>
-      <div className="mt-1 text-[13px] text-[#9b9fb3]">
-        Создайте первый документ кнопкой выше.
-      </div>
+      <p className="mx-auto mt-3 max-w-[560px] text-[14px] leading-[1.5] text-[#6f7282]">
+        {description ??
+          "Нажмите на кнопку ниже, чтобы создать документ и начать фиксировать записи журнала — они понадобятся при проверке Роспотребнадзора."}
+      </p>
+      {button ? <div className="mt-7 flex justify-center">{button}</div> : null}
     </div>
   );
 }
+
+/** Кнопка «+ Создать документ» внутри карточки пустого состояния. */
+export const EMPTY_STATE_CREATE_BUTTON_CLASS =
+  "h-12 gap-2 rounded-lg bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15";
 
 export function DocumentActionsMenu(props: {
   onEdit?: () => void;

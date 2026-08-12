@@ -53,7 +53,7 @@ import {
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
-import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { toast } from "sonner";
 import {
   GRID_CELL_CLASS,
@@ -106,41 +106,28 @@ function HealthCheckbox(props: {
 function HealthHeader({
   organizationLabel,
   pageLabel,
+  startedAt,
+  finishedAt,
   controlPeriodicity,
 }: {
   organizationLabel: string;
   pageLabel: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
   controlPeriodicity?: string;
 }) {
   return (
-    <table className="health-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
+    <table className="health-header w-full border-collapse text-[13px]">
       <tbody>
-        <tr>
-          <td
-            rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[15px] font-semibold leading-tight`}
-          >
-            {organizationLabel}
-          </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}>
-            СИСТЕМА ХАССП
-          </td>
-          <td
-            rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}
-          >
-            {pageLabel}
-          </td>
-        </tr>
-        <tr>
-          <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] italic uppercase leading-tight`}>
-            ЖУРНАЛ ЗДОРОВЬЯ
-          </td>
-        </tr>
-        <JournalPeriodicityHeaderRow
-          text={controlPeriodicity}
-          labelClass={GRID_HEAD_CELL_CLASS}
-          valueClass={GRID_CELL_CLASS}
+        <JournalPaperHeaderRows
+          orgName={organizationLabel}
+          title="ЖУРНАЛ ЗДОРОВЬЯ"
+          pageInfo={pageLabel}
+          startedAt={startedAt}
+          finishedAt={finishedAt}
+          controlPeriodicity={controlPeriodicity}
+          orgCellClass="w-[270px]"
+          sideCellClass="w-[190px]"
         />
       </tbody>
     </table>
@@ -226,7 +213,10 @@ export function HealthDocumentClient(props: Props) {
   const rosterUsers = employees.filter((employee) => includedEmployeeIds.includes(employee.id));
   const printableEmployees = buildHygieneExampleEmployees(
     rosterUsers,
-    Math.max(rosterUsers.length + printEmptyRows, 5)
+    // Ровно сотрудники + запрошенные под печать пустые строки. Прежний
+    // «пол» в 5 строк дорисовывал пустую строку-заготовку в конце таблицы,
+    // которая ничего не значила.
+    Math.max(rosterUsers.length + printEmptyRows, 1)
   );
   const monthLabel = formatMonthLabel(dateFrom, dateTo);
   const organizationLabel = organizationName || 'ООО "Тест"';
@@ -372,7 +362,7 @@ export function HealthDocumentClient(props: Props) {
         <div className="screen-only space-y-4">
           <StaffJournalToolbar
             documentId={documentId}
-            heading="Журнал Здоровья"
+            heading="Журнал здоровья"
             title={documentTitle}
             status={status}
             autoFill={autoFill}
@@ -538,6 +528,8 @@ export function HealthDocumentClient(props: Props) {
             <HealthHeader
               organizationLabel={organizationLabel}
               pageLabel="СТР. 1 ИЗ 1"
+              startedAt={dateFrom}
+              finishedAt={status === "closed" ? dateTo : null}
               controlPeriodicity={controlPeriodicity}
             />
           </div>

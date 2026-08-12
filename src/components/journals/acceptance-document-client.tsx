@@ -85,7 +85,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
-import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 type User = { id: string; name: string; role: string };
 
@@ -1693,33 +1693,14 @@ export function AcceptanceDocumentClient(props: Props) {
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
         <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
-            <tr>
-              <td
-                rowSpan={2}
-                className={`w-[220px] ${GRID_CELL_CLASS} px-4 py-2 text-center font-semibold leading-tight`}
-              >
-                {organizationLabel}
-              </td>
-              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center leading-tight`}>
-                СИСТЕМА ХАССП
-              </td>
-              <td rowSpan={2} className={`w-[200px] ${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>
-                <div className="text-sm font-semibold">
-                  Начат {formatAcceptanceDateDash(dateFrom)}
-                </div>
-                <div className="mt-1 text-sm">Окончен ________</div>
-              </td>
-            </tr>
-            <tr>
-              <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic leading-tight`}>
-                {journalHeaderTitle}
-              </td>
-            </tr>
-            <JournalPeriodicityHeaderRow
-              text={props.controlPeriodicity}
-              labelClass={GRID_HEAD_CELL_CLASS}
-              valueClass={GRID_CELL_CLASS}
-              valueColSpan={2}
+            <JournalPaperHeaderRows
+              orgName={organizationLabel}
+              title={journalHeaderTitle}
+              startedAt={dateFrom}
+              finishedAt={isClosed ? props.dateTo : null}
+              controlPeriodicity={props.controlPeriodicity}
+              orgCellClass="w-[220px]"
+              sideCellClass="w-[200px]"
             />
           </tbody>
         </table>

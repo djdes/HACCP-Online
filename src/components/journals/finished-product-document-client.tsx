@@ -59,7 +59,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
-import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 type Props = {
   documentId: string;
   title: string;
@@ -348,20 +348,14 @@ export function FinishedProductDocumentClient({
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
-              <tr>
-                <td rowSpan={2} className={`w-[18%] ${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{organizationName}</td>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>СИСТЕМА ХАССП</td>
-                <td className={`w-[20%] ${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>Начат &nbsp; {new Date(dateFrom).toLocaleDateString("ru-RU")}</td>
-              </tr>
-              <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] uppercase italic leading-tight`}>ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ</td>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>Окончен &nbsp; {readOnly ? new Date(dateTo).toLocaleDateString("ru-RU") : "__________"}</td>
-              </tr>
-              <JournalPeriodicityHeaderRow
-                text={controlPeriodicity}
-                labelClass={GRID_HEAD_CELL_CLASS}
-                valueClass={GRID_CELL_CLASS}
-                valueColSpan={2}
+              <JournalPaperHeaderRows
+                orgName={organizationName}
+                title="ЖУРНАЛ БРАКЕРАЖА ГОТОВОЙ ПИЩЕВОЙ ПРОДУКЦИИ"
+                startedAt={dateFrom}
+                finishedAt={readOnly ? dateTo : null}
+                controlPeriodicity={controlPeriodicity}
+                orgCellClass="w-[18%]"
+                sideCellClass="w-[20%]"
               />
             </tbody>
           </table>

@@ -13,13 +13,29 @@ import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-resp
  * пару screen + `print:`. Print-часть трогать нельзя.
  */
 
-export const GRID_CELL_CLASS = "border border-[#ececf4] print:border-black";
+/**
+ * Цвет «бумажной» границы НА ЭКРАНЕ.
+ *
+ * Эталон (lk.haccp-online.ru) рисует таблицы документов как печатную форму —
+ * сплошная тёмная линия 1px, а не бледно-серая рамка карточки. Раньше у нас
+ * стоял `#ececf4`, из-за чего документ на экране читался как «таблица в
+ * интерфейсе», а не как бланк.
+ *
+ * Держим ОДИН токен: цвет меняется здесь, а не в 13 клиентах. Печатная часть
+ * (`print:border-black`) не трогается — бумага для РПН/СЭС остаётся чёрной.
+ */
+export const GRID_BORDER_COLOR = "#333";
+
+/** Только цвет границы — для мест, где рамка задаётся частично (border-r и т.п.). */
+export const GRID_BORDER_CLASS = "border-[#333] print:border-black";
+
+export const GRID_CELL_CLASS = "border border-[#333] print:border-black";
 
 export const GRID_HEAD_CELL_CLASS =
-  "border border-[#ececf4] bg-[#f8f9fc] print:border-black print:bg-white";
+  "border border-[#333] bg-[#f1f2f6] print:border-black print:bg-white";
 
 export const GRID_HEAD_CELL_PLAIN_CLASS =
-  "border border-[#ececf4] bg-white print:border-black";
+  "border border-[#333] bg-white print:border-black";
 
 /** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
 export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;

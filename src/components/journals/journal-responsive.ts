@@ -52,14 +52,33 @@ export const JOURNAL_CARD_SECTION_CLASS =
   "border-t border-[#e6e6f0] pt-3 sm:flex sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-10 sm:pt-0";
 
 /**
- * Полоса «выбрано N строк». На мобильном разливается до краёв экрана
- * (`-mx-4 px-4` компенсируют px-4 контейнера страницы), на sm+ идёт ровно
- * от левой линии контейнера — своих горизонтальных отступов у неё больше
- * нет (раньше `sm:-mx-6 lg:-mx-8` компенсировали padding оболочки
- * документа, которого теперь нет).
+ * Полоса «выбрано N строк» — ЗАКРЕПЛЕНА ЖЁСТКО.
+ *
+ * Раньше стояло `sticky top-[72px]`, но sticky «прилипает» только к
+ * ближайшему скроллящемуся предку: внутри `overflow-x-auto`-viewport'ов
+ * журнальных таблиц полоса уезжала вместе с содержимым и терялась.
+ * Теперь это `position: fixed` под шапкой кабинета (её высота — ровно
+ * 72px, см. `src/components/layout/header.tsx`), поэтому действия над
+ * выделением видны при ЛЮБОМ скролле.
+ *
+ * z-40 — выше липких заголовков таблиц (z-10/z-20) и на уровень выше
+ * шапки (z-30), с которой полоса не пересекается по вертикали.
+ * При пустом выделении компонент вообще не рендерится, в печать не идёт.
  */
 export const JOURNAL_DOCUMENT_SELECTION_BAR_CLASS =
-  "sticky top-[72px] z-30 -mx-4 mb-3 flex flex-wrap items-center gap-3 border-y border-[#dcdfed] bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(40,45,86,0.08)] backdrop-blur print:hidden sm:mx-0 sm:rounded-[14px] sm:border sm:px-4";
+  "fixed inset-x-0 top-[72px] z-40 print:hidden";
+
+/**
+ * Внутренняя «пилюля» полосы: ровно по ширине контентной колонки страницы
+ * (max-w-[1296px] + те же px-4 md:px-6, что у `(dashboard)/layout.tsx`),
+ * чтобы полоса не разливалась во весь экран на широких мониторах.
+ */
+export const JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS =
+  "mx-auto w-full max-w-[1296px] px-4 pt-2 md:px-6";
+
+/** Сама «пилюля» действий — белая, с blur и тенью поверх таблицы. */
+export const JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS =
+  "flex flex-wrap items-center gap-3 rounded-[14px] border border-[#dcdfed] bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(40,45,86,0.08)] backdrop-blur";
 
 /**
  * Оболочка документа. Раньше несла border + shadow — на сером фоне это

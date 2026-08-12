@@ -16,113 +16,181 @@
  * Аналог haccp-online.ru, но в нашей design-system.
  */
 
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+} from "@/components/journals/journal-grid";
+
 type Props = {
   /** Название организации (ООО «Кухня» / ИП Иванов и т.п.). */
   orgName: string;
   /** Полное название журнала, italic в нижней средней ячейке. */
   title: string;
-  /** Текст в правой колонке. По умолчанию «СТР 1 ИЗ 1». */
+  /** Текст в правой нижней ячейке. По умолчанию «СТР. 1 ИЗ 1». */
   pageInfo?: string;
+  /** Дата начала документа (`JournalDocument.dateFrom`). */
+  startedAt?: Date | string | null;
   /**
-   * Альтернативный режим — для журналов которые не имеют period
-   * (бракераж, аварии, жалобы): показываем «Начат: dd.mm.yyyy» +
-   * «Окончен: dd.mm.yyyy / —» вместо «СТР 1 ИЗ 1».
-   * Если задан, перебивает pageInfo.
+   * Дата закрытия документа. У активного документа — `null`: в правой
+   * верхней ячейке печатается подчёркнутый пропуск, как на бумаге.
+   */
+  finishedAt?: Date | string | null;
+  /**
+   * Устаревшая форма тех же двух дат. Оставлена ради вызовов, которые
+   * ещё передают `dateMode={{ startedAt, finishedAt }}`.
    */
   dateMode?: {
     startedAt?: Date | string | null;
     finishedAt?: Date | string | null;
   };
   /**
-   * «Периодичность контроля» — вторая строка шапки, как на эталоне
-   * (lk.haccp-online.ru): слева подпись, справа текст на всю ширину.
-   * Значение приходит из `JournalDocument.config.controlPeriodicity`
+   * «Периодичность контроля» — отдельная строка шапки (осознанное решение
+   * владельца, у эталона её нет). Значение приходит из
+   * `JournalDocument.config.controlPeriodicity`
    * (см. `src/lib/control-periodicity.ts`). Пустая строка / undefined —
-   * строка не рендерится, старые документы выглядят как раньше.
+   * строка не рендерится.
    */
   controlPeriodicity?: string | null;
   /** Доп. css-класс для wrapper. */
   className?: string;
 };
 
-function formatDate(d: Date | string | null | undefined): string {
-  if (!d) return "—";
+/**
+ * Дата в формате эталона — `ДД-ММ-ГГГГ` (climate_control-grid.png:
+ * «Начат 10-08-2026»). Пусто/битая дата — подчёркнутый пропуск.
+ */
+export const PAPER_HEADER_DATE_BLANK = "__________";
+
+export function formatPaperHeaderDate(
+  d: Date | string | null | undefined
+): string {
+  if (!d) return PAPER_HEADER_DATE_BLANK;
   const dt = typeof d === "string" ? new Date(d) : d;
-  if (Number.isNaN(dt.getTime())) return "—";
-  return dt.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  if (Number.isNaN(dt.getTime())) return PAPER_HEADER_DATE_BLANK;
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${dt.getFullYear()}`;
 }
 
+/**
+ * Строки бумажной шапки как `<tr>` — вставляются прямо в `<tbody>` таблицы
+ * журнала, поэтому шапка ВСЕГДА ровно той же ширины, что и сама таблица
+ * (раньше в cleaning шапка была ~57% ширины сетки и центрировалась отдельно).
+ *
+ * Раскладка — как на эталоне (climate_control-grid.png):
+ *
+ *   ┌──────────────┬──────────────────────────┬──────────────────────┐
+ *   │              │      СИСТЕМА ХАССП       │ Начат    10-08-2026  │
+ *   │  ООО «Имя»   │                          │ Окончен  __________  │
+ *   │              ├──────────────────────────┼──────────────────────┤
+ *   │              │  {название журнала}      │     СТР. 1 ИЗ 1      │
+ *   ├──────────────┴──────────────────────────┴──────────────────────┤
+ *   │ Периодичность контроля │ {текст}                               │
+ *   └────────────────────────┴───────────────────────────────────────┘
+ *
+ * Все ячейки — с видимыми границами (`GRID_CELL_CLASS`), включая правую
+ * колонку: до этой правки она «висела» без рамки.
+ */
+export function JournalPaperHeaderRows({
+  orgName,
+  title,
+  pageInfo = "СТР. 1 ИЗ 1",
+  startedAt,
+  finishedAt,
+  controlPeriodicity,
+  orgCellClass = "w-[20%]",
+  sideCellClass = "w-[22%]",
+}: {
+  orgName: string;
+  title: string;
+  pageInfo?: string;
+  startedAt?: Date | string | null;
+  finishedAt?: Date | string | null;
+  controlPeriodicity?: string | null;
+  /** Ширина левой колонки (у широких сеток задаётся в px). */
+  orgCellClass?: string;
+  /** Ширина правой колонки. */
+  sideCellClass?: string;
+}) {
+  return (
+    <>
+      <tr>
+        <td
+          rowSpan={2}
+          className={`${orgCellClass} ${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] font-semibold leading-tight`}
+        >
+          {orgName}
+        </td>
+        <td
+          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase leading-tight`}
+        >
+          СИСТЕМА ХАССП
+        </td>
+        <td
+          className={`${sideCellClass} ${GRID_CELL_CLASS} px-3 py-2 text-[13px] leading-tight`}
+        >
+          <div className="flex items-baseline gap-2">
+            <span className="font-semibold">Начат</span>
+            <span className="tabular-nums">{formatPaperHeaderDate(startedAt)}</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span>Окончен</span>
+            <span className="tabular-nums">{formatPaperHeaderDate(finishedAt)}</span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase italic leading-tight`}
+        >
+          {title}
+        </td>
+        <td
+          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase leading-tight`}
+        >
+          {pageInfo}
+        </td>
+      </tr>
+      <JournalPeriodicityHeaderRow
+        text={controlPeriodicity}
+        labelClass={GRID_HEAD_CELL_CLASS}
+        valueClass={GRID_CELL_CLASS}
+        valueColSpan={2}
+      />
+    </>
+  );
+}
+
+/**
+ * Готовая бумажная шапка отдельной таблицей — для журналов, у которых
+ * сетка данных живёт в своей `<table>`. Ширина — 100% контейнера, то есть
+ * ровно ширина журнальной таблицы, если обе лежат в одном viewport'е.
+ */
 export function JournalDocumentHeader({
   orgName,
   title,
-  pageInfo = "СТР 1 ИЗ 1",
+  pageInfo = "СТР. 1 ИЗ 1",
+  startedAt,
+  finishedAt,
   dateMode,
   controlPeriodicity,
   className = "",
 }: Props) {
-  const showDateMode = Boolean(dateMode);
-  const periodicityText = (controlPeriodicity ?? "").trim();
-
   return (
-    <div
-      className={`mx-auto w-full max-w-[820px] divide-y divide-[#0b1024]/15 rounded-2xl border border-[#0b1024]/15 bg-white print:divide-black print:rounded-none print:border print:border-black ${className}`}
+    <table
+      className={`w-full border-collapse text-[13px] text-[#0b1024] ${className}`}
     >
-      <div className="grid grid-cols-[1fr_2fr_0.9fr] divide-x divide-[#0b1024]/15 text-[12.5px] leading-tight text-[#0b1024] sm:text-[13px] print:divide-black">
-        {/* Левая колонка — название организации */}
-        <div className="flex items-center justify-center px-3 py-3 text-center font-medium sm:px-4 sm:py-4">
-          {orgName}
-        </div>
-
-        {/* Средняя колонка — СИСТЕМА ХАССП + название журнала */}
-        <div className="grid grid-rows-2 divide-y divide-[#0b1024]/15 print:divide-black">
-          <div className="flex items-center justify-center px-3 py-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] sm:text-[12.5px]">
-            СИСТЕМА ХАССП
-          </div>
-          <div className="flex items-center justify-center px-3 py-2.5 italic">
-            {title}
-          </div>
-        </div>
-
-        {/* Правая колонка — СТР 1 ИЗ 1 ИЛИ Начат/Окончен */}
-        <div className="flex items-center justify-center px-3 py-3 text-center text-[11.5px] sm:py-4 sm:text-[12px]">
-          {showDateMode ? (
-            <div className="space-y-1.5 leading-snug">
-              <div>
-                Начат{" "}
-                <span className="block font-medium tabular-nums">
-                  {formatDate(dateMode?.startedAt)}
-                </span>
-              </div>
-              <div>
-                Окончен{" "}
-                <span className="block font-medium tabular-nums">
-                  {formatDate(dateMode?.finishedAt)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <span className="font-medium uppercase tracking-[0.05em]">
-              {pageInfo}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Вторая строка шапки — «Периодичность контроля | <текст>».
-          На эталоне она идёт сразу под «орг / СИСТЕМА ХАССП / СТР 1 ИЗ 1». */}
-      {periodicityText ? (
-        <div className="grid grid-cols-[1fr_2.9fr] divide-x divide-[#0b1024]/15 text-[12.5px] leading-tight text-[#0b1024] sm:text-[13px] print:divide-black">
-          <div className="flex items-center justify-center px-3 py-2 text-center font-medium sm:px-4">
-            Периодичность контроля
-          </div>
-          <div className="px-3 py-2 leading-[1.4] sm:px-4">{periodicityText}</div>
-        </div>
-      ) : null}
-    </div>
+      <tbody>
+        <JournalPaperHeaderRows
+          orgName={orgName}
+          title={title}
+          pageInfo={pageInfo}
+          startedAt={startedAt ?? dateMode?.startedAt}
+          finishedAt={finishedAt ?? dateMode?.finishedAt}
+          controlPeriodicity={controlPeriodicity}
+        />
+      </tbody>
+    </table>
   );
 }
 

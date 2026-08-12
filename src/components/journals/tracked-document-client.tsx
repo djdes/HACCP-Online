@@ -442,7 +442,12 @@ function TrackedDocumentClientImpl({
 
       {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
       <div className="mb-4 print:mb-2">
-        <JournalDocumentHeader orgName={organizationName} title={title} />
+        <JournalDocumentHeader
+          orgName={organizationName}
+          title={title}
+          startedAt={dateFrom}
+          finishedAt={status === "closed" ? dateTo : null}
+        />
         <div className="mt-3">
           <JournalDocumentTitle>{title}</JournalDocumentTitle>
         </div>

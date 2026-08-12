@@ -219,12 +219,19 @@ export function HealthDocumentsClient(props: Props) {
           templateCode={props.templateCode}
           templateName={props.templateName}
           users={props.users}
+          documentCount={props.documents.length}
         />
 
         <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
 
         <div className="space-y-5">
-          {props.documents.length === 0 && <EmptyDocumentsState />}
+          {props.documents.length === 0 && (
+            <EmptyDocumentsState
+              templateCode={props.templateCode}
+              templateName={props.templateName}
+              users={props.users}
+            />
+          )}
           {props.documents.map((document) => (
             <HealthDocumentRow
               key={document.id}

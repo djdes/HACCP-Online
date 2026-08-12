@@ -19,7 +19,7 @@ import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
   JournalLegendBlock,
-  JournalPeriodicityHeaderRow,
+  JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -104,41 +104,28 @@ function HygieneCheckbox(props: {
 function HygieneHeader({
   pageLabel,
   organizationLabel,
+  startedAt,
+  finishedAt,
   controlPeriodicity,
 }: {
   pageLabel: string;
   organizationLabel: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
   controlPeriodicity?: string;
 }) {
   return (
-    <table className="hygiene-header w-full border-collapse text-[13px] overflow-hidden rounded-2xl print:rounded-none">
+    <table className="hygiene-header w-full border-collapse text-[13px]">
       <tbody>
-        <tr>
-          <td
-            rowSpan={2}
-            className={`w-[270px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[15px] font-semibold leading-tight`}
-          >
-            {organizationLabel}
-          </td>
-          <td className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}>
-            СИСТЕМА ХАССП
-          </td>
-          <td
-            rowSpan={2}
-            className={`w-[170px] ${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] uppercase leading-tight`}
-          >
-            {pageLabel}
-          </td>
-        </tr>
-        <tr>
-          <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] italic uppercase leading-tight`}>
-            ГИГИЕНИЧЕСКИЙ ЖУРНАЛ
-          </td>
-        </tr>
-        <JournalPeriodicityHeaderRow
-          text={controlPeriodicity}
-          labelClass={GRID_HEAD_CELL_CLASS}
-          valueClass={GRID_CELL_CLASS}
+        <JournalPaperHeaderRows
+          orgName={organizationLabel}
+          title="ГИГИЕНИЧЕСКИЙ ЖУРНАЛ"
+          pageInfo={pageLabel}
+          startedAt={startedAt}
+          finishedAt={finishedAt}
+          controlPeriodicity={controlPeriodicity}
+          orgCellClass="w-[270px]"
+          sideCellClass="w-[190px]"
         />
       </tbody>
     </table>
@@ -771,6 +758,8 @@ export function HygieneDocumentClient({
               <HygieneHeader
                 pageLabel="СТР. 1 ИЗ 1"
                 organizationLabel={organizationLabel}
+                startedAt={dateFrom}
+                finishedAt={status === "closed" ? dateTo : null}
                 controlPeriodicity={controlPeriodicity}
               />
             </div>

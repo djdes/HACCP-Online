@@ -72,7 +72,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
-import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
@@ -856,33 +856,14 @@ export function SanitationDayDocumentClient({
         <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
-            <tr>
-              <td
-                rowSpan={2}
-                className={`${GRID_CELL_CLASS} w-[18%] px-2 py-1 text-center text-[13px] font-semibold leading-tight`}
-              >
-                {organizationName}
-              </td>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] leading-tight`}>
-                СИСТЕМА ХАССП
-              </td>
-              <td className={`${GRID_CELL_CLASS} w-[22%] px-2 py-1 text-center text-[13px] leading-tight`}>
-                СТР. 1 ИЗ 1
-              </td>
-            </tr>
-            <tr>
-              <td
-                colSpan={2}
-                className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] italic uppercase leading-tight`}
-              >
-                ГРАФИК И УЧЕТ ГЕНЕРАЛЬНЫХ УБОРОК
-              </td>
-            </tr>
-            <JournalPeriodicityHeaderRow
-              text={controlPeriodicity}
-              labelClass={GRID_HEAD_CELL_CLASS}
-              valueClass={GRID_CELL_CLASS}
-              valueColSpan={2}
+            <JournalPaperHeaderRows
+              orgName={organizationName}
+              title="ГРАФИК И УЧЕТ ГЕНЕРАЛЬНЫХ УБОРОК"
+              startedAt={normalized.documentDate}
+              finishedAt={readOnly ? normalized.documentDate : null}
+              controlPeriodicity={controlPeriodicity}
+              orgCellClass="w-[18%]"
+              sideCellClass="w-[22%]"
             />
           </tbody>
         </table>

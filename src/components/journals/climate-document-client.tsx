@@ -72,7 +72,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
-import { JournalPeriodicityHeaderRow } from "@/components/journals/journal-document-header";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
@@ -1429,31 +1429,14 @@ export function ClimateDocumentClient({
               <div className="-mx-4 overflow-x-auto rounded-[18px] bg-white p-4 sm:mx-0 sm:p-6">
                 <table className="min-w-[1080px] w-full border-collapse text-[13px]">
                   <tbody>
-                    <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 text-center font-semibold leading-tight`}>
-                        {organizationName}
-                      </td>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center text-[13px] leading-tight`}>
-                        СИСТЕМА ХАССП
-                      </td>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 align-top leading-tight`}>
-                        <div className="space-y-2 text-[17px] font-semibold">
-                          <div>Начат {getClimateDateLabel(dateFrom)}</div>
-                          <div>Окончен {status === "closed" ? getClimateDateLabel(dateTo) : "__________"}</div>
-                        </div>
-                        <div className="mt-4 text-center text-[16px]">СТР. 1 ИЗ 1</div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-2 text-center italic leading-tight`}>
-                        БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ
-                      </td>
-                    </tr>
-                    <JournalPeriodicityHeaderRow
-                      text={controlPeriodicity}
-                      labelClass={GRID_HEAD_CELL_CLASS}
-                      valueClass={GRID_CELL_CLASS}
-                      valueColSpan={2}
+                    <JournalPaperHeaderRows
+                      orgName={organizationName}
+                      title="БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ"
+                      startedAt={dateFrom}
+                      finishedAt={status === "closed" ? dateTo : null}
+                      controlPeriodicity={controlPeriodicity}
+                      orgCellClass="w-[220px]"
+                      sideCellClass="w-[220px]"
                     />
                     <tr>
                       <td rowSpan={status === "active" ? 2 : 1} className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold leading-tight`}>

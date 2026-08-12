@@ -35,7 +35,10 @@ import {
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EMPTY_STATE_CREATE_BUTTON_CLASS,
+  EmptyDocumentsState,
+} from "@/components/journals/document-list-ui";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -564,7 +567,9 @@ export function CleaningDocumentsClient(props: Props) {
                 Инструкция
               </Link>
             </Button>
-            {props.activeTab === "active" ? (
+            {/* Пока документов нет, единственная точка входа — кнопка
+                внутри карточки пустого состояния (эталон). */}
+            {props.activeTab === "active" && props.documents.length > 0 ? (
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -608,7 +613,18 @@ export function CleaningDocumentsClient(props: Props) {
 
         <div className="space-y-4">
           {props.documents.length === 0 ? (
-            <EmptyDocumentsState />
+            <EmptyDocumentsState
+              action={
+                <Button
+                  type="button"
+                  className={EMPTY_STATE_CREATE_BUTTON_CLASS}
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <Plus className="size-5" strokeWidth={2.5} />
+                  Создать документ
+                </Button>
+              }
+            />
           ) : null}
 
           {props.documents.map((document) => {

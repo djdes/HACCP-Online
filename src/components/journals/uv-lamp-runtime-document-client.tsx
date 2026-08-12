@@ -1321,6 +1321,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <JournalDocumentHeader
           orgName={props.organizationName}
           title="Журнал учета работы УФ бактерицидной установки"
+          startedAt={props.dateFrom}
+          finishedAt={props.status === "closed" ? props.dateTo : null}
           controlPeriodicity={props.controlPeriodicity}
         />
       </div>

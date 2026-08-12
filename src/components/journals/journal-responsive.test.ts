@@ -17,6 +17,8 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_DOCUMENT_SHELL_CLASS,
   JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
+  JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS,
+  JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
@@ -34,11 +36,9 @@ test("journal responsive tokens keep mobile-first stacking and tighter shells", 
   assert.match(JOURNAL_TAB_RAIL_CLASS, /min-w-max/);
   assert.match(JOURNAL_LIST_CARD_CLASS, /grid-cols-1/);
   assert.match(JOURNAL_LIST_CARD_CLASS, /sm:grid-cols-/);
-  // Полоса выделения: на мобильном бликует до краёв экрана, на sm+ идёт
-  // ровно от левой линии контейнера страницы (своих отступов нет).
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /-mx-4/);
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sm:mx-0/);
-  assert.doesNotMatch(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sm:-mx-6/);
+  // Полоса выделения закреплена fixed и живёт вне потока страницы,
+  // поэтому компенсирующих отрицательных отступов у неё быть не должно.
+  assert.doesNotMatch(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /-mx-/);
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /px-4/);
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /sm:px-6/);
 });
@@ -112,11 +112,21 @@ test("dialog grid keeps exactly two widths and one typography scale", () => {
 });
 
 test("selection bar sticks under the app header and never prints", () => {
-  // Шапка кабинета — 72px (typography.json → headerBar.h ≈ 73), поэтому
-  // sticky top-0 уезжал ПОД неё. z-30 держит полосу поверх таблицы.
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /sticky/);
+  // `sticky` прилипал только к ближайшему скроллящемуся предку и терялся
+  // внутри overflow-viewport'ов журнальных таблиц. Полоса закреплена
+  // жёстко: fixed под шапкой кабинета (её высота ровно 72px — см.
+  // src/components/layout/header.tsx), z-40 выше липких заголовков таблиц.
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bfixed\b/);
+  assert.doesNotMatch(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bsticky\b/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /top-\[72px\]/);
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bz-30\b/);
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /backdrop-blur/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /inset-x-0/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bz-40\b/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /print:hidden/);
+  // Горизонтально — ровно по контентной колонке страницы.
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /max-w-\[1296px\]/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /\bpx-4\b/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /md:px-6/);
+  // Сама «пилюля» — белая с blur, чтобы читаться поверх таблицы.
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /backdrop-blur/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /bg-white\/95/);
 });

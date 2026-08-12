@@ -23,6 +23,7 @@ import {
 } from "@/lib/acceptance-document";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
+  EMPTY_STATE_CREATE_BUTTON_CLASS,
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
@@ -365,6 +366,7 @@ export function IncomingControlDocumentsClient({
           templateCode={templateCode}
           templateName={pageTitle}
           users={users}
+          documentCount={documents.length}
           createSlot={
             <Button
               type="button"
@@ -381,7 +383,16 @@ export function IncomingControlDocumentsClient({
 
         <div className="space-y-3">
           {documents.length === 0 && (
-            <EmptyDocumentsState />
+            <EmptyDocumentsState
+              action={<Button
+              type="button"
+              className={EMPTY_STATE_CREATE_BUTTON_CLASS}
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="size-5" strokeWidth={2.5} />
+              Создать документ
+            </Button>}
+            />
           )}
           {documents.map((document) => {
             const config = normalizeAcceptanceDocumentConfig(document.config, users);

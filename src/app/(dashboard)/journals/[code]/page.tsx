@@ -8,11 +8,7 @@ import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
 import { HealthDocumentsClient } from "@/components/journals/health-documents-client";
-import { TodayPendingBanner } from "@/components/journals/today-pending-banner";
-import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
-import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { readControlPeriodicity } from "@/lib/control-periodicity";
-import { getTemplateTodaySummary } from "@/lib/today-compliance";
 import {
   buildDateKeys,
   buildExampleHygieneEntryMap,
@@ -1359,47 +1355,18 @@ export default async function JournalDocumentsPage({
     select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
-  const todaySummary = await getTemplateTodaySummary(
-    getActiveOrgId(session),
-    template.id,
-    template.code
-  );
-  const isMandatoryTemplate =
-    template.isMandatorySanpin || template.isMandatoryHaccp;
-  const todayBanner = (
-    <TodayPendingBanner
-      filled={todaySummary.filled}
-      isMandatory={isMandatoryTemplate}
-      templateCode={template.code}
-      templateName={template.name}
-      routeCode={code}
-      activeDocumentId={todaySummary.activeDocumentId}
-      todayCount={todaySummary.todayCount}
-      expectedCount={todaySummary.expectedCount}
-      noActiveDocument={todaySummary.noActiveDocument}
-    />
-  );
   /**
-   * Крошки «<Организация> › <Журнал>». Единственная точка вставки на всю
-   * страницу: у файла ~40 return-веток, но все они идут через `withBanner`,
-   * поэтому дублировать разметку не нужно.
+   * Страница СПИСКА документов журнала повторяет эталон
+   * (lk.haccp-online.ru): сразу H1 → вкладки → карточки. Ни хлебных крошек,
+   * ни красно-зелёных алерт-баннеров «Нужно заполнить за сегодня» здесь нет —
+   * крошки живут только ВНУТРИ документа, а сводка «что заполнить сегодня»
+   * остаётся на `/dashboard` (там `TodayPendingBanner` не трогали).
+   *
+   * `withBanner` сохранён как единственная обёртка всех ~40 return-веток
+   * файла: менять их по одной было бы источником расхождений.
    */
-  const breadcrumbs = (
-    <JournalBreadcrumbs
-      items={[
-        { label: orgSettings?.name || ORG_NAME_FALLBACK, href: "/journals" },
-        { label: template.name },
-      ]}
-    />
-  );
   function withBanner(children: React.ReactNode) {
-    return (
-      <div className="space-y-5">
-        {breadcrumbs}
-        {todayBanner}
-        {children}
-      </div>
-    );
+    return <div className="space-y-5">{children}</div>;
   }
   const shouldNormalizeDemoSamples = isDemoSeedOrganization(orgUsers);
 

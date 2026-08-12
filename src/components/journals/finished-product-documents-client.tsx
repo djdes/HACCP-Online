@@ -153,10 +153,17 @@ export function FinishedProductDocumentsClient({
         templateCode={templateCode}
         templateName={templateName}
         users={users}
+        documentCount={documents.length}
       />
       <JournalTabs activeTab={activeTab} templateCode={templateCode} />
       <div className="space-y-4">
-        {documents.length === 0 && <EmptyDocumentsState />}
+        {documents.length === 0 && (
+          <EmptyDocumentsState
+            templateCode={templateCode}
+            templateName={templateName}
+            users={users}
+          />
+        )}
         {documents.map((document) => (
           <div
             key={document.id}

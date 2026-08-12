@@ -2021,12 +2021,19 @@ export function CleaningDocumentClient(props: Props) {
           {/* Официальный ХАССП-блок — общий компонент вместо самодельной
               таблицы с чёрными рамками (на экране — карточка дизайн-системы,
               в печати сам компонент возвращает бумажный вид). */}
-          <div className={DOC_PAPER_HEADER_CLASS}>
+          {/* Шапка лежит в ТОМ ЖЕ viewport'е и с той же min-width, что и
+              сетка ниже, поэтому её ширина совпадает с шириной таблицы
+              (раньше шапка была ~57% ширины сетки и центрировалась сама). */}
+          <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
+            <div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
             <JournalDocumentHeader
               orgName={props.organizationName}
               title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
+              startedAt={props.dateFrom}
+              finishedAt={props.status === "closed" ? props.dateTo : null}
               controlPeriodicity={props.controlPeriodicity}
             />
+            </div>
           </div>
           <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
             {config.documentTitle || CLEANING_PAGE_TITLE}

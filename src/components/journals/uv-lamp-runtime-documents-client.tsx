@@ -311,13 +311,18 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
         templateCode={props.templateCode}
         templateName={props.templateName}
         users={props.users}
+        documentCount={props.documents.length}
       />
 
       <JournalTabs activeTab={props.activeTab} templateCode={routeCode} />
 
       <div className="space-y-5">
         {props.documents.length === 0 && (
-          <EmptyDocumentsState />
+          <EmptyDocumentsState
+            templateCode={props.templateCode}
+            templateName={props.templateName}
+            users={props.users}
+          />
         )}
 
         {props.documents.map((document) => {

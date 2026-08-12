@@ -239,12 +239,19 @@ export function ColdEquipmentDocumentsClient({
           templateCode={templateCode}
           templateName={templateName}
           users={users}
+          documentCount={documents.length}
         />
 
         <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
         <div className="space-y-5">
-          {documents.length === 0 ? <EmptyDocumentsState /> : null}
+          {documents.length === 0 ? (
+            <EmptyDocumentsState
+              templateCode={templateCode}
+              templateName={templateName}
+              users={users}
+            />
+          ) : null}
 
           {documents.map((document) => {
             const href = `/journals/${routeCode}/documents/${document.id}`;

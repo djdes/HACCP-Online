@@ -296,12 +296,19 @@ export function HygieneDocumentsClient({
           templateCode={templateCode}
           templateName={templateName}
           users={users}
+          documentCount={documents.length}
         />
 
         <JournalTabs activeTab={activeTab} templateCode={templateCode} />
 
         <div className="space-y-5">
-          {documents.length === 0 && <EmptyDocumentsState />}
+          {documents.length === 0 && (
+            <EmptyDocumentsState
+              templateCode={templateCode}
+              templateName={templateName}
+              users={users}
+            />
+          )}
           {documents.map((document) => (
             <DocumentRow
               key={document.id}

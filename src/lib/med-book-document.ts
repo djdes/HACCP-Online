@@ -1,5 +1,5 @@
 export const MED_BOOK_TEMPLATE_CODE = "med_books";
-export const MED_BOOK_DOCUMENT_TITLE = "Мед. книжки";
+export const MED_BOOK_DOCUMENT_TITLE = "Медицинские книжки";
 
 export const DEFAULT_EXAMINATIONS = [
   "Гинеколог",

@@ -654,12 +654,16 @@ export function MedBookDocumentClient({
         ) : null}
 
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
-          <JournalDocumentHeader
-            orgName={organizationName}
-            title="Журнал учёта медицинских книжек сотрудников"
-            controlPeriodicity={controlPeriodicity}
-          />
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
+          <div className="min-w-[1320px] print:min-w-0">
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="Журнал учёта медицинских книжек сотрудников"
+              startedAt={documentDateKey}
+              finishedAt={isClosed ? documentDateKey : null}
+              controlPeriodicity={controlPeriodicity}
+            />
+          </div>
         </div>
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
           Медицинские книжки

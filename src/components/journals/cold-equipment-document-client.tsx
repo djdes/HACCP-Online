@@ -1148,12 +1148,16 @@ export function ColdEquipmentDocumentClient({
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
+          <div className="min-w-[1900px] print:min-w-0">
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал контроля температурного режима холодильного и морозильного оборудования"
+            startedAt={dateFrom}
+            finishedAt={status === "closed" ? dateTo : null}
             controlPeriodicity={controlPeriodicity}
           />
+          </div>
         </div>
         <div className={DOC_CAPS_TITLE_CLASS}>
           <JournalDocumentTitle>

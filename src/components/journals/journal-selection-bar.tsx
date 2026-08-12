@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { JOURNAL_DOCUMENT_SELECTION_BAR_CLASS } from "@/components/journals/journal-responsive";
+import {
+  JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
+  JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS,
+  JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS,
+} from "@/components/journals/journal-responsive";
 
 type Props = {
   /** Сколько строк выделено. При 0 полоса не рендерится. */
@@ -29,9 +33,11 @@ type Props = {
  *
  *   [×] Выбрано: N   ·  подсказка            [доп. действия] [Удалить]
  *
- * Геометрия — `JOURNAL_DOCUMENT_SELECTION_BAR_CLASS`: sticky под шапкой
- * (72px), z-30, белый фон с blur и тенью, чтобы полоса читалась поверх
- * таблицы. Никогда не печатается.
+ * Геометрия — `JOURNAL_DOCUMENT_SELECTION_BAR_CLASS`: `position: fixed`
+ * под шапкой кабинета (72px), z-40, по ширине контентной колонки
+ * (1296px + px-4 md:px-6), белый фон с blur и тенью. Полоса видна при
+ * любом скролле — в том числе внутри горизонтальных viewport'ов таблиц,
+ * где `sticky` не работал. Никогда не печатается.
  */
 export function JournalSelectionBar({
   count,
@@ -44,41 +50,45 @@ export function JournalSelectionBar({
   if (count <= 0) return null;
 
   return (
-    <div
-      className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}
-      role="region"
-      aria-label="Действия над выбранными строками"
-    >
-      <button
-        type="button"
-        onClick={onClear}
-        title="Снять выделение"
-        aria-label="Снять выделение"
-        className="rounded-full p-1.5 text-[#6f7282] transition-colors duration-150 hover:bg-[#f1f2f8] hover:text-black focus:ring-4 focus:ring-[#5566f6]/15 focus:outline-none"
-      >
-        <X className="size-4" />
-      </button>
-      <span className="text-[14px] font-semibold text-[#0b1024]">
-        Выбрано: {count}
-      </span>
-      {hint ? (
-        <span className="hidden text-[13px] text-[#6f7282] sm:inline">{hint}</span>
-      ) : null}
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        {children}
-        {onDelete ? (
-          <Button
+    <div className={JOURNAL_DOCUMENT_SELECTION_BAR_CLASS}>
+      <div className={JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS}>
+        <div
+          className={JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS}
+          role="region"
+          aria-label="Действия над выбранными строками"
+        >
+          <button
             type="button"
-            variant="outline"
-            onClick={onDelete}
-            disabled={deleting}
-            title="Удалить выделенные строки без возможности отмены"
-            className="h-10 gap-1.5 rounded-xl border-[#ffd7d3] bg-[#fff4f2] px-3.5 text-[14px] font-semibold text-[#ff3b30] shadow-none transition-colors duration-150 hover:bg-[#ffeae7] hover:text-[#ff3b30]"
+            onClick={onClear}
+            title="Снять выделение"
+            aria-label="Снять выделение"
+            className="rounded-full p-1.5 text-[#6f7282] transition-colors duration-150 hover:bg-[#f1f2f8] hover:text-black focus:ring-4 focus:ring-[#5566f6]/15 focus:outline-none"
           >
-            <Trash2 className="size-4" />
-            {deleting ? "Удаление…" : "Удалить"}
-          </Button>
-        ) : null}
+            <X className="size-4" />
+          </button>
+          <span className="text-[14px] font-semibold text-[#0b1024]">
+            Выбрано: {count}
+          </span>
+          {hint ? (
+            <span className="hidden text-[13px] text-[#6f7282] sm:inline">{hint}</span>
+          ) : null}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {children}
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onDelete}
+                disabled={deleting}
+                title="Удалить выделенные строки без возможности отмены"
+                className="h-10 gap-1.5 rounded-xl border-[#ffd7d3] bg-[#fff4f2] px-3.5 text-[14px] font-semibold text-[#ff3b30] shadow-none transition-colors duration-150 hover:bg-[#ffeae7] hover:text-[#ff3b30]"
+              >
+                <Trash2 className="size-4" />
+                {deleting ? "Удаление…" : "Удалить"}
+              </Button>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

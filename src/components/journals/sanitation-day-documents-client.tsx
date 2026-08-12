@@ -50,6 +50,7 @@ import {
 
 import { toast } from "sonner";
 import {
+  EMPTY_STATE_CREATE_BUTTON_CLASS,
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
@@ -469,6 +470,7 @@ export function SanitationDayDocumentsClient({
         templateCode={templateCode}
         templateName={SANITATION_DAY_HEADING}
         users={users}
+        documentCount={documents.length}
         createSlot={
           <Button
             className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] sm:w-auto"
@@ -484,7 +486,16 @@ export function SanitationDayDocumentsClient({
 
       <div className="space-y-5">
         {documents.length === 0 ? (
-          <EmptyDocumentsState />
+          <EmptyDocumentsState
+            action={<Button
+              type="button"
+              className={EMPTY_STATE_CREATE_BUTTON_CLASS}
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="size-5" strokeWidth={2.5} />
+              Создать документ
+            </Button>}
+          />
         ) : null}
 
         {documents.map((document) => {

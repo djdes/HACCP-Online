@@ -97,6 +97,19 @@ export function DocumentActionsBar({
       >
         {heading ? <div className="min-w-0 flex-1">{heading}</div> : null}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Печать страницы (Ctrl+P) — иконка рядом с «Настройками
+              журнала», как на эталоне. Печатные стили документа уже есть,
+              поэтому кнопка просто зовёт window.print(). Серверный PDF
+              остаётся отдельным пунктом в меню «⋯». */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            aria-label="Распечатать"
+            title="Распечатать"
+            className="flex size-9 items-center justify-center rounded-lg border-0 bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-150 hover:bg-[#5566f6]/[0.09] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+          >
+            <Printer className="size-4" />
+          </button>
           {onSettings ? (
             <Button
               type="button"

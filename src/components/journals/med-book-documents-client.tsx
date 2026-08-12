@@ -182,6 +182,7 @@ export function MedBookDocumentsClient({
         templateCode={templateCode}
         templateName={templateName}
         users={users}
+        documentCount={documents.length}
         createSlot={
           <>
             <Button
@@ -210,7 +211,11 @@ export function MedBookDocumentsClient({
       <JournalTabs activeTab={activeTab} templateCode={templateCode} />
 
       {documents.length === 0 ? (
-        <EmptyDocumentsState />
+        <EmptyDocumentsState
+          templateCode={templateCode}
+          templateName={templateName}
+          users={users}
+        />
       ) : (
         <div className="space-y-4">
           {documents.map((document) => {

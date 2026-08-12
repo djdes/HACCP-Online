@@ -19,12 +19,14 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -581,25 +583,23 @@ export function FryerOilDocumentClient(props: Props) {
 
         <div className={GRID_VIEWPORT_CLASS}>
           <div className="min-w-[1400px]">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[240px_1fr_280px] border border-[#ececf4] print:border-black">
-              <div className="flex min-h-[110px] items-center justify-center border-r border-[#ececf4] print:border-black px-6 text-center text-[15px]">{props.organizationName}</div>
-              <div className="grid grid-rows-[55px_55px]"><div className="flex items-center justify-center border-b border-[#ececf4] print:border-black text-[20px] uppercase">Система ХАССП</div><div className="flex items-center justify-center text-[18px] italic uppercase">Журнал учета использования фритюрных жиров</div></div>
-              <div className="grid grid-rows-[55px_55px] border-l border-[#ececf4] print:border-black"><div className="space-y-1 border-b border-[#ececf4] print:border-black px-6 py-3 text-[18px]"><div className="flex items-center justify-between"><span>Начат</span><span>{formatDateRu(dateFrom)}</span></div><div className="flex items-center justify-between"><span>Окончен</span><span>__________</span></div></div><div className="flex items-center justify-center text-[18px] uppercase">Стр. 1 из 1</div></div>
-            </div>
-            {/* Строка «Периодичность контроля» — как на эталоне, сразу под
-                блоком «орг / СИСТЕМА ХАССП / СТР. 1 ИЗ 1». */}
-            {props.controlPeriodicity?.trim() ? (
-              <div className="grid grid-cols-1 border border-t-0 border-[#ececf4] print:border-black sm:grid-cols-[240px_1fr]">
-                <div className="flex items-center justify-center border-b border-[#ececf4] px-6 py-2.5 text-center text-[13px] font-semibold print:border-black sm:border-b-0 sm:border-r">
-                  Периодичность контроля
-                </div>
-                <div className="px-6 py-2.5 text-[13px] leading-[1.4]">
-                  {props.controlPeriodicity.trim()}
-                </div>
-              </div>
-            ) : null}
+            {/* Бумажная шапка — общие строки в той же сетке, что и таблица
+                ниже (раньше была самодельная grid-вёрстка без части рамок). */}
+            <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
+              <tbody>
+                <JournalPaperHeaderRows
+                  orgName={props.organizationName}
+                  title="Журнал учета использования фритюрных жиров"
+                  startedAt={dateFrom}
+                  finishedAt={isActive ? null : dateFrom}
+                  controlPeriodicity={props.controlPeriodicity}
+                  orgCellClass="w-[240px]"
+                  sideCellClass="w-[280px]"
+                />
+              </tbody>
+            </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
-            <div className={`mt-7 ${DOC_CAPS_TITLE_CLASS} text-center text-[26px] font-semibold uppercase`}>Журнал учета использования фритюрных жиров</div>
+            <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[26px] font-semibold uppercase`}>Журнал учета использования фритюрных жиров</div>
             {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
