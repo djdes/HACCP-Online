@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Archive,
   ChevronDown,
   ChevronRight,
   Plus,
-  Save,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
+  FINISHED_PRODUCT_QUALITY_GUIDE_TITLE,
   createFinishedProductRow,
   normalizeFinishedProductDocumentConfig,
   type FinishedProductDocumentConfig,
@@ -88,6 +88,34 @@ type Props = {
 
 /** Сколько строк максимум разрешаем добавить одной пачкой. */
 const BULK_ROWS_MAX = 50;
+
+/** Пауза до автосохранения после последнего нажатия клавиши в ячейке. */
+const AUTOSAVE_DELAY_MS = 800;
+
+/** Текстовые поля строки — только они рендерятся колонками таблицы. */
+type FinishedProductTextField =
+  | "productionDateTime"
+  | "rejectionTime"
+  | "productName"
+  | "organoleptic"
+  | "productTemp"
+  | "correctiveAction"
+  | "oxygenLevel"
+  | "releasePermissionTime"
+  | "courierTransferTime"
+  | "responsiblePerson"
+  | "inspectorName";
+
+type FinishedProductColumn = {
+  key: string;
+  label: string;
+  /** Доля ширины: процент = weight / Σweight. */
+  weight: number;
+  field: FinishedProductTextField;
+  align?: "center";
+  /** id `<datalist>` с подсказками, если у колонки есть справочник. */
+  list?: string;
+};
 
 const QUALITY_GUIDELINES = [
   "Контроль за доброкачественностью пищи проводится органолептическим методом.",
@@ -160,8 +188,60 @@ export function FinishedProductDocumentClient({
   const [bulkText, setBulkText] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [draftRow, setDraftRow] = useState<FinishedProductDocumentRow>(() => createDraft(users));
+  const [guideOpen, setGuideOpen] = useState(false);
   const readOnly = status === "closed";
   const { mobileView, switchMobileView } = useMobileView("finished_product");
+
+  /* ── Автосохранение ячеек ───────────────────────────────────────────
+   * Кнопки «Сохранить» на эталоне нет: правки ячеек уезжают на сервер
+   * сами. Копим последнее состояние в ref и шлём один PATCH через
+   * AUTOSAVE_DELAY_MS после последнего нажатия клавиши; blur и любые
+   * структурные операции (добавить/удалить строку, правка справочника)
+   * сбрасывают очередь немедленно. `router.refresh()` здесь НЕ зовём —
+   * он перерисовывает серверный компонент и сбивает фокус в поле.
+   */
+  const pendingConfigRef = useRef<FinishedProductDocumentConfig | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  const flushConfigSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const next = pendingConfigRef.current;
+    pendingConfigRef.current = null;
+    if (!next) return;
+    setIsAutoSaving(true);
+    void fetch(`/api/journal-documents/${documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: next }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error();
+      })
+      .catch(() => toast.error("Не удалось сохранить журнал — изменения остались только на экране"))
+      .finally(() => setIsAutoSaving(false));
+  }, [documentId]);
+
+  /** Применить новое состояние конфига и поставить его в очередь записи. */
+  const commitConfig = useCallback(
+    (next: FinishedProductDocumentConfig, immediate = false) => {
+      setConfig(next);
+      pendingConfigRef.current = next;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (immediate) {
+        flushConfigSave();
+        return;
+      }
+      saveTimerRef.current = setTimeout(flushConfigSave, AUTOSAVE_DELAY_MS);
+    },
+    [flushConfigSave]
+  );
+
+  // Уход со страницы не должен съедать последний недописанный ввод.
+  useEffect(() => () => flushConfigSave(), [flushConfigSave]);
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
     id: row.id,
@@ -189,6 +269,9 @@ export function FinishedProductDocumentClient({
       config.showCorrectiveAction
         ? { label: "Корректирующие действия", value: row.correctiveAction, hideIfEmpty: true }
         : null,
+      config.showOxygenLevel
+        ? { label: "Остаточный уровень кислорода, % об.", value: row.oxygenLevel, hideIfEmpty: true }
+        : null,
       { label: "Разрешение к реализации", value: row.releasePermissionTime, hideIfEmpty: true },
       config.showCourierTime
         ? { label: "Передача курьеру", value: row.courierTransferTime, hideIfEmpty: true }
@@ -209,7 +292,88 @@ export function FinishedProductDocumentClient({
     [users]
   );
 
+  /**
+   * Колонки таблицы одним описанием: заголовок + вес для colgroup.
+   * Базовые 7 колонок дают ровно 100 «весов» — сумма процентов совпадает
+   * с эталоном; включение опций пересчитывает доли автоматически.
+   */
+  const columns = useMemo<FinishedProductColumn[]>(() => {
+    const list: FinishedProductColumn[] = [
+      { key: "production", label: "Дата, время изготовления", weight: 7, field: "productionDateTime", align: "center" },
+      { key: "rejection", label: "Время снятия бракеража", weight: 7, field: "rejectionTime", align: "center" },
+      {
+        key: "name",
+        label: config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)",
+        weight: 14,
+        field: "productName",
+        list: "finished-product-items",
+      },
+      {
+        key: "organoleptic",
+        label: "Органолептическая оценка (включая оценку степени готовности)",
+        weight: 26,
+        field: "organoleptic",
+      },
+    ];
+    if (config.showProductTemp) {
+      list.push({ key: "temp", label: "T°C внутри продукта", weight: 8, field: "productTemp", align: "center" });
+    }
+    if (config.showCorrectiveAction) {
+      list.push({ key: "corrective", label: "Корректирующие действия", weight: 12, field: "correctiveAction" });
+    }
+    if (config.showOxygenLevel) {
+      list.push({ key: "oxygen", label: "Остаточный уровень кислорода, % об.", weight: 9, field: "oxygenLevel", align: "center" });
+    }
+    list.push({ key: "release", label: "Разрешение к реализации (время)", weight: 10, field: "releasePermissionTime", align: "center" });
+    if (config.showCourierTime) {
+      list.push({ key: "courier", label: "Время передачи блюд курьеру", weight: 9, field: "courierTransferTime", align: "center" });
+    }
+    list.push({
+      key: "responsible",
+      label: "Ответственный исполнитель (ФИО, должность)",
+      weight: 18,
+      field: "responsiblePerson",
+      list: "finished-product-users",
+    });
+    list.push({
+      key: "inspector",
+      label:
+        config.inspectorMode === "commission_signatures"
+          ? "Подписи членов комиссии"
+          : "ФИО лица, проводившего бракераж",
+      weight: 18,
+      field: "inspectorName",
+      list: "finished-product-users",
+    });
+    return list;
+  }, [
+    config.fieldNameMode,
+    config.inspectorMode,
+    config.showCorrectiveAction,
+    config.showCourierTime,
+    config.showOxygenLevel,
+    config.showProductTemp,
+  ]);
+
+  const columnsWeight = columns.reduce((sum, column) => sum + column.weight, 0);
+  /**
+   * Ниже этой ширины колонки перестают читаться — включаем скролл внутри
+   * viewport'а таблицы. 7 базовых колонок помещаются в контент 1248px,
+   * каждая опциональная добавляет свои ~130px.
+   */
+  const tableMinWidth = 960 + Math.max(columns.length - 7, 0) * 130;
+
+  /**
+   * Явное сохранение (диалог настроек, добавление строки из модалки).
+   * Гасит очередь автосохранения — иначе отложенный PATCH со старым
+   * состоянием мог бы «догнать» и перетереть только что записанное.
+   */
   async function saveConfig(nextConfig = config) {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    pendingConfigRef.current = null;
     setIsSaving(true);
     try {
       const response = await fetch(`/api/journal-documents/${documentId}`, {
@@ -227,7 +391,10 @@ export function FinishedProductDocumentClient({
   }
 
   function updateRow(id: string, patch: Partial<FinishedProductDocumentRow>) {
-    setConfig((prev) => ({ ...prev, rows: prev.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) }));
+    commitConfig({
+      ...config,
+      rows: config.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    });
   }
 
   async function removeSelectedRows() {
@@ -253,7 +420,10 @@ export function FinishedProductDocumentClient({
       ],
     });
     if (!confirmed) return;
-    setConfig((prev) => ({ ...prev, rows: prev.rows.filter((row) => !selectedRows.includes(row.id)) }));
+    commitConfig(
+      { ...config, rows: config.rows.filter((row) => !selectedRows.includes(row.id)) },
+      true
+    );
     setSelectedRows([]);
   }
 
@@ -279,10 +449,13 @@ export function FinishedProductDocumentClient({
     if (raw === null) return;
     const count = Number(raw);
     if (!Number.isInteger(count) || count <= 0 || count > BULK_ROWS_MAX) return;
-    setConfig((prev) => ({
-      ...prev,
-      rows: [...prev.rows, ...Array.from({ length: count }, () => createDraft(users))],
-    }));
+    commitConfig(
+      {
+        ...config,
+        rows: [...config.rows, ...Array.from({ length: count }, () => createDraft(users))],
+      },
+      true
+    );
   }
 
   /** «Добавить из файла» — многострочная вставка списка наименований. */
@@ -292,10 +465,10 @@ export function FinishedProductDocumentClient({
       .map((item) => item.trim())
       .filter(Boolean);
     if (items.length === 0) return;
-    setConfig((prev) => ({
-      ...prev,
-      rows: [...prev.rows, ...items.map((item) => createDraft(users, item))],
-    }));
+    commitConfig(
+      { ...config, rows: [...config.rows, ...items.map((item) => createDraft(users, item))] },
+      true
+    );
     setBulkText("");
     setBulkOpen(false);
     toast.success(`Добавлено строк: ${items.length}`);
@@ -361,12 +534,14 @@ export function FinishedProductDocumentClient({
           </table>
         </div>
 
-        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[20px] font-semibold uppercase leading-tight sm:text-[30px]`}>Журнал бракеража готовой пищевой продукции</h2>
+        {/* Кегль КАПС-заголовка — по эталону (finished_product-grid.png):
+            ~14px bold, а не «плакат» на 30px. */}
+        <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[13px] font-bold uppercase leading-tight sm:text-[14px]`}>Журнал бракеража готовой пищевой продукции</h2>
 
         {!readOnly && <div className={DOC_ADD_ROW_CLASS}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button>
+              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[300px] rounded-[24px] border-0 p-3 shadow-xl">
               <DropdownMenuItem className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => setAddModalOpen(true)}>Добавить изделие</DropdownMenuItem>
@@ -374,8 +549,14 @@ export function FinishedProductDocumentClient({
               <DropdownMenuItem className="h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => { setBulkText(""); setBulkOpen(true); }}>Добавить списком</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-0 bg-[#f5f6ff] px-3.5 text-[13.5px] text-[#3848c7] transition-colors hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
-          <Button type="button" className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]" onClick={() => saveConfig()} disabled={isSaving || isPending}><Save className="size-4" />{isSaving ? "Сохранение..." : "Сохранить"}</Button>
+          {/* Тот же обработчик, что у пункта «Добавить изделие» в дропдауне —
+              на эталоне это отдельная кнопка рядом. */}
+          <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => setAddModalOpen(true)}><Plus className="size-5" strokeWidth={2.5} />Добавить изделие</Button>
+          <Button type="button" variant="outline" className="h-11 rounded-lg border-0 bg-[#f5f6ff] px-5 text-[15px] font-medium text-[#3848c7] shadow-none transition-colors duration-150 hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
+          {/* Кнопки «Сохранить» нет: правки уезжают сами (см. commitConfig). */}
+          {isAutoSaving || isSaving || isPending ? (
+            <span className="text-[13px] text-[#6f7282]">Сохранение…</span>
+          ) : null}
         </div>}
         <JournalSelectionBar
           count={selectedRows.length}
@@ -393,44 +574,91 @@ export function FinishedProductDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1650px] w-full border-collapse text-[13px]">
+          {/*
+            `table-fixed` + colgroup в процентах: все колонки укладываются в
+            1248px контента на 1440px, последние («Ответственный исполнитель»,
+            «ФИО лица, проводившего бракераж») больше не уезжают за контейнер.
+            Проценты считаются из весов, поэтому включение любой из четырёх
+            опциональных колонок пересчитывает сетку, а не ломает её.
+            `minWidth` включает скролл ВНУТРИ viewport-контейнера — страница
+            по горизонтали не едет.
+          */}
+          <table
+            className="w-full table-fixed border-collapse text-[12.5px]"
+            style={{ minWidth: `${tableMinWidth}px` }}
+          >
+            <colgroup>
+              <col style={{ width: "36px" }} />
+              {columns.map((column) => (
+                <col key={column.key} style={{ width: `${(column.weight / columnsWeight) * 100}%` }} />
+              ))}
+            </colgroup>
             <thead><tr>
-              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} /><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата, время изготовления</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время снятия бракеража</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>{config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)"}</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Органолептическая оценка</th>
-              {config.showProductTemp && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>T°C внутри продукта</th>}
-              {config.showCorrectiveAction && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Корректирующие действия</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Разрешение к реализации (время)</th>
-              {config.showCourierTime && <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Время передачи блюд курьеру</th>}
-              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Ответственный исполнитель</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "ФИО лица, проводившего бракераж"}</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 leading-tight`} />
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center text-[11.5px] font-semibold leading-[1.25]`}
+                >
+                  {column.label}
+                </th>
+              ))}
             </tr></thead>
             <tbody>{config.rows.map((row) => <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-              <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productionDateTime} onChange={(e) => updateRow(row.id, { productionDateTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.rejectionTime} onChange={(e) => updateRow(row.id, { rejectionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productName} onChange={(e) => updateRow(row.id, { productName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-items" /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.organoleptic} onChange={(e) => updateRow(row.id, { organoleptic: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              {config.showProductTemp && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.productTemp} onChange={(e) => updateRow(row.id, { productTemp: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              {config.showCorrectiveAction && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.correctiveAction} onChange={(e) => updateRow(row.id, { correctiveAction: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.releasePermissionTime} onChange={(e) => updateRow(row.id, { releasePermissionTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>
-              {config.showCourierTime && <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.courierTransferTime} onChange={(e) => updateRow(row.id, { courierTransferTime: e.target.value })} className="border-0 shadow-none" disabled={readOnly} /></td>}
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.responsiblePerson} onChange={(e) => updateRow(row.id, { responsiblePerson: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
-              <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}><Input value={row.inspectorName} onChange={(e) => updateRow(row.id, { inspectorName: e.target.value })} className="border-0 shadow-none" disabled={readOnly} list="finished-product-users" /></td>
+              <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center align-middle leading-tight`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
+              {columns.map((column) => (
+                <td key={column.key} className={`${GRID_CELL_CLASS} p-0.5 align-middle leading-tight`}>
+                  <Input
+                    value={row[column.field]}
+                    onChange={(event) =>
+                      updateRow(row.id, {
+                        [column.field]: event.target.value,
+                      } as Partial<FinishedProductDocumentRow>)
+                    }
+                    onBlur={flushConfigSave}
+                    className={`h-7 rounded-none border-0 px-1.5 py-0 text-[12.5px] shadow-none md:text-[12.5px] ${column.align === "center" ? "text-center" : ""}`}
+                    disabled={readOnly}
+                    list={column.list}
+                  />
+                </td>
+              ))}
             </tr>)}</tbody>
           </table>
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>
         </MobileViewTableWrapper>
-        {/* underline-offset-4 + decoration-1: без офсета подчёркивание шло
-            по нижней трети букв и читалось как зачёркивание. */}
-        <div className={`${DOC_EXTRA_BLOCK_CLASS} text-[18px] underline decoration-1 underline-offset-4`}>{config.footerNote}</div>
-      </div>
 
-      <section className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        <h3 className="text-[18px] font-semibold leading-tight sm:text-[24px]">Рекомендации по организации контроля за доброкачественностью готовой пищи</h3>
-        {QUALITY_GUIDELINES.map((item) => <p key={item} className="text-[18px] leading-8">{item}</p>)}
-        <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[900px] w-full border-collapse text-[13px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{group}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{name}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{temperature}</td></tr>)}</tbody></table>
+        {/* «Примечание:» под таблицей — как на эталоне, и на экране, и в печати.
+            Пустое примечание блок не рисует. */}
+        {config.footerNote ? (
+          <div className={`${DOC_EXTRA_BLOCK_CLASS} text-[12.5px] leading-[1.5]`}>
+            <div className="font-bold">Примечание:</div>
+            <div className="whitespace-pre-line">{config.footerNote}</div>
+          </div>
+        ) : null}
+
+        {/* Справочный блок — только ссылка, раскрывается по клику.
+            В бумажную форму эталона он не входит → print:hidden. */}
+        <div className={`${DOC_EXTRA_BLOCK_CLASS} print:hidden`}>
+          <button
+            type="button"
+            onClick={() => setGuideOpen((prev) => !prev)}
+            aria-expanded={guideOpen}
+            className="inline-flex items-center gap-1.5 rounded-md text-left text-[13px] font-semibold text-[#0b1024] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+          >
+            <ChevronRight className={`size-4 shrink-0 transition-transform duration-150 ${guideOpen ? "rotate-90" : ""}`} />
+            {FINISHED_PRODUCT_QUALITY_GUIDE_TITLE}
+          </button>
+          {guideOpen ? (
+            <div className="mt-4 space-y-3 rounded-[16px] border border-[#ececf4] bg-[#fafbff] p-4 sm:p-5">
+              {QUALITY_GUIDELINES.map((item) => <p key={item} className="text-[13.5px] leading-[1.55] text-[#3c4053]">{item}</p>)}
+              <div className={GRID_VIEWPORT_CLASS}>
+                <table className="w-full min-w-[520px] border-collapse text-[12.5px]"><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Группа</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Наименование продукта</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>°C</th></tr></thead><tbody>{TEMPERATURE_GUIDELINES.map(([group, name, temperature]) => <tr key={group}><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{group}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{name}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-semibold leading-tight`}>{temperature}</td></tr>)}</tbody></table>
+              </div>
+            </div>
+          ) : null}
         </div>
-      </section>
+      </div>
 
       <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
@@ -466,6 +694,12 @@ export function FinishedProductDocumentClient({
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">T°C внутри продукта</Label>
                 <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
+              </div>
+            ) : null}
+            {config.showOxygenLevel ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Остаточный уровень кислорода, % об.</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.oxygenLevel} onChange={(e) => setDraftRow((prev) => ({ ...prev, oxygenLevel: e.target.value }))} />
               </div>
             ) : null}
             {config.showCorrectiveAction ? (
@@ -569,6 +803,15 @@ export function FinishedProductDocumentClient({
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
               <Checkbox
+                checked={config.showOxygenLevel}
+                onCheckedChange={(value) =>
+                  setConfig((prev) => ({ ...prev, showOxygenLevel: value === true }))
+                }
+              />
+              <span className="text-[14px] text-[#0b1024]">Остаточный уровень кислорода, % об.</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
+              <Checkbox
                 checked={config.showCourierTime}
                 onCheckedChange={(value) =>
                   setConfig((prev) => ({ ...prev, showCourierTime: value === true }))
@@ -651,8 +894,8 @@ export function FinishedProductDocumentClient({
                 Список пуст. Введите название изделия ниже и нажмите «+».
               </p>
             ) : null}
-            {Array.from(new Set(config.itemsCatalog)).map((item) => <div key={item} className="flex items-center gap-2 rounded-xl border border-[#e6e6f0] px-3 py-2"><div className="flex-1 text-[14px]">{item}</div><Button type="button" variant="ghost" title="Удалить изделие из списка" onClick={() => setConfig((prev) => ({ ...prev, itemsCatalog: prev.itemsCatalog.filter((catalogItem) => catalogItem !== item) }))}><Trash2 className="size-4" /></Button></div>)}
-            <div className="flex gap-2"><Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Введите название нового изделия" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" /><Button className="h-10 rounded-lg bg-[#5566f6] px-4 text-white hover:bg-[#4a5bf0]" title="Добавить изделие в список" onClick={() => { if (!newItemName.trim()) return; setConfig((prev) => ({ ...prev, itemsCatalog: Array.from(new Set([...prev.itemsCatalog, newItemName.trim()])) })); setNewItemName(""); }}><Plus className="size-4" /></Button></div>
+            {Array.from(new Set(config.itemsCatalog)).map((item) => <div key={item} className="flex items-center gap-2 rounded-xl border border-[#e6e6f0] px-3 py-2"><div className="flex-1 text-[14px]">{item}</div><Button type="button" variant="ghost" title="Удалить изделие из списка" onClick={() => commitConfig({ ...config, itemsCatalog: config.itemsCatalog.filter((catalogItem) => catalogItem !== item) }, true)}><Trash2 className="size-4" /></Button></div>)}
+            <div className="flex gap-2"><Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Введите название нового изделия" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" /><Button className="h-10 rounded-lg bg-[#5566f6] px-4 text-white hover:bg-[#4a5bf0]" title="Добавить изделие в список" onClick={() => { if (!newItemName.trim()) return; commitConfig({ ...config, itemsCatalog: Array.from(new Set([...config.itemsCatalog, newItemName.trim()])) }, true); setNewItemName(""); }}><Plus className="size-4" /></Button></div>
           </div>
         </DialogContent>
       </Dialog>

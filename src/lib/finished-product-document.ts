@@ -8,6 +8,20 @@ export const FINISHED_PRODUCT_ARCHIVE_DOCUMENT_TITLES = [
 export const FINISHED_PRODUCT_DOCUMENT_TITLE =
   "Журнал бракеража готовой пищевой продукции";
 
+/**
+ * Заголовок справочного блока «Рекомендации…». На эталоне это статичная
+ * подчёркнутая ссылка под таблицей, а НЕ примечание документа.
+ *
+ * Исторически этот текст лежал в `config.footerNote` как значение по
+ * умолчанию, поэтому поле «Примечание» из диалога создания/настроек
+ * никогда не доезжало до документа: пустая строка заменялась на этот
+ * заголовок, а заполненная — печаталась подчёркнутой ссылкой. Теперь
+ * `footerNote` — это ровно примечание пользователя, а legacy-значение
+ * при нормализации отбрасывается.
+ */
+export const FINISHED_PRODUCT_QUALITY_GUIDE_TITLE =
+  "Рекомендации по организации контроля за доброкачественностью готовой пищи";
+
 export type FinishedProductFieldNameMode = "dish" | "semi";
 export type FinishedProductInspectorMode = "inspector_name" | "commission_signatures";
 
@@ -60,6 +74,16 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * «Примечание» документа. Пустое — значит примечания нет (блок под
+ * таблицей не печатается). Legacy-значение (заголовок справочного блока)
+ * приравнивается к пустому — см. FINISHED_PRODUCT_QUALITY_GUIDE_TITLE.
+ */
+function normalizeFooterNote(value: unknown) {
+  const text = normalizeText(value);
+  return text === FINISHED_PRODUCT_QUALITY_GUIDE_TITLE ? "" : text;
+}
+
 export function createFinishedProductRow(
   overrides: Partial<FinishedProductDocumentRow> = {}
 ): FinishedProductDocumentRow {
@@ -94,7 +118,7 @@ export function getDefaultFinishedProductDocumentConfig(): FinishedProductDocume
     showCorrectiveAction: true,
     showOxygenLevel: false,
     showCourierTime: true,
-    footerNote: "Рекомендации по организации контроля за доброкачественностью готовой пищи",
+    footerNote: "",
     productLists: [
       { id: createId("finished-product-list"), name: "Основной список", items: [] },
       { id: createId("finished-product-list"), name: "Сезонные позиции", items: [] },
@@ -155,10 +179,7 @@ export function normalizeFinishedProductDocumentConfig(
     showCorrectiveAction: record.showCorrectiveAction === true,
     showOxygenLevel: record.showOxygenLevel === true,
     showCourierTime: record.showCourierTime === true,
-    footerNote:
-      typeof record.footerNote === "string" && record.footerNote.trim() !== ""
-        ? record.footerNote
-        : defaults.footerNote,
+    footerNote: normalizeFooterNote(record.footerNote),
     productLists: Array.isArray(record.productLists)
       ? (record.productLists as Array<Record<string, unknown>>)
           .map((list) => ({

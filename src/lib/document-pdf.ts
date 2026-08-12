@@ -1690,14 +1690,14 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
         ? "Наименование полуфабриката"
         : "Наименование блюд (изделий)"
     ),
-    centerCell("Органолептическая оценка"),
+    centerCell("Органолептическая оценка (включая оценку степени готовности)"),
   ];
   if (params.config.showProductTemp) headRow.push(centerCell("T продукта"));
   if (params.config.showCorrectiveAction) headRow.push(centerCell("Корректирующие действия"));
   if (params.config.showOxygenLevel) headRow.push(centerCell("Остаточный кислород, %"));
   headRow.push(centerCell("Разрешение к реализации"));
   if (params.config.showCourierTime) headRow.push(centerCell("Передача курьеру"));
-  headRow.push(centerCell("Ответственный"));
+  headRow.push(centerCell("Ответственный исполнитель (ФИО, должность)"));
   headRow.push(
     centerCell(
       params.config.inspectorMode === "commission_signatures"
@@ -1749,11 +1749,14 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
     margin: { left: 10, right: 10 },
   });
 
+  // «Примечание: …» под таблицей — как на эталоне (finished_product-grid.png).
   if (params.config.footerNote) {
     const y = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || 66;
-    doc.setFont("JournalUnicode", "normal");
+    doc.setFont("JournalUnicode", "bold");
     doc.setFontSize(9);
-    doc.text(params.config.footerNote, 10, y + 8);
+    doc.text("Примечание:", 10, y + 8);
+    doc.setFont("JournalUnicode", "normal");
+    doc.text(params.config.footerNote, 10, y + 13);
   }
 }
 
