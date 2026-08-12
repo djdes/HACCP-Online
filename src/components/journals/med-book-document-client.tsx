@@ -753,7 +753,7 @@ export function MedBookDocumentClient({
       </div>
 
       <div id="med-book-reference" className="space-y-5">
-        <h2 className="text-[20px] font-semibold underline">
+        <h2 className="text-[20px] font-semibold underline decoration-1 underline-offset-4">
           Список специалистов и исследований
         </h2>
         <div className={GRID_VIEWPORT_CLASS}>
@@ -939,7 +939,7 @@ export function MedBookDocumentClient({
               </table>
             </div>
           </div>
-          <h3 className="text-[20px] font-semibold underline">
+          <h3 className="text-[20px] font-semibold underline decoration-1 underline-offset-4">
             Список прививок
           </h3>
           <p className="text-[18px] leading-[1.55] text-black">

@@ -232,6 +232,7 @@ export default async function JournalDocumentPage(props: {
     <>
       {showCrumbs ? (
         <JournalBreadcrumbs
+          className="mb-3"
           items={[
             { label: crumbOrganization?.name || ORG_NAME_FALLBACK, href: "/journals" },
             {

@@ -22,7 +22,11 @@ export function DashboardFooter() {
           <span>© 2026</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {/* sm:pr-[104px] — коридор под плавающие кнопки (support + AI-чат
+            занимают правые ~123px: `fixed bottom-5 right-5` и `right-[68px]`,
+            размер size-11). Без него «support@wesetup.ru» и «Telegram»
+            перекрывались виджетами, когда футер попадал в нижнюю часть окна. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:pr-[104px]">
           <Link href="/oferta" className={linkClass}>
             Договор-оферта
           </Link>

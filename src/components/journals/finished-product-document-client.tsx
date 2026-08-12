@@ -401,7 +401,9 @@ export function FinishedProductDocumentClient({
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>
         </MobileViewTableWrapper>
-        <div className={`${DOC_EXTRA_BLOCK_CLASS} text-[18px] underline`}>{config.footerNote}</div>
+        {/* underline-offset-4 + decoration-1: без офсета подчёркивание шло
+            по нижней трети букв и читалось как зачёркивание. */}
+        <div className={`${DOC_EXTRA_BLOCK_CLASS} text-[18px] underline decoration-1 underline-offset-4`}>{config.footerNote}</div>
       </div>
 
       <section className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">

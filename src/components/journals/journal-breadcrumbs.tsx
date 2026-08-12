@@ -31,16 +31,16 @@ export function JournalBreadcrumbs({
   return (
     <nav
       aria-label="Хлебные крошки"
-      className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] font-medium leading-[1.4] print:hidden ${className}`}
+      className={`flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] font-medium leading-[1.4] print:hidden ${className}`}
     >
       {visible.map((item, index) => {
         const isLast = index === visible.length - 1;
         return (
-          <span key={`${item.label}-${index}`} className="flex items-center gap-x-1.5">
+          <span key={`${item.label}-${index}`} className="flex items-center gap-x-1">
             {index > 0 ? (
               <ChevronRight
                 aria-hidden
-                className="size-4 shrink-0 self-center text-[#9b9fb3]"
+                className="size-3.5 shrink-0 self-center text-[#c6c9d8]"
               />
             ) : null}
             {isLast || !item.href ? (
