@@ -1647,61 +1647,70 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (shouldNormalizeDemoSamples && resolvedCode === PERISHABLE_REJECTION_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: getActiveOrgId(session),
-        templateId: template.id,
-      },
-    });
-
-    if (existingCount === 0) {
-      const now = new Date();
-      const year = now.getUTCFullYear();
-      const month = now.getUTCMonth();
-      const dateFrom = new Date(Date.UTC(year, month, 1));
-      const dateTo = new Date(Date.UTC(year, month + 1, 0));
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
+  /**
+   * Специализированные клиенты журналов рендерятся ВСЕГДА, а не только у
+   * демо-организаций. Раньше внешнее условие было
+   * `shouldNormalizeDemoSamples && resolvedCode === ...`, из-за чего у реальных
+   * организаций страница проваливалась в общий рендер. Под флагом остался
+   * только досев демо-образцов (активный/закрытый образец для витрины).
+   */
+  if (resolvedCode === PERISHABLE_REJECTION_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples) {
+      const existingCount = await db.journalDocument.count({
+        where: {
           organizationId: getActiveOrgId(session),
-          title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom,
-          dateTo,
-          createdById: session.user.id,
-          config: getDefaultPerishableRejectionConfig(),
+          templateId: template.id,
         },
       });
-    }
 
-    const perishableStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
+      if (existingCount === 0) {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = now.getUTCMonth();
+        const dateFrom = new Date(Date.UTC(year, month, 1));
+        const dateTo = new Date(Date.UTC(year, month + 1, 0));
+
+        await db.journalDocument.create({
+          data: {
             templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom,
+            dateTo,
+            createdById: session.user.id,
+            config: getDefaultPerishableRejectionConfig(),
           },
-          select: { status: true },
-        })
-      ).map((document) => document.status)
-    );
+        });
+      }
 
-    if (!perishableStatuses.has("closed")) {
-      const { closedFrom, closedTo } = getCurrentAndPreviousMonthBounds();
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
-          status: "closed",
-          dateFrom: closedFrom,
-          dateTo: closedTo,
-          createdById: session.user.id,
-          config: getDefaultPerishableRejectionConfig(),
-        },
-      });
+      const perishableStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
+      );
+
+      if (!perishableStatuses.has("closed")) {
+        const { closedFrom, closedTo } = getCurrentAndPreviousMonthBounds();
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: PERISHABLE_REJECTION_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: closedFrom,
+            dateTo: closedTo,
+            createdById: session.user.id,
+            config: getDefaultPerishableRejectionConfig(),
+          },
+        });
+      }
     }
 
     const documents = await db.journalDocument.findMany({
@@ -1731,122 +1740,124 @@ export default async function JournalDocumentsPage({
     );
   }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: getActiveOrgId(session),
-        templateId: template.id,
-      },
-    });
-
-    if (existingCount === 0) {
-      const [areas, equipment, products] = await Promise.all([
-        db.area.findMany({
-          where: { organizationId: getActiveOrgId(session) },
-          select: { name: true },
-          orderBy: { name: "asc" },
-        }),
-        db.equipment.findMany({
-          where: {
-            area: {
-              organizationId: getActiveOrgId(session),
-            },
-          },
-          select: { name: true },
-          orderBy: { name: "asc" },
-          take: 10,
-        }),
-        db.product.findMany({
-          where: { organizationId: getActiveOrgId(session), isActive: true },
-          select: { name: true },
-          orderBy: { name: "asc" },
-          take: 10,
-        }),
-      ]);
-
-      const glassListConfig = buildGlassListConfigFromData({
-        users: orgUsers,
-        areas,
-        equipment,
-        products,
-        referenceDate: new Date(Date.UTC(2025, 1, 1)),
-      });
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
+  if (resolvedCode === GLASS_LIST_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples) {
+      const existingCount = await db.journalDocument.count({
+        where: {
           organizationId: getActiveOrgId(session),
-          title: glassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom: new Date(glassListConfig.documentDate),
-          dateTo: new Date(glassListConfig.documentDate),
-          responsibleTitle: glassListConfig.responsibleTitle || null,
-          responsibleUserId: glassListConfig.responsibleUserId || null,
-          createdById: session.user.id,
-          config: glassListConfig as Prisma.InputJsonValue,
+          templateId: template.id,
         },
       });
-    }
 
-    const glassListStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
+      if (existingCount === 0) {
+        const [areas, equipment, products] = await Promise.all([
+          db.area.findMany({
+            where: { organizationId: getActiveOrgId(session) },
+            select: { name: true },
+            orderBy: { name: "asc" },
+          }),
+          db.equipment.findMany({
+            where: {
+              area: {
+                organizationId: getActiveOrgId(session),
+              },
+            },
+            select: { name: true },
+            orderBy: { name: "asc" },
+            take: 10,
+          }),
+          db.product.findMany({
+            where: { organizationId: getActiveOrgId(session), isActive: true },
+            select: { name: true },
+            orderBy: { name: "asc" },
+            take: 10,
+          }),
+        ]);
+
+        const glassListConfig = buildGlassListConfigFromData({
+          users: orgUsers,
+          areas,
+          equipment,
+          products,
+          referenceDate: new Date(Date.UTC(2025, 1, 1)),
+        });
+
+        await db.journalDocument.create({
+          data: {
             templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: glassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date(glassListConfig.documentDate),
+            dateTo: new Date(glassListConfig.documentDate),
+            responsibleTitle: glassListConfig.responsibleTitle || null,
+            responsibleUserId: glassListConfig.responsibleUserId || null,
+            createdById: session.user.id,
+            config: glassListConfig as Prisma.InputJsonValue,
           },
-          select: { status: true },
-        })
-      ).map((document) => document.status)
-    );
+        });
+      }
 
-    if (!glassListStatuses.has("closed")) {
-      const [areas, equipment, products] = await Promise.all([
-        db.area.findMany({
-          where: { organizationId: getActiveOrgId(session) },
-          select: { name: true },
-          orderBy: { name: "asc" },
-        }),
-        db.equipment.findMany({
-          where: {
-            area: {
+      const glassListStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
               organizationId: getActiveOrgId(session),
+              templateId: template.id,
             },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
+      );
+
+      if (!glassListStatuses.has("closed")) {
+        const [areas, equipment, products] = await Promise.all([
+          db.area.findMany({
+            where: { organizationId: getActiveOrgId(session) },
+            select: { name: true },
+            orderBy: { name: "asc" },
+          }),
+          db.equipment.findMany({
+            where: {
+              area: {
+                organizationId: getActiveOrgId(session),
+              },
+            },
+            select: { name: true },
+            orderBy: { name: "asc" },
+            take: 10,
+          }),
+          db.product.findMany({
+            where: { organizationId: getActiveOrgId(session), isActive: true },
+            select: { name: true },
+            orderBy: { name: "asc" },
+            take: 10,
+          }),
+        ]);
+
+        const closedGlassListConfig = buildGlassListConfigFromData({
+          users: orgUsers,
+          areas,
+          equipment,
+          products,
+          referenceDate: new Date(Date.UTC(2025, 0, 1)),
+        });
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: closedGlassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date(closedGlassListConfig.documentDate),
+            dateTo: new Date(closedGlassListConfig.documentDate),
+            responsibleTitle: closedGlassListConfig.responsibleTitle || null,
+            responsibleUserId: closedGlassListConfig.responsibleUserId || null,
+            createdById: session.user.id,
+            config: closedGlassListConfig as Prisma.InputJsonValue,
           },
-          select: { name: true },
-          orderBy: { name: "asc" },
-          take: 10,
-        }),
-        db.product.findMany({
-          where: { organizationId: getActiveOrgId(session), isActive: true },
-          select: { name: true },
-          orderBy: { name: "asc" },
-          take: 10,
-        }),
-      ]);
-
-      const closedGlassListConfig = buildGlassListConfigFromData({
-        users: orgUsers,
-        areas,
-        equipment,
-        products,
-        referenceDate: new Date(Date.UTC(2025, 0, 1)),
-      });
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: closedGlassListConfig.documentName || GLASS_LIST_DOCUMENT_TITLE,
-          status: "closed",
-          dateFrom: new Date(closedGlassListConfig.documentDate),
-          dateTo: new Date(closedGlassListConfig.documentDate),
-          responsibleTitle: closedGlassListConfig.responsibleTitle || null,
-          responsibleUserId: closedGlassListConfig.responsibleUserId || null,
-          createdById: session.user.id,
-          config: closedGlassListConfig as Prisma.InputJsonValue,
-        },
-      });
+        });
+      }
     }
 
     const documents = await db.journalDocument.findMany({
@@ -1920,72 +1931,74 @@ export default async function JournalDocumentsPage({
     );
   }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: getActiveOrgId(session),
-        templateId: template.id,
-      },
-    });
+  if (resolvedCode === STAFF_TRAINING_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples) {
+      const existingCount = await db.journalDocument.count({
+        where: {
+          organizationId: getActiveOrgId(session),
+          templateId: template.id,
+        },
+      });
 
-    if (existingCount === 0) {
-      const now = new Date();
-      const year = now.getUTCFullYear();
-      const dateFrom = new Date(Date.UTC(year, 0, 1));
-      const dateTo = new Date(Date.UTC(year, 11, 31));
+      if (existingCount === 0) {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const dateFrom = new Date(Date.UTC(year, 0, 1));
+        const dateTo = new Date(Date.UTC(year, 11, 31));
 
-      const seedRows = buildStaffTrainingSeedRows(
-        orgUsers,
-        `${year}-01-01`
+        const seedRows = buildStaffTrainingSeedRows(
+          orgUsers,
+          `${year}-01-01`
+        );
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: STAFF_TRAINING_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom,
+            dateTo,
+            createdById: session.user.id,
+            config: {
+              ...getDefaultStaffTrainingConfig(),
+              rows: seedRows,
+            },
+          },
+        });
+      }
+
+      const staffTrainingStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
       );
 
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: STAFF_TRAINING_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom,
-          dateTo,
-          createdById: session.user.id,
-          config: {
-            ...getDefaultStaffTrainingConfig(),
-            rows: seedRows,
-          },
-        },
-      });
-    }
-
-    const staffTrainingStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
+      if (!staffTrainingStatuses.has("closed")) {
+        const previousYear = new Date().getUTCFullYear() - 1;
+        const closedRows = buildStaffTrainingSeedRows(orgUsers, `${previousYear}-01-01`);
+        await db.journalDocument.create({
+          data: {
             templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: STAFF_TRAINING_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
+            dateTo: new Date(Date.UTC(previousYear, 11, 31)),
+            createdById: session.user.id,
+            config: {
+              ...getDefaultStaffTrainingConfig(),
+              rows: closedRows,
+            },
           },
-          select: { status: true },
-        })
-      ).map((document) => document.status)
-    );
-
-    if (!staffTrainingStatuses.has("closed")) {
-      const previousYear = new Date().getUTCFullYear() - 1;
-      const closedRows = buildStaffTrainingSeedRows(orgUsers, `${previousYear}-01-01`);
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: STAFF_TRAINING_DOCUMENT_TITLE,
-          status: "closed",
-          dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
-          dateTo: new Date(Date.UTC(previousYear, 11, 31)),
-          createdById: session.user.id,
-          config: {
-            ...getDefaultStaffTrainingConfig(),
-            rows: closedRows,
-          },
-        },
-      });
+        });
+      }
     }
 
     const documents = await db.journalDocument.findMany({
@@ -2015,138 +2028,140 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: getActiveOrgId(session),
-        templateId: template.id,
-      },
-    });
-
-    if (existingCount === 0) {
-      const year = new Date().getUTCFullYear();
-      const cfg = getDefaultEquipmentMaintenanceConfig(year);
-      const manager = pickPrimaryManager(orgUsers);
-      const headChef =
-        orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
-      if (manager) {
-        cfg.approveEmployeeId = manager.id;
-        cfg.approveEmployee = manager.name;
-      }
-      if (headChef) {
-        cfg.responsibleEmployeeId = headChef.id;
-        cfg.responsibleEmployee = headChef.name;
-      }
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom: new Date(Date.UTC(year, 0, 1)),
-          dateTo: new Date(Date.UTC(year, 11, 31)),
-          createdById: session.user.id,
-          config: cfg,
-        },
-      });
-    }
-
-    const equipmentMaintenanceStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-            templateId: template.id,
-          },
-          select: { status: true },
-        })
-      ).map((document) => document.status)
-    );
-
-    if (!equipmentMaintenanceStatuses.has("closed")) {
-      const previousYear = new Date().getUTCFullYear() - 1;
-      const cfg = getDefaultEquipmentMaintenanceConfig(previousYear);
-      const manager = pickPrimaryManager(orgUsers);
-      const headChef =
-        orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
-      if (manager) {
-        cfg.approveEmployeeId = manager.id;
-        cfg.approveEmployee = manager.name;
-      }
-      if (headChef) {
-        cfg.responsibleEmployeeId = headChef.id;
-        cfg.responsibleEmployee = headChef.name;
-      }
-
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
-          status: "closed",
-          dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
-          dateTo: new Date(Date.UTC(previousYear, 11, 31)),
-          createdById: session.user.id,
-          config: cfg,
-        },
-      });
-    }
-
-    const equipmentCalibrationStatuses = new Set(
-      (
-        await db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-            templateId: template.id,
-          },
-          select: { status: true },
-        })
-      ).map((document) => document.status)
-    );
-
-    if (!equipmentCalibrationStatuses.has("closed")) {
-      const previousYear = new Date().getUTCFullYear() - 1;
-      const equipmentSource = await db.equipment.findMany({
+  if (resolvedCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples) {
+      const existingCount = await db.journalDocument.count({
         where: {
-          area: {
-            organizationId: getActiveOrgId(session),
-          },
+          organizationId: getActiveOrgId(session),
+          templateId: template.id,
         },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          serialNumber: true,
-          tempMin: true,
-          tempMax: true,
-          area: {
-            select: {
-              name: true,
+      });
+
+      if (existingCount === 0) {
+        const year = new Date().getUTCFullYear();
+        const cfg = getDefaultEquipmentMaintenanceConfig(year);
+        const manager = pickPrimaryManager(orgUsers);
+        const headChef =
+          orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
+        if (manager) {
+          cfg.approveEmployeeId = manager.id;
+          cfg.approveEmployee = manager.name;
+        }
+        if (headChef) {
+          cfg.responsibleEmployeeId = headChef.id;
+          cfg.responsibleEmployee = headChef.name;
+        }
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date(Date.UTC(year, 0, 1)),
+            dateTo: new Date(Date.UTC(year, 11, 31)),
+            createdById: session.user.id,
+            config: cfg,
+          },
+        });
+      }
+
+      const equipmentMaintenanceStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
+      );
+
+      if (!equipmentMaintenanceStatuses.has("closed")) {
+        const previousYear = new Date().getUTCFullYear() - 1;
+        const cfg = getDefaultEquipmentMaintenanceConfig(previousYear);
+        const manager = pickPrimaryManager(orgUsers);
+        const headChef =
+          orgUsers.find((u) => toCanonicalUserRole(u.role) === "head_chef") || manager;
+        if (manager) {
+          cfg.approveEmployeeId = manager.id;
+          cfg.approveEmployee = manager.name;
+        }
+        if (headChef) {
+          cfg.responsibleEmployeeId = headChef.id;
+          cfg.responsibleEmployee = headChef.name;
+        }
+
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
+            dateTo: new Date(Date.UTC(previousYear, 11, 31)),
+            createdById: session.user.id,
+            config: cfg,
+          },
+        });
+      }
+
+      const equipmentCalibrationStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
+      );
+
+      if (!equipmentCalibrationStatuses.has("closed")) {
+        const previousYear = new Date().getUTCFullYear() - 1;
+        const equipmentSource = await db.equipment.findMany({
+          where: {
+            area: {
+              organizationId: getActiveOrgId(session),
             },
           },
-        },
-        orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
-      });
-      const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year: previousYear });
-      const manager = pickPrimaryManager(orgUsers);
-      if (manager) {
-        cfg.approveEmployeeId = manager.id;
-        cfg.approveEmployee = manager.name;
-      }
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            serialNumber: true,
+            tempMin: true,
+            tempMax: true,
+            area: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
+        });
+        const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year: previousYear });
+        const manager = pickPrimaryManager(orgUsers);
+        if (manager) {
+          cfg.approveEmployeeId = manager.id;
+          cfg.approveEmployee = manager.name;
+        }
 
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
-          status: "closed",
-          dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
-          dateTo: new Date(Date.UTC(previousYear, 11, 31)),
-          createdById: session.user.id,
-          config: cfg,
-        },
-      });
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: new Date(Date.UTC(previousYear, 0, 1)),
+            dateTo: new Date(Date.UTC(previousYear, 11, 31)),
+            createdById: session.user.id,
+            config: cfg,
+          },
+        });
+      }
     }
 
     const documents = await db.journalDocument.findMany({
@@ -2175,56 +2190,58 @@ export default async function JournalDocumentsPage({
     );
   }
 
-  if (shouldNormalizeDemoSamples && resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
-    const existingCount = await db.journalDocument.count({
-      where: {
-        organizationId: getActiveOrgId(session),
-        templateId: template.id,
-      },
-    });
-
-    if (existingCount === 0) {
-      const year = new Date().getUTCFullYear();
-      const equipmentSource = await db.equipment.findMany({
+  if (resolvedCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE) {
+    if (shouldNormalizeDemoSamples) {
+      const existingCount = await db.journalDocument.count({
         where: {
-          area: {
-            organizationId: getActiveOrgId(session),
-          },
+          organizationId: getActiveOrgId(session),
+          templateId: template.id,
         },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          serialNumber: true,
-          tempMin: true,
-          tempMax: true,
-          area: {
-            select: {
-              name: true,
+      });
+
+      if (existingCount === 0) {
+        const year = new Date().getUTCFullYear();
+        const equipmentSource = await db.equipment.findMany({
+          where: {
+            area: {
+              organizationId: getActiveOrgId(session),
             },
           },
-        },
-        orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
-      });
-      const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year });
-      const manager = pickPrimaryManager(orgUsers);
-      if (manager) {
-        cfg.approveEmployeeId = manager.id;
-        cfg.approveEmployee = manager.name;
-      }
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            serialNumber: true,
+            tempMin: true,
+            tempMax: true,
+            area: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
+        });
+        const cfg = buildEquipmentCalibrationConfigFromEquipment(equipmentSource, { year });
+        const manager = pickPrimaryManager(orgUsers);
+        if (manager) {
+          cfg.approveEmployeeId = manager.id;
+          cfg.approveEmployee = manager.name;
+        }
 
-      await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom: new Date(Date.UTC(year, 0, 1)),
-          dateTo: new Date(Date.UTC(year, 11, 31)),
-          createdById: session.user.id,
-          config: cfg,
-        },
-      });
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
+            status: "active",
+            dateFrom: new Date(Date.UTC(year, 0, 1)),
+            dateTo: new Date(Date.UTC(year, 11, 31)),
+            createdById: session.user.id,
+            config: cfg,
+          },
+        });
+      }
     }
 
     const documents = await db.journalDocument.findMany({
@@ -2358,250 +2375,262 @@ export default async function JournalDocumentsPage({
       }
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
-      const existingCleaningCount = await db.journalDocument.count({
-        where: {
-          organizationId: getActiveOrgId(session),
-          templateId: template.id,
-        },
-      });
-
-      if (existingCleaningCount === 0) {
-        const period = getCleaningCreatePeriodBounds();
-        const cleaningAreas = await db.area.findMany({
+    if (resolvedCode === CLEANING_DOCUMENT_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingCleaningCount = await db.journalDocument.count({
           where: {
             organizationId: getActiveOrgId(session),
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
-        const cleaningConfig = applyCleaningAutoFillToConfig({
-          config: defaultCleaningDocumentConfig(orgUsers, cleaningAreas),
-          dateFrom: period.dateFrom,
-          dateTo: period.dateTo,
-        });
-        const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
-
-        await db.journalDocument.create({
-          data: {
             templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: getJournalDocumentDefaultTitle(resolvedCode),
-            status: "active",
-            dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
-            dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
-            createdById: session.user.id,
-            responsibleUserId: responsibleUser?.id || null,
-            responsibleTitle: responsibleUser ? "Управляющий" : null,
-            config: cleaningConfig,
           },
         });
 
-      }
+        if (existingCleaningCount === 0) {
+          const period = getCleaningCreatePeriodBounds();
+          const cleaningAreas = await db.area.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+            orderBy: {
+              name: "asc",
+            },
+          });
+          const cleaningConfig = applyCleaningAutoFillToConfig({
+            config: defaultCleaningDocumentConfig(orgUsers, cleaningAreas),
+            dateFrom: period.dateFrom,
+            dateTo: period.dateTo,
+          });
+          const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
 
-      const cleaningStatuses = new Set(
-        (
-          await db.journalDocument.findMany({
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: getJournalDocumentDefaultTitle(resolvedCode),
+              status: "active",
+              dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
+              dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
+              createdById: session.user.id,
+              responsibleUserId: responsibleUser?.id || null,
+              responsibleTitle: responsibleUser ? "Управляющий" : null,
+              config: cleaningConfig,
+            },
+          });
+
+        }
+
+        const cleaningStatuses = new Set(
+          (
+            await db.journalDocument.findMany({
+              where: {
+                organizationId: getActiveOrgId(session),
+                templateId: template.id,
+              },
+              select: { status: true },
+            })
+          ).map((document) => document.status)
+        );
+
+        if (!cleaningStatuses.has("closed")) {
+          const closedReferenceDate = new Date();
+          closedReferenceDate.setUTCMonth(closedReferenceDate.getUTCMonth() - 1);
+          const period = getCleaningCreatePeriodBounds(closedReferenceDate);
+          const cleaningAreas = await db.area.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+            orderBy: {
+              name: "asc",
+            },
+          });
+          const cleaningConfig = applyCleaningAutoFillToConfig({
+            config: defaultCleaningDocumentConfig(orgUsers, cleaningAreas),
+            dateFrom: period.dateFrom,
+            dateTo: period.dateTo,
+          });
+          const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
+
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: getJournalDocumentDefaultTitle(resolvedCode),
+              status: "closed",
+              dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
+              dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
+              createdById: session.user.id,
+              responsibleUserId: responsibleUser?.id || null,
+              responsibleTitle: responsibleUser ? "Управляющий" : null,
+              config: cleaningConfig,
+            },
+          });
+        }
+      }
+    }
+
+    if (resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingDocument = await db.journalDocument.findFirst({
+          where: {
+            organizationId: getActiveOrgId(session),
+            templateId: template.id,
+          },
+          orderBy: { dateFrom: "asc" },
+        });
+
+        if (!existingDocument) {
+          const seed = buildFinishedProductArchiveSeed(new Date());
+
+          await db.journalDocument.createMany({
+            data: [
+              {
+                templateId: template.id,
+                organizationId: getActiveOrgId(session),
+                title: seed.active.title,
+                status: "active",
+                dateFrom: seed.active.dateFrom,
+                dateTo: seed.active.dateTo,
+                createdById: session.user.id,
+              },
+              ...seed.closed.map((item) => ({
+                templateId: template.id,
+                organizationId: getActiveOrgId(session),
+                title: item.title,
+                status: "closed" as const,
+                dateFrom: item.dateFrom,
+                dateTo: item.dateTo,
+                createdById: session.user.id,
+              })),
+            ],
+          });
+        }
+      }
+    }
+
+    if (resolvedCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        await ensureTraceabilitySampleDocuments({
+          templateId: template.id,
+          organizationId: getActiveOrgId(session),
+          createdById: session.user.id,
+          users: orgUsers,
+        });
+      }
+    }
+
+    if (resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        await ensureIntensiveCoolingSampleDocuments({
+          templateId: template.id,
+          organizationId: getActiveOrgId(session),
+          createdById: session.user.id,
+          users: orgUsers,
+        });
+      }
+    }
+
+    if (resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const [products, batches, existingDocuments] = await Promise.all([
+          db.product.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              isActive: true,
+            },
+            select: { name: true },
+            orderBy: { name: "asc" },
+          }),
+          db.batch.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+            },
+            select: {
+              code: true,
+              productName: true,
+              supplier: true,
+              quantity: true,
+              unit: true,
+              receivedAt: true,
+            },
+            orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
+            take: 10,
+          }),
+          db.journalDocument.findMany({
             where: {
               organizationId: getActiveOrgId(session),
               templateId: template.id,
             },
-            select: { status: true },
-          })
-        ).map((document) => document.status)
-      );
-
-      if (!cleaningStatuses.has("closed")) {
-        const closedReferenceDate = new Date();
-        closedReferenceDate.setUTCMonth(closedReferenceDate.getUTCMonth() - 1);
-        const period = getCleaningCreatePeriodBounds(closedReferenceDate);
-        const cleaningAreas = await db.area.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
-        const cleaningConfig = applyCleaningAutoFillToConfig({
-          config: defaultCleaningDocumentConfig(orgUsers, cleaningAreas),
-          dateFrom: period.dateFrom,
-          dateTo: period.dateTo,
-        });
-        const responsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0];
-
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: getJournalDocumentDefaultTitle(resolvedCode),
-            status: "closed",
-            dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
-            dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
-            createdById: session.user.id,
-            responsibleUserId: responsibleUser?.id || null,
-            responsibleTitle: responsibleUser ? "Управляющий" : null,
-            config: cleaningConfig,
-          },
-        });
-      }
-    }
-
-    if (shouldNormalizeDemoSamples && resolvedCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE) {
-      const existingDocument = await db.journalDocument.findFirst({
-        where: {
-          organizationId: getActiveOrgId(session),
-          templateId: template.id,
-        },
-        orderBy: { dateFrom: "asc" },
-      });
-
-      if (!existingDocument) {
-        const seed = buildFinishedProductArchiveSeed(new Date());
-
-        await db.journalDocument.createMany({
-          data: [
-            {
-              templateId: template.id,
-              organizationId: getActiveOrgId(session),
-              title: seed.active.title,
-              status: "active",
-              dateFrom: seed.active.dateFrom,
-              dateTo: seed.active.dateTo,
-              createdById: session.user.id,
+            select: {
+              status: true,
             },
-            ...seed.closed.map((item) => ({
+          }),
+        ]);
+
+        const existingStatuses = new Set(existingDocuments.map((item) => item.status));
+        const sampleDate = new Date("2025-08-05T00:00:00.000Z");
+
+        if (!existingStatuses.has("active")) {
+          await db.journalDocument.create({
+            data: {
               templateId: template.id,
               organizationId: getActiveOrgId(session),
-              title: item.title,
-              status: "closed" as const,
-              dateFrom: item.dateFrom,
-              dateTo: item.dateTo,
+              title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+              status: "active",
+              dateFrom: sampleDate,
+              dateTo: sampleDate,
               createdById: session.user.id,
-            })),
-          ],
-        });
+              config: buildProductWriteoffConfigFromData({
+                users: orgUsers,
+                products,
+                batches,
+                referenceDate: sampleDate,
+              }) as Prisma.InputJsonValue,
+            },
+          });
+        }
+
+        if (!existingStatuses.has("closed")) {
+          const closedConfig = buildProductWriteoffConfigFromData({
+            users: orgUsers,
+            products,
+            batches,
+            referenceDate: sampleDate,
+          });
+          closedConfig.actNumber = "2";
+          closedConfig.comment = "Архивный тестовый документ";
+
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
+              status: "closed",
+              dateFrom: sampleDate,
+              dateTo: sampleDate,
+              createdById: session.user.id,
+              config: closedConfig as Prisma.InputJsonValue,
+            },
+          });
+        }
       }
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === TRACEABILITY_DOCUMENT_TEMPLATE_CODE) {
-      await ensureTraceabilitySampleDocuments({
-        templateId: template.id,
-        organizationId: getActiveOrgId(session),
-        createdById: session.user.id,
-        users: orgUsers,
-      });
-    }
-
-    if (shouldNormalizeDemoSamples && resolvedCode === INTENSIVE_COOLING_TEMPLATE_CODE) {
-      await ensureIntensiveCoolingSampleDocuments({
-        templateId: template.id,
-        organizationId: getActiveOrgId(session),
-        createdById: session.user.id,
-        users: orgUsers,
-      });
-    }
-
-    if (shouldNormalizeDemoSamples && resolvedCode === PRODUCT_WRITEOFF_TEMPLATE_CODE) {
-      const [products, batches, existingDocuments] = await Promise.all([
-        db.product.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-            isActive: true,
-          },
-          select: { name: true },
-          orderBy: { name: "asc" },
-        }),
-        db.batch.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-          },
-          select: {
-            code: true,
-            productName: true,
-            supplier: true,
-            quantity: true,
-            unit: true,
-            receivedAt: true,
-          },
-          orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
-          take: 10,
-        }),
-        db.journalDocument.findMany({
-          where: {
-            organizationId: getActiveOrgId(session),
-            templateId: template.id,
-          },
-          select: {
-            status: true,
-          },
-        }),
-      ]);
-
-      const existingStatuses = new Set(existingDocuments.map((item) => item.status));
-      const sampleDate = new Date("2025-08-05T00:00:00.000Z");
-
-      if (!existingStatuses.has("active")) {
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: sampleDate,
-            dateTo: sampleDate,
-            createdById: session.user.id,
-            config: buildProductWriteoffConfigFromData({
-              users: orgUsers,
-              products,
-              batches,
-              referenceDate: sampleDate,
-            }) as Prisma.InputJsonValue,
-          },
-        });
-      }
-
-      if (!existingStatuses.has("closed")) {
-        const closedConfig = buildProductWriteoffConfigFromData({
+    if (resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        await ensurePestControlSampleDocuments({
+          templateId: template.id,
+          organizationId: getActiveOrgId(session),
+          createdById: session.user.id,
           users: orgUsers,
-          products,
-          batches,
-          referenceDate: sampleDate,
-        });
-        closedConfig.actNumber = "2";
-        closedConfig.comment = "Архивный тестовый документ";
-
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: PRODUCT_WRITEOFF_DOCUMENT_TITLE,
-            status: "closed",
-            dateFrom: sampleDate,
-            dateTo: sampleDate,
-            createdById: session.user.id,
-            config: closedConfig as Prisma.InputJsonValue,
-          },
         });
       }
-    }
-
-    if (shouldNormalizeDemoSamples && resolvedCode === PEST_CONTROL_TEMPLATE_CODE) {
-      await ensurePestControlSampleDocuments({
-        templateId: template.id,
-        organizationId: getActiveOrgId(session),
-        createdById: session.user.id,
-        users: orgUsers,
-      });
     }
 
     const documents = await db.journalDocument.findMany({
@@ -2681,13 +2710,15 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === SANITATION_DAY_TEMPLATE_CODE) {
-      await ensureSanitationDaySampleDocuments({
-        templateId: template.id,
-        organizationId: getActiveOrgId(session),
-        createdById: session.user.id,
-        users: orgUsers,
-      });
+    if (resolvedCode === SANITATION_DAY_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        await ensureSanitationDaySampleDocuments({
+          templateId: template.id,
+          organizationId: getActiveOrgId(session),
+          createdById: session.user.id,
+          users: orgUsers,
+        });
+      }
 
       const sanitationDocuments = await db.journalDocument.findMany({
         where: {
@@ -2808,55 +2839,57 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
-      const existingTP = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        select: { status: true },
-      });
-
-      if (existingTP.length === 0) {
-        const now = new Date();
-        const approveUser = pickPrimaryManager(orgUsers) || orgUsers[0] || null;
-        const activeConfig = getTrainingPlanDefaultConfig(now);
-        if (approveUser) {
-          activeConfig.approveEmployeeId = approveUser.id;
-          activeConfig.approveEmployee = approveUser.name;
-        }
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${now.getUTCFullYear()}`,
-            status: "active",
-            dateFrom: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
-            dateTo: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
-            createdById: session.user.id,
-            responsibleUserId: approveUser?.id || null,
-            responsibleTitle: activeConfig.approveRole,
-            config: activeConfig,
-          },
+    if (resolvedCode === TRAINING_PLAN_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingTP = await db.journalDocument.findMany({
+          where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+          select: { status: true },
         });
 
-        const previousYear = new Date(Date.UTC(new Date().getUTCFullYear() - 1, 0, 11));
-        const closedConfig = getTrainingPlanDefaultConfig(previousYear);
-        if (approveUser) {
-          closedConfig.approveEmployeeId = approveUser.id;
-          closedConfig.approveEmployee = approveUser.name;
+        if (existingTP.length === 0) {
+          const now = new Date();
+          const approveUser = pickPrimaryManager(orgUsers) || orgUsers[0] || null;
+          const activeConfig = getTrainingPlanDefaultConfig(now);
+          if (approveUser) {
+            activeConfig.approveEmployeeId = approveUser.id;
+            activeConfig.approveEmployee = approveUser.name;
+          }
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${now.getUTCFullYear()}`,
+              status: "active",
+              dateFrom: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
+              dateTo: new Date(Date.UTC(now.getUTCFullYear(), 0, 11)),
+              createdById: session.user.id,
+              responsibleUserId: approveUser?.id || null,
+              responsibleTitle: activeConfig.approveRole,
+              config: activeConfig,
+            },
+          });
+
+          const previousYear = new Date(Date.UTC(new Date().getUTCFullYear() - 1, 0, 11));
+          const closedConfig = getTrainingPlanDefaultConfig(previousYear);
+          if (approveUser) {
+            closedConfig.approveEmployeeId = approveUser.id;
+            closedConfig.approveEmployee = approveUser.name;
+          }
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${previousYear.getUTCFullYear()}`,
+              status: "closed",
+              dateFrom: previousYear,
+              dateTo: previousYear,
+              createdById: session.user.id,
+              responsibleUserId: approveUser?.id || null,
+              responsibleTitle: closedConfig.approveRole,
+              config: closedConfig,
+            },
+          });
         }
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: `${TRAINING_PLAN_DOCUMENT_TITLE} ${previousYear.getUTCFullYear()}`,
-            status: "closed",
-            dateFrom: previousYear,
-            dateTo: previousYear,
-            createdById: session.user.id,
-            responsibleUserId: approveUser?.id || null,
-            responsibleTitle: closedConfig.approveRole,
-            config: closedConfig,
-          },
-        });
       }
 
       const tpDocuments = await db.journalDocument.findMany({
@@ -2886,49 +2919,51 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === AUDIT_PLAN_TEMPLATE_CODE) {
-      const existingAuditPlans = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        select: { status: true },
-      });
-      const auditPlanStatuses = new Set(existingAuditPlans.map((document) => document.status));
+    if (resolvedCode === AUDIT_PLAN_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingAuditPlans = await db.journalDocument.findMany({
+          where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+          select: { status: true },
+        });
+        const auditPlanStatuses = new Set(existingAuditPlans.map((document) => document.status));
 
-      if (!auditPlanStatuses.has("active")) {
-        const defaultConfig = getAuditPlanDefaultConfig({
-          organizationName: 'ООО "Тест"',
-          users: orgUsers,
-        });
+        if (!auditPlanStatuses.has("active")) {
+          const defaultConfig = getAuditPlanDefaultConfig({
+            organizationName: 'ООО "Тест"',
+            users: orgUsers,
+          });
 
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: AUDIT_PLAN_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: new Date(defaultConfig.documentDate),
-            dateTo: new Date(defaultConfig.documentDate),
-            createdById: session.user.id,
-            config: defaultConfig,
-          },
-        });
-      }
-      if (!auditPlanStatuses.has("closed")) {
-        const defaultConfig = getAuditPlanDefaultConfig({
-          organizationName: 'ООО "Тест"',
-          users: orgUsers,
-        });
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: AUDIT_PLAN_DOCUMENT_TITLE,
-            status: "closed",
-            dateFrom: new Date("2025-01-15T00:00:00.000Z"),
-            dateTo: new Date("2025-01-15T00:00:00.000Z"),
-            createdById: session.user.id,
-            config: defaultConfig,
-          },
-        });
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: AUDIT_PLAN_DOCUMENT_TITLE,
+              status: "active",
+              dateFrom: new Date(defaultConfig.documentDate),
+              dateTo: new Date(defaultConfig.documentDate),
+              createdById: session.user.id,
+              config: defaultConfig,
+            },
+          });
+        }
+        if (!auditPlanStatuses.has("closed")) {
+          const defaultConfig = getAuditPlanDefaultConfig({
+            organizationName: 'ООО "Тест"',
+            users: orgUsers,
+          });
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: AUDIT_PLAN_DOCUMENT_TITLE,
+              status: "closed",
+              dateFrom: new Date("2025-01-15T00:00:00.000Z"),
+              dateTo: new Date("2025-01-15T00:00:00.000Z"),
+              createdById: session.user.id,
+              config: defaultConfig,
+            },
+          });
+        }
       }
 
       const auditPlanDocuments = await db.journalDocument.findMany({
@@ -3027,7 +3062,7 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
+    if (resolvedCode === METAL_IMPURITY_TEMPLATE_CODE) {
       const [allMetalDocuments, metalUsers, metalProducts, metalSuppliers] = await Promise.all([
         db.journalDocument.findMany({
           where: {
@@ -3072,7 +3107,7 @@ export default async function JournalDocumentsPage({
         .filter(Boolean);
       const responsibleUser = pickPrimaryManager(metalUsers) || metalUsers[0] || null;
 
-      if (!metalStatuses.has("active")) {
+      if (shouldNormalizeDemoSamples && !metalStatuses.has("active")) {
         const config = getDefaultMetalImpurityConfig({
           users: metalUsers,
           materials: materialNames,
@@ -3100,7 +3135,7 @@ export default async function JournalDocumentsPage({
         });
       }
 
-      if (!metalStatuses.has("closed")) {
+      if (shouldNormalizeDemoSamples && !metalStatuses.has("closed")) {
         const config = getDefaultMetalImpurityConfig({
           users: metalUsers,
           materials: materialNames,
@@ -3294,39 +3329,41 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
-      const existingBH = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        select: { status: true },
-      });
-      const bhStatuses = new Set(existingBH.map((d) => d.status));
-      if (!bhStatuses.has("active")) {
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: new Date("2021-10-28"),
-            dateTo: new Date("2021-10-28"),
-            createdById: session.user.id,
-            config: getBreakdownHistoryDefaultConfig(),
-          },
+    if (resolvedCode === BREAKDOWN_HISTORY_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingBH = await db.journalDocument.findMany({
+          where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+          select: { status: true },
         });
-      }
-      if (!bhStatuses.has("closed")) {
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
-            status: "closed",
-            dateFrom: new Date("2021-09-28"),
-            dateTo: new Date("2021-09-28"),
-            createdById: session.user.id,
-            config: getBreakdownHistoryDefaultConfig(),
-          },
-        });
+        const bhStatuses = new Set(existingBH.map((d) => d.status));
+        if (!bhStatuses.has("active")) {
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+              status: "active",
+              dateFrom: new Date("2021-10-28"),
+              dateTo: new Date("2021-10-28"),
+              createdById: session.user.id,
+              config: getBreakdownHistoryDefaultConfig(),
+            },
+          });
+        }
+        if (!bhStatuses.has("closed")) {
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+              status: "closed",
+              dateFrom: new Date("2021-09-28"),
+              dateTo: new Date("2021-09-28"),
+              createdById: session.user.id,
+              config: getBreakdownHistoryDefaultConfig(),
+            },
+          });
+        }
       }
 
       const bhDocuments = await db.journalDocument.findMany({
@@ -3354,62 +3391,64 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
-      const existingAccidentDocuments = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        select: { status: true },
-      });
-      const accidentStatuses = new Set(existingAccidentDocuments.map((d) => d.status));
-
-      if (!accidentStatuses.has("active")) {
-        const areaNames = (
-          await db.area.findMany({
-            where: { organizationId: getActiveOrgId(session) },
-            select: { name: true },
-            orderBy: { name: "asc" },
-          })
-        ).map((item) => item.name);
-
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: ACCIDENT_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: new Date("2021-10-01"),
-            dateTo: new Date("2021-10-01"),
-            createdById: session.user.id,
-            config: buildAccidentDocumentDemoConfig({
-              areaNames,
-              userNames: orgUsers.map((user) => user.name),
-            }),
-          },
+    if (resolvedCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
+      if (shouldNormalizeDemoSamples) {
+        const existingAccidentDocuments = await db.journalDocument.findMany({
+          where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+          select: { status: true },
         });
-      }
-      if (!accidentStatuses.has("closed")) {
-        const areaNames = (
-          await db.area.findMany({
-            where: { organizationId: getActiveOrgId(session) },
-            select: { name: true },
-            orderBy: { name: "asc" },
-          })
-        ).map((item) => item.name);
+        const accidentStatuses = new Set(existingAccidentDocuments.map((d) => d.status));
 
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: ACCIDENT_DOCUMENT_TITLE,
-            status: "closed",
-            dateFrom: new Date("2021-09-01"),
-            dateTo: new Date("2021-09-01"),
-            createdById: session.user.id,
-            config: buildAccidentDocumentDemoConfig({
-              areaNames,
-              userNames: orgUsers.map((user) => user.name),
-            }),
-          },
-        });
+        if (!accidentStatuses.has("active")) {
+          const areaNames = (
+            await db.area.findMany({
+              where: { organizationId: getActiveOrgId(session) },
+              select: { name: true },
+              orderBy: { name: "asc" },
+            })
+          ).map((item) => item.name);
+
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: ACCIDENT_DOCUMENT_TITLE,
+              status: "active",
+              dateFrom: new Date("2021-10-01"),
+              dateTo: new Date("2021-10-01"),
+              createdById: session.user.id,
+              config: buildAccidentDocumentDemoConfig({
+                areaNames,
+                userNames: orgUsers.map((user) => user.name),
+              }),
+            },
+          });
+        }
+        if (!accidentStatuses.has("closed")) {
+          const areaNames = (
+            await db.area.findMany({
+              where: { organizationId: getActiveOrgId(session) },
+              select: { name: true },
+              orderBy: { name: "asc" },
+            })
+          ).map((item) => item.name);
+
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: ACCIDENT_DOCUMENT_TITLE,
+              status: "closed",
+              dateFrom: new Date("2021-09-01"),
+              dateTo: new Date("2021-09-01"),
+              createdById: session.user.id,
+              config: buildAccidentDocumentDemoConfig({
+                areaNames,
+                userNames: orgUsers.map((user) => user.name),
+              }),
+            },
+          });
+        }
       }
 
       const accidentDocuments = await db.journalDocument.findMany({
@@ -3668,7 +3707,7 @@ export default async function JournalDocumentsPage({
         );
       }
 
-      if (shouldNormalizeDemoSamples && resolvedCode === FRYER_OIL_TEMPLATE_CODE) {
+      if (resolvedCode === FRYER_OIL_TEMPLATE_CODE) {
         return withBanner(
           <FryerOilDocumentsClient
             activeTab={activeTab}
@@ -3716,7 +3755,7 @@ export default async function JournalDocumentsPage({
         );
       }
 
-      if (shouldNormalizeDemoSamples && resolvedCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
+      if (resolvedCode === UV_LAMP_RUNTIME_TEMPLATE_CODE) {
         return withBanner(
           <UvLampRuntimeDocumentsClient
             activeTab={activeTab}
