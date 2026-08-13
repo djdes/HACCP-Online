@@ -746,7 +746,19 @@ export function PerishableRejectionDocumentClient({
             </colgroup>
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 leading-tight`} />
+                {/* Select-all — как в остальных журналах: одна галочка
+                    отмечает все строки листа, снятие очищает выделение. */}
+                <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center leading-tight`}>
+                  <Checkbox
+                    checked={config.rows.length > 0 && selectedRows.length === config.rows.length}
+                    onCheckedChange={(checked) =>
+                      !readOnly &&
+                      setSelectedRows(checked === true ? config.rows.map((row) => row.id) : [])
+                    }
+                    disabled={readOnly || config.rows.length === 0}
+                    aria-label="Выбрать все строки"
+                  />
+                </th>
                 <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Дата, время поступления пищ. продукции
                 </th>

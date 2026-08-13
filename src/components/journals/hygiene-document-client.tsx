@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,10 @@ import {
   DOC_PAPER_HEADER_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import {
+  TableContextMenu,
+  type TableContextMenuItem,
+} from "@/components/journals/table-context-menu";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
@@ -92,11 +96,13 @@ const STATUS_CYCLE: Array<HygieneStatus | null> = [
 
 function HygieneCheckbox(props: {
   checked?: boolean;
+  disabled?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
   return (
     <Checkbox
       checked={props.checked}
+      disabled={props.disabled}
       onCheckedChange={(value) => props.onCheckedChange?.(value === true)}
       className="mx-auto size-4 rounded-[4px] border-[#c8ccda]"
     />
@@ -255,28 +261,9 @@ export function HygieneDocumentClient({
     setEntryMap(buildEntryMap(initialEntries));
   }, [initialEntries]);
 
-  // Закрытие ПКМ-меню: клик где угодно, Escape, скролл листа. Слушатели
-  // вешаем только пока меню открыто — на закрытом документе их нет вообще.
-  useEffect(() => {
-    if (!cellMenu) return;
-
-    const close = () => setCellMenu(null);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-
-    window.addEventListener("click", close);
-    window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("click", close);
-      window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [cellMenu]);
+  // Закрытие ПКМ-меню (клик вне, Escape, скролл, ресайз) живёт внутри
+  // `TableContextMenu` — здесь нужен только стабильный колбэк.
+  const closeCellMenu = useCallback(() => setCellMenu(null), []);
 
   // Миграция со старого ключа "hygiene-mobile-view" (до перехода на общий
   // useMobileView). Читаем один раз: если нового ключа ещё нет, а старый
@@ -323,6 +310,17 @@ export function HygieneDocumentClient({
     setSelectedEmployeeIds((current) =>
       checked ? [...new Set([...current, employeeId])] : current.filter((item) => item !== employeeId)
     );
+  }
+
+  /**
+   * «Выбрать всё» — общий хендлер для чекбокса шапки и чекбокса служебной
+   * строки «Должность ответственного за контроль». На эталоне галочка у
+   * служебной строки бланка отмечает весь список сотрудников, а не саму
+   * строку (строка — часть шапки бланка, её нельзя удалить).
+   */
+  function toggleAllEmployees(checked: boolean) {
+    if (!isActive) return;
+    setSelectedEmployeeIds(checked ? rosterUsers.map((employee) => employee.id) : []);
   }
 
   async function persistEntry(employeeId: string, dateKey: string, nextData: HygieneEntryData) {
@@ -427,11 +425,10 @@ export function HygieneDocumentClient({
     if (!isActive || !interactive) return;
     event.preventDefault();
     event.stopPropagation();
-    // Клампим по правому краю ещё при открытии — меню шириной ~250px у
-    // ячейки 31-го числа иначе уезжало бы за пределы окна.
-    const MENU_WIDTH = 256;
+    // Координаты кладём «как есть»: прижатие к краям вьюпорта делает
+    // `TableContextMenu` по реальному замеру меню.
     setCellMenu({
-      x: Math.max(8, Math.min(event.clientX, window.innerWidth - MENU_WIDTH - 8)),
+      x: event.clientX,
       y: event.clientY,
       employeeId,
       dateKey,
@@ -471,6 +468,54 @@ export function HygieneDocumentClient({
       status: current.status ?? "healthy",
       temperatureAbove37: next,
     });
+  }
+
+  /**
+   * Пункты ПКМ-меню для конкретной ячейки. Текущее значение помечается
+   * `active` — на эталоне выбранный вариант тоже подсвечен, иначе перед
+   * кликом непонятно, что в ячейке уже стоит.
+   */
+  function buildCellMenuItems(menu: HygieneCellMenu): TableContextMenuItem[] {
+    const current = normalizeHygieneEntryData(
+      entryMap[makeCellKey(menu.employeeId, menu.dateKey)]
+    );
+
+    const options: TableContextMenuItem[] =
+      menu.kind === "status"
+        ? HYGIENE_STATUS_OPTIONS.map((option) => ({
+            key: option.value,
+            code: option.code,
+            label: option.label,
+            active: current.status === option.value,
+            onSelect: () => {
+              applyMenuStatus(menu, option.value).catch(() => {});
+            },
+          }))
+        : HYGIENE_TEMPERATURE_OPTIONS.map((option) => ({
+            key: String(option.value),
+            code: option.code,
+            label: option.label,
+            active: current.temperatureAbove37 === option.value,
+            onSelect: () => {
+              applyMenuTemperature(menu, option.value).catch(() => {});
+            },
+          }));
+
+    return [
+      ...options,
+      {
+        key: "clear",
+        label: "Очистить",
+        danger: true,
+        separatorBefore: true,
+        onSelect: () => {
+          (menu.kind === "status"
+            ? applyMenuStatus(menu, null)
+            : applyMenuTemperature(menu, null)
+          ).catch(() => {});
+        },
+      },
+    ];
   }
 
   return (
@@ -805,12 +850,8 @@ export function HygieneDocumentClient({
                   >
                     <HygieneCheckbox
                       checked={allSelected}
-                      onCheckedChange={(checked) => {
-                        if (!isActive) return;
-                        setSelectedEmployeeIds(
-                          checked ? rosterUsers.map((employee) => employee.id) : []
-                        );
-                      }}
+                      disabled={!isActive}
+                      onCheckedChange={toggleAllEmployees}
                     />
                   </th>
                   <th
@@ -859,6 +900,7 @@ export function HygieneDocumentClient({
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
+                            disabled={!isActive}
                             onCheckedChange={(checked) => {
                               if (!isActive) return;
                               toggleEmployee(employee.id, checked);
@@ -944,8 +986,16 @@ export function HygieneDocumentClient({
                 ))}
 
                 <tr>
+                  {/* Служебная строка бланка. Её саму удалить нельзя, но
+                      галочка не декоративная: как на эталоне, она работает
+                      вторым «выбрать всё» — внизу длинной сетки это ближе,
+                      чем возвращаться к шапке. */}
                   <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
-                    <HygieneCheckbox />
+                    <HygieneCheckbox
+                      checked={allSelected}
+                      disabled={!isActive}
+                      onCheckedChange={toggleAllEmployees}
+                    />
                   </td>
                   <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
                     Должность ответственного за контроль
@@ -994,69 +1044,17 @@ export function HygieneDocumentClient({
           Позиционируется у курсора (position: fixed), поэтому не зависит от
           горизонтального скролла широкого листа. В печати скрыто. */}
       {cellMenu ? (
-        <div
-          role="menu"
-          className="fixed z-50 min-w-[240px] rounded-2xl border border-[#ececf4] bg-white p-1.5 shadow-[0_18px_48px_-16px_rgba(11,16,36,0.35)] print:hidden"
-          style={{ left: cellMenu.x, top: cellMenu.y }}
-          onClick={(event) => event.stopPropagation()}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {cellMenu.kind === "status" ? (
-            <>
-              {HYGIENE_STATUS_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    const menu = cellMenu;
-                    setCellMenu(null);
-                    applyMenuStatus(menu, option.value).catch(() => {});
-                  }}
-                  className="flex w-full items-baseline gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]"
-                >
-                  <span className="min-w-[34px] font-semibold">{option.code}</span>
-                  <span className="text-[#6f7282]">— {option.label}</span>
-                </button>
-              ))}
-            </>
-          ) : (
-            <>
-              {HYGIENE_TEMPERATURE_OPTIONS.map((option) => (
-                <button
-                  key={String(option.value)}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    const menu = cellMenu;
-                    setCellMenu(null);
-                    applyMenuTemperature(menu, option.value).catch(() => {});
-                  }}
-                  className="flex w-full items-baseline gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]"
-                >
-                  <span className="min-w-[34px] font-semibold">{option.code}</span>
-                  <span className="text-[#6f7282]">— {option.label}</span>
-                </button>
-              ))}
-            </>
-          )}
-          <div className="my-1 h-px bg-[#ececf4]" />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const menu = cellMenu;
-              setCellMenu(null);
-              (menu.kind === "status"
-                ? applyMenuStatus(menu, null)
-                : applyMenuTemperature(menu, null)
-              ).catch(() => {});
-            }}
-            className="w-full rounded-xl px-3 py-2 text-left text-[13.5px] text-[#ff3b30] transition-colors duration-150 hover:bg-[#fff3f2]"
-          >
-            Очистить
-          </button>
-        </div>
+        <TableContextMenu
+          x={cellMenu.x}
+          y={cellMenu.y}
+          onClose={closeCellMenu}
+          ariaLabel={
+            cellMenu.kind === "status"
+              ? "Отметка о здоровье"
+              : "Отметка о температуре"
+          }
+          items={buildCellMenuItems(cellMenu)}
+        />
       ) : null}
     </div>
   );

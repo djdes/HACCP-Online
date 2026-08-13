@@ -1466,7 +1466,12 @@ export function ClimateDocumentClient({
                               <tr key={room.id}>
                                 <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 leading-tight`}>
                                   <div className="flex items-center gap-3">
-                                    <Checkbox checked />
+                                    {/* Иллюстрация бланка «Точки контроля»,
+                                        а не контрол: помещение в списке —
+                                        значит контролируется. Кликать
+                                        нечего, поэтому pointer-events снят
+                                        и от скринридера скрыт. */}
+                                    <Checkbox checked aria-hidden className="pointer-events-none" tabIndex={-1} />
                                     <span className="font-medium lowercase">{room.name}</span>
                                     {status === "active" && (
                                       <button

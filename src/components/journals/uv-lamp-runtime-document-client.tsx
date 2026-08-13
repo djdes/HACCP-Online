@@ -1084,7 +1084,19 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
   const userMap = useMemo(() => Object.fromEntries(props.users.map((user) => [user.id, user.name])), [props.users]);
 
-  const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
+  // Удалять можно только реально сохранённые строки: `virtual:*` — это
+  // авто-заготовки по дням, их `deleteSelectedRows` пропускает. Раньше
+  // select-all отмечал и их, и «Удалить» молча ничего не делало.
+  const deletableRowIds = useMemo(
+    () => rows.filter((row) => !row.id.startsWith("virtual:")).map((row) => row.id),
+    [rows],
+  );
+  const allSelected =
+    deletableRowIds.length > 0 &&
+    deletableRowIds.every((id) => selectedRowIds.includes(id));
+  const selectedDeletableCount = selectedRowIds.filter(
+    (id) => !id.startsWith("virtual:"),
+  ).length;
   const { mobileView, switchMobileView } = useMobileView("uv_lamp_runtime");
 
   const monthlyData = useMemo(() => {
@@ -1356,10 +1368,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       <JournalSelectionBar
         count={selectedRowIds.length}
         onClear={() => setSelectedRowIds([])}
-        onDelete={() => {
-          deleteSelectedRows().catch(() => toast.error("Ошибка удаления"));
-        }}
-        hint="Записи наработки будут удалены без возможности отмены"
+        onDelete={
+          selectedDeletableCount > 0
+            ? () => {
+                deleteSelectedRows().catch(() => toast.error("Ошибка удаления"));
+              }
+            : undefined
+        }
+        hint={
+          selectedDeletableCount > 0
+            ? "Записи наработки будут удалены без возможности отмены"
+            : "Автоматические строки удалить нельзя — в них ещё нет записи"
+        }
       />
 
       {/* Print header */}
@@ -1508,8 +1528,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                 <th className="w-[40px] border border-[#eceef5] px-2 py-1 print:hidden leading-tight">
                   <Checkbox
                     checked={allSelected}
+                    disabled={deletableRowIds.length === 0}
+                    aria-label="Выбрать все строки"
                     onCheckedChange={(checked) =>
-                      setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
+                      setSelectedRowIds(checked === true ? [...deletableRowIds] : [])
                     }
                   />
                 </th>

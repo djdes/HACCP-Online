@@ -95,11 +95,13 @@ const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
 
 function HealthCheckbox(props: {
   checked?: boolean;
+  disabled?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
   return (
     <Checkbox
       checked={props.checked}
+      disabled={props.disabled}
       onCheckedChange={(value) => props.onCheckedChange?.(value === true)}
       className="mx-auto size-4 rounded-[4px] border-[#c8ccda] data-[state=checked]:border-[#5566f6] data-[state=checked]:bg-[#5566f6]"
     />
@@ -565,6 +567,7 @@ export function HealthDocumentClient(props: Props) {
                 >
                   <HealthCheckbox
                     checked={allSelected}
+                    disabled={!isActive}
                     onCheckedChange={(checked) => {
                       if (!isActive) return;
                       setSelectedEmployeeIds(
@@ -630,6 +633,7 @@ export function HealthDocumentClient(props: Props) {
                       {employee.name ? (
                         <HealthCheckbox
                           checked={selectedEmployeeIds.includes(employee.id)}
+                          disabled={!isActive}
                           onCheckedChange={(checked) => {
                             if (!isActive) return;
                             toggleEmployee(employee.id, checked);
@@ -672,8 +676,11 @@ export function HealthDocumentClient(props: Props) {
               })}
 
               <tr>
+                {/* Хвостовая пустая строка бланка (место для дозаписи от
+                    руки при печати). Данных за ней нет, выделять нечего —
+                    чекбокс только для симметрии сетки, всегда disabled. */}
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
-                  <HealthCheckbox />
+                  <HealthCheckbox checked={false} disabled />
                 </td>
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />

@@ -849,7 +849,7 @@ export function CleaningVentilationChecklistDocumentClient({
             toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")
           );
         }}
-        hint="Отметки в выбранных строках будут очищены"
+        hint="Выбранные даты будут скрыты из чек-листа, их отметки удалены"
       />
 
       <div className="space-y-6 overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">

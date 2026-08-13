@@ -774,6 +774,29 @@ export function CleaningDocumentClient(props: Props) {
     });
   }, [config.rooms, config.selectedRoomIds, dbRoomById]);
 
+  /**
+   * Все id, которые вообще можно выделить в сетке: помещения + уборщики +
+   * контролёры. Ровно этот набор умеет удалять `deleteSelectedRows`.
+   *
+   * До этой правки select-all шапки клал в selection ТОЛЬКО помещения и
+   * попутно сбрасывал уже выбранных уборщиков, а `allSelected` считался по
+   * `rows.length` — поэтому галочка шапки могла показать «выбрано всё»,
+   * когда отмечены были одни уборщики. Теперь и выбор, и индикатор идут от
+   * одного множества.
+   */
+  const selectableRowIds = useMemo<string[]>(
+    () => [
+      ...rows.map((row) => row.id),
+      ...cleaningResponsibleList.map((resp) => resp.id),
+      ...controlResponsibleList.map((resp) => resp.id),
+    ],
+    [rows, cleaningResponsibleList, controlResponsibleList],
+  );
+
+  const allRowsSelected =
+    selectableRowIds.length > 0 &&
+    selectableRowIds.every((id) => selection.includes(id));
+
   // Псевдо-rowId для manual signature ответственного. matrix хранит их
   // как обычные строки — patchDocument сам их сохраняет/читает.
   const CLEANING_SIGNATURE_ROW_ID = "__cleaning_signature__";
@@ -2092,12 +2115,12 @@ export function CleaningDocumentClient(props: Props) {
           {cleaningAddToolbar}
           {cleaningRaceStrip}
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-4" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" /></td>
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
                 <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <div className="flex items-center justify-between gap-3">
                     <button
@@ -2202,10 +2225,10 @@ export function CleaningDocumentClient(props: Props) {
                 день (выводим коды С1/С2/К1 из реальных completions). */}
             {cleaningResponsibleList.length > 0 ? (
               <tr key="cleaning-group" className="bg-[#f8f9fc] print:bg-white">
-                {/* Чекбокс есть у строки помещения и у «Ответственного за
-                    уборку» — как на эталоне (cleaning-07-grid-with-room.png);
-                    у «Ответственного за контроль» его нет. Отмечает сразу всех
-                    уборщиков строки: дальше — обычная JournalSelectionBar. */}
+                {/* Чекбокс есть у каждой выделяемой строки — помещения,
+                    «Ответственный за уборку», «Ответственный за контроль».
+                    Здесь одна галочка отмечает сразу всех уборщиков строки:
+                    дальше — обычная JournalSelectionBar. */}
                 <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
                   <Checkbox
                     checked={
@@ -2302,7 +2325,30 @@ export function CleaningDocumentClient(props: Props) {
             ) : null}
             {controlResponsibleList.length > 0 ? (
               <tr key="control-group" className="bg-[#f8f9fc] print:bg-white">
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`} />
+                {/* Симметрично строке «Ответственный за уборку»: одна
+                    галочка отмечает всех контролёров строки. Удаление их
+                    `deleteSelectedRows` умеет — без чекбокса эта ветка была
+                    недостижима из UI. */}
+                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
+                  <Checkbox
+                    checked={
+                      controlResponsibleList.length > 0 &&
+                      controlResponsibleList.every((resp) =>
+                        selection.includes(resp.id),
+                      )
+                    }
+                    disabled={props.status !== "active"}
+                    onCheckedChange={(checked) => {
+                      const ids = controlResponsibleList.map((resp) => resp.id);
+                      setSelection((current) =>
+                        Boolean(checked)
+                          ? [...new Set([...current, ...ids])]
+                          : current.filter((id) => !ids.includes(id)),
+                      );
+                    }}
+                    className="size-4"
+                  />
+                </td>
                 <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
