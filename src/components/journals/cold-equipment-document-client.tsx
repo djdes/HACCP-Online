@@ -13,6 +13,7 @@ import {
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -1007,7 +1008,7 @@ export function ColdEquipmentDocumentClient({
                 disabled={status !== "active" || isSwitching}
                 className="h-10 w-18 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
               />
-              <span className="text-[22px] font-medium text-black">
+              <span className={DOC_AUTOFILL_LABEL_CLASS}>
                 Автоматически заполнять журнал
               </span>
             </div>

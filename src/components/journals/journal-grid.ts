@@ -38,9 +38,6 @@ export const GRID_HEAD_CELL_CLASS =
 export const GRID_HEAD_CELL_PLAIN_CLASS =
   "border border-[#333] bg-white print:border-black";
 
-/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
-export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
-
 /**
  * Всегда ВИДИМЫЙ горизонтальный скроллбар внутри viewport'а (M3 аудита).
  *
@@ -51,15 +48,25 @@ export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 p
  * догадывается, что «Маммография» и последние прививки доступны скроллом.
  *
  * Токен рисует тонкую постоянную полосу и в печать не идёт.
+ *
+ * Полоса должна быть видна ДАЖЕ КОГДА НИКТО НЕ СКРОЛЛИТ, поэтому у трека
+ * есть собственная заливка `#f1f2f6` (прозрачный трек прошлой версии
+ * визуально исчезал: на скриншотах прода полосы не было вовсе).
+ * Токен вклеен прямо в `GRID_VIEWPORT_CLASS` — иначе его приходилось
+ * помнить в каждом из 14 клиентов, и половина широких таблиц (перечень,
+ * климат, холодильники, уборка, приёмка) оставалась без него.
  */
 export const GRID_VIEWPORT_SCROLLBAR_CLASS =
-  "[scrollbar-width:thin] [scrollbar-color:#c3c8e0_transparent] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#c3c8e0] [&::-webkit-scrollbar-thumb:hover]:bg-[#a7adcd] print:[&::-webkit-scrollbar]:hidden";
+  "[scrollbar-width:thin] [scrollbar-color:#c9cddd_#f1f2f6] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#f1f2f6] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#c9cddd] [&::-webkit-scrollbar-thumb:hover]:bg-[#a7adcd] print:[scrollbar-width:none] print:[&::-webkit-scrollbar]:hidden";
+
+/** Скруглённый viewport вокруг таблицы; в печати — прозрачный wrapper. */
+export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /**
  * Вариант viewport'а для «широких» журналов (hygiene / health_check), где
  * на десктопе таблица помещается целиком и горизонтальный скролл не нужен.
  */
-export const GRID_VIEWPORT_WIDE_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+export const GRID_VIEWPORT_WIDE_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /**
  * Пастельная заливка КОЛОНКИ ДНЯ по производственному календарю РФ
@@ -67,14 +74,18 @@ export const GRID_VIEWPORT_WIDE_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:over
  * дня розовым — так проверяющий сразу видит, почему в этот день пусто.
  *
  * Механика ровно та же, что в `cleaning-document-client.tsx`
- * (`getCalendarDayKind` → `#fff4f2` / `#fff8eb`), просто вынесена в общий
+ * (`getCalendarDayKind` → розовый / бежевый), просто вынесена в общий
  * токен, чтобы hygiene / health_check не заводили свою копию.
+ *
+ * Насыщенность выровнена по эталону: у него выходной столбец —
+ * rgb(244,204,204), то есть отчётливо розовый, а не бледный `#fff4f2`,
+ * который на проде читался как белый.
  *
  * Заливка ЭКРАННАЯ: `print:bg-transparent` оставляет печатный бланк
  * таким же, каким он был до правки.
  */
-export const GRID_DAY_OFF_BG_CLASS = "bg-[#fff4f2] print:bg-transparent";
-export const GRID_DAY_SHORT_BG_CLASS = "bg-[#fff8eb] print:bg-transparent";
+export const GRID_DAY_OFF_BG_CLASS = "bg-[#f8d7d4] print:bg-transparent";
+export const GRID_DAY_SHORT_BG_CLASS = "bg-[#fdeeda] print:bg-transparent";
 
 export function getDayColumnBgClass(dateKey: string): string {
   const kind = getCalendarDayKind(dateKey).kind;

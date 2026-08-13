@@ -44,6 +44,7 @@ import {
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -1488,7 +1489,7 @@ export function ClimateDocumentClient({
               disabled={status !== "active" || isSwitching}
               className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
             />
-            <span className="min-w-0 text-[14px] font-medium leading-tight text-black sm:text-[20px]">
+            <span className={`min-w-0 ${DOC_AUTOFILL_LABEL_CLASS}`}>
               Автоматически заполнять журнал
             </span>
           </div>

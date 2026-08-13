@@ -119,8 +119,14 @@ function getUserName(users: UserItem[], userId: string) {
 
 function buildCreateState(_users: UserItem[]): CreateState {
   return {
-    // Первое поле диалога всегда предзаполнено дефолтным названием.
-    title: CLEANING_DOCUMENT_TITLE,
+    /**
+     * P8: название НЕ предзаполняем «Журналом уборки». Управляющая обычно
+     * заводит несколько документов подряд («Уборка кухни», «Уборка зала»),
+     * и одинаковый дефолт приводил к списку из клонов с одним именем.
+     * Пустое поле + плейсхолдер + валидация «Поле не заполнено» — как во
+     * всех остальных журналах после P2.
+     */
+    title: "",
     /**
      * Должности НЕ предзаполняем. Раньше сюда падал первый ответственный
      * из `defaultCleaningDocumentConfig`, и если такой должности не было
@@ -203,10 +209,12 @@ function CreateDialog(props: {
 }) {
   const [state, setState] = useState<CreateState>(buildCreateState(props.users));
   const [submitting, setSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState("");
 
   useEffect(() => {
     if (!props.open) return;
     setState(buildCreateState(props.users));
+    setTitleError("");
   }, [props.open, props.users]);
 
   return (
@@ -228,8 +236,13 @@ function CreateDialog(props: {
         <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
           <FloatingInputField
             label="Название документа"
+            placeholder="Введите название документа"
             value={state.title}
-            onChange={(value) => setState((current) => ({ ...current, title: value }))}
+            onChange={(value) => {
+              if (titleError) setTitleError("");
+              setState((current) => ({ ...current, title: value }));
+            }}
+            error={titleError || undefined}
           />
           <PositionEmployeePicker
             users={props.users}
@@ -272,6 +285,11 @@ function CreateDialog(props: {
               type="button"
               disabled={submitting}
               onClick={async () => {
+                if (!state.title.trim()) {
+                  setTitleError("Поле не заполнено");
+                  return;
+                }
+                setTitleError("");
                 setSubmitting(true);
                 try {
                   await props.onSubmit(state);

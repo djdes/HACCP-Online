@@ -769,16 +769,19 @@ export function MedBookDocumentClient({
 
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки (M4):
             «Начат / Окончен», «СТР. 1 ИЗ 1», периодичность контроля. */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
-          <div className="min-w-[1320px] print:min-w-0">
-            <JournalDocumentHeader
-              orgName={organizationName}
-              title="Журнал учёта медицинских книжек сотрудников"
-              startedAt={documentDateKey}
-              finishedAt={isClosed ? documentDateKey : null}
-              controlPeriodicity={controlPeriodicity}
-            />
-          </div>
+        {/* Шапка НЕ живёт в горизонтальном скролле: раньше она лежала в
+            `GRID_VIEWPORT_CLASS` с `min-w-[1320px]`, поэтому «Начат …» и
+            «СТР. 1 ИЗ 1» физически уезжали за правый край полотна (1150px)
+            и обрезались. Скроллятся только таблицы; шапка — во всю ширину
+            бумажного полотна. */}
+        <div className={`${DOC_PAPER_HEADER_CLASS} w-full print:mb-2`}>
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="Журнал учёта медицинских книжек сотрудников"
+            startedAt={documentDateKey}
+            finishedAt={isClosed ? documentDateKey : null}
+            controlPeriodicity={controlPeriodicity}
+          />
         </div>
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
           Медицинские книжки

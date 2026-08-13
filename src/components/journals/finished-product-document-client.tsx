@@ -597,7 +597,9 @@ export function FinishedProductDocumentClient({
             style={{ minWidth: `${tableMinWidth}px` }}
           >
             <colgroup>
-              <col style={{ width: "36px" }} />
+              {/* P8: 26px, как в приёмке — служебная колонка чекбокса не
+                  должна отъедать ширину у содержательных колонок бланка. */}
+              <col style={{ width: "26px" }} />
               {columns.map((column) => (
                 <col key={column.key} style={{ width: `${(column.weight / columnsWeight) * 100}%` }} />
               ))}
@@ -605,7 +607,7 @@ export function FinishedProductDocumentClient({
             <thead><tr>
               {/* Select-all — как в остальных журналах: одна галочка
                   отмечает все строки листа, снятие очищает выделение. */}
-              <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center leading-tight`}>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 text-center leading-tight`}>
                 <Checkbox
                   checked={config.rows.length > 0 && selectedRows.length === config.rows.length}
                   onCheckedChange={(value) =>
@@ -626,7 +628,7 @@ export function FinishedProductDocumentClient({
               ))}
             </tr></thead>
             <tbody>{config.rows.map((row) => <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-              <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center align-middle leading-tight`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
+              <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center align-middle leading-tight`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
               {columns.map((column) => (
                 <td key={column.key} className={`${GRID_CELL_CLASS} p-0.5 align-middle leading-tight`}>
                   <Input

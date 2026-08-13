@@ -77,6 +77,7 @@ import {
   METAL_IMPURITY_TEMPLATE_CODE,
   getDefaultMetalImpurityConfig,
 } from "@/lib/metal-impurity-document";
+import { UV_LAMP_RUNTIME_TEMPLATE_CODE } from "@/lib/uv-lamp-runtime-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import {
   buildEquipmentCalibrationConfigFromEquipment,
@@ -144,6 +145,29 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({ documents, template });
+}
+
+/**
+ * Подставляет «Дату ввода установки в эксплуатацию» (= дата начала
+ * документа) в спецификацию УФ-установки, если она пустая. Ничего не
+ * перетирает: заполненное значение и любые прочие ключи конфига
+ * возвращаются как есть.
+ */
+function withUvCommissioningDate(
+  config: Record<string, unknown> | undefined,
+  dateFrom: string
+): Record<string, unknown> | undefined {
+  const dateKey = String(dateFrom).slice(0, 10);
+  if (!dateKey) return config;
+  const base = (config ?? {}) as Record<string, unknown>;
+  const rawSpec = base.spec;
+  const spec =
+    rawSpec && typeof rawSpec === "object" && !Array.isArray(rawSpec)
+      ? (rawSpec as Record<string, unknown>)
+      : {};
+  const current = typeof spec.commissioningDate === "string" ? spec.commissioningDate.trim() : "";
+  if (current) return config;
+  return { ...base, spec: { ...spec, commissioningDate: dateKey } };
 }
 
 export async function POST(request: Request) {
@@ -733,12 +757,29 @@ export async function POST(request: Request) {
         }
       : baseFinalConfig;
 
+  /**
+   * P8: «Дата ввода установки в эксплуатацию» у бактерицидной установки
+   * по умолчанию равна дате начала документа.
+   *
+   * Раньше дефолт жил ТОЛЬКО в диалоге редактирования спецификации
+   * (`uv-lamp-runtime-document-client.tsx`, `defaultCommissioningDate`) —
+   * то есть в конфиг он попадал лишь после того, как кто-то откроет и
+   * сохранит настройки. Документы, созданные из списка/cron'ом, ехали с
+   * пустой датой, и в бумажной спецификации стоял прочерк. Ставим её
+   * ЗДЕСЬ, в единственной серверной точке создания, и только если поле
+   * действительно пустое — явный выбор пользователя не перетираем.
+   */
+  const finalConfigWithUvDefaults =
+    resolvedTemplateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE
+      ? withUvCommissioningDate(finalConfig, dateFrom)
+      : finalConfig;
+
   const doc = await db.journalDocument.create({
     data: {
       templateId: template.id,
       organizationId: getActiveOrgId(session),
       title: title || template.name,
-      config: finalConfig as Prisma.InputJsonValue | undefined,
+      config: finalConfigWithUvDefaults as Prisma.InputJsonValue | undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
       responsibleUserId: finalResponsibleUserId,

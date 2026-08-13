@@ -137,7 +137,9 @@ function EditDocumentDialog(props: {
           <FloatingLabelField label="Добавлять пустых строк при печати">
             <Select value={emptyRows} onValueChange={setEmptyRows}>
               <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
-                <SelectValue />
+                {/* P8: то же, что в диалоге создания — значение рендерим
+                    явными children, иначе «0» не показывается вовсе. */}
+                <SelectValue placeholder="0">{emptyRows}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {EMPTY_ROWS_OPTIONS.map((n) => (

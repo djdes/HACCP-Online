@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Pencil, Plus, RefreshCw, Save, Trash2, UserPlus } from "lucide-react";
+import { Archive, ChevronDown, MousePointerSquareDashed, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus } from "lucide-react";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   RoomEditorDialog,
@@ -17,7 +17,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,6 +89,7 @@ import {
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
@@ -95,6 +106,8 @@ import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
   GRID_CELL_CLASS,
+  GRID_DAY_OFF_BG_CLASS,
+  GRID_DAY_SHORT_BG_CLASS,
   GRID_HEAD_CELL_CLASS,
   GRID_HEAD_CELL_PLAIN_CLASS,
   CELL_FOCUS_CLASS,
@@ -252,8 +265,8 @@ function parseLegendItem(raw: string): { symbol: string; description: string } {
  */
 function CleaningDayColorLegend() {
   const items = [
-    { color: "border-[#ffd7d3] bg-[#fff4f2]", label: "Выходной или праздник" },
-    { color: "border-[#ffe9b0] bg-[#fff8eb]", label: "Сокращённый день" },
+    { color: "border-[#f0b6b1] bg-[#f8d7d4]", label: "Выходной или праздник" },
+    { color: "border-[#f2d3a6] bg-[#fdeeda]", label: "Сокращённый день" },
     { color: "border-[#ececf4] bg-white", label: "Рабочий день" },
   ];
   return (
@@ -604,6 +617,21 @@ export function CleaningDocumentClient(props: Props) {
   }, []);
   const roleOptions = useMemo(() => getDistinctRoleLabels(props.users), [props.users]);
   const dayKeys = useMemo(() => buildDateKeys(props.dateFrom, props.dateTo), [props.dateFrom, props.dateTo]);
+
+  /**
+   * Минимальная ширина сетки уборки (P8).
+   *
+   * Раньше стояло жёсткое `sm:min-w-[1200px]` при бумажном полотне 1150px:
+   * документ на 15 дней всегда выезжал за правый край — последний день и
+   * правая рамка обрезались, хотя по факту таблица помещалась.
+   *
+   * Считаем от состава: чекбокс 48 + «Наименование помещения» 230 +
+   * «Моющие и дезинфицирующие средства» 200 + 34px на каждый день. Месяц
+   * из 15 дней = 988px (влезает в полотно, правая рамка на месте), полный
+   * месяц из 31 дня = 1532px — и вот тогда включается горизонтальный
+   * скролл внутри viewport'а с видимой полосой.
+   */
+  const gridMinWidth = 48 + 230 + 200 + dayKeys.length * 34;
 
   const isRoomsMode = config.cleaningMode === "rooms";
 
@@ -1638,6 +1666,77 @@ export function CleaningDocumentClient(props: Props) {
                     </DropdownMenuItem>
                     <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за уборку</DropdownMenuItem>
                     <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за контроль</DropdownMenuItem>
+                    {/* P8: «Заполнение ▾» и «Выделение ▾» больше не стоят
+                        отдельной полосой под заголовком — у эталона такой
+                        полосы нет. Оба меню переехали сюда отдельной
+                        секцией: те же самые пункты, тот же обработчик,
+                        просто на один уровень глубже. */}
+                    {props.status === "active" ? (
+                      <>
+                        <DropdownMenuSeparator className="my-2" />
+                        <DropdownMenuLabel className="px-3 pb-1 pt-0 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#9b9fb3]">
+                          Массовые операции
+                        </DropdownMenuLabel>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="h-9 rounded-xl text-[14px]">
+                            <Sparkles className="mr-3 size-4 text-[#5566f6]" />
+                            Массовое заполнение…
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-[300px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
+                            <DropdownMenuItem
+                              className="h-9 rounded-xl px-3 text-[14px]"
+                              onSelect={() => applySchedulePlan("fill-empty")}
+                              title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
+                            >
+                              Заполнить по плану
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="h-9 rounded-xl px-3 text-[14px]"
+                              onSelect={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
+                              title="Поставить «/» (не проводилась) на все выходные и праздники периода"
+                            >
+                              Отметить выходные «/»
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="h-9 rounded-xl px-3 text-[14px]"
+                              onSelect={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
+                              title="Очистить ячейки выходных и праздников периода"
+                            >
+                              Очистить выходные
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="h-9 rounded-xl text-[14px]">
+                            <MousePointerSquareDashed className="mr-3 size-4 text-[#5566f6]" />
+                            {cellSelectMode ? "Массовое выделение: ВКЛ" : "Массовое выделение…"}
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-[320px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
+                            <DropdownMenuItem
+                              className="h-9 rounded-xl px-3 text-[14px]"
+                              onSelect={() => {
+                                if (cellSelectMode) {
+                                  setCellSelectMode(false);
+                                  clearCellSelection();
+                                } else {
+                                  setCellSelectMode(true);
+                                }
+                              }}
+                              title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
+                            >
+                              {cellSelectMode ? "Выключить выделение мышкой" : "Выделить мышкой"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="h-9 rounded-xl px-3 text-[14px]"
+                              onSelect={selectAllCells}
+                              title="Выделить все ячейки матрицы"
+                            >
+                              Выделить всё
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      </>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -1650,86 +1749,13 @@ export function CleaningDocumentClient(props: Props) {
               }}
               hint="Строки уборки будут удалены без возможности отмены"
             />
-            {/* Bulk-cell toolbar (выходные / выделение / bulk-set) — sticky
-                ВМЕСТЕ с add-toolbar выше, чтобы быть всегда видимым над
-                таблицей при scroll'е по дате. Доступен и в pairs-mode, и
-                в rooms-mode (админ может планировать матрицу заранее —
-                completion-инициалы из TF webhook'а перекроют план поверху). */}
-            {props.status === "active" ? (
+            {/* Полосы «Заполнение ▾ / Выделение ▾» под заголовком больше
+                НЕТ (P8): оба меню живут внутри «Добавить ▾». Здесь остаётся
+                только КОНТЕКСТНАЯ строка действий — она появляется, когда
+                режим выделения включён, и без неё выделенные ячейки нечем
+                было бы заполнить. */}
+            {props.status === "active" && cellSelectMode ? (
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                {/* «Заполнение ▾» — план + выходные в одном меню,
-                    чтобы шапка не разрасталась в 15 кнопок. */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#5566f6] bg-[#5566f6] px-3 py-1.5 font-medium text-white shadow-[0_6px_16px_-8px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-                    >
-                      Заполнение
-                      <ChevronDown className="size-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[300px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3 text-[14px]"
-                      onSelect={() => applySchedulePlan("fill-empty")}
-                      title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
-                    >
-                      Заполнить по плану
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3 text-[14px]"
-                      onSelect={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
-                      title="Поставить «/» (не проводилась) на все выходные и праздники периода"
-                    >
-                      Отметить выходные «/»
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3 text-[14px]"
-                      onSelect={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
-                      title="Очистить ячейки выходных и праздников периода"
-                    >
-                      Очистить выходные
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* «Выделение ▾» — режим мышкой + выделить всё. */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-medium transition-colors ${cellSelectMode ? "bg-[#5566f6] text-white" : "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"}`}
-                    >
-                      {cellSelectMode ? "Выделение: ВКЛ" : "Выделение"}
-                      <ChevronDown className="size-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[320px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3 text-[14px]"
-                      onSelect={() => {
-                        if (cellSelectMode) {
-                          setCellSelectMode(false);
-                          clearCellSelection();
-                        } else {
-                          setCellSelectMode(true);
-                        }
-                      }}
-                      title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
-                    >
-                      {cellSelectMode ? "Выключить выделение мышкой" : "Выделить мышкой"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3 text-[14px]"
-                      onSelect={selectAllCells}
-                      title="Выделить все ячейки матрицы"
-                    >
-                      Выделить всё
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {cellSelectMode ? (
-                  <>
                     <span className="text-[12px] text-[#6f7282]">
                       Выделено: <span className="font-semibold tabular-nums text-[#0b1024]">{selectedCells.size}</span>
                     </span>
@@ -1773,8 +1799,6 @@ export function CleaningDocumentClient(props: Props) {
                     >
                       Сбросить
                     </button>
-                  </>
-                ) : null}
               </div>
             ) : null}
           </div>
@@ -1904,7 +1928,7 @@ export function CleaningDocumentClient(props: Props) {
               disabled={props.status !== "active" || saving}
               className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]"
             />
-            <span className="text-[14px] font-semibold text-[#0b1024]">
+            <span className={DOC_AUTOFILL_LABEL_CLASS}>
               Автоматически заполнять журнал
             </span>
           </div>
@@ -2096,7 +2120,7 @@ export function CleaningDocumentClient(props: Props) {
               сетка ниже, поэтому её ширина совпадает с шириной таблицы
               (раньше шапка была ~57% ширины сетки и центрировалась сама). */}
           <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
-            <div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
+            <div style={{ minWidth: `${gridMinWidth}px` }} className="print:!min-w-0">
             <JournalDocumentHeader
               orgName={props.organizationName}
               title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
@@ -2118,8 +2142,8 @@ export function CleaningDocumentClient(props: Props) {
               «Добавить» (таблицу показывал CSS, тулбар прятал JS). */}
           {cleaningAddToolbar}
           {cleaningRaceStrip}
-          <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} className="print:!min-w-0">
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
@@ -2173,16 +2197,18 @@ export function CleaningDocumentClient(props: Props) {
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
                   const dayKind = getCalendarDayKind(dateKey);
-                  // Pastel-окраска по производственному календарю:
-                  //   • holiday/weekend → красный пастель (#fff4f2)
-                  //   • short          → жёлтый пастель (#fff8eb)
+                  // Pastel-окраска по производственному календарю —
+                  // общие токены `GRID_DAY_*_BG_CLASS` (одна палитра с
+                  // гигиеной/здоровьем, насыщенность как на эталоне):
+                  //   • holiday/weekend → розовый
+                  //   • short          → бежевый
                   //   • workday        → прозрачный (чтобы hover строки был виден)
                   // Selected outline overlays поверх любого фона.
                   const dayBg =
                     dayKind.kind === "holiday" || dayKind.kind === "weekend"
-                      ? "bg-[#fff4f2]"
+                      ? GRID_DAY_OFF_BG_CLASS
                       : dayKind.kind === "short"
-                        ? "bg-[#fff8eb]"
+                        ? GRID_DAY_SHORT_BG_CLASS
                         : "";
                   const interactive = props.status === "active";
                   const rawValue = cellValue(row, dateKey);
@@ -2287,9 +2313,9 @@ export function CleaningDocumentClient(props: Props) {
                   const dayKind = getCalendarDayKind(dateKey);
                   const dayBg =
                     dayKind.kind === "holiday" || dayKind.kind === "weekend"
-                      ? "bg-[#fff4f2]"
+                      ? GRID_DAY_OFF_BG_CLASS
                       : dayKind.kind === "short"
-                        ? "bg-[#fff8eb]"
+                        ? GRID_DAY_SHORT_BG_CLASS
                         : "";
                   const code = cleaningCodeForDay(dateKey);
                   const interactive = props.status === "active";
@@ -2387,9 +2413,9 @@ export function CleaningDocumentClient(props: Props) {
                   const dayKind = getCalendarDayKind(dateKey);
                   const dayBg =
                     dayKind.kind === "holiday" || dayKind.kind === "weekend"
-                      ? "bg-[#fff4f2]"
+                      ? GRID_DAY_OFF_BG_CLASS
                       : dayKind.kind === "short"
-                        ? "bg-[#fff8eb]"
+                        ? GRID_DAY_SHORT_BG_CLASS
                         : "";
                   const code = controlCodeForDay(dateKey);
                   const interactive = props.status === "active";

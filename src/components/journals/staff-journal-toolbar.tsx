@@ -32,6 +32,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_HEADING_CLASS,
   DOC_TITLE_ROW_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import {
@@ -765,7 +766,7 @@ export function StaffJournalToolbar({
                 disabled={isSwitching}
                 className="data-[state=unchecked]:bg-[#d6d9ee]"
               />
-              <span className="text-[15px] font-semibold text-black">
+              <span className={DOC_AUTOFILL_LABEL_CLASS}>
                 Автоматически заполнять журнал
               </span>
             </div>

@@ -60,6 +60,7 @@ import {
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -926,10 +927,12 @@ function SpecificationTable({
         {/* U7: четыре примерно равные колонки — раньше подписи занимали
             445/480px и душили значения. */}
         <colgroup>
-          <col className="w-[27%]" />
-          <col className="w-[23%]" />
-          <col className="w-[27%]" />
-          <col className="w-[23%]" />
+          {/* P8: 25/25/25/25 — на эталоне все четыре колонки спецификации
+              равные (у нас 27/23 давало 310/264 и «ступеньку» посередине). */}
+          <col className="w-[25%]" />
+          <col className="w-[25%]" />
+          <col className="w-[25%]" />
+          <col className="w-[25%]" />
         </colgroup>
         <tbody>
           {/* Заголовок — строка внутри таблицы (как на эталоне), а не
@@ -1374,7 +1377,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <div className={DOC_AUTOFILL_STRIP_CLASS}>
           <div className="flex items-center gap-3">
             <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
-            <span className="text-[14px] text-black">Автоматически заполнять журнал</span>
+            <span className={DOC_AUTOFILL_LABEL_CLASS}>Автоматически заполнять журнал</span>
           </div>
         </div>
       )}

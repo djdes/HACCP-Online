@@ -858,7 +858,12 @@ export function SanitationDayDocumentClient({
       ) : null}
 
       {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
-      <section className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0`}>
+      {/* P8: карточки-обёртки вокруг бланка больше НЕТ (как у чек-листа
+          вентиляции в P5). `rounded-[18px] border p-8 overflow-hidden`
+          съедал 2×32px паддинга и клипал содержимое: полотно сжималось
+          до ~1083px вместо 1150, и правая рамка служебной строки уходила
+          под клип. Бланк лежит прямо на фоне страницы. */}
+      <section className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>

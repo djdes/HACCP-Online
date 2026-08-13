@@ -49,11 +49,15 @@ import {
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { DOC_PAPER_CANVAS_CLASS } from "@/components/journals/journal-responsive";
-import { GRID_ADD_CELL_SOLID_CLASS } from "@/components/journals/journal-grid";
+import {
+  GRID_ADD_CELL_SOLID_CLASS,
+  GRID_HEAD_CELL_CLASS,
+} from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -941,7 +945,7 @@ export function CleaningVentilationChecklistDocumentClient({
               />
               <label
                 htmlFor="cleaning-ventilation-autofill"
-                className="block min-w-0 cursor-pointer truncate text-[16px] font-semibold text-black"
+                className={`block min-w-0 cursor-pointer truncate ${DOC_AUTOFILL_LABEL_CLASS}`}
               >
                 Автоматически заполнять чек-лист
               </label>
@@ -1065,11 +1069,22 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr className="border-b border-[#333] print:border-black">
-                <td className="w-[180px] border-r border-[#333] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
+                {/* P8: «Процедура» и её текст занимают ОБЕ строки блока
+                    (rowSpan=2). Раньше вторая строка держала две пустые
+                    ячейки ~160px высотой — на бланке это читалось как
+                    «блок Процедура пустой», хотя описание было заполнено
+                    строкой выше. Розовая подсветка незаполненного
+                    (CHECKLIST_EMPTY_CELL_CLASS) теперь тоже видна на всю
+                    высоту блока, а не на одной его половине. */}
+                <td
+                  rowSpan={2}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[180px] px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                >
                   Процедура
                 </td>
                 <td
-                  className={`border-r border-[#333] print:border-black px-5 py-2 text-[15px] leading-6 ${
+                  rowSpan={2}
+                  className={`border-r border-[#333] print:border-black px-5 py-2 align-top text-[15px] leading-6 ${
                     descriptionLines.length === 0 ? CHECKLIST_EMPTY_CELL_CLASS : ""
                   }`}
                 >
@@ -1080,7 +1095,9 @@ export function CleaningVentilationChecklistDocumentClient({
                     </div>
                   ))}
                 </td>
-                <td className="w-[210px] border-r border-[#333] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
+                <td
+                  className={`${GRID_HEAD_CELL_CLASS} w-[210px] px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                >
                   Периодичность
                 </td>
                 <td className="w-[260px] p-0 align-top text-[15px] leading-6">
@@ -1135,9 +1152,9 @@ export function CleaningVentilationChecklistDocumentClient({
                 </td>
               </tr>
               <tr>
-                <td className="border-r border-[#333] print:border-black px-5 py-2 leading-tight" />
-                <td className="border-r border-[#333] print:border-black px-5 py-2 leading-tight" />
-                <td className="border-r border-[#333] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
+                <td
+                  className={`${GRID_HEAD_CELL_CLASS} px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                >
                   Ответственные лица
                 </td>
                 <td className="p-0 align-top text-[15px] leading-6">

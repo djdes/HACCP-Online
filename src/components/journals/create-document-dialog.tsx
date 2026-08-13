@@ -605,7 +605,16 @@ export function CreateDocumentDialog({
                 <FloatingLabelField label="Добавлять пустых строк при печати">
                   <Select value={printEmptyRows} onValueChange={setPrintEmptyRows}>
                     <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
-                      <SelectValue />
+                      {/*
+                        P8: значение печатаем САМИ, а не полагаемся на
+                        неявный портал Radix. Пустой `<SelectValue />`
+                        рендерит текст выбранного пункта только через
+                        `SelectItemText`, который живёт внутри закрытого
+                        `SelectContent` — и в паре с React 19 этот портал
+                        до первого открытия списка не срабатывает: поле
+                        выглядело пустой пилюлей вместо «0».
+                      */}
+                      <SelectValue placeholder="0">{printEmptyRows}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {PRINT_EMPTY_ROWS_OPTIONS.map((count) => (
@@ -639,7 +648,12 @@ export function CreateDocumentDialog({
               {showCompactDateFrom && (
                 <DateField
                   id="compact-date-from"
-                  label="Дата начала"
+                  /* P8: у генеральных уборок документ — это ОДИН акт на
+                     дату, а не период, поэтому лейбл «Дата документа».
+                     Правка уже была сделана в ветке на строке ~788, но
+                     general_cleaning попадает СЮДА (showCompactDateFrom),
+                     и на проде подпись оставалась «Дата начала». */
+                  label={isGeneralCleaningJournal ? "Дата документа" : "Дата начала"}
                   value={dateFrom}
                   onChange={(value) => {
                     setDateFrom(value);

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DOC_AUTOFILL_LABEL_CLASS } from "@/components/journals/journal-responsive";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -903,7 +904,7 @@ export function GlassControlDocumentClient(props: Props) {
         </h1>
 
         <div className="mt-6 rounded-[18px] bg-[#f6f7ff] px-5 py-4 print:hidden">
-          <label className="flex items-center gap-4 text-[18px] font-semibold">
+          <label className={`flex items-center gap-4 ${DOC_AUTOFILL_LABEL_CLASS}`}>
             <Switch
               checked={autoFill}
               onCheckedChange={(checked) => {

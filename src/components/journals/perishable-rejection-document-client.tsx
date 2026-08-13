@@ -113,6 +113,26 @@ const toNone = (value: string) => (value ? value : NONE_VALUE);
 /** Сколько строк максимум разрешаем добавить одной пачкой. */
 const BULK_ROWS_MAX = 50;
 
+/**
+ * Доля служебной колонки с чекбоксом в общей ширине бланка (P8).
+ *
+ * Именно ПРОЦЕНТ, а не фиксированные 36px: при `table-fixed` фиксированная
+ * колонка складывалась со 100% процентных, и таблица становилась шире
+ * бумажного полотна — правая колонка «Примечание» разрезалась краем.
+ */
+const CHECKBOX_COL_PERCENT = 2.6;
+
+/**
+ * Заголовок колонки бланка бракеража (P8).
+ *
+ * Раньше стоял `break-words` (`overflow-wrap: break-word`) — он разрешает
+ * рвать слово В ЛЮБОМ месте, если оно не влезает, и на узких колонках
+ * давал «Кол- во» и оторванную скобку в «(ФИО, должность )». Перенос
+ * теперь ТОЛЬКО по словам; место освободили сами колонки (см. веса выше)
+ * и шрифт 11.5px, как в бракераже готовой продукции.
+ */
+const HEAD_CELL_CLASS = `${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-[11.5px] font-semibold leading-[1.25] [overflow-wrap:normal] [word-break:normal] hyphens-none`;
+
 /** Пауза до автосохранения после последнего нажатия клавиши. */
 const AUTOSAVE_DELAY_MS = 900;
 
@@ -590,6 +610,29 @@ export function PerishableRejectionDocumentClient({
   const todayKey = new Date().toISOString().slice(0, 10);
   const todayFocusRowId = config.rows.find((row) => row.arrivalDate === todayKey)?.id;
 
+  /**
+   * Ширины колонок бланка бракеража (P8).
+   *
+   * Веса, а не готовые проценты: опциональное «Примечание» просто
+   * добавляется в массив, и сетка пересчитывается сама — как в
+   * `finished-product-document-client.tsx`. Сумма ВСЕГДА равна 100%
+   * вместе с колонкой чекбокса, поэтому `table-fixed` не раздувает
+   * таблицу шире бумажного полотна (1150px).
+   *
+   * Порядок весов = порядок `<th>` ниже:
+   * дата поступления · наименование · дата выработки · изготовитель ·
+   * фасовка · номер документа · органолептика · условия хранения ·
+   * дата реализации · ответственное лицо · (примечание).
+   */
+  const columnWeights = config.showNote
+    ? [95, 110, 78, 100, 92, 92, 100, 100, 84, 96, 70]
+    : [95, 118, 82, 106, 96, 96, 106, 106, 88, 102];
+  const columnWeightsTotal = columnWeights.reduce((sum, weight) => sum + weight, 0);
+  const columnWidths = columnWeights.map(
+    (weight) =>
+      `${((weight / columnWeightsTotal) * (100 - CHECKBOX_COL_PERCENT)).toFixed(3)}%`
+  );
+
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller
@@ -748,29 +791,33 @@ export function PerishableRejectionDocumentClient({
 
               P3: `min-w-[1600px]` был шире полотна (~1150-1250px), поэтому
               ПОСЛЕДНЯЯ колонка всегда упиралась в правый край контейнера и
-              её правая рамка обрезалась. Минимум опущен до 1180px — на
-              десктопе таблица укладывается целиком (рамка видна), на узких
-              экранах скролл внутри viewport'а остаётся. */}
-          <table className="w-full min-w-[1180px] table-fixed border-collapse text-[12.5px]">
+              её правая рамка обрезалась.
+
+              P8 (финальная сверка): даже с `min-w-[1180px]` таблица не
+              влезала в полотно 1150 по ДВУМ причинам сразу — сам минимум
+              был больше полотна И проценты колонок в сумме давали 100%
+              ПЛЮС фиксированные 36px чекбокса, то есть `table-fixed`
+              раздувал таблицу ещё на ширину чекбокса. «Примечание»
+              физически разрезалось правым краем.
+
+              Теперь ВСЕ колонки, включая чекбокс, заданы процентами от
+              одной суммы 100%, а ширины считаются из весов — включение
+              опционального «Примечания» пересчитывает сетку, а не ломает
+              её. Минимум опущен до 1040px: на десктопе таблица ровно по
+              полотну (правая рамка видна), на узких экранах остаётся
+              скролл внутри viewport'а. */}
+          <table className="w-full min-w-[1040px] table-fixed border-collapse text-[12.5px]">
             <colgroup>
-              <col style={{ width: "36px" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "7%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "8%" }} />
-              {config.showNote ? <col style={{ width: "5%" }} /> : null}
+              <col style={{ width: `${CHECKBOX_COL_PERCENT}%` }} />
+              {columnWidths.map((width, index) => (
+                <col key={index} style={{ width }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
                 {/* Select-all — как в остальных журналах: одна галочка
                     отмечает все строки листа, снятие очищает выделение. */}
-                <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 text-center leading-tight`}>
                   <Checkbox
                     checked={config.rows.length > 0 && selectedRows.length === config.rows.length}
                     onCheckedChange={(checked) =>
@@ -781,34 +828,34 @@ export function PerishableRejectionDocumentClient({
                     aria-label="Выбрать все строки"
                   />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Дата, время поступления пищ. продукции
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Наименование</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата выработки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Изготовитель/поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>Наименование</th>
+                <th className={HEAD_CELL_CLASS}>Дата выработки</th>
+                <th className={HEAD_CELL_CLASS}>Изготовитель/поставщик</th>
+                <th className={HEAD_CELL_CLASS}>
                   Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Номер документа, подтверждающего безопасность
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Результаты органолептической оценки
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Условия хранения, конечный срок реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Дата, время фактической реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
+                <th className={HEAD_CELL_CLASS}>
                   Ответственное лицо (ФИО, должность)
                 </th>
                 {/* «Примечание» — опциональная колонка состава таблицы
                     (тумблер в диалоге создания, P2 аудита). */}
                 {config.showNote ? (
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Примечание</th>
+                  <th className={HEAD_CELL_CLASS}>Примечание</th>
                 ) : null}
               </tr>
             </thead>
@@ -819,7 +866,7 @@ export function PerishableRejectionDocumentClient({
                   Добавить» живёт на кнопке над таблицей. */}
               {config.rows.length === 0 ? (
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight`}>
                     <Checkbox checked={false} disabled />
                   </td>
                   {Array.from({ length: config.showNote ? 11 : 10 }, (_, index) => (
@@ -834,7 +881,7 @@ export function PerishableRejectionDocumentClient({
               ) : null}
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight`}>
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) =>
