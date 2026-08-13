@@ -7,6 +7,8 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_LEGEND_CLASS,
+  DOC_NOTE_TEXT_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   DOC_TITLE_ROW_CLASS,
   JOURNAL_DIALOG_BODY_CLASS,
@@ -189,3 +191,25 @@ test("dialog fields are one full-width column with floating labels", () => {
   assert.match(JOURNAL_DIALOG_HINT_CLASS, /bg-\[#fff8e8\]/);
 });
 
+test("paper canvas centers the blank at the reference width", () => {
+  // S8 аудита: бланк эталона — центрированный блок ~1150px внутри
+  // контентной колонки 1296px, а не «во всю ширину».
+  assert.match(DOC_PAPER_CANVAS_CLASS, /max-w-\[1150px\]/);
+  assert.match(DOC_PAPER_CANVAS_CLASS, /\bmx-auto\b/);
+  assert.match(DOC_PAPER_CANVAS_CLASS, /\bw-full\b/);
+  // На печати ограничение снимается — лист задаёт @page.
+  assert.match(DOC_PAPER_CANVAS_CLASS, /print:max-w-none/);
+});
+
+test("explanatory notes use the paper type scale, not UI 16px", () => {
+  // S9/Z2 аудита: пояснения под таблицами у эталона 12-13px с
+  // интерлиньяжем ~1.4; было 16px/28px — блоки выходили вдвое выше.
+  assert.match(DOC_NOTE_TEXT_CLASS, /text-\[12\.5px\]/);
+  assert.match(DOC_NOTE_TEXT_CLASS, /leading-\[1\.4\]/);
+});
+
+test("autofill strip keeps the reference height", () => {
+  // H5 аудита: полоса ~48px = штатный тумблер 44×24 + 12px паддинга.
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bpy-3\b/);
+  assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /sm:py-4/);
+});

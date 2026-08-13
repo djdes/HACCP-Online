@@ -239,8 +239,20 @@ export function getSanitationDocumentDateLabel(dateKey: string) {
   return `${day}-${month}-${year}`;
 }
 
-export function getSanitationApproveLabel(role: string, employee: string) {
-  const rolePart = role ? `${role}: ` : "";
+/**
+ * «Должность + сотрудник» одной строкой.
+ *
+ * G3 аудита: в служебной строке бланка эталон разделяет их ЗАПЯТОЙ
+ * («Заведующий, Иванова Анна Петровна»), а не двоеточием. В карточках
+ * списка документов двоеточие осталось — там это подпись «должность:
+ * сотрудник», поэтому разделитель параметризован.
+ */
+export function getSanitationApproveLabel(
+  role: string,
+  employee: string,
+  separator = ": ",
+) {
+  const rolePart = role ? `${role}${separator}` : "";
   return `${rolePart}${employee || ""}`.trim();
 }
 

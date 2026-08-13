@@ -145,8 +145,15 @@ export function JournalPaperHeaderRows({
         >
           {title}
         </td>
+        {/*
+          S11 аудита: «СТР. 1 ИЗ 1» читалось как «СТР. 1ИЗ 1» — цифра «1»
+          в Manrope имеет узкие боковые полуапроши, и обычный пробел между
+          «1» и «ИЗ» визуально схлопывался. Пробелы не режутся ни tracking,
+          ни whitespace-правилами — им просто не хватает ширины, поэтому
+          ячейке добавлен word-spacing и запрет переноса.
+        */}
         <td
-          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase leading-tight`}
+          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] whitespace-nowrap uppercase leading-tight [word-spacing:0.18em]`}
         >
           {pageInfo}
         </td>
@@ -263,10 +270,19 @@ export function JournalLegendBlock({
   items,
   className = "",
   variant = "card",
+  autoPunctuation = true,
 }: {
   title?: string;
   items: Array<{ symbol: string; description: string }>;
   className?: string;
+  /**
+   * `plain`-вариант по умолчанию сам дописывает «;» в конце каждой строки
+   * кроме последней. У эталона гигиенического журнала пунктуация НЕ
+   * регулярная («Зд. – здоров;», «В – … / отгул;», дальше без «;»),
+   * поэтому такие журналы передают `autoPunctuation={false}` и держат
+   * знаки прямо в тексте строки.
+   */
+  autoPunctuation?: boolean;
   /**
    * `card` — блок в белой карточке (журналы, где легенда стоит особняком).
    * `plain` — как на эталоне журнала уборки (cleaning-07-grid-with-room.png):
@@ -278,7 +294,7 @@ export function JournalLegendBlock({
   if (variant === "plain") {
     return (
       <div
-        className={`w-full text-[12.5px] italic leading-[1.6] text-[#0b1024] sm:text-[13px] ${className}`}
+        className={`w-full text-[12.5px] italic leading-[1.4] text-[#0b1024] sm:text-[13px] ${className}`}
       >
         <div className="mb-1 font-semibold underline underline-offset-2">
           {title}:
@@ -287,7 +303,7 @@ export function JournalLegendBlock({
           <div key={idx}>
             {item.symbol ? `${item.symbol} - ` : ""}
             {item.description}
-            {idx === items.length - 1 ? "" : ";"}
+            {autoPunctuation && idx !== items.length - 1 ? ";" : ""}
           </div>
         ))}
       </div>

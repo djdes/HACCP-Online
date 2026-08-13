@@ -45,6 +45,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -379,7 +380,8 @@ function DocumentSettingsDialog(props: {
         </div>
         <div className="space-y-2">
           <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-            Должность «Утверждаю»
+            {/* G6: у эталона кавычки прямые, не «ёлочки». */}
+            Должность &quot;Утверждаю&quot;
           </Label>
           <Select
             value={state.approveRole}
@@ -855,7 +857,8 @@ export function SanitationDayDocumentClient({
         <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать план и факт уборок." />
       ) : null}
 
-      <section className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0`}>
+      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      <section className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} overflow-hidden rounded-[18px] border border-[#ececf4] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0`}>
         <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
@@ -1158,6 +1161,7 @@ export function SanitationDayDocumentClient({
                     {getSanitationApproveLabel(
                       normalized.responsibleRole,
                       normalized.responsibleEmployee,
+                      ", ",
                     )}
                   </span>
                 </td>

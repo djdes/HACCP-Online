@@ -8,6 +8,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -700,7 +701,10 @@ export function MedBookDocumentClient({
         </div>
       ) : null}
 
-      <div className="space-y-2">
+      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+          Обе таблицы медкнижек шире полотна и скроллятся внутри своих
+          GRID_VIEWPORT_CLASS. */}
+      <div className={`${DOC_PAPER_CANVAS_CLASS} space-y-2`}>
         <div className="sm:hidden print:hidden">
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>

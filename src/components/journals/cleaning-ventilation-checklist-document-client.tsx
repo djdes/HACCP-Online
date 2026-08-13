@@ -52,6 +52,7 @@ import {
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import { DOC_PAPER_CANVAS_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -1003,6 +1004,10 @@ export function CleaningVentilationChecklistDocumentClient({
           ) : null}
         </div>
 
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон):
+            шапка ХАССП, блоки «Процедура/Периодичность/Ответственные»,
+            «Добавить» и сама сетка чек-листа. */}
+        <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* Рамку контейнера убрали: границы теперь несут сами ячейки
             бумажной шапки, иначе линия дублировалась. */}
         <div className="overflow-hidden">
@@ -1352,6 +1357,7 @@ export function CleaningVentilationChecklistDocumentClient({
             </tbody>
           </table>
         </MobileViewTableWrapper>
+        </div>
       </div>
 
       <DocumentSettingsDialog

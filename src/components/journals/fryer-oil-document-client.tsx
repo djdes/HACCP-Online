@@ -19,6 +19,7 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -587,7 +588,8 @@ export function FryerOilDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <div>
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+        <div className={DOC_PAPER_CANVAS_CLASS}>
           <div>
             {/* Бумажная шапка — общие строки в той же сетке, что и таблица
                 ниже (раньше была самодельная grid-вёрстка без части рамок). */}

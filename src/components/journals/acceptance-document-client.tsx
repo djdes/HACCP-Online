@@ -19,6 +19,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -2325,6 +2326,10 @@ export function AcceptanceDocumentClient(props: Props) {
           </label>
         )}
 
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+            11 колонок приёмки шире полотна и продолжают скроллиться
+            внутри своего GRID_VIEWPORT_CLASS. */}
+        <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* HACCP header */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
         <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
@@ -2591,6 +2596,7 @@ export function AcceptanceDocumentClient(props: Props) {
           </table>
         </MobileViewTableWrapper>
         )}
+        </div>
       </div>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} users={props.users} config={config} onSave={async (params) => { await persist(params.title, params.dateFrom, params.config); }} useV2={props.useV2} showExpiryLabelChoice={!isProductAcceptance} />

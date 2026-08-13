@@ -73,6 +73,7 @@ import {
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
   DOC_LEGEND_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -2084,7 +2085,10 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
-        <div className={DOC_BODY_STACK_CLASS}>
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+            Сетка уборки шире (min-w 1200) и продолжает скроллиться внутри
+            своего GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
+        <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
           {/* Официальный ХАССП-блок — общий компонент вместо самодельной
               таблицы с чёрными рамками (на экране — карточка дизайн-системы,
               в печати сам компонент возвращает бумажный вид). */}
@@ -2123,9 +2127,12 @@ export function CleaningDocumentClient(props: Props) {
                 <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
                 <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <div className="flex items-center justify-between gap-3">
+                    {/* S10: содержимое бумажных ячеек у эталона по центру.
+                        `flex-1 text-center` центрирует название помещения,
+                        оставляя карандаш прижатым к правому краю ячейки. */}
                     <button
                       type="button"
-                      className="text-left transition-colors hover:text-[#5566f6]"
+                      className="flex-1 text-center transition-colors hover:text-[#5566f6]"
                       disabled={props.status !== "active"}
                       onClick={() => {
                         if (row.kind === "room") {
@@ -2159,7 +2166,10 @@ export function CleaningDocumentClient(props: Props) {
                     ) : null}
                   </div>
                 </td>
-                <td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{secondColumn}</td>
+                {/* S10: «Моющие и дезинфицирующие средства» у эталона по
+                    центру; подпись ответственного («С1 - ФИО») он же
+                    оставляет по левому краю — так и держим. */}
+                <td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight ${row.kind === "room" ? "text-center" : ""}`}>{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
                   const dayKind = getCalendarDayKind(dateKey);

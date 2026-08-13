@@ -755,14 +755,17 @@ export function StaffJournalToolbar({
             (<StaffJournalAddButton>, см. hygiene/health-document-client). */}
         {status === "active" && !hideAutoFill ? (
           <div className={DOC_AUTOFILL_STRIP_CLASS}>
+            {/* H5 аудита: у эталона полоса ~48px, подпись 15px/600 и тумблер
+                штатного размера (44×24). Раньше здесь стоял увеличенный
+                тумблер 64×40 и подпись 20px/500 — полоса выходила ~62px. */}
             <div className="flex items-center gap-4">
               <Switch
                 checked={checked}
                 onCheckedChange={handleAutoFill}
                 disabled={isSwitching}
-                className="h-10 w-16 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                className="data-[state=unchecked]:bg-[#d6d9ee]"
               />
-              <span className="text-[20px] font-medium text-black">
+              <span className="text-[15px] font-semibold text-black">
                 Автоматически заполнять журнал
               </span>
             </div>

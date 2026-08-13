@@ -1,3 +1,5 @@
+import { formatTimesRu } from "@/lib/plural-ru";
+
 export const CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE =
   "cleaning_ventilation_checklist";
 
@@ -80,11 +82,15 @@ export function getCleaningVentilationDescriptionLines() {
   return DEFAULT_DESCRIPTION.map((item) => ({ ...item }));
 }
 
+/**
+ * V10 аудита: было «3 раз(а) в день» — несогласованное числительное.
+ * Теперь числительное склоняется (`1 раз`, `2-4 раза`, `5+ раз`).
+ */
 export function getCleaningVentilationPeriodicityLines(enabledVentilation: boolean) {
   return [
-    "Дезинфекция – 3 раз(а) в день",
-    ...(enabledVentilation ? ["Проветривание – 3 раз(а) в день"] : []),
-    "Влажная уборка – 2 раз(а) в день",
+    `Дезинфекция – ${formatTimesRu(3)} в день`,
+    ...(enabledVentilation ? [`Проветривание – ${formatTimesRu(3)} в день`] : []),
+    `Влажная уборка – ${formatTimesRu(2)} в день`,
   ];
 }
 

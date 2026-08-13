@@ -1,4 +1,5 @@
 import { JOURNAL_TABLE_VIEWPORT_CLASS } from "@/components/journals/journal-responsive";
+import { getCalendarDayKind } from "@/lib/production-calendar-data";
 
 /**
  * Единые токены «бумажной» сетки журнала.
@@ -45,6 +46,28 @@ export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 p
  * на десктопе таблица помещается целиком и горизонтальный скролл не нужен.
  */
 export const GRID_VIEWPORT_WIDE_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} lg:overflow-visible print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
+
+/**
+ * Пастельная заливка КОЛОНКИ ДНЯ по производственному календарю РФ
+ * (H4 аудита). Эталон lk.haccp-online.ru красит весь столбец нерабочего
+ * дня розовым — так проверяющий сразу видит, почему в этот день пусто.
+ *
+ * Механика ровно та же, что в `cleaning-document-client.tsx`
+ * (`getCalendarDayKind` → `#fff4f2` / `#fff8eb`), просто вынесена в общий
+ * токен, чтобы hygiene / health_check не заводили свою копию.
+ *
+ * Заливка ЭКРАННАЯ: `print:bg-transparent` оставляет печатный бланк
+ * таким же, каким он был до правки.
+ */
+export const GRID_DAY_OFF_BG_CLASS = "bg-[#fff4f2] print:bg-transparent";
+export const GRID_DAY_SHORT_BG_CLASS = "bg-[#fff8eb] print:bg-transparent";
+
+export function getDayColumnBgClass(dateKey: string): string {
+  const kind = getCalendarDayKind(dateKey).kind;
+  if (kind === "holiday" || kind === "weekend") return GRID_DAY_OFF_BG_CLASS;
+  if (kind === "short") return GRID_DAY_SHORT_BG_CLASS;
+  return "";
+}
 
 export const CELL_FOCUS_CLASS =
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 focus-visible:relative focus-visible:z-10";

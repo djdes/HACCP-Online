@@ -28,6 +28,8 @@ import {
   DOC_ADD_ROW_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
+  DOC_NOTE_TEXT_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -62,6 +64,7 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
+  getDayColumnBgClass,
 } from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
@@ -522,8 +525,9 @@ export function HealthDocumentClient(props: Props) {
           </div>
         ) : null}
 
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
         <div
-          className={`${
+          className={`${DOC_PAPER_CANVAS_CLASS} ${
             mobileView === "cards" ? "hidden sm:block print:block" : ""
           }`}
         >
@@ -585,7 +589,7 @@ export function HealthDocumentClient(props: Props) {
                   п/п
                 </th>
                 <th
-                  className={`w-[230px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
+                  className={`w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                   rowSpan={2}
                 >
                   Ф.И.О. работника
@@ -658,7 +662,9 @@ export function HealthDocumentClient(props: Props) {
                       return (
                         <td
                           key={`${employee.id}:${dateKey}`}
-                          className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}
+                          className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight ${getDayColumnBgClass(
+                            dateKey
+                          )}`}
                         >
                           {data?.signed ? "+" : ""}
                         </td>
@@ -686,14 +692,17 @@ export function HealthDocumentClient(props: Props) {
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
                 {dateKeys.map((dateKey) => (
-                  <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                  <td
+                    key={`blank:${dateKey}`}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight ${getDayColumnBgClass(dateKey)}`}
+                  />
                 ))}
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
               </tr>
             </tbody>
           </table>
 
-          <div className={`health-notes ${DOC_EXTRA_BLOCK_CLASS} space-y-7 text-[16px] leading-7`}>
+          <div className={`health-notes ${DOC_EXTRA_BLOCK_CLASS} space-y-3 ${DOC_NOTE_TEXT_CLASS}`}>
             {HEALTH_REGISTER_NOTES.map((note) => (
               <p key={note}>{note}</p>
             ))}

@@ -12,6 +12,8 @@ import {
   DOC_ADD_ROW_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_LEGEND_CLASS,
+  DOC_NOTE_TEXT_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
@@ -50,6 +52,7 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
+  getDayColumnBgClass,
 } from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
@@ -801,8 +804,11 @@ export function HygieneDocumentClient({
         </div>
       ) : null}
 
+      {/* S8: бумажное полотно — центрированный блок ~1150px, как на
+          эталоне. Полоса автозаполнения и H1 остаются во всю ширину,
+          потому что живут выше по дереву. */}
       <div
-        className={`${
+        className={`${DOC_PAPER_CANVAS_CLASS} ${
           mobileView === "cards" ? "hidden sm:block print:block" : ""
         }`}
       >
@@ -926,7 +932,9 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
-                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${
+                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
+                              dateKey
+                            )} ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -960,7 +968,9 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
-                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${
+                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
+                              dateKey
+                            )} ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -997,12 +1007,17 @@ export function HygieneDocumentClient({
                       onCheckedChange={toggleAllEmployees}
                     />
                   </td>
-                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
+                  {/* H3: у эталона левая ячейка служебной строки — серая,
+                      как заголовки шапки, а не белая ячейка данных. */}
+                  <td colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
                     Должность ответственного за контроль
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
-                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-0.5 leading-tight`} />
+                    <td
+                      key={`blank:${dateKey}`}
+                      className={`${GRID_CELL_CLASS} px-2 py-0.5 leading-tight ${getDayColumnBgClass(dateKey)}`}
+                    />
                   ))}
                 </tr>
               </tbody>
@@ -1014,21 +1029,27 @@ export function HygieneDocumentClient({
                 3) «Условные обозначения» простым курсивом, без карточки.
                 Подсказка «клик по ячейке…» убрана: то же самое написано
                 в «Как заполнять». */}
-            <div className="hygiene-notes mt-6 text-[16px] leading-7">
+            <div className={`hygiene-notes mt-6 ${DOC_NOTE_TEXT_CLASS}`}>
               <div className="font-semibold">В журнал регистрируются результаты:</div>
               {HYGIENE_REGISTER_NOTES.map((note) => (
                 <div key={note}>- {note}</div>
               ))}
             </div>
 
-            <div className="hygiene-reminder mt-8 text-[16px] font-semibold leading-7">
-              Список работников, отмеченных в журнале на день осмотра, должен соответствовать
-              числу работников на этот день в смену
+            {/* H2 аудита: жирным ТОЛЬКО «Список работников, отмеченных
+                в журнале» — хвост фразы у эталона обычного начертания. */}
+            <div className={`hygiene-reminder mt-5 ${DOC_NOTE_TEXT_CLASS}`}>
+              <span className="font-semibold">
+                Список работников, отмеченных в журнале
+              </span>{" "}
+              на день осмотра, должен соответствовать числу работников на этот
+              день в смену
             </div>
 
             <JournalLegendBlock
               variant="plain"
-              className={`hygiene-legend ${DOC_LEGEND_CLASS} mt-8`}
+              autoPunctuation={false}
+              className={`hygiene-legend ${DOC_LEGEND_CLASS} mt-5`}
               items={HYGIENE_REGISTER_LEGEND.map((item) => ({
                 symbol: "",
                 description: item,

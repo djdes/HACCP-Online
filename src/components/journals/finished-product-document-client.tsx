@@ -16,6 +16,7 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -519,7 +520,8 @@ export function FinishedProductDocumentClient({
       {/* Карточной обёртки (рамка + скругление) нет — как в incoming_control
           и uv_lamp_runtime и как на эталоне: документ лежит прямо на белом
           фоне раздела, горизонтальную геометрию задаёт контейнер страницы. */}
-      <div className={`${DOC_BODY_STACK_CLASS} py-4 sm:py-6`}>
+      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} py-4 sm:py-6`}>
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>

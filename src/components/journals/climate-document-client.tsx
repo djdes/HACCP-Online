@@ -44,6 +44,7 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -1553,6 +1554,10 @@ export function ClimateDocumentClient({
           )}
         </div>
 
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+            Широкая сетка климата (min-w 1280) скроллится внутри своего
+            GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
+        <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* Бумажная ХАССП-шапка — САМОСТОЯТЕЛЬНЫЙ блок под полосой
             тумблера. Раньше она жила ВНУТРИ раскрывающейся панели
             автозаполнения, и при свёрнутой панели журнал оставался вообще
@@ -1848,6 +1853,7 @@ export function ClimateDocumentClient({
             </tbody>
           </table>
         </MobileViewTableWrapper>
+        </div>
       </div>
 
       <JournalSettingsDialog

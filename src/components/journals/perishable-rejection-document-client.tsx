@@ -10,6 +10,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -621,7 +622,8 @@ export function PerishableRejectionDocumentClient({
           `overflow-hidden`. Именно `overflow-hidden` на карточке резал
           таблицу по правому краю: горизонтальный скролл живёт ВНУТРИ
           GRID_VIEWPORT_CLASS, а внешний клип его перекрывал. */}
-      <div className={`${DOC_BODY_STACK_CLASS} py-4 sm:py-6`}>
+      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} py-4 sm:py-6`}>
         {/* HACCP header table */}
         <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
           <tbody>

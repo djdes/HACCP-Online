@@ -8,6 +8,7 @@ import {
   DOC_ADD_ROW_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -1204,7 +1205,10 @@ export function ColdEquipmentDocumentClient({
           </div>
         ) : null}
 
-        <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
+        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+            Сетка на 15 дней шире полотна и продолжает скроллиться внутри
+            своего GRID_VIEWPORT_CLASS. */}
+        <div className={`${DOC_PAPER_CANVAS_CLASS} ${mobileView === "cards" ? "hidden sm:block print:block" : ""}`}>
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
           <div style={{ minWidth: gridMinWidth }} className="print:!min-w-0">

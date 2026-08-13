@@ -55,6 +55,7 @@ import {
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -1401,6 +1402,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         </div>
       </div>
 
+      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      <div className={DOC_PAPER_CANVAS_CLASS}>
       {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
           По эталону (uv_lamp_runtime-grid.png) он стоит НАД справочными
           таблицами спецификации и наработки, а не под ними. */}
@@ -1656,6 +1659,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           </tbody>
         </table>
       </MobileViewTableWrapper>
+      </div>
 
       {/* Dialogs */}
       <UvRuntimeSettingsDialog
