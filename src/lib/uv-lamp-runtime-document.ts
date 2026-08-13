@@ -1,3 +1,5 @@
+import { formatTimesRu } from "@/lib/plural-ru";
+
 export const UV_LAMP_RUNTIME_TEMPLATE_CODE = "uv_lamp_runtime";
 
 export const UV_LAMP_RUNTIME_PAGE_TITLE = "Журнал учета работы УФ бактерицидной установки";
@@ -118,7 +120,7 @@ export function normalizeUvRuntimeDocumentConfig(value: unknown): UvRuntimeDocum
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
       lampNumber: "1",
-      areaName: "Журнал учета работы",
+      areaName: "",
       spec: defaultUvSpecification(),
     };
   }
@@ -129,12 +131,24 @@ export function normalizeUvRuntimeDocumentConfig(value: unknown): UvRuntimeDocum
       typeof item.lampNumber === "string" && item.lampNumber.trim()
         ? item.lampNumber.trim()
         : "1",
-    areaName:
-      typeof item.areaName === "string" && item.areaName.trim()
-        ? item.areaName.trim()
-        : "Журнал учета работы",
+    areaName: normalizeUvAreaName(item.areaName),
     spec: normalizeUvSpecification(item.spec),
   };
+}
+
+/**
+ * U1: раньше дефолтом `areaName` был обрезок названия журнала
+ * («Журнал учета работы»), который печатался на линии
+ * «(наименование цеха / участка применения)» — ложные данные в бланке.
+ * Теперь цех берётся ТОЛЬКО из настроек документа, а старое
+ * значение-заглушка вычищается при чтении конфига.
+ */
+const UV_LEGACY_AREA_PLACEHOLDER = "Журнал учета работы";
+
+export function normalizeUvAreaName(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  return trimmed === UV_LEGACY_AREA_PLACEHOLDER ? "" : trimmed;
 }
 
 export function normalizeUvRuntimeEntryData(value: unknown): UvRuntimeEntryData {
@@ -152,8 +166,13 @@ export function normalizeUvRuntimeEntryData(value: unknown): UvRuntimeEntryData 
   };
 }
 
+/**
+ * Название документа по эталону: «Бактерицидная установка №N | <полное
+ * имя журнала>». Название цеха сюда НЕ попадает — оно живёт только в
+ * линии «(наименование цеха / участка применения)» бланка (U1).
+ */
 export function buildUvRuntimeDocumentTitle(config: UvRuntimeDocumentConfig) {
-  return `Бактерицидная установка №${config.lampNumber} | ${config.areaName}`.trim();
+  return `Бактерицидная установка №${config.lampNumber} | ${UV_LAMP_RUNTIME_PAGE_TITLE}`;
 }
 
 export function toIsoDate(value: Date) {
@@ -281,6 +300,17 @@ export function getRadiationModeLabel(mode: UvSpecification["radiationMode"]): s
 
 export function getDisinfectionConditionLabel(condition: UvSpecification["disinfectionCondition"]): string {
   return condition === "with_people" ? "в присутствии людей" : "в отсутствии людей";
+}
+
+/**
+ * U7/V10: в конфиге частота хранится канцелярским «1 раз(а) в смену»
+ * (менять хранимые значения нельзя — они уже в БД), но ПОКАЗЫВАЕМ
+ * согласованное «1 раз / 2 раза / 5 раз».
+ */
+export function formatControlFrequencyLabel(value: string): string {
+  return value.replace(/(\d+)\s*раз\(а\)/gi, (_match, count: string) =>
+    formatTimesRu(Number(count))
+  );
 }
 
 export const CONTROL_FREQUENCY_OPTIONS = [

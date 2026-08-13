@@ -888,7 +888,7 @@ async function JournalDocumentBody({
           documentId={document.id}
           controlPeriodicity={controlPeriodicity}
           routeCode={code}
-          title={document.title || buildUvRuntimeDocumentTitle(uvConfig)}
+          title={buildUvRuntimeDocumentTitle(uvConfig)}
           organizationName={organization?.name || ORG_NAME_FALLBACK}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}

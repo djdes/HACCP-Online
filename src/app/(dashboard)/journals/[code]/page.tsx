@@ -595,10 +595,13 @@ async function ensureSourceStyleTrackedSampleDocuments({
   const uvConfig = isUv
     ? {
         lampNumber: "1",
-        areaName: "Журнал учета работы",
+        // U1: линия «наименование цеха / участка применения» пустая,
+        // пока управляющая не заполнит её в настройках документа.
+        areaName: "",
         spec: {
           ...defaultUvSpecification(),
-          commissioningDate: `${year}-07-01`,
+          // U4: дата ввода в эксплуатацию = дата начала документа.
+          commissioningDate: activeFrom.toISOString().slice(0, 10),
         },
       }
     : undefined;
@@ -3768,7 +3771,7 @@ export default async function JournalDocumentsPage({
               const config = normalizeUvRuntimeDocumentConfig(document.config);
               return {
                 id: document.id,
-                title: document.title || buildUvRuntimeDocumentTitle(config),
+                title: buildUvRuntimeDocumentTitle(config),
                 status: document.status as "active" | "closed",
                 responsibleTitle: document.responsibleTitle,
                 responsibleUserId: document.responsibleUserId,

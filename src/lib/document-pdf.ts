@@ -94,6 +94,7 @@ import {
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   calculateDurationMinutes,
+  formatControlFrequencyLabel,
   formatRuDateDash,
   getDisinfectionConditionLabel,
   getDisinfectionObjectLabel,
@@ -3951,7 +3952,7 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
       { content: "Условия обеззараживания", styles: { fontStyle: "bold" } },
       centerCell(getDisinfectionConditionLabel(spec.disinfectionCondition)),
       { content: "Частота контроля", styles: { fontStyle: "bold" } },
-      centerCell(spec.controlFrequency),
+      centerCell(formatControlFrequencyLabel(spec.controlFrequency)),
     ],
   ];
 
@@ -4005,7 +4006,12 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
 
   body.unshift([
     {
-      content: `Бактерицидная установка №${params.config.lampNumber}. ${params.config.areaName}`,
+      content: [
+        `Бактерицидная установка №${params.config.lampNumber}`,
+        params.config.areaName,
+      ]
+        .filter(Boolean)
+        .join(". "),
       colSpan: 6,
       styles: { halign: "left", fontStyle: "bold" },
     },

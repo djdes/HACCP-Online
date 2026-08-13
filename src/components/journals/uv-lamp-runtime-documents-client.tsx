@@ -104,7 +104,7 @@ function UvRuntimeSettingsDialog(props: {
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [lampNumber, setLampNumber] = useState("1");
-  const [areaName, setAreaName] = useState("Журнал учета работы");
+  const [areaName, setAreaName] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [responsibleUserId, setResponsibleUserId] = useState("");
@@ -126,7 +126,8 @@ function UvRuntimeSettingsDialog(props: {
     const nextConfig = {
       ...props.editing.config,
       lampNumber: lampNumber.trim() || "1",
-      areaName: areaName.trim() || "Журнал учета работы",
+      // U1: цех — только из настроек; пусто ⇒ пустая линия бланка.
+      areaName: areaName.trim(),
     };
 
     try {
@@ -344,7 +345,9 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
         {props.documents.map((document) => {
           const href = `/journals/${routeCode}/documents/${document.id}`;
           const config = normalizeUvRuntimeDocumentConfig(document.config);
-          const resolvedTitle = document.title || buildUvRuntimeDocumentTitle(config);
+          // U1: имя документа всегда собираем из конфига — сохранённые
+          // в БД обрезки («… | Журнал учета работы») больше не показываем.
+          const resolvedTitle = buildUvRuntimeDocumentTitle(config);
           const responsibleName = document.responsibleUserId
             ? props.users.find((user) => user.id === document.responsibleUserId)?.name || ""
             : "";

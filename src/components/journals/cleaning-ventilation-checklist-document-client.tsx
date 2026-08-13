@@ -53,6 +53,7 @@ import {
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { DOC_PAPER_CANVAS_CLASS } from "@/components/journals/journal-responsive";
+import { GRID_ADD_CELL_SOLID_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -132,18 +133,25 @@ const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50
 
 /**
  * Кнопка-ячейка внутри таблицы («+ Добавить периодичность» /
- * «+ Добавить ответственного»). На эталоне это широкая синяя ячейка во всю
- * ширину своей колонки, а не мелкая ссылка сбоку — попасть по ней можно
- * не целясь. Наши токены: заливка #eef0ff, текст #5566f6.
+ * «+ Добавить ответственного»). V5: на эталоне это СПЛОШНАЯ индиго-плашка
+ * во всю ширину ячейки, а не светлая призрачная ссылка — берём общий
+ * токен `GRID_ADD_CELL_SOLID_CLASS` (тот же, что у климата).
  */
-const CHECKLIST_ADD_CELL_CLASS =
-  "flex w-full items-center justify-center gap-2 border-t border-[#333] bg-[#eef0ff] px-4 py-3 text-[15px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#e2e6ff] print:hidden";
+const CHECKLIST_ADD_CELL_CLASS = `${GRID_ADD_CELL_SOLID_CLASS} border-t border-[#333]`;
 
 /**
  * Ячейка липкой шапки чек-листа. `border-collapse` не рисует границы у
  * sticky-ячеек (они «уезжают» вместе со скроллом), поэтому нижнюю линию
  * даём inset-тенью, а фон держим непрозрачным — иначе строки просвечивают.
  */
+/**
+ * V6: незаполненная обязательная ячейка бланка — розовая заливка, как в
+ * спецификации УФ-установки. Инспектор сразу видит недооформленный
+ * документ; на бумаге заливки нет.
+ */
+const CHECKLIST_EMPTY_CELL_CLASS =
+  "bg-[#fdf0f0] shadow-[inset_0_0_0_1px_#f8d7da] print:bg-white print:shadow-none";
+
 const CHECKLIST_STICKY_HEAD_CLASS =
   "sticky top-0 z-20 border-[#333] bg-[#f8f9fc] text-[15px] font-semibold leading-tight text-black shadow-[inset_0_-1px_0_#333] print:static print:bg-white print:shadow-none print:border-b print:border-black";
 
@@ -168,6 +176,14 @@ async function requestJson(url: string, init: RequestInit) {
   return json;
 }
 
+/**
+ * V4: селекты времени раньше были 106px + gap 8 в 128px-ячейке — шевроны
+ * выезжали за границу, «00» обрезалось. Компактный размер по образцу
+ * инпутов эталона: два поля по 64px помещаются в колонку целиком.
+ */
+const CHECKLIST_TIME_TRIGGER_CLASS =
+  "h-9 w-[64px] justify-between rounded-lg border-[#dcdfed] bg-white px-2 text-[13px]";
+
 function TimeSelect({
   value,
   onChange,
@@ -180,13 +196,13 @@ function TimeSelect({
   const [hour = "00", minute = "00"] = value.split(":");
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-1.5">
       <Select
         value={hour}
         onValueChange={(nextHour) => onChange(`${nextHour}:${minute}`)}
         disabled={disabled}
       >
-        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#dcdfed] bg-white px-4 text-[16px]">
+        <SelectTrigger className={CHECKLIST_TIME_TRIGGER_CLASS}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -202,7 +218,7 @@ function TimeSelect({
         onValueChange={(nextMinute) => onChange(`${hour}:${nextMinute}`)}
         disabled={disabled}
       >
-        <SelectTrigger className="h-12 w-[106px] rounded-[18px] border-[#dcdfed] bg-white px-4 text-[16px]">
+        <SelectTrigger className={CHECKLIST_TIME_TRIGGER_CLASS}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -683,12 +699,18 @@ export function CleaningVentilationChecklistDocumentClient({
     [config]
   );
 
+  /**
+   * V1: строки идут от даты начала документа. Записи, которые остались
+   * от более раннего периода (дату начала перенесли уже после
+   * заполнения), подмешиваем как customDates — терять данные нельзя,
+   * но НОВЫХ пустых строк раньше даты начала не появляется.
+   */
   const rows = useMemo(
     () =>
       buildChecklistDateKeys(
         dateFrom,
         config.skipWeekends,
-        config.customDates,
+        [...config.customDates, ...Object.keys(entryMap)],
         config.hiddenDates
       ).map((dateKey) => {
         const entry = entryMap[dateKey]?.data;
@@ -715,6 +737,16 @@ export function CleaningVentilationChecklistDocumentClient({
     ]
   );
 
+  const descriptionLines = useMemo(
+    () =>
+      getCleaningVentilationDescriptionLines().filter(
+        (item) =>
+          item.label !== "Рабочие помещения при проветривании" ||
+          config.ventilationEnabled
+      ),
+    [config.ventilationEnabled]
+  );
+
   const settingsState: SettingsState = {
     title: docTitle,
     dateFrom,
@@ -734,13 +766,15 @@ export function CleaningVentilationChecklistDocumentClient({
   ) => {
     const safeConfig = normalizeCleaningVentilationConfig(nextConfig, users);
     const nextDateFrom = options?.dateFrom || dateFrom;
+    // V1: дату начала не выравниваем по первому числу месяца — иначе
+    // документ, начатый 10.08, снова расползался бы на весь август.
     const monthBounds = getMonthBoundsFromDate(nextDateFrom);
     await requestJson(`/api/journal-documents/${documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: options?.title || docTitle,
-        dateFrom: monthBounds.dateFrom,
+        dateFrom: nextDateFrom,
         dateTo: monthBounds.dateTo,
         config: safeConfig,
       }),
@@ -853,7 +887,10 @@ export function CleaningVentilationChecklistDocumentClient({
         hint="Выбранные даты будут скрыты из чек-листа, их отметки удалены"
       />
 
-      <div className="space-y-6 overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
+      {/* V7: белой карточки-обёртки вокруг страницы нет ни у эталона, ни
+          у остальных наших журналов (hygiene/cleaning) — документ живёт
+          прямо на фоне страницы. */}
+      <div className="space-y-6">
         <DocumentActionsBar
           className="mb-0"
           backHref={`/journals/${routeCode}`}
@@ -1031,19 +1068,17 @@ export function CleaningVentilationChecklistDocumentClient({
                 <td className="w-[180px] border-r border-[#333] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
                   Процедура
                 </td>
-                <td className="border-r border-[#333] print:border-black px-5 py-2 text-[15px] leading-6">
-                  {getCleaningVentilationDescriptionLines()
-                    .filter(
-                      (item) =>
-                        item.label !== "Рабочие помещения при проветривании" ||
-                        config.ventilationEnabled
-                    )
-                    .map((item) => (
-                      <div key={item.label}>
-                        <span className="font-semibold">{item.label}: </span>
-                        {item.text}
-                      </div>
-                    ))}
+                <td
+                  className={`border-r border-[#333] print:border-black px-5 py-2 text-[15px] leading-6 ${
+                    descriptionLines.length === 0 ? CHECKLIST_EMPTY_CELL_CLASS : ""
+                  }`}
+                >
+                  {descriptionLines.map((item) => (
+                    <div key={item.label}>
+                      <span className="font-semibold">{item.label}: </span>
+                      {item.text}
+                    </div>
+                  ))}
                 </td>
                 <td className="w-[210px] border-r border-[#333] print:border-black px-5 py-2 text-[16px] font-semibold leading-tight">
                   Периодичность
@@ -1237,14 +1272,15 @@ export function CleaningVentilationChecklistDocumentClient({
           mobileView={mobileView}
           className="-mx-4 max-h-[70vh] overflow-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#333] print:mx-0 print:max-h-none print:overflow-visible print:px-0 print:border-black"
         >
-          <table className="min-w-[1100px] w-full table-fixed border-collapse text-[13px]">
+          <table className="min-w-[1140px] w-full table-fixed border-collapse text-[13px]">
             <colgroup>
               <col className="w-[58px]" />
               <col className="w-[130px]" />
               <col className="w-[220px]" />
-              <col className="w-[128px]" />
-              <col className="w-[128px]" />
-              <col className="w-[128px]" />
+              {/* V4: 150px = два селекта по 64px + зазор + поля ячейки. */}
+              <col className="w-[150px]" />
+              <col className="w-[150px]" />
+              <col className="w-[150px]" />
               <col className="w-[280px]" />
             </colgroup>
             <thead className="sticky top-0 z-20 print:static">
@@ -1329,7 +1365,7 @@ export function CleaningVentilationChecklistDocumentClient({
                       {[0, 1, 2].map((timeIndex) => (
                         <td
                           key={`${row.dateKey}-${procedure.id}-${timeIndex}`}
-                          className="border-b border-r border-[#333] print:border-black px-3 py-1 leading-tight"
+                          className="border-b border-r border-[#333] print:border-black px-2 py-1 leading-tight"
                         >
                           <TimeSelect
                             value={procedure.times[timeIndex] || "00:00"}

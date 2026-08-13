@@ -311,7 +311,7 @@ export function CreateDocumentDialog({
           title: isUvRuntimeJournal
             ? buildUvRuntimeDocumentTitle({
                 lampNumber: trackedLampNumber.trim() || "1",
-                areaName: trackedAreaName.trim() || "Журнал учета работы",
+                areaName: trackedAreaName.trim(),
                 spec: defaultUvSpecification(),
               })
             : title.trim(),
@@ -389,8 +389,13 @@ export function CreateDocumentDialog({
                 ? isUvRuntimeJournal
                   ? {
                       lampNumber: trackedLampNumber.trim() || "1",
-                      areaName: trackedAreaName.trim() || "Журнал учета работы",
-                      spec: defaultUvSpecification(),
+                      areaName: trackedAreaName.trim(),
+                      spec: {
+                        ...defaultUvSpecification(),
+                        // U4: дата ввода установки в эксплуатацию по
+                        // умолчанию = дата начала документа (эталон).
+                        commissioningDate: dateFrom,
+                      },
                     }
                   : { areaName: trackedAreaName.trim() }
                 : undefined,

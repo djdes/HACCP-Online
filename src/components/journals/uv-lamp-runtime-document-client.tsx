@@ -26,11 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  buildDailyRange,
   buildUvRuntimeDocumentTitle,
   calculateDurationMinutes,
   calculateMonthlyHours,
   CONTROL_FREQUENCY_OPTIONS,
+  formatControlFrequencyLabel,
   formatMonthLabel,
   formatRuDateDash,
   getDisinfectionConditionLabel,
@@ -135,34 +135,27 @@ function entryToRow(entry: EntryItem): GridRow {
   };
 }
 
+/**
+ * U6: строки журнала — ТОЛЬКО реальные записи. Раньше мы разворачивали
+ * весь период в виртуальные строки `virtual:<день>` с пустыми `--:--`,
+ * и новый документ открывался «заполненным» 13 днями без данных.
+ * Эталон показывает пустую таблицу: строки появляются либо вручную
+ * («+ Добавить»), либо автозаполнением (оно создаёт настоящие записи,
+ * см. `uv-lamp-runtime-autofill.ts`).
+ */
 function buildRows(params: {
   dateFrom: string;
   dateTo: string;
   status: string;
   initialEntries: EntryItem[];
-  fallbackEmployeeId: string;
 }) {
   const today = toIsoDate(new Date());
   const effectiveTo = params.status === "closed" ? params.dateTo : today;
-  const days = buildDailyRange(params.dateFrom, effectiveTo);
 
-  const visibleEntries = params.initialEntries.filter((entry) =>
-    isDateInRange(entry.date, params.dateFrom, effectiveTo)
-  );
-  const byDate = new Map(visibleEntries.map((entry) => [entry.date, entry]));
-  return days.map((day, index) => {
-    const existing = byDate.get(day);
-    if (existing) {
-      return entryToRow(existing);
-    }
-
-    return {
-      id: `virtual:${day}:${index}`,
-      date: day,
-      employeeId: params.fallbackEmployeeId,
-      data: { startTime: "", endTime: "" },
-    };
-  });
+  return params.initialEntries
+    .filter((entry) => isDateInRange(entry.date, params.dateFrom, effectiveTo))
+    .map(entryToRow)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /* ─── Specification Edit Dialog ─── */
@@ -171,6 +164,8 @@ function UvSpecEditDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spec: UvSpecification;
+  /** U4: дата начала документа — дефолт для «Дата ввода в эксплуатацию». */
+  defaultCommissioningDate: string;
   onSave: (spec: UvSpecification) => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState(false);
@@ -180,7 +175,9 @@ function UvSpecEditDialog(props: {
   const [radiationMode, setRadiationMode] = useState(props.spec.radiationMode);
   const [condition, setCondition] = useState(props.spec.disinfectionCondition);
   const [lampHours, setLampHours] = useState(String(props.spec.lampLifetimeHours));
-  const [commDate, setCommDate] = useState(props.spec.commissioningDate);
+  const [commDate, setCommDate] = useState(
+    props.spec.commissioningDate || props.defaultCommissioningDate
+  );
   const [minInterval, setMinInterval] = useState(props.spec.minIntervalBetweenSessions);
   const [frequency, setFrequency] = useState(props.spec.controlFrequency);
   const [autoStart, setAutoStart] = useState(props.spec.autoFillStartTime);
@@ -196,12 +193,12 @@ function UvSpecEditDialog(props: {
     setRadiationMode(props.spec.radiationMode);
     setCondition(props.spec.disinfectionCondition);
     setLampHours(String(props.spec.lampLifetimeHours));
-    setCommDate(props.spec.commissioningDate);
+    setCommDate(props.spec.commissioningDate || props.defaultCommissioningDate);
     setMinInterval(props.spec.minIntervalBetweenSessions);
     setFrequency(props.spec.controlFrequency);
     setAutoStart(props.spec.autoFillStartTime);
     setAutoDuration(String(props.spec.autoFillDurationMinutes));
-  }, [props.open, props.spec]);
+  }, [props.open, props.spec, props.defaultCommissioningDate]);
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -327,7 +324,9 @@ function UvSpecEditDialog(props: {
               </SelectTrigger>
               <SelectContent>
                 {CONTROL_FREQUENCY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  <SelectItem key={opt} value={opt}>
+                    {formatControlFrequencyLabel(opt)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -450,7 +449,8 @@ function UvRuntimeSettingsDialog(props: {
         config: {
           ...props.initialConfig,
           lampNumber: lampNumber.trim() || "1",
-          areaName: areaName.trim() || "Журнал учета работы",
+          // U1: пусто ⇒ пустая линия в бланке, никаких подстановок.
+          areaName: areaName.trim(),
         },
         dateFrom,
         responsibleTitle,
@@ -868,11 +868,14 @@ function SpecValueCell({
   value,
   onEdit,
   editable,
+  nowrap = false,
 }: {
   /** Готовая к показу строка; пустая ⇒ ячейка считается незаполненной. */
   value: string;
   onEdit: () => void;
   editable: boolean;
+  /** Короткие значения вроде «1 раз в смену» не переносим (U7). */
+  nowrap?: boolean;
 }) {
   const filled = value.trim() !== "" && value.trim() !== "—";
 
@@ -887,12 +890,19 @@ function SpecValueCell({
           type="button"
           onClick={onEdit}
           title={filled ? "Изменить значение спецификации" : "Заполнить обязательное поле спецификации"}
-          className={`${CELL_FOCUS_CLASS} h-full w-full px-3 py-1 text-center transition-colors duration-150 hover:bg-[#eef0ff]`}
+          className={`${CELL_FOCUS_CLASS} h-full w-full px-3 py-1 text-center transition-colors duration-150 hover:bg-[#eef0ff] ${
+            nowrap ? "whitespace-nowrap" : ""
+          }`}
         >
-          {filled ? value : <span className="text-[#c05b5b]">Заполнить</span>}
+          {/* U5: пустая обязательная ячейка — только розовая заливка,
+              без слова «Заполнить» (как на эталоне). Подсказка остаётся
+              в `title`, клик по-прежнему открывает диалог. */}
+          {filled ? value : " "}
         </button>
       ) : (
-        <span className="block px-3 py-1">{filled ? value : "—"}</span>
+        <span className={`block px-3 py-1 ${nowrap ? "whitespace-nowrap" : ""}`}>
+          {filled ? value : " "}
+        </span>
       )}
     </td>
   );
@@ -912,7 +922,15 @@ function SpecificationTable({
   return (
     <div className="uv-spec-section">
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
-      <table className="w-full min-w-[640px] border-collapse text-[13px] text-[12px] sm:min-w-0">
+      <table className="w-full min-w-[640px] table-fixed border-collapse text-[13px] text-[12px] sm:min-w-0">
+        {/* U7: четыре примерно равные колонки — раньше подписи занимали
+            445/480px и душили значения. */}
+        <colgroup>
+          <col className="w-[27%]" />
+          <col className="w-[23%]" />
+          <col className="w-[27%]" />
+          <col className="w-[23%]" />
+        </colgroup>
         <tbody>
           {/* Заголовок — строка внутри таблицы (как на эталоне), а не
               отдельная подпись сверху: так он печатается вместе с бланком. */}
@@ -964,7 +982,7 @@ function SpecificationTable({
           </tr>
           <tr>
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
-              Условия обеззараживания (в присутствии и отсутствии людей)
+              Условия обеззараживания (в присутствии или отсутствии людей)
             </td>
             <SpecValueCell
               value={getDisinfectionConditionLabel(spec.disinfectionCondition)}
@@ -974,7 +992,12 @@ function SpecificationTable({
             <td className="border border-[#ccc] bg-[#f9f9f9] px-3 py-1 font-medium leading-tight">
               Частота контроля работы установки (частота включений)
             </td>
-            <SpecValueCell value={spec.controlFrequency} onEdit={onEdit} editable={editable} />
+            <SpecValueCell
+              value={formatControlFrequencyLabel(spec.controlFrequency)}
+              onEdit={onEdit}
+              editable={editable}
+              nowrap
+            />
           </tr>
         </tbody>
       </table>
@@ -1079,15 +1102,15 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       dateTo: props.dateTo,
       status: props.status,
       initialEntries: props.initialEntries,
-      fallbackEmployeeId,
     })
   );
 
   const userMap = useMemo(() => Object.fromEntries(props.users.map((user) => [user.id, user.name])), [props.users]);
 
-  // Удалять можно только реально сохранённые строки: `virtual:*` — это
-  // авто-заготовки по дням, их `deleteSelectedRows` пропускает. Раньше
-  // select-all отмечал и их, и «Удалить» молча ничего не делало.
+  // U6: в таблице теперь только реальные записи, поэтому удалить можно
+  // любую строку. Проверку на `virtual:*` оставляем как страховку —
+  // строка, добавленная через «+ Добавить», до ответа сервера живёт
+  // с временным id.
   const deletableRowIds = useMemo(
     () => rows.filter((row) => !row.id.startsWith("virtual:")).map((row) => row.id),
     [rows],
@@ -1101,9 +1124,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const { mobileView, switchMobileView } = useMobileView("uv_lamp_runtime");
 
   const monthlyData = useMemo(() => {
-    const entriesWithData = rows
-      .filter((row) => !row.id.startsWith("virtual:") || (row.data.startTime && row.data.endTime))
-      .map((row) => ({ date: row.date, data: row.data }));
+    const entriesWithData = rows.map((row) => ({ date: row.date, data: row.data }));
     return calculateMonthlyHours(entriesWithData, config.spec.lampLifetimeHours);
   }, [rows, config.spec.lampLifetimeHours]);
 
@@ -1165,13 +1186,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         throw new Error("Не удалось удалить выбранные строки");
       }
 
-      setRows((current) =>
-        current.map((row) =>
-          selectedRowIds.includes(row.id)
-            ? { ...row, id: `virtual:${row.date}`, data: { startTime: "", endTime: "" } }
-            : row
-        )
-      );
+      // U6: удалённая запись пропадает из таблицы целиком — пустых
+      // строк-заготовок в бланке больше нет.
+      setRows((current) => current.filter((row) => !selectedRowIds.includes(row.id)));
       setSelectedRowIds([]);
       toast.success(`Удалено строк: ${count}`);
     } catch (error) {
@@ -1392,12 +1409,12 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <div className="text-center text-[11px]">
           <div className="font-bold">{props.organizationName}</div>
           <div className="mt-1">
-            ЖУРНАЛ УЧЕТА НАРАБОТКИ И ОБЕЗЗАРАЖИВАНИЯ УЛЬТРАФИОЛЕТОВОЙ УСТАНОВКИ
+            ЖУРНАЛ УЧЕТА РАБОТЫ УЛЬТРАФИОЛЕТОВОЙ БАКТЕРИЦИДНОЙ УСТАНОВКИ
           </div>
-          <div className="mt-0.5 text-[10px]">Журнал учета работы</div>
         </div>
         <div className="mt-2 text-[10px]">
           <div>БАКТЕРИЦИДНАЯ УСТАНОВКА №{config.lampNumber}</div>
+          <div>{config.areaName || " "}</div>
           <div>(наименование цеха / участка применения)</div>
         </div>
       </div>
@@ -1410,7 +1427,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
         <JournalDocumentHeader
           orgName={props.organizationName}
-          title="Журнал учета работы УФ бактерицидной установки"
+          title="Журнал учета работы ультрафиолетовой бактерицидной установки"
           startedAt={props.dateFrom}
           finishedAt={props.status === "closed" ? props.dateTo : null}
           controlPeriodicity={props.controlPeriodicity}
@@ -1524,7 +1541,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
       {/* Data table */}
       <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[12px] border border-[#eceef5] bg-white print:rounded-none print:border-[#ccc]">
-        <table className="w-full min-w-[720px] border-collapse text-[13px] sm:min-w-[900px]">
+        <table className="w-full min-w-[720px] table-fixed border-collapse text-[13px] sm:min-w-[900px]">
+          {/* U9: «Итого продолжительность» — узкая колонка (заголовок в две
+              строки), «ФИО ответственного лица» — широкая. Раньше было
+              наоборот: 410px под минуты и сжатое ФИО. */}
+          <colgroup>
+            {props.status === "active" && <col className="w-[40px]" />}
+            <col className="w-[150px]" />
+            <col className="w-[130px]" />
+            <col className="w-[130px]" />
+            <col className="w-[180px]" />
+            <col className="w-[420px]" />
+          </colgroup>
           <thead>
             <tr className="bg-[#f6f7fb] print:bg-[#f0f0f0]">
               {props.status === "active" && (
@@ -1678,6 +1706,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         open={specEditOpen}
         onOpenChange={setSpecEditOpen}
         spec={config.spec}
+        defaultCommissioningDate={props.dateFrom}
         onSave={handleSaveSpec}
       />
 

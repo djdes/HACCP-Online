@@ -343,33 +343,52 @@ export function normalizeCleaningVentilationEntryData(
   };
 }
 
+/**
+ * Локальная ISO-дата без ухода в UTC. `toISOString()` на дате, собранной
+ * из локальных компонентов, сдвигал сутки назад в положительных TZ —
+ * именно отсюда в таблицу заезжало «30.07» при дате начала 10.08 (V1).
+ */
+function toLocalIsoDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function getMonthBoundsFromDate(isoDate: string) {
   const baseDate = new Date(`${isoDate}T00:00:00`);
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
-  const dateFrom = new Date(year, month, 1);
-  const dateTo = new Date(year, month + 1, 0);
   return {
-    dateFrom: dateFrom.toISOString().slice(0, 10),
-    dateTo: dateTo.toISOString().slice(0, 10),
+    dateFrom: toLocalIsoDate(new Date(year, month, 1)),
+    dateTo: toLocalIsoDate(new Date(year, month + 1, 0)),
   };
 }
 
+/**
+ * V1: строки чек-листа идут ОТ ДАТЫ НАЧАЛА документа до конца её месяца.
+ * Раньше отсчёт шёл от первого числа месяца, и документ с датой начала
+ * 10.08 открывался строками с 30-31.07 — днями, которых в нём нет.
+ *
+ * Записи, сделанные раньше даты начала (перенос даты уже после
+ * заполнения), не теряем: они приходят сюда через `customDates` и
+ * добавляются к списку — данные важнее ровного периода.
+ */
 export function buildChecklistDateKeys(
   dateFrom: string,
   skipWeekends: boolean,
   customDates: string[] = [],
   hiddenDates: string[] = []
 ) {
-  const { dateFrom: monthStart, dateTo: monthEnd } = getMonthBoundsFromDate(dateFrom);
+  const { dateTo: monthEnd } = getMonthBoundsFromDate(dateFrom);
   const keys: string[] = [];
-  const cursor = new Date(`${monthStart}T00:00:00`);
+  const cursor = new Date(`${dateFrom}T00:00:00`);
   const endDate = new Date(`${monthEnd}T00:00:00`);
 
   while (cursor <= endDate) {
     const weekday = cursor.getDay();
     if (!skipWeekends || (weekday !== 0 && weekday !== 6)) {
-      keys.push(cursor.toISOString().slice(0, 10));
+      keys.push(toLocalIsoDate(cursor));
     }
     cursor.setDate(cursor.getDate() + 1);
   }
