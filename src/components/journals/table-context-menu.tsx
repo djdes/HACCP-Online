@@ -98,7 +98,11 @@ export function TableContextMenu({ x, y, items, onClose, ariaLabel }: Props) {
       left: Math.max(VIEWPORT_MARGIN, Math.min(left, maxLeft)),
       top: Math.max(VIEWPORT_MARGIN, Math.min(top, maxTop)),
     });
-  }, [x, y, position, items.length]);
+    // `portalTarget` в deps обязателен: на первом коммите портала ещё нет
+    // (ref === null, эффект выходит рано), а после его появления x/y/position
+    // не меняются — без этой зависимости замер никогда не перезапускался и
+    // меню оставалось `visibility: hidden` навсегда.
+  }, [x, y, position, items.length, portalTarget]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
