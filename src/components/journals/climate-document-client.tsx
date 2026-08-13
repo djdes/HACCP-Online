@@ -2,13 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Archive,
-  ChevronDown,
-  ChevronUp,
-  Pencil,
-  Plus,
-} from "lucide-react";
+import { Archive, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -77,8 +71,8 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 import {
-  JournalDocumentHeader,
   JournalDocumentTitle,
+  JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
 
 /**
@@ -950,7 +944,6 @@ export function ClimateDocumentClient({
   const [editingRoom, setEditingRoom] = useState<ClimateRoomConfig | null>(null);
   const [editingResponsibleRow, setEditingResponsibleRow] = useState<RowItem | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  const [summaryOpen, setSummaryOpen] = useState(true);
   const [checkedAutoFill, setCheckedAutoFill] = useState(autoFill);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -1288,21 +1281,6 @@ export function ClimateDocumentClient({
     );
   }
 
-  async function handleSkipWeekendsChange(checked: boolean) {
-    const nextConfig = normalizeClimateDocumentConfig({
-      ...config,
-      skipWeekends: checked,
-    });
-
-    try {
-      await persistDocument({ config: nextConfig });
-      setConfig(nextConfig);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось обновить настройки");
-    }
-  }
-
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
@@ -1362,6 +1340,109 @@ export function ClimateDocumentClient({
     }
   }
 
+  /**
+   * Содержимое ячейки «Нормы условий» бумажной шапки (C1).
+   *
+   * Пусто + документ активен ⇒ одна синяя кнопка-ячейка «+ Добавить
+   * помещение» во всю ширину (эталон climate_control-2-doc.png).
+   * Иначе — вложенная таблица «Помещение / Температура / Влажность»
+   * с карандашами редактирования и кнопкой добавления снизу.
+   */
+  const climateNormsBody =
+    visibleRooms.length === 0 && status === "active" ? (
+      <button
+        type="button"
+        onClick={() => {
+          setEditingRoom(null);
+          setRoomDialogOpen(true);
+        }}
+        title="Добавить помещение с нормами температуры и влажности"
+        className={GRID_ADD_CELL_SOLID_CLASS}
+      >
+        <Plus className="size-4" strokeWidth={2.5} />
+        Добавить помещение
+      </button>
+    ) : (
+      <table className="w-full border-collapse text-[13px]">
+        <tbody>
+          {/* Служебная строка-шапка норм: без неё две правые колонки
+              читались как безымянные диапазоны. Эталон подписывает их. */}
+          <tr>
+            <td
+              className={`${GRID_CELL_CLASS} w-[220px] px-4 py-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}
+            >
+              Помещение
+            </td>
+            <td
+              className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}
+            >
+              Температура °C
+            </td>
+            <td
+              className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}
+            >
+              Влажность, %
+            </td>
+          </tr>
+          {visibleRooms.map((room) => (
+            <tr key={room.id}>
+              <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 leading-tight`}>
+                <div className="flex items-center gap-3">
+                  {/* Иллюстрация бланка «Точки контроля», а не контрол:
+                      помещение в списке — значит контролируется. Кликать
+                      нечего, поэтому pointer-events снят и от скринридера
+                      скрыт. */}
+                  <Checkbox checked aria-hidden className="pointer-events-none" tabIndex={-1} />
+                  <span className="font-medium lowercase">{room.name}</span>
+                  {status === "active" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRoom(room);
+                        setRoomDialogOpen(true);
+                      }}
+                      title="Изменить нормы помещения"
+                      className="text-[#5566f6] transition-colors duration-150 hover:text-[#4a5bf0] print:hidden"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                  )}
+                </div>
+              </td>
+              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
+                {room.temperature.enabled
+                  ? formatRange(room.temperature.min, room.temperature.max, "°C")
+                  : "—"}
+              </td>
+              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
+                {room.humidity.enabled
+                  ? formatRange(room.humidity.min, room.humidity.max, "%")
+                  : "—"}
+              </td>
+            </tr>
+          ))}
+          {status === "active" && (
+            <tr>
+              <td colSpan={3} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRoom(null);
+                    setRoomDialogOpen(true);
+                  }}
+                  title="Добавить помещение с нормами температуры и влажности"
+                  className={GRID_ADD_CELL_SOLID_CLASS}
+                >
+                  <Plus className="size-4" strokeWidth={2.5} />
+                  Добавить помещение
+                </button>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    );
+
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller
@@ -1395,163 +1476,22 @@ export function ClimateDocumentClient({
           </div>
         ) : null}
 
+        {/* C2 аудита: у эталона выключенный тумблер = ТОЛЬКО полоса.
+            Раскрывать здесь больше нечего — «Нормы условий» и «Частота
+            контроля» уехали строками в бумажную шапку (C1), чекбокс
+            «Не заполнять в выходные дни» — в «Настройки журнала» (C3). */}
         <div className="mb-10 rounded-[24px] bg-[#f3f4fe] px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <Switch
-                checked={checkedAutoFill}
-                onCheckedChange={handleAutoFillChange}
-                disabled={status !== "active" || isSwitching}
-                className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
-              />
-              <span className="min-w-0 text-[14px] font-medium leading-tight text-black sm:text-[20px]">
-                Автоматически заполнять журнал
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSummaryOpen((value) => !value)}
-              className="flex size-11 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
-            >
-              {summaryOpen ? <ChevronUp className="size-7" /> : <ChevronDown className="size-7" />}
-            </button>
+          <div className="flex min-w-0 items-center gap-3">
+            <Switch
+              checked={checkedAutoFill}
+              onCheckedChange={handleAutoFillChange}
+              disabled={status !== "active" || isSwitching}
+              className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+            />
+            <span className="min-w-0 text-[14px] font-medium leading-tight text-black sm:text-[20px]">
+              Автоматически заполнять журнал
+            </span>
           </div>
-
-          {summaryOpen && (
-            <div className="mt-6 space-y-6">
-              <div className="flex items-center gap-4 rounded-3xl border border-white/60 bg-white/70 px-6 py-4">
-                <Checkbox
-                  id="climate-skip-weekends"
-                  checked={config.skipWeekends}
-                  onCheckedChange={(checked) => handleSkipWeekendsChange(checked === true)}
-                  disabled={status !== "active"}
-                  className="size-5"
-                />
-                <Label htmlFor="climate-skip-weekends" className="text-[15px] text-black">
-                  Не заполнять в выходные дни
-                </Label>
-              </div>
-
-              <div className="-mx-4 overflow-x-auto rounded-[18px] bg-white p-4 sm:mx-0 sm:p-6">
-                {/* min-w сужена с 1080 до 720: широкой была бумажная
-                    шапка, которая теперь живёт отдельным блоком ниже. */}
-                <table className="min-w-[720px] w-full border-collapse text-[13px]">
-                  <tbody>
-                    <tr>
-                      {/* rowSpan здесь был `status === "active" ? 2 : 1`,
-                          из-за чего в активном документе строка «Частота
-                          контроля» съезжала на колонку вправо (лишняя
-                          ячейка в ряду). Метка занимает ровно свою строку. */}
-                      <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-6 text-center font-semibold leading-tight`}>
-                        Нормы условий
-                      </td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
-                        <table className="w-full border-collapse text-[13px]">
-                          <tbody>
-                            {/* Служебная строка-шапка норм: без неё две
-                                правые колонки читались как безымянные
-                                диапазоны. Эталон подписывает их. */}
-                            <tr>
-                              <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
-                                Помещение
-                              </td>
-                              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
-                                Температура °C
-                              </td>
-                              <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-1 text-center text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6f7282] leading-tight print:text-black`}>
-                                Влажность, %
-                              </td>
-                            </tr>
-                            {visibleRooms.map((room) => (
-                              <tr key={room.id}>
-                                <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-2 leading-tight`}>
-                                  <div className="flex items-center gap-3">
-                                    {/* Иллюстрация бланка «Точки контроля»,
-                                        а не контрол: помещение в списке —
-                                        значит контролируется. Кликать
-                                        нечего, поэтому pointer-events снят
-                                        и от скринридера скрыт. */}
-                                    <Checkbox checked aria-hidden className="pointer-events-none" tabIndex={-1} />
-                                    <span className="font-medium lowercase">{room.name}</span>
-                                    {status === "active" && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingRoom(room);
-                                          setRoomDialogOpen(true);
-                                        }}
-                                        className="text-[#5566f6] hover:text-[#4a5bf0]"
-                                      >
-                                        <Pencil className="size-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
-                                  {room.temperature.enabled
-                                    ? formatRange(room.temperature.min, room.temperature.max, "°C")
-                                    : "—"}
-                                </td>
-                                <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
-                                  {room.humidity.enabled
-                                    ? formatRange(room.humidity.min, room.humidity.max, "%")
-                                    : "—"}
-                                </td>
-                              </tr>
-                            ))}
-                            {status === "active" && (
-                              <tr>
-                                <td colSpan={3} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingRoom(null);
-                                      setRoomDialogOpen(true);
-                                    }}
-                                    title="Добавить помещение с нормами температуры и влажности"
-                                    className={GRID_ADD_CELL_SOLID_CLASS}
-                                  >
-                                    <Plus className="size-4" strokeWidth={2.5} />
-                                    Добавить помещение
-                                  </button>
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-2 font-semibold leading-tight`}>Частота контроля</td>
-                      {config.controlTimes.length === 0 && status === "active" ? (
-                        <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
-                          <button
-                            type="button"
-                            onClick={() => setSettingsOpen(true)}
-                            title="Задать время замеров — сколько раз в смену снимаются показатели"
-                            className={GRID_ADD_CELL_SOLID_CLASS}
-                          >
-                            <Plus className="size-4" strokeWidth={2.5} />
-                            Добавить частоту контроля
-                          </button>
-                        </td>
-                      ) : (
-                        <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 text-right leading-tight`}>
-                          {getClimatePeriodicityText(config)}
-                        </td>
-                      )}
-                    </tr>
-                    {/* Строки «Ответственный за снятие показателей» здесь нет
-                        сознательно: эталон climate_control-grid.png её не
-                        печатает — ответственный ведётся колонкой «Фамилия
-                        ответственного лица» в самой таблице замеров.
-                        (У cold_equipment строка остаётся.) */}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
@@ -1563,13 +1503,67 @@ export function ClimateDocumentClient({
             автозаполнения, и при свёрнутой панели журнал оставался вообще
             без шапки. В панели теперь только инпуты норм. */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
-          <JournalDocumentHeader
-            orgName={organizationName}
-            title="БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ"
-            startedAt={dateFrom}
-            finishedAt={status === "closed" ? dateTo : null}
-            controlPeriodicity={controlPeriodicity}
-          />
+          <table className="w-full border-collapse text-[13px] text-[#0b1024]">
+            <tbody>
+              <JournalPaperHeaderRows
+                orgName={organizationName}
+                title="БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ"
+                startedAt={dateFrom}
+                finishedAt={status === "closed" ? dateTo : null}
+                controlPeriodicity={controlPeriodicity}
+              />
+              {/* C1 аудита: «Нормы условий» и «Частота контроля» — это
+                  СТРОКИ бумажной шапки (одна таблица, общая рамка, видны
+                  всегда), а не карточка в раскрывающейся панели
+                  автозаполнения. Редактирование осталось прежним:
+                  карандаш → RoomDialog, «Добавить частоту контроля» →
+                  «Настройки журнала». */}
+              <tr>
+                <td
+                  className={`${GRID_HEAD_CELL_CLASS} w-[20%] px-3 py-2 text-center text-[13px] font-semibold leading-tight`}
+                >
+                  Нормы условий
+                </td>
+                <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
+                  {climateNormsBody}
+                </td>
+              </tr>
+              <tr>
+                {/* C6: подпись серая (GRID_HEAD_CELL_CLASS) и прижата
+                    влево — как на эталоне climate_control-2-doc.png. */}
+                <td
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-2 text-left text-[13px] font-semibold leading-tight`}
+                >
+                  Частота контроля
+                </td>
+                {config.controlTimes.length === 0 && status === "active" ? (
+                  <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsOpen(true)}
+                      title="Задать время замеров — сколько раз в смену снимаются показатели"
+                      className={GRID_ADD_CELL_SOLID_CLASS}
+                    >
+                      <Plus className="size-4" strokeWidth={2.5} />
+                      Добавить частоту контроля
+                    </button>
+                  </td>
+                ) : (
+                  <td
+                    colSpan={2}
+                    className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] leading-tight`}
+                  >
+                    {getClimatePeriodicityText(config)}
+                  </td>
+                )}
+              </tr>
+              {/* Строки «Ответственный за снятие показателей» здесь нет
+                  сознательно: эталон climate_control-grid.png её не
+                  печатает — ответственный ведётся колонкой «Фамилия
+                  ответственного лица» в самой таблице замеров.
+                  (У cold_equipment строка остаётся.) */}
+            </tbody>
+          </table>
         </div>
 
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>

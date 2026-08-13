@@ -30,6 +30,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -47,6 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getCleaningGridMonthLabel } from "@/lib/cleaning-document";
 import {
   createColdEquipmentConfigItem,
   createEmptyColdEquipmentEntryData,
@@ -572,7 +579,13 @@ export function ColdEquipmentDocumentClient({
   const [rows, setRows] = useState<EntryRow[]>(initialEntries);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [checkedAutoFill, setCheckedAutoFill] = useState(autoFill);
-  const [summaryOpen, setSummaryOpen] = useState(true);
+  /**
+   * X3 аудита: у эталона выключенный тумблер = только полоса, панель
+   * автозаполнения не раскрыта. Стартовое состояние берём от `autoFill`,
+   * а рендер дополнительно гейтим по `checkedAutoFill` — выключая тумблер,
+   * пользователь сразу видит свёрнутую полосу.
+   */
+  const [summaryOpen, setSummaryOpen] = useState(autoFill);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
   const closeAction = useDocumentCloseAction({ documentId, title });
@@ -765,6 +778,8 @@ export function ColdEquipmentDocumentClient({
 
   async function handleAutoFillChange(value: boolean) {
     setCheckedAutoFill(value);
+    // Включили автозаполнение — сразу показываем нормы и ответственного.
+    if (value) setSummaryOpen(true);
     setIsSwitching(true);
 
     try {
@@ -881,26 +896,54 @@ export function ColdEquipmentDocumentClient({
    * панели и уезжала под шапку кабинета (у той свой `sticky top-0 h-14`),
    * то есть на странице её попросту не было видно.
    *
-   * Дропдауна «Добавить ответственного» здесь нет намеренно: коды
-   * С1/С2 в этом журнале не хранятся в конфиге — они ВЫВОДЯТСЯ из
-   * `employeeId` строк (`buildResponsibleCodes`), поэтому «второго
-   * ответственного» добавлять некуда. Ответственный меняется селектом
-   * «ФИО отв. лица» в панели автозаполнения.
+   * X2 аудита: у эталона это сплит «+ Добавить ⌄» с выпадающим списком,
+   * а не одиночная кнопка. Второго ответственного модель не заводит —
+   * коды С1/С2 ВЫВОДЯТСЯ из `employeeId` строк (`buildResponsibleCodes`),
+   * а сам ответственный это одно поле документа. Поэтому второй пункт
+   * ведёт в «Настройки журнала», где ответственный и назначается
+   * (решение N8), а не создаёт новую сущность.
    */
   const equipmentAddBar =
     status === "active" ? (
       <div className={DOC_ADD_ROW_CLASS}>
-        <Button
-          type="button"
-          onClick={() => {
-            setEditingEquipment(null);
-            setEquipmentDialogOpen(true);
-          }}
-          className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
-        >
-          <Plus className="size-5" strokeWidth={2.5} />
-          Добавить ХК
-        </Button>
+        <div className="flex items-stretch overflow-hidden rounded-lg">
+          <Button
+            type="button"
+            onClick={() => {
+              setEditingEquipment(null);
+              setEquipmentDialogOpen(true);
+            }}
+            title="Добавить единицу холодильного или морозильного оборудования"
+            className="h-11 gap-2 rounded-none rounded-l-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+          >
+            <Plus className="size-5" strokeWidth={2.5} />
+            Добавить
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                aria-label="Что добавить"
+                className="h-11 w-11 rounded-none rounded-r-lg border-l border-white/25 bg-[#5566f6] px-0 text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+              >
+                <ChevronDown className="size-5" strokeWidth={2.5} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuItem
+                onSelect={() => {
+                  setEditingEquipment(null);
+                  setEquipmentDialogOpen(true);
+                }}
+              >
+                Добавить ХК
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
+                Добавить ответственного
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     ) : null;
 
@@ -969,19 +1012,21 @@ export function ColdEquipmentDocumentClient({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSummaryOpen((value) => !value)}
-              className="flex size-12 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
-            >
-              {summaryOpen ? <ChevronUp className="size-7" /> : <ChevronDown className="size-7" />}
-            </button>
+            {checkedAutoFill ? (
+              <button
+                type="button"
+                onClick={() => setSummaryOpen((value) => !value)}
+                className="flex size-12 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
+              >
+                {summaryOpen ? <ChevronUp className="size-7" /> : <ChevronDown className="size-7" />}
+              </button>
+            ) : null}
           </div>
 
           {/* Панель норм — СТРОКИ (~52px), а не карточки по 120px.
               Карандаши убраны: по строке кликают целиком. Последняя
               строка — селект «ФИО отв. лица», как на эталоне. */}
-          {summaryOpen ? (
+          {checkedAutoFill && summaryOpen ? (
             <div className="mt-5 space-y-1.5">
               {config.equipment.map((item) => (
                 <button
@@ -1259,11 +1304,10 @@ export function ColdEquipmentDocumentClient({
                   className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length}
                 >
-                  Месяц{" "}
-                  {new Date(`${dateKeys[0]}T00:00:00Z`).toLocaleDateString("ru-RU", {
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {/* X6: `toLocaleDateString` даёт «август 2026 г.» со
+                      строчной, эталон печатает «Месяц Август 2026 г.».
+                      Общий хелпер сетки — тот же, что у журнала уборки. */}
+                  Месяц {getCleaningGridMonthLabel(dateFrom, dateTo)}
                 </th>
               </tr>
               <tr>
@@ -1271,9 +1315,10 @@ export function ColdEquipmentDocumentClient({
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`${GRID_HEAD_CELL_CLASS} w-[48px] px-1 py-1 text-center font-semibold ${
-                      isWeekend(dateKey) ? "bg-[#eceffd]" : ""
-                    } leading-tight`}
+                    // X7: заливки выходных здесь нет — эталон
+                    // cold_equipment_control-2-doc.png печатает сетку
+                    // однотонной, а чередование фона читалось как «зебра».
+                    className={`${GRID_HEAD_CELL_CLASS} w-[48px] px-1 py-1 text-center font-semibold leading-tight`}
                   >
                     <div className="text-[13px]">{getDayNumber(dateKey)}</div>
                     <div className="text-[11px] font-normal uppercase text-[#666]">
@@ -1327,9 +1372,7 @@ export function ColdEquipmentDocumentClient({
                     return (
                       <td
                         key={`${item.id}:${dateKey}`}
-                        className={`${GRID_CELL_CLASS} p-1 text-center ${
-                          isWeekend(dateKey) ? "bg-[#fafbff]" : ""
-                        } leading-tight`}
+                        className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                       >
                         {status === "active" ? (
                           <Input
@@ -1376,14 +1419,25 @@ export function ColdEquipmentDocumentClient({
 
                 {dateKeys.map((dateKey) => {
                   const row = rowByDate[dateKey];
-                  const employeeId = row?.employeeId || responsibleUserId || "";
+                  /**
+                   * X1 аудита: подпись «С1» ставится ТОЛЬКО в дни, где есть
+                   * фактические замеры. Раньше код печатался во все 15
+                   * ячеек (fallback на `responsibleUserId`), и пустой
+                   * журнал выглядел подписанным задним числом.
+                   */
+                  const hasMeasurements = row
+                    ? Object.values(row.data.temperatures).some(
+                        (value) => value != null
+                      )
+                    : false;
+                  const employeeId = hasMeasurements
+                    ? row?.employeeId || responsibleUserId || ""
+                    : "";
 
                   return (
                     <td
                       key={`responsible:${dateKey}`}
-                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium ${
-                        isWeekend(dateKey) ? "bg-[#fafbff]" : ""
-                      } leading-tight`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium leading-tight`}
                     >
                       {employeeId ? responsibleCodes.codeMap[employeeId] || "" : ""}
                     </td>
