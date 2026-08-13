@@ -688,6 +688,20 @@ export function PerishableRejectionDocumentClient({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          {/* P1: прямая кнопка добавления рядом со сплитом — ровно как
+              «+ Добавить изделие» в finished_product. Раньше единственный
+              способ завести строку прятался внутрь дропдауна: два клика
+              вместо одного на самом частом действии журнала. */}
+          {!readOnly && (
+            <Button
+              type="button"
+              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => setAddModalOpen(true)}
+            >
+              <Plus className="size-5" strokeWidth={2.5} />
+              Добавить запись
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
@@ -730,8 +744,14 @@ export function PerishableRejectionDocumentClient({
           {/* Паттерн N4 (finished_product): `table-fixed` + colgroup в
               процентах. Раньше стоял `min-w-[2200px]` без фиксированной
               раскладки — колонки расползались, «Примечание» уезжало из
-              контейнера. Скролл живёт ВНУТРИ viewport-обёртки. */}
-          <table className="w-full min-w-[1600px] table-fixed border-collapse text-[12.5px]">
+              контейнера. Скролл живёт ВНУТРИ viewport-обёртки.
+
+              P3: `min-w-[1600px]` был шире полотна (~1150-1250px), поэтому
+              ПОСЛЕДНЯЯ колонка всегда упиралась в правый край контейнера и
+              её правая рамка обрезалась. Минимум опущен до 1180px — на
+              десктопе таблица укладывается целиком (рамка видна), на узких
+              экранах скролл внутри viewport'а остаётся. */}
+          <table className="w-full min-w-[1180px] table-fixed border-collapse text-[12.5px]">
             <colgroup>
               <col style={{ width: "36px" }} />
               <col style={{ width: "9%" }} />
@@ -761,34 +781,34 @@ export function PerishableRejectionDocumentClient({
                     aria-label="Выбрать все строки"
                   />
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Дата, время поступления пищ. продукции
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Наименование</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Дата выработки</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Изготовитель/поставщик</th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Наименование</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата выработки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Изготовитель/поставщик</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Номер документа, подтверждающего безопасность
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Результаты органолептической оценки
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Условия хранения, конечный срок реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Дата, время фактической реализации
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>
                   Ответственное лицо (ФИО, должность)
                 </th>
                 {/* «Примечание» — опциональная колонка состава таблицы
                     (тумблер в диалоге создания, P2 аудита). */}
                 {config.showNote ? (
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Примечание</th>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Примечание</th>
                 ) : null}
               </tr>
             </thead>

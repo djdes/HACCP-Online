@@ -2420,7 +2420,10 @@ export function AcceptanceDocumentClient(props: Props) {
             */}
             <table className="w-full min-w-[1120px] table-fixed border-collapse text-[12.5px]">
               <colgroup>
-                <col className="w-[36px]" />
+                {/* I2: колонка чекбокса на эталоне ~24px, у нас была 36px
+                    (+ px-1.5 = 37px по факту) и съедала ширину у контентных
+                    колонок. Чекбокс 16px + 2×4px паддинга укладывается в 26px. */}
+                <col className="w-[26px]" />
                 <col className="w-[7%]" />
                 <col className="w-[10%]" />
                 <col className="w-[6.5%]" />
@@ -2436,7 +2439,7 @@ export function AcceptanceDocumentClient(props: Props) {
               </colgroup>
               <thead>
                 <tr>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 leading-tight`}>
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])}
@@ -2467,7 +2470,7 @@ export function AcceptanceDocumentClient(props: Props) {
                       }}
                     >
                       <td
-                        className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}
+                        className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight`}
                         onClick={(event) => event.stopPropagation()}
                       >
                         <Checkbox
@@ -2510,7 +2513,7 @@ export function AcceptanceDocumentClient(props: Props) {
                   </tr>
                 )}
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight`}>
                     <Checkbox disabled />
                   </td>
                   <td

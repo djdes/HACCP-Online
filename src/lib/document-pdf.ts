@@ -4820,14 +4820,17 @@ function drawFryerOilPdf(doc: jsPDF, params: {
 
   const gradingEndY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
-  // Formula example
+  // Formula example (Y3: формула + расшифровка числителя/знаменателя,
+  // как на эталоне — раньше печаталась одна строка без расшифровки).
   doc.setFont("JournalUnicode", "normal");
   doc.setFontSize(9);
-  doc.text(
+  const formulaLines = [
     `Пример расчёта средневзвешенной оценки: ${QUALITY_ASSESSMENT_TABLE.formulaExample}`,
-    10,
-    gradingEndY + 7
-  );
+    ...QUALITY_ASSESSMENT_TABLE.formulaExplanation,
+  ];
+  formulaLines.forEach((line, index) => {
+    doc.text(line, 10, gradingEndY + 7 + index * 4.5);
+  });
 }
 
 function drawGlassControlPdf(doc: jsPDF, params: {

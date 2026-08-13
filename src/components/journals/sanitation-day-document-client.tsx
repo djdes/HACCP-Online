@@ -879,8 +879,13 @@ export function SanitationDayDocumentClient({
           <div className="w-full max-w-[320px] pr-2 text-right text-[13px] leading-snug">
             <div className="font-semibold">УТВЕРЖДАЮ</div>
             <div>{normalized.approveRole}</div>
-            <div className="border-b border-black pb-1">
-              {normalized.approveEmployee}
+            {/* G2: линия подписи и ФИО стоят В ОДНУ строку
+                («_________ Борисов Борис Борисович»), как на эталоне
+                (general_cleaning-2-doc.png). Раньше подчёркнутым был сам
+                текст ФИО, а места под подпись не оставалось вовсе. */}
+            <div className="flex items-end justify-end gap-2 pt-1">
+              <span aria-hidden className="h-[1em] w-[150px] border-b border-black" />
+              <span>{normalized.approveEmployee}</span>
             </div>
             <div className="pt-1">
               {toViewDateLabel(normalized.documentDate)}
@@ -1165,12 +1170,19 @@ export function SanitationDayDocumentClient({
                     )}
                   </span>
                 </td>
-                <td
-                  colSpan={12}
-                  className={`${GRID_CELL_CLASS} px-3 py-1 text-center text-[#6f7282] leading-tight`}
-                >
-                  Отметки по месяцам указаны в таблице выше.
-                </td>
+                {/* G1: на эталоне (general_cleaning-2-doc.png) служебная
+                    строка «Ответственный: …» продолжается ДВЕНАДЦАТЬЮ
+                    пустыми ячейками месяцев — сетка не рвётся, колонки
+                    остаются на месте. Мы вместо них рисовали пояснение
+                    «Отметки по месяцам указаны в таблице выше», которое
+                    съедало 12 колонок в один colSpan. Ячейки намеренно
+                    некликабельны: это подвал строки, а не данные. */}
+                {SANITATION_MONTHS.map((month) => (
+                  <td
+                    key={`responsible-${month.key}`}
+                    className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}
+                  />
+                ))}
               </tr>
             </tbody>
           </table>

@@ -397,19 +397,42 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
   );
 }
 
+/**
+ * Y4: эталон (fryer_oil-2-doc.png) красит подписи ЛЕВОЙ колонки приложения
+ * и блок «Пример расчета среднего балла» в тёмно-бордовый. На бумаге
+ * инспектору цвет не нужен — `print:text-black` сохраняет прежний бланк.
+ */
+const APPENDIX_LABEL_CLASS = "text-[#7b2d26] print:text-black";
+
 function Appendix() {
   return (
     <div className="space-y-5 pt-8">
-      <div className="text-[15px] font-semibold">Приложение. Методика определения качества фритюрного жира.</div>
+      {/*
+        Y4: заголовок приложения — ПОЛУЖИРНЫЙ и выровнен по левому краю
+        таблиц приложения (обе таблицы `w-full` внутри того же блока, так
+        что выравнивание даёт сам поток; отдельных отступов не добавляем).
+      */}
+      <div className="text-[13.5px] font-bold">Приложение. Методика определения качества фритюрного жира.</div>
       {/*
         Эталон (fryer_oil-grid.png): над четырьмя колонками оценок стоит одна
         объединяющая ячейка «Оценка», подписи оценок — строчными буквами,
         всё содержимое таблицы центрировано, первый столбец несёт полные
         формулировки показателей с условиями замера.
       */}
-      <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-[18%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup><thead><tr><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center align-middle leading-tight`}>Показатели качества</th><th colSpan={4} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center leading-tight`}>Оценка</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
+      <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-[18%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup><thead><tr><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1.5 text-center align-middle leading-tight`}>Показатели качества</th><th colSpan={4} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center leading-tight`}>Оценка</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
       <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-1/2" /><col className="w-1/2" /></colgroup><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Качество фритюра</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.label}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.score}</td></tr>)}</tbody></table>
-      <div className="text-[13px] leading-6">Пример расчета среднего балла: {QUALITY_ASSESSMENT_TABLE.formulaExample}</div>
+      {/*
+        Y3: эталон печатает пример расчёта МНОГОСТРОЧНО — сама формула
+        отдельной строкой, затем расшифровка числителя и знаменателя.
+        Раньше всё схлопывалось в одну строку и терялась расшифровка.
+      */}
+      <div className={`${APPENDIX_LABEL_CLASS} text-[13px] leading-[1.55]`}>
+        <div>Пример расчета среднего балла:</div>
+        <div>{QUALITY_ASSESSMENT_TABLE.formulaExample}</div>
+        {QUALITY_ASSESSMENT_TABLE.formulaExplanation.map((line) => (
+          <div key={line}>{line}</div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -632,25 +655,30 @@ export function FryerOilDocumentClient(props: Props) {
               «ПереходящийУтилизированный». Колонки расширены до 110px, а
               заголовкам добавлен перенос длинных слов (`break-words`), чтобы
               то же самое не повторилось на «Должность, ФИО контролера».
-              min-w таблицы = сумма колонок (40+150+110+150+120+100+110+150+
-              110+110+150 = 1300).
+
+              Y1: прежняя сумма 1300px не влезала в полотно (~1150px эталона)
+              и последняя колонка «Должность, ФИО контролера» обрезалась.
+              Ширины пересняты с эталона (fryer_oil-2-doc.png, таблица
+              1150px): 28+118+100+178+118+88+96+140+78+78+100 = 1122.
+              Скролл при этом остаётся — таблица лежит в GRID_VIEWPORT_CLASS
+              (`overflow-x-auto`), он спасает узкие экраны.
             */}
-            <table className="w-full min-w-[1300px] table-fixed border-collapse text-[13px]">
+            <table className="w-full min-w-[1122px] table-fixed border-collapse text-[13px]">
               <colgroup>
-                {isActive ? <col className="w-[40px]" /> : null}
-                <col className="w-[150px]" />
-                <col className="w-[110px]" />
-                <col className="w-[150px]" />
-                <col className="w-[120px]" />
+                {isActive ? <col className="w-[28px]" /> : null}
+                <col className="w-[118px]" />
                 <col className="w-[100px]" />
-                <col className="w-[110px]" />
-                <col className="w-[150px]" />
-                <col className="w-[110px]" />
-                <col className="w-[110px]" />
-                <col className="w-[150px]" />
+                <col className="w-[178px]" />
+                <col className="w-[118px]" />
+                <col className="w-[88px]" />
+                <col className="w-[96px]" />
+                <col className="w-[140px]" />
+                <col className="w-[78px]" />
+                <col className="w-[78px]" />
+                <col className="w-[100px]" />
               </colgroup>
-              <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Утилизированный, кг</th></tr></thead>
-              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
+              <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-0 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Утилизированный, кг</th></tr></thead>
+              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-0 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>
             <div className={DOC_EXTRA_BLOCK_CLASS}>

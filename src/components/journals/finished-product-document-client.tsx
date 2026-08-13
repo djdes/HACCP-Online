@@ -296,22 +296,27 @@ export function FinishedProductDocumentClient({
    * Колонки таблицы одним описанием: заголовок + вес для colgroup.
    * Базовые 7 колонок дают ровно 100 «весов» — сумма процентов совпадает
    * с эталоном; включение опций пересчитывает доли автоматически.
+   *
+   * F6: веса пересняты с живого эталона (finished_product-2-doc.png,
+   * таблица 1150px): органолептика ~350px (31), ФИО-колонки ~150-158px
+   * (14 и 13) с заголовками в 2-3 строки, «Разрешение к реализации»
+   * ~150px (13). Раньше ФИО-колонки были по 18 и съедали органолептику.
    */
   const columns = useMemo<FinishedProductColumn[]>(() => {
     const list: FinishedProductColumn[] = [
-      { key: "production", label: "Дата, время изготовления", weight: 7, field: "productionDateTime", align: "center" },
+      { key: "production", label: "Дата, время изготовления", weight: 9, field: "productionDateTime", align: "center" },
       { key: "rejection", label: "Время снятия бракеража", weight: 7, field: "rejectionTime", align: "center" },
       {
         key: "name",
         label: config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)",
-        weight: 14,
+        weight: 13,
         field: "productName",
         list: "finished-product-items",
       },
       {
         key: "organoleptic",
         label: "Органолептическая оценка (включая оценку степени готовности)",
-        weight: 26,
+        weight: 31,
         field: "organoleptic",
       },
     ];
@@ -324,14 +329,14 @@ export function FinishedProductDocumentClient({
     if (config.showOxygenLevel) {
       list.push({ key: "oxygen", label: "Остаточный уровень кислорода, % об.", weight: 9, field: "oxygenLevel", align: "center" });
     }
-    list.push({ key: "release", label: "Разрешение к реализации (время)", weight: 10, field: "releasePermissionTime", align: "center" });
+    list.push({ key: "release", label: "Разрешение к реализации (время)", weight: 13, field: "releasePermissionTime", align: "center" });
     if (config.showCourierTime) {
       list.push({ key: "courier", label: "Время передачи блюд курьеру", weight: 9, field: "courierTransferTime", align: "center" });
     }
     list.push({
       key: "responsible",
       label: "Ответственный исполнитель (ФИО, должность)",
-      weight: 18,
+      weight: 14,
       field: "responsiblePerson",
       list: "finished-product-users",
     });
@@ -341,7 +346,7 @@ export function FinishedProductDocumentClient({
         config.inspectorMode === "commission_signatures"
           ? "Подписи членов комиссии"
           : "ФИО лица, проводившего бракераж",
-      weight: 18,
+      weight: 13,
       field: "inspectorName",
       list: "finished-product-users",
     });
@@ -654,13 +659,17 @@ export function FinishedProductDocumentClient({
         ) : null}
 
         {/* Справочный блок — только ссылка, раскрывается по клику.
-            В бумажную форму эталона он не входит → print:hidden. */}
-        <div className={`${DOC_EXTRA_BLOCK_CLASS} print:hidden`}>
+            В бумажную форму эталона он не входит → print:hidden.
+
+            F2: на эталоне это полужирная ссылка 16px, отдалённая от
+            таблицы/примечания примерно на 55px, — раньше у нас был
+            текст 13px вплотную к таблице. */}
+        <div className="mt-[52px] print:hidden">
           <button
             type="button"
             onClick={() => setGuideOpen((prev) => !prev)}
             aria-expanded={guideOpen}
-            className="rounded-md text-left text-[13px] font-semibold text-[#0b1024] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+            className="rounded-md text-left text-[16px] font-semibold leading-[1.4] text-[#0b1024] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
           >
             {/* Шеврона нет: на эталоне это обычная подчёркнутая ссылка-текст,
                 раскрытие остаётся по клику. */}
