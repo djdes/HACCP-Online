@@ -30,6 +30,7 @@ import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
+  JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
@@ -165,6 +166,8 @@ export function PerishableRejectionDocumentsClient({
               onChange={setTitle}
             />
             <DateField label="Дата начала" value={dateFrom} onChange={setDateFrom} />
+          </div>
+          <div className={JOURNAL_DIALOG_FOOTER_CLASS}>
             <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
               <Button
                 onClick={saveSettings}

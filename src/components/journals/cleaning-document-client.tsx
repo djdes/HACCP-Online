@@ -2082,12 +2082,15 @@ export function CleaningDocumentClient(props: Props) {
           <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
             {config.documentTitle || CLEANING_PAGE_TITLE}
           </JournalDocumentTitle>
-          {mobileView === "cards" ? null : (
-            <>
-              {cleaningAddToolbar}
-              {cleaningRaceStrip}
-            </>
-          )}
+          {/* Тулбар рендерим ВСЕГДА: внешний контейнер (строка ~2063) в
+              cards-режиме и так `hidden sm:block`, т.е. на мобильном этот
+              экземпляр скрыт CSS'ом, а копия для карточек рендерится выше
+              в своём `sm:hidden`. Раньше стоял JS-гейт `mobileView ===
+              "cards" ? null : …` — а cards является дефолтом стейта и на
+              десктопе, поэтому десктоп оставался вовсе без кнопки
+              «Добавить» (таблицу показывал CSS, тулбар прятал JS). */}
+          {cleaningAddToolbar}
+          {cleaningRaceStrip}
           <div className={GRID_VIEWPORT_CLASS}><div className="min-w-[920px] sm:min-w-[1200px] print:min-w-0">
           <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={rows.length > 0 && selection.length === rows.length} onCheckedChange={(checked) => setSelection(Boolean(checked) ? rows.map((r) => r.id) : [])} className="size-4" disabled={props.status !== "active"} /></th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {

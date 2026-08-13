@@ -1223,7 +1223,12 @@ export function ColdEquipmentDocumentClient({
             оборудования
           </JournalDocumentTitle>
         </div>
-        {mobileView === "cards" ? null : equipmentAddBar}
+        {/* Без JS-гейта по mobileView: cards — дефолт стейта и на десктопе,
+            из-за чего кнопка «Добавить ХК» на десктопе не рендерилась вовсе.
+            Внешний контейнер в cards-режиме уже `hidden sm:block`, так что
+            на мобильном этот экземпляр скрыт CSS'ом (копия для карточек —
+            в своём `sm:hidden` выше). */}
+        {equipmentAddBar}
         {selectionBar}
         <div className={GRID_VIEWPORT_CLASS}>
           <table style={{ minWidth: gridMinWidth }} className="border-collapse text-[13px] print:!min-w-0">

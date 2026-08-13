@@ -42,6 +42,7 @@ import {
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
+  JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
@@ -186,7 +187,9 @@ function EditDocumentDialog({
               </SelectContent>
             </Select>
           </FloatingLabelField>
+        </div>
 
+        <div className={JOURNAL_DIALOG_FOOTER_CLASS}>
           <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
             <Button
               type="button"

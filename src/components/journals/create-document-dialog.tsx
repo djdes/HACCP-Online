@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_ERROR_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
+  JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
@@ -150,6 +151,7 @@ export function CreateDocumentDialog({
   triggerIcon,
 }: Props) {
   const router = useRouter();
+  const formId = useId();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -501,17 +503,6 @@ export function CreateDocumentDialog({
         onChange={setControlPeriodicity}
       />
 
-      {/* Единственное действие — «Создать» справа внизу. Кнопки «Отмена»
-          нет: окно закрывается крестиком и Escape. */}
-      <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className={JOURNAL_DIALOG_SUBMIT_CLASS}
-        >
-          {isSubmitting ? "Создание..." : "Создать"}
-        </Button>
-      </div>
     </>
   );
 
@@ -522,6 +513,7 @@ export function CreateDocumentDialog({
         {header}
 
         <form
+          id={formId}
           onSubmit={handleSubmit}
           className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}
         >
@@ -811,6 +803,22 @@ export function CreateDocumentDialog({
             </>
           )}
         </form>
+        {/* Футер вне скролл-зоны: тело диалога скроллится (max-h-[90vh]),
+            и кнопка внутри него уезжала за экран на длинных формах.
+            Сабмит остаётся через нативный submit — кнопка привязана к
+            форме атрибутом form=. */}
+        <div className={JOURNAL_DIALOG_FOOTER_CLASS}>
+          <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
+            <Button
+              type="submit"
+              form={formId}
+              disabled={isSubmitting}
+              className={JOURNAL_DIALOG_SUBMIT_CLASS}
+            >
+              {isSubmitting ? "Создание..." : "Создать"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

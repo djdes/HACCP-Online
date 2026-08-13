@@ -69,6 +69,7 @@ import {
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
+  JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
@@ -193,6 +194,7 @@ function SettingsDialog(props: {
             <CreateDocumentEmptyState onNavigate={() => props.onOpenChange(false)} />
           </div>
         ) : activeState ? (
+          <>
           <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
             <FloatingInputField
               label="Название документа"
@@ -277,7 +279,9 @@ function SettingsDialog(props: {
                 setState({ ...activeState, controlPeriodicity: value })
               }
             />
+          </div>
 
+          <div className={JOURNAL_DIALOG_FOOTER_CLASS}>
             <div className={JOURNAL_DIALOG_ACTIONS_CLASS}>
               <Button
                 type="button"
@@ -289,6 +293,7 @@ function SettingsDialog(props: {
               </Button>
             </div>
           </div>
+          </>
         ) : null}
       </DialogContent>
     </Dialog>
