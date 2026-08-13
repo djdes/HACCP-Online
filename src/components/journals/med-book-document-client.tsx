@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -81,6 +82,7 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
+  GRID_VIEWPORT_SCROLLBAR_CLASS,
 } from "@/components/journals/journal-grid";
 
 type Employee = { id: string; name: string; role: string };
@@ -118,17 +120,6 @@ type Props = {
   documentDateKey: string;
   /** Design v2 toggle. */
   useV2?: boolean;
-  /**
-   * `document` — старый URL `/journals/med_books/documents/<id>`: бумажная
-   * ХАССП-шапка, КАПС-заголовок, справочные таблицы под сеткой.
-   *
-   * `journal` — страница `/journals/med_books` (эталон med_books-grid.png):
-   * пользователь не видит сущности «документ». Сразу H1, две синие кнопки,
-   * таблица осмотров, ссылка «Список специалистов и исследований»,
-   * центрированный заголовок «Прививки», таблица прививок и ссылка
-   * «Список прививок». Справочники переехали в диалоги за этими ссылками.
-   */
-  variant?: "document" | "journal";
 };
 
 /**
@@ -190,10 +181,8 @@ export function MedBookDocumentClient({
   initialRows,
   documentDateKey,
   useV2 = false,
-  variant = "document",
 }: Props) {
   const router = useRouter();
-  const isJournal = variant === "journal";
   const isClosed = status === "closed";
   // Единый источник status/pdf-действий над журнальным документом.
   const { setStatus, isChangingStatus } = useJournalDocumentActions(documentId);
@@ -213,17 +202,26 @@ export function MedBookDocumentClient({
    */
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
-  /** Диалоги за подчёркнутыми ссылками под таблицами (вариант `journal`). */
+  /** Диалоги за подчёркнутыми ссылками под таблицами (эталон med_books-grid). */
   const [examListOpen, setExamListOpen] = useState(false);
   const [vaccListOpen, setVaccListOpen] = useState(false);
 
   /**
-   * Таблица прививок есть всегда. Чекбокс «включить Прививки» из настроек
-   * убран: на эталоне (med_books-grid.png) прививки — обязательная вторая
-   * половина журнала, а не опция. В config значение остаётся (`true`) ради
-   * совместимости с печатной формой.
+   * Раздел «Прививки» — опция документа (M2 аудита): тумблер «включить
+   * "Прививки"» стоит в диалоге создания живого эталона
+   * (med_books-3-create.png) и пишет `config.includeVaccinations`.
+   *
+   * `!== false` вместо `=== true`: у документов, созданных до появления
+   * ключа, в config его просто нет — раздел там был и должен остаться.
+   * Печатная форма (`document-pdf.ts`) читает флаг тем же правилом.
    */
-  const includeVaccinations = true;
+  const [includeVaccinations, setIncludeVaccinations] = useState(
+    config.includeVaccinations !== false,
+  );
+  /** Черновик того же флага внутри «Настроек журнала». */
+  const [settingsIncludeVacc, setSettingsIncludeVacc] = useState(
+    config.includeVaccinations !== false,
+  );
 
   const editRow = rows.find((row) => row.id === editId) ?? null;
   const availableEmployees = useMemo(
@@ -676,8 +674,12 @@ export function MedBookDocumentClient({
         backHref="/journals/med_books"
         documentId={documentId}
         heading={<h1 className={DOC_HEADING_CLASS}>{docTitle}</h1>}
-        onSettings={isJournal ? undefined : () => setSettingsOpen(true)}
-        menuItems={isJournal ? [] : [
+        onSettings={() => {
+          setSettingsTitle(docTitle);
+          setSettingsIncludeVacc(includeVaccinations);
+          setSettingsOpen(true);
+        }}
+        menuItems={[
           isClosed
             ? {
                 key: "reopen-journal",
@@ -765,27 +767,22 @@ export function MedBookDocumentClient({
           </div>
         ) : null}
 
-        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
-            На странице журнала (`variant="journal"`) его нет: эталон
-            med_books-grid.png показывает сразу кнопки и таблицу. */}
-        {isJournal ? null : (
-          <>
-            <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
-              <div className="min-w-[1320px] print:min-w-0">
-                <JournalDocumentHeader
-                  orgName={organizationName}
-                  title="Журнал учёта медицинских книжек сотрудников"
-                  startedAt={documentDateKey}
-                  finishedAt={isClosed ? documentDateKey : null}
-                  controlPeriodicity={controlPeriodicity}
-                />
-              </div>
-            </div>
-            <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
-              Медицинские книжки
-            </JournalDocumentTitle>
-          </>
-        )}
+        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки (M4):
+            «Начат / Окончен», «СТР. 1 ИЗ 1», периодичность контроля. */}
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
+          <div className="min-w-[1320px] print:min-w-0">
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="Журнал учёта медицинских книжек сотрудников"
+              startedAt={documentDateKey}
+              finishedAt={isClosed ? documentDateKey : null}
+              controlPeriodicity={controlPeriodicity}
+            />
+          </div>
+        </div>
+        <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
+          Медицинские книжки
+        </JournalDocumentTitle>
 
         {/* «Добавить сотрудника» / «Добавить исследование» — слева
             непосредственно над таблицей, как на эталоне. Раньше кнопки
@@ -803,9 +800,13 @@ export function MedBookDocumentClient({
               <Plus className="size-5" strokeWidth={2.5} />
               Добавить сотрудника
             </Button>
+            {/* M5: вторая кнопка — ВТОРИЧНАЯ (светлая), как «Редактировать
+                списки» в остальных журналах: первичное действие на странице
+                одно — «Добавить сотрудника». */}
             <Button
               type="button"
-              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
+              variant="outline"
+              className="h-11 gap-2 rounded-lg border-0 bg-[#5566f6]/[0.06] px-5 text-[15px] font-semibold text-[#5566f6] shadow-none transition-colors hover:bg-[#5566f6]/[0.11]"
               onClick={() => void addExamColumn()}
             >
               <Plus className="size-5" strokeWidth={2.5} />
@@ -823,7 +824,12 @@ export function MedBookDocumentClient({
           />
         ) : null}
 
-        <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
+        {/* M3: обе таблицы медкнижек шире бумажного полотна — скроллятся
+            ВНУТРИ своего viewport'а, с постоянно видимой полосой прокрутки. */}
+        <MobileViewTableWrapper
+          mobileView={mobileView}
+          className={`${GRID_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS}`}
+        >
           <table className="min-w-[1320px] border-collapse text-[13px] text-black">
             <thead>
               <tr>
@@ -864,7 +870,10 @@ export function MedBookDocumentClient({
                   colSpan={examColumns.length}
                   className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                 >
-                  Наименование специалиста / исследования
+                  {/* M6: пунктуация групповых шапок ОДИНАКОВАЯ в обеих
+                      таблицах — с двоеточием, как «Наименование прививки:»
+                      на эталоне med_books-grid.png. */}
+                  Наименование специалиста / исследования:
                 </th>
               </tr>
               <tr>
@@ -965,95 +974,21 @@ export function MedBookDocumentClient({
             </tbody>
           </table>
         </MobileViewTableWrapper>
-      </div>
 
-      {/* Страница журнала: вместо развёрнутых справочных таблиц — подчёркнутая
-          ссылка, как на эталоне. Справочник и правка списка колонок живут
-          в диалоге за ней. */}
-      {isJournal ? (
-        <div className="mt-4 mb-8">
-          <button
-            type="button"
-            onClick={() => setExamListOpen(true)}
-            className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-          >
-            Список специалистов и исследований
-          </button>
-        </div>
-      ) : (
-      <div id="med-book-reference" className="space-y-5">
-        <h2 className="text-[20px] font-semibold underline decoration-1 underline-offset-4">
+      {/* Справочники — за подчёркнутыми ссылками под таблицами, ровно как
+          на эталоне med_books-grid.png: «Список специалистов и исследований»
+          и «Список прививок». Прежние развёрнутые справочные таблицы
+          (десятки строк 18-22px) на бумажном полотне превращались во второй
+          документ; их содержимое целиком переехало в диалоги за ссылками. */}
+      <div id="med-book-reference" className="mt-4 mb-8">
+        <button
+          type="button"
+          onClick={() => setExamListOpen(true)}
+          className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+        >
           Список специалистов и исследований
-        </h2>
-        <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
-            <thead>
-              <tr>
-                <th
-                  colSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}
-                >
-                  Список специалистов и исследований при получении/прохождении
-                  медицинской книжки для работников пищевой отрасли
-                </th>
-              </tr>
-              <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}>
-                  Предварительные осмотры (при поступлении на работу)
-                </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 text-[13px] leading-tight`}>
-                  Периодические (1 раз в год)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {MED_BOOK_PRELIMINARY_PERIODIC_ROWS.map((row) => (
-                <tr key={row.preliminary}>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    {row.preliminary}
-                  </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    {row.periodic}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
-            <thead>
-              <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
-                  Наименование специалиста / исследования
-                </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
-                  Периодичность
-                </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
-                  Примечание
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {EXAMINATION_REFERENCE_DATA.map((item) => (
-                <tr key={item.name}>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    {item.name}
-                  </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    {item.periodicity}
-                  </td>
-                  <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                    {item.note || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        </button>
       </div>
-      )}
 
       {includeVaccinations ? (
         <div className="space-y-5">
@@ -1063,7 +998,7 @@ export function MedBookDocumentClient({
             Прививки
           </h2>
           <div className="space-y-2">
-            <div className={GRID_VIEWPORT_CLASS}>
+            <div className={`${GRID_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS}`}>
               <table className="min-w-[1320px] border-collapse text-[13px] text-black">
                 <thead>
                   <tr>
@@ -1214,69 +1149,20 @@ export function MedBookDocumentClient({
               </table>
             </div>
           </div>
-          {isJournal ? (
-            <div>
-              <button
-                type="button"
-                onClick={() => setVaccListOpen(true)}
-                className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-              >
-                Список прививок
-              </button>
-            </div>
-          ) : (
-          <>
-          <h3 className="text-[20px] font-semibold underline decoration-1 underline-offset-4">
-            Список прививок
-          </h3>
-          <p className="text-[18px] leading-[1.55] text-black">
-            Вакцинация всех сотрудников проводится в соответствии с Приказом
-            Минздрава России от 06.12.2021 N 1122н.
-          </p>
-          <div className={GRID_VIEWPORT_CLASS}>
-            <table className="min-w-[980px] w-full border-collapse text-[13px] text-black">
-              <thead>
-                <tr>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
-                    Наименование прививок
-                  </th>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-4 py-2 leading-tight`}>
-                    Периодичность
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {VACCINATION_REFERENCE_DATA.map((item) => (
-                  <tr key={item.name}>
-                    <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                      {item.name}
-                    </td>
-                    <td className={`${GRID_CELL_CLASS} px-4 py-2 align-top leading-tight`}>
-                      {item.periodicity}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            <button
+              type="button"
+              onClick={() => setVaccListOpen(true)}
+              className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+            >
+              Список прививок
+            </button>
           </div>
-          <div className="space-y-2 pt-2">
-            {MED_BOOK_VACCINATION_RULES.map((rule) => (
-              <p
-                key={rule}
-                className="text-[22px] font-semibold uppercase leading-[1.45] text-black"
-              >
-                {rule}
-              </p>
-            ))}
-          </div>
-          </>
-          )}
         </div>
       ) : null}
+      </div>
 
-      {isJournal ? (
-        <>
-          <MedBookListDialog
+      <MedBookListDialog
             open={examListOpen}
             onOpenChange={setExamListOpen}
             title="Список специалистов и исследований"
@@ -1288,17 +1174,31 @@ export function MedBookDocumentClient({
             saving={saving}
             onSave={applyExamListChange}
             reference={
-              <dl className="space-y-2">
-                {EXAMINATION_REFERENCE_DATA.map((item) => (
-                  <div key={item.name} className="text-[13px] leading-[1.45]">
-                    <dt className="font-semibold text-[#0b1024]">{item.name}</dt>
-                    <dd className="text-[#6f7282]">
-                      {item.periodicity}
-                      {item.note ? ` — ${item.note}` : ""}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="space-y-3">
+                {/* «Предварительные / Периодические» — та же справка, что
+                    раньше лежала таблицей под сеткой документа. */}
+                <dl className="space-y-1.5">
+                  {MED_BOOK_PRELIMINARY_PERIODIC_ROWS.map((row) => (
+                    <div key={row.preliminary} className="text-[13px] leading-[1.45]">
+                      <dt className="font-semibold text-[#0b1024]">
+                        {row.preliminary}
+                      </dt>
+                      <dd className="text-[#6f7282]">{row.periodic}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <dl className="space-y-2">
+                  {EXAMINATION_REFERENCE_DATA.map((item) => (
+                    <div key={item.name} className="text-[13px] leading-[1.45]">
+                      <dt className="font-semibold text-[#0b1024]">{item.name}</dt>
+                      <dd className="text-[#6f7282]">
+                        {item.periodicity}
+                        {item.note ? ` — ${item.note}` : ""}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             }
           />
           <MedBookListDialog
@@ -1333,8 +1233,6 @@ export function MedBookDocumentClient({
               </div>
             }
           />
-        </>
-      ) : null}
 
       {useV2 ? (
         <JournalSettingsModal
@@ -1350,9 +1248,10 @@ export function MedBookDocumentClient({
               await sync(rows, settingsTitle.trim(), {
                 examinations: examColumns,
                 vaccinations: vaccColumns,
-                includeVaccinations,
+                includeVaccinations: settingsIncludeVacc,
               });
               setDocTitle(settingsTitle.trim());
+              setIncludeVaccinations(settingsIncludeVacc);
               setSettingsOpen(false);
               router.refresh();
             } catch (error) {
@@ -1375,7 +1274,18 @@ export function MedBookDocumentClient({
               className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
             />
           </div>
-          {includeVaccinations ? (
+          {/* Тот же тумблер, что в диалоге создания (M2): раздел
+              «Прививки» можно включить или выключить и позже. */}
+          <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
+            <Switch
+              checked={settingsIncludeVacc}
+              onCheckedChange={(value) => setSettingsIncludeVacc(value === true)}
+              className="shrink-0"
+              aria-label={'включить "Прививки"'}
+            />
+            включить &quot;Прививки&quot;
+          </label>
+          {settingsIncludeVacc ? (
             <div className="space-y-2">
               <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
                 Прививки в журнале ({vaccColumns.length})

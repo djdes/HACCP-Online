@@ -618,15 +618,21 @@ export function CreateDocumentDialog({
                 </FloatingLabelField>
               )}
 
+              {/* M2: на живом эталоне (med_books-3-create.png) под полем
+                  названия стоит ТУМБЛЕР слева и подпись справа, дефолт —
+                  включён. Значение уходит в `config.includeVaccinations`
+                  и решает, есть ли в документе и в PDF раздел «Прививки». */}
               {isMedBookJournal && (
                 <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
-                  <Checkbox
+                  <Switch
                     checked={medBookIncludeVaccinations}
-                    onCheckedChange={(checked) =>
-                      setMedBookIncludeVaccinations(checked === true)
+                    onCheckedChange={(value) =>
+                      setMedBookIncludeVaccinations(value === true)
                     }
+                    className="shrink-0"
+                    aria-label={'включить "Прививки"'}
                   />
-                  Включить раздел «Прививки»
+                  включить &quot;Прививки&quot;
                 </label>
               )}
 

@@ -42,6 +42,20 @@ export const GRID_HEAD_CELL_PLAIN_CLASS =
 export const GRID_VIEWPORT_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} print:mx-0 print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:px-0 print:shadow-none`;
 
 /**
+ * Всегда ВИДИМЫЙ горизонтальный скроллбар внутри viewport'а (M3 аудита).
+ *
+ * `GRID_VIEWPORT_CLASS` и так даёт `overflow-x-auto`, но на macOS и в
+ * Chromium с overlay-скроллбарами полоса появляется только во время
+ * прокрутки: широкая таблица (медкнижки — 10+ колонок осмотров и столько
+ * же прививок) выглядит просто ОБРЕЗАННОЙ справа, и пользователь не
+ * догадывается, что «Маммография» и последние прививки доступны скроллом.
+ *
+ * Токен рисует тонкую постоянную полосу и в печать не идёт.
+ */
+export const GRID_VIEWPORT_SCROLLBAR_CLASS =
+  "[scrollbar-width:thin] [scrollbar-color:#c3c8e0_transparent] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#c3c8e0] [&::-webkit-scrollbar-thumb:hover]:bg-[#a7adcd] print:[&::-webkit-scrollbar]:hidden";
+
+/**
  * Вариант viewport'а для «широких» журналов (hygiene / health_check), где
  * на десктопе таблица помещается целиком и горизонтальный скролл не нужен.
  */

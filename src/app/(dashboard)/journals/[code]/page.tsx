@@ -63,16 +63,13 @@ import {
 } from "@/lib/complaint-document";
 import { UvLampRuntimeDocumentsClient } from "@/components/journals/uv-lamp-runtime-documents-client";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
-import { MedBookDocumentClient } from "@/components/journals/med-book-document-client";
+import { MedBookDocumentsClient } from "@/components/journals/med-book-documents-client";
 import { IncomingControlDocumentsClient } from "@/components/journals/incoming-control-documents-client";
 import {
   MED_BOOK_TEMPLATE_CODE,
   MED_BOOK_DOCUMENT_TITLE,
   getDefaultMedBookConfig,
   emptyMedBookEntry,
-  normalizeMedBookConfig,
-  normalizeMedBookEntryData,
-  type MedBookEntryData,
 } from "@/lib/med-book-document";
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
@@ -1507,7 +1504,7 @@ export default async function JournalDocumentsPage({
         })
       : 1;
 
-    if (existingCount === 0) {
+    if (shouldNormalizeDemoSamples && existingCount === 0) {
       const now = new Date();
       const doc = await db.journalDocument.create({
         data: {
@@ -1573,79 +1570,64 @@ export default async function JournalDocumentsPage({
     }
 
     /**
-     * Бездокументная модель эталона (med_books-grid.png): пользователь не
-     * видит ни вкладок «Активные/Закрытые», ни кнопки «Создать документ»,
-     * ни самой сущности «документ» — сразу таблицы осмотров и прививок.
-     *
-     * Под капотом данные по-прежнему живут в `JournalDocument` +
-     * `JournalDocumentEntry` (ничего не мигрируем разрушающе). Страница
-     * лениво находит ОДИН «вечный» активный документ журнала, а если его
-     * нет — создаёт при первом открытии. Старые URL
-     * `/journals/med_books/documents/<id>` продолжают работать, просто
-     * пользователь туда больше не попадает.
+     * Документная модель (M1 аудита, живой эталон med_books-1-list.png):
+     * список документов с вкладками «Активные/Закрытые» и кнопкой
+     * «Создать документ». Бездокументная переделка фазы N7 (ленивое
+     * создание «вечного» документа прямо на странице журнала) откатана:
+     * такой документ никуда не делся, он просто снова показывается
+     * обычной карточкой в списке. Разрушающих миграций нет.
      */
-    const medBookDocument =
-      (await db.journalDocument.findFirst({
-        where: {
-          organizationId: getActiveOrgId(session),
-          templateId: template.id,
-          status: "active",
-        },
-        orderBy: { createdAt: "asc" },
-      })) ??
-      (await db.journalDocument.create({
-        data: {
-          templateId: template.id,
-          organizationId: getActiveOrgId(session),
-          title: MED_BOOK_DOCUMENT_TITLE,
-          status: "active",
-          dateFrom: new Date(),
-          dateTo: new Date(),
-          createdById: session.user.id,
-          config: getDefaultMedBookConfig(),
-        },
-      }));
+    if (shouldNormalizeDemoSamples) {
+      const medBookStatuses = new Set(
+        (
+          await db.journalDocument.findMany({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+            select: { status: true },
+          })
+        ).map((document) => document.status)
+      );
 
-    const medBookEntries = await db.journalDocumentEntry.findMany({
-      where: { documentId: medBookDocument.id },
+      if (!medBookStatuses.has("closed")) {
+        const { closedFrom } = getCurrentAndPreviousMonthBounds();
+        await db.journalDocument.create({
+          data: {
+            templateId: template.id,
+            organizationId: getActiveOrgId(session),
+            title: MED_BOOK_DOCUMENT_TITLE,
+            status: "closed",
+            dateFrom: closedFrom,
+            dateTo: closedFrom,
+            createdById: session.user.id,
+            config: getDefaultMedBookConfig(),
+          },
+        });
+      }
+    }
+
+    const medBookDocuments = await db.journalDocument.findMany({
+      where: {
+        organizationId: getActiveOrgId(session),
+        templateId: template.id,
+        status: activeTab,
+      },
       orderBy: { createdAt: "asc" },
     });
 
-    const medBookEmployees = orgUsers.map((user) => ({
-      id: user.id,
-      name: user.name || user.email || "Сотрудник",
-      role: user.role,
-    }));
-
-    // Одна строка на сотрудника: дубли (историческое наследие) схлопываем.
-    const medBookRowMap = new Map<
-      string,
-      { id: string; employeeId: string; name: string; data: MedBookEntryData }
-    >();
-    for (const entry of medBookEntries) {
-      medBookRowMap.set(entry.employeeId, {
-        id: entry.id,
-        employeeId: entry.employeeId,
-        name:
-          medBookEmployees.find((user) => user.id === entry.employeeId)?.name ||
-          "Сотрудник",
-        data: normalizeMedBookEntryData(entry.data),
-      });
-    }
-
     return withBanner(
-      <MedBookDocumentClient
-        variant="journal"
-        documentId={medBookDocument.id}
-        title={template.name}
+      <MedBookDocumentsClient
+        activeTab={activeTab}
         templateCode={resolvedCode}
-        organizationName={orgSettings?.name || "Организация"}
-        status={medBookDocument.status}
-        config={normalizeMedBookConfig(medBookDocument.config)}
-        employees={medBookEmployees}
-        initialRows={Array.from(medBookRowMap.values())}
-        documentDateKey={medBookDocument.dateFrom.toISOString().slice(0, 10)}
-        useV2
+        templateName={template.name}
+        users={orgUsers}
+        documents={medBookDocuments.map((doc) => ({
+          id: doc.id,
+          title: doc.title || MED_BOOK_DOCUMENT_TITLE,
+          status: doc.status as "active" | "closed",
+          dateFrom: doc.dateFrom.toISOString().slice(0, 10),
+        }))}
       />
     );
   }
