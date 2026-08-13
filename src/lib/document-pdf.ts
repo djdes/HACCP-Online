@@ -130,7 +130,8 @@ import {
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODES,
-  INCOMING_CONTROL_COLUMNS,
+  COMPLIANCE_LABELS,
+  getIncomingControlColumns,
   PRODUCT_ACCEPTANCE_DOCUMENT_TITLE,
   getAcceptanceDocumentTitle,
   getIncomingControlRowValues,
@@ -641,14 +642,31 @@ function drawTitle(doc: jsPDF, title: string) {
   doc.text(title, 14, 15);
 }
 
+/** `config.printEmptyRows` документа → неотрицательное число. */
+function readPrintEmptyRows(config: unknown) {
+  if (!config || typeof config !== "object" || Array.isArray(config)) return 0;
+  const value = (config as { printEmptyRows?: unknown }).printEmptyRows;
+  return typeof value === "number" ? Math.max(0, value) : 0;
+}
+
 function getPrintableUsers(
   users: { id: string; name: string; role: string; email?: string | null }[],
-  employeeIds: string[]
+  employeeIds: string[],
+  /**
+   * «Добавлять пустых строк при печати» (config.printEmptyRows). Настройка
+   * жила только в журнале здоровья; в гигиеническом её теперь тоже можно
+   * задать при создании документа (Z1 аудита), поэтому бланк должен
+   * печатать соответствующее число пустых строк.
+   */
+  printEmptyRows = 0
 ) {
   const uniqueIds = [...new Set(employeeIds)];
   const rosterUsers = users.filter((user) => uniqueIds.includes(user.id));
 
-  return buildHygieneExampleEmployees(rosterUsers, Math.max(rosterUsers.length, 7)).map(
+  return buildHygieneExampleEmployees(
+    rosterUsers,
+    Math.max(rosterUsers.length + printEmptyRows, 7)
+  ).map(
     (user) => ({
       id: user.id,
       number: user.number,
@@ -774,8 +792,13 @@ function buildHygieneBody(params: {
   dateKeys: string[];
   responsibleTitle: string | null;
   entryMap: Record<string, Record<string, unknown>>;
+  printEmptyRows?: number;
 }): RowInput[] {
-  const printableUsers = getPrintableUsers(params.users, params.employeeIds);
+  const printableUsers = getPrintableUsers(
+    params.users,
+    params.employeeIds,
+    params.printEmptyRows || 0
+  );
   const rows: RowInput[] = [];
 
   printableUsers.forEach((employee) => {
@@ -869,6 +892,7 @@ function drawHygienePdf(doc: jsPDF, params: {
   employeeIds: string[];
   responsibleTitle: string | null;
   entryMap: Record<string, Record<string, unknown>>;
+  printEmptyRows?: number;
 }) {
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -2072,8 +2096,14 @@ function drawIncomingControlPdf(doc: jsPDF, params: {
   doc.setFontSize(11);
   doc.text(journalLabel, centerX, 70, { align: "center" });
 
+  // Опциональная 12-я колонка «Соответствие внешнего вида упаковки…»
+  // (config.showPackagingCompliance, I1 аудита) — та же функция колонок,
+  // что и на экране, поэтому печать и таблица не расходятся.
+  const incomingControlColumns = getIncomingControlColumns(
+    cfg.showPackagingCompliance
+  );
   const head: RowInput[] = [
-    INCOMING_CONTROL_COLUMNS.map((column) => centerCell(column)),
+    incomingControlColumns.map((column) => centerCell(column)),
   ];
 
   const userMap = new Map(params.users.map((u) => [u.id, u.name]));
@@ -2088,6 +2118,9 @@ function drawIncomingControlPdf(doc: jsPDF, params: {
       centerCell(values.batchInfo),
       centerCell(values.productTemperature),
       centerCell(values.documentCompliance),
+      ...(cfg.showPackagingCompliance
+        ? [centerCell(COMPLIANCE_LABELS[row.packagingCompliance])]
+        : []),
       centerCell(values.acceptanceDecision),
       centerCell(values.correctiveActions),
       centerCell(userMap.get(row.responsibleUserId) || ""),
@@ -2098,7 +2131,7 @@ function drawIncomingControlPdf(doc: jsPDF, params: {
     startY: 76,
     margin: { left: 14, right: 14 },
     head,
-    body: ensurePdfBodyRows(body, INCOMING_CONTROL_COLUMNS.length),
+    body: ensurePdfBodyRows(body, incomingControlColumns.length),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -2531,7 +2564,8 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
       "Условия хранения / срок реализации",
       "Дата, время реализации",
       "Ответственное лицо",
-      "Примечание",
+      // «Примечание» — опциональная колонка (config.showNote, P2 аудита).
+      ...(params.config.showNote ? ["Примечание"] : []),
     ]],
     body: rows.map((row, index) => [
       String(index + 1),
@@ -2550,7 +2584,7 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
         .join("\n"),
       [row.actualSaleDate, row.actualSaleTime].filter(Boolean).join("\n"),
       row.responsiblePerson,
-      row.note,
+      ...(params.config.showNote ? [row.note] : []),
     ]),
     columnStyles: {
       0: { cellWidth: 8, halign: "center" },
@@ -5013,6 +5047,7 @@ export async function generateJournalDocumentPdf(params: {
       employeeIds,
       responsibleTitle: document.responsibleTitle,
       entryMap,
+      printEmptyRows: readPrintEmptyRows(document.config),
     });
   } else if (templateCode === "health_check") {
     drawHealthPdf(doc, {
@@ -5023,13 +5058,7 @@ export async function generateJournalDocumentPdf(params: {
       users,
       employeeIds,
       entryMap,
-      printEmptyRows:
-        document.config &&
-        typeof document.config === "object" &&
-        !Array.isArray(document.config) &&
-        typeof (document.config as { printEmptyRows?: unknown }).printEmptyRows === "number"
-          ? Math.max(0, (document.config as { printEmptyRows: number }).printEmptyRows)
-          : 0,
+      printEmptyRows: readPrintEmptyRows(document.config),
     });
   } else if (templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
     drawClimatePdf(doc, {

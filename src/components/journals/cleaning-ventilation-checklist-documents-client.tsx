@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -90,6 +91,13 @@ type SettingsState = {
   title: string;
   dateFrom: string;
   controlPeriodicity: string;
+  /**
+   * Процедура «Проветривание» в составе чек-листа (V3 аудита). Тумблер
+   * пишет в `config.ventilationEnabled`, который уже управляет строкой
+   * периодичности, колонкой процедуры и печатью (см.
+   * `cleaning-ventilation-checklist-document.ts` / `-pdf.ts`).
+   */
+  ventilationEnabled: boolean;
 };
 
 function getDefaultDate() {
@@ -127,16 +135,22 @@ function SettingsDialog(props: {
   onSubmit: (value: SettingsState) => Promise<void>;
   submitText: string;
   title: string;
+  /** Создание: название обязательно и приходит пустым (S7 аудита). */
+  requireTitle?: boolean;
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState("");
   const activeState = state || props.initial;
 
   return (
     <Dialog
       open={props.open}
       onOpenChange={(value) => {
-        if (value) setState(props.initial);
+        if (value) {
+          setState(props.initial);
+          setTitleError("");
+        }
         props.onOpenChange(value);
       }}
     >
@@ -152,17 +166,40 @@ function SettingsDialog(props: {
           <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
             <FloatingInputField
               label="Название документа"
+              placeholder="Введите название документа"
               value={activeState.title}
-              onChange={(value) => setState({ ...activeState, title: value })}
+              onChange={(value) => {
+                setState({ ...activeState, title: value });
+                if (titleError) setTitleError("");
+              }}
+              error={titleError || undefined}
             />
-            {/* Чек-лист вентиляции — одиночный документ на день, поэтому
-                подпись «Дата проведения», а не «Дата начала». Контрол —
-                общий DateField (ДД.ММ.ГГГГ + русский календарь). */}
+            {/* «Дата начала» — так же, как называется колонка карточки в
+                списке документов (V8 аудита); «Дата проведения» была
+                единственным местом со своей формулировкой. */}
             <DateField
-              label="Дата проведения"
+              label="Дата начала"
               value={activeState.dateFrom}
               onChange={(value) => setState({ ...activeState, dateFrom: value })}
             />
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[14px] leading-[1.35] text-[#0b1024]">
+                  Проветривание
+                </div>
+                <div className="mt-1 text-[12px] leading-[1.35] text-[#8a8fa3]">
+                  Если у вас есть окна и возможность проветривать помещение
+                </div>
+              </div>
+              <Switch
+                checked={activeState.ventilationEnabled}
+                onCheckedChange={(value) =>
+                  setState({ ...activeState, ventilationEnabled: value === true })
+                }
+                className="mt-0.5 shrink-0"
+                aria-label="Проветривание"
+              />
+            </div>
             <ControlPeriodicityField
               value={activeState.controlPeriodicity}
               onChange={(value) =>
@@ -178,6 +215,11 @@ function SettingsDialog(props: {
                 type="button"
                 onClick={async () => {
                   if (!activeState) return;
+                  if (props.requireTitle && !activeState.title.trim()) {
+                    setTitleError("Поле не заполнено");
+                    return;
+                  }
+                  setTitleError("");
                   setSubmitting(true);
                   try {
                     await props.onSubmit(activeState);
@@ -213,21 +255,32 @@ export function CleaningVentilationChecklistDocumentsClient({
 
   const createInitial = useMemo<SettingsState>(
     () => ({
-      title: CLEANING_VENTILATION_CHECKLIST_TITLE,
+      // Название пустое: пользователь вводит своё (S7 аудита).
+      title: "",
       dateFrom: getDefaultDate(),
       controlPeriodicity: getDefaultControlPeriodicity(templateCode),
+      ventilationEnabled: true,
     }),
     [templateCode]
   );
 
   async function createDocument(payload: SettingsState) {
-    const config = getDefaultCleaningVentilationConfig(users);
+    const defaults = getDefaultCleaningVentilationConfig(users);
+    const config = {
+      ...defaults,
+      ventilationEnabled: payload.ventilationEnabled,
+      procedures: defaults.procedures.map((procedure) =>
+        procedure.id === "ventilation"
+          ? { ...procedure, enabled: payload.ventilationEnabled }
+          : procedure
+      ),
+    };
     const response = await fetch("/api/journal-documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         templateCode,
-        title: payload.title.trim() || CLEANING_VENTILATION_CHECKLIST_TITLE,
+        title: payload.title.trim(),
         dateFrom: payload.dateFrom,
         dateTo: payload.dateFrom,
         config,
@@ -249,6 +302,10 @@ export function CleaningVentilationChecklistDocumentsClient({
     const current = documents.find((item) => item.id === documentId);
     if (!current) return;
 
+    const baseConfig =
+      (current.config as Record<string, unknown> | null) ??
+      getDefaultCleaningVentilationConfig(users);
+
     const response = await fetch(`/api/journal-documents/${documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -256,7 +313,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         title: payload.title.trim() || CLEANING_VENTILATION_CHECKLIST_TITLE,
         dateFrom: payload.dateFrom,
         dateTo: payload.dateFrom,
-        config: current.config ?? getDefaultCleaningVentilationConfig(users),
+        config: { ...baseConfig, ventilationEnabled: payload.ventilationEnabled },
         controlPeriodicity: payload.controlPeriodicity,
       }),
     });
@@ -405,6 +462,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         onSubmit={createDocument}
         submitText="Создать"
         title="Создание документа"
+        requireTitle
       />
 
       <SettingsDialog
@@ -421,6 +479,9 @@ export function CleaningVentilationChecklistDocumentsClient({
                   settingsTarget.config,
                   templateCode
                 ),
+                ventilationEnabled:
+                  (settingsTarget.config as { ventilationEnabled?: unknown } | null)
+                    ?.ventilationEnabled !== false,
               }
             : null
         }

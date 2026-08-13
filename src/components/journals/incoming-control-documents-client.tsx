@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ellipsis, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   DateField,
@@ -86,6 +87,11 @@ type DialogState = {
   responsibleTitle: string;
   responsibleUserId: string;
   controlPeriodicity: string;
+  /**
+   * Опциональная 12-я колонка «Соответствие внешнего вида упаковки,
+   * маркировки требованиям НД» (I1 аудита) — тумблер «Добавить поля».
+   */
+  showPackagingCompliance: boolean;
 };
 
 function formatRuDate(value: string) {
@@ -114,12 +120,14 @@ function getDefaultDialogState(
   });
 
   return {
-    title: getAcceptanceDocumentTitle(templateCode),
+    // Название пустое: пользователь вводит своё (S7 аудита).
+    title: "",
     startDate: new Date().toISOString().slice(0, 10),
     expiryFieldLabel: config.expiryFieldLabel,
     responsibleTitle: config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
     responsibleUserId: config.defaultResponsibleUserId || users[0]?.id || "",
     controlPeriodicity: getDefaultControlPeriodicity(templateCode),
+    showPackagingCompliance: config.showPackagingCompliance,
   };
 }
 
@@ -131,6 +139,7 @@ function SettingsDialog({
   initial,
   users,
   showExpiryLabelChoice,
+  requireTitle,
   onSubmit,
 }: {
   open: boolean;
@@ -146,15 +155,19 @@ function SettingsDialog({
    * incoming_control-grid.png).
    */
   showExpiryLabelChoice: boolean;
+  /** Создание: название обязательно и приходит пустым (S7 аудита). */
+  requireTitle?: boolean;
   onSubmit: (value: DialogState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setState(initial);
     setSubmitting(false);
+    setTitleError("");
   }, [initial, open]);
 
   return (
@@ -166,8 +179,13 @@ function SettingsDialog({
         <div className={cn(JOURNAL_DIALOG_BODY_CLASS, JOURNAL_DIALOG_FIELDS_CLASS)}>
           <FloatingInputField
             label="Название документа"
+            placeholder="Введите название документа"
             value={state.title}
-            onChange={(value) => setState({ ...state, title: value })}
+            onChange={(value) => {
+              setState({ ...state, title: value });
+              if (titleError) setTitleError("");
+            }}
+            error={titleError || undefined}
           />
           <DateField
             label="Дата начала"
@@ -200,6 +218,26 @@ function SettingsDialog({
               </div>
             </FloatingLabelField>
           ) : null}
+          {/* «Добавить поля» — тумблер опциональной 12-й колонки таблицы
+              (I1 аудита); по умолчанию выключен, как на эталоне. */}
+          <FloatingLabelField label="Добавить поля">
+            <div className="flex items-start justify-between gap-4 pt-2">
+              <div className="min-w-0 text-[14px] leading-[1.35] text-[#0b1024]">
+                «Соответствие внешнего вида упаковки, маркировки требованиям НД»
+              </div>
+              <Switch
+                checked={state.showPackagingCompliance}
+                onCheckedChange={(value) =>
+                  setState((current) => ({
+                    ...current,
+                    showPackagingCompliance: value === true,
+                  }))
+                }
+                className="mt-0.5 shrink-0"
+                aria-label="Соответствие внешнего вида упаковки, маркировки требованиям НД"
+              />
+            </div>
+          </FloatingLabelField>
           <PositionEmployeePicker
             users={users}
             value={{
@@ -230,6 +268,11 @@ function SettingsDialog({
               type="button"
               disabled={submitting}
               onClick={async () => {
+                if (requireTitle && !state.title.trim()) {
+                  setTitleError("Поле не заполнено");
+                  return;
+                }
+                setTitleError("");
                 setSubmitting(true);
                 try {
                   await onSubmit(state);
@@ -301,13 +344,14 @@ export function IncomingControlDocumentsClient({
     const config = {
       ...buildConfigFromPayload({ ...payload, responsibleUserId }, true),
       expiryFieldLabel: payload.expiryFieldLabel,
+      showPackagingCompliance: payload.showPackagingCompliance,
     };
     const response = await fetch("/api/journal-documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         templateCode,
-        title: payload.title.trim() || defaultDocumentTitle,
+        title: payload.title.trim(),
         dateFrom: payload.startDate,
         dateTo: payload.startDate,
         responsibleTitle: payload.responsibleTitle,
@@ -337,6 +381,7 @@ export function IncomingControlDocumentsClient({
         config: {
           ...current,
           expiryFieldLabel: payload.expiryFieldLabel,
+          showPackagingCompliance: payload.showPackagingCompliance,
           defaultResponsibleTitle: payload.responsibleTitle || null,
           defaultResponsibleUserId: payload.responsibleUserId || null,
         },
@@ -501,6 +546,7 @@ export function IncomingControlDocumentsClient({
         initial={createState}
         users={users}
         showExpiryLabelChoice={!isProductAcceptance}
+        requireTitle
         onSubmit={createDocument}
       />
 
@@ -528,6 +574,7 @@ export function IncomingControlDocumentsClient({
                       settingsDocument.config,
                       templateCode
                     ),
+                    showPackagingCompliance: config.showPackagingCompliance,
                   };
                 })(),
               }

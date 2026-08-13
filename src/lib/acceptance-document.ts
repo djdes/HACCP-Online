@@ -104,6 +104,16 @@ export type AcceptanceDocumentConfig = {
   suppliers: string[];
   expiryFieldLabel: "expiry_deadline" | "shelf_life";
   showPackagingComplianceField: boolean;
+  /**
+   * Опциональная 12-я колонка таблицы ПРИЁМКИ ПРОДУКЦИИ (incoming_control):
+   * «Соответствие внешнего вида упаковки, маркировки требованиям НД»
+   * (I1 аудита). На эталоне это тумблер «Добавить поля» в диалоге
+   * создания, выключенный по умолчанию.
+   *
+   * Не путать с `showPackagingComplianceField` — тот управляет legacy-полем
+   * формы журнала входного контроля СЫРЬЯ.
+   */
+  showPackagingCompliance: boolean;
   defaultResponsibleTitle: string | null;
   defaultResponsibleUserId: string | null;
 };
@@ -297,6 +307,7 @@ export function getAcceptanceDocumentDefaultConfig(
     suppliers: [],
     expiryFieldLabel: "expiry_deadline",
     showPackagingComplianceField: true,
+    showPackagingCompliance: false,
     defaultResponsibleTitle: null,
     defaultResponsibleUserId,
   };
@@ -404,6 +415,7 @@ export function buildAcceptanceDocumentConfigFromData(
     suppliers,
     expiryFieldLabel: "expiry_deadline",
     showPackagingComplianceField: true,
+    showPackagingCompliance: false,
     defaultResponsibleTitle: responsibleTitle || null,
     defaultResponsibleUserId: responsibleUserId || null,
   };
@@ -442,6 +454,7 @@ export function normalizeAcceptanceDocumentConfig(
       typeof record.showPackagingComplianceField === "boolean"
         ? record.showPackagingComplianceField
         : true,
+    showPackagingCompliance: record.showPackagingCompliance === true,
     defaultResponsibleUserId:
       defaultResponsibleUserId || fallback.defaultResponsibleUserId,
     defaultResponsibleTitle: defaultResponsibleTitle || null,
@@ -523,6 +536,27 @@ export const INCOMING_CONTROL_COLUMNS = [
   "Корректирующие действия для забракованного товара",
   "Ответственный",
 ] as const;
+
+/** Подпись опциональной 12-й колонки (config.showPackagingCompliance). */
+export const INCOMING_CONTROL_PACKAGING_COLUMN =
+  "Соответствие внешнего вида упаковки, маркировки требованиям НД";
+
+/**
+ * Колонки таблицы приёмки продукции с учётом опциональной 12-й:
+ * она встаёт СРАЗУ ПОСЛЕ «Соответствие товара сопроводительной
+ * документации», как на эталоне.
+ */
+export function getIncomingControlColumns(
+  showPackagingCompliance: boolean
+): string[] {
+  const columns: string[] = [...INCOMING_CONTROL_COLUMNS];
+  if (!showPackagingCompliance) return columns;
+  const anchor = columns.indexOf(
+    "Соответствие товара сопроводительной документации"
+  );
+  columns.splice(anchor + 1, 0, INCOMING_CONTROL_PACKAGING_COLUMN);
+  return columns;
+}
 
 /** Значения 10 колонок строки (без «Ответственный» — он резолвится по users). */
 export function getIncomingControlRowValues(row: AcceptanceRow) {

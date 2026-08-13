@@ -742,7 +742,7 @@ export function PerishableRejectionDocumentClient({
               <col style={{ width: "10%" }} />
               <col style={{ width: "9%" }} />
               <col style={{ width: "8%" }} />
-              <col style={{ width: "5%" }} />
+              {config.showNote ? <col style={{ width: "5%" }} /> : null}
             </colgroup>
             <thead>
               <tr>
@@ -783,7 +783,11 @@ export function PerishableRejectionDocumentClient({
                 <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
                   Ответственное лицо (ФИО, должность)
                 </th>
-                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Примечание</th>
+                {/* «Примечание» — опциональная колонка состава таблицы
+                    (тумблер в диалоге создания, P2 аудита). */}
+                {config.showNote ? (
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>Примечание</th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -796,7 +800,7 @@ export function PerishableRejectionDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     <Checkbox checked={false} disabled />
                   </td>
-                  {Array.from({ length: 11 }, (_, index) => (
+                  {Array.from({ length: config.showNote ? 11 : 10 }, (_, index) => (
                     <td
                       key={index}
                       className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}
@@ -958,17 +962,19 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
-                      value={row.note}
-                      onChange={(e) =>
-                        updateRow(row.id, { note: e.target.value })
-                      }
-                      onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
-                      disabled={readOnly}
-                    />
-                  </td>
+                  {config.showNote ? (
+                    <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                      <Input
+                        value={row.note}
+                        onChange={(e) =>
+                          updateRow(row.id, { note: e.target.value })
+                        }
+                        onBlur={flushConfigSave}
+                        className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
+                        disabled={readOnly}
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

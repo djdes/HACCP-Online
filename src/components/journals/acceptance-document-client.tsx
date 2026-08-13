@@ -57,7 +57,6 @@ import {
 import {
   ACCEPTANCE_DECISION_FULL_LABELS,
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
-  INCOMING_CONTROL_COLUMNS,
   createAcceptanceRow,
   getIncomingControlRowValues,
   normalizeAcceptanceDocumentConfig,
@@ -67,6 +66,8 @@ import {
   getExpiryFieldDisplayLabel,
   TRANSPORT_LABELS,
   COMPLIANCE_LABELS,
+  INCOMING_CONTROL_PACKAGING_COLUMN,
+  getIncomingControlColumns,
   ORGANOLEPTIC_LABELS,
   type AcceptanceDocumentConfig,
   type AcceptanceRow,
@@ -966,6 +967,45 @@ function IncomingControlRowDialog(props: {
               className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
             />
           </div>
+
+          {/* Опциональная 12-я колонка: показывается только когда
+              включён тумблер «Добавить поля» (I1 аудита). */}
+          {props.config.showPackagingCompliance ? (
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                {INCOMING_CONTROL_PACKAGING_COLUMN}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["compliant", "Соответствует", "#136b2a", "#ecfdf5"],
+                    ["non_compliant", "Не соответствует", "#d2453d", "#fff4f2"],
+                  ] as const
+                ).map(([value, label, fg, bg]) => {
+                  const active = row.packagingCompliance === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setValue("packagingCompliance", value)}
+                      className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors duration-150 ${
+                        active
+                          ? "border-transparent text-white"
+                          : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                      }`}
+                      style={
+                        active
+                          ? { backgroundColor: fg, color: "white" }
+                          : { backgroundColor: bg, color: fg, borderColor: bg }
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
@@ -1920,6 +1960,11 @@ export function AcceptanceDocumentClient(props: Props) {
   // тип журнала определяем по разрешённому коду шаблона, а не по URL-сегменту.
   const isProductAcceptance =
     resolveJournalCodeAlias(routeCode) === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
+  /** Заголовки v2-таблицы с учётом опциональной 12-й колонки (I1). */
+  const incomingControlColumns = useMemo(
+    () => getIncomingControlColumns(config.showPackagingCompliance),
+    [config.showPackagingCompliance]
+  );
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
   const isClosed = props.status === "closed";
   const responsibleTitle = config.defaultResponsibleTitle || "";
@@ -2379,6 +2424,7 @@ export function AcceptanceDocumentClient(props: Props) {
                 <col className="w-[8%]" />
                 <col className="w-[10%]" />
                 <col className="w-[11%]" />
+                {config.showPackagingCompliance ? <col className="w-[10%]" /> : null}
                 <col className="w-[6.5%]" />
                 <col className="w-[11%]" />
                 <col className="w-[11%]" />
@@ -2392,7 +2438,7 @@ export function AcceptanceDocumentClient(props: Props) {
                       disabled={displayedRows.length === 0 || isClosed}
                     />
                   </th>
-                  {INCOMING_CONTROL_COLUMNS.map((column) => (
+                  {incomingControlColumns.map((column) => (
                     <th
                       key={column}
                       className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center text-[11.5px] font-semibold leading-[1.25]`}
@@ -2437,6 +2483,11 @@ export function AcceptanceDocumentClient(props: Props) {
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.batchInfo}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.productTemperature}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.documentCompliance}</td>
+                      {config.showPackagingCompliance ? (
+                        <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>
+                          {COMPLIANCE_LABELS[row.packagingCompliance]}
+                        </td>
+                      ) : null}
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center font-semibold leading-tight`}>{values.acceptanceDecision}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.correctiveActions}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{getResponsibleLabel(row, props.users)}</td>
@@ -2445,7 +2496,10 @@ export function AcceptanceDocumentClient(props: Props) {
                 })}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={12} className={`${GRID_CELL_CLASS} p-8 text-center leading-tight text-[#80849a]`}>
+                    <td
+                      colSpan={incomingControlColumns.length + 1}
+                      className={`${GRID_CELL_CLASS} p-8 text-center leading-tight text-[#80849a]`}
+                    >
                       Строк пока нет
                     </td>
                   </tr>
@@ -2454,7 +2508,10 @@ export function AcceptanceDocumentClient(props: Props) {
                   <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>
                     <Checkbox disabled />
                   </td>
-                  <td colSpan={11} className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`} />
+                  <td
+                    colSpan={incomingControlColumns.length}
+                    className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}
+                  />
                 </tr>
               </tbody>
             </table>

@@ -46,6 +46,8 @@ export function JournalTopBar(props: {
    * respons-раскладка) остаётся общим.
    */
   createSlot?: React.ReactNode;
+  /** uv_lamp_runtime: следующий свободный номер установки (U7 аудита). */
+  nextLampNumber?: string;
 }) {
   return (
     // `sm:items-center` — когда длинный H1 («Журнал бракеража скоропортящейся
@@ -76,6 +78,7 @@ export function JournalTopBar(props: {
             triggerClassName="h-11 w-full gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0] sm:w-auto"
             triggerLabel="Создать документ"
             triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
+            nextLampNumber={props.nextLampNumber}
           />
         )}
       </div>
@@ -141,6 +144,7 @@ export function EmptyDocumentsState({
   templateCode,
   templateName,
   users,
+  nextLampNumber,
 }: {
   label?: string;
   description?: string;
@@ -153,6 +157,7 @@ export function EmptyDocumentsState({
   templateCode?: string;
   templateName?: string;
   users?: { id: string; name: string; role: string }[];
+  nextLampNumber?: string;
 } = {}) {
   const button =
     action ??
@@ -164,6 +169,7 @@ export function EmptyDocumentsState({
         triggerClassName={EMPTY_STATE_CREATE_BUTTON_CLASS}
         triggerLabel="Создать документ"
         triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
+        nextLampNumber={nextLampNumber}
       />
     ) : null);
 

@@ -274,6 +274,23 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
       : "Журнал учета работы УФ бактерицидной установки";
   const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
 
+  /**
+   * Следующий свободный номер бактерицидной установки (U7 аудита).
+   * Раньше диалог создания всегда предлагал «1», и вторая установка
+   * создавалась дублем первой. Берём max(№) по документам журнала + 1;
+   * нечисловые номера («1а») игнорируются при подсчёте максимума.
+   */
+  const nextLampNumber = useMemo(() => {
+    const maxNumber = props.documents.reduce((max, document) => {
+      const parsed = Number.parseInt(
+        normalizeUvRuntimeDocumentConfig(document.config).lampNumber,
+        10
+      );
+      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
+    }, 0);
+    return String(maxNumber + 1);
+  }, [props.documents]);
+
   async function handleDelete(document: DocumentItem, resolvedTitle: string) {
     await deleteDocument({
       documentId: document.id,
@@ -309,6 +326,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
         templateName={props.templateName}
         users={props.users}
         documentCount={props.documents.length}
+        nextLampNumber={nextLampNumber}
       />
 
       <JournalTabs activeTab={props.activeTab} templateCode={routeCode} />
@@ -319,6 +337,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
             templateCode={props.templateCode}
             templateName={props.templateName}
             users={props.users}
+            nextLampNumber={nextLampNumber}
           />
         )}
 

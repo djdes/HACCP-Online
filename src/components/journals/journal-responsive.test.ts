@@ -16,6 +16,7 @@ import {
   JOURNAL_DIALOG_FIELD_CONTROL_CLASS,
   JOURNAL_DIALOG_FIELD_LABEL_CLASS,
   JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
+  JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_HINT_CLASS,
   JOURNAL_DIALOG_LABEL_CLASS,
@@ -119,13 +120,19 @@ test("document rhythm tokens follow the canonical block order spacing", () => {
 test("dialog grid keeps exactly two widths and one typography scale", () => {
   // Эталон (cleaning-02b-filled-dialog.png, cleaning-05-add-room-dialog.png):
   // компактное окно, шапка с линией, заголовок ~18px, поля с подписью сверху.
-  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /sm:max-w-\[560px\]/);
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /sm:max-w-\[480px\]/);
   assert.match(JOURNAL_DIALOG_CONTENT_WIDE_CLASS, /sm:max-w-\[640px\]/);
   // Оба размера — одна и та же оболочка, различие только в ширине.
   assert.equal(
-    JOURNAL_DIALOG_CONTENT_CLASS.replace("sm:max-w-[560px]", ""),
-    JOURNAL_DIALOG_CONTENT_WIDE_CLASS.replace("sm:max-w-[640px]", ""),
+    JOURNAL_DIALOG_CONTENT_CLASS.replace(" sm:max-w-[480px]", ""),
+    JOURNAL_DIALOG_CONTENT_WIDE_CLASS.replace(" sm:max-w-[640px]", ""),
   );
+  // Крестик закрытия — крупный (24px) и чёрный, как на эталоне (S6).
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /dialog-close\]>svg\]:size-6/);
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /dialog-close\]\]:text-\[#0b1024\]/);
+  // Единственный разделитель окна — линия ПОД заголовком; над подвалом её нет.
+  assert.doesNotMatch(JOURNAL_DIALOG_FOOTER_CLASS, /border-t/);
+  assert.match(JOURNAL_DIALOG_FOOTER_CLASS, /\bshrink-0\b/);
   assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /\bp-0\b/);
   // Окно не выше 90vh и делится на фикс-шапку + скроллящееся тело,
   // иначе на 900px-экранах кнопка «Создать» уезжает за край без скролла.

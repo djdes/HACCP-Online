@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +31,7 @@ import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_ERROR_CLASS,
+  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -32,24 +41,19 @@ import {
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   getColdEquipmentCreatePeriodBounds,
-  getColdEquipmentDocumentTitle,
 } from "@/lib/cold-equipment-document";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
   getClimateCreatePeriodBounds,
-  getClimateDocumentTitle,
 } from "@/lib/climate-document";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
-  CLEANING_PAGE_TITLE,
   defaultCleaningDocumentConfig,
   getCleaningCreatePeriodBounds,
-  getCleaningDocumentTitle,
 } from "@/lib/cleaning-document";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   getFinishedProductCreatePeriodBounds,
-  getFinishedProductDocumentTitle,
 } from "@/lib/finished-product-document";
 import {
   ACCEPTANCE_DOCUMENT_TEMPLATE_CODE,
@@ -57,13 +61,10 @@ import {
 } from "@/lib/acceptance-document";
 import {
   getRegisterDocumentCreatePeriodBounds,
-  getRegisterDocumentTitle,
   isRegisterDocumentTemplate,
 } from "@/lib/register-document";
 import {
-  getHealthDocumentTitle,
   getHygieneCreatePeriodBounds,
-  getHygieneDocumentTitle,
   getHygienePositionLabel,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
@@ -73,7 +74,6 @@ import { CreateDocumentEmptyState } from "@/components/journals/create-document-
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import {
   getTrackedDocumentCreateMode,
-  getTrackedDocumentTitle,
   isSourceStyleTrackedTemplate,
 } from "@/lib/tracked-document";
 import {
@@ -83,11 +83,9 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import {
   MED_BOOK_TEMPLATE_CODE,
-  MED_BOOK_DOCUMENT_TITLE,
 } from "@/lib/med-book-document";
 import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
-  PERISHABLE_REJECTION_DOCUMENT_TITLE,
   getPerishableRejectionCreatePeriodBounds,
 } from "@/lib/perishable-rejection-document";
 import {
@@ -97,7 +95,6 @@ import {
 } from "@/lib/product-writeoff-document";
 import {
   STAFF_TRAINING_TEMPLATE_CODE,
-  STAFF_TRAINING_DOCUMENT_TITLE,
   getStaffTrainingCreatePeriodBounds,
 } from "@/lib/staff-training-document";
 import {
@@ -106,12 +103,10 @@ import {
 } from "@/lib/fryer-oil-document";
 import {
   EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
-  EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
   getMaintenanceCreatePeriodBounds,
 } from "@/lib/equipment-maintenance-document";
 import {
   EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
-  EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
   getCalibrationCreatePeriodBounds,
 } from "@/lib/equipment-calibration-document";
 import {
@@ -123,9 +118,14 @@ import {
   EQUIPMENT_CLEANING_VARIANT_LABELS,
   getDefaultEquipmentCleaningConfig,
   getEquipmentCleaningCreatePeriodBounds,
-  getEquipmentCleaningDocumentTitle,
   type EquipmentCleaningFieldVariant,
 } from "@/lib/equipment-cleaning-document";
+
+/**
+ * «Добавлять пустых строк при печати» — тот же набор значений, что в
+ * «Настройках журнала» здоровья (`health-documents-client.tsx`).
+ */
+const PRINT_EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 interface Props {
   templateCode: string;
@@ -140,15 +140,20 @@ interface Props {
   triggerClassName?: string;
   triggerLabel?: string;
   triggerIcon?: ReactNode;
+  /**
+   * uv_lamp_runtime: следующий свободный номер бактерицидной установки.
+   * Считается на списке документов журнала — диалог сам список не видит.
+   */
+  nextLampNumber?: string;
 }
 
 export function CreateDocumentDialog({
   templateCode,
-  templateName,
   users,
   triggerClassName,
   triggerLabel = "Создать документ",
   triggerIcon,
+  nextLampNumber = "1",
 }: Props) {
   const router = useRouter();
   const formId = useId();
@@ -214,39 +219,15 @@ export function CreateDocumentDialog({
    */
   const showDateFields = !isColdEquipmentJournal;
 
-  const [title, setTitle] = useState(
-    templateCode === "hygiene"
-      ? getHygieneDocumentTitle()
-      : templateCode === "health_check"
-        ? getHealthDocumentTitle()
-        : templateCode === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE
-          ? getColdEquipmentDocumentTitle()
-          : templateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-            ? getClimateDocumentTitle()
-            : templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-              ? getCleaningDocumentTitle()
-              : templateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE
-                ? getFinishedProductDocumentTitle()
-                : templateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
-                  ? EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE
-                : templateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
-                  ? EQUIPMENT_CALIBRATION_DOCUMENT_TITLE
-                : templateCode === STAFF_TRAINING_TEMPLATE_CODE
-                  ? STAFF_TRAINING_DOCUMENT_TITLE
-                : templateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
-                  ? PERISHABLE_REJECTION_DOCUMENT_TITLE
-                : templateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE
-                  ? PRODUCT_WRITEOFF_DOCUMENT_TITLE
-                : templateCode === EQUIPMENT_CLEANING_TEMPLATE_CODE
-                  ? getEquipmentCleaningDocumentTitle()
-                : templateCode === MED_BOOK_TEMPLATE_CODE
-                  ? MED_BOOK_DOCUMENT_TITLE
-                : isSourceStyleTrackedJournal
-                  ? getTrackedDocumentTitle(templateCode)
-                  : isRegisterDocumentTemplate(templateCode)
-                    ? getRegisterDocumentTitle(templateCode)
-                    : templateName
-  );
+  /**
+   * Название документа — ПУСТОЕ поле с плейсхолдером «Введите название
+   * документа» (S7 аудита). Раньше сюда подставлялось имя журнала, и
+   * все документы в списке назывались одинаково; на эталоне поле пустое
+   * и обязательное — при пустом сабмите рамка краснеет и под ней
+   * появляется «Поле не заполнено».
+   */
+  const [title, setTitle] = useState("");
+  const [titleError, setTitleError] = useState("");
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
   const [responsibleUserId, setResponsibleUserId] = useState("");
@@ -258,7 +239,19 @@ export function CreateDocumentDialog({
    */
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [trackedAreaName, setTrackedAreaName] = useState("");
-  const [trackedLampNumber, setTrackedLampNumber] = useState("1");
+  /**
+   * Номер бактерицидной установки — СЛЕДУЮЩИЙ СВОБОДНЫЙ (U7 аудита).
+   * Раньше здесь всегда стояла «1», и вторая установка создавалась
+   * дублем. `nextLampNumber` считает список документов журнала
+   * (`uv-lamp-runtime-documents-client.tsx`), сюда приходит готовым.
+   */
+  const [trackedLampNumber, setTrackedLampNumber] = useState(nextLampNumber);
+  /**
+   * «Добавлять пустых строк при печати» (Z1 аудита) — та же настройка
+   * `config.printEmptyRows`, что живёт в «Настройках журнала» гигиены и
+   * журнала здоровья, только выведенная сразу в создание документа.
+   */
+  const [printEmptyRows, setPrintEmptyRows] = useState("0");
   const [fpFieldNameMode, setFpFieldNameMode] = useState<"dish" | "semi">("dish");
   const [fpInspectorMode, setFpInspectorMode] = useState<"inspector_name" | "commission_signatures">(
     "inspector_name"
@@ -267,6 +260,7 @@ export function CreateDocumentDialog({
   const [fpShowCorrectiveAction, setFpShowCorrectiveAction] = useState(false);
   const [fpShowOxygenLevel, setFpShowOxygenLevel] = useState(false);
   const [fpShowCourierTime, setFpShowCourierTime] = useState(false);
+  const [fpShowFooterNote, setFpShowFooterNote] = useState(false);
   const [fpFooterNote, setFpFooterNote] = useState("");
   const [medBookIncludeVaccinations, setMedBookIncludeVaccinations] = useState(true);
   const [productWriteoffActNumber, setProductWriteoffActNumber] = useState("1");
@@ -274,6 +268,11 @@ export function CreateDocumentDialog({
   const [equipmentCleaningVariant, setEquipmentCleaningVariant] =
     useState<EquipmentCleaningFieldVariant>("rinse_temperature");
   const [cleaningVentilation] = useState(true);
+  /** Бракераж скоропортящейся: колонка «Примечание» в составе таблицы (P2). */
+  const [perishableShowNote, setPerishableShowNote] = useState(true);
+  /** Приёмка продукции: опциональная колонка «Соответствие внешнего вида
+   *  упаковки, маркировки требованиям НД» (I1 аудита). */
+  const [acceptanceShowPackaging, setAcceptanceShowPackaging] = useState(false);
   // «Периодичность контроля» — редактируемая с самого создания (эталон
   // печатает её в шапке документа). Дефолт берём из реестра по коду журнала.
   const [controlPeriodicity, setControlPeriodicity] = useState(() =>
@@ -282,6 +281,15 @@ export function CreateDocumentDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Название обязательно везде, где поле показано (у uv_lamp_runtime
+    // заголовок собирается из номера установки и участка).
+    if (!isUvRuntimeJournal && !title.trim()) {
+      setTitleError("Поле не заполнено");
+      setError("");
+      return;
+    }
+    setTitleError("");
     setIsSubmitting(true);
     setError("");
 
@@ -312,7 +320,11 @@ export function CreateDocumentDialog({
           responsibleUserId: selectedResponsibleUser || undefined,
           responsibleTitle: responsibleTitle || undefined,
           controlPeriodicity,
-          config: isCleaningJournal
+          config: isStaffJournal
+            ? { printEmptyRows: Math.max(0, Number(printEmptyRows) || 0) }
+            : isPerishableRejectionJournal
+            ? { showNote: perishableShowNote }
+            : isCleaningJournal
             ? {
                 ...defaultCleaningDocumentConfig(users),
                 ventilationEnabled: cleaningVentilation,
@@ -348,7 +360,7 @@ export function CreateDocumentDialog({
             : isAcceptanceJournal
               ? {
                   ...getAcceptanceDocumentDefaultConfig(users),
-                  showPackagingComplianceField: fpShowCorrectiveAction,
+                  showPackagingCompliance: acceptanceShowPackaging,
                   defaultResponsibleTitle: responsibleTitle || null,
                   defaultResponsibleUserId: selectedResponsibleUser || null,
                 }
@@ -360,7 +372,7 @@ export function CreateDocumentDialog({
                   showCorrectiveAction: fpShowCorrectiveAction,
                   showOxygenLevel: fpShowOxygenLevel,
                   showCourierTime: fpShowCourierTime,
-                  footerNote: fpFooterNote.trim(),
+                  footerNote: fpShowFooterNote ? fpFooterNote.trim() : "",
                 }
             : templateCode === FRYER_OIL_TEMPLATE_CODE
               ? defaultFryerOilDocumentConfig()
@@ -482,6 +494,11 @@ export function CreateDocumentDialog({
     );
   }
 
+  /*
+   * Холодильное оборудование: на эталоне подпись селекта полная —
+   * «Должность ответственного за снятие показателей» (X5 аудита);
+   * у нас хвост был потерян.
+   */
   const responsiblePicker = (
     <PositionEmployeePicker
       users={users}
@@ -490,10 +507,38 @@ export function CreateDocumentDialog({
         setResponsibleTitle(next.positionTitle);
         setResponsibleUserId(next.userId);
       }}
-      positionLabel="Должность ответственного"
+      positionLabel={
+        isColdEquipmentJournal
+          ? "Должность ответственного за снятие показателей"
+          : "Должность ответственного"
+      }
       employeeLabel="Ответственный"
       variant="floating"
     />
+  );
+
+  /** Тумблер состава документа: подпись + Switch справа, как на эталоне. */
+  const fieldToggle = (
+    key: string,
+    label: string,
+    checked: boolean,
+    onChange: (value: boolean) => void,
+    hint?: string
+  ) => (
+    <div key={key} className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <div className="text-[14px] leading-[1.35] text-[#0b1024]">{label}</div>
+        {hint ? (
+          <div className="mt-1 text-[12px] leading-[1.35] text-[#8a8fa3]">{hint}</div>
+        ) : null}
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={(value) => onChange(value === true)}
+        className="mt-0.5 shrink-0"
+        aria-label={label}
+      />
+    </div>
   );
 
   const periodicityAndSubmit = (
@@ -541,10 +586,31 @@ export function CreateDocumentDialog({
                 <FloatingInputField
                   id="doc-title"
                   label="Название документа"
+                  placeholder="Введите название документа"
                   value={title}
-                  onChange={setTitle}
-                  required
+                  onChange={(value) => {
+                    setTitle(value);
+                    if (titleError) setTitleError("");
+                  }}
+                  error={titleError || undefined}
                 />
+              )}
+
+              {isStaffJournal && (
+                <FloatingLabelField label="Добавлять пустых строк при печати">
+                  <Select value={printEmptyRows} onValueChange={setPrintEmptyRows}>
+                    <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRINT_EMPTY_ROWS_OPTIONS.map((count) => (
+                        <SelectItem key={count} value={String(count)}>
+                          {count}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FloatingLabelField>
               )}
 
               {isMedBookJournal && (
@@ -569,6 +635,27 @@ export function CreateDocumentDialog({
                     if (isEquipmentCleaningJournal) setDateTo(value);
                   }}
                 />
+              )}
+
+              {isPerishableRejectionJournal && (
+                <>
+                  <DateField
+                    id="perishable-date-to"
+                    label="Дата окончания"
+                    value={dateTo}
+                    onChange={setDateTo}
+                  />
+                  <FloatingLabelField label="Добавить поля">
+                    <div className="flex flex-col gap-3 pt-2">
+                      {fieldToggle(
+                        "perishable-note",
+                        "«Примечание»",
+                        perishableShowNote,
+                        setPerishableShowNote
+                      )}
+                    </div>
+                  </FloatingLabelField>
+                </>
               )}
 
               {(isEquipmentMaintenanceJournal || isEquipmentCalibrationJournal) && (
@@ -645,16 +732,16 @@ export function CreateDocumentDialog({
               {showResponsiblePicker && responsiblePicker}
 
               {isAcceptanceJournal && (
-                <label className="flex items-center gap-3 text-[14px] text-[#3c4053]">
-                  <Checkbox
-                    checked={fpShowCorrectiveAction}
-                    onCheckedChange={(checked) =>
-                      setFpShowCorrectiveAction(checked === true)
-                    }
-                  />
-                  Добавить «Соответствие внешнего вида упаковки, маркировки
-                  требованиям НД»
-                </label>
+                <FloatingLabelField label="Добавить поля">
+                  <div className="flex flex-col gap-3 pt-2">
+                    {fieldToggle(
+                      "acceptance-packaging",
+                      "«Соответствие внешнего вида упаковки, маркировки требованиям НД»",
+                      acceptanceShowPackaging,
+                      setAcceptanceShowPackaging
+                    )}
+                  </div>
+                </FloatingLabelField>
               )}
 
               {periodicityAndSubmit}
@@ -664,16 +751,22 @@ export function CreateDocumentDialog({
               <FloatingInputField
                 id="doc-title-main"
                 label="Название документа"
+                placeholder="Введите название документа"
                 value={title}
-                onChange={setTitle}
-                required
+                onChange={(value) => {
+                  setTitle(value);
+                  if (titleError) setTitleError("");
+                }}
+                error={titleError || undefined}
               />
 
               {showDateFields && (
                 <>
                   <DateField
                     id="doc-from"
-                    label="Дата начала"
+                    label={
+                      isGeneralCleaningJournal ? "Дата документа" : "Дата начала"
+                    }
                     value={dateFrom}
                     onChange={setDateFrom}
                   />
@@ -724,44 +817,47 @@ export function CreateDocumentDialog({
                     </div>
                   </FloatingLabelField>
 
+                  {/* Тумблеры вместо чекбоксов (F4) и РАЗДЕЛЁННЫЕ опции
+                      «Т ºС внутри продукта» / «Корректирующие действия»
+                      (F5): раньше первый чекбокс включал только
+                      showProductTemp, а подпись обещала обе колонки, а
+                      второй назывался «Примечание», но писал в
+                      showCorrectiveAction — колонка примечаний при этом
+                      не появлялась вовсе. Теперь каждый тумблер = ровно
+                      одна колонка таблицы. */}
                   <FloatingLabelField label="Добавить поля">
-                    <div className="flex flex-col gap-2 pt-1 text-[14px] text-[#0b1024]">
-                      <label className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={fpShowProductTemp}
-                          onCheckedChange={(checked) =>
-                            setFpShowProductTemp(checked === true)
-                          }
-                        />
-                        Т°С внутри продукта и корректирующие действия
-                      </label>
-                      <label className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={fpShowCorrectiveAction}
-                          onCheckedChange={(checked) =>
-                            setFpShowCorrectiveAction(checked === true)
-                          }
-                        />
-                        Примечание
-                      </label>
-                      <label className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={fpShowOxygenLevel}
-                          onCheckedChange={(checked) =>
-                            setFpShowOxygenLevel(checked === true)
-                          }
-                        />
-                        Остаточный уровень кислорода, % об.
-                      </label>
-                      <label className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={fpShowCourierTime}
-                          onCheckedChange={(checked) =>
-                            setFpShowCourierTime(checked === true)
-                          }
-                        />
-                        Время передачи блюд курьеру
-                      </label>
+                    <div className="flex flex-col gap-3 pt-2">
+                      {fieldToggle(
+                        "fp-temp",
+                        "«Т ºС внутри продукта»",
+                        fpShowProductTemp,
+                        setFpShowProductTemp
+                      )}
+                      {fieldToggle(
+                        "fp-corrective",
+                        "«Корректирующие действия»",
+                        fpShowCorrectiveAction,
+                        setFpShowCorrectiveAction
+                      )}
+                      {fieldToggle(
+                        "fp-note",
+                        "«Примечание»",
+                        fpShowFooterNote,
+                        setFpShowFooterNote,
+                        "Печатается текстом под таблицей"
+                      )}
+                      {fieldToggle(
+                        "fp-oxygen",
+                        "«Остаточный уровень кислорода, % об.»",
+                        fpShowOxygenLevel,
+                        setFpShowOxygenLevel
+                      )}
+                      {fieldToggle(
+                        "fp-courier",
+                        "«Время передачи блюд курьеру»",
+                        fpShowCourierTime,
+                        setFpShowCourierTime
+                      )}
                     </div>
                   </FloatingLabelField>
 
@@ -790,12 +886,14 @@ export function CreateDocumentDialog({
                     </div>
                   </FloatingLabelField>
 
-                  <FloatingInputField
-                    label="Примечание"
-                    value={fpFooterNote}
-                    onChange={setFpFooterNote}
-                    placeholder="Печатается под таблицей"
-                  />
+                  {fpShowFooterNote && (
+                    <FloatingInputField
+                      label="Примечание"
+                      value={fpFooterNote}
+                      onChange={setFpFooterNote}
+                      placeholder="Печатается под таблицей"
+                    />
+                  )}
                 </>
               )}
 

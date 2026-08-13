@@ -30,6 +30,12 @@ export type PerishableRejectionConfig = {
   productLists: Array<{ id: string; name: string; items: string[] }>;
   manufacturers: string[];
   suppliers: string[];
+  /**
+   * Колонка «Примечание» в составе таблицы (P2 аудита — настройки состава
+   * как у бракеража готовой продукции). По умолчанию включена: старые
+   * документы, у которых поля в config нет, ничего не теряют.
+   */
+  showNote: boolean;
 };
 
 function createId(prefix: string) {
@@ -84,6 +90,7 @@ export function getDefaultPerishableRejectionConfig(): PerishableRejectionConfig
     ],
     manufacturers: ['ООО "Ромашка"'],
     suppliers: ["ИП Бубнов Б.Б."],
+    showNote: true,
   };
 }
 
@@ -139,6 +146,8 @@ export function normalizePerishableRejectionConfig(
           .map((item) => (item as string).trim())
           .filter((item) => item.length > 0)
       : defaults.suppliers,
+    showNote:
+      typeof record.showNote === "boolean" ? record.showNote : defaults.showNote,
   };
 }
 
