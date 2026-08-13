@@ -187,18 +187,67 @@ function parseListImportItems(rows: unknown[][]) {
     .filter((value, index, list) => list.indexOf(value) === index);
 }
 
-function downloadAcceptanceImportTemplate() {
-  const header =
-    "Дата поступления;Время поступления;Наименование;Производитель;Поставщик;Условия транспортировки;Соответствие упаковки;Результаты орг. оценки;Предельный срок реализации, дата;Предельный срок реализации, время;Примечания";
-  const sample =
-    "11.04.2026;11:00;Гастрономия;ООО \"Агро-Юг\";ООО \"Метро\";1;1;1;11.04.2026;18:00;";
+/**
+ * Колонки шаблона импорта журнала приёмки продукции (incoming_control) —
+ * ровно те 11, что печатает бланк. Журнал приёмки СЫРЬЯ
+ * (incoming_raw_materials_control) остался на старом формате, поэтому
+ * шаблон и парсер ветвятся по `isProductAcceptance`.
+ */
+export const PRODUCT_ACCEPTANCE_IMPORT_COLUMNS = [
+  "Дата поставки",
+  "Наименование продукции",
+  "Годен до",
+  "Производитель/поставщик",
+  "ТТН, документы соответствия",
+  "Объем, номер партии, дата пр-ва",
+  "Внутр. темп-ра продукта",
+  "Соответствие товара сопроводительной документации",
+  "Принять/Отклонить (П/О)",
+  "Корректирующие действия",
+  "Ответственный",
+] as const;
+
+const RAW_MATERIALS_IMPORT_COLUMNS = [
+  "Дата поступления",
+  "Время поступления",
+  "Наименование",
+  "Производитель",
+  "Поставщик",
+  "Условия транспортировки",
+  "Соответствие упаковки",
+  "Результаты орг. оценки",
+  "Предельный срок реализации, дата",
+  "Предельный срок реализации, время",
+  "Примечания",
+] as const;
+
+/** «П» / «принять» → accept, «О» / «отклонить» → reject, пусто → "". */
+export function parseAcceptanceDecision(value: string): "" | "accept" | "reject" {
+  const normalized = normalizeImportText(value).toLowerCase();
+  if (!normalized) return "";
+  if (/^(п|принять|принято|accept|1|да)$/.test(normalized)) return "accept";
+  if (/^(о|отклонить|отклонено|reject|0|нет)$/.test(normalized)) return "reject";
+  return "";
+}
+
+function downloadAcceptanceImportTemplate(isProductAcceptance: boolean) {
+  const header = (
+    isProductAcceptance
+      ? PRODUCT_ACCEPTANCE_IMPORT_COLUMNS
+      : RAW_MATERIALS_IMPORT_COLUMNS
+  ).join(";");
+  const sample = isProductAcceptance
+    ? '11.04.2026;Гастрономия;20.04.2026;ООО "Агро-Юг" / ООО "Метро";ТТН №123 от 11.04.2026;20 кг, партия 45, 09.04.2026;+4;Соответствует;П;;Заведующий производством'
+    : '11.04.2026;11:00;Гастрономия;ООО "Агро-Юг";ООО "Метро";1;1;1;11.04.2026;18:00;';
   const blob = new Blob([[header, sample].join("\n")], {
     type: "text/csv;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "incoming-control-import-example.csv";
+  link.download = isProductAcceptance
+    ? "incoming-control-import-example.csv"
+    : "incoming-raw-materials-import-example.csv";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -1600,6 +1649,8 @@ function ImportRowsDialog(props: {
   responsibleTitle: string;
   responsibleUserId: string;
   users: User[];
+  /** true — журнал приёмки продукции (11 колонок бланка incoming_control). */
+  isProductAcceptance: boolean;
   onFileSelect: (file: File) => Promise<void>;
 }) {
   const [dragActive, setDragActive] = useState(false);
@@ -1639,24 +1690,40 @@ function ImportRowsDialog(props: {
           <div className="space-y-3 leading-7 text-[#333]">
             <p>Список должен быть в файле Excel, на первом листе и начинаться с первой строки.</p>
             <p>Столбцы должны быть в следующем формате:</p>
-            <div className="space-y-1">
-              <div>1-й столбец - дата поступления (не может быть пустым или строкой)</div>
-              <div>2-й столбец - время поступления</div>
-              <div>3-й столбец - наименование (не может быть пустым)</div>
-              <div>4-й столбец - производитель</div>
-              <div>5-й столбец - поставщик (не может быть пустым)</div>
-              <div>6-й столбец - условия транспортировки (0 - Не удовл., 1 - Удовл.)</div>
-              <div>7-й столбец - соответствие упаковки (0 - Не соотв., 1 - Соотв.)</div>
-              <div>8-й столбец - результаты орг. оценки (0 - Не удовл., 1 - Удовл.)</div>
-              <div>9-й столбец - предельный срок реализации, дата</div>
-              <div>10-й столбец - предельный срок реализации, время</div>
-              <div>11-й столбец - примечания</div>
-            </div>
+            {props.isProductAcceptance ? (
+              <div className="space-y-1">
+                <div>1-й столбец - дата поставки (не может быть пустым или строкой)</div>
+                <div>2-й столбец - наименование продукции (не может быть пустым)</div>
+                <div>3-й столбец - годен до</div>
+                <div>4-й столбец - производитель/поставщик</div>
+                <div>5-й столбец - ТТН, документы соответствия</div>
+                <div>6-й столбец - объем, номер партии, дата пр-ва</div>
+                <div>7-й столбец - внутр. темп-ра продукта</div>
+                <div>8-й столбец - соответствие товара сопроводительной документации</div>
+                <div>9-й столбец - принять/отклонить (П - принять, О - отклонить)</div>
+                <div>10-й столбец - корректирующие действия</div>
+                <div>11-й столбец - ответственный (должность)</div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div>1-й столбец - дата поступления (не может быть пустым или строкой)</div>
+                <div>2-й столбец - время поступления</div>
+                <div>3-й столбец - наименование (не может быть пустым)</div>
+                <div>4-й столбец - производитель</div>
+                <div>5-й столбец - поставщик (не может быть пустым)</div>
+                <div>6-й столбец - условия транспортировки (0 - Не удовл., 1 - Удовл.)</div>
+                <div>7-й столбец - соответствие упаковки (0 - Не соотв., 1 - Соотв.)</div>
+                <div>8-й столбец - результаты орг. оценки (0 - Не удовл., 1 - Удовл.)</div>
+                <div>9-й столбец - предельный срок реализации, дата</div>
+                <div>10-й столбец - предельный срок реализации, время</div>
+                <div>11-й столбец - примечания</div>
+              </div>
+            )}
           </div>
 
           <button
             type="button"
-            onClick={downloadAcceptanceImportTemplate}
+            onClick={() => downloadAcceptanceImportTemplate(props.isProductAcceptance)}
             className="text-[16px] text-[#5566f6] underline underline-offset-4"
           >
             Скачать пример файла
@@ -2048,7 +2115,48 @@ export function AcceptanceDocumentClient(props: Props) {
     const productsToAdd: string[] = [];
     const manufacturersToAdd: string[] = [];
     const suppliersToAdd: string[] = [];
-    const imported = dataRows.flatMap((cols, index) => {
+    /* Журнал приёмки ПРОДУКЦИИ — 11 колонок бланка incoming_control.
+       Журнал приёмки СЫРЬЯ остаётся на старом формате (ветка ниже). */
+    const importedProduct = !isProductAcceptance
+      ? []
+      : dataRows.flatMap((cols, index) => {
+          const rowNumber = index + (hasHeader ? 2 : 1);
+          const deliveryDate = parseImportDate(cols[0] || "");
+          const productName = normalizeImportText(cols[1]);
+          const shelfLifeRaw = normalizeImportText(cols[2]);
+          const shelfLifeDate = parseImportDate(shelfLifeRaw);
+          const manufacturerSupplier = normalizeImportText(cols[3]);
+
+          if (!deliveryDate)
+            errors.push(`Строка ${rowNumber}: заполните корректную дату поставки`);
+          if (!productName)
+            errors.push(`Строка ${rowNumber}: заполните наименование продукции`);
+          if (shelfLifeRaw && !shelfLifeDate)
+            errors.push(`Строка ${rowNumber}: заполните корректную дату «Годен до»`);
+          if (!deliveryDate || !productName || (shelfLifeRaw && !shelfLifeDate)) return [];
+
+          if (productName) productsToAdd.push(productName);
+          if (manufacturerSupplier) suppliersToAdd.push(manufacturerSupplier);
+
+          return [
+            createAcceptanceRow({
+              deliveryDate,
+              productName,
+              shelfLifeDate,
+              manufacturerSupplier,
+              accompanyingDocs: normalizeImportText(cols[4]),
+              batchInfo: normalizeImportText(cols[5]),
+              productTemperature: normalizeImportText(cols[6]),
+              documentCompliance: normalizeImportText(cols[7]),
+              acceptanceDecision: parseAcceptanceDecision(cols[8] || ""),
+              correctiveActions: normalizeImportText(cols[9]),
+              responsibleTitle: normalizeImportText(cols[10]) || responsibleTitle,
+              responsibleUserId,
+            }),
+          ];
+        });
+
+    const importedLegacy = isProductAcceptance ? [] : dataRows.flatMap((cols, index) => {
       const rowNumber = index + (hasHeader ? 2 : 1);
       const deliveryDate = parseImportDate(cols[0] || "");
       const deliveryTime = parseImportTime(cols[1] || "");
@@ -2089,6 +2197,7 @@ export function AcceptanceDocumentClient(props: Props) {
         }),
       ];
     });
+    const imported = isProductAcceptance ? importedProduct : importedLegacy;
     if (errors.length > 0) throw new Error(errors.slice(0, 8).join("\n"));
     if (imported.length === 0) return;
     await persist(title, dateFrom, {
@@ -2453,7 +2562,7 @@ export function AcceptanceDocumentClient(props: Props) {
       ) : (
         <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
       )}
-      <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} onFileSelect={handleImportFile} />
+      <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} isProductAcceptance={isProductAcceptance} onFileSelect={handleImportFile} />
       <AddMultipleRowsDialog open={bulkAddOpen} onOpenChange={setBulkAddOpen} onSubmit={addMultipleRows} />
       <IikoDialog open={iikoOpen} onOpenChange={setIikoOpen} />
     </div>

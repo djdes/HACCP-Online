@@ -57,6 +57,17 @@ type Props = {
   documents: JournalListDocument[];
 };
 
+/**
+ * «YYYY-MM-DD» → «ДД-ММ-ГГГГ». На эталоне дата в карточке списка бракеража
+ * пишется через дефисы («01-04-2026»), а не точками.
+ */
+function formatDashedDate(isoDate: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+  if (!match) return "";
+  const [, year, month, day] = match;
+  return `${day}-${month}-${year}`;
+}
+
 function endOfMonth(dateValue: string) {
   const [year, month] = dateValue.split("-").map(Number);
   if (!year || !month) return dateValue;
@@ -173,33 +184,55 @@ export function FinishedProductDocumentsClient({
             users={users}
           />
         )}
-        {documents.map((document) => (
-          <div
-            key={document.id}
-            className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5"
-          >
-            <Link href={`/journals/${templateCode}/documents/${document.id}`} className="min-w-0">
-              <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>
-                {document.title}
-              </div>
-            </Link>
-            <Link
-              href={`/journals/${templateCode}/documents/${document.id}`}
-              className={`${JOURNAL_CARD_SECTION_CLASS} justify-self-end`}
+        {documents.map((document) => {
+          // Колонка «Ответственный» появляется только когда он у документа
+          // задан — как в incoming_control и uv_lamp_runtime. Без него
+          // карточка остаётся двухколоночной, пустой ячейки не рисуем.
+          const responsible = document.responsibleTitle?.trim() || "";
+          return (
+            <div
+              key={document.id}
+              className={cn(
+                "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:items-center sm:gap-0 sm:px-6 sm:py-5",
+                responsible
+                  ? "sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px]"
+                  : "sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_48px]"
+              )}
             >
-              <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>
-              <div className={JOURNAL_CARD_VALUE_CLASS}>{document.startedAtLabel}</div>
-            </Link>
-            <DocumentActionsMenu
-              size="sm"
-              onEdit={activeTab === "active" ? () => setEditingDocument(document) : undefined}
-              onPrint={() => openPdf({ documentId: document.id })}
-              onDelete={
-                activeTab === "active" ? () => void handleDelete(document) : undefined
-              }
-            />
-          </div>
-        ))}
+              <Link href={`/journals/${templateCode}/documents/${document.id}`} className="min-w-0">
+                <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>
+                  {document.title}
+                </div>
+              </Link>
+              {responsible ? (
+                <Link
+                  href={`/journals/${templateCode}/documents/${document.id}`}
+                  className={JOURNAL_CARD_SECTION_CLASS}
+                >
+                  <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный</div>
+                  <div className={JOURNAL_CARD_VALUE_CLASS}>{responsible}</div>
+                </Link>
+              ) : null}
+              <Link
+                href={`/journals/${templateCode}/documents/${document.id}`}
+                className={JOURNAL_CARD_SECTION_CLASS}
+              >
+                <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>
+                <div className={JOURNAL_CARD_VALUE_CLASS}>
+                  {formatDashedDate(document.dateFrom) || document.startedAtLabel}
+                </div>
+              </Link>
+              <DocumentActionsMenu
+                size="sm"
+                onEdit={activeTab === "active" ? () => setEditingDocument(document) : undefined}
+                onPrint={() => openPdf({ documentId: document.id })}
+                onDelete={
+                  activeTab === "active" ? () => void handleDelete(document) : undefined
+                }
+              />
+            </div>
+          );
+        })}
       </div>
 
       <Dialog open={!!editingDocument} onOpenChange={(open) => !open && setEditingDocument(null)}>

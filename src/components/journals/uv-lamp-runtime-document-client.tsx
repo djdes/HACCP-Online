@@ -1036,16 +1036,20 @@ function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; ho
           {rowIndexes.map((index) => {
             const left = leftCol[index];
             const right = rightCol[index];
-            const cell = "border border-[#ccc] px-3 py-1 leading-tight";
+            /* h-[28px] + неразрывный пробел в пустой ячейке: без них
+               шесть пустых строк бланка схлопывались в нити 3-5px
+               (у `leading-tight` пустой td нулевой высоты). */
+            const cell = "h-[28px] border border-[#ccc] px-3 py-1 leading-tight";
             const num = `${cell} text-center`;
+            const blank = " ";
             return (
               <tr key={left?.month || `empty-${index}`}>
-                <td className={cell}>{left ? formatMonthLabel(left.month) : ""}</td>
-                <td className={num}>{left ? left.hours.toFixed(2).replace(".", ",") : ""}</td>
-                <td className={num}>{left ? left.remaining.toFixed(2).replace(".", ",") : ""}</td>
-                <td className={cell}>{right ? formatMonthLabel(right.month) : ""}</td>
-                <td className={num}>{right ? right.hours.toFixed(2).replace(".", ",") : ""}</td>
-                <td className={num}>{right ? right.remaining.toFixed(2).replace(".", ",") : ""}</td>
+                <td className={cell}>{left ? formatMonthLabel(left.month) : blank}</td>
+                <td className={num}>{left ? left.hours.toFixed(2).replace(".", ",") : blank}</td>
+                <td className={num}>{left ? left.remaining.toFixed(2).replace(".", ",") : blank}</td>
+                <td className={cell}>{right ? formatMonthLabel(right.month) : blank}</td>
+                <td className={num}>{right ? right.hours.toFixed(2).replace(".", ",") : blank}</td>
+                <td className={num}>{right ? right.remaining.toFixed(2).replace(".", ",") : blank}</td>
               </tr>
             );
           })}

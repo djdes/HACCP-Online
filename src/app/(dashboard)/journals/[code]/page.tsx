@@ -3472,14 +3472,24 @@ export default async function JournalDocumentsPage({
       );
     }
 
-    if (shouldNormalizeDemoSamples && resolvedCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE) {
-      const existingChecklistDocuments = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        orderBy: { dateFrom: "desc" },
-      });
+    /**
+     * Чек-лист проветривания рендерится СВОИМ клиентом всегда, а не только
+     * у демо-организаций. Раньше условие было
+     * `shouldNormalizeDemoSamples && resolvedCode === ...`, из-за чего у
+     * реальных организаций страница списка проваливалась в общий рендер и
+     * показывала диалог создания с нативным <input type="date"> в US-формате.
+     * Демо-досев (активный + закрытый образцы) остался под флагом.
+     */
+    if (resolvedCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE) {
+      const existingChecklistDocuments = shouldNormalizeDemoSamples
+        ? await db.journalDocument.findMany({
+            where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+            orderBy: { dateFrom: "desc" },
+          })
+        : [];
 
       const statuses = new Set(existingChecklistDocuments.map((document) => document.status));
-      if (!statuses.has("active")) {
+      if (shouldNormalizeDemoSamples && !statuses.has("active")) {
         const { dateFrom: activeDateFrom, dateTo: activeDateTo } =
           getCleaningVentilationMonthBounds(new Date().toISOString().slice(0, 10));
         await db.journalDocument.create({
@@ -3496,7 +3506,7 @@ export default async function JournalDocumentsPage({
         });
       }
 
-      if (!statuses.has("closed")) {
+      if (shouldNormalizeDemoSamples && !statuses.has("closed")) {
         const previousMonth = new Date();
         previousMonth.setMonth(previousMonth.getMonth() - 1);
         const { dateFrom: closedDateFrom, dateTo: closedDateTo } =

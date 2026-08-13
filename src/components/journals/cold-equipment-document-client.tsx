@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
+  DOC_ADD_ROW_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_HEADER_CLASS,
@@ -23,7 +24,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  Pencil,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -666,6 +666,25 @@ export function ColdEquipmentDocumentClient({
     router.refresh();
   }
 
+  /**
+   * Смена ответственного прямо из панели («ФИО отв. лица»), без захода в
+   * «Настройки журнала». Код С1/С2 под таблицей пересчитывается сам —
+   * он выводится из `responsibleUserId` + `employeeId` строк.
+   */
+  async function handleResponsibleUserChange(nextUserId: string | null) {
+    setIsSwitching(true);
+    try {
+      await persistDocument({ responsibleUserId: nextUserId });
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сменить ответственного"
+      );
+    } finally {
+      setIsSwitching(false);
+    }
+  }
+
   async function handleSaveEquipment(item: ColdEquipmentConfigItem) {
     const nextConfig = normalizeColdEquipmentDocumentConfig({
       ...config,
@@ -855,22 +874,33 @@ export function ColdEquipmentDocumentClient({
     });
   }
 
+  /**
+   * «Добавить ХК» — ОБЫЧНАЯ инлайновая кнопка над таблицей (эталон
+   * cold_equipment_control-grid.png). Раньше она жила в `sticky top-0`
+   * панели и уезжала под шапку кабинета (у той свой `sticky top-0 h-14`),
+   * то есть на странице её попросту не было видно.
+   *
+   * Дропдауна «Добавить ответственного» здесь нет намеренно: коды
+   * С1/С2 в этом журнале не хранятся в конфиге — они ВЫВОДЯТСЯ из
+   * `employeeId` строк (`buildResponsibleCodes`), поэтому «второго
+   * ответственного» добавлять некуда. Ответственный меняется селектом
+   * «ФИО отв. лица» в панели автозаполнения.
+   */
   const equipmentAddBar =
     status === "active" ? (
-          <div className="sticky top-0 z-30 -mx-4 mb-3 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur print:hidden md:-mx-6 md:px-6">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingEquipment(null);
-                setEquipmentDialogOpen(true);
-              }}
-              className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
-            >
-              <Plus className="size-5" strokeWidth={2.5} />
-              Добавить
-            </Button>
-
-          </div>
+      <div className={DOC_ADD_ROW_CLASS}>
+        <Button
+          type="button"
+          onClick={() => {
+            setEditingEquipment(null);
+            setEquipmentDialogOpen(true);
+          }}
+          className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
+        >
+          <Plus className="size-5" strokeWidth={2.5} />
+          Добавить ХК
+        </Button>
+      </div>
     ) : null;
 
   const selectionBar =
@@ -947,56 +977,76 @@ export function ColdEquipmentDocumentClient({
             </button>
           </div>
 
+          {/* Панель норм — СТРОКИ (~52px), а не карточки по 120px.
+              Карандаши убраны: по строке кликают целиком. Последняя
+              строка — селект «ФИО отв. лица», как на эталоне. */}
           {summaryOpen ? (
-            <div className="mt-8 space-y-6">
+            <div className="mt-5 space-y-1.5">
               {config.equipment.map((item) => (
-                <div
+                <button
                   key={item.id}
-                  className="grid gap-4 rounded-[24px] bg-white/70 px-6 py-5 lg:grid-cols-[minmax(0,1fr)_170px_170px_44px]"
+                  type="button"
+                  disabled={status !== "active"}
+                  onClick={() => {
+                    if (status !== "active") return;
+                    setEditingEquipment(item);
+                    setEquipmentDialogOpen(true);
+                  }}
+                  className="grid h-[52px] w-full grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-3 rounded-[14px] bg-white/70 px-4 text-left transition-colors duration-150 hover:bg-white disabled:cursor-default disabled:hover:bg-white/70"
                 >
-                  <div className="text-[15px] leading-[1.35] text-black">
+                  <span className="truncate text-[14px] text-black">
                     {item.name}, Темп. (T)
-                  </div>
-                  <div className="rounded-[18px] border border-[#dcdfed] bg-white px-6 py-4 text-[15px]">
+                  </span>
+                  <span className="rounded-[10px] border border-[#dcdfed] bg-white px-3 py-1.5 text-center text-[13.5px] tabular-nums">
                     От {item.min ?? "—"}
-                  </div>
-                  <div className="rounded-[18px] border border-[#dcdfed] bg-white px-6 py-4 text-[15px]">
+                  </span>
+                  <span className="rounded-[10px] border border-[#dcdfed] bg-white px-3 py-1.5 text-center text-[13.5px] tabular-nums">
                     До {item.max ?? "—"}
-                  </div>
-                  <div className="flex items-center justify-end">
-                    {status === "active" ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingEquipment(item);
-                          setEquipmentDialogOpen(true);
-                        }}
-                        className="rounded-full p-2 text-[#5566f6] hover:bg-[#eef1ff]"
-                      >
-                        <Pencil className="size-5" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
+                  </span>
+                </button>
               ))}
 
-              <div className="flex flex-wrap items-center gap-6 pt-2 text-[15px]">
-                <div className="rounded-[20px] bg-white px-6 py-4">
-                  Ответственный: {(() => {
-                    const userName = responsibleUserId
-                      ? employees.find((employee) => employee.id === responsibleUserId)?.name || null
-                      : null;
-                    if (responsibleTitle && userName) return `${responsibleTitle}: ${userName}`;
-                    return responsibleTitle || userName || "Не назначен";
-                  })()}
-                </div>
-                <div className="rounded-[20px] bg-white px-6 py-4">
-                  Период: {getColdEquipmentDateLabel(dateFrom)} - {getColdEquipmentDateLabel(dateTo)}
-                </div>
+              <div className="grid h-[52px] w-full grid-cols-[minmax(0,1fr)_minmax(0,200px)] items-center gap-3 rounded-[14px] bg-white/70 px-4">
+                <span className="truncate text-[14px] text-black">
+                  ФИО отв. лица
+                  {responsibleTitle ? (
+                    <span className="ml-1 text-[13px] text-[#6f7282]">
+                      ({responsibleTitle})
+                    </span>
+                  ) : null}
+                </span>
+                <Select
+                  value={responsibleUserId || "__empty__"}
+                  disabled={status !== "active" || isSwitching}
+                  onValueChange={(value) => {
+                    void handleResponsibleUserChange(
+                      value === "__empty__" ? null : value
+                    );
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full rounded-[10px] border-[#dcdfed] bg-white text-[13.5px]">
+                    <SelectValue placeholder="Не назначен" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__empty__">Не назначен</SelectItem>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[13px] text-[#3c4053]">
+                <span className="rounded-full bg-white px-3 py-1.5">
+                  Период: {getColdEquipmentDateLabel(dateFrom)} -{" "}
+                  {getColdEquipmentDateLabel(dateTo)}
+                </span>
                 {config.skipWeekends ? (
-                  <div className="rounded-[20px] bg-white px-6 py-4">
+                  <span className="rounded-full bg-white px-3 py-1.5">
                     Выходные пропускаются при автозаполнении
-                  </div>
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -1169,7 +1219,8 @@ export function ColdEquipmentDocumentClient({
         </div>
         <div className={DOC_CAPS_TITLE_CLASS}>
           <JournalDocumentTitle>
-            Журнал контроля температурного режима
+            Журнал контроля температурного режима холодильного и морозильного
+            оборудования
           </JournalDocumentTitle>
         </div>
         {mobileView === "cards" ? null : equipmentAddBar}

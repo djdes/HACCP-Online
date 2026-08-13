@@ -431,10 +431,9 @@ function drawMedBookPdf(doc: jsPDF, params: {
     pageBreak: "auto",
   });
 
-  if (!params.config.includeVaccinations) {
-    return;
-  }
-
+  // Таблица прививок печатается ВСЕГДА: в вебе раздел «Прививки» больше
+  // не выключается, поэтому legacy-флаг `config.includeVaccinations === false`
+  // здесь игнорируется — иначе PDF старых документов молча терял страницу.
   doc.addPage();
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(16);

@@ -705,7 +705,11 @@ export function MedBookDocumentClient({
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>
 
+        {/* Карточки — только на телефоне. Без обёртки `sm:hidden` заглушка
+            «Сотрудников пока нет.» висела плашкой над кнопками на десктопе;
+            пустое состояние теперь показывают сами таблицы пустой строкой. */}
         {mobileView === "cards" ? (
+          <div className="sm:hidden print:hidden">
           <RecordCardsView
             items={rows.map((row, index) => {
               const expiredCount = examColumns.filter((col) => {
@@ -754,6 +758,7 @@ export function MedBookDocumentClient({
             })}
             emptyLabel="Сотрудников пока нет."
           />
+          </div>
         ) : null}
 
         {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
@@ -870,6 +875,20 @@ export function MedBookDocumentClient({
               </tr>
             </thead>
             <tbody>
+              {/* Пустое состояние = пустая строка бланка (чекбокс + пустые
+                  ячейки), как на эталоне. Текстовой заглушки нет. */}
+              {rows.length === 0 ? (
+                <tr>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
+                    <Checkbox checked={false} disabled className="size-4" />
+                  </td>
+                  {Array.from({ length: examColumns.length + 3 }, (_, index) => (
+                    <td key={index} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
+                      <div className="h-7" />
+                    </td>
+                  ))}
+                </tr>
+              ) : null}
               {rows.map((row, index) => (
                 <tr key={row.id}>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
@@ -1034,7 +1053,9 @@ export function MedBookDocumentClient({
 
       {includeVaccinations ? (
         <div className="space-y-5">
-          <h2 className="text-center text-[34px] font-semibold tracking-[-0.03em] text-black">
+          {/* На эталоне «Прививки» — мелкий bold-подзаголовок над таблицей,
+              а не плакат: 34px читались как второй H1 страницы. */}
+          <h2 className="text-center text-[16px] font-bold leading-tight text-black sm:text-[18px]">
             Прививки
           </h2>
           <div className="space-y-2">
@@ -1097,6 +1118,19 @@ export function MedBookDocumentClient({
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Та же пустая строка-бланк, что и в таблице осмотров. */}
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
+                        <Checkbox checked={false} disabled className="size-4" />
+                      </td>
+                      {Array.from({ length: vaccColumns.length + 4 }, (_, index) => (
+                        <td key={index} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
+                          <div className="h-7" />
+                        </td>
+                      ))}
+                    </tr>
+                  ) : null}
                   {rows.map((row, index) => (
                     <tr key={row.id}>
                       <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>

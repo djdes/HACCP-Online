@@ -1593,11 +1593,11 @@ export function CleaningDocumentClient(props: Props) {
 
   const cleaningAddToolbar = (
     <>
-        {/* Sticky под dashboard-хедером (он `sticky top-0 z-30 h-14`).
-            top-14 чтобы не перекрывать хедер; z-20 чтобы хедер всегда был выше
-            (без этого dropdown-trigger перекрывался невидимыми элементами хедера
-            и клик «Добавить» не регистрировался). */}
-        <div className="sticky top-14 z-20 -mx-4 space-y-2 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 print:hidden">
+        {/* ОБЫЧНЫЙ инлайновый тулбар между КАПС-заголовком и таблицей
+            (эталон cleaning-04-grid.png). Раньше здесь стояло
+            `sticky top-14 z-20`: полоса «прилипала» к своему скролл-предку
+            и на странице её не было видно вообще. */}
+        <div className="mb-3 space-y-2 print:hidden">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
@@ -2391,7 +2391,7 @@ export function CleaningDocumentClient(props: Props) {
           </div>
 
           <div className={`${DOC_EXTRA_BLOCK_CLASS} ${GRID_VIEWPORT_CLASS}`}><div className="min-w-[640px] sm:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Текущая уборка</th><th className={`px-2 py-1.5 text-left font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1 ${GRID_CELL_CLASS} leading-tight`}>{room.name}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Текущая уборка</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1 ${GRID_CELL_CLASS} leading-tight`}>{room.name}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
           </div></div>
         </div>
         </div>

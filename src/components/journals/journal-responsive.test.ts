@@ -104,7 +104,13 @@ test("dialog grid keeps exactly two widths and one typography scale", () => {
     JOURNAL_DIALOG_CONTENT_WIDE_CLASS.replace("sm:max-w-[640px]", ""),
   );
   assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /\bp-0\b/);
-  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /max-h-\[92vh\]/);
+  // Окно не выше 90vh и делится на фикс-шапку + скроллящееся тело,
+  // иначе на 900px-экранах кнопка «Создать» уезжает за край без скролла.
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /max-h-\[90vh\]/);
+  assert.match(JOURNAL_DIALOG_CONTENT_CLASS, /\bflex-col\b/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /overflow-y-auto/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bmin-h-0\b/);
+  assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bshrink-0\b/);
   // Шапка: px-6 py-4 + нижняя линия, заголовок 18px/600, тело px-6 py-5.
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpx-6\b/);
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpy-4\b/);

@@ -53,7 +53,10 @@ import {
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
-import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import {
+  JournalDocumentTitle,
+  JournalPaperHeaderRows,
+} from "@/components/journals/journal-document-header";
 import { toast } from "sonner";
 import {
   GRID_CELL_CLASS,
@@ -534,11 +537,11 @@ export function HealthDocumentClient(props: Props) {
             />
           </div>
 
-          <div
-            className={`health-title ${DOC_CAPS_TITLE_CLASS} text-center text-[34px] font-bold uppercase`}
-          >
+          {/* КАПС-заголовок — общий компонент (16-18px), как во всех
+              остальных журналах. Раньше здесь стоял локальный 34px. */}
+          <JournalDocumentTitle className={`health-title ${DOC_CAPS_TITLE_CLASS}`}>
             {documentTitle}
-          </div>
+          </JournalDocumentTitle>
 
           {/* «Добавить» — слева непосредственно над таблицей (эталон).
               Раньше кнопка жила в шапке страницы, выше бумажной шапки.

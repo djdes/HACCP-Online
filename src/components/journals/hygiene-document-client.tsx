@@ -18,6 +18,7 @@ import { JournalSelectionBar } from "@/components/journals/journal-selection-bar
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
+  JournalDocumentTitle,
   JournalLegendBlock,
   JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
@@ -775,11 +776,13 @@ export function HygieneDocumentClient({
               />
             </div>
 
-            <div
-              className={`hygiene-title ${DOC_CAPS_TITLE_CLASS} text-center text-[34px] font-bold uppercase`}
+            {/* КАПС-заголовок — общий компонент (16-18px), как во всех
+                остальных журналах. Раньше здесь стоял локальный 34px. */}
+            <JournalDocumentTitle
+              className={`hygiene-title ${DOC_CAPS_TITLE_CLASS}`}
             >
               {documentTitle}
-            </div>
+            </JournalDocumentTitle>
 
             {/* «Добавить» — слева непосредственно над таблицей, как на
                 эталоне. `sticky left-0` держит кнопку у левого края, если
@@ -852,7 +855,7 @@ export function HygieneDocumentClient({
                 {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
@@ -863,11 +866,11 @@ export function HygieneDocumentClient({
                           />
                         ) : null}
                       </td>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
                         {employee.name ? employee.number : ""}
                       </td>
-                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{employee.name || ""}</td>
-                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>{employee.name || ""}</td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
                         {employee.name
                           ? employee.position || getHygienePositionLabel("operator")
                           : ""}
@@ -881,7 +884,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
-                            className={`${GRID_CELL_CLASS} h-8 px-2 py-1 text-center align-middle leading-tight ${
+                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -904,7 +907,7 @@ export function HygieneDocumentClient({
                       })}
                     </tr>
                     <tr>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
                         Температура сотрудника более 37°C?
                       </td>
                       {dateKeys.map((dateKey) => {
@@ -915,7 +918,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
-                            className={`${GRID_CELL_CLASS} h-8 px-2 py-1 text-center align-middle leading-tight ${
+                            className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${
                               isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
@@ -941,38 +944,27 @@ export function HygieneDocumentClient({
                 ))}
 
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
                     <HygieneCheckbox />
                   </td>
-                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  <td colSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>
                     Должность ответственного за контроль
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{responsibleLabel}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center leading-tight`}>{responsibleLabel}</td>
                   {dateKeys.map((dateKey) => (
-                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                    <td key={`blank:${dateKey}`} className={`${GRID_CELL_CLASS} px-2 py-0.5 leading-tight`} />
                   ))}
                 </tr>
               </tbody>
             </table>
 
-            {/* Условные обозначения: карточка — на экране, курсивный блок ниже — в печати.
-                По эталону легенда идёт сразу под таблицей, а справочные
-                блоки («В журнал регистрируются результаты», напоминание) —
-                ниже неё. */}
-            <div className={`${DOC_LEGEND_CLASS} print:hidden`}>
-              <JournalLegendBlock
-                items={[
-                  { symbol: "Зд", description: "здоров (допущен к работе)" },
-                  { symbol: "В", description: "выходной / отпуск / отгул" },
-                  { symbol: "Б/л", description: "больничный лист — отстранён по причине болезни" },
-                  { symbol: "ОТ", description: "отстранён от работы (другие причины)" },
-                  { symbol: "Отп", description: "отпуск" },
-                  { symbol: "—", description: "сотрудник не выходил на смену" },
-                ]}
-              />
-            </div>
-
-            <div className="hygiene-notes mt-8 text-[16px] leading-7">
+            {/* Порядок блоков под таблицей — по эталону:
+                1) «В журнал регистрируются результаты…»,
+                2) «Список работников…»,
+                3) «Условные обозначения» простым курсивом, без карточки.
+                Подсказка «клик по ячейке…» убрана: то же самое написано
+                в «Как заполнять». */}
+            <div className="hygiene-notes mt-6 text-[16px] leading-7">
               <div className="font-semibold">В журнал регистрируются результаты:</div>
               {HYGIENE_REGISTER_NOTES.map((note) => (
                 <div key={note}>- {note}</div>
@@ -984,22 +976,14 @@ export function HygieneDocumentClient({
               числу работников на этот день в смену
             </div>
 
-            <div className="hygiene-legend mt-10 hidden text-[16px] leading-7 print:block">
-              <div className="font-semibold italic underline">Условные обозначения:</div>
-              {HYGIENE_REGISTER_LEGEND.map((item) => (
-                <div key={item} className="italic">
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            {isActive ? (
-              <div className="mt-6 text-[13px] text-[#6f7282]">
-                Клик по ячейке со статусом переключает отметку:{" "}
-                {HYGIENE_STATUS_OPTIONS.map((item) => item.code).join(" / ")}. Клик по строке
-                температуры переключает значение между «нет» и «да».
-              </div>
-            ) : null}
+            <JournalLegendBlock
+              variant="plain"
+              className={`hygiene-legend ${DOC_LEGEND_CLASS} mt-8`}
+              items={HYGIENE_REGISTER_LEGEND.map((item) => ({
+                symbol: "",
+                description: item,
+              }))}
+            />
           </div>
         </div>
       </div>

@@ -26,7 +26,7 @@ export const JOURNAL_TAB_RAIL_CLASS =
   "flex min-w-max gap-8 text-[14px] font-semibold sm:gap-12";
 
 export const JOURNAL_LIST_CARD_CLASS =
-  "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-5 sm:py-3.5";
+  "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_minmax(120px,200px)_minmax(120px,200px)_48px] sm:items-center sm:gap-0 sm:px-5 sm:py-3.5";
 
 /**
  * Shared card typography (list of documents inside a journal). Normalized
@@ -118,25 +118,38 @@ export const JOURNAL_TABLE_VIEWPORT_CLASS =
  * px-6…px-18 — то есть каждый диалог был «свой». Держим ровно два
  * размера: обычный (560) и широкий, под редакторы таблиц/списков (640).
  */
+/**
+ * Окно НИКОГДА не выше 90vh (правило WhatsNewModal из CLAUDE.md): на
+ * ноутбучных 900px диалог «Создание документа» бракеража перерастал экран
+ * и кнопка «Создать» оказывалась за краем без возможности доскроллить.
+ *
+ * Геометрия: `flex flex-col` — шапка (`JOURNAL_DIALOG_HEADER_CLASS`) и
+ * подвал (`JOURNAL_DIALOG_FOOTER_CLASS`) `shrink-0`, тело
+ * (`JOURNAL_DIALOG_BODY_CLASS`) — `flex-1 min-h-0 overflow-y-auto`.
+ * `overflow-y-auto` на самой карточке оставлен как страховка для дюжины
+ * диалогов, которые верстают тело своей разметкой без BODY-класса: там
+ * скроллится карточка целиком, как и раньше.
+ */
 export const JOURNAL_DIALOG_CONTENT_CLASS =
-  "w-[calc(100vw-2rem)] max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[560px]";
+  "flex w-[calc(100vw-2rem)] max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[560px]";
 
 export const JOURNAL_DIALOG_CONTENT_WIDE_CLASS =
-  "w-[calc(100vw-2rem)] max-h-[92vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[640px]";
+  "flex w-[calc(100vw-2rem)] max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] sm:max-w-[640px]";
 
 /** Шапка окна: подпись слева, крестик справа, нижняя линия. */
 export const JOURNAL_DIALOG_HEADER_CLASS =
-  "flex flex-row items-center justify-between gap-4 border-b border-[#ececf4] px-6 py-4";
+  "flex shrink-0 flex-row items-center justify-between gap-4 border-b border-[#ececf4] px-6 py-4";
 
 /** Заголовок окна — 18px/600, один размер во всех журналах. */
 export const JOURNAL_DIALOG_TITLE_CLASS =
   "text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]";
 
-export const JOURNAL_DIALOG_BODY_CLASS = "space-y-5 px-6 py-5";
+export const JOURNAL_DIALOG_BODY_CLASS =
+  "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5";
 
 /** Подвал окна: действие справа внизу, как на эталоне. */
 export const JOURNAL_DIALOG_FOOTER_CLASS =
-  "flex flex-wrap items-center justify-end gap-2 border-t border-[#ececf4] px-6 py-4";
+  "flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[#ececf4] px-6 py-4";
 
 /** Подпись поля НАД инпутом — 13px/500. Legacy: новые поля используют
  * floating label внутри рамки (JOURNAL_DIALOG_FIELD_*). */

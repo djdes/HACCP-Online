@@ -89,6 +89,15 @@ export const GRID_ADD_CELL_CLASS =
   "flex w-full items-center justify-center gap-2 bg-[#eef0ff] px-4 py-2 text-[13.5px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#e2e6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden";
 
 /**
+ * Тот же приём, но СПЛОШНОЙ синей заливкой во всю ширину ячейки —
+ * ровно как на эталоне climate_control-grid.png («+ Добавить помещение»,
+ * «+ Добавить частоту контроля»): индиго-плашка с белым текстом, а не
+ * светло-лавандовая ссылка.
+ */
+export const GRID_ADD_CELL_SOLID_CLASS =
+  "flex w-full items-center justify-center gap-2 bg-[#5566f6] px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden";
+
+/**
  * Оранжевая служебная метка внутри таблицы («Ответственный за снятие
  * показателей»). Эталон выделяет её именно цветом текста, без заливки —
  * это подпись к строке, а не заголовок колонки. В печати остаётся

@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Plus, Save, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
@@ -112,6 +112,9 @@ const toNone = (value: string) => (value ? value : NONE_VALUE);
 /** Сколько строк максимум разрешаем добавить одной пачкой. */
 const BULK_ROWS_MAX = 50;
 
+/** Пауза до автосохранения после последнего нажатия клавиши. */
+const AUTOSAVE_DELAY_MS = 900;
+
 function nowDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -149,7 +152,6 @@ export function PerishableRejectionDocumentClient({
   users,
 }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
   const [config, setConfig] = useState(() =>
     normalizePerishableRejectionConfig(initialConfig)
@@ -259,25 +261,70 @@ export function PerishableRejectionDocumentClient({
     [config.suppliers]
   );
 
-  async function saveConfig(nextConfig = config) {
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/journal-documents/${documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: nextConfig }),
-      });
-      if (!response.ok) throw new Error();
-      startTransition(() => router.refresh());
-    } catch {
-      toast.error("Не удалось сохранить журнал");
-    } finally {
-      setIsSaving(false);
+  /* ── Автосохранение (паттерн finished_product) ──────────────────────
+   * Кнопки «Сохранить» нет: правки уезжают на сервер сами. Последнее
+   * состояние конфига держим в ref, PATCH шлём через AUTOSAVE_DELAY_MS
+   * после последнего нажатия клавиши. Blur ячейки и структурные операции
+   * (добавить/удалить строку, правка справочников) сбрасывают очередь
+   * немедленно, размонтирование — тоже. `router.refresh()` внутри
+   * автосейва не зовём: он перерисовывает серверный компонент и сбивает
+   * фокус в поле.
+   */
+  const configRef = useRef(config);
+  configRef.current = config;
+  const dirtyRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushConfigSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
-  }
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    setIsSaving(true);
+    void fetch(`/api/journal-documents/${documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: configRef.current }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error();
+      })
+      .catch(() =>
+        toast.error(
+          "Не удалось сохранить журнал — изменения остались только на экране"
+        )
+      )
+      .finally(() => setIsSaving(false));
+  }, [documentId]);
+
+  /**
+   * Применить изменение конфига и поставить запись в очередь.
+   * `immediate` шлём через `setTimeout(0)`, чтобы React успел закоммитить
+   * состояние и `configRef.current` уже содержал новое значение.
+   */
+  const applyConfig = useCallback(
+    (
+      updater: (prev: PerishableRejectionConfig) => PerishableRejectionConfig,
+      immediate = false
+    ) => {
+      setConfig(updater);
+      dirtyRef.current = true;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(
+        flushConfigSave,
+        immediate ? 0 : AUTOSAVE_DELAY_MS
+      );
+    },
+    [flushConfigSave]
+  );
+
+  // Уход со страницы не должен съедать последний недописанный ввод.
+  useEffect(() => () => flushConfigSave(), [flushConfigSave]);
 
   function updateRow(id: string, patch: Partial<PerishableRejectionRow>) {
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       rows: prev.rows.map((row) =>
         row.id === id ? { ...row, ...patch } : row
@@ -319,7 +366,7 @@ export function PerishableRejectionDocumentClient({
       ],
     });
     if (!confirmed) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       rows: prev.rows.filter((row) => !selectedRows.includes(row.id)),
     }));
@@ -328,7 +375,7 @@ export function PerishableRejectionDocumentClient({
 
   function addSingleRow(productName = "") {
     if (readOnly) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       rows: [
         ...prev.rows,
@@ -412,12 +459,13 @@ export function PerishableRejectionDocumentClient({
     const responsible = user
       ? `${user.name}, ${draftPosition}`
       : draftPosition;
-    const nextConfig = {
-      ...config,
-      rows: [...config.rows, { ...draftRow, responsiblePerson: responsible }],
-    };
-    setConfig(nextConfig);
-    await saveConfig(nextConfig);
+    applyConfig(
+      (prev) => ({
+        ...prev,
+        rows: [...prev.rows, { ...draftRow, responsiblePerson: responsible }],
+      }),
+      true
+    );
     resetDraftRow();
     setAddModalOpen(false);
   }
@@ -428,7 +476,7 @@ export function PerishableRejectionDocumentClient({
     if (readOnly) return;
     if (!newListName.trim()) return;
     const id = `list-${Date.now()}`;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       productLists: [
         ...prev.productLists,
@@ -441,7 +489,7 @@ export function PerishableRejectionDocumentClient({
   function addItemToProductList(item: string) {
     if (readOnly) return;
     if (!activeListId) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       productLists: prev.productLists.map((list) =>
         list.id === activeListId && !list.items.includes(item)
@@ -456,7 +504,7 @@ export function PerishableRejectionDocumentClient({
     if (!newItemName.trim()) return;
     const list = config.productLists[0];
     if (!list) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       productLists: prev.productLists.map((l) =>
         l.id === list.id && !l.items.includes(newItemName.trim())
@@ -470,7 +518,7 @@ export function PerishableRejectionDocumentClient({
   function addManufacturerItem() {
     if (readOnly) return;
     if (!newItemName.trim()) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       manufacturers: [...prev.manufacturers, newItemName.trim()],
     }));
@@ -480,7 +528,7 @@ export function PerishableRejectionDocumentClient({
   function addSupplierItem() {
     if (readOnly) return;
     if (!newItemName.trim()) return;
-    setConfig((prev) => ({
+    applyConfig((prev) => ({
       ...prev,
       suppliers: [...prev.suppliers, newItemName.trim()],
     }));
@@ -514,7 +562,7 @@ export function PerishableRejectionDocumentClient({
     if (section === "products") {
       const list = config.productLists[0];
       if (!list) return;
-      setConfig((prev) => ({
+      applyConfig((prev) => ({
         ...prev,
         productLists: prev.productLists.map((l) =>
           l.id === list.id
@@ -523,12 +571,12 @@ export function PerishableRejectionDocumentClient({
         ),
       }));
     } else if (section === "manufacturers") {
-      setConfig((prev) => ({
+      applyConfig((prev) => ({
         ...prev,
         manufacturers: Array.from(new Set([...prev.manufacturers, ...items])),
       }));
     } else {
-      setConfig((prev) => ({
+      applyConfig((prev) => ({
         ...prev,
         suppliers: Array.from(new Set([...prev.suppliers, ...items])),
       }));
@@ -569,7 +617,11 @@ export function PerishableRejectionDocumentClient({
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
       ) : null}
 
-      <div className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6`}>
+      {/* Обёртка — как у finished_product: без карточной рамки и без
+          `overflow-hidden`. Именно `overflow-hidden` на карточке резал
+          таблицу по правому краю: горизонтальный скролл живёт ВНУТРИ
+          GRID_VIEWPORT_CLASS, а внешний клип его перекрывал. */}
+      <div className={`${DOC_BODY_STACK_CLASS} py-4 sm:py-6`}>
         {/* HACCP header table */}
         <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
           <tbody>
@@ -643,15 +695,10 @@ export function PerishableRejectionDocumentClient({
           >
             Редактировать список изделий
           </Button>
-          <Button
-            type="button"
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
-            onClick={() => saveConfig()}
-            disabled={readOnly || isSaving || isPending}
-          >
-            <Save className="size-4" />
-            {isSaving ? "Сохранение..." : "Сохранить"}
-          </Button>
+          {/* Кнопки «Сохранить» нет: правки уезжают сами (см. applyConfig). */}
+          {isSaving ? (
+            <span className="text-[13px] text-[#6f7282]">Сохранение…</span>
+          ) : null}
         </div>
 
         {!readOnly ? (
@@ -728,14 +775,23 @@ export function PerishableRejectionDocumentClient({
               </tr>
             </thead>
             <tbody>
+              {/* Пустое состояние = ПУСТАЯ СТРОКА бланка (чекбокс + пустые
+                  ячейки), как на эталоне. Текстовой заглушки внутри таблицы
+                  нет — бланк должен выглядеть бланком, а подсказка «Нажмите
+                  Добавить» живёт на кнопке над таблицей. */}
               {config.rows.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={12}
-                    className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[13px] leading-tight text-[#6f7282]`}
-                  >
-                    Записей пока нет. Нажмите «Добавить», чтобы создать первую строку.
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
+                    <Checkbox checked={false} disabled />
                   </td>
+                  {Array.from({ length: 11 }, (_, index) => (
+                    <td
+                      key={index}
+                      className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}
+                    >
+                      <div className="h-7" />
+                    </td>
+                  ))}
                 </tr>
               ) : null}
               {config.rows.map((row) => (
@@ -760,6 +816,7 @@ export function PerishableRejectionDocumentClient({
                           arrivalTime: time,
                         });
                       }}
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -770,6 +827,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { productName: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -780,6 +838,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { productionDate: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -794,6 +853,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { manufacturer: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -808,6 +868,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { packaging: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -820,6 +881,7 @@ export function PerishableRejectionDocumentClient({
                           documentNumber: e.target.value,
                         })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -839,6 +901,7 @@ export function PerishableRejectionDocumentClient({
                             : "compliant",
                         })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -849,6 +912,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { expiryDate: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -864,6 +928,7 @@ export function PerishableRejectionDocumentClient({
                           actualSaleTime: time,
                         });
                       }}
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -876,6 +941,7 @@ export function PerishableRejectionDocumentClient({
                           responsiblePerson: e.target.value,
                         })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -886,6 +952,7 @@ export function PerishableRejectionDocumentClient({
                       onChange={(e) =>
                         updateRow(row.id, { note: e.target.value })
                       }
+                      onBlur={flushConfigSave}
                       className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
@@ -1524,7 +1591,7 @@ export function PerishableRejectionDocumentClient({
                       <Input
                         value={list.name}
                         onChange={(e) =>
-                          setConfig((prev) => ({
+                          applyConfig((prev) => ({
                             ...prev,
                             productLists: prev.productLists.map((x) =>
                               x.id === list.id
@@ -1538,7 +1605,7 @@ export function PerishableRejectionDocumentClient({
                         type="button"
                         variant="ghost"
                         onClick={() =>
-                          setConfig((prev) => ({
+                          applyConfig((prev) => ({
                             ...prev,
                             productLists: prev.productLists.filter(
                               (x) => x.id !== list.id
@@ -1580,7 +1647,7 @@ export function PerishableRejectionDocumentClient({
                               type="button"
                               variant="ghost"
                               onClick={() =>
-                                setConfig((prev) => ({
+                                applyConfig((prev) => ({
                                   ...prev,
                                   productLists: prev.productLists.map((list) =>
                                     list.id === activeListId
@@ -1654,7 +1721,7 @@ export function PerishableRejectionDocumentClient({
                       type="button"
                       variant="ghost"
                       onClick={() =>
-                        setConfig((prev) => ({
+                        applyConfig((prev) => ({
                           ...prev,
                           manufacturers: prev.manufacturers.filter(
                             (x) => x !== item
@@ -1700,7 +1767,7 @@ export function PerishableRejectionDocumentClient({
                       type="button"
                       variant="ghost"
                       onClick={() =>
-                        setConfig((prev) => ({
+                        applyConfig((prev) => ({
                           ...prev,
                           suppliers: prev.suppliers.filter((x) => x !== item),
                         }))
@@ -1734,7 +1801,7 @@ export function PerishableRejectionDocumentClient({
               <Button
                 onClick={() => {
                   setListModalOpen(false);
-                  saveConfig();
+                  flushConfigSave();
                 }}
               >
                 Закрыть

@@ -42,7 +42,9 @@ import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
+  DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
+  DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -68,13 +70,15 @@ import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import {
-  GRID_ADD_CELL_CLASS,
+  GRID_ADD_CELL_SOLID_CLASS,
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
-  GRID_SERVICE_LABEL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
-import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import {
+  JournalDocumentHeader,
+  JournalDocumentTitle,
+} from "@/components/journals/journal-document-header";
 
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
@@ -1429,23 +1433,16 @@ export function ClimateDocumentClient({
               </div>
 
               <div className="-mx-4 overflow-x-auto rounded-[18px] bg-white p-4 sm:mx-0 sm:p-6">
-                <table className="min-w-[1080px] w-full border-collapse text-[13px]">
+                {/* min-w сужена с 1080 до 720: широкой была бумажная
+                    шапка, которая теперь живёт отдельным блоком ниже. */}
+                <table className="min-w-[720px] w-full border-collapse text-[13px]">
                   <tbody>
-                    <JournalPaperHeaderRows
-                      orgName={organizationName}
-                      title="БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ"
-                      startedAt={dateFrom}
-                      finishedAt={status === "closed" ? dateTo : null}
-                      controlPeriodicity={controlPeriodicity}
-                      orgCellClass="w-[220px]"
-                      sideCellClass="w-[220px]"
-                    />
                     <tr>
                       {/* rowSpan здесь был `status === "active" ? 2 : 1`,
                           из-за чего в активном документе строка «Частота
                           контроля» съезжала на колонку вправо (лишняя
                           ячейка в ряду). Метка занимает ровно свою строку. */}
-                      <td className={`${GRID_CELL_CLASS} px-4 py-6 text-center font-semibold leading-tight`}>
+                      <td className={`${GRID_CELL_CLASS} w-[220px] px-4 py-6 text-center font-semibold leading-tight`}>
                         Нормы условий
                       </td>
                       <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
@@ -1507,7 +1504,7 @@ export function ClimateDocumentClient({
                                       setRoomDialogOpen(true);
                                     }}
                                     title="Добавить помещение с нормами температуры и влажности"
-                                    className={GRID_ADD_CELL_CLASS}
+                                    className={GRID_ADD_CELL_SOLID_CLASS}
                                   >
                                     <Plus className="size-4" strokeWidth={2.5} />
                                     Добавить помещение
@@ -1527,7 +1524,7 @@ export function ClimateDocumentClient({
                             type="button"
                             onClick={() => setSettingsOpen(true)}
                             title="Задать время замеров — сколько раз в смену снимаются показатели"
-                            className={GRID_ADD_CELL_CLASS}
+                            className={GRID_ADD_CELL_SOLID_CLASS}
                           >
                             <Plus className="size-4" strokeWidth={2.5} />
                             Добавить частоту контроля
@@ -1539,40 +1536,35 @@ export function ClimateDocumentClient({
                         </td>
                       )}
                     </tr>
-                    {/* Кто снимает показатели — служебная строка бланка.
-                        Эталон помечает подпись оранжевым и печатает код
-                        сотрудника (С1), который потом стоит в ячейках. */}
-                    <tr>
-                      <td className={`${GRID_CELL_CLASS} px-4 py-2 leading-tight`}>
-                        <span className={GRID_SERVICE_LABEL_CLASS}>
-                          Ответственный за снятие показателей
-                        </span>
-                      </td>
-                      <td colSpan={2} className={`${GRID_CELL_CLASS} px-4 py-2 leading-tight`}>
-                        {defaultResponsibleUserId &&
-                        employeeMap[defaultResponsibleUserId] ? (
-                          `С1 - ${employeeMap[defaultResponsibleUserId].name}`
-                        ) : status === "active" ? (
-                          <button
-                            type="button"
-                            onClick={() => setSettingsOpen(true)}
-                            title="Назначить сотрудника, который снимает показатели"
-                            className={GRID_ADD_CELL_CLASS}
-                          >
-                            <Plus className="size-4" strokeWidth={2.5} />
-                            Добавить ответственного
-                          </button>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                    </tr>
+                    {/* Строки «Ответственный за снятие показателей» здесь нет
+                        сознательно: эталон climate_control-grid.png её не
+                        печатает — ответственный ведётся колонкой «Фамилия
+                        ответственного лица» в самой таблице замеров.
+                        (У cold_equipment строка остаётся.) */}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
         </div>
+
+        {/* Бумажная ХАССП-шапка — САМОСТОЯТЕЛЬНЫЙ блок под полосой
+            тумблера. Раньше она жила ВНУТРИ раскрывающейся панели
+            автозаполнения, и при свёрнутой панели журнал оставался вообще
+            без шапки. В панели теперь только инпуты норм. */}
+        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="БЛАНК КОНТРОЛЯ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ"
+            startedAt={dateFrom}
+            finishedAt={status === "closed" ? dateTo : null}
+            controlPeriodicity={controlPeriodicity}
+          />
+        </div>
+
+        <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
+          Бланк контроля температуры и влажности
+        </JournalDocumentTitle>
 
         {status === "active" && (
           <StickyActionBar>

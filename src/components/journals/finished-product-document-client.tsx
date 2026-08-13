@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import {
   Archive,
   ChevronDown,
-  ChevronRight,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -517,7 +516,10 @@ export function FinishedProductDocumentClient({
         <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража." />
       ) : null}
 
-      <div className={`${DOC_BODY_STACK_CLASS} overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6`}>
+      {/* Карточной обёртки (рамка + скругление) нет — как в incoming_control
+          и uv_lamp_runtime и как на эталоне: документ лежит прямо на белом
+          фоне раздела, горизонтальную геометрию задаёт контейнер страницы. */}
+      <div className={`${DOC_BODY_STACK_CLASS} py-4 sm:py-6`}>
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
@@ -644,9 +646,10 @@ export function FinishedProductDocumentClient({
             type="button"
             onClick={() => setGuideOpen((prev) => !prev)}
             aria-expanded={guideOpen}
-            className="inline-flex items-center gap-1.5 rounded-md text-left text-[13px] font-semibold text-[#0b1024] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+            className="rounded-md text-left text-[13px] font-semibold text-[#0b1024] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
           >
-            <ChevronRight className={`size-4 shrink-0 transition-transform duration-150 ${guideOpen ? "rotate-90" : ""}`} />
+            {/* Шеврона нет: на эталоне это обычная подчёркнутая ссылка-текст,
+                раскрытие остаётся по клику. */}
             {FINISHED_PRODUCT_QUALITY_GUIDE_TITLE}
           </button>
           {guideOpen ? (

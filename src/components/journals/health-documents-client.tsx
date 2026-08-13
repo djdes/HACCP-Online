@@ -182,7 +182,10 @@ function HealthDocumentRow(props: {
         <div className={JOURNAL_CARD_LABEL_CLASS}>Период</div>
         <div className={JOURNAL_CARD_VALUE_CLASS}>{props.document.periodLabel}</div>
       </Link>
-      <div className={JOURNAL_CARD_SECTION_CLASS} />
+      {/* Пустая мета-колонка БЕЗ делителя: раньше здесь стоял
+          `JOURNAL_CARD_SECTION_CLASS`, и карточка рисовала вертикальную
+          линию, за которой ничего не было. */}
+      <div />
       <div className="flex items-center justify-center text-[#5566f6]">
         <DocumentActionsMenu
           onEdit={canManage ? () => props.onEdit(props.document) : undefined}
