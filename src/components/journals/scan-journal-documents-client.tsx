@@ -16,6 +16,8 @@ import {
   JOURNAL_CARD_VALUE_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 type JournalDocumentRow = {
   id: string;
@@ -138,7 +140,7 @@ export function ScanJournalDocumentsClient({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className={JOURNAL_LIST_CARDS_CLASS}>
         {documents.length === 0 ? (
           <EmptyDocumentsState />
         ) : (
@@ -147,7 +149,7 @@ export function ScanJournalDocumentsClient({
             return (
               <div
                 key={document.id}
-                className="grid gap-3 rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] md:items-center md:gap-0"
+                className={JOURNAL_LIST_CARD_CLASS}
               >
                 <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                   {document.title}

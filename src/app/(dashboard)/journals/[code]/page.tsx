@@ -2701,7 +2701,8 @@ export default async function JournalDocumentsPage({
             status: document.status as "active" | "closed",
             responsibleTitle: document.responsibleTitle,
             periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
-            startedAtLabel: document.dateFrom.toLocaleDateString("ru-RU"),
+            // «ДД-ММ-ГГГГ» — единый формат дат карточек списка.
+            startedAtLabel: toSourceDateLabel(document.dateFrom),
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             dateTo: document.dateTo.toISOString().slice(0, 10),
             config: document.config,

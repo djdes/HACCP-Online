@@ -345,12 +345,46 @@ export function getColdEquipmentCreatePeriodBounds(referenceDate = new Date()) {
   };
 }
 
+/**
+ * Подпись периода документа в СПИСКЕ. Документ холодильников — полумесячный
+ * (`getColdEquipmentCreatePeriodBounds`: 1-15 или 16-конец месяца), поэтому
+ * «Август 2026 г.» делал два документа одного месяца неразличимыми. Формат
+ * эталона и нашего же журнала уборки: «Август с 1 по 15» (X4 аудита).
+ * Для периодов, выходящих за один месяц, остаётся общий formatMonthLabel.
+ */
 export function getColdEquipmentPeriodLabel(
   dateFrom: Date | string,
   dateTo: Date | string
 ) {
+  const start = coerceUtcDate(dateFrom);
+  const end = coerceUtcDate(dateTo);
+
+  if (
+    !Number.isNaN(start.getTime()) &&
+    !Number.isNaN(end.getTime()) &&
+    start.getUTCFullYear() === end.getUTCFullYear() &&
+    start.getUTCMonth() === end.getUTCMonth()
+  ) {
+    return `${COLD_EQUIPMENT_MONTH_NAMES[start.getUTCMonth()]} с ${start.getUTCDate()} по ${end.getUTCDate()}`;
+  }
+
   return formatMonthLabel(dateFrom, dateTo);
 }
+
+const COLD_EQUIPMENT_MONTH_NAMES = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
 
 export function getColdEquipmentDateLabel(date: Date | string) {
   const dateKey = toDateKey(date);

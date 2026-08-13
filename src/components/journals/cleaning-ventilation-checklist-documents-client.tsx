@@ -62,6 +62,7 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -97,7 +98,26 @@ function getDefaultDate() {
 
 function formatDateLabel(isoDate: string) {
   if (!isoDate) return "—";
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString("ru-RU");
+  // Единый формат дат в карточках списков — «ДД-ММ-ГГГГ», как в бумажной
+  // шапке документа и на эталоне (S9 аудита), а не «ДД.ММ.ГГГГ».
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString("ru-RU").replaceAll(".", "-");
+}
+
+/**
+ * «Должность: ФИО» главного ответственного документа для карточки списка.
+ * `config` приходит уже нормализованным со страницы, поэтому читаем поля
+ * напрямую; если должности/сотрудника нет (старый документ) — прочерк.
+ */
+function getMainResponsibleLabel(document: DocumentItem, users: UserItem[]) {
+  const config = document.config ?? null;
+  const title =
+    typeof config?.mainResponsibleTitle === "string" ? config.mainResponsibleTitle.trim() : "";
+  const userId =
+    typeof config?.mainResponsibleUserId === "string" ? config.mainResponsibleUserId : "";
+  const name = users.find((user) => user.id === userId)?.name?.trim() || "";
+
+  if (title && name) return `${title}: ${name}`;
+  return title || name || "—";
 }
 
 function SettingsDialog(props: {
@@ -285,7 +305,7 @@ export function CleaningVentilationChecklistDocumentsClient({
 
       <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-      <div className="space-y-5">
+      <div className={JOURNAL_LIST_CARDS_CLASS}>
         {documents.length === 0 ? (
           <EmptyDocumentsState
             action={<Button
@@ -314,10 +334,16 @@ export function CleaningVentilationChecklistDocumentsClient({
                 </div>
               </Link>
 
+              {/* Эталон показывает в карточке ответственного, а не «Статус:
+                  Активный» (V2 аудита): вкладка «Активные/Закрытые» и так
+                  говорит о статусе, а ответственный — единственные полезные
+                  данные документа в списке. Берём главного ответственного из
+                  нормализованного config; у старых документов без него —
+                  прочерк. */}
               <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
-                <div className={JOURNAL_CARD_LABEL_CLASS}>Статус</div>
+                <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный</div>
                 <div className={JOURNAL_CARD_VALUE_CLASS}>
-                  {document.status === "active" ? "Активный" : "Закрытый"}
+                  {getMainResponsibleLabel(document, users)}
                 </div>
               </Link>
 

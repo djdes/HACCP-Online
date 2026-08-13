@@ -36,7 +36,9 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 type JournalListDocument = {
   id: string;
@@ -177,7 +179,7 @@ export function FinishedProductDocumentsClient({
         documentCount={documents.length}
       />
       <JournalTabs activeTab={activeTab} templateCode={templateCode} />
-      <div className="space-y-4">
+      <div className={JOURNAL_LIST_CARDS_CLASS}>
         {documents.length === 0 && (
           <EmptyDocumentsState
             templateCode={templateCode}
@@ -193,12 +195,7 @@ export function FinishedProductDocumentsClient({
           return (
             <div
               key={document.id}
-              className={cn(
-                "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:items-center sm:gap-0 sm:px-6 sm:py-5",
-                responsible
-                  ? "sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px]"
-                  : "sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_48px]"
-              )}
+              className={JOURNAL_LIST_CARD_CLASS}
             >
               <Link href={`/journals/${templateCode}/documents/${document.id}`} className="min-w-0">
                 <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>

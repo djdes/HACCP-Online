@@ -56,6 +56,8 @@ import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_TAB_RAIL_CLASS,
   JOURNAL_TAB_VIEWPORT_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { FloatingInputField } from "@/components/journals/journal-dialog-field";
@@ -554,7 +556,7 @@ export function CleaningDocumentsClient(props: Props) {
   return (
     <>
       <div className={JOURNAL_LIST_STACK_CLASS}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {CLEANING_PAGE_TITLE}
           </h1>
@@ -613,7 +615,7 @@ export function CleaningDocumentsClient(props: Props) {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className={JOURNAL_LIST_CARDS_CLASS}>
           {props.documents.length === 0 ? (
             <EmptyDocumentsState
               action={
@@ -646,7 +648,7 @@ export function CleaningDocumentsClient(props: Props) {
             return (
               <div
                 key={document.id}
-                className="grid grid-cols-1 gap-4 rounded-2xl border border-[#ececf4] bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6"
+                className={JOURNAL_LIST_CARD_CLASS}
               >
                 <Link href={href} className={`${JOURNAL_CARD_TITLE_CLASS} min-w-0`}>
                   {document.title || CLEANING_DOCUMENT_TITLE}

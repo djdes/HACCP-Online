@@ -23,7 +23,12 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
     // 1296px, поэтому выходим из контейнера через w-screen + центрирование —
     // белый фон тянется от края до края, как на эталоне (body имеет
     // overflow-x-clip, поэтому скроллбар не появляется).
-    <div className="relative left-1/2 -my-4 w-screen -translate-x-1/2 bg-white py-4 md:-my-6 md:py-6">
+    // `min-h-[calc(100vh-140px)]` — белая подложка раздела доходит до низа
+    // экрана даже на коротких списках. Без этого белая зона обрывалась
+    // ровно под последней карточкой и ниже проступала серая полоса
+    // `bg-gray-50` из (dashboard)/layout — видимая граница, которой нет
+    // на эталоне. 140px ≈ шапка кабинета (72px) + футер дашборда.
+    <div className="relative left-1/2 -my-4 min-h-[calc(100vh-140px)] w-screen -translate-x-1/2 bg-white py-4 md:-my-6 md:py-6">
       {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
           скроллятся внутри собственного viewport-контейнера
           (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}

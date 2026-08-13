@@ -47,6 +47,7 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 
 type HealthListDocument = {
@@ -233,7 +234,7 @@ export function HealthDocumentsClient(props: Props) {
 
         <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
 
-        <div className="space-y-5">
+        <div className={JOURNAL_LIST_CARDS_CLASS}>
           {props.documents.length === 0 && (
             <EmptyDocumentsState
               templateCode={props.templateCode}

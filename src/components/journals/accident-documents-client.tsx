@@ -42,6 +42,8 @@ import {
   JOURNAL_CARD_VALUE_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 type DocumentItem = {
   id: string;
@@ -332,7 +334,7 @@ export function AccidentDocumentsClient({
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className={JOURNAL_LIST_CARDS_CLASS}>
         {documents.length === 0 ? (
           <EmptyDocumentsState />
         ) : null}
@@ -342,7 +344,7 @@ export function AccidentDocumentsClient({
           return (
             <div
               key={document.id}
-              className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5"
+              className={JOURNAL_LIST_CARD_CLASS}
             >
               <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                 {document.title || ACCIDENT_DOCUMENT_TITLE}

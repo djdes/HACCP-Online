@@ -48,7 +48,11 @@ export function JournalTopBar(props: {
   createSlot?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    // `sm:items-center` — когда длинный H1 («Журнал бракеража скоропортящейся
+    // продукции») переносится в две строки, кнопки «Инструкция» / «Создать
+    // документ» центрируются по высоте блока заголовка, а не липнут к первой
+    // строке (P4 сводной таблицы аудита).
+    <div className="flex flex-wrap items-start justify-between gap-4 sm:items-center">
       <h1 className={JOURNAL_LIST_HEADING_CLASS}>
         {props.heading}
       </h1>

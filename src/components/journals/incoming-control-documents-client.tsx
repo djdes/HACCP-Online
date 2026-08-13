@@ -48,6 +48,8 @@ import {
   JOURNAL_DIALOG_SUBMIT_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_LIST_CARD_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
@@ -396,7 +398,7 @@ export function IncomingControlDocumentsClient({
 
         <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-        <div className="space-y-3">
+        <div className={JOURNAL_LIST_CARDS_CLASS}>
           {documents.length === 0 && (
             <EmptyDocumentsState
               action={<Button
@@ -417,7 +419,7 @@ export function IncomingControlDocumentsClient({
             return (
               <div
                 key={document.id}
-                className="grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-0 sm:px-6 sm:py-5"
+                className={JOURNAL_LIST_CARD_CLASS}
               >
                 <Link
                   href={`/journals/${routeCode}/documents/${document.id}`}

@@ -25,21 +25,46 @@ export const JOURNAL_TAB_VIEWPORT_CLASS =
 export const JOURNAL_TAB_RAIL_CLASS =
   "flex min-w-max gap-8 text-[14px] font-semibold sm:gap-12";
 
+/**
+ * Карточка документа в списке журнала — геометрия эталона
+ * lk.haccp-online.ru (hygiene-1-list.png, cleaning-1-list.png):
+ *
+ *   [ Название (жирное, занимает всё свободное место) ][ мета ][ мета ][ ⋯ ]
+ *
+ * Ключевые отличия от прежней grid-раскладки
+ * (`sm:grid-cols-[1fr_200px_200px_48px]`):
+ *
+ * 1. Не grid, а flex: мета-колонки получают ширину ПО СОДЕРЖИМОМУ
+ *    (`sm:shrink-0` + nowrap в JOURNAL_CARD_SECTION_CLASS), поэтому
+ *    «Должность ответственного» и «Управляющий: Администратор» больше не
+ *    переносятся в две строки и карточка держит 66-76px вместо 94-118px.
+ * 2. Первый ребёнок (название) — `flex-1 min-w-0`: мета-колонки
+ *    автоматически прижаты ВПРАВО к меню «⋯», как на эталоне. Правило
+ *    живёт здесь, а не в JOURNAL_CARD_TITLE_CLASS, потому что часть
+ *    журналов вешает типографику названия на вложенный `<div>` внутри
+ *    `<Link>`, и flex-элементом там оказывается именно ссылка.
+ * 3. У ВТОРОГО ребёнка (первая мета-колонка) вертикальный разделитель
+ *    снят: линии рисуются только МЕЖДУ мета-колонками. На мобиле
+ *    горизонтальные разделители остаются у всех секций.
+ */
 export const JOURNAL_LIST_CARD_CLASS =
-  "grid grid-cols-1 gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_minmax(120px,200px)_minmax(120px,200px)_48px] sm:items-center sm:gap-0 sm:px-5 sm:py-3.5";
+  "flex flex-col gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:gap-0 sm:px-5 sm:[&>:first-child]:min-w-0 sm:[&>:first-child]:flex-1 sm:[&>:nth-child(2)]:border-l-0";
 
 /**
  * Shared card typography (list of documents inside a journal). Normalized
  * across every *-documents-client.tsx so every journal card looks the same
  * as the climate_control card used as the reference.
+ *
+ * Название документа — 16px/700 тёмным, как на эталоне (S1 аудита).
  */
 export const JOURNAL_CARD_TITLE_CLASS =
-  "text-[15px] font-semibold tracking-[-0.02em] text-black";
+  "text-[16px] font-bold leading-[1.35] tracking-[-0.02em] text-black";
 
-export const JOURNAL_CARD_LABEL_CLASS = "text-[12.5px] text-[#84849a]";
+export const JOURNAL_CARD_LABEL_CLASS =
+  "text-[12.5px] leading-[1.3] text-[#84849a] sm:whitespace-nowrap";
 
 export const JOURNAL_CARD_VALUE_CLASS =
-  "mt-1.5 text-[13.5px] font-semibold text-black";
+  "mt-1 text-[13.5px] font-semibold leading-[1.35] text-black sm:whitespace-nowrap";
 
 /**
  * Shared section divider used between title → label/value blocks in the
@@ -47,9 +72,15 @@ export const JOURNAL_CARD_VALUE_CLASS =
  * line + left padding on desktop. On desktop the content is laid out as
  * a flex column centered vertically so label/value sits exactly between
  * the vertical dividers regardless of cell height differences.
+ *
+ * `sm:shrink-0` + nowrap подписей — колонка ровно по своему содержимому:
+ * ширину карточке диктует название, а не мета-данные.
  */
 export const JOURNAL_CARD_SECTION_CLASS =
-  "border-t border-[#e6e6f0] pt-3 sm:flex sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-10 sm:pt-0";
+  "border-t border-[#e6e6f0] pt-3 sm:flex sm:shrink-0 sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-6 sm:pt-0";
+
+/** Вертикальный зазор между карточками списка — 16px (эталон 14-18px). */
+export const JOURNAL_LIST_CARDS_CLASS = "space-y-4";
 
 /**
  * Полоса «выбрано N строк» — ЗАКРЕПЛЕНА ЖЁСТКО.

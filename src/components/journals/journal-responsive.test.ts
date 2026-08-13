@@ -24,7 +24,12 @@ import {
   JOURNAL_DOCUMENT_SELECTION_BAR_CLASS,
   JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS,
   JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS,
+  JOURNAL_CARD_LABEL_CLASS,
+  JOURNAL_CARD_SECTION_CLASS,
+  JOURNAL_CARD_TITLE_CLASS,
+  JOURNAL_CARD_VALUE_CLASS,
   JOURNAL_LIST_ACTIONS_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_HEADING_CLASS,
   JOURNAL_TAB_RAIL_CLASS,
@@ -39,8 +44,9 @@ test("journal responsive tokens keep mobile-first stacking and tighter shells", 
   assert.match(JOURNAL_LIST_ACTIONS_CLASS, /sm:flex-row/);
   assert.match(JOURNAL_TAB_VIEWPORT_CLASS, /overflow-x-auto/);
   assert.match(JOURNAL_TAB_RAIL_CLASS, /min-w-max/);
-  assert.match(JOURNAL_LIST_CARD_CLASS, /grid-cols-1/);
-  assert.match(JOURNAL_LIST_CARD_CLASS, /sm:grid-cols-/);
+  // Карточка списка: колонкой на мобиле, строкой на десктопе.
+  assert.match(JOURNAL_LIST_CARD_CLASS, /\bflex-col\b/);
+  assert.match(JOURNAL_LIST_CARD_CLASS, /sm:flex-row/);
   // Полоса выделения закреплена fixed и живёт вне потока страницы,
   // поэтому компенсирующих отрицательных отступов у неё быть не должно.
   assert.doesNotMatch(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /-mx-/);
@@ -71,6 +77,23 @@ test("journal tokens follow the haccp-online reference typography", () => {
   assert.doesNotMatch(JOURNAL_TAB_RAIL_CLASS, /sm:text-/);
   // Контент центрируется по контейнеру эталона — 1296px.
   assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /max-w-\[1296px\]/);
+});
+
+test("document list card matches the reference geometry", () => {
+  // Название документа — 16px/700 (S1 аудита), а не 15px/600.
+  assert.match(JOURNAL_CARD_TITLE_CLASS, /text-\[16px\]/);
+  assert.match(JOURNAL_CARD_TITLE_CLASS, /font-bold/);
+  // Мета-колонки прижаты вправо: название забирает всё свободное место.
+  assert.match(JOURNAL_LIST_CARD_CLASS, /sm:\[&>:first-child\]:flex-1/);
+  assert.match(JOURNAL_LIST_CARD_CLASS, /sm:\[&>:first-child\]:min-w-0/);
+  // Разделитель ПЕРЕД первой мета-колонкой снят (S3): линии только между.
+  assert.match(JOURNAL_LIST_CARD_CLASS, /sm:\[&>:nth-child\(2\)\]:border-l-0/);
+  // Колонка — по содержимому, подписи и значения в одну строку (S2).
+  assert.match(JOURNAL_CARD_SECTION_CLASS, /sm:shrink-0/);
+  assert.match(JOURNAL_CARD_LABEL_CLASS, /sm:whitespace-nowrap/);
+  assert.match(JOURNAL_CARD_VALUE_CLASS, /sm:whitespace-nowrap/);
+  // Зазор между карточками — 16px (эталон 14-18px), S4.
+  assert.equal(JOURNAL_LIST_CARDS_CLASS, "space-y-4");
 });
 
 test("document rhythm tokens follow the canonical block order spacing", () => {

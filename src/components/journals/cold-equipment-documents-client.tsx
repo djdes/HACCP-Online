@@ -48,6 +48,7 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_STACK_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -246,7 +247,7 @@ export function ColdEquipmentDocumentsClient({
 
         <JournalTabs activeTab={activeTab} templateCode={routeCode} />
 
-        <div className="space-y-5">
+        <div className={JOURNAL_LIST_CARDS_CLASS}>
           {documents.length === 0 ? (
             <EmptyDocumentsState
               templateCode={templateCode}

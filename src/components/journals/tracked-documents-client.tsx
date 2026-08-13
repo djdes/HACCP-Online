@@ -52,6 +52,8 @@ import {
   JOURNAL_LIST_HEADING_CLASS,
   JOURNAL_TAB_RAIL_CLASS,
   JOURNAL_TAB_VIEWPORT_CLASS,
+  JOURNAL_CARD_SECTION_CLASS,
+  JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -411,7 +413,7 @@ function TrackedDocumentsClientImpl({
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className={JOURNAL_LIST_CARDS_CLASS}>
           {documents.length === 0 && (
             <EmptyDocumentsState />
           )}
@@ -428,14 +430,14 @@ function TrackedDocumentsClientImpl({
                   {document.title}
                 </Link>
 
-                <Link href={href} className="border-t border-[#e6e6f0] pt-3 sm:border-l sm:border-t-0 sm:px-10 sm:pt-0">
+                <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                   <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный</div>
                   <div className={JOURNAL_CARD_VALUE_CLASS}>
                     {getResponsibleCardValue(document)}
                   </div>
                 </Link>
 
-                <Link href={href} className="border-t border-[#e6e6f0] pt-3 sm:border-l sm:border-t-0 sm:px-10 sm:pt-0">
+                <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                   <div className={JOURNAL_CARD_LABEL_CLASS}>{document.metaLabel}</div>
                   <div className={JOURNAL_CARD_VALUE_CLASS}>{document.metaValue}</div>
                 </Link>
