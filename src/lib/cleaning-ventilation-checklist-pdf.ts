@@ -91,8 +91,14 @@ export function drawCleaningVentilationChecklistPdf(
   doc.text(params.title, 14, 14);
   doc.setFont(fontName, "normal");
 
+  /**
+   * Штамп ХАССП. Вынесен в функцию: он обязан стоять на КАЖДОЙ странице
+   * бланка (раньше страницы 2..N уходили голыми, а «СТР. i ИЗ N»
+   * печаталась отдельной строкой в подвале).
+   */
+  function drawVentHeader(topY: number) {
   autoTable(doc, {
-    startY: 20,
+    startY: topY,
     theme: "grid",
     styles: { font: fontName, fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
     columnStyles: {
@@ -110,8 +116,13 @@ export function drawCleaningVentilationChecklistPdf(
         { content: "", rowSpan: 2 },
       ],
       [
-        { content: "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ", styles: { fontStyle: "italic" } },
-        { content: "" },
+        // colSpan=2: справа от названия журнала лишней пустой ячейки нет
+        // (правый столбец шапки занят слотом «СТР. i ИЗ N» с rowSpan=2).
+        {
+          content: "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ",
+          colSpan: 2,
+          styles: { fontStyle: "italic" as const },
+        },
       ],
       // Строка «Периодичность контроля» — тот же ряд, что на экране и на
       // эталоне. Пустое значение (владелец стёр текст) строку не печатает.
@@ -138,19 +149,30 @@ export function drawCleaningVentilationChecklistPdf(
       }
     },
   });
+  return (
+    (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? topY
+  );
+  }
+
+  const headerBottom = drawVentHeader(20);
+  const headerHeight = headerBottom - 20;
 
   const descriptionText = getCleaningVentilationDescriptionLines()
     .filter((item) => item.label !== "Рабочие помещения при проветривании" || config.ventilationEnabled)
     .map((item) => `${item.label}: ${item.text}`)
     .join("\n\n");
 
-  // На экране ответственные подписаны «Должность - ФИО» — повторяем в PDF.
+  // На экране ответственные подписаны «Должность - ФИО», где ДОЛЖНОСТЬ
+  // берётся из конфига документа (`responsible.title`), а НЕ из
+  // jobPosition пользователя. Раньше PDF звал getUserDisplayTitle и
+  // печатал «Менеджер - Ярослав» там, где экран показывает
+  // «Управляющий - Ярослав».
   const responsiblesText =
     config.responsibles
       .map((item) => {
         const user = params.users.find((candidate) => candidate.id === item.userId);
-        if (!user?.name) return "";
-        return `${getUserDisplayTitle(user)} - ${user.name}`;
+        const title = item.title?.trim() || getUserDisplayTitle(user);
+        return `${title} - ${user?.name || "Не выбран"}`;
       })
       .filter(Boolean)
       .join("\n") || "—";
@@ -184,6 +206,9 @@ export function drawCleaningVentilationChecklistPdf(
   });
 
   const rowBody: Array<Array<string>> = [];
+  /** rowIndex → дата ГРУППЫ (для строк-продолжений на новой странице). */
+  const groupDateByRowIndex: string[] = [];
+  let lastRenderedPage = -1;
   const procedures = config.procedures.filter(
     (item) => item.enabled && (item.id !== "ventilation" || config.ventilationEnabled)
   );
@@ -197,6 +222,7 @@ export function drawCleaningVentilationChecklistPdf(
           (user) => user.id === (entry?.responsibleUserId || procedure.responsibleUserId || config.mainResponsibleUserId)
         )?.name || "";
 
+      groupDateByRowIndex[rowBody.length] = dateKey.split("-").reverse().join("-");
       rowBody.push([
         index === 0 ? dateKey.split("-").reverse().join("-") : "",
         procedure.label,
@@ -212,6 +238,8 @@ export function drawCleaningVentilationChecklistPdf(
     startY: (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY
       ? (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable!.finalY! + 8
       : 100,
+    // Резерв под повтор штампа ХАССП на страницах 2..N.
+    margin: { top: 20 + headerHeight + 6 },
     theme: "grid",
     styles: { font: fontName, fontSize: 9, lineColor: [0, 0, 0], lineWidth: 0.2, cellPadding: 1.8 },
     head: [[
@@ -223,16 +251,39 @@ export function drawCleaningVentilationChecklistPdf(
       "ФИО ответственного лица",
     ]],
     body: rowBody,
+    // Группа строк одной даты не должна оставаться без даты: если разрыв
+    // страницы пришёлся на середину группы, первая строка на новом листе
+    // получает дату своей группы (раньше процедуры «продолжения» ехали
+    // на следующий лист безымянными).
+    willDrawCell: (data) => {
+      if (data.section !== "body" || data.column.index !== 0) return;
+      if (data.pageNumber === lastRenderedPage) return;
+      lastRenderedPage = data.pageNumber;
+      if (data.cell.text.join("").trim()) return;
+      const groupDate = groupDateByRowIndex[data.row.index];
+      if (groupDate) data.cell.text = [groupDate];
+    },
     headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
+    // Сумма = 195мм — ровно ширина штампа (40+85+40+30) и блока
+    // «Процедура» (24+86+40+45): правый край всех блоков совпадает.
     columnStyles: {
       0: { cellWidth: 26 },
-      1: { cellWidth: 36 },
+      1: { cellWidth: 40 },
       2: { cellWidth: 28, halign: "center" },
       3: { cellWidth: 28, halign: "center" },
       4: { cellWidth: 28, halign: "center" },
-      5: { cellWidth: 42 },
+      5: { cellWidth: 45 },
     },
   });
+
+  // Повторяем штамп на страницах 2..N (место под него зарезервировано
+  // через margin.top таблицы наработки).
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 2; page <= totalPages; page += 1) {
+    doc.setPage(page);
+    drawVentHeader(20);
+  }
+  doc.setPage(totalPages);
 }
 
 export function getCleaningVentilationScreenRows(

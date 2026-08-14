@@ -1172,10 +1172,16 @@ export function SanitationDayDocumentClient({
                     полоса. Служебная ячейка теперь отдельная и тоже
                     `print:hidden`, а подпись занимает ровно
                     «Помещение» + «Вид». */}
-                <td className={`${GRID_CELL_CLASS} print:hidden`} />
+                {/* R5-14: служебная строка «Ответственный: …» держит тот
+                    же вертикальный ритм, что и строки данных.
+                    У ячейки-заглушки не было НИ padding'а, ни
+                    выравнивания, а у подписи стоял `py-1` против `py-2`
+                    у данных — строка выходила ниже соседних, и подпись
+                    прижималась к нижней рамке. */}
+                <td className={`${GRID_CELL_CLASS} px-3 py-2 print:hidden`} />
                 <td
                   colSpan={2}
-                  className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}
+                  className={`${GRID_CELL_CLASS} px-3 py-2 text-center align-middle leading-tight`}
                 >
                   <span className={GRID_SERVICE_LABEL_CLASS}>
                     Ответственный:{" "}
@@ -1196,7 +1202,7 @@ export function SanitationDayDocumentClient({
                 {SANITATION_MONTHS.map((month) => (
                   <td
                     key={`responsible-${month.key}`}
-                    className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}
+                    className={`${GRID_CELL_CLASS} px-3 py-2 leading-tight`}
                   />
                 ))}
               </tr>

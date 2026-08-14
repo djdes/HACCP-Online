@@ -180,16 +180,102 @@ async function fileToDataUrl(file: File) {
  * медкнижек уходил инспектору без расшифровки колонок. Блок ниже
  * НЕ виден на экране и печатается вместо ссылки.
  */
-function MedBookPrintList({ title, items }: { title: string; items: string[] }) {
+/**
+ * R5-9: справочник печатается ПОЛНОЙ ТАБЛИЦЕЙ, а не нумерованным списком.
+ *
+ * Раньше на бумагу уходил голый `<ol>` из названий колонок — инспектор
+ * РПН получал «1. Дерматовенеролог 2. Оториноларинголог …» без главного:
+ * КАК ЧАСТО осмотр обязателен и при каких условиях. Именно периодичность
+ * он и сверяет, а она оставалась только в экранном диалоге.
+ *
+ * Данные берём из ТЕХ ЖЕ констант, что и диалоги-редакторы
+ * (`EXAMINATION_REFERENCE_DATA` / `VACCINATION_REFERENCE_DATA`), чтобы
+ * бумага и экран не разъезжались: колонка журнала подтягивает свою
+ * строку справочника по названию, а колонки, добавленные организацией
+ * вручную, печатаются с пустой периодичностью — их заполняют от руки.
+ *
+ * `break-inside-avoid` — таблица не рвётся между листами бестолково.
+ */
+function MedBookPrintList({
+  title,
+  items,
+  reference,
+  noteColumn = false,
+}: {
+  title: string;
+  /** Колонки, реально включённые в этот документ. */
+  items: string[];
+  /** Справочник «название → периодичность/примечание». */
+  reference: ReadonlyArray<{ name: string; periodicity: string; note?: string }>;
+  /** Печатать третью колонку «Примечание» (только у осмотров). */
+  noteColumn?: boolean;
+}) {
   if (items.length === 0) return null;
+
+  /*
+   * Колонки документа хранятся КОРОТКИМ именем («Корь», «Гепатит B»), а
+   * справочник — полным, с расшифровкой вакцины («КОРЬ (ЖКВ - живая
+   * коревая вакцина)»). Точное сравнение строк совпадало лишь у одной
+   * позиции из восьми, и таблица печаталась с пустой периодичностью.
+   *
+   * Сопоставляем нормализованно: приводим к нижнему регистру, сжимаем
+   * пробелы и считаем совпадением, если одно имя НАЧИНАЕТСЯ с другого.
+   * Этого достаточно, потому что справочник как раз и устроен как
+   * «КОРОТКОЕ ИМЯ (уточнение)». Не нашли — колонка добавлена
+   * организацией вручную, печатаем пустую клетку под ручную запись.
+   */
+  const normalize = (value: string) =>
+    value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  const resolve = (name: string) => {
+    const key = normalize(name);
+    return (
+      reference.find((row) => normalize(row.name) === key) ??
+      reference.find((row) => {
+        const refKey = normalize(row.name);
+        return refKey.startsWith(key) || key.startsWith(refKey);
+      })
+    );
+  };
+
   return (
-    <div className="hidden print:block">
+    <div className="hidden break-inside-avoid print:block">
       <div className="text-[13px] font-bold text-black">{title}</div>
-      <ol className="mt-1 list-decimal pl-5 text-[11.5px] leading-[1.35] text-black">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ol>
+      <table className="mt-1 w-full border-collapse text-[11.5px] leading-[1.35] text-black">
+        <thead>
+          <tr>
+            <th className="border border-black px-2 py-1 text-left font-semibold">
+              Наименование
+            </th>
+            <th className="border border-black px-2 py-1 text-left font-semibold">
+              Периодичность
+            </th>
+            {noteColumn ? (
+              <th className="border border-black px-2 py-1 text-left font-semibold">
+                Примечание
+              </th>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const row = resolve(item);
+            return (
+              <tr key={item}>
+                <td className="border border-black px-2 py-1 align-top">{item}</td>
+                <td className="border border-black px-2 py-1 align-top">
+                  {row?.periodicity ?? ""}
+                </td>
+                {noteColumn ? (
+                  <td className="border border-black px-2 py-1 align-top">
+                    {row?.note ?? ""}
+                  </td>
+                ) : null}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1033,6 +1119,8 @@ export function MedBookDocumentClient({
         <MedBookPrintList
           title="Список специалистов и исследований"
           items={examColumns}
+          reference={EXAMINATION_REFERENCE_DATA}
+          noteColumn
         />
       </div>
 
@@ -1203,7 +1291,11 @@ export function MedBookDocumentClient({
             >
               Список прививок
             </button>
-            <MedBookPrintList title="Список прививок" items={vaccColumns} />
+            <MedBookPrintList
+              title="Список прививок"
+              items={vaccColumns}
+              reference={VACCINATION_REFERENCE_DATA}
+            />
           </div>
         </div>
       ) : null}

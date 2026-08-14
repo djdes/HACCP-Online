@@ -1536,7 +1536,14 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
       {/* Data table */}
       <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[12px] border border-[#eceef5] bg-white print:rounded-none print:border-[#ccc]">
-        <table className="w-full min-w-[720px] table-fixed border-collapse text-[13px] sm:min-w-[900px]">
+        {/* R5-7: `data-print-keep-size` — таблица из 5 колонок влезает в
+            альбомный A4 целиком, сжимать её до 9.5px незачем (см.
+            app-theme.css). Без атрибута шапка печаталась ~7pt против
+            10.5pt у данных. */}
+        <table
+          data-print-keep-size
+          className="w-full min-w-[720px] table-fixed border-collapse text-[13px] sm:min-w-[900px]"
+        >
           {/* U9: «Итого продолжительность» — узкая колонка (заголовок в две
               строки), «ФИО ответственного лица» — широкая. Раньше было
               наоборот: 410px под минуты и сжатое ФИО. */}

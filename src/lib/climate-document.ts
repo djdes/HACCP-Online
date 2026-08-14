@@ -408,8 +408,20 @@ export function getClimateFilePrefix() {
   return "climate-journal";
 }
 
+/**
+ * Дата в колонке «Дата» бланка микроклимата — ДД-ММ-ГГГГ.
+ *
+ * R5-16: здесь стояли ТОЧКИ, и на одном листе оказывались два разных
+ * формата даты: шапка «Начат 01-08-2026» (`formatPaperHeaderDate`) и
+ * колонка «01.08.2026». Серверный PDF (`document-pdf.ts` →
+ * `formatPdfDate`) и печать бланка уже давно печатают дефисы, так что
+ * экран был единственным местом с точками — приводим к общему виду.
+ *
+ * В ПОЛЯХ ВВОДА диалогов точки остаются допустимы (там это привычный
+ * пользователю ввод), правило касается только бланка.
+ */
 export function getClimateDateLabel(date: Date | string) {
   const dateKey = toDateKey(date);
   const [year, month, day] = dateKey.split("-");
-  return `${day}.${month}.${year}`;
+  return `${day}-${month}-${year}`;
 }

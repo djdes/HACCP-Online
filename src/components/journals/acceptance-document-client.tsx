@@ -2454,12 +2454,20 @@ export function AcceptanceDocumentClient(props: Props) {
                       disabled={displayedRows.length === 0 || isClosed}
                     />
                   </th>
+                  {/* R5-13: заголовки колонок рвались ПО ДЕФИСУ —
+                      «дата пр-/ва», «Внутр. темп-/ра». Дефис внутри
+                      сокращения не точка переноса, это часть слова.
+                      Подменяем его неразрывным дефисом U+2011 прямо на
+                      рендере: строки-константы (в т.ч.
+                      PRODUCT_ACCEPTANCE_IMPORT_COLUMNS, по которым
+                      парсится импорт) остаются нетронутыми, меняется
+                      только то, что видит глаз. */}
                   {incomingControlColumns.map((column) => (
                     <th
                       key={column}
                       className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center text-[11.5px] font-semibold leading-[1.25]`}
                     >
-                      {column}
+                      {column.replace(/-/g, "‑")}
                     </th>
                   ))}
                 </tr>
@@ -2491,9 +2499,13 @@ export function AcceptanceDocumentClient(props: Props) {
                           disabled={isClosed}
                         />
                       </td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.deliveryDate}</td>
+                      {/* R5-8: даты формата ДД-ММ-ГГГГ рвались по дефису
+                          («17-04-» / «2026») — колонки дат узкие (6.5%),
+                          и перенос срабатывал на каждом разделителе.
+                          Дата обязана читаться одной строкой. */}
+                      <td className={`${GRID_CELL_CLASS} whitespace-nowrap px-1.5 py-1 text-center leading-tight`}>{values.deliveryDate}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.productName}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.shelfLifeDate}</td>
+                      <td className={`${GRID_CELL_CLASS} whitespace-nowrap px-1.5 py-1 text-center leading-tight`}>{values.shelfLifeDate}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.manufacturerSupplier}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.accompanyingDocs}</td>
                       <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.batchInfo}</td>
@@ -2520,18 +2532,12 @@ export function AcceptanceDocumentClient(props: Props) {
                     </td>
                   </tr>
                 )}
-                {/* Q2-3: пустая строка-заготовка «добавить» — экранная
-                    аффорданс, на бумаге печаталась как незаполненная
-                    строка бланка. */}
-                <tr className="print:hidden">
-                  <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight print:hidden`}>
-                    <Checkbox disabled />
-                  </td>
-                  <td
-                    colSpan={incomingControlColumns.length}
-                    className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}
-                  />
-                </tr>
+                {/* R5-13: пустая строка-хвост с ОТКЛЮЧЁННЫМ чекбоксом
+                    удалена. Задумывалась как аффорданс «добавить», но
+                    кликом ничего не добавляла (Checkbox disabled, у tr
+                    нет onClick) — читалась как оборванная запись под
+                    последней строкой журнала. Добавление уже живёт явной
+                    кнопкой «Добавить» в DOC_ADD_ROW_CLASS над таблицей. */}
               </tbody>
             </table>
           </MobileViewTableWrapper>

@@ -674,7 +674,7 @@ export function FryerOilDocumentClient(props: Props) {
               Скролл при этом остаётся — таблица лежит в GRID_VIEWPORT_CLASS
               (`overflow-x-auto`), он спасает узкие экраны.
             */}
-            <table className="w-full min-w-[1122px] table-fixed border-collapse text-[13px]">
+            <table className="w-full min-w-[1158px] table-fixed border-collapse text-[13px]">
               <colgroup>
                 {/* Q2-7: `<th>`/`<td>` колонки выделения уже были
                     `print:hidden`, а её `<col>` — нет. При table-fixed
@@ -689,8 +689,16 @@ export function FryerOilDocumentClient(props: Props) {
                 <col className="w-[88px]" />
                 <col className="w-[96px]" />
                 <col className="w-[140px]" />
-                <col className="w-[78px]" />
-                <col className="w-[78px]" />
+                {/* R5-11: подколонки группы «Использование оставшегося
+                    жира» были по 78px — за вычетом px-2 остаётся 62px
+                    контента, а «Переходящий» в шапке занимает ~79px.
+                    `break-words` резал его ПОСРЕДИ СЛОВА
+                    («Переходящ|ий остаток, кг»). 96px вмещают самое
+                    длинное слово подколонки целиком, перенос остаётся
+                    только между словами. Итоговая ширина таблицы
+                    1122 → 1158, скролл по-прежнему в GRID_VIEWPORT_CLASS. */}
+                <col className="w-[96px]" />
+                <col className="w-[96px]" />
                 <col className="w-[100px]" />
               </colgroup>
               <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-0 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Утилизированный, кг</th></tr></thead>

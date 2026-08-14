@@ -1365,6 +1365,23 @@ export function ClimateDocumentClient({
         Добавить помещение
       </button>
     ) : (
+      /*
+       * R5-5: ДВОЙНАЯ ВЕРТИКАЛЬНАЯ ЛИНИЯ по краям блока «Нормы условий».
+       *
+       * Таблица норм вложена в ячейку бумажной шапки, у которой своя
+       * рамка (`GRID_CELL_CLASS`), и рисует ПОВЕРХ неё собственную —
+       * две линии по 1px вплотную читаются как рамка 2px со смещением.
+       * `border-collapse` схлопывает границы только ВНУТРИ одной
+       * таблицы, на границу «родительский td ↔ вложенная table» он не
+       * распространяется.
+       *
+       * Решение: рамку рисует РОВНО ОДНА из двух таблиц. Родительская
+       * ячейка отдаёт свою (`p-0` без GRID_CELL_CLASS, см. место
+       * вставки), контур бланка в этом месте держит внешний периметр
+       * вложенной таблицы. Она `w-full` внутри ячейки без паддингов,
+       * поэтому её края проходят ровно там, где раньше шла рамка
+       * родителя — геометрия бланка не меняется, линия становится одна.
+       */
       <table className="w-full border-collapse text-[13px]">
         <tbody>
           {/* Служебная строка-шапка норм: без неё две правые колонки
@@ -1404,7 +1421,15 @@ export function ClimateDocumentClient({
                     className="pointer-events-none print:hidden"
                     tabIndex={-1}
                   />
-                  <span className="font-medium lowercase">{room.name}</span>
+                  {/* R5-5: на бумаге «холодильный цех» ломался на две
+                      строки и РАСПИРАЛ строку норм вдвое. В печати
+                      чекбокс слева скрыт (print:hidden выше), то есть
+                      ~36px ширины освобождается — название спокойно
+                      встаёт в одну строку. На экране перенос оставляем:
+                      там чекбокс на месте и место действительно нужно. */}
+                  <span className="font-medium lowercase print:whitespace-nowrap">
+                    {room.name}
+                  </span>
                   {status === "active" && (
                     <button
                       type="button"
@@ -1544,7 +1569,11 @@ export function ClimateDocumentClient({
                 >
                   Нормы условий
                 </td>
-                <td colSpan={2} className={`${GRID_CELL_CLASS} p-0 leading-tight`}>
+                {/* R5-5: БЕЗ `GRID_CELL_CLASS` — рамку этой ячейки рисует
+                    вложенная таблица норм (см. `climateNormsBody`).
+                    Пока рамки были у обеих, по краям блока «Нормы
+                    условий» шла двойная вертикальная линия. */}
+                <td colSpan={2} data-print-flush className="p-0 leading-tight">
                   {climateNormsBody}
                 </td>
               </tr>

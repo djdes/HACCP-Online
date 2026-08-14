@@ -1016,21 +1016,45 @@ body:has(.app-shell[data-app-theme="dark"]) {
      классового `min-w-[…]` на inline `style={{ minWidth: gridMinWidth }}`
      (ширина считается от числа точек контроля) — селектор по классу их
      больше не ловил, и печать шла экранным 13px, унося правые колонки за
-     лист. Ловим оба варианта разметки. */
-  .app-shell table[class*="min-w-["],
-  .app-shell table[style*="min-width"],
-  .app-shell [data-journal-blank-column] table {
+     лист. Ловим оба варианта разметки.
+
+     R5-7: селектор ловил ЛЮБУЮ таблицу с `min-w-[…]`, включая узкие,
+     которым сжатие не нужно. Журнал УФ-ламп (`min-w-[720px]
+     sm:min-w-[900px]`) спокойно влезает в альбомный A4 (~1046px), но
+     всё равно получал 9.5px — при этом ячейки данных несут ВНУТРИ
+     `<span class="text-[14px]">`, которого правило `font-size: inherit`
+     не касается. Итог: шапка печаталась 7pt, данные 10.5pt — разнобой
+     в полтора раза внутри одной таблицы.
+
+     Опт-аут — атрибут `data-print-keep-size` на самой таблице
+     (тот же приём, что `data-journal-blank-column` ниже: Tailwind-
+     important в v4 здесь не работает, см. комментарий там). Ставится
+     ТОЛЬКО тем таблицам, что и так помещаются на лист. */
+  .app-shell table[class*="min-w-["]:not([data-print-keep-size]),
+  .app-shell table[style*="min-width"]:not([data-print-keep-size]),
+  .app-shell [data-journal-blank-column] table:not([data-print-keep-size]) {
     font-size: 9.5px !important;
     line-height: 1.15 !important;
   }
-  .app-shell table[class*="min-w-["] th,
-  .app-shell table[class*="min-w-["] td,
-  .app-shell table[style*="min-width"] th,
-  .app-shell table[style*="min-width"] td,
-  .app-shell [data-journal-blank-column] table th,
-  .app-shell [data-journal-blank-column] table td {
+  .app-shell table[class*="min-w-["]:not([data-print-keep-size]) th,
+  .app-shell table[class*="min-w-["]:not([data-print-keep-size]) td,
+  .app-shell table[style*="min-width"]:not([data-print-keep-size]) th,
+  .app-shell table[style*="min-width"]:not([data-print-keep-size]) td,
+  .app-shell [data-journal-blank-column] table:not([data-print-keep-size]) th,
+  .app-shell [data-journal-blank-column] table:not([data-print-keep-size]) td {
     padding: 1px 2px !important;
     font-size: inherit !important;
+  }
+
+  /* R5-5: ячейка, внутри которой лежит ВЛОЖЕННАЯ таблица, обязана быть
+     БЕЗ паддингов — иначе вложенная сетка вставала с отступом 2px от
+     рамки родителя, и по краям блока «Нормы условий» (климат) шла
+     вторая вертикальная линия в паре миллиметров от первой.
+     Экранный `p-0` тут не помогает: правило выше стоит с `!important`.
+     Специфичность (0,3,2) против (0,2,2) — перебиваем адресно. */
+  .app-shell table[class*="min-w-["] td[data-print-flush],
+  .app-shell table[style*="min-width"] td[data-print-flush] {
+    padding: 0 !important;
   }
 
   /* Колонка бланка (шапка + сетка в одном scroll-viewport'е, см.

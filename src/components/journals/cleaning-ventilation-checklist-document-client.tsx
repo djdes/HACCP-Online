@@ -57,6 +57,7 @@ import { JournalPaperHeaderRows } from "@/components/journals/journal-document-h
 import { DOC_PAPER_CANVAS_CLASS } from "@/components/journals/journal-responsive";
 import {
   GRID_ADD_CELL_SOLID_CLASS,
+  GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
 } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -1174,7 +1175,16 @@ export function CleaningVentilationChecklistDocumentClient({
                 >
                   Ответственные лица
                 </td>
-                <td colSpan={3} className="p-0 align-top text-[15px] leading-6">
+                {/* R5-3в: у ячейки не было НИ ОДНОЙ рамки, а строка
+                    «Ответственные лица» — последняя в бланке, поэтому на
+                    бумаге весь блок оставался с открытым низом: рамка
+                    таблицы просто обрывалась после «Периодичности».
+                    GRID_CELL_CLASS закрывает контур (в border-collapse
+                    лишние линии сливаются с соседями). */}
+                <td
+                  colSpan={3}
+                  className={`${GRID_CELL_CLASS} p-0 align-top text-[15px] leading-6`}
+                >
                   <div className="space-y-2 px-5 py-2">
                   {config.responsibles.length > 0 ? (
                     config.responsibles.map((responsible) => {
@@ -1187,7 +1197,12 @@ export function CleaningVentilationChecklistDocumentClient({
                           {isActive ? (
                             <button
                               type="button"
-                              className="text-[#ff3b30]"
+                              aria-label={`Удалить ответственного «${responsible.title}»`}
+                              /* R5-3а: без print:hidden иконки-корзины
+                                 уходили на бумагу — в официальном бланке
+                                 у каждого ответственного печаталась
+                                 красная корзина удаления. */
+                              className="shrink-0 text-[#ff3b30] transition-colors duration-150 hover:text-[#d92b21] print:hidden"
                               onClick={() => {
                                 persistConfig({
                                   ...config,

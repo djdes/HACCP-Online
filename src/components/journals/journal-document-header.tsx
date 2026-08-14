@@ -152,10 +152,29 @@ export function JournalPaperHeaderRows({
           ни whitespace-правилами — им просто не хватает ширины, поэтому
           ячейке добавлен word-spacing и запрет переноса.
         */}
+        {/*
+          R5-10: «СТР. 1 ИЗ 1» ВРАЛО на бумаге. Реальное число листов
+          браузерной печати зависит от драйвера, полей и масштаба —
+          CSS его не знает и знать не может, а `@page` счётчиков в
+          Chrome нет. Печатать заведомо ложное «1 ИЗ 1» в официальном
+          ХАССП-бланке хуже, чем не печатать ничего: инспектор РПН
+          сверяет нумерацию.
+
+          Поэтому у ячейки ДВА варианта: на экране и в серверном PDF
+          (`document-pdf.ts` рисует шапку сам и сюда не заходит)
+          остаётся прежний `pageInfo`, а в браузерной печати выводится
+          бумажный пропуск «СТР. ___ ИЗ ___» под ручное заполнение —
+          ровно как в типографских бланках.
+
+          Повтор шапки на КАЖДОМ листе не делаем: для этого шапка
+          должна жить в `<thead>` таблицы данных, а она у нас — строки
+          общего `<tbody>` бланка (единая рамка, см. R1).
+        */}
         <td
           className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] whitespace-nowrap uppercase leading-tight [word-spacing:0.18em]`}
         >
-          {pageInfo}
+          <span className="print:hidden">{pageInfo}</span>
+          <span className="hidden print:inline">СТР. ___ ИЗ ___</span>
         </td>
       </tr>
       <JournalPeriodicityHeaderRow
@@ -294,7 +313,7 @@ export function JournalLegendBlock({
   if (variant === "plain") {
     return (
       <div
-        className={`w-full text-[12.5px] italic leading-[1.4] text-[#0b1024] sm:text-[13px] ${className}`}
+        className={`w-full break-inside-avoid text-[12.5px] italic leading-[1.4] text-[#0b1024] sm:text-[13px] ${className}`}
       >
         <div className="mb-1 font-semibold underline underline-offset-2">
           {title}:
@@ -311,8 +330,22 @@ export function JournalLegendBlock({
   }
 
   return (
+    /*
+     * R5-6: «Условные обозначения» НЕ РЕЖУТСЯ между листами.
+     *
+     * Симптом (гигиенический журнал): легенда разрывалась по середине
+     * списка — часть сокращений («Зд», «В», «Б/л») оставалась на одном
+     * листе, часть уезжала на следующий. Для проверяющего РПН легенда
+     * без половины расшифровок бесполезна: она читается как единое
+     * целое или не читается вообще.
+     *
+     * `break-inside-avoid` уводит блок ЦЕЛИКОМ на следующую страницу,
+     * если он не помещается в остаток текущей. Свойство работает и на
+     * экране (multi-column), но у нас легенда в одну колонку, поэтому
+     * визуально это правило чисто печатное.
+     */
     <div
-      className={`mx-auto w-full max-w-[820px] rounded-2xl border border-[#ececf4] bg-white p-4 text-[12.5px] leading-relaxed text-[#3c4053] sm:p-5 sm:text-[13px] print:rounded-none print:border-black ${className}`}
+      className={`mx-auto w-full max-w-[820px] break-inside-avoid rounded-2xl border border-[#ececf4] bg-white p-4 text-[12.5px] leading-relaxed text-[#3c4053] sm:p-5 sm:text-[13px] print:rounded-none print:border-black ${className}`}
     >
       <div className="mb-2 italic underline underline-offset-2 text-[12px] font-semibold sm:text-[12.5px]">
         {title}:

@@ -97,14 +97,25 @@ export function JournalDocGuideOverlay() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-[72px] right-5 z-30 inline-flex h-12 items-center gap-2 rounded-full border border-[#ececf4] bg-white px-4 text-[14px] font-medium text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6] print:hidden"
+          className="group fixed bottom-[72px] right-5 z-30 inline-flex size-11 items-center justify-center rounded-full border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all duration-150 hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden"
           aria-label="Как заполнять этот журнал"
-          title="Как заполнять этот журнал"
         >
           <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">
             <BookOpen className="size-4" />
           </span>
-          Как заполнять
+          {/* R5-15: подпись «Как заполнять» была ВНУТРИ кнопки, из-за чего
+              пилюля вырастала до ~190px и накрывала ПРАВЫЙ край широких
+              таблиц (климат, холодильники, приёмка) — ровно ту зону, куда
+              уезжают последние колонки бланка. Теперь кнопка — такой же
+              круг 44px, как соседние FAB'ы поддержки и AI-помощника, а
+              подпись живёт в tooltip'е, который всплывает ВЛЕВО от кнопки
+              и в поток не попадает (`pointer-events-none`). */}
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute right-[calc(100%+10px)] whitespace-nowrap rounded-lg bg-[#0b1024] px-2.5 py-1.5 text-[12.5px] font-medium text-white opacity-0 shadow-[0_8px_24px_-8px_rgba(11,16,36,0.45)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+          >
+            Как заполнять
+          </span>
         </button>,
         document.body
       )}

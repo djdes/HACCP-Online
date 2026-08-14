@@ -621,7 +621,13 @@ export function HealthDocumentClient(props: Props) {
                   <th
                     key={dateKey}
                     data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
-                    className={`w-[58px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
+                    /* R5-4: на бумаге колонка дня сжимается, и «Сб.»
+                       ломалось ПО ТОЧКЕ — заголовок вырастал в три
+                       строки («1» / «Сб» / «.») и распирал всю шапку.
+                       Заголовок дня короткий по определению (число +
+                       двухбуквенный день недели), переносить в нём
+                       нечего, поэтому запрещаем перенос целиком. */
+                    className={`w-[58px] ${GRID_HEAD_CELL_CLASS} whitespace-nowrap px-2 py-1.5 text-center font-semibold leading-tight`}
                   >
                     <div>{getDayNumber(dateKey)}</div>
                     <div>{getWeekdayShort(dateKey)}.</div>

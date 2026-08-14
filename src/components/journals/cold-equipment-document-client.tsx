@@ -1364,8 +1364,20 @@ export function ColdEquipmentDocumentClient({
             </thead>
 
             <tbody>
+              {/* R5-2: у ячейки-заглушки под колонкой чекбоксов НЕ БЫЛО
+                  `print:hidden`, хотя сам чекбокс-столбец в печати скрыт
+                  и в шапке (`<th print:hidden>`), и в строках данных
+                  (`<td print:hidden>`).
+
+                  Из-за этого на бумаге строка несла на ОДНУ ячейку
+                  больше, чем колонок в таблице: всё содержимое съезжало
+                  вправо на столбец, «Температура °C» и служебная строка
+                  ответственного заезжали в область дней, день 1
+                  растягивался под чужую ячейку, а дни 2-15 сжимались в
+                  нитки. Скрываем заглушку ровно там же, где скрыт
+                  столбец — тогда colSpan (name + N дней) снова сходится. */}
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight print:hidden`} />
                 <td
                   className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length + 1}
@@ -1428,7 +1440,8 @@ export function ColdEquipmentDocumentClient({
               ))}
 
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
+                {/* R5-2: та же заглушка колонки чекбоксов — тоже print:hidden. */}
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`} />
                 {/* Эталон делит эту строку на две ячейки: слева оранжевая
                     служебная метка, справа расшифровка кода «С1 - ФИО»,
                     который стоит в ячейках дней. */}
