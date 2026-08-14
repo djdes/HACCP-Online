@@ -45,6 +45,7 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   DOC_AUTOFILL_LABEL_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -1451,7 +1452,9 @@ export function ClimateDocumentClient({
           status === "active" ? () => setRowDialogOpen(true) : undefined
         }
       />
-      <div className="py-4 sm:py-8">
+      {/* Q3: верхнего padding'а нет — зазор «крошки → H1» задаёт
+          `space-y-3` контейнера раздела (12px), общий для всех 13. */}
+      <div className="pb-4 sm:pb-8">
         <DocumentActionsBar
           backHref="/journals/climate_control"
           documentId={documentId}
@@ -1481,18 +1484,17 @@ export function ClimateDocumentClient({
             Раскрывать здесь больше нечего — «Нормы условий» и «Частота
             контроля» уехали строками в бумажную шапку (C1), чекбокс
             «Не заполнять в выходные дни» — в «Настройки журнала» (C3). */}
-        <div className="mb-10 rounded-[24px] bg-[#f3f4fe] px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <Switch
-              checked={checkedAutoFill}
-              onCheckedChange={handleAutoFillChange}
-              disabled={status !== "active" || isSwitching}
-              className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
-            />
-            <span className={`min-w-0 ${DOC_AUTOFILL_LABEL_CLASS}`}>
-              Автоматически заполнять журнал
-            </span>
-          </div>
+        {/* Q3: единый токен-лента вместо локального r24 + py-5. */}
+        <div className={DOC_AUTOFILL_STRIP_CLASS}>
+          <Switch
+            checked={checkedAutoFill}
+            onCheckedChange={handleAutoFillChange}
+            disabled={status !== "active" || isSwitching}
+            className="data-[state=unchecked]:bg-[#d6d9ee]"
+          />
+          <span className={`min-w-0 ${DOC_AUTOFILL_LABEL_CLASS}`}>
+            Автоматически заполнять журнал
+          </span>
         </div>
 
         {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).

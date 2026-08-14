@@ -50,6 +50,7 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
   DOC_AUTOFILL_LABEL_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
@@ -87,6 +88,7 @@ function filterUsersByBucket<T extends { role?: string | null }>(
   return users;
 }
 
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
 type UserItem = {
@@ -929,9 +931,12 @@ export function CleaningVentilationChecklistDocumentClient({
             «Настроить» справа. Резюме («3 процедуры, время …») жило второй
             строкой и делало полосу вдвое выше эталонной — расписание
             времени и так видно в панели настройки. */}
-        <div className="rounded-[28px] bg-[#f4f5fe] px-6 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
+        {/* Q3: полоса — общий токен-лента 48px. Была карточка r28 без
+            вертикальных отступов (прилипала к заголовку). Кнопка
+            «Настроить ⌄» остаётся в полосе справа, панель настроек —
+            отдельным блоком под полосой. */}
+        <div className={cn(DOC_AUTOFILL_STRIP_CLASS, panelOpen && "mb-0")}>
+            <div className="flex min-w-0 items-center gap-3">
               <Switch
                 id="cleaning-ventilation-autofill"
                 checked={config.autoFillEnabled}
@@ -953,20 +958,21 @@ export function CleaningVentilationChecklistDocumentClient({
             <button
               type="button"
               onClick={() => setPanelOpen((current) => !current)}
-              className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-2xl bg-[#5566f6]/[0.04] px-4 text-[14px] font-medium text-[#5566f6] transition-colors duration-150 hover:bg-[#5566f6]/[0.09] sm:self-auto"
+              className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#5566f6]/[0.06] px-3 text-[13.5px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#5566f6]/[0.11]"
               title={panelOpen ? "Свернуть настройки автозаполнения" : "Показать время и ответственных"}
             >
               {panelOpen ? "Свернуть" : "Настроить"}
               {panelOpen ? (
-                <ChevronUp className="size-5" />
+                <ChevronUp className="size-4" />
               ) : (
-                <ChevronDown className="size-5" />
+                <ChevronDown className="size-4" />
               )}
             </button>
           </div>
 
           {panelOpen ? (
-            <div className="mt-6 space-y-7">
+            <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-6 print:hidden md:-mx-6 md:px-6">
+            <div className="space-y-7">
               {activeProcedures.map((procedure) => (
                 <div key={procedure.id} className="space-y-4">
                   {procedure.times.map((time, index) => (
@@ -1042,8 +1048,8 @@ export function CleaningVentilationChecklistDocumentClient({
                 Не заполнять в выходные дни
               </label>
             </div>
+            </div>
           ) : null}
-        </div>
 
         {/* S8: бумажное полотно — центрированный блок ~1150px (эталон):
             шапка ХАССП, блоки «Процедура/Периодичность/Ответственные»,

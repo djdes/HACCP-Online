@@ -13,6 +13,8 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
@@ -491,13 +493,15 @@ export function FinishedProductDocumentClient({
   const todayFocusRowId = config.rows.find((row) => row.productionDateTime.slice(0, 10) === todayKey)?.id;
 
   return (
-    <div className="space-y-6 text-black">
+    <div className="text-black">
       <FocusTodayScroller
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
-      <div className="rounded-[28px] bg-white py-5 shadow-sm sm:py-7">
+      {/* Q3: белая карточка-призрак (`rounded-[28px] shadow-sm py-5 sm:py-7`)
+          вокруг шапки убрана — она давала под H1 пустой бордюр ~99px,
+          которого нет ни у эталона, ни у остальных 12 журналов. */}
         <DocumentActionsBar
-          className="mb-0"
+          className={DOC_TITLE_ROW_NO_STRIP_CLASS}
           backHref="/journals/finished_product"
           documentId={documentId}
           heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
@@ -516,17 +520,21 @@ export function FinishedProductDocumentClient({
               : []
           }
         />
-      </div>
 
       {readOnly ? (
-        <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража." />
+        <div className="mb-6">
+          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража." />
+        </div>
       ) : null}
 
       {/* Карточной обёртки (рамка + скругление) нет — как в incoming_control
           и uv_lamp_runtime и как на эталоне: документ лежит прямо на белом
           фоне раздела, горизонтальную геометрию задаёт контейнер страницы. */}
       {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
-      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} py-4 sm:py-6`}>
+      {/* Q3: `py-4 sm:py-6` снят — зазор «H1 → бумажная шапка» держит
+          DOC_TITLE_ROW_NO_STRIP_CLASS (28px), один для всех журналов
+          без полосы автозаполнения. */}
+      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
@@ -561,7 +569,7 @@ export function FinishedProductDocumentClient({
           {/* Тот же обработчик, что у пункта «Добавить изделие» в дропдауне —
               на эталоне это отдельная кнопка рядом. */}
           <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => setAddModalOpen(true)}><Plus className="size-5" strokeWidth={2.5} />Добавить изделие</Button>
-          <Button type="button" variant="outline" className="h-11 rounded-lg border-0 bg-[#f5f6ff] px-5 text-[15px] font-medium text-[#3848c7] shadow-none transition-colors duration-150 hover:bg-[#eceeff]" onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
+          <Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
           {/* Кнопки «Сохранить» нет: правки уезжают сами (см. commitConfig). */}
           {isAutoSaving || isSaving || isPending ? (
             <span className="text-[13px] text-[#6f7282]">Сохранение…</span>

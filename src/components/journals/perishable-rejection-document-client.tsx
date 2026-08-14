@@ -8,6 +8,8 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
@@ -634,11 +636,14 @@ export function PerishableRejectionDocumentClient({
   );
 
   return (
-    <div className="space-y-6 text-black">
+    <div className="text-black">
       <FocusTodayScroller
         onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
       />
+      {/* Q3: `space-y-6` на корне снят — вертикальный ритм задают токены
+          DOC_* (иначе зазор H1 → шапка «плавал» между 24 и 28px). */}
       <DocumentActionsBar
+        className={DOC_TITLE_ROW_NO_STRIP_CLASS}
         backHref="/journals/perishable_rejection"
         documentId={documentId}
         heading={<h1 className={DOC_HEADING_CLASS}>{settingsTitle}</h1>}
@@ -658,7 +663,9 @@ export function PerishableRejectionDocumentClient({
         }
       />
       {readOnly ? (
-        <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
+        <div className="mb-6">
+          <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
+        </div>
       ) : null}
 
       {/* Обёртка — как у finished_product: без карточной рамки и без
@@ -666,7 +673,7 @@ export function PerishableRejectionDocumentClient({
           таблицу по правому краю: горизонтальный скролл живёт ВНУТРИ
           GRID_VIEWPORT_CLASS, а внешний клип его перекрывал. */}
       {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
-      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS} py-4 sm:py-6`}>
+      <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         {/* HACCP header table */}
         <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
           <tbody>
@@ -748,7 +755,7 @@ export function PerishableRejectionDocumentClient({
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-xl border-0 bg-[#f5f6ff] px-3.5 text-[13.5px] text-[#3848c7] transition-colors hover:bg-[#eceeff]"
+            className={DOC_SECONDARY_BUTTON_CLASS}
             onClick={() => setListModalOpen(true)}
             disabled={readOnly}
           >

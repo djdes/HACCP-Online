@@ -1920,18 +1920,17 @@ export function CleaningDocumentClient(props: Props) {
             «Ответственный за уборку/контроль» и чекбокс «Не заполнять в
             выходные» переехали в «Настройки документа» (cleaning-11) —
             их меняют раз в месяц, а место в полосе они занимали всегда. */}
-        <section className={`${DOC_AUTOFILL_STRIP_CLASS} border border-[#ececf4] bg-[#f5f6ff]`}>
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={config.autoFill.enabled}
-              onCheckedChange={toggleAutoFill}
-              disabled={props.status !== "active" || saving}
-              className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d4d8ec]"
-            />
-            <span className={DOC_AUTOFILL_LABEL_CLASS}>
-              Автоматически заполнять журнал
-            </span>
-          </div>
+        {/* Q3: рамка и свой фон #f5f6ff сняты — только общий токен-лента. */}
+        <section className={DOC_AUTOFILL_STRIP_CLASS}>
+          <Switch
+            checked={config.autoFill.enabled}
+            onCheckedChange={toggleAutoFill}
+            disabled={props.status !== "active" || saving}
+            className="data-[state=unchecked]:bg-[#d4d8ec]"
+          />
+          <span className={DOC_AUTOFILL_LABEL_CLASS}>
+            Автоматически заполнять журнал
+          </span>
         </section>
 
         {/* Тулбар «Добавить»/«Заполнение»/«Выделение» и race-strip уборки

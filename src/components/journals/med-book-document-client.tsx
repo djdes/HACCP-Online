@@ -6,6 +6,8 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
@@ -671,6 +673,7 @@ export function MedBookDocumentClient({
     <div className={DOC_BODY_STACK_CLASS}>
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       <DocumentActionsBar
+        className={DOC_TITLE_ROW_NO_STRIP_CLASS}
         backHref="/journals/med_books"
         documentId={documentId}
         heading={<h1 className={DOC_HEADING_CLASS}>{docTitle}</h1>}
@@ -809,7 +812,7 @@ export function MedBookDocumentClient({
             <Button
               type="button"
               variant="outline"
-              className="h-11 gap-2 rounded-lg border-0 bg-[#5566f6]/[0.06] px-5 text-[15px] font-semibold text-[#5566f6] shadow-none transition-colors hover:bg-[#5566f6]/[0.11]"
+              className={DOC_SECONDARY_BUTTON_CLASS}
               onClick={() => void addExamColumn()}
             >
               <Plus className="size-5" strokeWidth={2.5} />

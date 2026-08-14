@@ -30,6 +30,7 @@ import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_HEADING_CLASS,
   DOC_TITLE_ROW_CLASS,
   DOC_AUTOFILL_LABEL_CLASS,
@@ -685,6 +686,14 @@ export function StaffJournalToolbar({
       <div className={DOC_BODY_STACK_CLASS}>
         {showHeaderActions && routeCode ? (
           <DocumentActionsBar
+            // Q3: без полосы автозаполнения (журнал здоровья, закрытый
+            // документ) H1 упирается прямо в бумажную шапку — эталонный
+            // зазор там 28px, а не 20px «до полосы».
+            className={
+              hideAutoFill || status !== "active"
+                ? DOC_TITLE_ROW_NO_STRIP_CLASS
+                : undefined
+            }
             backHref={`/journals/${routeCode}`}
             documentId={documentId}
             showPrint={!hidePrint}
@@ -755,21 +764,19 @@ export function StaffJournalToolbar({
             «Добавить» здесь больше НЕ рендерится: её место — над таблицей
             (<StaffJournalAddButton>, см. hygiene/health-document-client). */}
         {status === "active" && !hideAutoFill ? (
+          // H5/Q3 аудита: у эталона полоса — лента 48px, подпись 15px/600,
+          // тумблер штатного размера (44×24), зазор до подписи 12px.
+          // Вся геометрия живёт в DOC_AUTOFILL_STRIP_CLASS.
           <div className={DOC_AUTOFILL_STRIP_CLASS}>
-            {/* H5 аудита: у эталона полоса ~48px, подпись 15px/600 и тумблер
-                штатного размера (44×24). Раньше здесь стоял увеличенный
-                тумблер 64×40 и подпись 20px/500 — полоса выходила ~62px. */}
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={checked}
-                onCheckedChange={handleAutoFill}
-                disabled={isSwitching}
-                className="data-[state=unchecked]:bg-[#d6d9ee]"
-              />
-              <span className={DOC_AUTOFILL_LABEL_CLASS}>
-                Автоматически заполнять журнал
-              </span>
-            </div>
+            <Switch
+              checked={checked}
+              onCheckedChange={handleAutoFill}
+              disabled={isSwitching}
+              className="data-[state=unchecked]:bg-[#d6d9ee]"
+            />
+            <span className={DOC_AUTOFILL_LABEL_CLASS}>
+              Автоматически заполнять журнал
+            </span>
           </div>
         ) : null}
       </div>

@@ -363,7 +363,9 @@ export function HealthDocumentClient(props: Props) {
         }
       `}</style>
 
-      <div className="health-sheet py-4 sm:py-6">
+      {/* Q3: верхнего padding'а нет — «крошки → H1» задаёт `space-y-3`
+          контейнера раздела (12px), один для всех 13 журналов. */}
+      <div className="health-sheet pb-4 sm:pb-6">
         {/* Нижний отступ этого блока задаёт полоса автозаполнения внутри
             <StaffJournalToolbar> (DOC_AUTOFILL_STRIP_CLASS, 40px до бумажной
             шапки) — свой mb здесь удваивал бы канон. */}

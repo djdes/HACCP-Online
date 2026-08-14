@@ -43,6 +43,7 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
@@ -847,6 +848,7 @@ export function SanitationDayDocumentClient({
     <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
       <DocumentActionsBar
+        className={DOC_TITLE_ROW_NO_STRIP_CLASS}
         backHref={journalHref}
         documentId={documentId}
         heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}

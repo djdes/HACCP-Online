@@ -4,6 +4,7 @@ import { checkCronSecret } from "@/lib/cron-auth";
 import {
   closeExpiredDocuments,
   ensureActiveDocument,
+  ensureCurrentDocumentsForBrokenChains,
   ensureNextPeriodDocument,
 } from "@/lib/journal-auto-create";
 
@@ -17,6 +18,11 @@ export const dynamic = "force-dynamic";
  *   0. closeExpiredDocuments — закрывает active-документы прошлых
  *      периодов, у которых уже есть документ-преемник (perpetual/
  *      yearly не трогаем). Выполняется для всех org.
+ *   0b. ensureCurrentDocumentsForBrokenChains — журналы, у которых
+ *      документы были, но последний истёк и преемника нет. Создаёт
+ *      документ текущего периода, наследуя ответственных из последнего.
+ *      Тоже для всех org: без этого журнал, которого нет в
+ *      autoJournalCodes, после автозакрытия оставался пустым навсегда.
  *
  * Далее — для каждой org с непустым `autoJournalCodes`:
  *   1. ensureActiveDocument — гарантирует что есть документ на текущий
@@ -39,8 +45,10 @@ async function handle(request: Request) {
   let totalCurrentCreated = 0;
   let totalNextCreated = 0;
   let totalClosed = 0;
+  let totalChainsRestored = 0;
   let orgsTouched = 0;
   const errors: string[] = [];
+  const restoredCodes = new Set<string>();
 
   for (const org of orgs) {
     // Догоняющий шаг: документы прошлых периодов, у которых уже есть
@@ -55,6 +63,27 @@ async function handle(request: Request) {
     } catch (err) {
       errors.push(
         `org=${org.id} close-expired: ${(err as Error).message ?? "ошибка"}`
+      );
+    }
+
+    // Догоняющий шаг №2: журналы с ПРЕРВАННОЙ цепочкой. Документы у них
+    // были, но последний уже истёк, а преемника никто не создал —
+    // например потому что кода нет в `autoJournalCodes`. Без этого шага
+    // шаг закрытия выше просто опустошал журнал: вчера в проде было
+    // «закрыто 32, создано 0». Делаем для ВСЕХ орг, до и независимо от
+    // autoJournalCodes.
+    try {
+      const restored = await ensureCurrentDocumentsForBrokenChains(db, {
+        organizationId: org.id,
+      });
+      for (const report of restored) {
+        if (!report.created) continue;
+        totalChainsRestored += 1;
+        restoredCodes.add(report.code);
+      }
+    } catch (err) {
+      errors.push(
+        `org=${org.id} broken-chains: ${(err as Error).message ?? "ошибка"}`
       );
     }
 
@@ -94,6 +123,8 @@ async function handle(request: Request) {
     currentDocumentsCreated: totalCurrentCreated,
     nextPeriodDocumentsCreated: totalNextCreated,
     expiredDocumentsClosed: totalClosed,
+    brokenChainsRestored: totalChainsRestored,
+    brokenChainCodes: [...restoredCodes].sort(),
     errors: errors.slice(0, 10),
   });
 }

@@ -34,6 +34,10 @@ import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 export function JournalDocGuideOverlay() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // Портал в body доступен только после гидрации — иначе SSR и клиент
+  // рендерят разное дерево.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Detect /journals/<code>/documents/... and extract code.
   const code = useMemo(() => {
@@ -68,21 +72,32 @@ export function JournalDocGuideOverlay() {
   }, [open]);
 
   if (!code || !guide) return null;
+  if (!mounted || typeof document === "undefined") return null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-5 left-5 z-30 inline-flex h-12 items-center gap-2 rounded-full border border-[#ececf4] bg-white px-4 text-[14px] font-medium text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6]"
-        aria-label="Как заполнять этот журнал"
-        title="Как заполнять этот журнал"
-      >
-        <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">
-          <BookOpen className="size-4" />
-        </span>
-        Как заполнять
-      </button>
+      {/* Q3: кнопка ПОРТАЛИТСЯ в body. Раньше она рендерилась внутри
+          обёртки раздела журналов (`journals/[code]/layout.tsx`), у
+          которой стоит `-translate-x-1/2` — а любой transform создаёт
+          containing block для `position: fixed`. Из-за этого `bottom-5`
+          отсчитывался не от окна, а от НИЗА всей длинной страницы
+          документа: кнопка была видна только на коротких журналах
+          (3 из 13), на остальных уезжала на несколько экранов вниз. */}
+      {createPortal(
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 left-5 z-30 inline-flex h-12 items-center gap-2 rounded-full border border-[#ececf4] bg-white px-4 text-[14px] font-medium text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6]"
+          aria-label="Как заполнять этот журнал"
+          title="Как заполнять этот журнал"
+        >
+          <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">
+            <BookOpen className="size-4" />
+          </span>
+          Как заполнять
+        </button>,
+        document.body
+      )}
 
       {open ? <GuideSheet guide={guide} onClose={() => setOpen(false)} /> : null}
     </>

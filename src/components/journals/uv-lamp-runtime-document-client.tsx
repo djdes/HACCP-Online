@@ -1375,10 +1375,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Полоса автозаполнения — сразу под строкой заголовка (эталон). */}
       {props.status === "active" && (
         <div className={DOC_AUTOFILL_STRIP_CLASS}>
-          <div className="flex items-center gap-3">
-            <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
-            <span className={DOC_AUTOFILL_LABEL_CLASS}>Автоматически заполнять журнал</span>
-          </div>
+          <Switch checked={autoFill} onCheckedChange={(checked) => void handleAutoFillChange(checked)} />
+          <span className={DOC_AUTOFILL_LABEL_CLASS}>Автоматически заполнять журнал</span>
         </div>
       )}
 

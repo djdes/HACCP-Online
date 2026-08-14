@@ -198,6 +198,52 @@ export async function closeExpiredDocuments(
   return { closed: closedIds.length, documentIds: closedIds };
 }
 
+/**
+ * Ответственный и проверяющий из ПОСЛЕДНЕГО документа шаблона. Оба
+ * проверяются на «всё ещё сотрудник этой организации и активен» —
+ * иначе новый документ получил бы ссылку на уволенного.
+ */
+async function inheritResponsiblesFromLastDocument(
+  db: PrismaClient,
+  args: { organizationId: string; templateId: string }
+): Promise<{ responsibleUserId: string | null; verifierUserId: string | null }> {
+  const last = await db.journalDocument.findFirst({
+    where: {
+      organizationId: args.organizationId,
+      templateId: args.templateId,
+    },
+    orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
+    select: { responsibleUserId: true, verifierUserId: true },
+  });
+  if (!last) return { responsibleUserId: null, verifierUserId: null };
+
+  const candidateIds = [last.responsibleUserId, last.verifierUserId].filter(
+    (id): id is string => Boolean(id)
+  );
+  if (candidateIds.length === 0) {
+    return { responsibleUserId: null, verifierUserId: null };
+  }
+  const alive = await db.user.findMany({
+    where: {
+      id: { in: candidateIds },
+      organizationId: args.organizationId,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const aliveIds = new Set(alive.map((user) => user.id));
+  return {
+    responsibleUserId:
+      last.responsibleUserId && aliveIds.has(last.responsibleUserId)
+        ? last.responsibleUserId
+        : null,
+    verifierUserId:
+      last.verifierUserId && aliveIds.has(last.verifierUserId)
+        ? last.verifierUserId
+        : null,
+  };
+}
+
 export type CreateReport = {
   code: string;
   name: string;
@@ -212,6 +258,15 @@ export async function ensureActiveDocument(
     organizationId: string;
     templateCode: string;
     now?: Date;
+    /**
+     * Если у журнала нет назначенных в /settings/journal-responsibles
+     * ответственных — взять их из ПОСЛЕДНЕГО документа этого шаблона.
+     * Нужно догоняющему созданию по прерванной цепочке: там документ
+     * рождается через год после предыдущего, и терять ответственных
+     * предыдущего документа нельзя. Пользователь всё ещё должен
+     * состоять в организации и быть активным.
+     */
+    inheritResponsiblesFromLastDocument?: boolean;
   }
 ): Promise<CreateReport> {
   const now = args.now ?? new Date();
@@ -290,6 +345,12 @@ export async function ensureActiveDocument(
     period.dateTo,
     now,
   );
+  const inherited = args.inheritResponsiblesFromLastDocument
+    ? await inheritResponsiblesFromLastDocument(db, {
+        organizationId: args.organizationId,
+        templateId: template.id,
+      })
+    : { responsibleUserId: null, verifierUserId: null };
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -300,8 +361,9 @@ export async function ensureActiveDocument(
       status: "active",
       autoFill: false,
       config: planCfg as never,
-      responsibleUserId: prefill.responsibleUserId,
-      verifierUserId: prefill.verifierUserId,
+      responsibleUserId:
+        prefill.responsibleUserId ?? inherited.responsibleUserId,
+      verifierUserId: prefill.verifierUserId ?? inherited.verifierUserId,
     },
     select: { id: true, dateFrom: true, dateTo: true },
   });
@@ -311,7 +373,7 @@ export async function ensureActiveDocument(
     organizationId: args.organizationId,
     dateFrom: doc.dateFrom,
     dateTo: doc.dateTo,
-    responsibleUserId: prefill.responsibleUserId,
+    responsibleUserId: prefill.responsibleUserId ?? inherited.responsibleUserId,
   }).catch((err) => {
     console.warn(
       `[journal-auto-create] seedEntries failed for ${args.templateCode}`,
@@ -543,4 +605,105 @@ export async function ensureNextPeriodDocument(
     documentId: doc.id,
     reason: "next-period-created",
   };
+}
+
+/**
+ * Догоняющий шаг для ПРЕРВАННОЙ ЦЕПОЧКИ документов.
+ *
+ * Баг, который он чинит: ежедневный cron создавал документы только по
+ * `Organization.autoJournalCodes`. Журналы, которых нет в этом списке
+ * (или орг, у которой список пуст вообще), после закрытия последнего
+ * документа оставались БЕЗ активного документа навсегда: шаг
+ * `closeExpiredDocuments` их закрывал, а создавать было некому.
+ * В проде это выглядело так: за ночь закрыто 32 просроченных документа
+ * и создано 0 новых — журналы просто опустели.
+ *
+ * Правило: если у организации КОГДА-ЛИБО был документ этого шаблона
+ * (значит журнал документный и им пользовались), но сейчас нет ни
+ * одного документа, покрывающего сегодня или будущее, — создаём
+ * документ на ТЕКУЩИЙ период (периоды берутся из journal-period.ts с
+ * учётом per-org override'ов). Ответственные наследуются из последнего
+ * документа, если в /settings/journal-responsibles ничего не задано.
+ *
+ * Что НЕ трогаем:
+ *   • шаблоны без единого документа в орге — журналом не пользовались,
+ *     навязывать его не надо;
+ *   • `perpetual` (дезсредства, чек-лист сан-дня) — такой документ не
+ *     истекает по календарю, его закрывают только руками, и повторное
+ *     создание спорило бы с решением менеджера;
+ *   • неактивные шаблоны (`JournalTemplate.isActive = false`).
+ *
+ * Идемпотентно: после создания документ покрывает сегодня, и повторный
+ * вызов пропускает шаблон с `reason="has-current-document"`.
+ */
+export async function ensureCurrentDocumentsForBrokenChains(
+  db: PrismaClient,
+  args: {
+    organizationId: string;
+    now?: Date;
+  }
+): Promise<CreateReport[]> {
+  const now = args.now ?? new Date();
+  const todayUtcStart = startOfUtcDay(now);
+
+  // Один запрос вместо N: шаблоны, у которых в этой орге есть хоть один
+  // документ, вместе с самой поздней датой окончания.
+  const groups = await db.journalDocument.groupBy({
+    by: ["templateId"],
+    where: { organizationId: args.organizationId },
+    _max: { dateTo: true },
+  });
+  if (groups.length === 0) return [];
+
+  const overrides = await loadPeriodOverrides(db, args.organizationId);
+  const templates = await db.journalTemplate.findMany({
+    where: { id: { in: groups.map((group) => group.templateId) } },
+    select: { id: true, code: true, name: true, isActive: true },
+  });
+  const templateById = new Map(templates.map((tpl) => [tpl.id, tpl]));
+
+  const reports: CreateReport[] = [];
+  for (const group of groups) {
+    const template = templateById.get(group.templateId);
+    if (!template || !template.isActive) continue;
+
+    // Есть документ, который покрывает сегодня или начинается позже —
+    // цепочка цела (в т.ч. look-ahead документ на следующий период).
+    const maxDateTo = group._max.dateTo;
+    if (maxDateTo && maxDateTo.getTime() >= todayUtcStart.getTime()) {
+      reports.push({
+        code: template.code,
+        name: template.name,
+        created: false,
+        documentId: "",
+        reason: "has-current-document",
+      });
+      continue;
+    }
+
+    const kind: JournalPeriodKind =
+      overrides[template.code]?.kind ?? resolveJournalPeriodKind(template.code);
+    if (kind === "perpetual") {
+      reports.push({
+        code: template.code,
+        name: template.name,
+        created: false,
+        documentId: "",
+        reason: "perpetual-manual-only",
+      });
+      continue;
+    }
+
+    const report = await ensureActiveDocument(db, {
+      organizationId: args.organizationId,
+      templateCode: template.code,
+      now,
+      inheritResponsiblesFromLastDocument: true,
+    });
+    reports.push(
+      report.created ? { ...report, reason: "broken-chain-restored" } : report
+    );
+  }
+
+  return reports;
 }

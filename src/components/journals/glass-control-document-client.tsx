@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DOC_AUTOFILL_LABEL_CLASS } from "@/components/journals/journal-responsive";
+import {
+  DOC_AUTOFILL_LABEL_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
+} from "@/components/journals/journal-responsive";
 import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -903,21 +906,24 @@ export function GlassControlDocumentClient(props: Props) {
           {config.documentName || props.title || GLASS_CONTROL_DOCUMENT_TITLE}
         </h1>
 
-        <div className="mt-6 rounded-[18px] bg-[#f6f7ff] px-5 py-4 print:hidden">
-          <label className={`flex items-center gap-4 ${DOC_AUTOFILL_LABEL_CLASS}`}>
-            <Switch
-              checked={autoFill}
-              onCheckedChange={(checked) => {
-                void syncAutoFill(Boolean(checked));
-              }}
-              disabled={isClosed}
-            />
+        {/* Q3: та же лента, что и в 13 обязательных журналах — свой
+            r18 + фон #f6f7ff + gap-4 сняты. Нижний зазор (40px) даёт
+            сам токен, поэтому у бумажного полотна ниже `mt-10` больше нет. */}
+        <label className={`${DOC_AUTOFILL_STRIP_CLASS} mt-5 cursor-pointer`}>
+          <Switch
+            checked={autoFill}
+            onCheckedChange={(checked) => {
+              void syncAutoFill(Boolean(checked));
+            }}
+            disabled={isClosed}
+          />
+          <span className={DOC_AUTOFILL_LABEL_CLASS}>
             Автоматически заполнять журнал
-          </label>
-        </div>
+          </span>
+        </label>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="mx-auto mt-10 min-w-[1100px] max-w-[1160px] space-y-8 print:mt-6 sm:min-w-0">
+        <div className="mx-auto min-w-[1100px] max-w-[1160px] space-y-8 sm:min-w-0">
           <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
@@ -79,6 +80,7 @@ import { JournalClosedBanner } from "@/components/journals/journal-closed-banner
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
 
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -962,7 +964,8 @@ export function ColdEquipmentDocumentClient({
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller />
-      <div className="py-8">
+      {/* Q3: верхнего padding'а нет — «крошки → H1» задаёт контейнер раздела. */}
+      <div className="pb-8">
         <DocumentActionsBar
           backHref="/journals/cold_equipment_control"
           documentId={documentId}
@@ -999,36 +1002,48 @@ export function ColdEquipmentDocumentClient({
           </div>
         ) : null}
 
-        <div className="mb-10 rounded-[32px] bg-[#f5f6ff] px-8 py-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={checkedAutoFill}
-                onCheckedChange={handleAutoFillChange}
-                disabled={status !== "active" || isSwitching}
-                className="h-10 w-18 data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
-              />
-              <span className={DOC_AUTOFILL_LABEL_CLASS}>
-                Автоматически заполнять журнал
-              </span>
-            </div>
+        {/* Q3: полоса — общий токен-лента 48px (был свой r32 + p-8 + фон
+            #f5f6ff и НЕВАЛИДНЫЙ `h-10 w-18` на тумблере). Раскрывающаяся
+            панель норм вынесена отдельным блоком ПОД полосой, чтобы сама
+            полоса всегда держала эталонную высоту. */}
+        <div
+          className={cn(
+            DOC_AUTOFILL_STRIP_CLASS,
+            // Панель норм примыкает снизу — 40px до бумажной шапки
+            // отдаёт она, иначе лента разрывалась бы пополам.
+            // `cn` (tailwind-merge), а не конкатенация: в голой строке
+            // `mb-0` не победил бы `mb-10` — исход решает порядок правил
+            // в CSS, а не в атрибуте.
+            checkedAutoFill && summaryOpen && "mb-0"
+          )}
+        >
+          <Switch
+            checked={checkedAutoFill}
+            onCheckedChange={handleAutoFillChange}
+            disabled={status !== "active" || isSwitching}
+            className="data-[state=unchecked]:bg-[#d6d9ee]"
+          />
+          <span className={DOC_AUTOFILL_LABEL_CLASS}>
+            Автоматически заполнять журнал
+          </span>
 
-            {checkedAutoFill ? (
-              <button
-                type="button"
-                onClick={() => setSummaryOpen((value) => !value)}
-                className="flex size-12 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
-              >
-                {summaryOpen ? <ChevronUp className="size-7" /> : <ChevronDown className="size-7" />}
-              </button>
-            ) : null}
-          </div>
+          {checkedAutoFill ? (
+            <button
+              type="button"
+              onClick={() => setSummaryOpen((value) => !value)}
+              className="ml-auto flex size-8 items-center justify-center rounded-full text-[#5566f6] hover:bg-white/70"
+            >
+              {summaryOpen ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
+            </button>
+          ) : null}
+        </div>
 
-          {/* Панель норм — СТРОКИ (~52px), а не карточки по 120px.
-              Карандаши убраны: по строке кликают целиком. Последняя
-              строка — селект «ФИО отв. лица», как на эталоне. */}
-          {checkedAutoFill && summaryOpen ? (
-            <div className="mt-5 space-y-1.5">
+        {/* Панель норм — СТРОКИ (~52px), а не карточки по 120px.
+            Карандаши убраны: по строке кликают целиком. Последняя
+            строка — селект «ФИО отв. лица», как на эталоне. */}
+        {checkedAutoFill && summaryOpen ? (
+          <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-4 print:hidden md:-mx-6 md:px-6">
+            <div className="space-y-1.5">
               {config.equipment.map((item) => (
                 <button
                   key={item.id}
@@ -1097,8 +1112,8 @@ export function ColdEquipmentDocumentClient({
                 ) : null}
               </div>
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {/* Кнопка «Добавить ХО» переехала под КАПС-заголовок, вплотную
             над таблицу — как на эталоне. В mobile-cards ветке она

@@ -813,7 +813,10 @@ export function HygieneDocumentClient({
         }`}
       >
       <div className={GRID_VIEWPORT_CLASS}>
-        <div className="hygiene-sheet min-w-[1100px] py-6 sm:min-w-0">
+        {/* Q3: `py-6` добавлял 24px СВЕРХУ к 40px полосы автозаполнения —
+            H1 → бумажная шапка выходил 65px вместо канонических 41.
+            Верхний отступ задаёт полоса, тут остаётся только нижний. */}
+        <div className="hygiene-sheet min-w-[1100px] pb-6 sm:min-w-0">
 
         <div className="hygiene-page">
           <div>

@@ -14,13 +14,14 @@ import Link from "next/link";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
-  DOC_FILTER_STRIP_CLASS,
   DOC_BODY_STACK_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -2309,20 +2310,25 @@ export function AcceptanceDocumentClient(props: Props) {
         {isProductAcceptance ? (
           // Radix Switch — это <button>, поэтому обёртка <label> его бы не
           // переключала по клику на текст: вешаем подпись на htmlFor.
-          <div className={`${DOC_FILTER_STRIP_CLASS} flex items-center gap-4 text-[16px]`}>
+          // Q3: та же геометрия, что у полосы автозаполнения (48px, gap-3,
+          // подпись 15px/600) — раньше лента была 56px с подписью 16px/400.
+          <div className={DOC_AUTOFILL_STRIP_CLASS}>
             <Switch
               id="acceptance-sort-by-expiry"
               checked={sortByExpiry}
               onCheckedChange={(checked) => setSortByExpiry(checked === true)}
             />
-            <label htmlFor="acceptance-sort-by-expiry" className="cursor-pointer select-none">
+            <label
+              htmlFor="acceptance-sort-by-expiry"
+              className={`cursor-pointer select-none ${DOC_AUTOFILL_LABEL_CLASS}`}
+            >
               Сортировать по сроку годности
             </label>
           </div>
         ) : (
-          <label className={`${DOC_AUTOFILL_STRIP_CLASS} flex cursor-pointer items-center gap-4 text-[16px]`}>
+          <label className={`${DOC_AUTOFILL_STRIP_CLASS} cursor-pointer`}>
             <Checkbox checked={sortByExpiry} onCheckedChange={(checked) => setSortByExpiry(checked === true)} />
-            <span>Сортировать по сроку годности</span>
+            <span className={DOC_AUTOFILL_LABEL_CLASS}>Сортировать по сроку годности</span>
           </label>
         )}
 
@@ -2394,7 +2400,7 @@ export function AcceptanceDocumentClient(props: Props) {
               <Plus className="size-5" strokeWidth={2.5} /> Добавить
             </Button>
 
-            <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors duration-150 hover:bg-[#5566f6]/[0.09]" onClick={() => setEditListsOpen(true)}>
+            <Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setEditListsOpen(true)}>
               Редактировать списки
             </Button>
 

@@ -16,6 +16,8 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
@@ -585,8 +587,10 @@ export function FryerOilDocumentClient(props: Props) {
             : undefined
         }
       />
-      <div className={`${DOC_BODY_STACK_CLASS} py-8`}>
+      {/* Q3: верхнего padding'а нет — «крошки → H1» задаёт контейнер раздела. */}
+      <div className={`${DOC_BODY_STACK_CLASS} pb-8`}>
         <DocumentActionsBar
+          className={DOC_TITLE_ROW_NO_STRIP_CLASS}
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}
           heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
@@ -631,7 +635,7 @@ export function FryerOilDocumentClient(props: Props) {
             </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
             <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
-            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
+            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
                 count={selectedIds.length}

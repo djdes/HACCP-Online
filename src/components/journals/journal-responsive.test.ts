@@ -3,7 +3,10 @@ import test from "node:test";
 
 import {
   DOC_ADD_ROW_CLASS,
+  DOC_AUTOFILL_LABEL_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
+  DOC_SECONDARY_BUTTON_CLASS,
+  DOC_TITLE_ROW_NO_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
   DOC_EXTRA_BLOCK_CLASS,
   DOC_LEGEND_CLASS,
@@ -212,4 +215,44 @@ test("autofill strip keeps the reference height", () => {
   // H5 аудита: полоса ~48px = штатный тумблер 44×24 + 12px паддинга.
   assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bpy-3\b/);
   assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /sm:py-4/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /min-h-\[48px\]/);
+});
+
+test("autofill strip is one full-bleed ribbon, never a rounded card", () => {
+  // Q3: эталон рисует ОДНУ ленту во всю ширину контентной колонки —
+  // без скругления и без собственной рамки. До этого журналы держали
+  // r32+p-8 (cold_equipment), r28 (вентиляция), r24 (климат), рамку
+  // и фон #f5f6ff (уборка) — полоса выглядела по-разному на каждой
+  // странице.
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /-mx-4/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /md:-mx-6/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /bg-\[#f3f4fe\]/);
+  assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /rounded/);
+  assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /\bborder\b/);
+  // Зазор тумблер → подпись — 12px, один на все 13 журналов.
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bflex\b/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bitems-center\b/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bgap-3\b/);
+  assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /\bgap-4\b/);
+  // Подпись — 15px/600.
+  assert.match(DOC_AUTOFILL_LABEL_CLASS, /text-\[15px\]/);
+  assert.match(DOC_AUTOFILL_LABEL_CLASS, /font-semibold/);
+});
+
+test("journals without the strip keep a single 28px title gap", () => {
+  // Q3: было 28/49/52/81 — каждый такой журнал добирал зазор своей
+  // обёрткой с `py-*`. Теперь один override-токен на строку заголовка.
+  assert.equal(DOC_TITLE_ROW_NO_STRIP_CLASS, "mb-7");
+});
+
+test("secondary row button matches the primary 44px row height", () => {
+  // Q3: «Редактировать список(и)» жила в пяти спецификациях
+  // (44/40/36/36px, три фона, три кегля). Ряд «Добавить» — один рост.
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /\bh-11\b/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /rounded-lg/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /bg-\[#f5f6ff\]/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /hover:bg-\[#eef0ff\]/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /text-\[15px\]/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /font-semibold/);
+  assert.match(DOC_SECONDARY_BUTTON_CLASS, /text-\[#5566f6\]/);
 });
